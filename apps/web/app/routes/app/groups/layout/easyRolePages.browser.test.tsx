@@ -95,7 +95,7 @@ describe("the easy roles' Planner", () => {
     expect(document.querySelector("nav[data-tab-bar]")).toBeNull();
     // No Add, tabs, filters or row menus, and no filter links on the rows.
     expect(page.getByRole("button", { name: "Add" }).elements()).toHaveLength(0);
-    expect(page.getByRole("navigation", { name: "Planner or todos" }).elements()).toHaveLength(0);
+    expect(page.getByRole("navigation", { name: "Upcoming, past or todos" }).elements()).toHaveLength(0);
     expect(page.getByRole("button", { name: /^Filter/ }).elements()).toHaveLength(0);
     expect(document.querySelectorAll('main button[aria-label^="Actions for"]')).toHaveLength(0);
     expect(document.querySelectorAll('main a[aria-label^="Show only"]')).toHaveLength(0);

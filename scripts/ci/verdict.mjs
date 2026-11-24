@@ -6,6 +6,10 @@
 // still failing after its rerun), `infra` (a job that died before any test, or
 // never ran), `file` (any other real failure), `flake` (passed on the rerun),
 // `green`. Infra outranks file and flake: with a job missing, the rest is partial.
+// A browser check is named by its spec's path, as a file with no test name: one
+// that failed its rerun is a failure, one that passed it a flake, and one that
+// never ran (the job's time ran out) infra. On `release` the three suite runs read
+// as one (release.mjs), and the second zone only reports unless its setting is `block`.
 //
 //   node scripts/ci/verdict.mjs summarize <vitest.json>…   prints `failures=<json>`
 //     for $GITHUB_OUTPUT: each report with its .rerun.json and .quarantine.json,
@@ -16,7 +20,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
 
 import { isBrake, isQuarantined, readLists } from "./lists.mjs";
-import { NARROWED_FILE, jobsFor, narrowedJobs } from "./tiers.mjs";
+import { BROWSER_RUNS, ZONE_JOBS, combineRepeats, summarizeZone } from "./release.mjs";
+import { FORCED_FLAKE_FILE, NARROWED_FILE, jobsFor, narrowedJobs } from "./tiers.mjs";
+import { SECOND_ZONE, SECOND_ZONE_MODE } from "./zones.mjs";
 
 export const VERDICT_VERSION = 1;
 /** Kept in a job output: GitHub limits them, and the verdict needs names, not logs. */
@@ -149,12 +155,31 @@ const CHECK_JOBS = new Set(["static", "build"]);
 /**
  * @typedef {{ result?: string, outputs?: Record<string, string> }} NeededJob
  * @typedef {{ file: string, name: string, item?: string }} Listed
- * @param {{ commit: string, runId: string, tier: string, needs: Record<string, NeededJob>, brakes?: string[], quarantine?: Listed[], narrowed?: { target: string, files: string[] } | null }} run
+ * @param {{ commit: string, runId: string, tier: string, needs: Record<string, NeededJob>, brakes?: string[], quarantine?: Listed[], narrowed?: { target: string, files: string[] } | null, forcedFlake?: string | null, zoneMode?: string }} run
  */
-export function buildVerdict({ commit, runId, tier, needs, brakes = [], quarantine = [], narrowed = null }) {
+export function buildVerdict({
+  commit,
+  runId,
+  tier,
+  needs,
+  brakes = [],
+  quarantine = [],
+  narrowed = null,
+  forcedFlake = null,
+  zoneMode = SECOND_ZONE_MODE,
+}) {
   const { ranTier, jobs: tierJobs } = jobsFor(tier);
-  const jobs = narrowed ? narrowedJobs(narrowed.files) : tierJobs;
   const entries = /** @type {import("./lists.mjs").QuarantineEntry[]} */ (quarantine);
+  const release = ranTier === "release" && !narrowed;
+  const secondZone = release
+    ? summarizeZone(needs, { zone: SECOND_ZONE, mode: zoneMode, quarantine: entries })
+    : null;
+  const skipped = /** @type {string[]} */ ([
+    ...(release ? BROWSER_RUNS.slice(1) : []),
+    ...(release && zoneMode !== "block" ? ZONE_JOBS : []),
+  ]);
+  const jobs = (narrowed ? narrowedJobs(narrowed.files) : tierJobs).filter((j) => !skipped.includes(j));
+  const read = release ? { ...needs, browser: combineRepeats(needs) } : needs;
 
   /** @type {Set<string>} */ const failedJobs = new Set();
   /** @type {string[]} */ const infraJobs = [];
@@ -167,7 +192,9 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
   /** @type {{ job: string, file: string, name: string, status: string }[]} */ const quarantined = [];
   let truncated = false;
   let reran = false;
-  let unnamedFailure = false;
+  /** @type {string[]} */ const unnamedJobs = [];
+  /** @type {{ check: string, result: string }[] | null} */ let browser = null;
+  /** @type {string[]} */ const notRun = [];
 
   if (needs.plan?.result !== "success") {
     failedJobs.add("plan");
@@ -175,11 +202,12 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
   }
 
   for (const job of jobs) {
-    const need = needs[job];
+    const need = read[job];
     const summary = parseFailures(need?.outputs?.failures);
     if (need?.outputs?.failures && !summary) truncated = true;
     truncated ||= !!summary?.truncated;
     for (const q of summary?.quarantined ?? []) quarantined.push({ job, ...q });
+    if (job === "browser" && Array.isArray(summary?.checks)) browser = summary.checks;
 
     const listed = (/** @type {{ file: string, name: string }} */ t) =>
       isQuarantined(entries, t.file, t.name);
@@ -222,17 +250,30 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
     if (beforeFiles.length || beforeTests.length) failedJobs.add(job);
 
     if (need?.result === "success") continue;
+    // Checks the job never reached prove nothing, whatever the others did.
+    if (summary?.notRun?.length) {
+      notRun.push(...summary.notRun);
+      failedJobs.add(job);
+      infraJobs.push(job);
+      continue;
+    }
+    if (stillTests.length || stillFiles.length) continue;
+    // The browser suite ran and failed with no check named: its report is missing.
+    if (job === "browser" && need?.outputs?.started === "true") {
+      failedJobs.add(job);
+      unnamedJobs.push(job);
+      continue;
+    }
     if (CHECK_JOBS.has(job)) {
       failedJobs.add(job);
       if (need?.outputs?.started === "true") brakeJobs.push(job);
       else infraJobs.push(job);
       continue;
     }
-    if (stillTests.length || stillFiles.length) continue;
     // Failed, but only on tests the quarantine covers.
     if (hadQuarantined && summary?.reported) continue;
     failedJobs.add(job);
-    if (summary?.reported && summary.total > 0) unnamedFailure = true;
+    if (summary?.reported && summary.total > 0) unnamedJobs.push(job);
     else infraJobs.push(job);
   }
 
@@ -243,7 +284,7 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
       ? "brake"
       : infraJobs.length
         ? "infra"
-        : afterTests.length || afterFiles.length || unnamedFailure
+        : afterTests.length || afterFiles.length || unnamedJobs.length
           ? "file"
           : flaky.length
             ? "flake"
@@ -258,13 +299,21 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
     ranTier,
     narrowed: !!narrowed,
     narrowedFiles: narrowed?.files ?? [],
+    // A proof run's forced check: this verdict never passes a gate.
+    forcedFlake,
     kind,
-    failed: { jobs: [...failedJobs], files: [...new Set(files)], tests, truncated },
+    failed: { jobs: [...failedJobs], files: [...new Set(files)], tests, truncated, unnamedJobs },
     afterRerun: reran ? { files: [...new Set(afterFiles)], tests: afterTests } : null,
     flaky,
     brake: { jobs: brakeJobs, tests: brakeTests, files: [...new Set(brakeFiles)] },
-    infra: { jobs: infraJobs },
+    infra: { jobs: infraJobs, notRun },
+    // Each browser check by name: pass, flake, fail or not-run. Null with no browser report.
+    browser,
+    // The release tier's second zone: its mode, failing files and jobs that proved nothing.
+    secondZone,
     quarantined,
+    // What this commit skips: blame can't read a skipped test as passing.
+    quarantineList: entries.map(({ file, name }) => ({ file, name })),
   };
 }
 
@@ -303,6 +352,9 @@ async function cli(/** @type {string[]} */ [command, path, ...more]) {
       needs: JSON.parse(CI_NEEDS || "{}"),
       ...(await readLists()),
       narrowed: existsSync(NARROWED_FILE) ? JSON.parse(readFileSync(NARROWED_FILE, "utf8")) : null,
+      forcedFlake: existsSync(FORCED_FLAKE_FILE)
+        ? String(JSON.parse(readFileSync(FORCED_FLAKE_FILE, "utf8")).check)
+        : null,
     });
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, `${JSON.stringify(verdict, null, 2)}\n`);

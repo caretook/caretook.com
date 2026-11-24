@@ -2,6 +2,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ProviderTypeIcon } from "~/components/providers";
+import { Badge, ListRow, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 
@@ -20,8 +21,8 @@ export function ProviderListItem({
   const past = provider.status === "past";
   const details = [PROVIDER_TYPE_META[provider.type].label, provider.specialty, practiceName].filter(Boolean);
   return (
-    <li
-      className="hover:bg-base-200/50 relative isolate flex items-start gap-3 px-3 py-2.5"
+    <ListRow
+      className="hover:bg-base-200/50 relative isolate flex items-start gap-3"
       data-provider-id={provider.id}
     >
       <ProviderTypeIcon type={provider.type} past={past} />
@@ -29,18 +30,24 @@ export function ProviderListItem({
         <p className="flex min-w-0 items-center gap-1.5">
           <Link
             to={appUrls.provider(provider.groupId, provider.id)}
-            className={`truncate font-medium outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${past ? "text-base-content/70" : ""}`}
+            className={`truncate font-medium outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${past ? "text-muted" : ""}`}
             data-provider-name
           >
             {provider.name}
           </Link>
           {provider.isPrimary && !past && (
-            <span className="badge badge-primary badge-sm shrink-0">Primary</span>
+            <Badge tone={STATUS_TONE.current} className="shrink-0">
+              Primary
+            </Badge>
           )}
-          {past && <span className="badge badge-ghost badge-sm shrink-0">Past</span>}
+          {past && (
+            <Badge tone={STATUS_TONE.past} className="shrink-0">
+              Past
+            </Badge>
+          )}
         </p>
-        <p className="text-base-content/70 truncate text-sm">{details.join(" · ")}</p>
+        <p className="text-muted truncate text-sm">{details.join(" · ")}</p>
       </div>
-    </li>
+    </ListRow>
   );
 }

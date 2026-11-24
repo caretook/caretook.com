@@ -1,9 +1,9 @@
-import { Notice, Page, PageHeader } from "~/components/ui";
+import { EmptyState, List, ListRow, Notice, Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 
 import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
-import { Link, redirect, useLocation } from "react-router";
+import { redirect, useLocation } from "react-router";
 import { FirstSyncPending } from "~/components/shell";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { cameFromLostGroup } from "~/lib/app-shell/group";
@@ -61,22 +61,16 @@ export default function AppHome({ loaderData }: Route.ComponentProps) {
       )}
       <PendingRequests requests={loaderData.requests} groupIds={groups.map((g) => g.id)} />
       {groups.length === 0 ? (
-        <p className="text-base-content/70">
-          You're not in a care group yet. Ask someone in the group to invite you.
-        </p>
+        <EmptyState>You're not in a care group yet. Ask someone in the group to invite you.</EmptyState>
       ) : (
-        <ul className="space-y-2">
+        <List>
           {groups.map((group) => (
-            <li key={group.id}>
-              <Link to={appUrls.timeline(group.id)} className="card bg-base-100 shadow-sm hover:shadow-md">
-                <span className="card-body p-4">
-                  <span className="font-semibold">{group.recipient?.displayName ?? group.name}</span>
-                  <span className="text-base-content/70 text-sm">{group.name}</span>
-                </span>
-              </Link>
-            </li>
+            <ListRow key={group.id} to={appUrls.timeline(group.id)}>
+              <span className="block font-semibold">{group.recipient?.displayName ?? group.name}</span>
+              <span className="text-muted block text-sm">{group.name}</span>
+            </ListRow>
           ))}
-        </ul>
+        </List>
       )}
       <NewGroupLink />
     </Page>

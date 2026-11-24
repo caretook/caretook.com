@@ -6,8 +6,7 @@ import { MAX_REMINDER_LEADS, REMINDER_LEADS, reminderLeadLabel } from "@caretook
 // lead choices with the three-lead cap, and the wording. The server checks
 // the same cap (reminderLeadsZSchema).
 
-export const REMINDERS_EXPLAINED =
-  "Emails before appointments and todos in this group, at the times you pick.";
+export const REMINDERS_EXPLAINED = "Emails before events and todos in this group, at the times you pick.";
 
 export const TODOS_NOTE =
   "Todos assigned to you remind you the morning they're due, or 1 h before a due time.";

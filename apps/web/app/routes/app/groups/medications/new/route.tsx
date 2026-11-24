@@ -70,7 +70,7 @@ export default function NewMedicationSheet({ loaderData, params }: Route.Compone
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a medication">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Add a medication">
       <MedicationForm
         // A new URL is a new form.
         key={search}

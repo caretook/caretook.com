@@ -4,15 +4,25 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started.
+**Where it stands:** wave 1 landed in `dev` as b8a4e8f0 through PR #83 (2026-11-22). Full check passed on b76d5901; Codex clean on 89882c7c after one P2, tracked on B-558 and fixed by slice 3. Browser checks skipped for wave 1 on the user's word (no screens changed). Its docs are folded on this branch and land with wave 2. **Wave 2 is merged into this branch (tip of the merges febc5386), worktrees removed.** Full check passed on 08cd25ed. Browser checks skipped for wave 2 on the user's word (ask a89, "Skip it"). Dev synced conflict-free at 45179fed, sharing no file; quick check passed on ec8f9e74; a tooling and docs sync followed at f21fcca4. PR #85 is open, Codex clean on f21fcca4. Wave 2's docs are folded after that verdict (Markdown only). **Next: land PR #85, file the report, `pnpm prd rm assistant-access`, `pnpm prd end`.**
 
-| Slice | Wave | State       | Merge into `prd/assistant-access` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------------- |
-| 1     | 1    | not started |                                                   |
-| 2     | 2    | not started |                                                   |
-| 3     | 2    | not started |                                                   |
+**For wave 2 (from slice 1's hand-off):** slice 2 adds the column to `sync-config.yaml` and the device schema and uses `CONNECTOR_READ_ONLY_BY_OWNER_LABEL`. Slice 3 changes `loadConnectPage` to `scopesForRole(role, group.connectorsReadOnly)`; until then Connect on a read-only group shows the `groupReadOnly` refusal. Migration `0037` is regenerated if another PRD lands one first.
 
-**Backlog:** slice 1 claims B-558; run `pnpm backlog done` on it when slice 3's wave has merged.
+**Landing mode:** run everything through (started run-through). Start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`; each landing files a report.
+
+**Models:** slice 1 opus (migration, permissions, `/mcp` gate); slices 2 and 3 opus (sync column and screens with role logic).
+
+| Slice | Wave | State  | Merge into `prd/assistant-access` (slice commits) |
+| ----- | ---- | ------ | ------------------------------------------------- |
+| 1     | 1    | merged | c4956606 (eecc474f, af69bd00)                     |
+| 2     | 2    | merged | e489f4ce (391c4a9d)                               |
+| 3     | 2    | merged | febc5386 (15c46b76)                               |
+
+**Backlog:** B-558 is marked done at febc5386. Follow-up B-599 (connection labels stale when another owner flips read only while the page is open) is filed under `fixes-bug`.
+
+**For the landing report:** the owner label shows only to members and clients who could otherwise write, so a viewer on a read-only group sees the viewer note (the PRD's "caused by the group" rule). Slice 2 also changed the Assistants card's explanation so it doesn't promise writing during read only.
+
+**Open issues:** none. `pnpm backlog doctor` reports two old title mismatches (B-548, B-549), unrelated to this PRD.
 
 ## Architectural decisions
 

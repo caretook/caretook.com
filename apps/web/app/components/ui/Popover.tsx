@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import type { ButtonLook } from "./buttonClass";
 
 import { Button, Dialog, DialogTrigger, Popover as AriaPopover } from "react-aria-components";
+import { buttonClass } from "./buttonClass";
 import { SURFACE } from "./styles";
 
 type Placement = "bottom start" | "bottom end";
@@ -18,6 +20,9 @@ export function Popover({
   dialogLabel,
   trigger,
   className,
+  variant,
+  size,
+  shape,
   placement = "bottom start",
   onOpenChange,
   defaultOpen,
@@ -29,17 +34,25 @@ export function Popover({
   dialogLabel: string;
   /** The button's content. */
   trigger: ReactNode;
-  /** Classes for the button (the outer element). */
+  /** With a look, outer classes for the button; without one, its whole class string. */
   className?: string;
+  /** The trigger's look, as a `Button`'s. */
+  variant?: ButtonLook["variant"];
+  size?: ButtonLook["size"];
+  shape?: ButtonLook["shape"];
   placement?: Placement;
   onOpenChange?: (open: boolean) => void;
   /** Open as it mounts (the time chip on a draft that asks for a day first). */
   defaultOpen?: boolean;
   children: Content;
 }) {
+  const look =
+    variant || size || shape
+      ? `${buttonClass({ variant, size, shape })} ${className ?? ""}`.trim()
+      : className;
   return (
     <DialogTrigger onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
-      <Button aria-label={label} className={className}>
+      <Button aria-label={label} className={look}>
         {trigger}
       </Button>
       <PopoverPanel label={dialogLabel} placement={placement} width="md">

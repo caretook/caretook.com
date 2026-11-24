@@ -4,13 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/ui-kit-4` (slice commits) |
-| ----- | ---- | ----------- | ----------------------------------------- |
-| 1     | 1    | not started |                                           |
-| 2     | 2    | not started |                                           |
-| 3     | 2    | not started |                                           |
-| 4     | 2    | not started |                                           |
-| 5     | 3    | not started |                                           |
+| Slice | Wave | State                        | Merge into `prd/ui-kit-4` (slice commits) |
+| ----- | ---- | ---------------------------- | ----------------------------------------- |
+| 1     | 1    | merged, torn down (opus)     | 6814c3dc (7acd4f33)                       |
+| 2     | 2    | merged, torn down (opus)     | 0037ec4a (2dd856f1, b0f05dfb, 8d500bbf)   |
+| 3     | 2    | merged, torn down (opus)     | ac30a9c7 (d5bb6112, b5f66807, a8d0b74a)   |
+| 4     | 2    | merged, torn down (opus)     | 70904d83 (9dd63d03, 8de6ee85)             |
+| 5     | 3    | merged, worktree kept (opus) | 65455ae1 (8bba10d2, bdf62862)             |
+
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
+
+**Now:** wave 2 (slices 2, 3, 4) landed in `dev` as 1407ddfc (PR #92, Codex clean on 6f8ee585; full local check passed on 9b5727f4, 6598 tests, 5 skipped; no browser checks apply; report filed). It landed with `--force` on the user's word for that wave ("Full local check will suffice. Don't wait for CI."), so CI did not run. Docs folded. B-448 done; B-398 stays open for slice 5. Wave 3 started 2026-11-22: synced (nothing but backlog commits newer in `dev`), backlog boundary clean for this topic (no new items; doctor's two findings, B-548 and B-549, are inbox-line tags outside it), slice 5's worktree made and its opus agent spawned. It handed off and is merged as 65455ae1; its slice check ran only `todos.browser.test.tsx`, so the other Planner, to-do and search component tests first run in the wave's CI. Watch there: All day in `SeriesEditSheet` is now `role="switch"`; `LinkedTodos`' error is `role="alert"`; "Reading what happened…" is `role="status"`; Planner Call and Directions' `title` moved to the `li`. Quick check passed on 03f74a87. The check plan proposes the `full` tier (`scripts/eslint/kit-guard.mjs` has no narrower rule); its run on e9342536 (45116234736) was `flake`: `resetStaging.int.test.ts` (B-610) and the quarantined provider "no links" test (B-568), neither in this wave's diff. Synced dev (dose-accuracy) as 7f9784bd; `prd browser --changed` needs no checks. Quick check passed on 0179f064; its `full` run (45117852907) was `flake` again (B-610, B-568 and the quarantined weekly chart test, none in this wave's diff). `dev` gained test-gates' B-607 harness fix, so synced again as 2cad0c0e. Quick check passed on 2c653b90; its `full` run (45119937402) was `flake`, only `resetStaging.int.test.ts` (B-610), outside this diff, so it may land. Wave 3's docs are folded. Next: PR, Codex, land with `--tier full`, then `pnpm prd rm ui-kit-4-5`, `pnpm prd rm ui-kit-4` and `pnpm prd end` (this is the last wave). To fold at landing: a text `Button` with `href` takes no `title` (tooltip on its wrapper); `TodoUndoStatus` keeps the soft info box because its region stays mounted; `KIT_CLASSES_NOT_SWEPT` holds only `ui-kit-5`'s group. Wave 3's landing goes through the CI gate (`--tier`, see the handbook's _The check gate_) unless the user waives it again.
+
+**For slice 5 (from wave 2):** `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, and it has no `href`: such rows stay a hand-written link in a `List`. `FormFooter` is only for real forms. The print routes' on-screen buttons are swept; slice 5's group is what remains besides `ui-kit-5`'s in `scripts/eslint/kit-guard.mjs`. Slices check only their own test files, so wave 3's full check is the first run of the rest.
 
 **Start conditions:** `ui-kit-3` is in `dev` (done). Never beside a running `fixes-ui` wave on the same screens (the hot files enforce it). Sync before each wave.
 

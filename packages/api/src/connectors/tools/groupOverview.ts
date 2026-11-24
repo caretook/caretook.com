@@ -1,4 +1,5 @@
 import { isError, resolveUnits, SYSTEM_USER, userModel } from "@caretook/data";
+import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "@caretook/data/schema";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { loadGroup, loadMembers } from "./shared";
@@ -30,7 +31,11 @@ export const groupOverview = defineTool({
       group: { name: group.name },
       recipient: recipient ? { preferredName: recipient.preferredName || recipient.name } : null,
       timeZone,
-      you: { role: ctx.role, canAddEntries: ctx.scope === "readWrite" },
+      you: {
+        role: ctx.role,
+        canAddEntries: ctx.scope === "readWrite",
+        groupReadOnly: ctx.readOnlyByOwner ?? false,
+      },
       units: resolveUnits(me?.preferences),
       members: members.map(({ name, role }) => ({ name, role })),
     };
@@ -38,7 +43,11 @@ export const groupOverview = defineTool({
     const text = [
       `${group.name}${who}. Time zone: ${timeZone}.`,
       `You are ${ctx.role === "admin" || ctx.role === "owner" ? "an" : "a"} ${ctx.role}; this connection ${
-        structured.you.canAddEntries ? "can read and add entries" : "can only read"
+        structured.you.canAddEntries
+          ? "can read and add entries"
+          : structured.you.groupReadOnly
+            ? `can only read (${CONNECTOR_READ_ONLY_BY_OWNER_LABEL})`
+            : "can only read"
       }.`,
       `Members: ${members.map((m) => `${m.name ?? "Someone"} (${m.role})`).join(", ") || "none"}.`,
     ].join("\n");

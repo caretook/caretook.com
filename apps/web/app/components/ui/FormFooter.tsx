@@ -20,6 +20,7 @@ export function FormFooter({
   busyLabel,
   submitDisabled = false,
   danger = false,
+  size = "md",
   cancel,
   status,
   align = "end",
@@ -33,6 +34,8 @@ export function FormFooter({
   submitDisabled?: boolean;
   /** The form's one job is the destructive act: a solid red submit. */
   danger?: boolean;
+  /** Both buttons' size: `lg` for easy mode's big targets. */
+  size?: "md" | "lg";
   cancel?: FormFooterCancel;
   status?: ReactNode;
   align?: "end" | "start";
@@ -43,13 +46,18 @@ export function FormFooter({
     <>
       {cancel &&
         (cancel.to !== undefined ? (
-          <Button to={cancel.to}>{cancel.label}</Button>
+          <Button to={cancel.to} size={size} data-form-cancel="">
+            {cancel.label}
+          </Button>
         ) : (
-          <Button onClick={cancel.onCancel}>{cancel.label}</Button>
+          <Button onClick={cancel.onCancel} size={size} data-form-cancel="">
+            {cancel.label}
+          </Button>
         ))}
       <Button
         type="submit"
         variant={danger ? "danger" : "primary"}
+        size={size}
         busy={busy}
         busyLabel={busyLabel}
         disabled={submitDisabled}

@@ -13,9 +13,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { agentTranscript, hookDecision, sizeFromTranscript } from "./context.mjs";
+import { agentTranscript, hardLimitFor, hookDecision, sizeFromTranscript } from "./context.mjs";
 
 const CONTEXT = new URL("./context.mjs", import.meta.url).pathname;
 const PID = 4242;
@@ -85,42 +85,89 @@ describe("hookDecision", () => {
   const facts = { pid: PID, now: NOW, limit: 160_000, remindMs: 10 * MIN };
   const iso = (t) => new Date(t).toISOString();
 
-  it("is silent under the limit, and clears the watch once back under it", () => {
+  it("is silent under the soft limit, and clears the watch once back under it", () => {
     const d = hookDecision(
-      { pid: PID, firstOverAt: iso(NOW), remindedAt: iso(NOW), nudgeAt: iso(NOW) },
+      {
+        pid: PID,
+        firstOverAt: iso(NOW),
+        remindedAt: iso(NOW),
+        remindedSize: 170_000,
+        hardOverAt: iso(NOW),
+        nudgeAt: iso(NOW),
+      },
       { ...facts, size: 160_000 },
     );
     expect(d.message).toBeNull();
     expect(d.record).toEqual({ pid: PID, size: 160_000, readAt: iso(NOW) });
   });
 
-  it("reminds at the first crossing, then only after the repeat time", () => {
+  it("asks an orchestrator to judge past soft, then only every further 25k, whatever the time", () => {
     const first = hookDecision(null, { ...facts, size: 170_000 });
     expect(first.message).toContain("170k");
-    expect(first.message).toContain("160k");
+    expect(first.message).toContain("soft limit of 160k");
+    expect(first.message).toContain("hard limit is 225k");
+    expect(first.message).toContain("Judge whether to rotate now");
+    expect(first.message).toContain('pnpm prd rotate --mid-wave --reason "context"');
+    expect(first.record.hardOverAt).toBeUndefined();
+    const quiet = hookDecision(first.record, { ...facts, size: 194_999, now: NOW + 60 * MIN });
+    expect(quiet.message).toBeNull();
+    expect(quiet.record.firstOverAt).toBe(iso(NOW));
+    expect(hookDecision(quiet.record, { ...facts, size: 195_000 }).message).toContain("195k");
+  });
+
+  it("tells an orchestrator to rotate past hard at the crossing, then only after the repeat time", () => {
+    const soft = hookDecision(null, { ...facts, size: 220_000 });
+    const first = hookDecision(soft.record, { ...facts, size: 226_000, now: NOW + MIN });
+    expect(first.message).toContain("past the hard limit of 225k");
     expect(first.message).toContain('pnpm prd rotate --mid-wave --reason "context"');
     expect(first.message).toContain('pnpm prd context --keep "<why>"');
-    const soon = hookDecision(first.record, { ...facts, size: 171_000, now: NOW + 9 * MIN });
+    expect(first.message).not.toContain("Judge");
+    expect(first.record.hardOverAt).toBe(iso(NOW + MIN));
+    const soon = hookDecision(first.record, { ...facts, size: 260_000, now: NOW + 10 * MIN });
     expect(soon.message).toBeNull();
-    expect(soon.record.firstOverAt).toBe(iso(NOW));
-    const later = hookDecision(soon.record, { ...facts, size: 172_000, now: NOW + 10 * MIN });
-    expect(later.message).toContain("172k");
+    const later = hookDecision(soon.record, { ...facts, size: 261_000, now: NOW + 11 * MIN });
+    expect(later.message).toContain("261k");
+    expect(later.record.hardOverAt).toBe(iso(NOW + MIN));
+  });
+
+  it("takes the hard limit it is given, never below the soft one", () => {
+    expect(hookDecision(null, { ...facts, size: 205_000, hard: 200_000 }).message).toContain(
+      "hard limit of 200k",
+    );
+    const below = hookDecision(null, { ...facts, size: 170_000, hard: 100_000 });
+    expect(below.message).toContain("hard limit of 100k");
+    expect(hookDecision(null, { ...facts, size: 150_000, hard: 100_000 }).message).toBeNull();
+  });
+
+  it("drops the hard watch and any nudge once back between the limits", () => {
+    const hard = { pid: PID, firstOverAt: iso(NOW), hardOverAt: iso(NOW), nudgeAt: iso(NOW) };
+    const d = hookDecision(hard, { ...facts, size: 200_000 });
+    expect(d.record.hardOverAt).toBeUndefined();
+    expect(d.record.nudgeAt).toBeUndefined();
+    expect(d.message).toContain("soft limit");
   });
 
   it("delivers a waiting nudge once and marks it", () => {
-    const waiting = { pid: PID, firstOverAt: iso(NOW - MIN), remindedAt: iso(NOW - MIN), nudgeAt: iso(NOW) };
-    const d = hookDecision(waiting, { ...facts, size: 180_000 });
+    const waiting = {
+      pid: PID,
+      firstOverAt: iso(NOW - MIN),
+      hardOverAt: iso(NOW - MIN),
+      remindedAt: iso(NOW - MIN),
+      nudgeAt: iso(NOW),
+    };
+    const d = hookDecision(waiting, { ...facts, size: 240_000 });
     expect(d.message).toContain("second notice");
+    expect(d.message).toContain("hard limit of 225k");
     expect(d.record.nudgeDeliveredAt).toBe(iso(NOW));
-    expect(hookDecision(d.record, { ...facts, size: 180_000, now: NOW + MIN }).message).toBeNull();
+    expect(hookDecision(d.record, { ...facts, size: 240_000, now: NOW + MIN }).message).toBeNull();
   });
 
   it("is silent while kept, and reminds once the keep has expired", () => {
     const kept = { pid: PID, keep: { reason: "landing", until: iso(NOW + MIN) }, nudgeAt: iso(NOW) };
-    const d = hookDecision(kept, { ...facts, size: 180_000 });
+    const d = hookDecision(kept, { ...facts, size: 240_000 });
     expect(d.message).toBeNull();
     expect(d.record.nudgeDeliveredAt).toBeUndefined();
-    const after = hookDecision(d.record, { ...facts, size: 180_000, now: NOW + 2 * MIN });
+    const after = hookDecision(d.record, { ...facts, size: 240_000, now: NOW + 2 * MIN });
     expect(after.message).toContain("second notice");
     expect(after.record.keep).toBeUndefined();
   });
@@ -128,24 +175,135 @@ describe("hookDecision", () => {
   it("starts clean for a new session under the name, and gives a loop its own words", () => {
     const old = { pid: 1, remindedAt: iso(NOW), keep: { reason: "x", until: iso(NOW + MIN) } };
     expect(hookDecision(old, { ...facts, size: 170_000 }).message).toContain("this session");
-    const loop = hookDecision(null, { ...facts, size: 170_000, loop: true });
+    const loop = hookDecision(null, { ...facts, size: 180_000, loop: true });
     expect(loop.message).toContain("this agent");
     expect(loop.message).toContain("fresh `--continue` agent");
   });
 
-  it("gives a backlog session the backlog words, for the reminder and the nudge", () => {
-    const first = hookDecision(null, { ...facts, size: 170_000, backlog: true });
+  describe("a subagent's soft and hard limits", () => {
+    const loop = (current, size, extra = {}) =>
+      hookDecision(current, { ...facts, size, loop: true, ...extra });
+
+    it("ignores the session limit, and is silent up to the soft limit", () => {
+      expect(loop(null, 175_000).message).toBeNull();
+      expect(loop(null, 100_000, { limit: 1000 }).message).toBeNull();
+    });
+
+    it("asks it to judge past soft, then only every further 25k, whatever the time", () => {
+      const first = loop(null, 180_000);
+      expect(first.message).toContain("soft limit of 175k");
+      expect(first.message).toContain("Say which you chose");
+      expect(first.message).toContain("commit any changes you were asked to make");
+      const quiet = loop(first.record, 204_999, { now: NOW + 60 * MIN });
+      expect(quiet.message).toBeNull();
+      expect(loop(quiet.record, 205_000).message).toContain("205k");
+    });
+
+    it("says hand off past hard on every call, even straight from under soft or with a keep", () => {
+      const first = loop({ pid: PID, size: 170_000 }, 310_000);
+      expect(first.message).toContain("hard limit of 300k");
+      expect(first.message).toContain("start no check");
+      expect(first.message).toContain("any unfinished fix");
+      expect(loop(first.record, 310_001).message).toContain("Hand off now");
+      const kept = { ...first.record, keep: { reason: "x", until: iso(NOW + MIN) } };
+      expect(loop(kept, 310_002).message).toContain("Hand off now");
+    });
+
+    it("lowers the mark on a shrink between the limits, and clears it under soft", () => {
+      const high = loop(null, 274_000);
+      const lower = loop(high.record, 200_000);
+      expect(lower.message).toBeNull();
+      expect(lower.record.remindedSize).toBe(200_000);
+      expect(loop(lower.record, 225_000).message).toContain("225k");
+      const under = loop(high.record, 95_000);
+      expect(under.record.remindedSize).toBeUndefined();
+      expect(loop(under.record, 180_000).message).toContain("soft limit");
+    });
+
+    it("handles a record from the old hook: no size mark, and no time throttle", () => {
+      const old = { pid: PID, firstOverAt: iso(NOW), remindedAt: iso(NOW) };
+      expect(loop(old, 180_000).message).toContain("soft limit");
+      expect(loop(old, 310_000).message).toContain("hard limit");
+    });
+  });
+
+  describe("a backlog session's soft limit", () => {
+    const backlog = (current, size, extra = {}) =>
+      hookDecision(current, { ...facts, size, backlog: true, ...extra });
+
+    it("asks it to tell the user and let them choose, never to hand off unasked", () => {
+      const first = backlog(null, 170_000);
+      expect(first.message).toContain("170k");
+      expect(first.message).toContain("soft limit of 160k");
+      expect(first.message).toContain("never hand off on your own");
+      expect(first.message).toContain("tell them the size and ask whether to hand off or keep going");
+      expect(first.message).toContain("if they don't answer, keep going");
+      expect(first.message).toContain("never in the middle of a question");
+      expect(first.message).toContain("Only on their word to hand off");
+      expect(first.message).toContain("pnpm prd rotate --self --brief <that file>");
+      expect(first.message).not.toContain("without asking");
+      expect(first.message).not.toContain("--mid-wave");
+      expect(first.message).not.toContain("hard limit");
+    });
+
+    it("repeats only every further 25k, and never turns into a hand-off past the orchestrator's hard limit", () => {
+      const first = backlog(null, 170_000);
+      expect(backlog(first.record, 194_999, { now: NOW + 60 * MIN }).message).toBeNull();
+      const far = backlog(first.record, 400_000);
+      expect(far.message).toContain("ask whether to hand off or keep going");
+      expect(far.message).not.toContain("without asking");
+      expect(far.record.hardOverAt).toBe(iso(NOW));
+    });
+
+    it("gets a nudge that still leaves the choice to the user", () => {
+      const waiting = { ...backlog(null, 240_000).record, nudgeAt: iso(NOW) };
+      const nudge = backlog(waiting, 245_000);
+      expect(nudge.message).toContain("second notice");
+      expect(nudge.message).toContain("Never hand off on your own");
+      expect(nudge.message).toContain("if they don't answer, keep going");
+      expect(nudge.message).toContain("leaves the session running");
+      expect(nudge.message).not.toContain("rotated if they don't answer");
+      expect(nudge.message).not.toContain("--mid-wave");
+    });
+  });
+
+  it("gives the inbox session its own words: its hand-off command, no brief", () => {
+    const inbox = "pnpm -s -C /m prd rotate --self";
+    const first = hookDecision(null, { ...facts, size: 170_000, inbox });
     expect(first.message).toContain("170k");
-    expect(first.message).toContain("next pause in the talk");
-    expect(first.message).toContain("never in the middle of a question");
-    expect(first.message).toContain("pnpm prd rotate --self --brief-path");
-    expect(first.message).toContain("pnpm prd rotate --self --brief <that file>");
-    expect(first.message).not.toContain("--mid-wave");
+    expect(first.message).toContain("never in the middle of a request");
+    expect(first.message).toContain("fresh inbox session takes over");
+    expect(first.message).toContain(`\`${inbox}\``);
+    expect(first.message).not.toMatch(/--brief|--mid-wave|_Status_/);
     const waiting = { ...first.record, nudgeAt: iso(NOW) };
-    const nudge = hookDecision(waiting, { ...facts, size: 180_000, backlog: true });
+    const nudge = hookDecision(waiting, { ...facts, size: 180_000, inbox });
     expect(nudge.message).toContain("second notice");
-    expect(nudge.message).toContain("pnpm prd rotate --self --brief <that file>");
-    expect(nudge.message).not.toContain("--mid-wave");
+    expect(nudge.message).toContain(`\`${inbox}\``);
+    expect(nudge.record.nudgeDeliveredAt).toBe(iso(NOW));
+  });
+
+  it("gives the inbox session its rotate reminder past soft and under the orchestrator's hard limit, never a judge one", () => {
+    const inbox = "pnpm -s -C /m prd rotate --self";
+    const first = hookDecision(null, { ...facts, size: 170_000, hard: 225_000, inbox });
+    expect(first.message).toContain("fresh inbox session takes over");
+    expect(first.message).toContain("past the 160k limit");
+    expect(first.message).not.toMatch(/Judge|soft limit|hard limit/);
+    // Its one limit is the dispatcher's too: the follow-up starts at 160k.
+    expect(first.record.hardOverAt).toBe(iso(NOW));
+    expect(
+      hookDecision(first.record, { ...facts, size: 171_000, hard: 225_000, inbox, now: NOW + MIN }).message,
+    ).toBeNull();
+    const again = hookDecision(first.record, {
+      ...facts,
+      size: 171_000,
+      hard: 225_000,
+      inbox,
+      now: NOW + 10 * MIN,
+    });
+    expect(again.message).toContain("fresh inbox session takes over");
+    expect(hardLimitFor("inbox", {})).toBe(160_000);
+    expect(hardLimitFor("prd", {})).toBe(225_000);
+    expect(hardLimitFor("backlog", {})).toBeNull();
   });
 });
 
@@ -193,19 +351,30 @@ describe("the hook as a command", () => {
     expect(sizeFile()).toMatchObject({ pid: PID, size: 50_100 });
   });
 
-  it("over it adds the reminder as context, then stays quiet inside the repeat time", () => {
-    writeFileSync(transcript, assistant(1, 170_000));
+  it("past hard adds the reminder as context, then stays quiet inside the repeat time", () => {
+    writeFileSync(transcript, assistant(1, 240_000));
     const first = hook({ transcript_path: transcript });
     expect(first.status).toBe(0);
     expect(contextOf(first.stdout).hookEventName).toBe("PostToolUse");
-    expect(contextOf(first.stdout).additionalContext).toContain("170k");
+    expect(contextOf(first.stdout).additionalContext).toContain("240k");
     expect(hook({ transcript_path: transcript }).stdout).toBe("");
     const again = hook({ transcript_path: transcript }, { CARETOOK_CONTEXT_REMIND_MIN: "0.00001" });
-    expect(contextOf(again.stdout).additionalContext).toContain("170k");
+    expect(contextOf(again.stdout).additionalContext).toContain("240k");
+  });
+
+  it("takes the soft and hard limits from the environment", () => {
+    writeFileSync(transcript, assistant(1, 120_000));
+    const env = { CARETOOK_CONTEXT_LIMIT: "100000", CARETOOK_CONTEXT_HARD_LIMIT: "110000" };
+    const r = hook({ transcript_path: transcript }, env);
+    expect(contextOf(r.stdout).additionalContext).toContain("past the hard limit of 110k");
+    writeFileSync(transcript, assistant(1, 105_000));
+    expect(contextOf(hook({ transcript_path: transcript }, env).stdout).additionalContext).toContain(
+      "soft limit of 100k",
+    );
   });
 
   it("delivers a waiting nudge once and marks it in the record", () => {
-    writeFileSync(transcript, assistant(1, 170_000));
+    writeFileSync(transcript, assistant(1, 240_000));
     hook({ transcript_path: transcript });
     writeFileSync(
       join(context, "prd-t.json"),
@@ -238,10 +407,10 @@ describe("the hook as a command", () => {
     mkdirSync(join(root, "s1", "subagents"), { recursive: true });
     writeFileSync(
       join(root, "s1", "subagents", "agent-a1.jsonl"),
-      assistant(1, 165_000, 0, { isSidechain: true }),
+      assistant(1, 180_000, 0, { isSidechain: true }),
     );
     const r = hook({ transcript_path: transcript, agent_id: "a1", agent_type: "general-purpose" });
-    expect(contextOf(r.stdout).additionalContext).toContain("this agent is at 165k");
+    expect(contextOf(r.stdout).additionalContext).toContain("this agent is at 180k");
     expect(sizeFile().size).toBe(40_001);
     // Its transcript missing: nothing, and never the session's transcript instead.
     expect(hook({ transcript_path: transcript, agent_id: "a2" }).stdout).toBe("");
@@ -263,7 +432,28 @@ describe("the hook as a command", () => {
     expect(hook({ transcript_path: transcript, agent_id: "a1" }, asBacklog).stdout).toBe("");
     expect(existsSync(join(context, ".agents", "backlog"))).toBe(false);
     const r = hook({ transcript_path: transcript }, asBacklog);
-    expect(contextOf(r.stdout).additionalContext).toContain("pnpm prd rotate --self --brief-path");
+    expect(contextOf(r.stdout).additionalContext).toContain("ask whether to hand off or keep going");
+  });
+
+  it("gives the inbox session its hand-off by the main checkout's path, and its subagents nothing", () => {
+    writeFileSync(
+      join(sessions, "inbox.json"),
+      JSON.stringify({ pid: PID, kind: "inbox", started: new Date().toISOString() }),
+    );
+    const asInbox = { CARETOOK_SESSION_NAME: "inbox" };
+    writeFileSync(transcript, assistant(1, 170_000));
+    mkdirSync(join(root, "s1", "subagents"), { recursive: true });
+    writeFileSync(
+      join(root, "s1", "subagents", "agent-a2.jsonl"),
+      assistant(1, 165_000, 0, { isSidechain: true }),
+    );
+    expect(hook({ transcript_path: transcript, agent_id: "a2" }, asInbox).stdout).toBe("");
+    const r = hook({ transcript_path: transcript }, asInbox);
+    // The sessions folder is <main>/.loops/.sessions; here <root>/.sessions, so main is root's parent.
+    expect(contextOf(r.stdout).additionalContext).toContain(
+      `\`pnpm -s -C ${dirname(root)} prd rotate --self\``,
+    );
+    expect(JSON.parse(readFileSync(join(context, "inbox.json"), "utf8"))).toMatchObject({ size: 170_001 });
   });
 
   it("exits 0 with no output on a missing transcript, bad input or an unwritable folder", () => {
@@ -295,10 +485,24 @@ describe("pnpm prd context", () => {
   const cli = (args, extra = {}, cwd = root) =>
     spawnSync("node", [CONTEXT, ...args], { cwd, encoding: "utf8", env: { ...baseEnv(), ...extra } });
 
-  it("prints the caller's size and the limit", () => {
+  it("prints the caller's size and its limits", () => {
     writeFileSync(transcript, assistant(1, 170_000));
     hook({ transcript_path: transcript });
-    expect(cli([]).stdout).toBe("prd-t: 170k OVER (limit 160k)\n");
+    expect(cli([]).stdout).toBe("prd-t: 170k over soft (soft 160k, hard 225k)\n");
+    writeFileSync(transcript, assistant(1, 240_000));
+    hook({ transcript_path: transcript });
+    expect(cli([]).stdout).toBe("prd-t: 240k OVER hard (soft 160k, hard 225k)\n");
+  });
+
+  it("prints a backlog session's soft limit only", () => {
+    writeFileSync(
+      join(sessions, "backlog.json"),
+      JSON.stringify({ pid: PID, kind: "backlog", started: new Date().toISOString() }),
+    );
+    const asBacklog = { CARETOOK_SESSION_NAME: "backlog" };
+    writeFileSync(transcript, assistant(1, 240_000));
+    hook({ transcript_path: transcript }, asBacklog);
+    expect(cli([], asBacklog).stdout).toBe("backlog: 240k over soft (soft 160k, no hard limit)\n");
   });
 
   it("refuses --keep without a reason, and with one sets the expiry", () => {
@@ -334,12 +538,35 @@ describe("pnpm prd context", () => {
         JSON.stringify({ pid: child.pid, started, ended: started }),
       );
       mkdirSync(context);
+      writeFileSync(
+        join(sessions, "backlog.json"),
+        JSON.stringify({ pid: child.pid, kind: "backlog", started }),
+      );
+      writeFileSync(join(sessions, "prd-big.json"), JSON.stringify({ pid: child.pid, started }));
       writeFileSync(join(context, "prd-live.json"), JSON.stringify({ pid: child.pid, size: 165_000 }));
       writeFileSync(join(context, "prd-stale.json"), JSON.stringify({ pid: 1, size: 199_000 }));
+      writeFileSync(join(context, "prd-big.json"), JSON.stringify({ pid: child.pid, size: 230_000 }));
+      writeFileSync(join(context, "backlog.json"), JSON.stringify({ pid: child.pid, size: 230_000 }));
       const rows = JSON.parse(cli(["--all", "--json"]).stdout);
-      expect(rows.map((r) => r.name)).toEqual(["prd-live", "prd-stale"]);
-      expect(rows[0]).toMatchObject({ size: 165_000, over: true, note: "165k OVER" });
-      expect(rows[1]).toMatchObject({ size: null, over: false, note: "no size yet" });
+      const byName = Object.fromEntries(rows.map((r) => [r.name, r]));
+      expect(Object.keys(byName).sort()).toEqual(["backlog", "prd-big", "prd-live", "prd-stale"]);
+      expect(byName["prd-live"]).toMatchObject({
+        size: 165_000,
+        limit: 160_000,
+        hard: 225_000,
+        over: true,
+        overHard: false,
+        note: "165k over soft",
+      });
+      expect(byName["prd-stale"]).toMatchObject({ size: null, over: false, note: "no size yet" });
+      expect(byName["prd-big"]).toMatchObject({ over: true, overHard: true, note: "230k OVER hard" });
+      expect(byName.backlog).toMatchObject({
+        hard: null,
+        over: true,
+        overHard: false,
+        note: "230k over soft",
+      });
+      expect(cli(["--all"]).stdout).toContain("prd-big  230k OVER hard\n");
     } finally {
       child.kill();
     }

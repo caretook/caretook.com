@@ -3,8 +3,9 @@ import type { RefObject } from "react";
 
 import { useId, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
-import { Field } from "~/components/ui";
+import { Button, Field, Message } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
+import { QuickEntryGoToCard } from "./QuickEntryGoToCard";
 import { QuickEntryCompletions, useCompletionsOverlay } from "./QuickEntryCompletions";
 import { QuickEntrySuggestButton, SUGGEST_ROOM } from "./QuickEntrySuggestButton";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
@@ -20,7 +21,6 @@ const TEXTAREA_CLASS: Record<QuickEntrySize, string> = {
   md: "min-h-11 text-base",
   lg: "textarea-lg min-h-16 text-xl",
 };
-const BUTTON_SIZE: Record<QuickEntrySize, string> = { md: "", lg: "btn-lg" };
 
 /**
  * One box to say what happened: type (or dictate with the keyboard's mic)
@@ -85,6 +85,7 @@ export function QuickEntryBox({
       >
         <Field
           label="What happened?"
+          kind="textarea"
           labelHidden={size === "md"}
           help={size === "lg" ? DICTATION_HINT : undefined}
           className={size === "lg" ? "[&>label]:text-xl [&>label]:font-semibold [&>p]:text-base" : ""}
@@ -97,7 +98,7 @@ export function QuickEntryBox({
                 ref={field}
                 name="quickEntry"
                 rows={1}
-                className={`textarea field-sizing-content max-h-48 w-full resize-none ${TEXTAREA_CLASS[size]} ${suggest ? SUGGEST_ROOM[size] : ""}`}
+                className={`${control.className ?? ""} field-sizing-content max-h-48 resize-none ${TEXTAREA_CLASS[size]} ${suggest ? SUGGEST_ROOM[size] : ""}`}
                 placeholder={QUICK_ENTRY_PLACEHOLDER}
                 autoComplete="off"
                 enterKeyHint="done"
@@ -132,6 +133,7 @@ export function QuickEntryBox({
         <p id={rulesId} className="sr-only">
           {QUICK_ENTRY_RULES}
         </p>
+        {q.goTo && <QuickEntryGoToCard goTo={q.goTo} />}
         {count > 0 && (
           <ul aria-label="To save" className="space-y-2" data-quick-cards>
             {q.cards.map((card) => (
@@ -150,21 +152,24 @@ export function QuickEntryBox({
         )}
         {!empty && (
           <div className="flex items-center gap-2">
-            {count > 0 && (
-              <button type="submit" className={`btn btn-primary ${BUTTON_SIZE[size]}`} disabled={!q.canSave}>
-                {q.busy ? "Saving…" : count === 1 ? "Save" : `Save all ${count}`}
-              </button>
+            {q.goTo && (
+              <Button type="submit" variant="primary" size={size} disabled={q.goTo.ahead}>
+                Go
+              </Button>
             )}
-            <button type="button" className={`btn btn-ghost ${BUTTON_SIZE[size]}`} onClick={q.clear}>
+            {count > 0 && (
+              <Button type="submit" variant="primary" size={size} disabled={!q.canSave}>
+                {q.busy ? "Saving…" : count === 1 ? "Save" : `Save all ${count}`}
+              </Button>
+            )}
+            <Button variant="ghost" size={size} onClick={q.clear}>
               Clear
-            </button>
+            </Button>
           </div>
         )}
       </form>
       <PassUndoStatus groupId={groupId} place={QUICK_ENTRY_UNDO} className="empty:hidden" />
-      <p role="status" className="text-base-content/80 text-sm empty:hidden" data-quick-status>
-        {q.status || q.passError}
-      </p>
+      <Message data-quick-status="">{q.status || q.passError}</Message>
       <p aria-live="polite" className="sr-only" data-quick-announce>
         {q.announcement}
       </p>

@@ -11,8 +11,9 @@
  *   the destructive act.
  * - `dangerQuiet`: red text on a ghost button, for a destructive action
  *   anywhere else.
+ * - `warning`: solid amber, for an action on something due now (Given all).
  */
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "dangerQuiet";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "dangerQuiet" | "warning";
 export type ButtonSize = "lg" | "md" | "sm" | "xs";
 /**
  * The box: `rounded` (the default, the theme's field radius), `pill` (fully
@@ -38,7 +39,8 @@ const VARIANT: Record<ButtonVariant, string> = {
   secondary: "",
   ghost: "btn-ghost",
   danger: "btn-error",
-  dangerQuiet: "btn-ghost text-error",
+  dangerQuiet: "btn-ghost text-error-ink",
+  warning: "btn-warning",
 };
 
 const SIZE: Record<ButtonSize, string> = { lg: "btn-lg", md: "", sm: "btn-sm", xs: "btn-xs" };

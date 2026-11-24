@@ -3,6 +3,8 @@ import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { fx, medicationPass } from "../../../../../../test/fixtures";
+import { pickTime } from "../../../../../../test/timeSelect";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 import {
   dialogButton,
   EVENING,
@@ -71,7 +73,7 @@ const description = () =>
 const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
   await expect.poll(FORM).toBeTruthy();
   if (name !== undefined) await userEvent.fill(input("name"), name);
-  if (time !== undefined) await userEvent.fill(input("time"), time);
+  if (time !== undefined) await pickTime(() => input("time"), time);
   await userEvent.click(await found(() => FORM()?.querySelector('button[type="submit"]')));
 };
 /** The header's `+`, then Pass: the add-pass sheet. */
@@ -119,6 +121,23 @@ describe("the tab", () => {
     expect(document.querySelector<HTMLElement>("main header [data-add-medication]")).toBeNull();
     expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
     expect(description()).toContain("You can view the passes");
+  });
+
+  test("a new pass starts at the current hour in the recipient's zone, not the device's", async () => {
+    await open({ url: NEW_PASS, extra: [fx.recipient({ timeZone: "Asia/Tokyo" })] });
+    await expect.poll(() => FORM()).toBeTruthy();
+    expect(input("time").value).toBe(currentHourTime("Asia/Tokyo"));
+  });
+
+  test("a saved 08:10 pass keeps its time through a rename", async () => {
+    const offGrid = medicationPass({ name: "Breakfast", time: "08:10", sortOrder: 5 });
+    const device = await open({ extra: [offGrid] });
+    await action("Breakfast", "Edit");
+    await expect.poll(() => FORM()).toBeTruthy();
+    expect(input("time").value).toBe("08:10");
+    await fillForm({ name: "First thing" });
+    await expect.poll(() => row("First thing")).toBeTruthy();
+    expect((await stored(device, offGrid.row.id))?.time).toBe("08:10");
   });
 
   test("a retime from another device shows without a reload", async () => {

@@ -196,6 +196,7 @@ beforeAll(() => {
     "rotate.mjs",
     "open-session.sh",
     "open-session.mjs",
+    "planner-model.mjs",
     "prompt.sh",
     "rm.sh",
     "stack-lib.sh",
@@ -205,6 +206,9 @@ beforeAll(() => {
   const backlogDir = join(HERE, "../backlog");
   for (const f of readdirSync(backlogDir).filter((f) => f.endsWith(".mjs") && !f.includes(".test.")))
     copyFileSync(join(backlogDir, f), join(main, "scripts/backlog", f));
+  const ciDir = join(HERE, "../ci");
+  mkdirSync(join(main, "scripts/ci"), { recursive: true });
+  for (const f of ["outstanding.mjs", "tiers.mjs"]) copyFileSync(join(ciDir, f), join(main, "scripts/ci", f));
   writeFileSync(join(main, ".gitignore"), ".loops/\n");
   mkdirSync(join(main, "plans"));
   writeFileSync(join(main, "plans/w-plan.md"), plan(`${MERGED}\n| 3 | 2 | not started | |`));
@@ -254,6 +258,42 @@ describe("pnpm prd rotate", () => {
     expect(stateFile("rotate.code").trim()).toBe("0");
     expect(out).toContain(`Rotating prd-w: pid ${stubPid()} (from the calling shell's ancestor claude).`);
     expect(printedLine(out)).toBe(`cd ${wt} && ${scripts("rotate-into.sh")} prd-w ${stubPid()}`);
+  });
+
+  it("refuses while a requested run has no verdict, naming it, and passes with --mid-wave", async () => {
+    const bare = join(root, "origin.git");
+    execFileSync("git", ["init", "-q", "--bare", bare]);
+    git(main, "remote", "add", "origin", bare);
+    const sha = git(main, "rev-parse", "dev");
+    git(main, "push", "-q", "origin", `${sha}:refs/heads/ci/integration/prd-w`);
+    const ghBin = join(root, "gh-bin");
+    mkdirSync(ghBin, { recursive: true });
+    const runs = JSON.stringify([
+      {
+        databaseId: 77,
+        headSha: sha,
+        status: "in_progress",
+        url: "https://ci.example/77",
+        workflowName: "CI",
+      },
+    ]);
+    writeFileSync(join(ghBin, "gh"), `#!/usr/bin/env bash\ncat <<'J'\n${runs}\nJ\n`);
+    chmodSync(join(ghBin, "gh"), 0o755);
+    const withGh = { PATH: `${ghBin}:${env.PATH}` };
+    try {
+      const { s, pid } = await liveSession();
+      let r = run("prd.sh", ["rotate", "w"], withGh);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain(
+        "has a requested run with no verdict: ci/integration/prd-w (https://ci.example/77)",
+      );
+      r = run("prd.sh", ["rotate", "w", "--mid-wave"], withGh);
+      expect(r.status).toBe(0);
+      process.kill(pid, "SIGTERM");
+      await s.done;
+    } finally {
+      git(main, "remote", "remove", "origin");
+    }
   });
 
   it("refuses an uncommitted plan, no session to end, and slice worktrees without --mid-wave", async () => {
@@ -580,9 +620,109 @@ describe("pnpm prd rotate --self", () => {
     await finish(briefed);
   });
 
+  describe("the inbox session", () => {
+    const inboxDir = () => join(root, "home/.caretook/inbox");
+    const inboxEnv = () => ({ CARETOOK_INBOX_DIR: join(root, "elsewhere") });
+    const startInbox = async (extraArgs = "") => {
+      mkdirSync(inboxDir(), { recursive: true });
+      const s = start(
+        "bash",
+        [
+          scripts("session.sh"),
+          "inbox",
+          "--kind",
+          "inbox",
+          "--managed",
+          "--",
+          "--model",
+          "sonnet",
+          "--remote-control",
+          "inbox",
+          "x",
+        ],
+        { STUB_MODE: "self", STUB_STAY: "1", STUB_NAME: "inbox", STUB_ARGS: extraArgs },
+        inboxDir(),
+      );
+      await until(() => existsSync(join(state, "ready")));
+      return { s, pid: stubPid(), out: stateFile("rotate.out"), code: stateFile("rotate.code").trim() };
+    };
+    /** The new session: in the recorded directory, on the recorded model, fast settings, managed. */
+    const expectFresh = (oldPid) => {
+      const atStart = JSON.parse(stateFile("record-at-start"));
+      expect(atStart).toMatchObject({
+        kind: "inbox",
+        model: "sonnet",
+        remote: "inbox",
+        managed: true,
+        dir: inboxDir(),
+      });
+      expect(atStart.pid).not.toBe(oldPid);
+      expect(atStart).not.toHaveProperty("rotating");
+      const args = newArgs();
+      expect(args.slice(0, 6)).toEqual([
+        "--settings",
+        scripts("inbox-settings.json"),
+        "--model",
+        "sonnet",
+        "--remote-control",
+        "inbox",
+      ]);
+      expect(promptOf(args).startsWith("You are the inbox agent.")).toBe(true);
+    };
+    beforeEach(() => rmSync(join(root, "home"), { recursive: true, force: true }));
+
+    it("rotates itself into a fresh one in its own directory, keeping its model and fast mode", async () => {
+      const old = await startInbox();
+      expect(old.code).toBe("0");
+      expect(old.out).toContain(`Rotating inbox: pid ${old.pid} (the calling session).`);
+      const line = printedLine(old.out);
+      expect(line).toBe(`cd ${main} && ${scripts("rotate-into.sh")} inbox ${old.pid}`);
+      const r = spawnSync("bash", ["-c", line], {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...env, ...inboxEnv(), STUB_MODE: "exit", STUB_NAME: "inbox" },
+      });
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain("a fresh session with the inbox prompt");
+      expect((await old.s.done).code).toBe(143);
+      expect(JSON.parse(stateFile("record-at-term"))).toMatchObject({ pid: old.pid, rotating: true });
+      expectFresh(old.pid);
+    });
+
+    it("refuses a brief or --mid-wave before anything ends", async () => {
+      const old = await startInbox("--brief-path");
+      expect(old.code).toBe("1");
+      expect(old.out).toContain("the inbox session hands off with no brief");
+      expect(spawnSync("kill", ["-0", String(old.pid)]).status).toBe(0);
+      await finish(old);
+      const r = runInto(`cd ${main} && ${scripts("rotate-into.sh")} inbox ${old.pid} --no-brief`, "inbox");
+      expect(r.status).not.toBe(0);
+      expect(r.stderr).toContain("the inbox session hands off with no brief");
+    });
+
+    it("the opener reopens a dead one the same way: its directory, model, fast mode and managed", async () => {
+      const old = await startInbox();
+      await finish(old);
+      rmSync(join(state, "record-at-start"), { force: true });
+      const r = run("open-session.sh", ["inbox", "--print"], inboxEnv());
+      expect(r.status).toBe(0);
+      const line = r.stdout.split("\n")[1].trim();
+      expect(line).toBe(
+        `cd ${main} && ${scripts("prd.sh")} inbox --dir ${inboxDir()} --model sonnet --managed`,
+      );
+      const opened = spawnSync("bash", ["-c", line], {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...env, ...inboxEnv(), STUB_MODE: "exit", STUB_NAME: "inbox" },
+      });
+      expect(opened.status).toBe(0);
+      expectFresh(old.pid);
+    });
+  });
+
   it.each([
-    ["hotfix-x", /hotfix-x is a hotfix session: only backlog sessions and orchestrators/],
-    ["recover", /recover is a recovery session: only backlog sessions and orchestrators/],
+    ["hotfix-x", /hotfix-x is a hotfix session: only backlog and inbox sessions and orchestrators/],
+    ["recover", /recover is a recovery session: only backlog and inbox sessions and orchestrators/],
   ])("refuses %s, saying why", async (name, why) => {
     const old = await selfSession(name);
     expect(old.code).toBe("1");
@@ -757,5 +897,25 @@ Intro.
     expect(r.status).toBe(0);
     expect(r.stdout).not.toContain("hot files");
     expect(rowOf("busy").hot).toEqual(["apps/web/"]);
+  });
+
+  it("--no-registry marks nothing done and clears no hot files (the dispatcher's undo, B-452)", () => {
+    commitOnDev({ "plans/backlog.md": REGISTRY, "plans/fin-plan.md": plan(MERGED) });
+    // The earlier tests' kept branches go: these two start fresh from dev, as new.sh's do.
+    for (const b of ["prd/fin", "prd/fixes-x"])
+      if (git(main, "branch", "--list", b)) git(main, "branch", "-D", b);
+    prdWorktree("fin");
+    prdWorktree("fixes-x");
+    const head = git(main, "rev-parse", "HEAD");
+    for (const t of ["fin", "fixes-x"]) {
+      const r = run("rm.sh", [t, "--no-registry", "--force"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).not.toMatch(/done|hot files/);
+      expect(r.stdout).toContain(`Removed ${t} and its branch prd/${t}`);
+    }
+    expect(git(main, "rev-parse", "HEAD")).toBe(head);
+    const rows = JSON.parse(backlog("prd", "list", "--json"));
+    expect(rows.find((r) => r.topic === "fin").flags).toEqual(["hold"]);
+    expect(rows.find((r) => r.topic === "fixes-x").hot).toEqual(["scripts/loops/", "docs/"]);
   });
 });

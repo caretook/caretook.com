@@ -1,23 +1,28 @@
-// The dispatcher's context follow-up: what it does about a managed orchestrator
-// or backlog session that stays over the context limit. Pure: the tick (dispatch.mjs) gathers the
+// The dispatcher's context follow-up: what it does about a managed orchestrator,
+// backlog or inbox session that stays over the hard context limit
+// (CARETOOK_CONTEXT_HARD_LIMIT, 225k; the hook alone handles the soft one; the
+// inbox session's hard limit is its soft one, 160k). Pure: the tick (dispatch.mjs) gathers the
 // size records, session records, asks and running commands, and acts.
 //
-// For a live managed orchestrator or backlog session over the limit with no keep:
-//   1. the wait (CARETOOK_CONTEXT_NUDGE_MIN, 15) after `firstOverAt`: a nudge,
+// For a live managed orchestrator, backlog or inbox session over the hard limit with no keep:
+//   1. the wait (CARETOOK_CONTEXT_NUDGE_MIN, 15) after `hardOverAt`: a nudge,
 //      left in the size record for the hook to deliver at the next tool call;
-//   2. the same wait after its delivery: one defaulting question. A nudge never
+//   2. the same wait after its delivery: one defaulting question. An
+//      orchestrator's or the inbox session's defaults to "rotate it now"; a backlog session's to "leave
+//      it" (its limit is soft: no answer means keep going). A nudge never
 //      delivered (the session is inside one long command) never gets this far;
 //   3. on "rotate it now", the rotation at the first tick with no `pnpm prd` or
 //      `pnpm backlog` command under the session (a backlog write commits in the
 //      main checkout). `ask --wait` doesn't count: it can wait for days, and the
 //      fresh session finds the answer in the asks queue. An orchestrator rotates
 //      mid-wave; a backlog session into a fresh one, with its brief only when it
-//      was written after the nudge's delivery.
+//      was written after the nudge's delivery; the inbox session into a fresh
+//      one, with no brief.
 //      A refusal is reported once and tried again only after the wait;
 //   4. on "leave it", an unclear answer or a dismissal: nothing more until the
 //      session ends, even if it dips under the limit and crosses it again.
 //
-// A session that drops under the limit (unless left alone) or ends clears its
+// A session that drops under the hard limit (unless left alone) or ends clears its
 // entry and dismisses its open question. The entry is `context` in the
 // dispatcher's state; its asks carry the session CONTEXT_SESSION, so the reopen
 // question's matching (session "dispatch") never sees them.
@@ -26,8 +31,12 @@ import { kilo } from "./context.mjs";
 
 /** The `session` of the context questions: not DISPATCH_SESSION, so a reopen never reads one. */
 export const CONTEXT_SESSION = "dispatch-context";
-/** The answers a context question offers, the recommended one first. */
+/** The answers a context question offers. */
 export const CONTEXT_OPTIONS = ["rotate it now", "leave it"];
+
+/** What a session kind's question takes with no answer: a backlog session keeps going. */
+export const contextDefault = (/** @type {string | undefined} */ kind) =>
+  kind === "backlog" ? CONTEXT_OPTIONS[1] : CONTEXT_OPTIONS[0];
 
 /**
  * @typedef {{ pid: number, askId?: string, answer?: "rotate" | "leave", triedAt?: number,
@@ -36,11 +45,12 @@ export const CONTEXT_OPTIONS = ["rotate it now", "leave it"];
  *   live: boolean, rotating?: boolean }} ContextSession
  * @typedef {{ type: "clear", session: string, askId: string | null }
  *   | { type: "nudge", session: string, pid: number }
- *   | { type: "ask", session: string, pid: number, topic: string, text: string }
+ *   | { type: "ask", session: string, pid: number, topic: string, text: string, recommend: string }
  *   | { type: "answered", session: string, pid: number, answer: "rotate" | "leave", askId: string }
  *   | { type: "hold", session: string }
  *   | { type: "rotate", session: string, pid: number, topic: string }
- *   | { type: "rotate-backlog", session: string, pid: number, topic: string, brief: boolean }} ContextAction
+ *   | { type: "rotate-backlog", session: string, pid: number, topic: string, brief: boolean }
+ *   | { type: "rotate-inbox", session: string, pid: number, topic: string }} ContextAction
  */
 
 /** What a context question's answer means; anything unclear leaves the session alone. */
@@ -51,8 +61,14 @@ export function contextAnswer(/** @type {string | null | undefined} */ answer) {
   return a === CONTEXT_OPTIONS[0] || /^(1|rotate)\b/.test(a) ? "rotate" : "leave";
 }
 
-export const contextQuestion = (/** @type {string} */ session, /** @type {number} */ size) =>
-  `${session} is at ${kilo(size)} context and hasn't rotated`;
+export const contextQuestion = (
+  /** @type {string} */ session,
+  /** @type {number} */ size,
+  /** @type {string | undefined} */ kind,
+) =>
+  kind === "backlog"
+    ? `${session} is at ${kilo(size)} context: hand it off, or leave it running (no answer keeps it going)?`
+    : `${session} is at ${kilo(size)} context and hasn't rotated`;
 
 const PRD_COMMAND =
   /(?:\bpnpm(?:\.c?js)?\s+(?:run\s+)?(?:prd|backlog)|scripts\/loops\/prd\.sh|scripts\/backlog\/backlog\.mjs)\b((?:\s+[^\s;&|]+){0,2})/g;
@@ -86,8 +102,9 @@ export function commandUnder(pid, table) {
  * This tick's context actions, in the order to apply them.
  * @param {{ sessions: ContextSession[], sizes?: Record<string, any>,
  *   entries?: Record<string, ContextEntry>, asks?: Record<string, any>, running?: Set<string>,
- *   briefs?: Record<string, number>, paused?: boolean, limit: number, waitMs: number,
- *   now: number }} facts `briefs`: a session's usable brief file, by when it was written (ms)
+ *   briefs?: Record<string, number>, paused?: boolean, limit: number, inboxLimit?: number,
+ *   waitMs: number, now: number }} facts `briefs`: a session's usable brief file, by when it was
+ *   written (ms); `inboxLimit`: the inbox session's hard limit (its soft one), else `limit`
  * @returns {ContextAction[]}
  */
 export function contextDecision({
@@ -99,9 +116,11 @@ export function contextDecision({
   briefs = {},
   paused = false,
   limit,
+  inboxLimit = limit,
   waitMs,
   now,
 }) {
+  // `limit` is the hard limit.
   if (paused) return [];
   /** @type {ContextAction[]} */
   const actions = [];
@@ -111,7 +130,12 @@ export function contextDecision({
   };
   const watched = new Map(
     sessions
-      .filter((s) => s.live && s.managed && ((s.kind === "prd" && s.topic) || s.kind === "backlog"))
+      .filter(
+        (s) =>
+          s.live &&
+          s.managed &&
+          ((s.kind === "prd" && s.topic) || s.kind === "backlog" || s.kind === "inbox"),
+      )
       .map((s) => [s.name, s]),
   );
   for (const [session, e] of Object.entries(entries)) {
@@ -122,11 +146,12 @@ export function contextDecision({
   for (const s of watched.values()) {
     const session = s.name;
     const pid = s.pid;
-    // A backlog session has no topic: its questions and reports go under its name.
-    const topic = s.kind === "backlog" ? session : /** @type {string} */ (s.topic);
+    // A backlog or inbox session has no topic: its questions and reports go under its name.
+    const topic = s.kind === "prd" ? /** @type {string} */ (s.topic) : session;
     const e = entries[session]?.pid === pid ? entries[session] : null;
     const rec = sizes[session]?.pid === pid ? sizes[session] : null;
-    if (!(typeof rec?.size === "number" && rec.size > limit)) {
+    const hard = s.kind === "inbox" ? inboxLimit : limit;
+    if (!(typeof rec?.size === "number" && rec.size > hard)) {
       if (e && e.answer !== "leave") actions.push({ type: "clear", session, askId: openAsk(e) });
       continue;
     }
@@ -149,13 +174,21 @@ export function contextDecision({
         const delivered = Date.parse(rec.nudgeDeliveredAt ?? "");
         const brief = briefs[session] !== undefined && briefs[session] > delivered;
         actions.push({ type: "rotate-backlog", session, pid, topic, brief });
-      } else actions.push({ type: "rotate", session, pid, topic });
+      } else if (s.kind === "inbox") actions.push({ type: "rotate-inbox", session, pid, topic });
+      else actions.push({ type: "rotate", session, pid, topic });
       continue;
     }
     if (rec.nudgeDeliveredAt) {
       if (now - Date.parse(rec.nudgeDeliveredAt) >= waitMs)
-        actions.push({ type: "ask", session, pid, topic, text: contextQuestion(session, rec.size) });
-    } else if (!rec.nudgeAt && rec.firstOverAt && now - Date.parse(rec.firstOverAt) >= waitMs)
+        actions.push({
+          type: "ask",
+          session,
+          pid,
+          topic,
+          text: contextQuestion(session, rec.size, s.kind),
+          recommend: contextDefault(s.kind),
+        });
+    } else if (!rec.nudgeAt && rec.hardOverAt && now - Date.parse(rec.hardOverAt) >= waitMs)
       actions.push({ type: "nudge", session, pid });
   }
   return actions;

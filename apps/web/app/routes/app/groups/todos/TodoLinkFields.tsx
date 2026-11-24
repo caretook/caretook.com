@@ -48,7 +48,7 @@ export function TodoLinkFields({
       const e = events.find((x) => x.id === id);
       return chosenLinkChip(
         e ? { label: `${upcomingTitle(e)} · ${eventWhen(e, new Date())}`, cancelled: !!e.cancelledAt } : null,
-        "Chosen appointment",
+        "Chosen event",
       );
     },
     [events],
@@ -85,11 +85,11 @@ export function TodoLinkFields({
       />
       <LinkPickerField
         name={FIELD.eventId}
-        legend="Appointment (optional)"
-        comboLabel="Find an appointment"
-        placeholder="Upcoming and recent appointments"
-        emptyText="No appointments match"
-        clearLabel="Clear the appointment"
+        legend="Event (optional)"
+        comboLabel="Find an event"
+        placeholder="Upcoming and recent events"
+        emptyText="No events match"
+        clearLabel="Clear the event"
         optionsFor={eventOptions}
         chipFor={eventChip}
         initialId={initial.eventId}

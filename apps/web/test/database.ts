@@ -241,3 +241,26 @@ export const setConnected = (db: SyncDb, connected: boolean) => {
   powersync.currentStatus = status;
   powersync.iterateListeners((listener) => listener.statusChanged?.(status));
 };
+
+// ---- Added by sync-safety slice 3 --------------------------------------------
+
+/**
+ * Stand in for a failed upload (PowerSync's `uploadError`, which the header
+ * shows as "Can't sync, retrying"): a new status snapshot with the error set,
+ * or cleared, told to the status listeners as `setConnected` does.
+ */
+export const setUploadFailed = (db: SyncDb, failed: boolean) => {
+  const powersync = db.powersync as unknown as {
+    currentStatus: StatusSnapshot;
+    iterateListeners: (cb: (listener: { statusChanged?: (status: unknown) => void }) => void) => void;
+  };
+  const now = powersync.currentStatus;
+  const Snapshot = now.constructor as new (core: unknown, jsState: unknown) => StatusSnapshot;
+  const jsState = {
+    ...(now.jsState as Record<string, unknown>),
+    uploadError: failed ? new Error("Sync: the server couldn't save a change; retrying") : undefined,
+  };
+  const status = new Snapshot(now.core, jsState);
+  powersync.currentStatus = status;
+  powersync.iterateListeners((listener) => listener.statusChanged?.(status));
+};

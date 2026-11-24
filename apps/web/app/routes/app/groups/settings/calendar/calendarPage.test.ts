@@ -11,6 +11,7 @@ const settings = (v: Partial<CalendarSettings> = {}): CalendarSettings => ({
   detailsConsent: false,
   detailsConsentAt: null,
   detailsConsentVersion: null,
+  detailsConsentStale: false,
   groupAllowsDetails: true,
   shareLevel: "generic",
   feed: { active: false, rotatedAt: null },
@@ -28,6 +29,7 @@ describe("detailsCardState", () => {
       on: true,
       disabled: false,
       note: null,
+      stale: false,
     });
   });
 
@@ -37,7 +39,14 @@ describe("detailsCardState", () => {
       on: false,
       disabled: true,
       note: DETAILS_FORBIDDEN,
+      stale: false,
     });
+  });
+
+  it("says a consent is out of date only while the owners allow details", () => {
+    const stale = settings({ detailsConsentAt: "2026-03-02T18:00:00.000Z", detailsConsentStale: true });
+    expect(detailsCardState({ settings: stale, allowed: true })).toMatchObject({ on: false, stale: true });
+    expect(detailsCardState({ settings: stale, allowed: false })).toMatchObject({ on: false, stale: false });
   });
 
   it("takes the device's copy of the owners' switch over the server's, and the server's until it syncs", () => {
@@ -50,7 +59,7 @@ describe("detailsCardState", () => {
 describe("detailsExplained", () => {
   it("names the recipient in the generic wording", () => {
     expect(detailsExplained("Pat")).toBe(
-      'Emails, your calendar feed and Google Calendar say only "Appointment for Pat", the time and a link back to Caretook.',
+      'Emails, your calendar feed and Google Calendar say only "Event for Pat", the time and a link back to Caretook.',
     );
   });
 });

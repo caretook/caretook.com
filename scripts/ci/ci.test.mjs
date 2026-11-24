@@ -1,7 +1,8 @@
 // `pnpm prd ci`, the tiers and the verdict, against a fake git and gh: the ref
 // for each tier, reuse and re-push, the wait's exit codes, when the ref goes,
 // and what reads as unknown.
-import { writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -10,6 +11,7 @@ import {
   EXIT,
   exitFor,
   main,
+  forcedFlakeCommit,
   narrowedCommit,
   parseRunArgs,
   requestRun,
@@ -94,6 +96,8 @@ describe("the tiers", () => {
       "ci/integration/slice-test-gates-2",
       "ci/components/slice-test-gates-2",
       "ci/full/slice-test-gates-2",
+      "ci/candidate/slice-test-gates-2",
+      "ci/release/slice-test-gates-2",
     ]);
     expect(parseCiRef("ci/unit/slice-t-2")).toEqual({ tier: "unit", name: "slice-t-2" });
     expect(parseCiRef("ci/nope/x")).toBeNull();
@@ -114,6 +118,28 @@ describe("the tiers", () => {
       jobs: ["static", "unit", "integration", "components-1", "components-2", "build"],
       ranTier: "full",
     });
+    expect(jobsFor("candidate")).toEqual({
+      jobs: ["static", "unit", "integration", "components-1", "components-2", "build", "browser"],
+      ranTier: "candidate",
+    });
+  });
+
+  it("start the browser job only on a candidate run", () => {
+    expect(planOutputs("ci/full/x")).toContain("candidate=false");
+    expect(planOutputs("ci/candidate/x")).toContain("candidate=true");
+    expect(planOutputs("ci/candidate/x", ["scripts/ci/ci.test.mjs"])).toContain("candidate=false");
+  });
+
+  it("read a browser suite that failed as file, and one that never started as infra", () => {
+    const needs = Object.fromEntries(
+      ["plan", ...jobsFor("candidate").jobs].map((job) => [job, { result: "success" }]),
+    );
+    const run = { commit: SHA, runId: "1", tier: "candidate" };
+    expect(buildVerdict({ ...run, needs }).kind).toBe("green");
+    const failed = (outputs) => ({ ...needs, browser: { result: "failure", outputs } });
+    const ran = buildVerdict({ ...run, needs: failed({ started: "true" }) });
+    expect(ran).toMatchObject({ kind: "file", failed: { jobs: ["browser"], unnamedJobs: ["browser"] } });
+    expect(buildVerdict({ ...run, needs: failed({}) }).kind).toBe("infra");
   });
 
   it("give the plan job no integration on a unit run", () => {
@@ -124,6 +150,8 @@ describe("the tiers", () => {
       "integration=false",
       "components=false",
       "full=false",
+      "candidate=false",
+      "release=false",
       "components2=false",
       "narrowed=false",
     ]);
@@ -164,6 +192,7 @@ describe("the verdict", () => {
       files: ["a.test.ts"],
       tests: [{ job: "unit", file: "a.test.ts", name: "breaks" }],
       truncated: false,
+      unnamedJobs: [],
     });
     expect(
       buildVerdict({ ...base, tier: "unit", needs: { plan: ok, static: ok, unit: { result: "skipped" } } })
@@ -273,12 +302,14 @@ describe("ci run", () => {
       ref: null,
       waitMin: null,
       files: [],
+      forceFlake: null,
     });
     expect(parseRunArgs(["full", "--ref", "prd/t", "--wait"])).toEqual({
       tier: "full",
       ref: "prd/t",
       waitMin: 30,
       files: [],
+      forceFlake: null,
     });
     expect(parseRunArgs(["unit", "--wait", "5"]).waitMin).toBe(5);
     expect(() => parseRunArgs(["nope"])).toThrow(/needs a tier/);
@@ -460,6 +491,28 @@ describe("a narrowed run", () => {
     );
   });
 
+  it("a proof run adds its marker under .github, on its own ref, and is candidate only", async () => {
+    expect(parseRunArgs(["candidate", "--force-flake", "sign-in"]).forceFlake).toBe("sign-in");
+    expect(() => parseRunArgs(["full", "--force-flake", "sign-in"])).toThrow(/candidate tier/);
+    expect(() => parseRunArgs(["candidate", "--force-flake", "sign-in", "--files", "a.test.ts"])).toThrow(
+      /--files/,
+    );
+    const w = narrowing();
+    const real = w.io.git;
+    /** @type {string[]} */ const mktrees = [];
+    w.io.git = (/** @type {string[]} */ args, /** @type {string=} */ input) => {
+      if (args[0] === "mktree") mktrees.push(input ?? "");
+      if (args[0] === "cat-file") return { ok: true, out: "" };
+      return real(args, input);
+    };
+    expect(forcedFlakeCommit({ sha: SHA, check: "sign-in" }, w.io)).toBe(NARROWED);
+    expect(JSON.parse(w.inputs["hash-object"] ?? "")).toEqual({ check: "sign-in" });
+    expect(w.calls).toContain(`git ls-tree ${SHA}:.github`);
+    expect(mktrees[0]).toContain("100644 blob blob1\tci-force-flake.json");
+    expect(mktrees[1]).toContain("040000 tree tree1\t.github");
+    expect(() => forcedFlakeCommit({ sha: SHA, check: "../x" }, w.io)).toThrow(/no browser check/);
+  });
+
   it("starts only its files' jobs, the components in one", () => {
     expect(narrowedJobs(["a.test.ts", "b.browser.test.tsx"])).toEqual(["unit", "components-1"]);
     expect(narrowedJobs(["scripts/loops/browser.test.mjs"])).toEqual(["integration"]);
@@ -471,6 +524,8 @@ describe("a narrowed run", () => {
       "integration=true",
       "components=false",
       "full=false",
+      "candidate=false",
+      "release=false",
       "components2=false",
       "narrowed=true",
     ]);
@@ -547,5 +602,111 @@ describe("ci [<branch>]", () => {
     const w = world({ runs: [done(1, "2026-11-22T09:00:00Z")] });
     expect(await main([], w.io)).toBe(EXIT.green);
     expect(await main(["a", "b"], w.io)).toBe(EXIT.usage);
+  });
+});
+
+describe("ci gate and ci file", () => {
+  const FLAKE = { job: "unit", file: "apps/web/x.test.ts", name: "wobbles", brake: false };
+  const ranUnit = { ...green, ranTier: "unit" };
+  const finished = { ...running, status: "completed", conclusion: "success" };
+  const gateArgs = ["gate", "slice/t/2", "--tier", "unit", "--base", OTHER];
+
+  /** A world where the branch is one commit past OTHER and changed one app file. */
+  const branchWorld = (/** @type {any} */ opts) => {
+    const w = world(opts);
+    const git = w.io.git;
+    w.io.git = (/** @type {string[]} */ args) => {
+      if (args[0] === "rev-list") {
+        w.calls.push(`git ${args.join(" ")}`);
+        return { ok: true, out: SHA };
+      }
+      if (args[0] === "diff") {
+        w.calls.push(`git ${args.join(" ")}`);
+        return { ok: true, out: "apps/web/b.ts" };
+      }
+      return git(args);
+    };
+    return w;
+  };
+
+  /** A world that records what `ci file` hands the backlog. */
+  const filingWorld = (/** @type {any} */ verdict, pushed = true) => {
+    const w = branchWorld({ verdict });
+    /** @type {{ keys: string[], push: boolean }[]} */ const filings = [];
+    Object.assign(w.io, {
+      fileFindings(/** @type {{ key: string }[]} */ findings, /** @type {boolean} */ push) {
+        filings.push({ keys: findings.map((f) => f.key), push });
+        return {
+          filed: findings.map((f) => ({ key: f.key, id: "B-77", created: true })),
+          removed: [],
+          pushed,
+        };
+      },
+    });
+    return { ...w, filings };
+  };
+  const fileArgs = ["file", "slice/t/2", "--base", OTHER, "--run", "7"];
+  const flaky = { ...ranUnit, kind: "flake", flaky: [FLAKE] };
+
+  it("ci gate lands on a verdict it finds, requests nothing and writes the decision", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ci-gate-"));
+    try {
+      const out = join(dir, "decision");
+      const w = branchWorld({ runs: [finished], verdict: ranUnit });
+      expect(await main([...gateArgs, "--out", out], w.io)).toBe(EXIT.green);
+      expect(w.pushes()).toEqual([]);
+      expect(readFileSync(out, "utf8")).toContain("land=1\nkind=green\nranTier=unit");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ci gate requests the tier's run when the tip has no verdict", async () => {
+    const w = branchWorld({ verdict: ranUnit });
+    expect(await main(gateArgs, w.io)).toBe(EXIT.green);
+    expect(w.pushes()[0]).toContain(`${SHA}:refs/heads/${REF}`);
+    expect(w.lines.join("\n")).toContain("requesting one");
+  });
+
+  it("ci gate --peek requests nothing when the tip has no verdict", async () => {
+    const w = branchWorld({ verdict: ranUnit });
+    expect(await main([...gateArgs, "--peek"], w.io)).toBe(EXIT.unknown);
+    expect(w.pushes()).toEqual([]);
+    expect(w.lines).toEqual([`no unit verdict for ${SHA.slice(0, 8)}: the landing will request one`]);
+  });
+
+  it("ci gate --peek reports a failing verdict without blaming or requesting", async () => {
+    const verdict = { ...ranUnit, kind: "file" };
+    const w = branchWorld({ runs: [finished], verdict });
+    expect(await main([...gateArgs, "--peek"], w.io)).toBe(EXIT.file);
+    expect(w.pushes()).toEqual([]);
+    expect(w.calls.filter((c) => c.includes("--branch"))).toEqual([]);
+  });
+
+  it("ci file --run reads that run, diffs against --base and pushes the quarantine", async () => {
+    const w = filingWorld(flaky);
+    expect(await main(fileArgs, w.io)).toBe(EXIT.green);
+    expect(w.calls.some((c) => c.startsWith("gh run download 7 "))).toBe(true);
+    expect(w.calls.some((c) => c.startsWith("gh run list"))).toBe(false);
+    expect(w.calls).toContain(`git diff --name-only ${OTHER}...${SHA}`);
+    expect(w.filings).toEqual([{ keys: [expect.any(String)], push: true }]);
+  });
+
+  it("ci file --no-push leaves the quarantine commit on local dev", async () => {
+    const w = filingWorld(flaky, false);
+    expect(await main([...fileArgs, "--no-push"], w.io)).toBe(EXIT.green);
+    expect(w.filings[0]?.push).toBe(false);
+  });
+
+  it("ci file exits unknown when the quarantine push is refused", async () => {
+    const w = filingWorld(flaky, false);
+    expect(await main(fileArgs, w.io)).toBe(EXIT.unknown);
+    expect(w.lines.at(-1)).toMatch(/wasn't pushed/);
+  });
+
+  it("ci file --run refuses a narrowed run and files nothing", async () => {
+    const w = filingWorld({ ...flaky, narrowed: true });
+    expect(await main(fileArgs, w.io)).toBe(EXIT.unknown);
+    expect(w.filings).toEqual([]);
   });
 });

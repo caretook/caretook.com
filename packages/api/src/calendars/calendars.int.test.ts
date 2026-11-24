@@ -60,6 +60,7 @@ describe("calendars.settings", () => {
         detailsConsent: false,
         detailsConsentAt: null,
         detailsConsentVersion: null,
+        detailsConsentStale: false,
         groupAllowsDetails: true,
         shareLevel: "generic",
         feed: { active: false, rotatedAt: null },
@@ -119,7 +120,11 @@ describe("calendars.settings", () => {
   it("records consent with its version when details go on, keeps it on a repeat, and clears it off", async () => {
     const { group, api } = await setup();
     const before = Date.now();
-    const on = await api("caretaker").calendars.settings.update({ groupId: group.id, detailsConsent: true });
+    const on = await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
     expect(on).toMatchObject({
       detailsConsent: true,
       detailsConsentVersion: DETAILS_CONSENT_VERSION,
@@ -130,6 +135,7 @@ describe("calendars.settings", () => {
     const again = await api("caretaker").calendars.settings.update({
       groupId: group.id,
       detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
     });
     expect(again.detailsConsentAt).toBe(on.detailsConsentAt);
 
@@ -143,6 +149,117 @@ describe("calendars.settings", () => {
       detailsConsentVersion: null,
       shareLevel: "generic",
     });
+  });
+
+  it("asks again when the wording changed, and records the current version on agreeing", async () => {
+    const { group, api, id } = await setup();
+    await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    await api("viewer").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    const agreedAt = "2026-03-02T18:00:00.000Z";
+    ok(
+      await memberCalendarSettingModel.update({
+        authUser: SYSTEM_USER,
+        filter: { groupId: { type: "eq", value: group.id }, userId: { type: "eq", value: id("caretaker") } },
+        data: { detailsConsentAt: agreedAt, detailsConsentVersion: "2020-01-01" },
+      }),
+    );
+
+    const stale = await api("caretaker").calendars.settings.get({ groupId: group.id });
+    expect(stale).toMatchObject({
+      detailsConsent: false,
+      detailsConsentStale: true,
+      detailsConsentVersion: "2020-01-01",
+      shareLevel: "generic",
+    });
+    expect(new Date(stale.detailsConsentAt!).toISOString()).toBe(agreedAt);
+
+    // Another change is not an agreement.
+    expect(
+      await api("caretaker").calendars.settings.update({ groupId: group.id, remindersOn: true }),
+    ).toMatchObject({ detailsConsent: false, detailsConsentStale: true });
+
+    const again = await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    expect(again).toMatchObject({
+      detailsConsent: true,
+      detailsConsentStale: false,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      shareLevel: "details",
+    });
+    expect(new Date(again.detailsConsentAt!).getTime()).toBeGreaterThan(new Date(agreedAt).getTime());
+
+    // A member on the current wording is unchanged.
+    expect(await api("viewer").calendars.settings.get({ groupId: group.id })).toMatchObject({
+      detailsConsent: true,
+      detailsConsentStale: false,
+      shareLevel: "details",
+    });
+  });
+
+  it.each([
+    ["outdated", { detailsConsentVersion: "2020-01-01" }],
+    ["missing", {}],
+  ])("records nothing for an %s version, and says why (B-659)", async (_name, version) => {
+    const { group, api, id } = await setup();
+    const refused = api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      remindersOn: true,
+      detailsConsent: true,
+      ...version,
+    });
+    const error = await rejection(refused);
+    expect(error.code).toBe("CONFLICT");
+    expect(error.data?.code).toBe("calendarSettingService:consentOutdated");
+    expect(await rowsOf(group.id, id("caretaker"))).toEqual({ settings: 0, overrides: 0 });
+    expect(await api("caretaker").calendars.settings.get({ groupId: group.id })).toMatchObject({
+      detailsConsent: false,
+      detailsConsentAt: null,
+      detailsConsentVersion: null,
+      remindersOn: false,
+    });
+  });
+
+  it("keeps a current consent as it was when a repeat names an outdated version (B-659)", async () => {
+    const { group, api } = await setup();
+    const on = await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    const refused = api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: "2020-01-01",
+    });
+    expect((await rejection(refused)).data?.code).toBe("calendarSettingService:consentOutdated");
+    expect(await api("caretaker").calendars.settings.get({ groupId: group.id })).toMatchObject({
+      detailsConsent: true,
+      detailsConsentAt: on.detailsConsentAt,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+  });
+
+  it("turns details off without a version (B-659)", async () => {
+    const { group, api } = await setup();
+    await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    expect(
+      await api("caretaker").calendars.settings.update({ groupId: group.id, detailsConsent: false }),
+    ).toMatchObject({ detailsConsent: false, detailsConsentAt: null, detailsConsentVersion: null });
   });
 
   it("never returns the feed's hash", async () => {
@@ -174,7 +291,11 @@ describe("calendars.settings", () => {
 describe("calendars.group.setDetailsAllowed", () => {
   it.each(["owner", "owner2"] as const)("lets an %s forbid and allow details for everyone", async (who) => {
     const { group, api } = await setup();
-    await api("caretaker").calendars.settings.update({ groupId: group.id, detailsConsent: true });
+    await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
 
     expect(await api(who).calendars.group.setDetailsAllowed({ groupId: group.id, allowed: false })).toEqual({
       groupId: group.id,
@@ -186,7 +307,11 @@ describe("calendars.group.setDetailsAllowed", () => {
       detailsConsent: true,
       shareLevel: "generic",
     });
-    const refused = api("viewer").calendars.settings.update({ groupId: group.id, detailsConsent: true });
+    const refused = api("viewer").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
     expect((await rejection(refused)).data?.code).toBe("calendarSettingService:detailsForbidden");
     // Turning it off is still allowed while forbidden.
     expect(
@@ -195,7 +320,11 @@ describe("calendars.group.setDetailsAllowed", () => {
 
     await api(who).calendars.group.setDetailsAllowed({ groupId: group.id, allowed: true });
     expect(
-      await api("viewer").calendars.settings.update({ groupId: group.id, detailsConsent: true }),
+      await api("viewer").calendars.settings.update({
+        groupId: group.id,
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
     ).toMatchObject({ shareLevel: "details" });
   });
 
@@ -223,9 +352,12 @@ describe("calendars.group.setDetailsAllowed", () => {
 describe("leaving and removal", () => {
   /** A setting and an override for `who`, on an upcoming appointment. */
   const withRows = async (s: Awaited<ReturnType<typeof setup>>, who: Who) => {
-    await s
-      .api(who)
-      .calendars.settings.update({ groupId: s.group.id, remindersOn: true, detailsConsent: true });
+    await s.api(who).calendars.settings.update({
+      groupId: s.group.id,
+      remindersOn: true,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
     const event = ok(
       await timelineEntryService.create(s.ctx("owner"), {
         groupId: s.group.id,

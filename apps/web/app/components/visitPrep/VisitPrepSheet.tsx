@@ -3,7 +3,7 @@ import type { VisitPrepTarget } from "./useVisitPrep";
 
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Sheet } from "~/components/ui";
+import { Button, Loading, Message, Sheet } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { dateText } from "~/lib/care-periods/periodDisplay";
@@ -38,6 +38,7 @@ export function VisitPrepSheet({
   const insert = async () => {
     if (busy) return;
     setBusy(true);
+    setError(null);
     const problem = await prep.insert();
     setBusy(false);
     if (problem) return setError(problem);
@@ -46,7 +47,7 @@ export function VisitPrepSheet({
   };
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title={`Prepare for ${title}`}>
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title={`Prepare for ${title}`}>
       <form
         className="space-y-3"
         data-visit-prep-sheet=""
@@ -57,7 +58,7 @@ export function VisitPrepSheet({
       >
         {found && timeZone ? (
           <>
-            <p className="text-base-content/70 text-sm" data-visit-window>
+            <p className="text-muted text-sm" data-visit-window>
               {found.lastVisit
                 ? `From the last visit: ${upcomingTitle({ kind: "event", title: found.lastVisit.title })}, ${dateText(found.lastVisit.occurredAt, timeZone, prep.now)}.`
                 : "No earlier visit with these providers: the last 30 days."}
@@ -74,7 +75,7 @@ export function VisitPrepSheet({
             />
           </>
         ) : (
-          <p className="text-base-content/70 text-sm">Reading what happened…</p>
+          <Loading label="Reading what happened…" />
         )}
 
         <section
@@ -82,23 +83,26 @@ export function VisitPrepSheet({
           className="rounded-box border-base-300 bg-base-200/40 max-h-[50vh] overflow-y-auto border p-3"
           data-visit-prep-preview=""
         >
-          <h3 id="visit-prep-preview" className="text-base-content/70 mb-1 text-xs font-semibold uppercase">
+          <h3 id="visit-prep-preview" className="text-muted mb-1 text-xs font-semibold uppercase">
             Preview
           </h3>
           {prep.lines ? <SectionPreview lines={prep.lines} /> : <p className="text-sm">…</p>}
         </section>
 
-        <p className="text-base-content/70 text-sm">
+        <p className="text-muted text-sm">
           It goes at the top of the notes, dated. Nothing already there changes.
         </p>
-        {error && (
-          <p role="alert" className="text-error text-sm">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn-primary btn-block" disabled={busy || !prep.lines}>
-          {busy ? "Inserting…" : "Insert into the notes"}
-        </button>
+        {error && <Message tone="error">{error}</Message>}
+        <Button
+          type="submit"
+          variant="primary"
+          block
+          busy={busy}
+          busyLabel="Inserting…"
+          disabled={!prep.lines}
+        >
+          Insert into the notes
+        </Button>
       </form>
     </Sheet>
   );

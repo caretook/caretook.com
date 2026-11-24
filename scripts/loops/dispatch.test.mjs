@@ -20,16 +20,22 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAsk, getAsk } from "./asks.mjs";
 import { ROTATING_GRACE_MS } from "./dispatch-pick.mjs";
 import {
   HELPER_SESSION,
+  PICKUP_EVERY_S,
   REOPEN_RESET_MS,
+  TAKEOVER_STALE_MS,
   TIDY_EVERY_MS,
   answerAction,
   helperLine,
+  lockHolder,
+  pickupDue,
+  pickupEvery,
   sessionLine,
+  takeLock,
   tidyDue,
 } from "./dispatch.mjs";
 import { createRequest } from "./session-requests.mjs";
@@ -58,6 +64,19 @@ describe("the pure parts", () => {
     expect(tidyDue({}, TIDY_EVERY_MS, idle)).toBe(false);
   });
 
+  it("picks up once a period, never paused or off; CARETOOK_PICKUP_EVERY sets the period", () => {
+    const every = pickupEvery(undefined);
+    expect(every).toBe(PICKUP_EVERY_S * 1000);
+    expect(pickupEvery("60")).toBe(60_000);
+    expect(pickupEvery("nope")).toBe(every);
+    expect(pickupEvery("off")).toBeNull();
+    expect(pickupDue({}, 0, { paused: false, everyMs: every })).toBe(true);
+    expect(pickupDue({ lastPickup: 0 }, every - 1, { paused: false, everyMs: every })).toBe(false);
+    expect(pickupDue({ lastPickup: 0 }, every, { paused: false, everyMs: every })).toBe(true);
+    expect(pickupDue({}, 0, { paused: true, everyMs: every })).toBe(false);
+    expect(pickupDue({}, 0, { paused: false, everyMs: null })).toBe(false);
+  });
+
   it("builds the run-through, managed session lines, with no item ids", () => {
     expect(sessionLine({ kind: "plan", topic: "t", dir: "/l/plan-t", wrapper: "/b/session.sh" })).toBe(
       `cd /l/plan-t && /b/session.sh plan-t --auto --managed -- --model opus --remote-control plan-t "$(scripts/loops/prompt.sh plan t --auto)"`,
@@ -76,7 +95,20 @@ describe("the pure parts", () => {
 const NEW_SH = `#!/usr/bin/env bash
 echo "$*" >> "$STUB_STATE/new.calls"
 [[ -z \${STUB_NEW_FAIL:-} ]] || { echo "no room" >&2; exit 1; }
+if [[ -n \${STUB_NEW_MAKE:-} ]]; then
+  if [[ $1 == plan ]]; then name=plan-$2; else name=$2; fi
+  git worktree add -q -b "$1/$2" ".loops/$name" dev
+fi
+[[ -z \${STUB_NEW_FAIL_AFTER:-} ]] || { echo "migrate failed" >&2; exit 1; }
 echo "made $2"
+`;
+// rm.sh: removes the worktree and its session record, as the real one does.
+const RM_SH = `#!/usr/bin/env bash
+echo "$*" >> "$STUB_STATE/rm.calls"
+if [[ $1 == plan-* ]]; then session=$1; else session=prd-$1; fi
+git worktree remove --force ".loops/$1"
+rm -f ".loops/.sessions/$session.json"
+echo "removed $1"
 `;
 const OPEN_SH = `#!/usr/bin/env bash
 printf '%s\\x1f' "$@" >> "$STUB_STATE/open.calls"; echo >> "$STUB_STATE/open.calls"
@@ -94,6 +126,10 @@ const [a, b, topic, ...kv] = process.argv.slice(2);
 if (a === "prd" && b === "list") console.log(readFileSync(file, "utf8"));
 else if (a === "prd" && b === "set") {
   appendFileSync(process.env.STUB_STATE + "/backlog.calls", ["prd set", topic, ...kv].join(" ") + "\\n");
+  if (process.env.STUB_BACKLOG_FAIL) {
+    console.error("registry locked");
+    process.exit(1);
+  }
   const rows = JSON.parse(readFileSync(file, "utf8"));
   const row = rows.find((r) => r.topic === topic);
   for (const w of kv) if (w.startsWith("flags=")) row.flags = w.slice(6).split(",").filter(Boolean);
@@ -101,7 +137,17 @@ else if (a === "prd" && b === "set") {
 } else process.exit(2);
 `;
 
-let root, main, loops, sessions, asks, state, env, clock, rowsFile;
+// The pickup: `prd.sh dev-sync <why>`, recorded; STUB_PICKUP says how it ends.
+const PRD_SH = `#!/usr/bin/env bash
+echo "$*" >> "$STUB_STATE/prd.calls"
+case \${STUB_PICKUP:-same} in
+  same) echo "dev-sync: dev already has origin/dev" ;;
+  moved) echo "dev-sync: fast-forwarded dev to abc1234" ;;
+  refused) echo "dev-sync: the main checkout is in the middle of a merge, rebase or cherry-pick (MERGE_HEAD)" >&2; exit 1 ;;
+esac
+`;
+
+let root, main, loops, sessions, asks, state, env, clock, rowsFile, inboxDir, claudeConfig;
 const scripts = (f) => join(main, "scripts/loops", f);
 const calls = (f) => {
   const p = join(state, `${f}.calls`);
@@ -195,20 +241,28 @@ beforeAll(() => {
     "notices.mjs",
     "asks.mjs",
     "ask.mjs",
+    "skeptics.mjs",
     "sessions.mjs",
     "load-gate.mjs",
     "rotate.mjs",
     "open-session.mjs",
+    "planner-model.mjs",
   ])
     copyFileSync(join(HERE, f), scripts(f));
   writeFileSync(scripts("new.sh"), NEW_SH);
   writeFileSync(scripts("open-session.sh"), OPEN_SH);
+  writeFileSync(scripts("rm.sh"), RM_SH);
   writeFileSync(scripts("tidy-cli.mjs"), TIDY);
+  writeFileSync(scripts("prd.sh"), PRD_SH);
   writeFileSync(join(main, "scripts/backlog/backlog.mjs"), BACKLOG);
+  for (const f of ["registry.mjs", "format.mjs"])
+    copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
   writeFileSync(join(main, ".gitignore"), ".loops/\n");
   git(main, "add", ".");
   git(main, "commit", "-q", "-m", "chore: init");
   writeFileSync(join(root, "load"), "1 1 1");
+  inboxDir = join(root, "home/.caretook/inbox");
+  claudeConfig = join(root, "claude.json");
   env = {
     ...process.env,
     PATH: `${bin}:${process.env.PATH}`,
@@ -230,6 +284,11 @@ beforeAll(() => {
     // Off unless a test turns it on, and never the machine's real processes.
     CARETOOK_KEEP_SESSIONS: "off",
     CARETOOK_PROCESS_FILE: join(root, "processes"),
+    // Off unless a test turns it on; never the machine's own inbox folder or Claude Code files.
+    CARETOOK_PICKUP_EVERY: "off",
+    CARETOOK_INBOX_DIR: inboxDir,
+    CARETOOK_CLAUDE_PROJECTS: join(root, "projects"),
+    CARETOOK_CLAUDE_CONFIG: claudeConfig,
     STUB_STATE: state,
     STUB_ROWS: rowsFile,
   };
@@ -248,6 +307,8 @@ beforeEach(() => {
   setClock(T0);
   setRows([]);
   writeFileSync(join(root, "processes"), "");
+  rmSync(join(root, "home"), { recursive: true, force: true });
+  rmSync(claudeConfig, { force: true });
 });
 
 describe("one tick per action", () => {
@@ -284,12 +345,88 @@ describe("one tick per action", () => {
     expect(open[1]).not.toMatch(/B-\d/);
   });
 
+  it("plan: a design row's planner opens on Fable", () => {
+    setRows([{ topic: "pd", state: "to-write", waiting: 1, flags: ["design"] }]);
+    ok();
+    expect(openCalls()[0][1]).toContain('--model fable --remote-control plan-pd "$(');
+  });
+
+  it("the PRD cap defaults to four, and CARETOOK_MAX_PRDS overrides it", () => {
+    const names = ["w", "x", "y"];
+    for (const n of names) worktree(n, `prd/${n}`);
+    const running = names.map((topic) => ({ topic, state: "running" }));
+    setRows([...running, { topic: "a", state: "planned" }]);
+    expect(ok(["--dry-run"])).toContain("start a:");
+    expect(ok(["--dry-run"], { CARETOOK_MAX_PRDS: "3" })).toContain("no free slot (3 of 3 running)");
+    worktree("z", "prd/z");
+    setRows([...running, { topic: "z", state: "running" }, { topic: "a", state: "planned" }]);
+    expect(ok(["--dry-run"])).toContain("no free slot (4 of 4 running)");
+    expect(ok(["--dry-run"], { CARETOOK_MAX_PRDS: "5" })).toContain("start a:");
+  });
+
   it("a failed worktree opens nothing", () => {
     setRows([{ topic: "a", state: "planned" }]);
     const out = ok(["--once"], { STUB_NEW_FAIL: "1" });
     expect(out).toContain("new.sh prd a: failed (exit 1): no room");
     expect(openCalls()).toEqual([]);
     expect(existsSync(join(sessions, "prd-a.json"))).toBe(false);
+  });
+
+  it("a start whose tab never opens leaves no record, no worktree and no count, and starts on a later tick (B-468)", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], { STUB_NEW_MAKE: "1", STUB_OPEN_FAIL: "prd-a" });
+    expect(out).toContain(
+      "  prd-a: its tab never opened, not counted as a death (failed (exit 1): no tab); a later tick retries; a removed",
+    );
+    expect(calls("rm")).toEqual(["a --no-registry"]);
+    expect(existsSync(join(loops, "a"))).toBe(false);
+    expect(existsSync(join(sessions, "prd-a.json"))).toBe(false);
+    expect(dstate().reopens ?? {}).toEqual({});
+    // One line for the failed open, after the new.sh line.
+    expect(
+      logText()
+        .split("\n")
+        .filter((l) => l.includes("prd-a")),
+    ).toHaveLength(1);
+    // The opener works again: the next tick starts it afresh, no reopen.
+    git(main, "branch", "-q", "-D", "prd/a");
+    expect(ok(["--once"], { STUB_NEW_MAKE: "1" })).toContain("start a: planned, and nothing stops it");
+    expect(calls("new")).toEqual(["prd a", "prd a"]);
+    expect(openCalls().at(-1)?.slice(2)).toEqual(["--title", "prd-a", "--background"]);
+    expect(dstate().reopens ?? {}).toEqual({});
+  });
+
+  it("a planner whose tab never opens doesn't hold the planner slot", () => {
+    setRows([
+      { topic: "p", state: "to-write", waiting: 2 },
+      { topic: "q", state: "to-write", waiting: 2 },
+    ]);
+    ok(["--once"], { STUB_NEW_MAKE: "1", STUB_OPEN_FAIL: "plan-p" });
+    expect(calls("rm")).toEqual(["plan-p --no-registry"]);
+    expect(existsSync(join(loops, "plan-p"))).toBe(false);
+    // No planner runs: another may be planned (here p again, by row order), none is reopened.
+    const next = ok(["--dry-run"]);
+    expect(next).toContain("plan p: 2 waiting, no plan yet");
+    expect(next).not.toContain("a planner is running");
+    expect(next).not.toMatch(/reopen plan-p/);
+  });
+
+  it("a reopen whose tab never opens adds no count and files no ask: a later tick retries (B-468)", () => {
+    worktree("a", "prd/a");
+    deadRecord("prd-a");
+    setRows([{ topic: "a", state: "running" }]);
+    for (let i = 0; i < 4; i++) {
+      const out = ok(["--once"], { STUB_OPEN_FAIL: "a" });
+      expect(out).toContain("reopen prd-a: prd-a died (reopen 1 of 2)");
+      expect(out).toContain("  prd-a: its tab never opened, not counted as a death");
+    }
+    expect(dstate().reopens ?? {}).toEqual({});
+    expect(existsSync(asks)).toBe(false);
+    expect(calls("rm")).toEqual([]);
+    expect(existsSync(join(loops, "a"))).toBe(true);
+    // Once a tab opens, it counts as the first reopen.
+    expect(ok()).toContain("reopen prd-a: prd-a died (reopen 1 of 2)");
+    expect(dstate().reopens).toEqual({ "prd-a": 1 });
   });
 
   it("reopen: the opener in the background, counted", () => {
@@ -344,6 +481,42 @@ describe("one tick per action", () => {
     expect(r.status).toBe(1);
     expect(r.stderr).toContain("dispatch needs iTerm2");
     expect(calls("new")).toEqual([]);
+  });
+
+  it("a new.sh that fails after making the worktree removes it: no slot held at the next tick (B-452)", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], { STUB_NEW_MAKE: "1", STUB_NEW_FAIL_AFTER: "1" });
+    expect(out).toContain("  new.sh prd a: failed (exit 1): migrate failed; a removed");
+    // Forced (a half setup holds no work) and with the registry row left alone.
+    expect(calls("rm")).toEqual(["a --no-registry --force"]);
+    expect(existsSync(join(loops, "a"))).toBe(false);
+    expect(existsSync(join(sessions, "prd-a.json"))).toBe(false);
+    expect(openCalls()).toEqual([]);
+    expect(
+      logText()
+        .split("\n")
+        .filter((l) => l.includes("new.sh")),
+    ).toHaveLength(1);
+    // The next tick sees no worktree opened by hand and no slot taken: it starts a again.
+    const next = ok(["--dry-run"], { CARETOOK_MAX_PRDS: "1" });
+    expect(next).toContain("start a: planned, and nothing stops it");
+    expect(next).not.toContain("opened by hand");
+  });
+
+  it("a planner whose new.sh fails after making its worktree doesn't hold the planner slot (B-452)", () => {
+    setRows([{ topic: "p", state: "to-write", waiting: 2 }]);
+    ok(["--once"], { STUB_NEW_MAKE: "1", STUB_NEW_FAIL_AFTER: "1" });
+    expect(calls("rm")).toEqual(["plan-p --no-registry --force"]);
+    expect(existsSync(join(loops, "plan-p"))).toBe(false);
+    const next = ok(["--dry-run"]);
+    expect(next).toContain("plan p: 2 waiting, no plan yet");
+    expect(next).not.toContain("a planner is running");
+  });
+
+  it("a new.sh that fails before making the worktree removes nothing", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    expect(ok(["--once"], { STUB_NEW_FAIL: "1" })).toContain("  new.sh prd a: failed (exit 1): no room\n");
+    expect(calls("rm")).toEqual([]);
   });
 });
 
@@ -428,6 +601,69 @@ describe("the lock, pause, resume and stop", () => {
     expect(existsSync(join(loops, ".dispatch.lock"))).toBe(false);
     expect(logText()).toContain("stopped (SIGTERM)");
     expect(ok(["--stop"])).toContain("No dispatcher is running.");
+  });
+});
+
+describe("taking over a stale lock (B-454)", () => {
+  // Two takers in this process, each with a live pid of its own; `between` runs
+  // the other taker at the point the old unlink-and-write raced.
+  const A = process.pid;
+  const B = process.ppid;
+  /** @type {string} */ let dir;
+  /** @type {string} */ let lock;
+  /** @type {number} */ let dead;
+
+  beforeAll(() => {
+    const r = spawnSync("sh", ["-c", "echo $$"], { encoding: "utf8" });
+    dead = Number(r.stdout.trim());
+  });
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "dispatch-lock-"));
+    lock = join(dir, ".dispatch.lock");
+    writeFileSync(lock, `${dead}\n`);
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  const held = () => Number(readFileSync(lock, "utf8").trim());
+
+  it("two takers racing over a dead holder's lock end with one holder", () => {
+    /** @type {any} */ let inner;
+    const outer = takeLock(lock, { pid: A, between: () => (inner = takeLock(lock, { pid: B })) });
+    expect(inner).toEqual({ ok: true });
+    expect(outer).toEqual({ ok: false, pid: B });
+    expect(held()).toBe(B);
+    expect(existsSync(`${lock}.takeover`)).toBe(false);
+  });
+
+  it("the same race the other way round also ends with one holder", () => {
+    /** @type {any} */ let inner;
+    const outer = takeLock(lock, { pid: B, between: () => (inner = takeLock(lock, { pid: A })) });
+    expect(inner).toEqual({ ok: true });
+    expect(outer).toEqual({ ok: false, pid: A });
+    expect(held()).toBe(A);
+  });
+
+  it("a lone taker takes a dead holder's lock", () => {
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: true });
+    expect(lockHolder(lock)).toBe(A);
+  });
+
+  it("a live holder's lock is never taken", () => {
+    writeFileSync(lock, `${B}\n`);
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: false, pid: B });
+    expect(held()).toBe(B);
+  });
+
+  it("a crashed taker's stale guard is cleared; a fresh one is waited on", () => {
+    mkdirSync(`${lock}.takeover`);
+    const old = (Date.now() - TAKEOVER_STALE_MS - 1000) / 1000;
+    utimesSync(`${lock}.takeover`, old, old);
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: true });
+    expect(held()).toBe(A);
+
+    writeFileSync(lock, `${dead}\n`);
+    mkdirSync(`${lock}.takeover`);
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: false, pid: 0 });
+    expect(held()).toBe(dead);
   });
 });
 
@@ -516,6 +752,31 @@ describe("deaths and the reopen ask", () => {
     updateReopens({ "prd-a": 1, "prd-gone": 2 });
     ok();
     expect(dstate().reopens).toEqual({});
+  });
+
+  it("a failed hold write keeps the answer and the count, skips the topic, and is retried next tick", () => {
+    dying();
+    ok();
+    ok();
+    expect(ok()).toContain("filed ask a1");
+    answer("a1", "hold the topic");
+    const failed = ok(["--once"], { STUB_BACKLOG_FAIL: "1" });
+    expect(failed).toContain(
+      'ask a1 answered "hold the topic", but flagging a hold failed (retried next tick)',
+    );
+    expect(failed).toContain("registry locked");
+    expect(failed).toContain("a: its orchestrator died after 2 reopens; waits on ask a1");
+    expect(failed).not.toContain("filed ask");
+    expect(dstate()).toMatchObject({ reopens: { "prd-a": 2 }, asked: { "prd-a": { id: "a1", topic: "a" } } });
+    // Two reopens and the helper's tab: nothing opened on the failed tick.
+    expect(openCalls()).toHaveLength(3);
+
+    const held = ok();
+    expect(held).toContain('ask a1 answered "hold the topic": a flagged hold');
+    expect(calls("backlog")).toEqual(["prd set a flags=hold", "prd set a flags=hold"]);
+    expect(held).toContain("a: on hold; its orchestrator isn't live (not reopened)");
+    expect(dstate()).toMatchObject({ reopens: {}, asked: {} });
+    expect(openCalls()).toHaveLength(3);
   });
 });
 
@@ -752,6 +1013,22 @@ describe("the keep-alive tick", () => {
     expect(calls("new")).toEqual(["prd a"]);
   });
 
+  it("a kept session whose tab never opens records no quick death, and opens on a later tick", () => {
+    ok(["--once"], on);
+    const before = dstate().keepAlive.backlog;
+    setClock(T0 + 180);
+    const out = ok(["--once"], { ...on, STUB_OPEN_FAIL: "backlog" });
+    expect(out).toContain("  backlog: its tab never opened, not counted as a death");
+    expect(dstate().keepAlive.backlog).toEqual(before);
+    // A first open that fails leaves no entry at all.
+    rmSync(join(loops, ".dispatch.json"));
+    ok(["--once"], { ...on, STUB_OPEN_FAIL: "backlog" });
+    expect(dstate().keepAlive?.backlog).toBeUndefined();
+    setClock(T0 + 360);
+    ok(["--once"], on);
+    expect(dstate().keepAlive.backlog).toEqual({ deaths: 0, openedAt: (T0 + 360) * 1000 });
+  });
+
   it("counts an unrecorded --remote-control backlog process as live", () => {
     writeFileSync(join(root, "processes"), "claude-stub --model opus --remote-control backlog You are\n");
     ok(["--once"], on);
@@ -837,5 +1114,126 @@ describe("the keep-alive tick", () => {
     expect(ok(["--dry-run"], on)).toContain("keep-alive backlog: open");
     expect(keptOpens()).toEqual([]);
     expect(existsSync(join(sessions, "backlog.json"))).toBe(false);
+  });
+});
+
+describe("the inbox session's keep-alive", () => {
+  const on = { CARETOOK_KEEP_SESSIONS: "on" };
+  const inboxOpens = () => openCalls().filter((c) => c[0] === "inbox");
+  /** The inbox folder made and trusted, as a first `pnpm prd inbox` by hand leaves it. */
+  const trust = () => {
+    mkdirSync(inboxDir, { recursive: true });
+    writeFileSync(
+      claudeConfig,
+      JSON.stringify({ projects: { [inboxDir]: { hasTrustDialogAccepted: true } } }),
+    );
+  };
+  const backlogLive = "claude-stub --remote-control backlog You are\n";
+
+  it("opens nothing while its folder is missing or untrusted, and says why", () => {
+    writeFileSync(join(root, "processes"), backlogLive);
+    expect(ok(["--dry-run"], on)).toContain(`keep-alive inbox: its directory ${inboxDir} doesn't exist yet`);
+    mkdirSync(inboxDir, { recursive: true });
+    expect(ok(["--dry-run"], on)).toContain("isn't trusted yet: run `pnpm prd inbox` once by hand");
+    ok(["--once"], on);
+    expect(inboxOpens()).toEqual([]);
+    expect(existsSync(join(sessions, "inbox.json"))).toBe(false);
+  });
+
+  it("opens a managed inbox session through the opener once trusted, outside the PRD slots", () => {
+    trust();
+    writeFileSync(join(root, "processes"), backlogLive);
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], { ...on, CARETOOK_MAX_PRDS: "1" });
+    expect(out).toContain("keep-alive inbox: open (no live inbox session)");
+    expect(out).toContain("start a:");
+    expect(inboxOpens()).toEqual([["inbox", "--background"]]);
+    expect(JSON.parse(readFileSync(join(sessions, "inbox.json"), "utf8"))).toEqual({
+      kind: "inbox",
+      managed: true,
+    });
+  });
+
+  it("keeps a dead record's model and directory, and asks at the third quick death", () => {
+    trust();
+    writeFileSync(join(root, "processes"), backlogLive);
+    deadRecord("inbox", { kind: "inbox", model: "sonnet", dir: inboxDir, managed: false });
+    ok(["--once"], on);
+    expect(JSON.parse(readFileSync(join(sessions, "inbox.json"), "utf8"))).toEqual({
+      kind: "inbox",
+      managed: true,
+      model: "sonnet",
+      dir: inboxDir,
+    });
+    for (const at of [180, 360]) {
+      setClock(T0 + at);
+      ok(["--once"], on);
+    }
+    expect(inboxOpens()).toHaveLength(3);
+    setClock(T0 + 540);
+    expect(ok(["--once"], on)).toContain("keep-alive inbox: ask");
+    expect(inboxOpens()).toHaveLength(3);
+    expect(askFile(dstate().keepAlive.inbox.asked.id).text).toContain("The inbox session died 3 times");
+  });
+
+  it("counts a --remote-control inbox process as live", () => {
+    trust();
+    writeFileSync(
+      join(root, "processes"),
+      `${backlogLive}claude-stub --model opus --remote-control inbox You are\n`,
+    );
+    ok(["--once"], on);
+    expect(inboxOpens()).toEqual([]);
+  });
+});
+
+describe("the pickup", () => {
+  const every = { CARETOOK_PICKUP_EVERY: "300" };
+  const pickups = () => calls("prd");
+
+  it("runs dev-sync once a period, not every tick, and says nothing when there was nothing", () => {
+    expect(ok(["--once"], every)).not.toContain("pickup");
+    expect(pickups()).toEqual(["dev-sync the dispatcher's pickup"]);
+    setClock(T0 + 60);
+    ok(["--once"], every);
+    setClock(T0 + 299);
+    ok(["--once"], every);
+    expect(pickups()).toHaveLength(1);
+    setClock(T0 + 300);
+    expect(ok(["--once"], { ...every, STUB_PICKUP: "moved" })).toContain(
+      "pickup: dev-sync: fast-forwarded dev to abc1234",
+    );
+    expect(pickups()).toHaveLength(2);
+    expect(dstate().lastPickup).toBe((T0 + 300) * 1000);
+  });
+
+  it("a refused pickup logs one line and the tick still picks", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], { ...every, STUB_PICKUP: "refused" });
+    expect(out).toContain(
+      "pickup: failed (exit 1): dev-sync: the main checkout is in the middle of a merge, rebase or cherry-pick (MERGE_HEAD)",
+    );
+    expect(out.match(/pickup/g)).toHaveLength(1);
+    expect(out).toContain("start a:");
+    expect(calls("new")).toEqual(["prd a"]);
+    expect(logText()).toContain("pickup: failed (exit 1)");
+    // Not retried on the next tick: once a period, failed or not.
+    setClock(T0 + 60);
+    ok(["--once"], { ...every, STUB_PICKUP: "refused" });
+    expect(pickups()).toHaveLength(1);
+  });
+
+  it("runs by default, never paused, off or in a dry run", () => {
+    ok(["--once"], { CARETOOK_PICKUP_EVERY: "" });
+    expect(pickups()).toHaveLength(1);
+    rmSync(join(loops, ".dispatch.json"), { force: true });
+    ok(["--pause", "t"]);
+    ok(["--once"], every);
+    ok(["--resume"]);
+    ok(["--once"]);
+    expect(pickups()).toHaveLength(1);
+    expect(ok(["--dry-run"], every)).toContain("pickup: would run pnpm prd dev-sync");
+    expect(pickups()).toHaveLength(1);
+    expect(dstate().lastPickup).toBeUndefined();
   });
 });

@@ -1,4 +1,5 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { EntryTiming } from "../../../../lib/appointments/upcoming";
 import type { EventDraft } from "../../../../lib/assistant/quickEntryDraft";
 import type { EntryPageData } from "./loadEntry";
 
@@ -10,10 +11,19 @@ import { isLiveEntryKind, isUnnamedEvent, titleField } from "../../../../lib/liv
 
 /**
  * The page's heading (and the read-only title): the title, else "New note"
- * on a draft, else the kind's label ("Note").
+ * on a draft, else the kind's label ("Note"). A saved, unnamed event says
+ * when it is ("Upcoming event", "Past event"); `timing` is an event's only.
  */
-export const entryHeading = (label: string, title: string | null | undefined, draft: boolean): string =>
-  title || (draft ? `New ${label.toLowerCase()}` : label);
+export const entryHeading = (
+  label: string,
+  title: string | null | undefined,
+  draft: boolean,
+  timing?: EntryTiming,
+): string => {
+  if (!draft && timing && timing !== "now" && isUnnamedEvent("event", title))
+    return timing === "upcoming" ? "Upcoming event" : "Past event";
+  return title || (draft ? `New ${label.toLowerCase()}` : label);
+};
 
 /** What the title region shows: an editable field (and what's in it), or the heading as text. */
 export type TitleState =
@@ -77,3 +87,7 @@ export const withEventDraft = (data: EntryPageData, draft: EventDraft | null): E
         },
         heading: entryHeading("Event", draft.title, true),
       };
+
+/** The header's small tappable facts (when it happened, how it repeats): a quiet chip, not a `Button`. */
+export const ENTRY_CHIP =
+  "border-base-200 bg-base-200 rounded-selector text-base-content hover:bg-base-300 inline-flex h-auto cursor-pointer items-center justify-center gap-1 border px-2 py-0.5 text-sm outline-offset-2 data-[focus-visible]:outline-2";

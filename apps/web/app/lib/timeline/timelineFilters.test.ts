@@ -4,11 +4,14 @@ import {
   clearFilters,
   clearKind,
   clearQuery,
+  clearDay,
   clearVital,
   hasFilters,
   normalizeQuery,
   parseFilters,
+  readDay,
   setAuthor,
+  setDay,
   setKind,
   setQuery,
   setPeriod,
@@ -471,5 +474,72 @@ describe("the search's care period (?period=)", () => {
   it("is dropped by any change while there's no search", () => {
     expect(setKind(`?period=${PERIOD}`, "note")).toBe("?kind=note");
     expect(clearKind(`?period=${PERIOD}`)).toBe(`?period=${PERIOD}`);
+  });
+});
+
+describe("the day jump (?day=)", () => {
+  const TODAY = "2026-11-23";
+
+  it.each([
+    ["a past day", "?day=2026-11-03", "2026-11-03"],
+    ["today", "?day=2026-11-23", "2026-11-23"],
+    ["a leap day", "?day=2024-02-29", "2024-02-29"],
+    ["beside a filter", "?kind=note&day=2026-11-03", "2026-11-03"],
+    ["no day", "", null],
+    ["tomorrow", "?day=2026-11-24", null],
+    ["malformed", "?day=Nov-3", null],
+    ["no leading zeros", "?day=2026-11-3", null],
+    ["a time on it", "?day=2026-11-03T10:00", null],
+    ["an impossible date", "?day=2026-02-30", null],
+    ["not a leap year", "?day=2026-02-29", null],
+    ["month 13", "?day=2026-13-01", null],
+    ["beside a search", "?q=bp&day=2026-11-03", null],
+  ])("reads %s", (_name, search, day) => {
+    expect(readDay(search, TODAY)).toBe(day);
+  });
+
+  it("setting a day keeps kind, author and vital, and ends a search and its period", () => {
+    const search = `?kind=vital&author=${ALEX}&vital=heartRate`;
+    expect(new URLSearchParams(setDay(search, "2026-11-03")).get("day")).toBe("2026-11-03");
+    expect(parseFilters(setDay(search, "2026-11-03"))).toEqual(parseFilters(search));
+    const searching = `?kind=note&q=walk&period=${SAM}`;
+    const jumped = setDay(searching, "2026-11-03");
+    expect(parseFilters(jumped)).toMatchObject({ kind: "note", q: "", period: null });
+    expect(readDay(jumped, TODAY)).toBe("2026-11-03");
+  });
+
+  it("setting another day replaces it; an invalid day changes nothing", () => {
+    expect(setDay("?day=2026-11-03", "2026-10-01")).toBe("?day=2026-10-01");
+    expect(setDay("?day=2026-11-03", "2026-02-30")).toBe("?day=2026-11-03");
+  });
+
+  it("keeps parameters it doesn't own", () => {
+    expect(new URLSearchParams(setDay("?other=1", "2026-11-03")).get("other")).toBe("1");
+  });
+
+  it.each([
+    ["setKind", (s: string) => setKind(s, "note")],
+    ["setAuthor", (s: string) => setAuthor(s, SAM)],
+    ["setVital", (s: string) => setVital(s, "heartRate")],
+    ["setQuery", (s: string) => setQuery(s, "walk")],
+    ["clearKind", (s: string) => clearKind(s)],
+    ["clearAuthor", (s: string) => clearAuthor(s)],
+    ["clearVital", (s: string) => clearVital(s)],
+    ["clearFilters", (s: string) => clearFilters(s)],
+  ])("%s clears the day", (_name, apply) => {
+    const search = `?kind=vital&author=${ALEX}&vital=weight&day=2026-11-03`;
+    expect(new URLSearchParams(apply(search)).has("day")).toBe(false);
+  });
+
+  it("a filter that's already on changes nothing, the day included", () => {
+    const search = "?kind=note&day=2026-11-03";
+    expect(setKind(search, "note")).toBe(search);
+    expect(clearAuthor(search)).toBe(search);
+  });
+
+  it("clearing the day keeps the filters", () => {
+    expect(clearDay("?kind=note&day=2026-11-03")).toBe("?kind=note");
+    expect(clearDay("?day=2026-11-03")).toBe("");
+    expect(clearDay("?kind=note")).toBe("?kind=note");
   });
 });

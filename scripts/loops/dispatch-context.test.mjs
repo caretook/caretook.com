@@ -24,6 +24,7 @@ import {
   commandUnder,
   contextAnswer,
   contextDecision,
+  contextDefault,
   runsPrdCommand,
 } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, MAX_REOPENS, pick } from "./dispatch-pick.mjs";
@@ -31,7 +32,8 @@ import { DISPATCH_SESSION, MAX_REOPENS, pick } from "./dispatch-pick.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MIN = 60_000;
 const NOW = Date.parse("2026-11-22T12:00:00Z");
-const LIMIT = 160_000;
+/** The hard limit: the dispatcher's follow-up starts there. */
+const LIMIT = 225_000;
 const WAIT = 15 * MIN;
 const ago = (ms) => new Date(NOW - ms).toISOString();
 
@@ -44,7 +46,7 @@ const session = (extra = {}) => ({
   live: true,
   ...extra,
 });
-const over = (extra = {}) => ({ pid: 100, size: 200_000, firstOverAt: ago(WAIT), ...extra });
+const over = (extra = {}) => ({ pid: 100, size: 240_000, hardOverAt: ago(WAIT), ...extra });
 const decide = (facts = {}) =>
   contextDecision({
     sessions: [session()],
@@ -60,9 +62,13 @@ const asked = { "prd-x": { pid: 100, askId: "a1" } };
 const delivered = over({ nudgeAt: ago(2 * WAIT), nudgeDeliveredAt: ago(WAIT) });
 
 describe("the context decision", () => {
-  it("does nothing under the limit, or over it before the wait", () => {
+  it("does nothing under the hard limit, or over it before the wait", () => {
     expect(decide({ sizes: { "prd-x": { pid: 100, size: LIMIT } } })).toEqual([]);
-    expect(decide({ sizes: { "prd-x": over({ firstOverAt: ago(WAIT - 1) }) } })).toEqual([]);
+    // Past the soft limit only: the hook's reminders, never the dispatcher's follow-up.
+    expect(decide({ sizes: { "prd-x": { pid: 100, size: 200_000, firstOverAt: ago(9 * WAIT) } } })).toEqual(
+      [],
+    );
+    expect(decide({ sizes: { "prd-x": over({ hardOverAt: ago(WAIT - 1) }) } })).toEqual([]);
   });
 
   it("nudges after the wait, once", () => {
@@ -72,7 +78,7 @@ describe("the context decision", () => {
 
   it("never turns an undelivered nudge into a question", () => {
     expect(
-      decide({ sizes: { "prd-x": over({ firstOverAt: ago(9 * WAIT), nudgeAt: ago(8 * WAIT) }) } }),
+      decide({ sizes: { "prd-x": over({ hardOverAt: ago(9 * WAIT), nudgeAt: ago(8 * WAIT) }) } }),
     ).toEqual([]);
   });
 
@@ -81,8 +87,8 @@ describe("the context decision", () => {
       decide({ sizes: { "prd-x": over({ nudgeAt: ago(WAIT), nudgeDeliveredAt: ago(WAIT - 1) }) } }),
     ).toEqual([]);
     const [a] = decide({ sizes: { "prd-x": delivered } });
-    expect(a).toMatchObject({ type: "ask", session: "prd-x", topic: "x" });
-    expect(a.text).toBe("prd-x is at 200k context and hasn't rotated");
+    expect(a).toMatchObject({ type: "ask", session: "prd-x", topic: "x", recommend: "rotate it now" });
+    expect(a.text).toBe("prd-x is at 240k context and hasn't rotated");
     expect(decide({ sizes: { "prd-x": delivered }, entries: asked, asks: { a1: question() } })).toEqual([]);
   });
 
@@ -168,11 +174,29 @@ describe("a managed backlog session", () => {
   const yes = { a1: question({ topic: "backlog", answeredAt: ago(1), answer: CONTEXT_OPTIONS[0] }) };
   const deliveredAt = NOW - WAIT;
 
-  it("is nudged and then asked like an orchestrator, under its own name", () => {
+  it("is nudged and then asked under its own name, the question defaulting to keep going", () => {
     expect(decide(facts(over()))).toEqual([{ type: "nudge", session: "backlog", pid: 100 }]);
     const [a] = decide(facts(delivered));
-    expect(a).toMatchObject({ type: "ask", session: "backlog", topic: "backlog" });
-    expect(a.text).toBe("backlog is at 200k context and hasn't rotated");
+    expect(a).toMatchObject({ type: "ask", session: "backlog", topic: "backlog", recommend: "leave it" });
+    expect(a.text).toBe(
+      "backlog is at 240k context: hand it off, or leave it running (no answer keeps it going)?",
+    );
+    expect(contextDefault("backlog")).toBe(CONTEXT_OPTIONS[1]);
+    expect(contextDefault("prd")).toBe(CONTEXT_OPTIONS[0]);
+  });
+
+  it("never rotates on a defaulted answer, a dismissal or a lost ask: it keeps going", () => {
+    const defaulted = question({
+      topic: "backlog",
+      answeredAt: ago(1),
+      answer: contextDefault("backlog"),
+      defaulted: true,
+    });
+    for (const ask of [defaulted, question({ topic: "backlog", doneAt: ago(1) }), null]) {
+      expect(decide(facts(delivered, { entries, asks: { a1: ask } }))).toEqual([
+        { type: "answered", session: "backlog", pid: 100, answer: "leave", askId: "a1" },
+      ]);
+    }
   });
 
   it("gets nothing when opened by hand", () => {
@@ -204,6 +228,45 @@ describe("a managed backlog session", () => {
       topic: "backlog",
       brief,
     });
+  });
+});
+
+describe("a managed inbox session", () => {
+  const inbox = (extra = {}) => session({ name: "inbox", kind: "inbox", topic: "", ...extra });
+  const yes = { a1: question({ topic: "inbox", answeredAt: ago(1), answer: CONTEXT_OPTIONS[0] }) };
+
+  it("is nudged, asked under its own name, and rotated with no brief", () => {
+    expect(decide({ sessions: [inbox()], sizes: { inbox: over() } })).toEqual([
+      { type: "nudge", session: "inbox", pid: 100 },
+    ]);
+    const [a] = decide({ sessions: [inbox()], sizes: { inbox: delivered } });
+    expect(a).toMatchObject({ type: "ask", session: "inbox", topic: "inbox" });
+    const f = {
+      sessions: [inbox()],
+      sizes: { inbox: delivered },
+      entries: { inbox: { pid: 100, askId: "a1" } },
+    };
+    expect(decide({ ...f, asks: yes })[1]).toEqual({
+      type: "rotate-inbox",
+      session: "inbox",
+      pid: 100,
+      topic: "inbox",
+    });
+  });
+
+  it("gets nothing when opened by hand", () => {
+    expect(decide({ sessions: [inbox({ managed: false })], sizes: { inbox: delivered } })).toEqual([]);
+  });
+
+  it("is followed up from its one limit, the soft one, and its question defaults to rotate", () => {
+    const at170 = over({ size: 170_000 });
+    const f = { sessions: [inbox()], sizes: { inbox: at170 }, inboxLimit: 160_000 };
+    expect(decide(f)).toEqual([{ type: "nudge", session: "inbox", pid: 100 }]);
+    const [a] = decide({ ...f, sizes: { inbox: { ...delivered, size: 170_000 } } });
+    expect(a).toMatchObject({ type: "ask", recommend: CONTEXT_OPTIONS[0] });
+    expect(contextDefault("inbox")).toBe(CONTEXT_OPTIONS[0]);
+    // An orchestrator at the same size is under its hard limit: no follow-up.
+    expect(decide({ sizes: { "prd-x": at170 }, inboxLimit: 160_000 })).toEqual([]);
   });
 });
 
@@ -335,8 +398,8 @@ const liveSession = (script = "while :; do sleep 1; done") => {
 const readyToAsk = (pid) =>
   writeSize({
     pid,
-    size: 200_000,
-    firstOverAt: iso(T0 - 3600),
+    size: 240_000,
+    hardOverAt: iso(T0 - 3600),
     nudgeAt: iso(T0 - 1800),
     nudgeDeliveredAt: iso(T0 - 900),
   });
@@ -373,15 +436,19 @@ describe("the tick", () => {
       "notices.mjs",
       "asks.mjs",
       "ask.mjs",
+      "skeptics.mjs",
       "sessions.mjs",
       "load-gate.mjs",
       "rotate.mjs",
       "open-session.mjs",
+      "planner-model.mjs",
     ])
       copyFileSync(join(HERE, f), scripts(f));
     writeFileSync(scripts("open-session.sh"), OPEN_SH);
     writeFileSync(scripts("rotate.sh"), ROTATE_SH);
     writeFileSync(join(main, "scripts/backlog/backlog.mjs"), BACKLOG);
+    for (const f of ["registry.mjs", "format.mjs"])
+      copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
     writeFileSync(join(root, "load"), "1 1 1");
     env = {
       ...process.env,
@@ -395,9 +462,11 @@ describe("the tick", () => {
       CARETOOK_LOAD_BUSY: "8",
       CARETOOK_LOAD_GATE: "",
       CARETOOK_CONTEXT_LIMIT: "",
+      CARETOOK_CONTEXT_HARD_LIMIT: "",
       CARETOOK_CONTEXT_NUDGE_MIN: "",
       CARETOOK_CONTEXT_WATCH: "",
       CARETOOK_KEEP_SESSIONS: "off",
+      CARETOOK_PICKUP_EVERY: "off",
       CARETOOK_CLOCK_FILE: clock,
       STUB_STATE: stubs,
     };
@@ -421,9 +490,16 @@ describe("the tick", () => {
       }
   });
 
+  it("leaves a session past only the soft limit alone", () => {
+    const pid = liveSession();
+    writeSize({ pid, size: 200_000, firstOverAt: iso(T0 - 3600) });
+    expect(tick()).not.toContain("nudged");
+    expect(readSizeFile().nudgeAt).toBeUndefined();
+  });
+
   it("writes the nudge to the size record", () => {
     const pid = liveSession();
-    writeSize({ pid, size: 200_000, firstOverAt: iso(T0 - 900) });
+    writeSize({ pid, size: 240_000, hardOverAt: iso(T0 - 900) });
     expect(tick()).toContain("context: prd-x nudged");
     expect(readSizeFile().nudgeAt).toBe(iso(T0));
   });
@@ -503,8 +579,8 @@ describe("the tick", () => {
         backlogSize(),
         JSON.stringify({
           pid: child.pid,
-          size: 200_000,
-          firstOverAt: iso(T0 - 3600),
+          size: 240_000,
+          hardOverAt: iso(T0 - 3600),
           nudgeAt: iso(T0 - 1800),
           nudgeDeliveredAt: iso(T0 - 900),
         }),
@@ -520,7 +596,12 @@ describe("the tick", () => {
     const askAndAnswer = () => {
       tick();
       const [ask] = listAsks(asksDir);
-      expect(ask).toMatchObject({ topic: "backlog", session: CONTEXT_SESSION, defaults: true });
+      expect(ask).toMatchObject({
+        topic: "backlog",
+        session: CONTEXT_SESSION,
+        defaults: true,
+        recommended: CONTEXT_OPTIONS[1],
+      });
       answer(ask.id, CONTEXT_OPTIONS[0]);
     };
 
@@ -578,6 +659,36 @@ describe("the tick", () => {
       expect(reports[0]).toMatchObject({ topic: "backlog" });
       expect(reports[0].text).toContain("no tab");
     });
+  });
+
+  it("rotates a managed inbox session into a fresh one, with no brief", () => {
+    const child = spawn("bash", ["-c", "while :; do sleep 1; done"], { detached: true, stdio: "ignore" });
+    procs.push(child);
+    mkdirSync(sessions, { recursive: true });
+    const record = { pid: child.pid, kind: "inbox", managed: true, started: new Date().toISOString() };
+    writeFileSync(join(sessions, "inbox.json"), JSON.stringify(record));
+    mkdirSync(join(loops, ".context"), { recursive: true });
+    writeFileSync(
+      join(loops, ".context", "inbox.json"),
+      JSON.stringify({
+        pid: child.pid,
+        size: 200_000,
+        firstOverAt: iso(T0 - 3600),
+        nudgeAt: iso(T0 - 1800),
+        nudgeDeliveredAt: iso(T0 - 900),
+      }),
+    );
+    tick();
+    const [ask] = listAsks(asksDir);
+    expect(ask).toMatchObject({ topic: "inbox", session: CONTEXT_SESSION });
+    answer(ask.id, CONTEXT_OPTIONS[0]);
+    tick();
+    const lines = callsOf("open").filter((l) => l.includes("rotate-into.sh"));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain(
+      `rotate-into.sh inbox ${child.pid} --reason context --title inbox --background`,
+    );
+    expect(callsOf("rotate")).toEqual([]);
   });
 
   it("writes nothing on a dry run", () => {

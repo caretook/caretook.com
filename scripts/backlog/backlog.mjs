@@ -30,11 +30,28 @@
 // subject lists every id, its body keeps each write's lines, and the ref
 // update still compares against the HEAD it read (scripts/backlog/amend.mjs).
 //
-//   pnpm backlog ingest                      file new inbox bullets (status inbox), tag them (B-n)
-//   pnpm backlog inbox                       show inbox bullets not filed yet
+//   pnpm backlog ingest                      file new inbox bullets (status inbox), tag them (B-n);
+//                                            runs the pickup (pnpm prd dev-sync) first, outside the lock
+//   pnpm backlog inbox                       show inbox bullets not filed yet (origin/dev's copy
+//                                            merged with the working copy)
+//   pnpm backlog inbox add <type> <text…> [--details TEXT] [--anyway]
+//                                            a bullet at the end of the type's section, on origin/dev;
+//                                            a look-alike (items, unfiled lines) stops it (exit 3)
+//   pnpm backlog inbox move <words…> <type>  an unfiled bullet (its words must find one) to another
+//                                            heading, on origin/dev; a filed one names its `set` line
+//
+// The inbox commands write through the origin writer (scripts/backlog/origin.mjs):
+// a commit built on origin/dev's tip, changing only the inbox, pushed without
+// force (retried on a new tip, five tries), touching no working tree, index or
+// HEAD; unpushed backlog commits of local dev go first. Then the pickup, best
+// effort: a busy main checkout only prints why it skipped. BACKLOG_PICKUP=off
+// skips the pickup (tests).
 //   pnpm backlog list [--all] [--prd P] [--status S] [--type T] [--owner O] [--json]
 //   pnpm backlog show B-n                    finds archived items too (list --all lists them)
-//   pnpm backlog add <type> <title…> [--prd P] [--status S] [--note TEXT]
+//   pnpm backlog similar <text…>             open and archived items that look like it (read only)
+//   pnpm backlog add <type> <title…> [--prd P] [--status S] [--note TEXT] [--anyway]
+//                                            a look-alike prints it and files nothing (exit 3)
+//                                            unless --anyway; ingest always files, and notes them
 //   pnpm backlog set B-n… key=value… [--archived]   keys: status type title prd owner commit
 //   pnpm backlog note B-n [B-n…] <text…> [--archived]   ids after the first need the B- prefix
 //                                            --archived: change archived items in place (they stay archived)
@@ -44,7 +61,8 @@
 //   pnpm backlog refresh [--no-fetch]        write the derived statuses (landed, staging, live)
 //   pnpm backlog commit [message]            commit hand edits of the files (backlog.md normalised)
 //   pnpm backlog doctor [--fix]              check the backlog; exit 1 on findings; --fix the safe ones
-//   pnpm backlog archive                     move landed, staging, live and dropped items to the archive
+//   pnpm backlog archive [B-n…]              move landed, staging, live and dropped items to the archive
+//                                            (with ids only those; one that isn't finished refuses all)
 //   pnpm backlog path
 //   pnpm backlog ci-file [--push]            pnpm prd ci's filing: JSON findings on stdin, one
 //                                            commit with scripts/ci/quarantine.txt (scripts/ci/filing.mjs)
@@ -57,11 +75,15 @@
 //
 // Env: BACKLOG_BY (who's writing; default your branch, or git user.name on dev),
 // BACKLOG_BRANCH (default dev), BACKLOG_REMOTE (default origin).
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as amend from "./amend.mjs";
 import * as fmt from "./format.mjs";
+import * as edits from "./inbox-edit.mjs";
+import { mergeInbox } from "./inbox-merge.mjs";
+import { pushInboxEdit } from "./origin.mjs";
 import * as reg from "./registry.mjs";
 
 const TRUNK = process.env.BACKLOG_BRANCH ?? "dev";
@@ -124,9 +146,18 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a.startsWith("--")) {
       const key = a.slice(2);
-      const flag = ["all", "archived", "force", "no-fetch", "json", "fix", "first", "last", "push"].includes(
-        key,
-      );
+      const flag = [
+        "all",
+        "anyway",
+        "archived",
+        "force",
+        "no-fetch",
+        "json",
+        "fix",
+        "first",
+        "last",
+        "push",
+      ].includes(key);
       opts[key] = flag ? true : argv[++i];
       if (!flag && opts[key] === undefined) throw new fmt.BacklogError(`${a} needs a value`);
     } else pos.push(a);
@@ -403,23 +434,226 @@ function write(tool, describe, change, opts = {}) {
   });
 }
 
-/** File every new inbox bullet as a tracker item (status inbox) and tag it with its id. */
+/** `add` stopped on look-alikes: nothing was filed (exit 3). */
+class LookAlikeStop extends Error {
+  /** @param {ReturnType<typeof fmt.similarItems>} matches */
+  constructor(matches) {
+    super("look-alikes");
+    this.matches = matches;
+  }
+}
+
+/**
+ * Open and archived items to compare a new line with, each with its status
+ * from git.
+ * @param {import("./format.mjs").Item[]} items
+ */
+function similarPool(items) {
+  const archived = readArchive({ lenient: true })?.items ?? [];
+  const status = containment(false);
+  status.prime([...items, ...archived]);
+  return [
+    ...items.map((i) => ({ ...i, status: status(i) })),
+    ...archived.map((i) => ({ ...i, status: status(i), archived: true })),
+  ];
+}
+
+/**
+ * File every new inbox bullet as a tracker item (status inbox) and tag it with
+ * its id. A line is always filed; one with look-alikes gets a note naming them.
+ */
 function ingest(b, inbox) {
-  if (inbox.text === null) return [];
-  const ctx = { by: who(), date: today() };
+  /** @type {{ item: import("./format.mjs").Item, similar: ReturnType<typeof fmt.similarItems> }[]} */
   const filed = [];
+  if (inbox.text === null) return filed;
+  const ctx = { by: who(), date: today() };
+  const pool = similarPool(b.items);
   // In file order. Tagging only appends to a line, so line numbers never shift.
   for (const e of fmt.newInboxEntries(inbox.text)) {
     const title = fmt.titleFromBullet(e.text);
     const asked = [title !== e.text.replace(/\s+/g, " ").trim() ? e.text : "", e.details]
       .filter(Boolean)
       .join("\n");
+    const similar = fmt.similarItems(e.text, pool);
     const it = fmt.add(b, { type: e.type, title, status: "inbox", ...ctx });
     if (asked) fmt.addNote(it, { text: `From the inbox: ${asked.replace(/\n/g, " / ")}`, ...ctx });
+    if (similar.length)
+      fmt.addNote(it, {
+        text: `Looks like: ${similar.map((m) => `${m.id} (${m.status}${m.archived ? ", archived" : ""}) ${m.title}`).join("; ")}`,
+        ...ctx,
+      });
     inbox.text = fmt.tagInboxLine(inbox.text, e.line, it.id);
-    filed.push(it);
+    pool.push({ ...it });
+    filed.push({ item: it, similar });
   }
   return filed;
+}
+
+// ---- the inbox on origin/dev ----------------------------------------------
+
+/**
+ * The pickup: `pnpm prd dev-sync` (scripts/loops/lib.sh), best effort. Its
+ * output goes to stderr; a refusal (the checkout off dev, mid-merge, other
+ * edits in the way) prints why it skipped, and the command carries on. It
+ * runs only when this script's lib.sh belongs to the same main checkout, so
+ * a run against another repository never moves this one's dev.
+ * @param {string} why
+ */
+function pickup(why) {
+  if (process.env.BACKLOG_PICKUP === "off") return;
+  const lib = fileURLToPath(new URL("../loops/lib.sh", import.meta.url));
+  const skip = (reason) => console.error(`pickup skipped: ${reason}`);
+  if (!existsSync(lib)) return skip(`no ${lib}`);
+  const libMain = tryGit(dirname(lib), "worktree", "list", "--porcelain")
+    ?.split("\n")[0]
+    .replace(/^worktree /, "");
+  if (!libMain || realpathSync(libMain) !== realpathSync(mainCheckout))
+    return skip(`${lib} belongs to another checkout than ${mainCheckout}`);
+  if (REMOTE !== "origin") return skip(`dev-sync works with origin, not ${REMOTE}`);
+  if (tryGit(mainCheckout, "remote", "get-url", REMOTE) === null) return skip(`no ${REMOTE} remote`);
+  const r = spawnSync("bash", ["-c", 'source "$0" && dev_sync "$1"', lib, why], {
+    encoding: "utf8",
+    env: { ...process.env, TRUNK },
+    timeout: GIT_TIMEOUT_MS,
+  });
+  const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
+  if (r.status === 0) {
+    if (out) console.error(out);
+    return;
+  }
+  skip(out.split("\n").at(-1) || `dev-sync exited ${r.status ?? r.signal}`);
+}
+
+/** A file at a revision of the main checkout, or null. */
+const showAt = (rev, rel) => {
+  try {
+    return gitRaw(mainCheckout, ["show", `${rev}:${rel}`]);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The inbox as it stands: origin/dev's copy merged with the working copy (on
+ * their merge base), or the working copy alone with no origin/dev.
+ * `fetch`: fetch first, best effort.
+ */
+function mergedInbox(fetch) {
+  const working = readText(inboxFile);
+  const tracking = `refs/remotes/${REMOTE}/${TRUNK}`;
+  if (fetch && tryGit(mainCheckout, "remote", "get-url", REMOTE) !== null)
+    if (tryGit(mainCheckout, "fetch", "--quiet", REMOTE, TRUNK) === null)
+      console.error(`couldn't fetch ${REMOTE}/${TRUNK}: its last fetched copy is used`);
+  const theirs = showAt(tracking, INBOX_REL);
+  if (theirs === null) return working;
+  if (working === null) return theirs;
+  const base = tryGit(mainCheckout, "merge-base", `refs/heads/${TRUNK}`, tracking);
+  return mergeInbox((base && showAt(base, INBOX_REL)) ?? "", working, theirs).text;
+}
+
+/** A look-alike as a line: an item, or an unfiled inbox line. */
+const lookAlikeLine = (m) => (m.id === "inbox" ? `unfiled inbox line  ${m.title}` : fmt.similarLine(m));
+
+/** The writer's fixed parts, for one inbox command. */
+const originWrite = () => ({
+  main: mainCheckout,
+  gitDir,
+  remote: REMOTE,
+  trunk: TRUNK,
+  rel: INBOX_REL,
+  backlogFiles: BACKLOG_FILES,
+  withLock,
+});
+
+const sayPushed = (commit) => `on ${REMOTE}/${TRUNK} as ${commit.slice(0, 7)}`;
+
+/** `inbox add <type> <text…> [--details TEXT] [--anyway]`. */
+function inboxAdd(args, opts) {
+  const [type, ...words] = args;
+  const text = words.join(" ");
+  if (!type || !text.trim()) throw new fmt.BacklogError("usage: inbox add <type> <text…> [--details TEXT]");
+  fmt.checkType(type);
+  const details = typeof opts.details === "string" ? opts.details : "";
+  edits.addEntry("", type, text, details); // a bad line fails here, before any network
+  const { commit } = pushInboxEdit({
+    ...originWrite(),
+    message: {
+      tool: "inbox add",
+      ids: [],
+      text: `inbox: add (${type}) ${fmt.titleFromBullet(text)}`,
+      lines: [`By: ${who()}`],
+    },
+    precheck: () => {
+      if (opts.anyway) return;
+      const merged = mergedInbox(false);
+      const lines = merged === null ? [] : fmt.newInboxEntries(merged);
+      const pool = [
+        ...similarPool(read({ lenient: true }).items),
+        ...lines.map((e) => ({ id: "inbox", status: "unfiled", prd: "", title: e.text })),
+      ];
+      const matches = fmt.similarItems(text, pool);
+      if (matches.length) throw new LookAlikeStop(matches);
+    },
+    edit: (t) => edits.addEntry(t, type, text, details),
+  });
+  if (!commit) return console.log("nothing changed");
+  const heading = edits.headingFor(showAt(commit, INBOX_REL) ?? "", type);
+  console.log(`added under ${heading} ${sayPushed(commit)}: ${fmt.titleFromBullet(text)}`);
+  pickup("an inbox push");
+}
+
+/** `inbox move <words…> <type>`. */
+function inboxMove(args) {
+  const type = args.at(-1);
+  const words = args.slice(0, -1).join(" ");
+  if (!type || !words.trim()) throw new fmt.BacklogError("usage: inbox move <words…> <type>");
+  fmt.checkType(type);
+  const key = (s) => s.replace(/\s+/g, " ").trim().toLowerCase();
+  const filed = (e, id) =>
+    new fmt.BacklogError(
+      `"${fmt.titleFromBullet(e.text)}" is filed as ${id}: change the item instead: pnpm backlog set ${id} type=${type}`,
+    );
+  /** @type {{ text: string, from: string } | null} */
+  let moved = null;
+  const { commit } = pushInboxEdit({
+    ...originWrite(),
+    message: {
+      tool: "inbox move",
+      ids: [],
+      text: `inbox: move "${fmt.titleFromBullet(words)}" to ${type}`,
+      lines: [`By: ${who()}`],
+    },
+    edit: (t, localText) => {
+      moved = null;
+      const local = localText === null ? [] : fmt.parseInbox(localText);
+      const hits = edits.findEntries(t, words);
+      if (!hits.length) {
+        const there = localText === null ? [] : edits.findEntries(localText, words).filter((e) => e.id);
+        if (there.length === 1) throw filed(there[0], there[0].id);
+        const work = readText(inboxFile);
+        if (work !== null && edits.findEntries(work, words).length)
+          throw new fmt.BacklogError(
+            `"${words}" is only in your uncommitted ${INBOX_REL}, not on ${REMOTE}/${TRUNK}: move it there by hand`,
+          );
+        throw new fmt.BacklogError(`no inbox line on ${REMOTE}/${TRUNK} has "${words}"`);
+      }
+      if (hits.length > 1)
+        throw new fmt.BacklogError(
+          `"${words}" is in ${hits.length} inbox lines (${hits.map((e) => `"${fmt.titleFromBullet(e.text)}"`).join(", ")}): give more of its words`,
+        );
+      const e = hits[0];
+      if (e.id) throw filed(e, e.id);
+      const tagged = local.find((l) => l.id && key(l.text) === key(e.text));
+      if (tagged) throw filed(e, /** @type {string} */ (tagged.id));
+      if (e.type === type) return t;
+      moved = { text: e.text, from: e.type };
+      return edits.moveEntry(t, e.line, type);
+    },
+  });
+  if (!commit || !moved) return console.log(`already under ${type}: nothing to move`);
+  const heading = edits.headingFor(showAt(commit, INBOX_REL) ?? "", type);
+  console.log(`moved to ${heading} ${sayPushed(commit)}: ${fmt.titleFromBullet(moved.text)}`);
+  pickup("an inbox push");
 }
 
 // ---- deriving statuses from git -------------------------------------------
@@ -502,7 +736,10 @@ function refreshStatuses(b, fetch = false) {
 // ---- commands -------------------------------------------------------------
 
 function list(opts) {
-  const items = [...read().items, ...(opts.all ? (readArchive()?.items ?? []) : [])];
+  const items = [
+    ...read().items,
+    ...(opts.all ? (readArchive()?.items ?? []).map((i) => ({ ...i, archived: true })) : []),
+  ];
   const status = containment(false);
   status.prime(items);
   const rows = items
@@ -558,11 +795,18 @@ function show(id) {
 /**
  * Move finished items (landed, staging, live, dropped, by their status from
  * git) to the archive with their notes, and their bullets out of the inbox.
- * @param {import("./format.mjs").Backlog} b @param {WriteContext} ctx
+ * With `wanted` ids, only those; one that isn't finished refuses them all.
+ * @param {import("./format.mjs").Backlog} b @param {WriteContext} ctx @param {string[]} [wanted]
  */
-function archiveFinished(b, ctx) {
+function archiveFinished(b, ctx, wanted = []) {
   refreshStatuses(b);
-  const done = b.items.filter((i) => fmt.FINISHED.includes(i.status));
+  const named = wanted.map((id) => fmt.find(b, id));
+  const open = named.filter((i) => !fmt.FINISHED.includes(i.status));
+  if (open.length)
+    throw new fmt.BacklogError(
+      `${open.map((i) => `${i.id} is ${i.status}`).join(", ")}, not finished; nothing archived`,
+    );
+  const done = wanted.length ? named : b.items.filter((i) => fmt.FINISHED.includes(i.status));
   if (!done.length) return [];
   const archive = ctx.archive();
   for (const it of done) {
@@ -831,23 +1075,40 @@ function main() {
     case "path":
       return console.log(`${file}\n${inboxFile}`);
     case "inbox": {
-      const pending = existsSync(inboxFile) ? fmt.newInboxEntries(readFileSync(inboxFile, "utf8")) : [];
+      const [sub, ...args] = pos;
+      if (sub === "add") return inboxAdd(args, opts);
+      if (sub === "move") return inboxMove(args);
+      if (sub !== undefined) throw new fmt.BacklogError(`unknown inbox command "${sub}" (add, move)`);
+      const merged = mergedInbox(true);
+      const pending = merged === null ? [] : fmt.newInboxEntries(merged);
       for (const e of pending) console.log(`${e.type.padEnd(8)}  ${e.text}`);
       return console.log(
         pending.length ? `${pending.length} not filed yet (pnpm backlog ingest)` : "nothing new in the inbox",
       );
     }
     case "ingest": {
+      pickup("pnpm backlog ingest"); // before the lock: dev-sync takes it too
       const filed = write(
         "ingest",
         (items) => {
-          const list = items.map((i) => i.id);
+          const list = items.map((f) => f.item.id);
           return { ids: list, text: `file ${amend.idList(list)} from the inbox` };
         },
         (b, ctx) => ingest(b, ctx.inbox),
       );
-      for (const it of filed) console.log(`${it.id}  ${it.type.padEnd(8)}  ${it.title}`);
+      for (const { item: it, similar } of filed) {
+        console.log(`${it.id}  ${it.type.padEnd(8)}  ${it.title}`);
+        for (const m of similar) console.log(`  looks like ${fmt.similarLine(m)}`);
+      }
       return console.log(filed.length ? `filed ${filed.length}` : "nothing new in the inbox");
+    }
+    case "similar": {
+      const text = pos.join(" ");
+      if (!text.trim()) throw new fmt.BacklogError("usage: similar <text…>");
+      const matches = fmt.similarItems(text, similarPool(read({ lenient: true }).items));
+      for (const m of matches) console.log(fmt.similarLine(m));
+      if (!matches.length) console.log("no look-alikes");
+      return;
     }
     case "add": {
       const [type, ...words] = pos;
@@ -855,15 +1116,21 @@ function main() {
       const it = write(
         "add",
         (item) => ({ ids: [item.id], text: `add ${item.id} (${item.type}) ${item.title}` }),
-        (b) =>
-          fmt.add(b, {
+        (b) => {
+          // Under the lock, before anything is written: a stop leaves the backlog as it was.
+          if (!opts.anyway) {
+            const matches = fmt.similarItems(words.join(" "), similarPool(b.items));
+            if (matches.length) throw new LookAlikeStop(matches);
+          }
+          return fmt.add(b, {
             type,
             title: words.join(" "),
             prd: opts.prd,
             status: opts.status,
             note: opts.note,
             ...ctx(),
-          }),
+          });
+        },
       );
       return console.log(`added ${it.id}`);
     }
@@ -985,20 +1252,23 @@ function main() {
           },
         },
       );
-      return console.log(JSON.stringify({ filed: out.filed, removed: out.removed, pushed }));
+      return console.log(
+        JSON.stringify({ filed: out.filed, removed: out.removed, pushed, missed: out.missed }),
+      );
     }
     case "doctor":
       return doctor(!!opts.fix);
     case "prd":
       return prd(pos, opts);
     case "archive": {
+      const wanted = pos.length ? ids(pos) : [];
       const moved = write(
         "archive",
         (items) => ({
           ids: items.map((i) => i.id),
           text: `archive ${items.length} finished item${items.length === 1 ? "" : "s"}`,
         }),
-        (b, c) => archiveFinished(b, c),
+        (b, c) => archiveFinished(b, c, wanted),
       );
       return console.log(
         moved.length
@@ -1014,6 +1284,12 @@ function main() {
 try {
   main();
 } catch (e) {
+  if (e instanceof LookAlikeStop) {
+    console.error("backlog: this looks like what's already filed or in the inbox; nothing was added:");
+    for (const m of e.matches) console.error(`  ${lookAlikeLine(m)}`);
+    console.error("Note the existing item (pnpm backlog note B-<n> …), or rerun with --anyway.");
+    process.exit(3);
+  }
   if (e instanceof fmt.BacklogError) {
     console.error(`backlog: ${e.message}`);
     process.exit(1);

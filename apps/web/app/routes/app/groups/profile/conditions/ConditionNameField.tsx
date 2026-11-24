@@ -43,7 +43,7 @@ export function ConditionNameField({
       </div>
       <input type="hidden" name={CONDITION_FIELD.name} value={name} />
       {error && (
-        <p id={errorId} className="text-error text-sm" role="alert" data-name-error="">
+        <p id={errorId} className="text-error-ink text-sm" role="alert" data-name-error="">
           {error}
         </p>
       )}

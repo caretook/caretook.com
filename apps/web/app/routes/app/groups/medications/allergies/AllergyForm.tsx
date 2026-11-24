@@ -4,7 +4,7 @@ import type { LocalAllergy } from "~/lib/medications/allergies.sync";
 import { ALLERGY_LIMITS, ALLERGY_SEVERITIES } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
 import { SEVERITY_LABELS } from "~/lib/medications/allergies";
 import { ALLERGY_FIELD } from "./allergyActions";
 
@@ -59,12 +59,11 @@ export function AllergyForm({
     >
       <input type="hidden" name={ALLERGY_FIELD.intent} value={allergy ? "update" : "create"} />
       {allergy && <input type="hidden" name={ALLERGY_FIELD.allergyId} value={allergy.id} />}
-      <Field label="Allergic to" error={substanceError}>
+      <Field label="Allergic to" error={substanceError} kind="input">
         {(control) => (
           <input
             {...control}
             name={ALLERGY_FIELD.substance}
-            className="input w-full"
             defaultValue={allergy?.substance ?? ""}
             maxLength={ALLERGY_LIMITS.substance}
             placeholder="e.g. Penicillin"
@@ -73,12 +72,11 @@ export function AllergyForm({
           />
         )}
       </Field>
-      <Field label="Reaction (optional)" error={reactionError}>
+      <Field label="Reaction (optional)" error={reactionError} kind="input">
         {(control) => (
           <input
             {...control}
             name={ALLERGY_FIELD.reaction}
-            className="input w-full"
             defaultValue={allergy?.reaction ?? ""}
             maxLength={ALLERGY_LIMITS.reaction}
             placeholder="e.g. Hives"
@@ -93,21 +91,12 @@ export function AllergyForm({
         defaultValue={allergy?.severity ?? "unknown"}
         className="pt-1"
       />
-      {general && (
-        <p className="text-error text-sm" role="alert">
-          {general}
-        </p>
-      )}
-      <div className="flex justify-end gap-2 pt-3">
-        {onCancel && (
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            Cancel
-          </button>
-        )}
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {allergy ? "Save" : "Add allergy"}
-        </button>
-      </div>
+      {general && <Message tone="error">{general}</Message>}
+      <FormFooter
+        submitLabel={allergy ? "Save" : "Add allergy"}
+        busy={busy}
+        cancel={onCancel ? { label: "Cancel", onCancel } : undefined}
+      />
     </fetcher.Form>
   );
 }

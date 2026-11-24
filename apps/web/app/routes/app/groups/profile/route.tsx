@@ -21,12 +21,12 @@ import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/re
 import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
 import { loadConditions, setNoKnownConditions, useConditions } from "~/lib/profiles/conditions.sync";
 import { conditionActionFromForm } from "./conditions/conditionActions";
-import { ConditionsCard } from "./ConditionsCard";
-import { ContactCard, InsuranceCard } from "./DetailsCards";
-import { EmergencyCard } from "./EmergencyCard";
-import { BasicsCard, NoteCard } from "./ProfileCards";
+import { ConditionsSection } from "./ConditionsSection";
+import { ContactSection, InsuranceSection } from "./DetailsSections";
+import { EmergencySection } from "./EmergencySection";
+import { BasicsSection, NoteSection } from "./ProfileSections";
 import { ProfileHeader } from "./ProfileHeader";
-import { VitalAveragesCard } from "./VitalAveragesCard";
+import { VitalAveragesSection } from "./VitalAveragesSection";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
 // every member, in bands (`Page bands`: the header, then each part a
@@ -49,7 +49,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   ]);
   // Recent vital averages: the windows are days in the recipient's zone.
   const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
-  // The conditions card (every role).
+  // The conditions section (every role).
   const conditionRows = await loadConditions(db, params.groupId);
   // Writers' details: only owners', admins' and caretakers' devices have them.
   const detailsRows = canReadRecipient(group.role, "details")
@@ -70,7 +70,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   };
 }
 
-/** The conditions card's "No known conditions" (writers; a local write, so it works offline). */
+/** The conditions section's "No known conditions" (writers; a local write, so it works offline). */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
@@ -105,7 +105,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const profile = useRecipientProfile(params.groupId, loaderData.rows);
   const details = useRecipientDetails(params.groupId, loaderData.detailsRows);
-  // Live: a member demoted to viewer loses the writers' cards as the role syncs.
+  // Live: a member demoted to viewer loses the writers' sections as the role syncs.
   const readsDetails = canReadRecipient(group.role, "details");
   const editsDetails = canEditRecipient(group.role, "details");
   const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
@@ -129,20 +129,20 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
           <Section>
             <ProfileHeader profile={profile} />
           </Section>
-          <BasicsCard profile={profile} />
-          <ConditionsCard groupId={group.id} state={conditions.state} canWrite={group.canWrite} />
-          <NoteCard profile={profile} canEdit={group.canWrite} />
-          {averages && <VitalAveragesCard rows={averages} />}
+          <BasicsSection profile={profile} />
+          <ConditionsSection groupId={group.id} state={conditions.state} canWrite={group.canWrite} />
+          <NoteSection profile={profile} canEdit={group.canWrite} />
+          {averages && <VitalAveragesSection rows={averages} />}
           {readsDetails ? (
             <>
-              <ContactCard
+              <ContactSection
                 groupId={group.id}
                 name={profile.displayName}
                 details={details}
                 canEdit={editsDetails}
               />
-              <InsuranceCard groupId={group.id} details={details} canEdit={editsDetails} />
-              <EmergencyCard
+              <InsuranceSection groupId={group.id} details={details} canEdit={editsDetails} />
+              <EmergencySection
                 groupId={group.id}
                 members={members}
                 outside={details.outsideContacts}

@@ -13,7 +13,7 @@ import {
   todoService,
   timelineEntryService,
 } from "@caretook/data";
-import { fromBase64, MENTION_NODE } from "@caretook/data/schema";
+import { doseSlotIdFor, fromBase64, MENTION_NODE } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -61,12 +61,17 @@ const world = async () => {
   );
   const [morning, evening] = ok(await medicationPassService.list(owner.ctx, { groupId: group.id })).data;
   const metformin = ok(
-    await medicationService.create(owner.ctx, {
-      groupId: group.id,
-      name: "Metformin",
-      strength: "500 mg",
-      schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
-    }),
+    // Started days ago, so Evening's slot is on today's schedule at any hour the tests run.
+    await medicationService.create(
+      owner.ctx,
+      {
+        groupId: group.id,
+        name: "Metformin",
+        strength: "500 mg",
+        schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
+      },
+      { changedAt: minutesAgo(3 * 24 * 60) },
+    ),
   )!;
   // As needed, so its dose never answers a pass's slot (a dose without a time
   // answers the nearest open slot within two hours, Evening's from 18:00).
@@ -154,6 +159,174 @@ describe("/mcp write tools", () => {
     const passLogId = (written!.details as { passLogId: string }).passLogId;
     expect(textOf(pass)).toContain("Evening medications · Given all · 1 medication");
     expect(pass.structuredContent.url).toBe(`${base}/timeline/pass/${passLogId}/edit`);
+  });
+
+  it("give_pass writes the slot's id, and a second run doesn't double it", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+
+    const pass = await tool(token, "give_pass", { passId: w.evening.id });
+    expect(pass.isError).toBeUndefined();
+    const [id] = pass.structuredContent.entryIds!;
+    const written = await w.entry(id!);
+    expect(id).toBe(
+      doseSlotIdFor(
+        {
+          ...(written!.details as { medicationId: string; status: "given"; passId: string }),
+          occurredAt: written!.occurredAt,
+        },
+        { timeZone: written!.timeZone, passTime: w.evening.time },
+      ),
+    );
+
+    const again = await tool(token, "give_pass", { passId: w.evening.id });
+    expect(again.isError).toBe(true);
+    const doses = (await w.groupEntries()).filter(
+      (e) => e.kind === "dose" && (e.details as { passId?: string }).passId === w.evening.id,
+    );
+    expect(doses).toHaveLength(1);
+  });
+
+  it("two log_dose calls for one slot leave one dose, and log_dose after give_pass adds none", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    // A slot at this minute, so it is on today's schedule at any hour the tests run.
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Los_Angeles",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date());
+    const medication = ok(
+      await medicationService.create(
+        w.owner.ctx,
+        { groupId: w.group.id, name: "Lisinopril", schedule: { type: "scheduled", slots: [{ time }] } },
+        { changedAt: minutesAgo(3 * 24 * 60) },
+      ),
+    )!;
+    const dosesOf = async (id: string) =>
+      (await w.groupEntries()).filter(
+        (e) => e.kind === "dose" && (e.details as { medicationId: string }).medicationId === id,
+      );
+    const call = { medicationId: medication.id, status: "given" };
+
+    const first = await tool(token, "log_dose", call);
+    expect(first.isError).toBeUndefined();
+    const again = await tool(token, "log_dose", call);
+    expect(again.isError).toBeUndefined();
+    expect(again.structuredContent.entryIds).toEqual(first.structuredContent.entryIds);
+    expect(textOf(again)).toMatch(/^Already logged, nothing added: /);
+    const doses = await dosesOf(medication.id);
+    expect(doses).toHaveLength(1);
+    expect(doses[0]!.details).toMatchObject({ scheduledFor: time });
+    expect(doses[0]!.id).toBe(
+      doseSlotIdFor(
+        {
+          medicationId: medication.id,
+          status: "given",
+          scheduledFor: time,
+          occurredAt: doses[0]!.occurredAt,
+        },
+        { timeZone: doses[0]!.timeZone },
+      ),
+    );
+
+    // A different answer for the slot stays its own row, and its repeat merges too.
+    const skipped = { medicationId: medication.id, status: "skipped" };
+    await tool(token, "log_dose", skipped);
+    await tool(token, "log_dose", skipped);
+    expect(await dosesOf(medication.id)).toHaveLength(2);
+
+    // A round's dose answers its slot, so a log_dose for it adds nothing.
+    const round = ok(
+      await medicationPassService.create(w.owner.ctx, { groupId: w.group.id, name: "This minute", time }),
+    )!;
+    const inRound = ok(
+      await medicationService.create(
+        w.owner.ctx,
+        {
+          groupId: w.group.id,
+          name: "Atorvastatin",
+          schedule: { type: "scheduled", slots: [{ passId: round.id }] },
+        },
+        { changedAt: minutesAgo(3 * 24 * 60) },
+      ),
+    )!;
+    const pass = await tool(token, "give_pass", { passId: round.id });
+    expect(pass.isError).toBeUndefined();
+    const repeat = await tool(token, "log_dose", { medicationId: inRound.id, status: "given" });
+    expect(repeat.structuredContent.entryIds).toEqual(pass.structuredContent.entryIds);
+    expect(await dosesOf(inRound.id)).toHaveLength(1);
+  });
+
+  it("a log_dose with a different amount or note is its own dose; an identical retry is not", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Los_Angeles",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date());
+    const medication = ok(
+      await medicationService.create(
+        w.owner.ctx,
+        { groupId: w.group.id, name: "Lisinopril", schedule: { type: "scheduled", slots: [{ time }] } },
+        { changedAt: minutesAgo(3 * 24 * 60) },
+      ),
+    )!;
+    const doses = async () =>
+      (await w.groupEntries()).filter(
+        (e) => e.kind === "dose" && (e.details as { medicationId: string }).medicationId === medication.id,
+      );
+    const log = (args: Record<string, unknown>) =>
+      tool(token, "log_dose", { medicationId: medication.id, status: "given", ...args });
+
+    const first = await log({ amount: "1 tablet", note: "With breakfast" });
+    const [firstId] = first.structuredContent.entryIds!;
+    const retry = await log({ amount: "1 tablet", note: "With breakfast" });
+    expect(retry.structuredContent.entryIds).toEqual([firstId]);
+    expect(textOf(retry)).toMatch(/^Already logged, nothing added: /);
+    expect(await doses()).toHaveLength(1);
+
+    // A different amount: a separate dose, on its own id, the first left as it was.
+    const more = await log({ amount: "2 tablets", note: "With breakfast" });
+    const [moreId] = more.structuredContent.entryIds!;
+    expect(moreId).not.toBe(firstId);
+    expect(textOf(more)).toMatch(/^Logged: /);
+    expect(await doses()).toHaveLength(2);
+    expect((await w.entry(firstId!))!.details).toMatchObject({ amount: "1 tablet", note: "With breakfast" });
+
+    // A different note: another, and retrying either extra dose adds nothing.
+    const noted = await log({ amount: "1 tablet", note: "After the walk" });
+    expect(noted.structuredContent.entryIds).not.toContain(firstId);
+    expect(await doses()).toHaveLength(3);
+    const moreAgain = await log({ amount: "2 tablets", note: "With breakfast" });
+    expect(moreAgain.structuredContent.entryIds).toEqual([moreId]);
+    const notedAgain = await log({ amount: "1 tablet", note: "After the walk" });
+    expect(notedAgain.structuredContent.entryIds).toEqual(noted.structuredContent.entryIds);
+    expect(await doses()).toHaveLength(3);
+
+    // Leaving them out states nothing different, so it is a repeat.
+    const bare = await log({});
+    expect(textOf(bare)).toMatch(/^Already logged, nothing added: /);
+    expect(await doses()).toHaveLength(3);
+  });
+
+  it("two as-needed log_dose calls stay two doses", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const call = { medicationId: w.ibuprofen.id, status: "given" };
+
+    const first = await tool(token, "log_dose", call);
+    const second = await tool(token, "log_dose", call);
+
+    expect(second.structuredContent.entryIds).not.toEqual(first.structuredContent.entryIds);
+    expect(textOf(second)).toMatch(/^Logged: /);
+    const doses = (await w.groupEntries()).filter(
+      (e) => e.kind === "dose" && (e.details as { medicationId: string }).medicationId === w.ibuprofen.id,
+    );
+    expect(doses).toHaveLength(2);
   });
 
   it("add a note, an event with its provider, and a todo by its assignee's name", async () => {

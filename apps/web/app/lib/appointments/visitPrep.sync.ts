@@ -84,6 +84,18 @@ const prepEntriesQuery = (groupId: string, from: string, to: string): LocalQuery
   params: [groupId, toLocalTimestamp(from), toLocalTimestamp(to)],
 });
 
+/**
+ * The group's medication change entries from `from` on, deleted ones too:
+ * deleting the timeline line doesn't undo the change. No end: schedule history
+ * undoes every change later than the day it reads.
+ */
+export const scheduleChangesQuery = (groupId: string, from: string | Date): LocalQuery => ({
+  sql: `SELECT * FROM timeline_entry
+        WHERE group_id = ? AND kind = 'medicationChange' AND occurred_at >= ?
+        ORDER BY occurred_at, id`,
+  params: [groupId, toLocalTimestamp(from)],
+});
+
 /** Rows of `providerEventsQuery` as events with their linked providers. */
 export const toVisitEvents = (rows: (EntryRow & { link_provider_id: string })[]): VisitEvent[] => {
   const byId = new Map<string, VisitEvent & { providerIds: string[] }>();
@@ -141,7 +153,9 @@ export const loadVisitPrepData = async (
   const beforeFrom = new Date(from - Math.max(0, to - from)).toISOString();
   // Doses a little either side of the window, so a slot at its edge finds the dose that answers it.
   const doseMargin = 3 * 3_600_000;
-  const [entryRows, medicationRows, passRows, periodRows, providerRows, recipientRows, doseRows] =
+  // Changes from before the window's first day too: matching reads the day either side.
+  const changesFrom = new Date(from - 3 * 86_400_000);
+  const [entryRows, medicationRows, passRows, periodRows, providerRows, recipientRows, doseRows, changeRows] =
     await Promise.all([
       readRows<EntryRow>(db, prepEntriesQuery(groupId, beforeFrom, window.to)),
       readRows<MedicationRow>(db, medicationsQuery(groupId, { includeDeleted: true })),
@@ -153,6 +167,7 @@ export const loadVisitPrepData = async (
         db,
         groupDosesQuery(groupId, new Date(from - doseMargin), new Date(to + doseMargin)),
       ),
+      readRows<EntryRow>(db, scheduleChangesQuery(groupId, changesFrom)),
     ]);
   return {
     entries: toTimelineEntries(entryRows),
@@ -169,6 +184,7 @@ export const loadVisitPrepData = async (
       stoppedOn: m.stoppedOn ?? null,
     })),
     doses: toMedicationEntries(doseRows).filter(isDoseEntry),
+    changes: toTimelineEntries(changeRows),
     passes: toPasses(passRows),
     periods: toPeriodSpans(periodRows),
     placeNames: new Map(toProviders(providerRows).map((p) => [p.id, p.name])),

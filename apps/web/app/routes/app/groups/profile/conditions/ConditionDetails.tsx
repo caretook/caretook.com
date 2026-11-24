@@ -2,8 +2,7 @@ import type { ReactNode } from "react";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { useState } from "react";
-import { Link } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { CONDITION_STATUS_LABELS, sinceDate } from "~/lib/profiles/conditions";
 import { PROFILE_SHEET_STATE } from "../profileSheet";
@@ -46,63 +45,56 @@ export function ConditionDetails({
     <div className="space-y-4" data-condition-view={condition.id}>
       <dl className="grid grid-cols-2 gap-3">
         <div data-condition-line="status">
-          <dt className="text-base-content/70 text-sm">Status</dt>
+          <dt className="text-muted text-sm">Status</dt>
           <dd className="font-medium">{CONDITION_STATUS_LABELS[condition.status]}</dd>
         </div>
         <div data-condition-line="since">
-          <dt className="text-base-content/70 text-sm">Since</dt>
+          <dt className="text-muted text-sm">Since</dt>
           <dd className="font-medium">{since ?? "Not recorded"}</dd>
         </div>
         {condition.note && (
           <div className="col-span-2" data-condition-line="note">
-            <dt className="text-base-content/70 text-sm">Note</dt>
+            <dt className="text-muted text-sm">Note</dt>
             <dd className="whitespace-pre-line">{condition.note}</dd>
           </div>
         )}
       </dl>
       {providers}
       {medications}
-      {refusal && (
-        <p className="text-error text-sm" role="alert">
-          {refusal}
-        </p>
-      )}
+      {refusal && <Message tone="error">{refusal}</Message>}
       <div className="flex flex-wrap justify-end gap-2">
         {canWrite && (
           <>
-            <button
-              type="button"
-              className="btn btn-ghost text-error mr-auto"
+            <Button
+              variant="dangerQuiet"
+              className="mr-auto"
               onClick={() => setConfirming(true)}
               disabled={busy}
               data-delete-condition=""
             >
               Delete
-            </button>
-            <button
-              type="button"
-              className="btn"
+            </Button>
+            <Button
               onClick={() => onAction(active ? "resolve" : "reactivate")}
               disabled={busy}
               data-condition-status-action={active ? "resolve" : "reactivate"}
             >
               {active ? "Mark resolved" : "Mark active again"}
-            </button>
-            <Link
+            </Button>
+            <Button
               to={appUrls.editCondition(groupId, condition.id)}
               // Saving or cancelling comes back to this sheet.
               state={PROFILE_SHEET_STATE}
               preventScrollReset
-              className="btn"
               data-edit-condition=""
             >
               Edit
-            </Link>
+            </Button>
           </>
         )}
-        <button type="button" className="btn btn-primary" onClick={onClose} data-condition-done="">
+        <Button variant="primary" onClick={onClose} data-condition-done="">
           Done
-        </button>
+        </Button>
       </div>
       {canWrite && (
         <ConfirmDialog

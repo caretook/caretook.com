@@ -92,14 +92,15 @@ export const dayText = (day: number) => `day ${day}`;
 /**
  * The current-period line: "In hospital · Mercy General · day 4". The place's
  * name when there is one, else the label (Other's label is already its name).
+ * A null `day` leaves the number out.
  */
 export const currentLineText = (
   period: PeriodWords,
-  { placeName, day }: { placeName?: string | null; day: number },
+  { placeName, day }: { placeName?: string | null; day: number | null },
 ) => {
   const isOther = periodTypeMeta(period.type) === PERIOD_TYPE_META.other;
   const where = placeName || (isOther ? null : period.label);
-  return [nowText(period), where, dayText(day)].filter(Boolean).join(" · ");
+  return [nowText(period), where, day === null ? null : dayText(day)].filter(Boolean).join(" · ");
 };
 
 // ---------------------------------------------------------------------------

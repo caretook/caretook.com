@@ -85,6 +85,7 @@ describe("connector.listMine", () => {
         "clientName",
         "redirectHost",
         "scope",
+        "readOnlyByOwner",
         "consentedAt",
         "lastUsedAt",
       ].sort(),

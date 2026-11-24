@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Run a recorded claude session: an orchestrator, planner, backlog, hotfix or
-# recovery session.
+# Run a recorded claude session: an orchestrator, planner, backlog, hotfix,
+# recovery or inbox session.
 #
-#   session.sh <name> [--kind prd|plan|backlog|hotfix|recovery] [--topic <t>] [--auto] [--managed] -- <claude args…>
+#   session.sh <name> [--kind prd|plan|backlog|hotfix|recovery|inbox] [--topic <t>] [--auto] [--managed] -- <claude args…>
 #
 # Runs ${CARETOOK_CLAUDE_BIN:-claude} with the args as this script's child, in
 # the foreground (the terminal stays the session's), and keeps
 # .loops/.sessions/<name>.json (sessions.mjs): at start pid, kind, topic,
-# started, the command, the model (claude's --model, if given), remote (its --remote-control), auto and
+# started, the command, the model (claude's --model, if given), remote (its --remote-control), dir (where it runs), auto and
 # managed (--managed: the dispatcher started it), clearing rotating, ended and exit; when it exits, ended and exit, but
 # only while the record's pid is still this session's (sessions.mjs set
 # --if-pid): a second session opened under the same name keeps its record
@@ -15,7 +15,7 @@
 # record stays until rm.sh removes the worktree.
 #
 # The kind and topic default from the name (prd-<topic>, plan-<topic>,
-# hotfix-<name>, backlog, backlog-<name>, recover: kind recovery). The
+# hotfix-<name>, backlog, backlog-<name>, inbox, recover: kind recovery). The
 # pid is the claude process itself: a shell that records its own pid, then
 # execs claude.
 set -euo pipefail
@@ -25,18 +25,19 @@ bin=$(cd "$(dirname "$0")" && pwd)
 export CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions}
 
 name=${1:-}; (($#)) && shift
-[[ -n $name && $name != -* ]] || die "usage: session.sh <name> [--kind prd|plan|backlog|hotfix|recovery] [--topic <t>] [--auto] [--managed] -- <claude args…>"
+[[ -n $name && $name != -* ]] || die "usage: session.sh <name> [--kind prd|plan|backlog|hotfix|recovery|inbox] [--topic <t>] [--auto] [--managed] -- <claude args…>"
 kind="" topic="" auto=false managed=false
 case $name in
   prd-*) kind=prd topic=${name#prd-} ;;
   plan-*) kind=plan topic=${name#plan-} ;;
   hotfix-*) kind=hotfix topic=${name#hotfix-} ;;
   backlog | backlog-*) kind=backlog ;;
+  inbox) kind=inbox ;;
   recover) kind=recovery ;;
 esac
 while (($#)); do
   case $1 in
-    --kind) kind=${2:?--kind prd|plan|backlog|hotfix|recovery}; shift ;;
+    --kind) kind=${2:?--kind prd|plan|backlog|hotfix|recovery|inbox}; shift ;;
     --topic) topic=${2:?--topic <t>}; shift ;;
     --auto) auto=true ;;
     --managed) managed=true ;;
@@ -46,8 +47,8 @@ while (($#)); do
   shift
 done
 case $kind in
-  prd | plan | backlog | hotfix | recovery) ;;
-  *) die "session.sh: --kind prd|plan|backlog|hotfix|recovery (${kind:-none from the name $name})" ;;
+  prd | plan | backlog | hotfix | recovery | inbox) ;;
+  *) die "session.sh: --kind prd|plan|backlog|hotfix|recovery|inbox (${kind:-none from the name $name})" ;;
 esac
 claude_bin=${CARETOOK_CLAUDE_BIN:-claude}
 
@@ -80,13 +81,18 @@ done
 
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
-# The context watch (context.mjs): orchestrators and backlog sessions get its hook through an extra
+# The context watch (context.mjs): orchestrators, backlog and inbox sessions get its hook through an extra
 # settings file, so the user's own sessions never run it. Any other kind clears
 # what it could inherit from a session that started it.
 unset CARETOOK_SESSION_NAME CARETOOK_SESSION_PID CARETOOK_CONTEXT_HOOK
 if [[ $kind == prd || $kind == backlog ]]; then
   export CARETOOK_SESSION_NAME=$name CARETOOK_CONTEXT_HOOK=$bin/context.mjs
   set -- --settings "$bin/context-settings.json" "$@"
+elif [[ $kind == inbox ]]; then
+  # The inbox session runs in fast mode: claude takes one --settings, so
+  # inbox-settings.json holds the context hook as well as fastMode.
+  export CARETOOK_SESSION_NAME=$name CARETOOK_CONTEXT_HOOK=$bin/context.mjs
+  set -- --settings "$bin/inbox-settings.json" "$@"
 fi
 
 # The child records its own pid, then becomes claude, so the recorded pid is
@@ -95,9 +101,9 @@ fi
 pidfile=$(mktemp "${TMPDIR:-/tmp}/caretook-session.XXXXXX")
 trap 'rm -f "$pidfile"' EXIT
 code=0
-bash -c 'node "$1" set "$2" pid=$$ kind="$3" topic="$4" started="$5" command="$6" auto="$7" managed="$8" model="$9" remote="${10}" rotating= ended= exit= &&
-  echo $$ > "${11}" && shift 11 && export CARETOOK_SESSION_PID=$$ && exec "$@"' _ \
-  "$bin/sessions.mjs" "$name" "$kind" "$topic" "$(now)" "$command" "$auto" "$managed" "$model" "$remote" "$pidfile" "$claude_bin" "$@" || code=$?
+bash -c 'node "$1" set "$2" pid=$$ kind="$3" topic="$4" started="$5" command="$6" auto="$7" managed="$8" model="$9" remote="${10}" dir="${11}" rotating= ended= exit= &&
+  echo $$ > "${12}" && shift 12 && export CARETOOK_SESSION_PID=$$ && exec "$@"' _ \
+  "$bin/sessions.mjs" "$name" "$kind" "$topic" "$(now)" "$command" "$auto" "$managed" "$model" "$remote" "$(pwd -P)" "$pidfile" "$claude_bin" "$@" || code=$?
 
 pid=$(cat "$pidfile" 2>/dev/null || true)
 if [[ -z $pid ]]; then

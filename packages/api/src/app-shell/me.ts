@@ -1,7 +1,10 @@
 import { ORPCError } from "@orpc/server";
 import {
+  avatarChoiceZSchema,
+  readAvatarChoice,
   resolveDaySummaryMode,
   resolveEasyModeSetting,
+  resolveSetupDismissed,
   resolveTimelineView,
   resolveUnits,
   userPreferencesZSchema,
@@ -22,6 +25,8 @@ export const me = {
       email: user.email,
       name: user.name,
       image: user.image,
+      /** Your avatar choice; an id this version doesn't know reads as unset. */
+      avatar: readAvatarChoice({ color: user.avatarColor, icon: user.avatarIcon }),
       groupRoles: context.authUser.groupRoles ?? {},
       preferences: user.preferences,
       /** Display units with defaults filled in: what screens should use. */
@@ -29,20 +34,14 @@ export const me = {
       timelineView: resolveTimelineView(user.preferences),
       easyMode: resolveEasyModeSetting(user.preferences),
       daySummary: resolveDaySummaryMode(user.preferences),
+      setupDismissed: resolveSetupDismissed(user.preferences),
     };
   }),
 
   /** Change your own settings. Fields left out keep their current value. */
   updatePreferences: authedProcedure.input(userPreferencesZSchema).handler(async ({ context, input }) => {
-    const self = { id: { type: "eq" as const, value: context.authUser.id } };
-    const user = unwrap(await userService.getWholeById(context, context.authUser.id));
-    if (!user) throw new ORPCError("UNAUTHORIZED");
-    const preferences = {
-      ...user.preferences,
-      ...input,
-      units: { ...user.preferences.units, ...input.units },
-    };
-    unwrap(await userService.update(context, { filter: self, data: { preferences } }));
+    const preferences = unwrap(await userService.updateOwnPreferences(context, input));
+    if (!preferences) throw new ORPCError("UNAUTHORIZED");
     return {
       preferences,
       units: resolveUnits(preferences),
@@ -50,6 +49,13 @@ export const me = {
       easyMode: resolveEasyModeSetting(preferences),
       daySummary: resolveDaySummaryMode(preferences),
     };
+  }),
+
+  /** Set or clear your own avatar: both ids are sent, and null is the default. */
+  setAvatar: authedProcedure.input(avatarChoiceZSchema).handler(async ({ context, input }) => {
+    const avatar = unwrap(await userService.updateOwnAvatar(context, input));
+    if (!avatar) throw new ORPCError("UNAUTHORIZED");
+    return { avatar };
   }),
 
   /** Your own contact details (profiles/profiles.ts). */

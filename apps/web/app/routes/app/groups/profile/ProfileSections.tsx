@@ -1,6 +1,6 @@
 import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 
-import { Section } from "~/components/ui";
+import { EmptyState, Section } from "~/components/ui";
 import { basicLines } from "~/lib/profiles/recipientDisplay";
 
 // The profile's sections every member sees: the medical basics, and the note
@@ -8,7 +8,7 @@ import { basicLines } from "~/lib/profiles/recipientDisplay";
 // writers' sections after them.
 
 /** Code status, blood type, language and pronouns: each only when set. */
-export function BasicsCard({ profile }: { profile: RecipientProfile }) {
+export function BasicsSection({ profile }: { profile: RecipientProfile }) {
   const lines = basicLines(profile);
   return (
     <Section id="basics" title="Basics">
@@ -16,7 +16,7 @@ export function BasicsCard({ profile }: { profile: RecipientProfile }) {
         <dl className="grid grid-cols-2 gap-3">
           {lines.map((line) => (
             <div key={line.id} data-basic={line.id}>
-              <dt className="text-base-content/70 text-sm">{line.label}</dt>
+              <dt className="text-muted text-sm">{line.label}</dt>
               <dd className="font-medium">
                 {line.spoken ? (
                   <>
@@ -31,14 +31,14 @@ export function BasicsCard({ profile }: { profile: RecipientProfile }) {
           ))}
         </dl>
       ) : (
-        <p className="text-base-content/70 text-sm">Nothing added yet.</p>
+        <EmptyState>Nothing added yet.</EmptyState>
       )}
     </Section>
   );
 }
 
 /** The note for helpers ("hard of hearing on the left; uses a walker"), as written. */
-export function NoteCard({ profile, canEdit }: { profile: RecipientProfile; canEdit: boolean }) {
+export function NoteSection({ profile, canEdit }: { profile: RecipientProfile; canEdit: boolean }) {
   if (!profile.notes && !canEdit) return null;
   return (
     <Section id="note" title="Note for helpers">
@@ -47,9 +47,9 @@ export function NoteCard({ profile, canEdit }: { profile: RecipientProfile; canE
           {profile.notes}
         </p>
       ) : (
-        <p className="text-base-content/70 text-sm">
+        <EmptyState>
           No note yet. Add what anyone helping should know, such as how they hear or get around.
-        </p>
+        </EmptyState>
       )}
     </Section>
   );

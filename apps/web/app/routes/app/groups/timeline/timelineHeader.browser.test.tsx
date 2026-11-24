@@ -2,7 +2,7 @@ import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
-import { TEST_NOW, found, waitUntil } from "../../../../../test/found";
+import { TEST_NOW, fixClock, found, waitUntil } from "../../../../../test/found";
 import {
   chooseEasyMode,
   frames,
@@ -324,6 +324,68 @@ describe("the care period in the day headers", () => {
     );
     expect(document.querySelector("main > div > header")?.textContent).not.toMatch(/hospital/i);
     expect(document.querySelector('[data-period-line="empty"]')).toBeNull();
+  });
+
+  describe("with the recipient three hours behind the viewer, just after the viewer's midnight", () => {
+    // The browser is in Los Angeles; in June, Honolulu is three hours behind. At 00:34 on the 9th here it
+    // is still 21:34 on the 8th there, so both headers' moments fall on one recipient date.
+    const local = (day: number, hour: number, minute = 0) => new Date(2027, 5, day, hour, minute);
+    const openAtMidnight = (fixtures: Parameters<typeof fx.period>[0][]) => {
+      fixClock(local(9, 0, 34));
+      return openTimeline({
+        bareDevice: true,
+        fixtures: [
+          fx.group(),
+          fx.recipient({ timeZone: "Pacific/Honolulu" }),
+          fx.member({ userId: TEST_USER.id, role: "owner" }),
+          fx.note({ text: "Settled in", occurredAt: at(local(9, 0, 10)) }),
+          fx.note({ text: "Evening walk", occurredAt: at(local(8, 20)) }),
+          ...fixtures.map((v) => fx.period(v)),
+        ],
+      });
+    };
+    const lineOf = (day: number) =>
+      header(local(day, 12))?.querySelector("[data-period-current]")?.textContent?.trim();
+
+    test("Today and Yesterday show consecutive day numbers", async () => {
+      await openAtMidnight([{ type: "home", startedAt: at(local(3, 12)) }]);
+      await waitUntil(() => lineOf(9) && lineOf(8), "both days' period lines");
+      expect(header(local(8, 12))?.querySelector("h3")?.textContent).toBe("Yesterday");
+      expect(lineOf(9)).toBe("At home · day 7");
+      expect(lineOf(8)).toBe("At home · day 6");
+    });
+
+    test("a period that began late yesterday shows on both headers, counted from its start", async () => {
+      await openAtMidnight([
+        { type: "home", startedAt: at(local(3, 12)) },
+        { type: "hospital", startedAt: at(local(8, 22)) },
+      ]);
+      await waitUntil(() => lineOf(9) && lineOf(8), "both days' period lines");
+      expect(lineOf(9)).toBe("In hospital · day 2");
+      expect(lineOf(8)).toBe("In hospital · day 1");
+    });
+  });
+
+  test("with the recipient in New York and a start at 00:30 there, the viewer's earlier date has no number and the start date is day 1", async () => {
+    // The browser is in Los Angeles: 00:30 on the 9th in New York is 21:30 on the 8th here.
+    const local = (day: number, hour: number, minute = 0) => new Date(2027, 5, day, hour, minute);
+    fixClock(local(9, 10));
+    await openTimeline({
+      bareDevice: true,
+      fixtures: [
+        fx.group(),
+        fx.recipient({ timeZone: "America/New_York" }),
+        fx.member({ userId: TEST_USER.id, role: "owner" }),
+        fx.note({ text: "Morning walk", occurredAt: at(local(9, 9)) }),
+        fx.note({ text: "Late arrival", occurredAt: at(local(8, 22)) }),
+        fx.period({ type: "home", startedAt: at(local(8, 21, 30)) }),
+      ],
+    });
+    const lineOf = (day: number) =>
+      header(local(day, 12))?.querySelector("[data-period-current]")?.textContent?.trim();
+    await waitUntil(() => lineOf(9) && lineOf(8), "both days' period lines");
+    expect(lineOf(8)).toBe("At home");
+    expect(lineOf(9)).toBe("At home · day 1");
   });
 });
 

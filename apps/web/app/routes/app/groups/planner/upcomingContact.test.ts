@@ -77,7 +77,7 @@ describe("upcomingActions", () => {
         href: expect.stringContaining(
           "https://www.google.com/maps/search/?api=1&query=48%20Harbor",
         ) as string,
-        label: "Open 48 Harbor Heart Center, Springfield, CA 90000 in maps",
+        label: "Directions to 48 Harbor Heart Center, Springfield, CA 90000",
         value: "48 Harbor Heart Center, Springfield, CA 90000",
       },
     ]);
@@ -86,7 +86,7 @@ describe("upcomingActions", () => {
   it("has nothing for an item with no provider or place", () => {
     expect(upcomingActions({ place: null }, [nurse])).toEqual([]);
     expect(upcomingActions({ place: "Home" })).toEqual([
-      expect.objectContaining({ kind: "map", label: "Open Home in maps" }) as unknown,
+      expect.objectContaining({ kind: "map", label: "Directions to Home" }) as unknown,
     ]);
   });
 });

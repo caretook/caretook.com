@@ -89,7 +89,7 @@ describe("eventLinkOptions (the appointment picker)", () => {
       NOW,
       WHERE,
     );
-    expect(first).toEqual({ id: "a", label: "Appointment", description: "Tomorrow 10:30 AM" });
+    expect(first).toEqual({ id: "a", label: "Event", description: "Tomorrow 10:30 AM" });
     expect(second).toMatchObject({ label: "Hospice intake", description: "Monday, Nov 23 · All day" });
     expect(eventWhen(event("c", DAY, { endsAt: at(DAY + HOUR) }), NOW, WHERE)).toBe(
       "Tomorrow 12:00 PM–1:00 PM",
@@ -181,6 +181,6 @@ describe("chosenLinkChip", () => {
     expect(chosenLinkChip({ label: "Eye doctor", cancelled: true }, "x").label).toBe(
       "Eye doctor (cancelled)",
     );
-    expect(chosenLinkChip(null, "Chosen appointment")).toEqual({ label: "Chosen appointment", muted: true });
+    expect(chosenLinkChip(null, "Chosen event")).toEqual({ label: "Chosen event", muted: true });
   });
 });

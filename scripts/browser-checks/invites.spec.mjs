@@ -80,6 +80,12 @@ const createAccount = (who, { verified = true } = {}) => {
 const accountCount = (address) =>
   Number(psql(`SELECT count(*) FROM "user" WHERE lower(email) = lower('${address}')`));
 
+/** How many legal acceptances this address has from `source`. */
+const legalRows = (address, source) =>
+  psql(
+    `SELECT count(*) FROM legal_acceptance a JOIN "user" u ON u.id = a.user_id WHERE lower(u.email) = lower('${address}') AND a.source = '${source}'`,
+  );
+
 /** Link invites this run made (they carry no address to clean up by). */
 const linkIds = [];
 
@@ -574,11 +580,16 @@ test("5. a new person is invited, signs up, consents and joins", { tag: "@smoke"
   await signUp.locator('input[name="name"]').fill(`Inv Newbie ${RUN}`);
   await signUp.locator('input[name="password"]').fill(PASSWORD);
   await signUp.locator('input[name="confirm"]').fill(PASSWORD);
+  await signUp.locator('input[name="legal"]').check();
   await doublePress(button(p, "Create account"));
   await expect(p.locator('[data-invite-form="accept"]')).toBeVisible({ timeout: 30_000 });
   await test.step("a double press creates one account, and the new account is verified", () => {
     expect(accountCount(newbie)).toBe(1);
     expect(psql(`SELECT email_verified FROM "user" WHERE email = '${newbie}'`)).toBe("t");
+  });
+  await test.step("the new account agreed at sign-up, so the consent step doesn't ask again", async () => {
+    await expect(p.locator('[data-invite-form="accept"] input[name="legal"]')).toHaveCount(0);
+    expect(legalRows(newbie, "invite_signup")).toBe("1");
   });
   await p.locator('[data-invite-form="accept"] input[name="consent"]').click();
   await button(p, "Join the care group").click();
@@ -636,10 +647,12 @@ test("6-7. an existing account joins; another account is refused; decline", asyn
     await p.waitForURL((u) => u.pathname === pathOf(link), { timeout: 30_000 });
     await expect(p.locator('[data-invite-form="accept"]')).toBeVisible({ timeout: 30_000 });
   });
-  await test.step("and joins as a viewer", async () => {
+  await test.step("and joins as a viewer, agreeing once because the account hadn't", async () => {
+    await p.locator('[data-invite-form="accept"] input[name="legal"]').check();
     await p.locator('[data-invite-form="accept"] input[name="consent"]').click();
     await button(p, "Join the care group").click();
     await p.waitForURL((u) => u.pathname.startsWith(`/app/groups/${DEV_FAMILY}`), { timeout: 60_000 });
+    expect(legalRows(existing, "invite_accept")).toBe("1");
     expect(
       psql(
         `SELECT m.role FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE u.email = '${existing}' AND m.group_id = '${DEV_FAMILY}'`,
@@ -759,6 +772,9 @@ const apiLink = async (owner, input) => {
 const askToJoin = async (page, path) => {
   await page.goto(path);
   await expect(page.locator('[data-invite-form="accept"]')).toBeVisible({ timeout: 30_000 });
+  // Asked only of an account that hasn't agreed to the current versions.
+  const legal = page.locator('[data-invite-form="accept"] input[name="legal"]');
+  if (await legal.count()) await legal.check();
   await page.locator('[data-invite-form="accept"] input[name="consent"]').click();
   await button(page, "Ask to join").click();
   await page.waitForURL((u) => u.pathname === "/app", { timeout: 30_000 });
@@ -851,6 +867,7 @@ test("10. a link: sign up through it, ask to join, approved", { tag: "@smoke" },
     await signUp.locator('input[name="name"]').fill(`Inv Joiner ${RUN}`);
     await signUp.locator('input[name="password"]').fill(PASSWORD);
     await signUp.locator('input[name="confirm"]').fill(PASSWORD);
+    await signUp.locator('input[name="legal"]').check();
     await doublePress(button(p, "Create account"));
     await p.waitForURL((u) => u.pathname === "/verify-email", { timeout: 30_000 });
     expect(accountCount(joiner)).toBe(1);
@@ -868,6 +885,8 @@ test("10. a link: sign up through it, ask to join, approved", { tag: "@smoke" },
 
   const joinerId = () => psql(`SELECT id FROM "user" WHERE email = '${joiner}'`);
   await test.step("home says it's waiting for approval, and the device holds no group data; consent is recorded", async () => {
+    await expect(p.locator('[data-invite-form="accept"] input[name="legal"]')).toHaveCount(0);
+    expect(legalRows(joiner, "invite_signup")).toBe("1");
     await p.locator('[data-invite-form="accept"] input[name="consent"]').click();
     await button(p, "Ask to join").click();
     await p.waitForURL((u) => u.pathname === "/app", { timeout: 30_000 });
@@ -1034,15 +1053,17 @@ test("13. /join: sign up with a code, confirm, the new group opens; a closed cod
   await button(p, "Continue").click();
   await expect(p.locator('[data-join-form="recipient"]')).toBeVisible();
   await p.locator('[name="recipientName"]').fill(`${RUN} Rose Example`);
+  await p.locator('[name="legal"]').check();
   await submit(p, "Create care group").click();
   await p.waitForURL((u) => u.pathname === "/verify-email", { timeout: 20_000 });
 
-  await test.step("one call makes the account, its group as owner, and the redemption", () => {
+  await test.step("one call makes the account, its group as owner, the redemption and the acceptance", () => {
     expect(
       psql(`
       SELECT m.role || '|' || (SELECT count(*) FROM access_code_redemption r WHERE r.user_id = u.id AND r.group_id = m.group_id)
+        || '|' || (SELECT count(*) FROM legal_acceptance a WHERE a.user_id = u.id AND a.source = 'access_code')
       FROM "user" u JOIN care_group_member m ON m.user_id = u.id WHERE u.email = '${joiner}'`),
-    ).toBe("owner|1");
+    ).toBe("owner|1|1");
   });
 
   await test.step("the confirmed link opens the new group's timeline, with the Invite someone card", async () => {

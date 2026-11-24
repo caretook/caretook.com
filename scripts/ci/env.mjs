@@ -6,7 +6,11 @@
 //
 //   node scripts/ci/env.mjs >> "$GITHUB_ENV"         the test jobs
 //   node scripts/ci/env.mjs build >> "$GITHUB_ENV"   the build job
+//   node scripts/ci/env.mjs browser >> "$GITHUB_ENV" the browser job
+//   node scripts/ci/env.mjs zone >> "$GITHUB_ENV"    moves a job to the second zone
 import { randomBytes } from "node:crypto";
+
+import { PRIMARY_ZONE, secondZoneEnv } from "./zones.mjs";
 
 /** The Postgres service's port: the integration tests' test port. */
 export const CI_PG_PORT = "5435";
@@ -67,7 +71,50 @@ export function ciBuildEnv(...args) {
   };
 }
 
+/** The zone CI's server and runner use: the one the browser contexts pin. */
+export const CI_ZONE = PRIMARY_ZONE;
+
+/** The browser job's Compose project, and so its Postgres container's name. */
+export const CI_STACK = "caretook-ci";
+
+const CI_WEB_PORT = "5173";
+const CI_STACK_PG_PORT = "5434";
+
+/**
+ * The env for the browser job: a check build served on this runner against the
+ * Docker stack. NODE_ENV stays unset, since the seed refuses production and the
+ * build and server steps set their own. The database password is
+ * docker-compose.yml's local one. The server binds every interface because on
+ * Linux `host.docker.internal` is the bridge address, where PowerSync's
+ * container fetches the JWKS.
+ * @param {Parameters<typeof ciEnv>} args
+ * @returns {Record<string, string>}
+ */
+export function ciBrowserEnv(...args) {
+  const [random = (/** @type {number} */ bytes) => randomBytes(bytes).toString("hex")] = args;
+  const env = { ...ciBuildEnv(random, args[1]) };
+  delete env.NODE_ENV;
+  delete env.PG_TEST_PORT;
+  return {
+    ...env,
+    CARETOOK_STACK: CI_STACK,
+    PG_CONTAINER: `${CI_STACK}-postgres-1`,
+    PG_PORT: CI_STACK_PG_PORT,
+    DATABASE_URL: `postgresql://caretook:password@localhost:${CI_STACK_PG_PORT}/caretook`,
+    POWERSYNC_PORT: "8080",
+    PS_JWKS_URL: `http://host.docker.internal:${CI_WEB_PORT}/api/auth/jwks`,
+    BASE: `http://localhost:${CI_WEB_PORT}`,
+    HOST: "0.0.0.0",
+    PORT: CI_WEB_PORT,
+    TZ: CI_ZONE,
+    VITE_CHECK_BUILD: "1",
+    MAIL_SENDER: "log",
+    INVITE_LINK_KEY: `${FICTIONAL_PREFIX}${random(32)}`,
+  };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const env = process.argv[2] === "build" ? ciBuildEnv() : ciEnv();
+  const makers = { build: ciBuildEnv, browser: ciBrowserEnv, zone: secondZoneEnv };
+  const env = (makers[/** @type {keyof typeof makers} */ (process.argv[2])] ?? ciEnv)();
   for (const [name, value] of Object.entries(env)) console.log(`${name}=${value}`);
 }

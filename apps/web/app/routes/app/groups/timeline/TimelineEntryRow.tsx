@@ -6,6 +6,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import {
+  AuthorCircle,
   AuthorFilterLink,
   EntryActions,
   EntryBody,
@@ -13,9 +14,8 @@ import {
   KindIcon,
   RepeatMark,
 } from "~/components/entry";
-import { ViaTag } from "~/components/ui";
+import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { initials } from "~/lib/timeline/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
@@ -27,7 +27,7 @@ import { ASIDE_CLASS } from "./layout";
 export type EntryViewProps = {
   entry: TimelineEntry;
   authorName: string;
-  /** The author's picture (the row's tooltip). */
+  /** The author's picture (the row's avatar and tooltip). */
   authorImage?: string | null;
   units: UnitChoices;
   /** Fading out while its delete is saved. */
@@ -55,7 +55,7 @@ export type EntryViewProps = {
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
  * to two lines, with "More"), then a right-hand column with the ⋯ menu and,
- * under it, the author's initials (a filter).
+ * under it, the author's avatar (a filter).
  */
 export function TimelineEntryRow({
   entry,
@@ -85,7 +85,7 @@ export function TimelineEntryRow({
       {easy ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <time
         dateTime={entry.occurredAt}
-        className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
+        className="text-muted w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
       >
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
         {/* A series visit: the mark under its time, so the text column stays aligned. */}
@@ -100,7 +100,7 @@ export function TimelineEntryRow({
         className={`pt-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         footer={
           <>
-            {elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
+            {elsewhere && <p className="text-faint text-xs">{elsewhere}</p>}
             {cancelled && <CancelledBadge label={cancelled} />}
             {entry.via && (
               <p className="inline-block">
@@ -127,20 +127,14 @@ export function TimelineEntryRow({
           />
         )}
         {easy ? (
-          <span
-            className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-            data-author={entry.createdBy}
-          >
-            <span aria-hidden="true">{initials(authorName)}</span>
-            <span className="sr-only">By {authorName}</span>
-          </span>
-        ) : (
-          <AuthorFilterLink
+          <AuthorCircle
             userId={entry.createdBy}
             name={authorName}
-            initials={initials(authorName)}
             image={authorImage}
+            label={`By ${authorName}`}
           />
+        ) : (
+          <AuthorFilterLink userId={entry.createdBy} name={authorName} image={authorImage} circle />
         )}
       </div>
     </li>
@@ -148,13 +142,13 @@ export function TimelineEntryRow({
 }
 
 /** A cancelled event's text, struck through and muted (rows and cards). */
-export const CANCELLED_TEXT = "text-base-content/60 line-through";
+export const CANCELLED_TEXT = "text-faint line-through";
 
 /** "Cancelled", below a cancelled event's text. An inline block, so the line through its text skips it. */
 export function CancelledBadge({ label }: { label: string }) {
   return (
     <p className="inline-block" data-cancelled-label>
-      <span className="badge badge-sm badge-ghost">{label}</span>
+      <Badge>{label}</Badge>
     </p>
   );
 }

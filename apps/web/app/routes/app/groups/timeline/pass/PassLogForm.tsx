@@ -4,7 +4,7 @@ import type { DoseChoice } from "~/lib/medications/medicationTimeline.sync";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
-import { ChoiceGroup, ConfirmDialog, Field } from "~/components/ui";
+import { Button, ChoiceGroup, ConfirmDialog, Field, FormFooter, Message } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { medicationLabel } from "~/lib/medications/medicationEntries";
 import { DOSE_STATUS_OPTIONS } from "../doseFormData";
@@ -43,6 +43,8 @@ export function PassLogForm({
   const adder = useFetcher<{ ok: boolean; error?: string }>();
   const remover = useFetcher<{ ok: boolean; error?: string }>();
   const [confirming, setConfirming] = useState(false);
+  // Each try's refusal is a new alert, even in the same words, so it's announced and the sheet's guard sees it.
+  const [sideTry, setSideTry] = useState(0);
   const addable = addableMedications(choices, doses);
   const [adding, setAdding] = useState("");
   const toAdd = addable.find((c) => c.id === adding) ?? addable[0];
@@ -60,9 +62,10 @@ export function PassLogForm({
             key={dose.id}
             className="rounded-box border-base-300 space-y-1 border p-3"
             data-pass-dose={dose.id}
+            data-sheet-arrives=""
           >
             <legend className="px-1 font-semibold">{dose.medicationName}</legend>
-            <input type="hidden" name={DOSE_IDS_FIELD} value={dose.id} />
+            <input type="hidden" name={DOSE_IDS_FIELD} value={dose.id} data-sheet-aside="" />
             <ChoiceGroup
               name={doseField("status", dose.id)}
               label="Status"
@@ -70,12 +73,15 @@ export function PassLogForm({
               defaultValue={dose.details.status}
               error={issueFor(issues, `${dose.id}.details.status`)}
             />
-            <Field label="Amount (optional)" error={issueFor(issues, `${dose.id}.details.amount`)}>
+            <Field
+              label="Amount (optional)"
+              kind="input"
+              error={issueFor(issues, `${dose.id}.details.amount`)}
+            >
               {(control) => (
                 <input
                   {...control}
                   name={doseField("amount", dose.id)}
-                  className="input w-full"
                   maxLength={MEDICATION_LIMITS.doseAmount}
                   defaultValue={dose.details.amount ?? ""}
                 />
@@ -87,12 +93,15 @@ export function PassLogForm({
               defaultValue={dose.occurredAt}
               error={issueFor(issues, `${dose.id}.occurredAt`)}
             />
-            <Field label="Note (optional)" error={issueFor(issues, `${dose.id}.details.note`)}>
+            <Field
+              label="Note (optional)"
+              kind="textarea"
+              error={issueFor(issues, `${dose.id}.details.note`)}
+            >
               {(control) => (
                 <textarea
                   {...control}
                   name={doseField("note", dose.id)}
-                  className="textarea w-full"
                   rows={1}
                   maxLength={MEDICATION_LIMITS.doseNote}
                   defaultValue={dose.details.note ?? ""}
@@ -102,30 +111,31 @@ export function PassLogForm({
           </fieldset>
         ))}
         {result && !result.ok && (
-          <p role="alert" className="text-error text-sm">
-            {issues.length ? "Check the doses marked above." : result.error}
-          </p>
+          <Message tone="error">{issues.length ? "Check the doses marked above." : result.error}</Message>
         )}
-        <div className="flex gap-2">
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? "Saving…" : "Save changes"}
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
+        <FormFooter
+          submitLabel="Save changes"
+          busy={busy}
+          busyLabel="Saving…"
+          cancel={{ label: "Cancel", onCancel }}
+        />
       </Form>
 
       {toAdd && (
-        <adder.Form method="post" className="flex items-end gap-2" data-pass-log-add>
+        <adder.Form
+          method="post"
+          className="flex items-end gap-2"
+          data-pass-log-add
+          data-sheet-aside=""
+          onSubmit={() => setSideTry((n) => n + 1)}
+        >
           <input type="hidden" name="intent" value="add" />
           <input type="hidden" name="amount" value={toAdd.dose ?? ""} />
-          <Field label="Add a medication" className="min-w-0 flex-1">
+          <Field label="Add a medication" kind="select" className="min-w-0 flex-1">
             {(control) => (
               <select
                 {...control}
                 name="medicationId"
-                className="select w-full"
                 value={toAdd.id}
                 onChange={(e) => setAdding(e.target.value)}
               >
@@ -137,27 +147,26 @@ export function PassLogForm({
               </select>
             )}
           </Field>
-          <button type="submit" className="btn" disabled={adder.state !== "idle"}>
+          <Button type="submit" disabled={adder.state !== "idle"}>
             Add
-          </button>
+          </Button>
         </adder.Form>
       )}
 
       {sideError && (
-        <p role="alert" className="text-error text-sm">
+        <Message key={sideTry} tone="error">
           {sideError}
-        </p>
+        </Message>
       )}
 
-      <button
-        type="button"
-        className="btn btn-ghost text-error"
+      <Button
+        variant="dangerQuiet"
         onClick={() => setConfirming(true)}
         disabled={remover.state !== "idle"}
-        data-pass-log-delete
+        data-pass-log-delete=""
       >
         Delete this log
-      </button>
+      </Button>
       <ConfirmDialog
         open={confirming}
         title="Delete this log?"
@@ -166,6 +175,7 @@ export function PassLogForm({
         onClose={() => setConfirming(false)}
         onConfirm={() => {
           setConfirming(false);
+          setSideTry((n) => n + 1);
           void remover.submit({ intent: "delete" }, { method: "post" });
         }}
       />

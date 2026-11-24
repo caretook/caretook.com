@@ -3,6 +3,7 @@ import type { DeviceRoute } from "../../../../test/device";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as home from "~/routes/app/home/route";
+import { legalLinks } from "./account/legalLinks";
 import * as account from "./account/route";
 import * as settingsIndex from "./index/route";
 import * as settingsLayout from "./layout/route";
@@ -84,11 +85,22 @@ describe.each([420, 1280])("at %i", (width) => {
     await expect.element(page.getByText(TEST_USER.email)).toBeVisible();
     expect(document.querySelector('main [data-field="name"]')?.textContent?.trim()).toBe(TEST_USER.name);
     expect(document.querySelector('main [data-field="email"]')?.textContent?.trim()).toBe(TEST_USER.email);
-    expect(document.querySelectorAll("main input")).toHaveLength(0);
+    // The Avatar card's radios are the page's only inputs.
+    expect(document.querySelectorAll('main input:not([type="radio"])')).toHaveLength(0);
     const signOut = page.getByRole("button", { name: "Sign out" }).element();
     const form = signOut.closest("form")!;
     expect(form.getAttribute("action")).toBe("/sign-out");
     expect(form.getAttribute("method")).toBe("post");
+  });
+
+  test("Account: the three legal pages, each opening in a new tab", async () => {
+    await open("/app/settings/account", width);
+    for (const { label, href } of legalLinks(import.meta.env.VITE_API_ORIGIN)) {
+      const link = page.getByRole("link", { name: label, exact: true });
+      await expect.element(link).toHaveAttribute("href", href);
+      await expect.element(link).toHaveAttribute("target", "_blank");
+      await expect.element(link).toHaveAttribute("rel", "noreferrer");
+    }
   });
 });
 

@@ -21,10 +21,21 @@
 // recheck (due once the confirmation is a minute old), which wipes the
 // device and goes to sign-in from wherever the navigation had got to.
 //
-// The wipe takes what search keeps on the device too (the old signout-wipe
-// check): the user's recent searches (localStorage) and the search index,
+// The session ends here with a change still waiting to upload (sync-safety
+// slice 4, B-290): the cache cookie is dropped so the upload is refused, as
+// it would be once the cookie cache lapses. The device keeps its copy closed
+// for its owner and forgets the rest; signing in again as the same person
+// uploads the change. (With nothing waiting it's wiped: unit and component
+// tests, lib/auth/sessionEnd.browser.test.tsx.)
+//
+// Then a Sign out that can't reach the server (the old signout-wipe check;
+// only the sign-out request fails, so the check needn't wait for the assets
+// to settle as a real offline window does): the device is wiped
+// at once and lands on sign-in, and the wipe takes what search keeps on the
+// device too: the user's recent searches (localStorage) and the search index,
 // whose tables live outside PowerSync's, so `dropSearchTables` must run
-// before the database is cleared.
+// before the database is cleared. Back online, the pending sign-out is
+// finished before any session check, so the old session no longer opens /app.
 import {
   BASE,
   assetsSettled,
@@ -34,6 +45,7 @@ import {
   psql,
   randomIp,
   signIn,
+  signOut,
   test,
 } from "./fixtures.mjs";
 
@@ -180,6 +192,25 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   });
   await other.call("sign-out", {});
 
+  // A change written now can't upload: without the cache cookie (B-140) the
+  // server checks the revoked session and refuses the upload.
+  await page.context().clearCookies({ name: /session_data/ });
+  const groupId = timeline.split("/")[3];
+  const unsentId = await page.evaluate(async (groupId) => {
+    const { liveEntry } = await window.caretookModules();
+    const id = crypto.randomUUID();
+    const made = await liveEntry.materializeLiveEntry(window.caretookSync, {
+      id,
+      groupId,
+      kind: "note",
+      title: "session-end unsent note",
+      occurredAt: new Date().toISOString(),
+      timeZone: "America/Los_Angeles",
+    });
+    if (!made.ok) throw new Error(JSON.stringify(made));
+    return id;
+  }, groupId);
+
   // Quick entry's recent lines go with the rest.
   await page.evaluate(() => localStorage.setItem("caretook:recentLines:x:y", JSON.stringify(["bp 120/80"])));
   // Fresh, but due a recheck (confirmed 5 minutes ago): an in-app navigation
@@ -202,13 +233,57 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await test.step("fresh session ended elsewhere: the background recheck goes to sign-in, back to where it was", () => {
     expect(new URL(page.url()).searchParams.get("redirectTo")).toContain("kind=symptom");
   });
-  await test.step("signed out: the cached user, owner, confirmation, last group, recent searches and recent lines are gone", async () => {
+  await test.step("ended with a change waiting: the cached user, confirmation, last group, recent searches and lines are gone; the owner stays", async () => {
     await expect
       .poll(async () => (await caretookKeys(page)).join(","), { timeout: 10_000 })
-      .not.toMatch(/session-user|sync-owner|session-confirmed|lastGroup|settings|recentSearches|recentLines/);
+      .not.toMatch(/session-user|session-confirmed|lastGroup|settings:|recentSearches|recentLines/);
+    const kept = (await caretookKeys(page)).join(",");
+    expect(kept).toContain("caretook:sync-owner");
+    expect(kept).toContain("caretook:sync-kept");
   });
   await test.step("signed out: no message about being offline", async () => {
     expect(await statusText(page)).not.toContain("offline");
+  });
+  await test.step("ended with a change waiting: the local copy still holds it", async () => {
+    expect(await localCopyHolds(page, "session-end unsent note")).toBe("holds it");
+  });
+  await signIn(page, EMAIL);
+  await test.step("signed in again as the same person: the change reaches the server", async () => {
+    await expect
+      .poll(() => psql(`SELECT count(*) FROM timeline_entry WHERE id = '${unsentId}'`), { timeout: 20_000 })
+      .toBe("1");
+  });
+  psql(`UPDATE timeline_entry SET deleted_at = now() WHERE id = '${unsentId}'`);
+
+  // Sign out offline: wiped at once, on sign-in, the server's half pending.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.caretookSync.powersync.get("SELECT count(*) n FROM ps_crud").then((r) => r.n),
+      ),
+    )
+    .toBe(0);
+  const secondId = await page.evaluate(() =>
+    fetch("/api/auth/get-session", { credentials: "include" })
+      .then((r) => r.json())
+      .then((j) => j?.session?.id ?? null),
+  );
+  // The server can't be reached for the sign-out (as offline, without
+  // waiting for the assets to settle): fetch fails, as it does offline.
+  const SIGN_OUT = "**/api/auth/sign-out";
+  await page.route(SIGN_OUT, (route) => route.abort("internetdisconnected"));
+  await signOut(page);
+  await page.waitForURL((url) => url.pathname === "/sign-in", { timeout: 15_000 });
+  await test.step("offline sign-out: the server's half is pending, the session still on the server", async () => {
+    expect((await caretookKeys(page)).join(",")).toContain("caretook:sign-out-pending");
+    expect(psql(`SELECT count(*) FROM session WHERE id = '${secondId}'`)).toBe("1");
+  });
+  await test.step("offline sign-out: lands on sign-in, the cached user, owner, confirmation, last group, settings, recent searches and lines gone", async () => {
+    await expect
+      .poll(async () => (await caretookKeys(page)).join(","), { timeout: 10_000 })
+      .not.toMatch(
+        /session-user|sync-owner|sync-kept|session-confirmed|lastGroup|settings|recentSearches|recentLines/,
+      );
   });
   // The file stays, vacuumed: none of the care data is left in its bytes.
   await test.step("signed out: the database holds none of the care data", async () => {
@@ -224,6 +299,13 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
         timeout: 10_000,
       })
       .toBe(true);
+  });
+  await page.unroute(SIGN_OUT);
+  await page.goto("/app");
+  await page.waitForURL((url) => url.pathname === "/sign-in", { timeout: 15_000 });
+  await test.step("back online: the pending sign-out is finished, and the old session no longer opens the app", async () => {
+    await expect.poll(() => psql(`SELECT count(*) FROM session WHERE id = '${secondId}'`)).toBe("0");
+    expect((await caretookKeys(page)).join(",")).not.toContain("sign-out-pending");
   });
   // Offline, PowerSync logs its failed connection attempts: expected here.
   await test.step("no page errors", () => {

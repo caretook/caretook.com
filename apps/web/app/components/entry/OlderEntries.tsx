@@ -49,11 +49,7 @@ export function OlderEntries({
   return (
     <div data-older-entries>
       {hasOlder && <div ref={sentinel} aria-hidden="true" className="h-px" data-older-sentinel />}
-      <p
-        role="status"
-        aria-live="polite"
-        className="text-base-content/70 py-2 text-center text-sm empty:py-0"
-      >
+      <p role="status" aria-live="polite" className="text-muted py-2 text-center text-sm empty:py-0">
         {text}
       </p>
     </div>

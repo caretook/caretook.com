@@ -138,6 +138,7 @@ describe("sign-up switches", () => {
       email,
       password: PASSWORD,
       group: { recipientName: "Rose Example" },
+      legal: true,
     });
 
   it("refuses access-code sign-up while it's off, creating nothing, and works again once on", async () => {
@@ -177,7 +178,9 @@ describe("sign-up switches", () => {
     expect(await anonymous.invite.preview({ token: made.token })).toEqual({ state: "unavailable" });
     const joiner = await createUser("set-joiner");
     expect(
-      await codesOf(clientFor(joiner.ctx.authUser).invite.accept({ token: made.token, consent: true })),
+      await codesOf(
+        clientFor(joiner.ctx.authUser).invite.accept({ token: made.token, consent: true, legal: true }),
+      ),
     ).toBe("FORBIDDEN:settings:signupClosed");
     expect(await api.invite.options({ groupId: group.id })).toMatchObject({
       linkInvites: false,

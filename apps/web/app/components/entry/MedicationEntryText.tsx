@@ -53,7 +53,7 @@ export function MedicationHeading({
           {shown}
         </Link>
       ) : (
-        <span className={medication?.deletedAt ? "text-base-content/50" : undefined}>
+        <span className={medication?.deletedAt ? "text-faint" : undefined}>
           {shown}
           {medication?.deletedAt && " (removed)"}
         </span>

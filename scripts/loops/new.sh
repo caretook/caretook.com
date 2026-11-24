@@ -17,7 +17,7 @@
 # (slot_ports in lib.sh) and Compose project (caretook-loopN). Secrets
 # are copied from the main checkout's env files. If the branch already exists,
 # it's checked out instead (to resume after rm.sh). At most CARETOOK_MAX_PRDS
-# (default 3) PRD worktrees exist at once. Tear down with rm.sh <name>.
+# (default 4) PRD worktrees exist at once. Tear down with rm.sh <name>.
 # (pnpm prd start|slice|plan|hotfix wrap this.)
 set -euo pipefail
 # shellcheck source=stack-lib.sh
@@ -62,7 +62,7 @@ git -C "$main" rev-parse --verify --quiet "$base" >/dev/null || { echo "no branc
 # The load gate (load-gate.mjs): a slice waits while the machine is busy (at
 # most CARETOOK_LOAD_WAIT, then it goes ahead); a PRD started by hand only warns.
 if [[ $kind == slice ]]; then
-  load_gate_wait "slice $topic-$n"
+  CARETOOK_LOAD_LANE=light load_gate_wait "slice $topic-$n"
 elif [[ $kind == prd ]]; then
   read -r gstate gload gthr _ <<< "$(load_gate)"
   [[ $gstate != busy ]] ||

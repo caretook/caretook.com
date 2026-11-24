@@ -11,9 +11,9 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261119T170000Z
 DTEND:20261119T180000Z
-SUMMARY:Appointment for Pat
-DESCRIPTION:Thu 19 Nov · 9:00–10:00\nOpen in Caretook: https://app.care
- took.test/app/groups/g1/entry/a1
+SUMMARY:Event for Pat
+DESCRIPTION:Thu\, Nov 19 · 9:00–10:00 AM PST\nOpen in Caretook: https:/
+ /app.caretook.test/app/groups/g1/entry/a1
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a1
 STATUS:CONFIRMED
 END:VEVENT
@@ -23,9 +23,9 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261120T180000Z
 DTEND:20261120T190000Z
-SUMMARY:Cancelled: Appointment for Pat
-DESCRIPTION:Fri 20 Nov · 10:00–11:00\nOpen in Caretook: https://app.car
- etook.test/app/groups/g1/entry/a2
+SUMMARY:Cancelled: Event for Pat
+DESCRIPTION:Fri\, Nov 20 · 10:00–11:00 AM PST\nOpen in Caretook: https:
+ //app.caretook.test/app/groups/g1/entry/a2
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a2
 STATUS:CANCELLED
 END:VEVENT
@@ -38,8 +38,8 @@ DTEND;VALUE=DATE:20261122
 X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
 X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
 SUMMARY:Todo for Pat
-DESCRIPTION:Sat 21 Nov · All day\nOpen in Caretook: https://app.caretook.
- test/app/groups/g1/entry/t2
+DESCRIPTION:Sat\, Nov 21 · All day\nOpen in Caretook: https://app.caretoo
+ k.test/app/groups/g1/entry/t2
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/t2
 STATUS:CONFIRMED
 END:VEVENT
@@ -50,8 +50,8 @@ DTSTAMP:20261118T180000Z
 DTSTART:20261123T163000Z
 DTEND:20261123T170000Z
 SUMMARY:Todo for Pat
-DESCRIPTION:Mon 23 Nov · 8:30\nOpen in Caretook: https://app.caretook.tes
- t/app/groups/g1/todos
+DESCRIPTION:Mon\, Nov 23 · 8:30 AM PST\nOpen in Caretook: https://app.car
+ etook.test/app/groups/g1/todos
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/todos
 STATUS:CONFIRMED
 END:VEVENT
@@ -61,9 +61,9 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261124T140000Z
 DTEND:20261124T180000Z
-SUMMARY:Appointment for Pat
-DESCRIPTION:Tue 24 Nov · 6:00–10:00\nOpen in Caretook: https://app.care
- took.test/app/groups/g1/entry/s1
+SUMMARY:Event for Pat
+DESCRIPTION:Tue\, Nov 24 · 6:00–10:00 AM PST\nOpen in Caretook: https:/
+ /app.caretook.test/app/groups/g1/entry/s1
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/s1
 STATUS:CONFIRMED
 END:VEVENT
@@ -73,9 +73,9 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261126T140000Z
 DTEND:20261126T180000Z
-SUMMARY:Appointment for Pat
-DESCRIPTION:Thu 26 Nov · 6:00–10:00\nOpen in Caretook: https://app.care
- took.test/app/groups/g1/entry/s2
+SUMMARY:Event for Pat
+DESCRIPTION:Thu\, Nov 26 · 6:00–10:00 AM PST\nOpen in Caretook: https:/
+ /app.caretook.test/app/groups/g1/entry/s2
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/s2
 STATUS:CONFIRMED
 END:VEVENT

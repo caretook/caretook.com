@@ -236,19 +236,47 @@ export const entryWindow = (groupId: string, filters: EntryFilters, limit: numbe
  * once they've started (a stored future note waits for its time); other kinds always do (they can't be in the future
  * beyond a few minutes of skew, and a vital saved "now" must show at once).
  * Newest first, one row more than `limit`, so paging counts past items only.
+ * `before` is a jump's exclusive upper bound (`jumpBound`): the window then
+ * starts at the newest entry before it.
  */
 export const historyWindow = (
   groupId: string,
   filters: EntryFilters,
   limit: number,
   cutoff: string,
+  before?: string | null,
 ): LocalQuery => {
   const { conditions, params } = filterConditions(groupId, filters, null);
   conditions.push(`(NOT ${HISTORY_ENDS_SQL} OR occurred_at <= ?)`);
   params.push(toLocalTimestamp(cutoff));
+  if (before) {
+    conditions.push("occurred_at < ?");
+    params.push(toLocalTimestamp(before));
+  }
   return {
     sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
     params: [...params, limit + 1],
+  };
+};
+
+/**
+ * The rows just above a jump's bound, oldest first, under the same filters
+ * and cutoff as `historyWindow`: `occurred_at >= before` is that window's
+ * `< before` turned over, so a row exactly at the bound is in one, never both.
+ */
+export const newerEdgeQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  before: string,
+  cutoff: string,
+  limit: number,
+): LocalQuery => {
+  const { conditions, params } = filterConditions(groupId, filters, null);
+  conditions.push(`(NOT ${HISTORY_ENDS_SQL} OR occurred_at <= ?)`, "occurred_at >= ?");
+  params.push(toLocalTimestamp(cutoff), toLocalTimestamp(before));
+  return {
+    sql: `SELECT occurred_at, kind, details FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at ASC, id ASC LIMIT ?`,
+    params: [...params, limit],
   };
 };
 
@@ -318,8 +346,9 @@ export const historyQuery = (
   filters: EntryFilters,
   limit: number,
   cutoff: string,
+  before?: string | null,
 ): LocalQuery => {
-  const window = historyWindow(groupId, filters, limit, cutoff);
+  const window = historyWindow(groupId, filters, limit, cutoff, before);
   return { sql: `SELECT * ${window.sql}`, params: window.params };
 };
 

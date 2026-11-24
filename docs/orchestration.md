@@ -2,7 +2,7 @@
 
 A guide for the **dev keeper** (you): how ideas become shipped work, and how several pieces of work run in parallel without stepping on each other. Agents follow the detailed rules in [AGENTS.md](../AGENTS.md) and the role docs in [`agents/`](agents/); this page is the human view of the same system.
 
-**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [`agents/`](agents/) has a handbook per role ([loop](agents/loop.md), [orchestrator](agents/orchestrator.md), [planner](agents/planner.md), [backlog](agents/backlog.md), [hotfix](agents/hotfix.md)), which each agent's prompt names, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
+**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [`agents/`](agents/) has a handbook per role (the _Area index_ lists them), which each agent's prompt names, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
 
 ## The short version
 
@@ -92,7 +92,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 ### Starting a PRD
 
-1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that asks only what's costly to undo, then writes and lands the PRD and plan. Planning, backlog and hotfix sessions run on opus (the planner's final skeptic on Fable); `--model <name>` runs one on another model.
+1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that asks only what's costly to undo, writes and lands the PRD and plan. Planning, backlog and hotfix sessions run on opus (the planner's last skeptic on Fable); `--model <name>` picks another.
 2. `pnpm prd start <topic>` creates the PRD's worktree and stack, and prints a command.
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
@@ -102,9 +102,9 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. If a session gets slow or confused, close it and rerun the same command (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section, which the orchestrator updates at every step (a slice started, handed off or merged, a wave landed), so nothing is lost whenever it stops.
 
-**At most three PRDs run at once.** `pnpm prd start` refuses a fourth (raise `CARETOOK_MAX_PRDS` to override).
+**At most four PRDs run at once.** `pnpm prd start` refuses a fifth (raise `CARETOOK_MAX_PRDS` to override).
 
-**Let the dispatcher run them:** `pnpm prd dispatch` in a tab of its own plans and starts topics in the PRD table's row order as slots free up, never two that share hot files, waits while the machine is busy, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default after 30 minutes; `pnpm prd notices` lists heads-ups.
+**The dispatcher:** `pnpm prd dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `pnpm prd notices` lists heads-ups. `CARETOOK_UNSYNCED=off` stops unsynced landings.
 
 ### After a restart, a crash or a usage limit
 
@@ -161,7 +161,7 @@ When a whole PRD is done: `pnpm prd rm <topic>` removes its worktree, stack and 
 
 ### Going live
 
-Before the PR to `staging`, run the lean end-to-end set once on `dev` from any synced worktree, on a quiet machine: `caffeinate -i pnpm prd browser --suite` (about 5 minutes). Screens are covered by component tests in `pnpm check`; the lean set covers what needs the server and sync (sign-in, first sync, sign-out, devices converging, offline, invites, the CSP). Open pull requests on GitHub: `dev` → `staging`, then `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
+`staging` takes a release candidate: `pnpm prd ci candidate cut --wait` fixes a `dev` commit on an `rc/*` branch, opens its PR and runs the whole suite and the browser checks in CI; `pnpm prd ci promote` merges it only if that run passes. Merging the PR by hand on GitHub is your override. Then open the pull request `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
 
 ## Commit messages
 
@@ -189,6 +189,8 @@ chore(app-shell): merge dev into prd/app-shell
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
 | `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
 | `pnpm prd plan`                   | a backlog and inbox session in the main checkout; say "hand off" for a fresh one   |
+| `pnpm prd inbox`                  | a bare session outside the repo that only adds and edits inbox lines               |
+| `pnpm prd bye`                    | what just 'bye' runs: ends the session if nothing is open, else lists what is      |
 | `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
 | `pnpm prd ready [topic]`          | the ready-to-land report                                                           |
 | `pnpm prd land <topic>`           | merge the PRD's branch into `dev`                                                  |

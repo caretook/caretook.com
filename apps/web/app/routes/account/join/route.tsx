@@ -2,12 +2,12 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CodePreview, JoinStep } from "./joinPage";
 import type { Route } from "./+types/route";
 
-import { newCareGroupZSchema } from "@caretook/data/schema";
+import { LEGAL_REQUIRED_MESSAGE, newCareGroupZSchema } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Button, Field } from "~/components/ui/plain";
+import { Button, CheckField, Field, LINK } from "~/components/ui/plain";
 import { toActionResult } from "~/lib/core/api";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -17,6 +17,7 @@ import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
 import { NEW_GROUP_LINK_STATE } from "~/lib/care-groups/newGroupLink";
 import { AuthCard, ErrorMessage, useSubmitOnce } from "../AuthCard";
+import { LegalAgreement } from "../LegalAgreement";
 import { CLOSED_CODE, stepForIssues } from "./joinPage";
 
 // `/join/:code`: a staff access code's link (printed as a QR code). Shared by
@@ -68,6 +69,9 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       issues: group.error.issues.map((i) => ({ path: `group.${i.path.join(".")}`, message: i.message })),
     };
   }
+  if (form.get("legal") !== "on") {
+    return { error: "", issues: [{ path: "legal", message: LEGAL_REQUIRED_MESSAGE }] };
+  }
   try {
     await rpc.accessCode.signUp({
       code: params.code,
@@ -75,6 +79,7 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       email,
       password,
       group: group.data,
+      legal: true,
     });
   } catch (e) {
     if (isNetworkError(e)) return { error: authMessages.offline, issues: [] };
@@ -149,8 +154,6 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   return <JoinForm key={code} actionData={actionData} />;
 }
 
-const INPUT = "input w-full";
-
 function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
   const submitOnce = useSubmitOnce();
   const busy = useNavigation().state !== "idle";
@@ -178,28 +181,16 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-join-form={step}>
         <div ref={accountRef} hidden={step !== "account"} data-join-step="account">
           <p className="text-sm">First, your Caretook account. You'll be the care group's owner.</p>
-          <Field label="Your name">
+          <Field kind="input" label="Your name">
+            {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
+          </Field>
+          <Field kind="input" label="Email" error={issue("email")}>
+            {(control) => <input {...control} type="email" name="email" autoComplete="username" required />}
+          </Field>
+          <Field kind="input" label="Password" help="At least 12 characters." error={issue("password")}>
             {(control) => (
               <input
                 {...control}
-                className={INPUT}
-                name="name"
-                autoComplete="name"
-                maxLength={100}
-                required
-              />
-            )}
-          </Field>
-          <Field label="Email" error={issue("email")}>
-            {(control) => (
-              <input {...control} className={INPUT} type="email" name="email" autoComplete="email" required />
-            )}
-          </Field>
-          <Field label="Password" help="At least 12 characters." error={issue("password")}>
-            {(control) => (
-              <input
-                {...control}
-                className={INPUT}
                 type="password"
                 name="password"
                 autoComplete="new-password"
@@ -208,21 +199,22 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
               />
             )}
           </Field>
-          <Field label="Password again">
+          <Field kind="input" label="Password again">
             {(control) => (
-              <input
-                {...control}
-                className={INPUT}
-                type="password"
-                name="confirm"
-                autoComplete="new-password"
-                required
-              />
+              <input {...control} type="password" name="confirm" autoComplete="new-password" required />
             )}
           </Field>
         </div>
         <div hidden={step !== "recipient"} data-join-step="recipient">
           <NewGroupFields issues={groupIssues} />
+          <CheckField
+            className="mt-3 text-sm"
+            name="legal"
+            required={step === "recipient"}
+            error={issue("legal")}
+            data-legal-box=""
+            label={<LegalAgreement />}
+          />
         </div>
         {actionData?.error && <ErrorMessage>{actionData.error}</ErrorMessage>}
         {step === "account" ? (
@@ -242,7 +234,7 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
       </Form>
       <p className="text-center text-sm">
         Already have a Caretook account?{" "}
-        <Link to={accountUrls.signIn()} className="link">
+        <Link to={accountUrls.signIn()} className={LINK}>
           Sign in
         </Link>
       </p>

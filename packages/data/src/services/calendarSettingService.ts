@@ -9,6 +9,7 @@ import {
   calendarSettingsChangeZSchema,
   DEFAULT_REMINDER_LEADS,
   DETAILS_CONSENT_VERSION,
+  hasDetailsConsent,
   shareLevel,
 } from "../db/schema";
 import { isError, newError } from "../errors";
@@ -40,6 +41,8 @@ export type CalendarSettingsView = {
   detailsConsent: boolean;
   detailsConsentAt: string | null;
   detailsConsentVersion: string | null;
+  /** They agreed, but to an older wording: `detailsConsent` is false until they agree again. */
+  detailsConsentStale: boolean;
   /** The owners' switch: whether details may leave Caretook at all. */
   groupAllowsDetails: boolean;
   shareLevel: ShareLevel;
@@ -83,7 +86,10 @@ const toView = (
   row: MemberCalendarSetting | null,
   groupAllowsDetails: boolean,
 ): CalendarSettingsView => {
-  const detailsConsent = !!row?.detailsConsentAt;
+  const detailsConsent = hasDetailsConsent({
+    consentAt: row?.detailsConsentAt,
+    consentVersion: row?.detailsConsentVersion,
+  });
   return {
     groupId,
     role,
@@ -92,6 +98,7 @@ const toView = (
     detailsConsent,
     detailsConsentAt: row?.detailsConsentAt ?? null,
     detailsConsentVersion: row?.detailsConsentVersion ?? null,
+    detailsConsentStale: !!row?.detailsConsentAt && !detailsConsent,
     groupAllowsDetails,
     shareLevel: shareLevel({ memberConsent: detailsConsent, groupAllowsDetails }),
     feed: { active: !!row?.feedTokenHash, rotatedAt: row?.feedRotatedAt ?? null },
@@ -113,9 +120,11 @@ export const get = (ctx: ServiceContext, groupId: string) => read(ctx, groupId);
 
 /**
  * Change the actor's own settings for `groupId`. Fields left out keep their
- * value. Turning details on records the consent (when, and
- * DETAILS_CONSENT_VERSION), unless it's already on; off clears it. Details
- * the owners forbid are refused (`detailsForbidden`).
+ * value. Turning details on needs the version of the wording the member saw:
+ * anything but the current one records nothing (`consentOutdated`). It records
+ * when and that version, unless it's already on for the current wording; off
+ * needs no version and clears it. Details the owners forbid are refused
+ * (`detailsForbidden`).
  */
 export const update = (
   ctx: ServiceContext,
@@ -133,6 +142,8 @@ export const update = (
     if (isError(allows)) return allows;
     if (change.detailsConsent && !allows)
       return newError({ code: "calendarSettingService:detailsForbidden" });
+    if (change.detailsConsent && change.detailsConsentVersion !== DETAILS_CONSENT_VERSION)
+      return newError({ code: "calendarSettingService:consentOutdated" });
 
     const existing = await ownRow(ctx, groupId, userId, tx);
     if (isError(existing)) return existing;
@@ -140,7 +151,11 @@ export const update = (
     const data: Partial<MemberCalendarSetting> = {};
     if (change.remindersOn !== undefined) data.remindersOn = change.remindersOn;
     if (change.reminderLeads !== undefined) data.reminderLeads = change.reminderLeads;
-    if (change.detailsConsent === true && !existing?.detailsConsentAt) {
+    const agreed = hasDetailsConsent({
+      consentAt: existing?.detailsConsentAt,
+      consentVersion: existing?.detailsConsentVersion,
+    });
+    if (change.detailsConsent === true && !agreed) {
       data.detailsConsentAt = new Date().toISOString();
       data.detailsConsentVersion = DETAILS_CONSENT_VERSION;
     }

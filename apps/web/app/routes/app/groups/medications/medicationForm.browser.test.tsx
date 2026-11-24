@@ -31,6 +31,8 @@ import {
   world,
   openAddMedication,
 } from "./medicationWorld";
+import { pickTime } from "../../../../../test/timeSelect";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 
 // Adding, editing, stopping, restarting and deleting a medication
 // (medications.mjs's add, edit, status, offline form and viewer form steps):
@@ -80,8 +82,10 @@ const suggestion = (text: string) =>
   );
 const scheduleType = (value: "scheduled" | "asNeeded") =>
   FORM()!.querySelector<HTMLInputElement>(`input[name="scheduleType"][value="${value}"]`)!;
-const TIMES_ERROR = () =>
-  FORM()?.querySelector("[data-schedule-times] > p.text-error")?.textContent?.trim() ?? null;
+const TIMES_ERROR = () => {
+  const id = FORM()?.querySelector("[data-schedule-times]")?.getAttribute("aria-describedby");
+  return id ? (document.getElementById(id)?.textContent?.trim() ?? null) : null;
+};
 const medication = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
   (await device.query<Record<string, unknown>>(MEDICATION_SQL, [id]))[0]!;
 const changes = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
@@ -132,8 +136,8 @@ describe("adding", () => {
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
-    await userEvent.fill(await found(() => times()[0]), "08:00");
-    await userEvent.fill(await found(() => times()[1]), "08:00");
+    await pickTime(() => times()[0], "08:00");
+    await pickTime(() => times()[1], "08:00");
     await userEvent.click(submit());
     await expect.poll(() => errorOf("name")).toBe("Enter a name");
     expect(TIMES_ERROR()).toBe("List each time once");
@@ -147,6 +151,15 @@ describe("adding", () => {
     await expect.poll(() => errorOf("maxPerDay")).toBe("At most 24 a day");
   });
 
+  test("a new time row starts at the current hour in the recipient's zone, not the device's", async () => {
+    await open(`${LIST}/new`, { fixtures: [fx.recipient({ timeZone: "Asia/Tokyo" })] });
+    await waitUntil(() => times().length === 1, "the first row");
+    await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
+    await waitUntil(() => times().length === 2, "the new row");
+    expect(times()[0]?.value).toBe("08:00");
+    expect(times()[1]?.value).toBe(currentHourTime("Asia/Tokyo"));
+  });
+
   test("saving with a new prescriber closes the sheet and lists it at once; the prescriber, the medication and its Started entry are one local write, queued in that order", async () => {
     const device = await open(LIST);
     await openAddSheet();
@@ -154,8 +167,8 @@ describe("adding", () => {
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
-    await userEvent.fill(await found(() => times()[0]), "20:00");
-    await userEvent.fill(await found(() => times()[1]), "08:00");
+    await pickTime(() => times()[0], "20:00");
+    await pickTime(() => times()[1], "08:00");
     await userEvent.fill(await found(() => field("strength")), "25 mg");
     await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("form")), "tablet");
     await userEvent.fill(await found(() => field("dose")), "1 tablet");
@@ -258,8 +271,10 @@ describe("the type", () => {
     const id = typeGroup().getAttribute("aria-describedby");
     return id ? (document.getElementById(id)?.textContent?.trim() ?? null) : null;
   };
-  const details = () => FORM()!.querySelector<HTMLDetailsElement>("details[data-prescription-details]")!;
-  const summaryShown = () => details().querySelector("summary")!.checkVisibility();
+  const details = () => FORM()!.querySelector<HTMLElement>("[data-prescription-details]")!;
+  const toggle = () => details().querySelector<HTMLButtonElement>("[data-prescription-toggle]");
+  const summaryShown = () => toggle()?.checkVisibility() ?? false;
+  const detailsOpen = () => details().querySelector(":scope > [data-collapse]")!.hasAttribute("data-open");
   const inDetails = (name: string) => !!details().querySelector(`[name="${name}"]`);
   const typeOf = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
     (await device.query<{ type: string | null }>("SELECT type FROM medication WHERE id = ?", [id]))[0]?.type;
@@ -271,7 +286,7 @@ describe("the type", () => {
       [...(FORM()?.querySelectorAll<HTMLInputElement>('input[name="type"]') ?? [])].map((r) => r.ariaLabel),
     ).toEqual(["Prescription", "Over the counter", "Supplement", "Other"]);
     expect(checkedType()).toBe("prescription");
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(summaryShown()).toBe(false);
 
     await userEvent.fill(await found(() => field("name")), "Sertraline");
@@ -299,23 +314,27 @@ describe("the type", () => {
     );
     await userEvent.click(typeRadio("otc"));
 
-    await expect.poll(() => details().open).toBe(false);
+    await expect.poll(() => detailsOpen()).toBe(false);
     expect(summaryShown()).toBe(true);
-    expect(details().querySelector("summary")?.textContent?.trim()).toBe("Prescription details");
+    expect(toggle()?.textContent?.trim()).toBe("Prescription details");
     expect(["prescriberId", "refillsLeft", "rxNumber"].map(inDetails)).toEqual([true, true, true]);
     expect(["pharmacyId", "lastFilledOn", "quantity"].map(inDetails)).toEqual([false, false, false]);
-    expect(field("quantity")?.checkVisibility()).toBe(true);
-    expect(field("rxNumber")?.checkVisibility()).toBe(false);
+    expect(field("quantity")?.checkVisibility({ visibilityProperty: true })).toBe(true);
+    await expect.poll(() => field("rxNumber")?.checkVisibility({ visibilityProperty: true })).toBe(false);
 
-    await userEvent.click(await found(() => details().querySelector("summary")));
-    await expect.poll(() => field("rxNumber")!.checkVisibility()).toBe(true);
+    expect(toggle()?.getAttribute("aria-expanded")).toBe("false");
+    const region = document.getElementById(toggle()?.getAttribute("aria-controls") ?? "");
+    expect(region?.contains(field("rxNumber") ?? null)).toBe(true);
+    await userEvent.click(await found(toggle));
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(() => field("rxNumber")!.checkVisibility({ visibilityProperty: true })).toBe(true);
     await userEvent.fill(await found(() => field("rxNumber")), "RX 7781");
     // Back to Prescription and to Supplement: the section stays open, since it has a value now.
     await userEvent.click(typeRadio("prescription"));
     await expect.poll(() => summaryShown()).toBe(false);
     await userEvent.click(typeRadio("supplement"));
     await expect.poll(() => summaryShown()).toBe(true);
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(field("rxNumber")?.value).toBe("RX 7781");
     await userEvent.click(typeRadio("otc"));
     await userEvent.click(submit());
@@ -327,11 +346,32 @@ describe("the type", () => {
     expect(made).toEqual({ type: "otc", rx_number: "RX 7781" });
   });
 
+  test("a refused field folded away opens its section and takes focus", async () => {
+    await openWith(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.fill(await found(() => field("name")), "Loratadine");
+    await userEvent.click(
+      await found(() =>
+        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
+      ),
+    );
+    await userEvent.click(typeRadio("otc"));
+    await userEvent.click(await found(toggle));
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
+    await userEvent.fill(await found(() => field("refillsLeft")), "-1");
+    await userEvent.click(await found(toggle));
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("false");
+
+    await userEvent.click(submit());
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(field("refillsLeft"));
+  });
+
   test("an over-the-counter one with an Rx number opens with the section open; one without, closed", async () => {
     await openWith(`${LIST}/${NAPROXEN.id}/edit`);
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(checkedType()).toBe("otc");
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(field("rxNumber")?.value).toBe("RX 5521");
   });
 
@@ -339,7 +379,7 @@ describe("the type", () => {
     await openWith(`${LIST}/${IBUPROFEN.id}/edit`);
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(checkedType()).toBe("otc");
-    expect(details().open).toBe(false);
+    expect(detailsOpen()).toBe(false);
   });
 
   test("an old one with no type starts on none and can't be saved until one is chosen; the type writes no change entry", async () => {
@@ -347,7 +387,7 @@ describe("the type", () => {
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(checkedType()).toBeNull();
     // No type yet: nothing to fold.
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(summaryShown()).toBe(false);
 
     await userEvent.click(submit());

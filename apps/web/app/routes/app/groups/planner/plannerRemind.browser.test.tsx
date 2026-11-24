@@ -40,6 +40,7 @@ const settings = (v: Partial<CalendarSettings> = {}): CalendarSettings => ({
   detailsConsent: false,
   detailsConsentAt: null,
   detailsConsentVersion: null,
+  detailsConsentStale: false,
   groupAllowsDetails: true,
   shareLevel: "generic",
   feed: { active: false, rotatedAt: null },

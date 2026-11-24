@@ -161,7 +161,9 @@ describe("accepting", () => {
     const { token, invite: sent } = await invite(s.owner, s.groupId, email, "caretaker");
     const joiner = await userWith(email);
 
-    expect(ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toMatchObject({
+    expect(
+      ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true, legal: true })),
+    ).toMatchObject({
       groupId: s.groupId,
       role: "caretaker",
     });
@@ -218,8 +220,10 @@ describe("accepting", () => {
     const email = newAddress("again");
     const { token } = await invite(s.owner, s.groupId, email, "viewer");
     const joiner = await userWith(email);
-    ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }));
-    expect(ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toMatchObject({
+    ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true, legal: true }));
+    expect(
+      ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true, legal: true })),
+    ).toMatchObject({
       groupId: s.groupId,
       role: "viewer",
     });
@@ -237,21 +241,21 @@ describe("accepting", () => {
     const email = newAddress("right");
     const { token } = await invite(s.owner, s.groupId, email);
     const stranger = await userWith(newAddress("wrong"));
-    expect(codeOf(await careGroupInviteService.accept(stranger.ctx, { token, consent: true }))).toBe(
-      "careGroupInviteService:wrongEmail",
-    );
+    expect(
+      codeOf(await careGroupInviteService.accept(stranger.ctx, { token, consent: true, legal: true })),
+    ).toBe("careGroupInviteService:wrongEmail");
     expect(await roleOf(s.groupId, stranger.user.id)).toBeNull();
 
     const joiner = await userWith(email);
     expect(codeOf(await careGroupInviteService.accept(joiner.ctx, { token, consent: false }))).toBe(
       "careGroupInviteService:noConsent",
     );
-    expect(codeOf(await careGroupInviteService.accept(s.viewer.ctx, { token, consent: true }))).toBe(
-      "careGroupInviteService:wrongEmail",
-    );
-    expect(codeOf(await careGroupInviteService.accept({ authUser: null }, { token, consent: true }))).toBe(
-      "permissions:unauthenticated",
-    );
+    expect(
+      codeOf(await careGroupInviteService.accept(s.viewer.ctx, { token, consent: true, legal: true })),
+    ).toBe("careGroupInviteService:wrongEmail");
+    expect(
+      codeOf(await careGroupInviteService.accept({ authUser: null }, { token, consent: true, legal: true })),
+    ).toBe("permissions:unauthenticated");
   });
 
   it("accepts the address whatever its case or spaces", async () => {
@@ -259,7 +263,9 @@ describe("accepting", () => {
     const email = newAddress("case");
     const { token } = await invite(s.owner, s.groupId, `  ${email.toUpperCase()} `);
     const joiner = await userWith(email);
-    expect(codeOf(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toBe("ok");
+    expect(
+      codeOf(await careGroupInviteService.accept(joiner.ctx, { token, consent: true, legal: true })),
+    ).toBe("ok");
   });
 
   it("refuses expired, revoked and declined invites", async () => {
@@ -271,21 +277,39 @@ describe("accepting", () => {
       .where(eq(careGroupInviteSchema.id, expired.invite.id));
     const expiredUser = await userWith(expired.invite.email!);
     expect(
-      codeOf(await careGroupInviteService.accept(expiredUser.ctx, { token: expired.token, consent: true })),
+      codeOf(
+        await careGroupInviteService.accept(expiredUser.ctx, {
+          token: expired.token,
+          consent: true,
+          legal: true,
+        }),
+      ),
     ).toBe("careGroupInviteService:unusable");
 
     const revoked = await invite(s.owner, s.groupId, newAddress("rev"));
     ok(await careGroupInviteService.revoke(s.admin.ctx, revoked.invite.id));
     const revokedUser = await userWith(revoked.invite.email!);
     expect(
-      codeOf(await careGroupInviteService.accept(revokedUser.ctx, { token: revoked.token, consent: true })),
+      codeOf(
+        await careGroupInviteService.accept(revokedUser.ctx, {
+          token: revoked.token,
+          consent: true,
+          legal: true,
+        }),
+      ),
     ).toBe("careGroupInviteService:unusable");
 
     const declined = await invite(s.owner, s.groupId, newAddress("dec"));
     ok(await careGroupInviteService.decline(declined.token));
     const declinedUser = await userWith(declined.invite.email!);
     expect(
-      codeOf(await careGroupInviteService.accept(declinedUser.ctx, { token: declined.token, consent: true })),
+      codeOf(
+        await careGroupInviteService.accept(declinedUser.ctx, {
+          token: declined.token,
+          consent: true,
+          legal: true,
+        }),
+      ),
     ).toBe("careGroupInviteService:unusable");
     expect(await roleOf(s.groupId, declinedUser.user.id)).toBeNull();
   });
@@ -295,7 +319,7 @@ describe("accepting", () => {
     const email = newAddress("newowner");
     const { token } = await invite(s.owner, s.groupId, email, "owner");
     const joiner = await userWith(email);
-    ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }));
+    ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true, legal: true }));
     expect(await roleOf(s.groupId, joiner.user.id)).toBe("owner");
   });
 });
@@ -323,10 +347,14 @@ describe("declining, resending, revoking and previewing", () => {
 
     const joiner = await userWith(email);
     expect(
-      codeOf(await careGroupInviteService.accept(joiner.ctx, { token: first.token, consent: true })),
+      codeOf(
+        await careGroupInviteService.accept(joiner.ctx, { token: first.token, consent: true, legal: true }),
+      ),
     ).toBe("careGroupInviteService:notFound");
     expect(
-      codeOf(await careGroupInviteService.accept(joiner.ctx, { token: again.token, consent: true })),
+      codeOf(
+        await careGroupInviteService.accept(joiner.ctx, { token: again.token, consent: true, legal: true }),
+      ),
     ).toBe("ok");
   });
 
@@ -405,7 +433,7 @@ describe("while signup.emailInvites is off (B-106)", () => {
     const preview = await careGroupInviteService.preview(token);
     const ticket = codeOf(await careGroupInviteService.ticketFor(token));
     const invitee = await userWith(email);
-    const accepted = await careGroupInviteService.accept(invitee.ctx, { token, consent: true });
+    const accepted = await careGroupInviteService.accept(invitee.ctx, { token, consent: true, legal: true });
     return { preview, ticket, accepted, invitee };
   };
 

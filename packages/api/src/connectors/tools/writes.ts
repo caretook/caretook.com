@@ -155,7 +155,13 @@ const carryOut = async (
   const url = path ? linkTo(ctx.origin, path) : null;
   const line = [preview.title, preview.detail, preview.when].filter(Boolean).join(" · ");
   const what =
-    action.type === "addTodo" ? "Added todo" : made.length > 1 ? `Logged ${made.length} entries` : "Logged";
+    action.type === "addTodo"
+      ? "Added todo"
+      : res.alreadyLogged.length
+        ? "Already logged, nothing added"
+        : made.length > 1
+          ? `Logged ${made.length} entries`
+          : "Logged";
   return {
     text: [`${what}: ${line}`, ...(url ? [url] : []), `Shown as "via ${ctx.clientName}".`].join("\n"),
     structured: {
@@ -228,7 +234,7 @@ const medicationNames = (ctx: ToolContext, medicationId: string) => async () => 
 export const logDose = defineTool({
   name: "log_dose",
   title: "Log a medication dose",
-  description: `Record one dose of a current medication as ${DOSE_STATUSES.join(", ")}, with an optional amount ("1 tablet") and note. Use a medication's id from the medication list. To mark a whole medication round given, use give_pass instead. Ask the member before calling.`,
+  description: `Record one dose of a current medication as ${DOSE_STATUSES.join(", ")}, with an optional amount ("1 tablet") and note. Use a medication's id from the medication list. A dose near a scheduled time counts for that slot: repeating the same status, amount and note adds nothing, while a different amount or note records a separate dose. To mark a whole medication round given, use give_pass instead. Ask the member before calling.`,
   scope: "readWrite",
   input: z.object({
     ...shapeOf(logDoseActionZSchema),

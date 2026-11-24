@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 import type { CalendarSettings } from "~/lib/calendars/calendarSettings";
 
+import { DETAILS_CONSENT_TEXT, DETAILS_CONSENT_VERSION } from "@caretook/data/schema";
 import { beforeEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { forgetCalendarSettings } from "~/lib/calendars/calendarSettings";
@@ -34,6 +35,7 @@ const ROUTES: DeviceRoute[] = [
 const CALENDAR = `/app/groups/${TEST_GROUP.id}/settings/calendar`;
 const DETAILS = `/app/groups/${TEST_GROUP.id}/settings/details`;
 const AGREED = "2026-11-18T18:00:00.000Z";
+const AGREE = { detailsConsent: true, detailsConsentVersion: DETAILS_CONSENT_VERSION };
 
 const defaults = (role: GroupRole, v: Partial<CalendarSettings> = {}): CalendarSettings => ({
   groupId: TEST_GROUP.id,
@@ -43,6 +45,7 @@ const defaults = (role: GroupRole, v: Partial<CalendarSettings> = {}): CalendarS
   detailsConsent: false,
   detailsConsentAt: null,
   detailsConsentVersion: null,
+  detailsConsentStale: false,
   groupAllowsDetails: true,
   shareLevel: "generic",
   feed: { active: false, rotatedAt: null },
@@ -55,11 +58,14 @@ const calendarServer = (role: GroupRole, v: Partial<CalendarSettings> = {}) => {
   const server: {
     settings: CalendarSettings;
     online: boolean;
+    /** The server has a newer wording than this device showed. */
+    newerWording: boolean;
     calls: typeof calls;
     api: Record<string, (input: unknown) => unknown>;
   } = {
     settings: defaults(role, v),
     online: true,
+    newerWording: false,
     calls,
     api: calls.record({
       "calendars.settings.get": () => {
@@ -71,6 +77,7 @@ const calendarServer = (role: GroupRole, v: Partial<CalendarSettings> = {}) => {
         const { detailsConsent } = input as { detailsConsent?: boolean };
         if (detailsConsent && !server.settings.groupAllowsDetails)
           return refusal("calendarSettingService:detailsForbidden");
+        if (detailsConsent && server.newerWording) return refusal("calendarSettingService:consentOutdated");
         if (detailsConsent !== undefined)
           server.settings = {
             ...server.settings,
@@ -139,7 +146,7 @@ describe("Calendar & reminders", () => {
     await open({ api: calendarServer("caretaker").api });
     await expect.element(consent()).not.toBeChecked();
     expect((await found(() => section("details-outside"))).textContent).toContain(
-      `say only "Appointment for Grandma June", the time and a link back`,
+      `say only "Event for Grandma June", the time and a link back`,
     );
     const describedBy = consent().element().getAttribute("aria-describedby")!;
     expect((await found(() => document.getElementById(describedBy))).textContent).toMatch(
@@ -153,7 +160,7 @@ describe("Calendar & reminders", () => {
     await userEvent.click(consent());
     await expect
       .poll(() => server.calls.of("calendars.settings.update"))
-      .toEqual([{ groupId: TEST_GROUP.id, detailsConsent: true }]);
+      .toEqual([{ groupId: TEST_GROUP.id, ...AGREE }]);
     await expect.element(consent()).toBeChecked();
     await expect.element(page.getByText("Saved.")).toBeVisible();
     await expect.element(page.getByText(/^You agreed on 18 Nov 2026\.$/)).toBeVisible();
@@ -205,6 +212,28 @@ describe("Calendar & reminders", () => {
     await expect.element(consent()).not.toBeChecked();
   });
 
+  test("a consent refused for a newer wording offers a reload and records nothing (B-717)", async () => {
+    const server = calendarServer("caretaker");
+    server.newerWording = true;
+    await open({ api: server.api });
+    await userEvent.click(consent());
+    await expect
+      .element(page.getByRole("alert"))
+      .toHaveTextContent("The wording of this consent has changed. Reload Caretook to read the new wording");
+    await expect.element(page.getByRole("button", { name: "Reload" })).toBeVisible();
+    await expect.element(consent()).not.toBeChecked();
+    expect(server.settings.detailsConsent).toBe(false);
+    expect(server.settings.detailsConsentAt).toBeNull();
+  });
+
+  test("another refusal offers no reload (B-717)", async () => {
+    const server = calendarServer("caretaker", { groupAllowsDetails: false });
+    await open({ api: server.api, allowed: true });
+    await userEvent.click(consent());
+    await expect.element(page.getByRole("alert")).toBeVisible();
+    expect(page.getByRole("button", { name: "Reload" }).query()).toBeNull();
+  });
+
   test("offline with nothing on the device: it needs a connection", async () => {
     await open({});
     await expect.element(page.getByText(/Needs a connection to load these settings/)).toBeVisible();
@@ -253,9 +282,56 @@ describe("Calendar & reminders", () => {
     window.dispatchEvent(new Event("online"));
     await expect
       .poll(() => server.calls.of("calendars.settings.update").at(-1))
-      .toEqual({ groupId: TEST_GROUP.id, detailsConsent: true });
+      .toEqual({ groupId: TEST_GROUP.id, ...AGREE });
     await expect.poll(() => document.querySelector("[data-needs-connection]")).toBeNull();
     await expect.element(consent()).toBeChecked();
+  });
+
+  const expectOffWithCurrentWording = async () => {
+    await expect.poll(() => document.querySelector("[data-needs-connection]")).toBeNull();
+    await expect.element(consent()).not.toBeChecked();
+    await expect.element(consent()).toBeEnabled();
+    const describedBy = consent().element().getAttribute("aria-describedby")!;
+    expect((await found(() => document.getElementById(describedBy))).textContent).toContain(
+      DETAILS_CONSENT_TEXT,
+    );
+    expect(document.querySelector("[data-details-agreed]")).toBeNull();
+  };
+
+  test("a consent queued for an older wording is dropped: off, with the current wording (B-659)", async () => {
+    const server = calendarServer("caretaker");
+    const key = `${TEST_USER.id}:${TEST_GROUP.id}`;
+    localStorage.setItem(`caretook:calendar:${key}`, JSON.stringify(defaults("caretaker")));
+    localStorage.setItem(
+      `caretook:calendar-pending:${key}`,
+      JSON.stringify({ detailsConsent: true, detailsConsentVersion: "2020-01-01" }),
+    );
+    await open({ api: server.api });
+    await expectOffWithCurrentWording();
+    expect(server.calls.of("calendars.settings.update")).toEqual([]);
+    expect(server.settings.detailsConsent).toBe(false);
+
+    // Agreeing again records it.
+    await userEvent.click(consent());
+    await expect
+      .poll(() => server.calls.of("calendars.settings.update"))
+      .toEqual([{ groupId: TEST_GROUP.id, ...AGREE }]);
+    await expect.element(consent()).toBeChecked();
+  });
+
+  test("a replay the server refuses for a newer wording leaves the switch off (B-659)", async () => {
+    const server = calendarServer("caretaker");
+    const key = `${TEST_USER.id}:${TEST_GROUP.id}`;
+    server.newerWording = true;
+    localStorage.setItem(`caretook:calendar:${key}`, JSON.stringify(defaults("caretaker")));
+    localStorage.setItem(`caretook:calendar-pending:${key}`, JSON.stringify(AGREE));
+    await open({ api: server.api });
+    await expect
+      .poll(() => server.calls.of("calendars.settings.update"))
+      .toEqual([{ groupId: TEST_GROUP.id, ...AGREE }]);
+    await expectOffWithCurrentWording();
+    expect(server.settings.detailsConsent).toBe(false);
+    expect(localStorage.getItem(`caretook:calendar-pending:${key}`)).toBeNull();
   });
 });
 

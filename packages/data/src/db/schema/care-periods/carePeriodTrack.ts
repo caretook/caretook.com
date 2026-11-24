@@ -88,6 +88,20 @@ export const periodDay = (startsAt: string, now: string | number | Date, timeZon
   Math.max(1, daysBetween(localDate(startsAt, timeZone), localDate(now, timeZone)) + 1);
 
 /**
+ * "Day N" of a period on a calendar day ("YYYY-MM-DD", a timeline day header's
+ * key, in the viewer's zone): from the start's date in the recipient's zone to
+ * that day, the start's day being day 1. Counting from the header's own date
+ * keeps consecutive headers one apart when the viewer and recipient are in
+ * different zones; `periodDay` can give two of them one number. Null for a day
+ * before the start's date: a viewer behind the recipient's zone can see the
+ * period begin on the date before it, which has no number.
+ */
+export const periodDayOn = (startsAt: string, dayKey: string, timeZone: string) => {
+  const day = daysBetween(localDate(startsAt, timeZone), dayKey) + 1;
+  return day < 1 ? null : day;
+};
+
+/**
  * The current period (the latest on the track: future starts are refused,
  * so it's the one care is in now) and its day count, or null with no periods.
  */

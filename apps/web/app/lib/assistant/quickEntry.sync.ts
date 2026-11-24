@@ -15,15 +15,23 @@ import {
   noteDocFromText,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
+import { scheduleChangesQuery } from "../appointments/visitPrep.sync";
 import { duePasses, givenAllWrites } from "../medications/duePasses";
 import {
   dosesSinceQuery,
   dueMedicationsQuery,
   duePassesQuery,
+  dueChangesFrom,
   toDueDoses,
   yesterdayStart,
 } from "../medications/dueDoses.sync";
-import { doseRows, medicationQuery, recipientQuery, toMedication } from "../medications/medications.sync";
+import {
+  claimDoseIds,
+  doseRows,
+  medicationQuery,
+  recipientQuery,
+  toMedication,
+} from "../medications/medications.sync";
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
 import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
@@ -240,6 +248,7 @@ export const runActions = async (
         continue;
       }
       const { entry, more, document, providerIds } = rows;
+      if (entry.kind === "dose") await claimDoseIds(tx, [entry, ...(more ?? [])]);
       await tx.insert(timelineEntries).values(entry);
       for (const row of more ?? []) await tx.insert(timelineEntries).values(row);
       if (document) {
@@ -305,8 +314,11 @@ const passDoses = async (
     readRows<PassRow>(db, duePassesQuery(groupId)),
   ]);
   const zone = recipient[0]?.time_zone || "UTC";
-  const doses = await readRows<EntryRow>(db, dosesSinceQuery(groupId, yesterdayStart(at, zone)));
-  const rows = { recipient, medications, passes, doses };
+  const [doses, changes] = await Promise.all([
+    readRows<EntryRow>(db, dosesSinceQuery(groupId, yesterdayStart(at, zone))),
+    readRows<EntryRow>(db, scheduleChangesQuery(groupId, dueChangesFrom(at, zone))),
+  ]);
+  const rows = { recipient, medications, passes, doses, changes };
   const passRow = rows.passes.find((p) => p.id === action.passId);
   if (!passRow || passRow.deleted_at || passRow.group_id !== groupId)
     return { ok: false, error: "That pass is gone. It may have been deleted.", issues: [] };

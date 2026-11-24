@@ -273,11 +273,15 @@ const inThePeriod = (words: readonly string[], j: number) =>
 /** "sat" and "sun" are also ordinary words; one of these leading words makes them the day. */
 const AMBIGUOUS_DAYS = new Set(["sat", "sun"]);
 const DAY_LEADS = new Set(["on", "last", "next", "this"]);
+/** Who "sat" as a verb: a subject pronoun anywhere, a family word opening the line ("my mom sat"). */
+const SAT_PRONOUNS = new Set(["i", "she", "he", "we", "they"]);
+const SAT_FAMILY = new Set(["mom", "mum", "dad", "grandma", "grandpa", "husband", "wife", "son", "daughter"]);
 
 /**
  * "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or
  * after "o2", isn't one. "sat up in chair" and "in the sun" aren't days either:
- * "sat" and "sun" need a leading word, a time after them, or the end of the line.
+ * "sat" and "sun" need a leading word, a time after them, or the end of the line,
+ * and a last "sat" after its subject ("she sat", "mom sat") is the verb.
  */
 const notAWeekday = (words: readonly string[], i: number) => {
   const word = words[i]!;
@@ -287,29 +291,68 @@ const notAWeekday = (words: readonly string[], i: number) => {
   const next = words[i + 1] ?? "";
   if (/^\d+(\.\d+)?%?$/.test(next) && !meridiemOf(words[i + 2])) return true;
   if (!AMBIGUOUS_DAYS.has(word) || DAY_LEADS.has(before)) return false;
-  if (i === words.length - 1) return before === "the";
+  if (i === words.length - 1) {
+    if (before === "the") return true;
+    if (word !== "sat") return false;
+    const opensLine = i === 1 || (i === 2 && words[0] === "my");
+    return SAT_PRONOUNS.has(before) || (opensLine && SAT_FAMILY.has(before));
+  }
   return !clockFollows(words, i + 1) && !PERIOD_WORDS.has(next) && !inThePeriod(words, i + 1);
+};
+
+/** Words after "at" that aren't a place ("2nd at least", "the 2nd at bedtime"). */
+const NOT_A_PLACE = new Set(
+  "least most all first last once times bedtime breakfast lunch dinner supper".split(" "),
+);
+
+/** Words before an ordinal that make it a count of something ("gave the 2nd", "her 2nd"). */
+const COUNTED_AFTER = new Set(
+  "gave give given giving took take taking had received receive receiving got my her his their our".split(
+    " ",
+  ),
+);
+
+/** Articles between a count word and its ordinal ("gave a 2nd", "took an 8th"). */
+const ARTICLES = new Set(["the", "a", "an"]);
+
+/** "at the clinic", "at kaiser", "at 123 main st": a bare number of one or two digits is no place. */
+const placeFollows = (words: readonly string[], j: number) => {
+  if (words[j] !== "at") return false;
+  const first = words[j + 1];
+  return first !== undefined && !NOT_A_PLACE.has(first) && !/^\d{1,2}$/.test(first);
 };
 
 /**
  * Whether the ordinal at word `at` can be a day of the month: after "on", at
- * the end of the line, or before a time word. A period word counts only last
- * in the line, so "2nd evening dose" and "2nd night in a row" stay counts.
+ * the end of the line, or before a time word or "at" a place. "a 2nd" or a
+ * counting word before it ("gave the 2nd") makes it a count unless "on" leads
+ * it. A period word counts only last in the line, so "2nd evening dose" and
+ * "2nd night in a row" stay counts.
  */
 const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) => {
-  if (afterOn || at === words.length - 1) return true;
+  if (afterOn) return true;
+  const article = words[at - 1] ?? "";
+  if (article === "a" || article === "an") return false;
+  const before = ARTICLES.has(article) ? words[at - 2] : article;
+  if (COUNTED_AFTER.has(before ?? "")) return false;
+  if (at === words.length - 1) return true;
   const next = words[at + 1]!;
-  if (clockFollows(words, at + 1) || inThePeriod(words, at + 1)) return true;
+  if (clockFollows(words, at + 1)) return true;
+  if (inThePeriod(words, at + 1)) return true;
   if (next === "at" && words[at + 2] === "night") return true;
+  if (placeFollows(words, at + 1)) return true;
   return PERIOD_WORDS.has(next) && at + 1 === words.length - 1;
 };
 
 /**
  * The time phrase among `words` (lowercase, punctuation trimmed), if any:
  * the first of each part (a day, a time of day, minutes ago or ahead) is
- * kept, and the words they took are reported so the parser skips them.
+ * kept, and the words they took are reported so the parser skips them. With
+ * `periodAfterDay`, a bare part of day after "tomorrow" or a weekday not
+ * marked "last" is that part of the day ("tomorrow morning", "next friday
+ * morning"); only a line asking for something reads it so.
  */
-export const findTime = (words: readonly string[]): FoundTime | null => {
+export const findTime = (words: readonly string[], { periodAfterDay = false } = {}): FoundTime | null => {
   const used = new Set<number>();
   let day: DaySpec | undefined;
   let clock: Clock | undefined;
@@ -317,6 +360,12 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
   let relativeMinutes: number | undefined;
   const take = (from: number, length: number) => {
     for (let k = from; k < from + length; k++) used.add(k);
+  };
+  const takePeriodAt = (j: number) => {
+    const word = words[j];
+    if (!periodAfterDay || period || !word || !PERIOD_WORDS.has(word)) return;
+    period = word as Period;
+    take(j, 1);
   };
 
   for (let i = 0; i < words.length; i++) {
@@ -378,6 +427,7 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
       if (["tomorrow", "tmrw", "tmr", "tomorow"].includes(word)) {
         day = { offset: 1 };
         take(i, 1);
+        takePeriodAt(i + 1);
         continue;
       }
       if (["yesterday", "yday", "yest"].includes(word)) {
@@ -402,6 +452,7 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
       if (dayWord && dayWord in WEEKDAYS && !notAWeekday(words, modifier ? i + 1 : i)) {
         day = { weekday: WEEKDAYS[dayWord]!, ...(modifier && { modifier }) };
         take(i, modifier ? 2 : 1);
+        if (modifier !== "last") takePeriodAt(i + (modifier ? 2 : 1));
         continue;
       }
       // "nov 20", "november 20th", "20 nov"

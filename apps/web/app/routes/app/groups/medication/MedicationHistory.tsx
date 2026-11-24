@@ -3,7 +3,7 @@ import type { MedicationEntry } from "~/lib/medications/medications.sync";
 import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { KindIcon } from "~/components/entry";
-import { Section } from "~/components/ui";
+import { EmptyState, Section } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { formatDay, formatTime } from "~/lib/core/format";
 import { changeText, doseSlotText, doseText } from "~/lib/medications/medicationDisplay";
@@ -54,9 +54,9 @@ export function MedicationHistory({
   return (
     <Section title="History" id="history" data-medication-history="">
       {entries.length === 0 ? (
-        <p className="text-base-content/70 text-sm">No doses or changes yet.</p>
+        <EmptyState>No doses or changes yet.</EmptyState>
       ) : (
-        <ol className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+        <ol className="rounded-box border-base-300 bg-base-100 divide-base-300 divide-y overflow-hidden border">
           {entries.map((entry) => {
             const { text, extra } = entryLines(entry, passes);
             return (
@@ -72,8 +72,8 @@ export function MedicationHistory({
                     <span className="sr-only">{KIND_META[entry.kind].label}: </span>
                     <span data-entry-text>{text}</span>
                   </p>
-                  {extra && <p className="text-base-content/70 text-sm wrap-break-word">{extra}</p>}
-                  <p className="text-base-content/70 text-sm">
+                  {extra && <p className="text-muted text-sm wrap-break-word">{extra}</p>}
+                  <p className="text-muted text-sm">
                     {nameOf(entry.createdBy)} ·{" "}
                     <time dateTime={entry.occurredAt}>
                       {formatDay(entry.occurredAt)}, {formatTime(entry.occurredAt)}

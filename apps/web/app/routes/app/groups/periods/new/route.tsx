@@ -51,7 +51,7 @@ export default function NewPeriodSheet({ loaderData, params }: Route.ComponentPr
   const timeZone = group.recipient?.timeZone ?? "UTC";
   const zoneNote = scheduleZoneNote(timeZone, Intl.DateTimeFormat().resolvedOptions().timeZone);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a care period">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Add a care period">
       <PeriodForm
         // A new URL is a new form.
         key={search}

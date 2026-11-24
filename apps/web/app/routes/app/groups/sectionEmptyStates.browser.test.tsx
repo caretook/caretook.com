@@ -48,7 +48,7 @@ describe("a section with nothing in it", () => {
     ["Providers", "providers", PROVIDER_ROUTES, PROVIDERS_URL, "No providers yet."],
     ["the Medications list", "medications", MEDICATION_ROUTES, LIST, "No medications yet."],
     ["Passes", "medications", MEDICATION_ROUTES, PASSES, "No passes yet."],
-    ["the Planner", "planner", PLANNER_ROUTES, PLANNER_URL, "No upcoming appointments or todos."],
+    ["the Planner", "planner", PLANNER_ROUTES, PLANNER_URL, "No upcoming events or todos."],
     ["Todos", "planner", PLANNER_ROUTES, TODOS_URL, "No open todos."],
   ] as const)("%s shows its icon circle and its words", async (_name, section, route, url, words) => {
     await renderWithDevice({ route: [...route], url, fixtures: [] });
@@ -109,7 +109,7 @@ describe("what stays quiet", () => {
 
   test("the Planner for an easy role has no accent", async () => {
     await renderWithDevice({ route: PLANNER_ROUTES, url: PLANNER_URL, role: "easy_viewer", fixtures: [] });
-    await expect.element(page.getByText("No upcoming appointments or todos.")).toBeVisible();
+    await expect.element(page.getByText("No upcoming events or todos.")).toBeVisible();
     expect(chip()).toBeNull();
   });
 });

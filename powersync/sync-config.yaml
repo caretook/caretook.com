@@ -31,7 +31,8 @@ streams:
       # `easy_tiles`: how easy mode picks its four tiles (assistant).
       # `connectors_enabled`: the owners' Assistants switch (connectors).
       # `details_outside_allowed`: the owners' "Details outside Caretook" switch (appointments-2).
-      - SELECT id, name, easy_tiles, created_at, updated_at, created_by, updated_by, connectors_enabled, details_outside_allowed FROM care_group WHERE id IN my_groups
+      # `connectors_read_only`: the owners' read-only choice for assistants (assistant-access).
+      - SELECT id, name, easy_tiles, created_at, updated_at, created_by, updated_by, connectors_enabled, details_outside_allowed, connectors_read_only FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
@@ -162,12 +163,12 @@ streams:
         created_at, created_by, updated_by
         FROM care_recipient_details WHERE group_id IN writer_groups
 
-  # Co-members' public profiles (name and picture) for author names.
+  # Co-members' public profiles (name, picture and avatar choice) for author names.
   member_profiles:
     auto_subscribe: true
     with:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     query: >-
-      SELECT "user".id, "user".name, "user".image FROM "user"
+      SELECT "user".id, "user".name, "user".image, "user".avatar_color, "user".avatar_icon FROM "user"
       INNER JOIN care_group_member ON care_group_member.user_id = "user".id
       WHERE care_group_member.group_id IN my_groups

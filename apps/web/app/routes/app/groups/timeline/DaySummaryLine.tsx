@@ -53,7 +53,7 @@ export function DaySummaryLine({
     <div className="pt-0.5" data-day-summary>
       <button
         type="button"
-        className="text-base-content/75 hover:text-base-content motion-colors flex w-full min-w-0 cursor-pointer items-center gap-1 rounded text-left text-sm"
+        className="text-muted hover:text-base-content motion-colors flex w-full min-w-0 cursor-pointer items-center gap-1 rounded text-left text-sm"
         aria-expanded={expanded}
         aria-controls={id}
         aria-label={`Day summary: ${summaryLabel(parts)}`}
@@ -71,10 +71,10 @@ export function DaySummaryLine({
         </span>
       </button>
       <Collapse open={expanded} id={id}>
-        <ul className="text-base-content/80 mt-1 space-y-0.5 pl-5 text-sm">
+        <ul className="text-muted mt-1 space-y-0.5 pl-5 text-sm">
           {summary.lines.map((line) => (
             <li key={line.label}>
-              <span className="text-base-content/60">{line.label}:</span>{" "}
+              <span className="text-faint">{line.label}:</span>{" "}
               {line.parts.map((part, i) => (
                 <Fragment key={i}>
                   {i > 0 && ", "}

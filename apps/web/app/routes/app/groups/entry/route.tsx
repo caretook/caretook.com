@@ -3,11 +3,10 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LiveNotesEditorHandle } from "~/components/notes";
 
 import { useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
+import { BackLink, Message, Notice, Page, TITLE_SUB } from "~/components/ui";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
 import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
@@ -20,6 +19,7 @@ import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { EntryPrintView } from "./EntryPrintView";
 import { EntryVisitPrep } from "./EntryVisitPrep";
+import { entryTiming } from "~/lib/appointments/upcoming";
 import { entryHeading, titleState, withEventDraft } from "./entryPage";
 import { loadEntry } from "./loadEntry";
 import { useEntryMentions } from "./useEntryMentions";
@@ -84,19 +84,31 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const editor = useRef<LiveNotesEditorHandle>(null);
-  const timelineUrl = appUrls.timeline(groupId);
   const printed = useEntryPrint(entry.id, loaderData.initial);
   usePrintOnOpen();
   // A mention in the text links the provider, as the With row does.
   const mentions = useEntryMentions({ groupId, entryId: entry.id, ensureStored: live.ensureStored });
 
   const label = KIND_META[entry.kind].label;
-  const heading = entryHeading(label, entry.title, live.isNew && !live.stored);
+  // When it was opened is enough: the heading only names an unnamed event's side of now.
+  const [openedAt] = useState(() => new Date());
+  const timing = entry.kind === "event" ? entryTiming(entry, openedAt) : undefined;
+  const heading = entryHeading(label, entry.title, live.isNew && !live.stored, timing);
   const title = titleState({ kind: entry.kind, title: entry.title, saved: live.stored, canWrite, deleted });
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 print:p-0">
-      <BackLink to={timelineUrl} label="Timeline" className="print:hidden" />
+    <Page className="print:p-0">
+      <BackLink
+        to={live.back.to}
+        label={live.back.label}
+        // Decided on leaving (B-690): a time edited here counts, and Back to the opener is a history step.
+        onClick={(event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          live.leave();
+        }}
+        className="print:hidden"
+      />
 
       <h1 className="sr-only">{heading}</h1>
       <div className="space-y-4 print:hidden">
@@ -123,23 +135,22 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
           />
         )}
         <EntryVisitPrep live={live} groupId={groupId} />
-        {(saveError || mentions.error) && (
-          <p role="alert" className="text-error text-sm">
-            {saveError || mentions.error}
-          </p>
-        )}
+        {(saveError || mentions.error) && <Message tone="error">{saveError || mentions.error}</Message>}
 
         {deleted ? (
-          <div role="alert" className="alert">
-            <span>This entry was deleted.</span>
-            <Link to={timelineUrl} className="btn btn-sm">
-              Back to the timeline
-            </Link>
-          </div>
+          <Notice
+            tone="error"
+            action={{
+              label: `Back to the ${live.back.label === "Planner" ? "Planner" : "timeline"}`,
+              to: live.back.to,
+            }}
+          >
+            This entry was deleted.
+          </Notice>
         ) : (
           <>
             {entry.rescheduledTo && (
-              <h2 className="text-base-content/70 text-sm font-semibold" data-earlier-notes>
+              <h2 className={`text-muted ${TITLE_SUB}`} data-earlier-notes>
                 Earlier notes (read-only: they carry on in the new event)
               </h2>
             )}
@@ -170,6 +181,6 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
       {!deleted && live.stored && (
         <EntryPrintView heading={heading} kindLabel={label} entry={entry} {...printed} />
       )}
-    </main>
+    </Page>
   );
 }

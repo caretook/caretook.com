@@ -4,7 +4,7 @@ import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "reac
 import { Search } from "lucide-react";
 import { Wordmark } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
-import { IconButton } from "~/components/ui";
+import { Button, IconButton } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { isFirstSyncPending } from "~/lib/sync/firstSync";
 import { requireSession, sessionContext } from "~/lib/auth/session";
@@ -107,12 +107,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
     <main className="mx-auto max-w-xl space-y-3 px-4 py-10">
       <h1 className="text-2xl font-semibold">{notFound ? "Not found" : "Something went wrong"}</h1>
-      <p className="text-base-content/70">
+      <p className="text-muted">
         {notFound ? "This page doesn't exist, or you don't have access to it." : "Try again in a moment."}
       </p>
-      <Link to={appUrls.home()} className="btn btn-primary">
+      <Button to={appUrls.home()} variant="primary">
         Back to Caretook
-      </Link>
+      </Button>
     </main>
   );
 }

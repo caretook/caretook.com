@@ -153,6 +153,12 @@ export const MODEL_ERRORS = {
   "timelineEntryModel:mayChange": {
     message: "Failed to check access to the timeline entry",
   },
+  "timelineEntryModel:restore": {
+    message: "Failed to restore the timeline entry",
+  },
+  "timelineEntryModel:lock": {
+    message: "Failed to lock the timeline entry",
+  },
   "noteDocumentModel:lock": {
     message: "Failed to lock the live document",
   },

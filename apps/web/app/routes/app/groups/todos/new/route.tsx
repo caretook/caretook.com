@@ -67,7 +67,7 @@ export default function NewTodoSheet({ loaderData, params }: Route.ComponentProp
   const dueOn = query.get(TODO_PREFILL_PARAMS.dueOn);
   const dueTime = query.get(TODO_PREFILL_PARAMS.dueTime);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a todo">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Add a todo">
       <TodoForm
         // A new URL is a new form.
         key={search}
@@ -87,8 +87,9 @@ export default function NewTodoSheet({ loaderData, params }: Route.ComponentProp
           group.recipient?.timeZone ?? null,
           Intl.DateTimeFormat().resolvedOptions().timeZone,
         )}
-        onDone={close}
-        onCancel={close}
+        // From the Planner's Upcoming or Past, a save lands on the Todos tab.
+        onDone={() => close({ saved: true })}
+        onCancel={() => close()}
       />
     </Sheet>
   );

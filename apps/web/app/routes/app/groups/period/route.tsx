@@ -6,9 +6,9 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { neighbours } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { BackLink, Page, Section } from "~/components/ui";
+import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { periodTitle } from "~/lib/care-periods/periodDisplay";
@@ -131,12 +131,9 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
 
       {deleted ? (
         <Section>
-          <div role="alert" className="alert" data-period-deleted>
-            <span>This care period was deleted.</span>
-            <Link to={listUrl} className="btn btn-sm">
-              Back to care periods
-            </Link>
-          </div>
+          <Notice tone="error" action={{ label: "Back to care periods", to: listUrl }} data-period-deleted="">
+            This care period was deleted.
+          </Notice>
         </Section>
       ) : (
         <>
@@ -153,11 +150,7 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
                 : "Shared with the care group. You can view these notes."
             }
           >
-            {saveError && (
-              <p role="alert" className="text-error text-sm">
-                {saveError}
-              </p>
-            )}
+            {saveError && <Message tone="error">{saveError}</Message>}
             <LiveNotesEditor
               key={periodId}
               label={`Notes on ${title}`}

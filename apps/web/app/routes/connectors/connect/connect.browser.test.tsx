@@ -1,6 +1,6 @@
-import type { ConnectPage } from "~/.server/connectors";
+import type { ConnectGroup, ConnectPage } from "~/.server/connectors";
 
-import { CONNECTOR_CONSENT_TEXT } from "@caretook/data/schema";
+import { CONNECTOR_CONSENT_TEXT, CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "@caretook/data/schema";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -24,18 +24,28 @@ import * as connect from "./route";
 const SEARCH =
   "?response_type=code&client_id=abc&redirect_uri=https%3A%2F%2Fclaude.ai%2Fcb&scope=group%3Aread&sig=s";
 
+const DEV_FAMILY: ConnectGroup = {
+  id: "g-1",
+  name: "Dev Family",
+  recipientName: "Grandma Pat",
+  role: "caretaker",
+  scopes: ["read", "readWrite"],
+  readOnlyByOwner: false,
+};
+
 const consent: ConnectPage = {
   state: "consent",
   client: { name: "Claude", redirectHost: "claude.ai" },
   groups: [
+    DEV_FAMILY,
     {
-      id: "g-1",
-      name: "Dev Family",
-      recipientName: "Grandma Pat",
-      role: "caretaker",
-      scopes: ["read", "readWrite"],
+      id: "g-2",
+      name: "Lee household",
+      recipientName: "Uncle Lee",
+      role: "viewer",
+      scopes: ["read"],
+      readOnlyByOwner: false,
     },
-    { id: "g-2", name: "Lee household", recipientName: "Uncle Lee", role: "viewer", scopes: ["read"] },
   ],
   offGroups: [],
 };
@@ -126,6 +136,41 @@ describe("/connect", () => {
     await expect
       .element(page.getByRole("alert"))
       .toHaveTextContent("This care group doesn't allow assistants.");
+  });
+
+  test("a read-only group says the owner set it; picking another group brings its choices back", async () => {
+    await open({
+      ...consent,
+      groups: [
+        {
+          id: "g-3",
+          name: "Kim family",
+          recipientName: null,
+          role: "caretaker",
+          scopes: ["read"],
+          readOnlyByOwner: true,
+        },
+        DEV_FAMILY,
+      ],
+    });
+    await expect.element(page.getByText(CONNECTOR_READ_ONLY_BY_OWNER_LABEL)).toBeVisible();
+    expect(document.querySelectorAll("input[name=scope]")).toHaveLength(1);
+
+    await userEvent.click(radio("Dev Family (Grandma Pat)"));
+    await expect.element(radio("Read and add entries")).toBeVisible();
+    expect(document.querySelector("[data-read-only]")).toBeNull();
+  });
+
+  test("a Connect refused because the group went read only shows why and connects nothing", async () => {
+    const refused = `${CONNECTOR_READ_ONLY_BY_OWNER_LABEL}. An assistant can connect to this care group to read only.`;
+    const { posts } = await open(consent, () => ({ error: refused }));
+    await userEvent.click(radio("Read and add entries"));
+    await userEvent.click(page.getByRole("checkbox"));
+    await userEvent.click(connectButton());
+    await expect.element(page.getByRole("alert")).toHaveTextContent(refused);
+    expect(posts).toHaveLength(1);
+    expect(document.querySelector("[data-connect-success]")).toBeNull();
+    expect(go).not.toHaveBeenCalled();
   });
 
   test("Cancel posts a cancel, with no consent needed", async () => {

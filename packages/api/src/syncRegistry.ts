@@ -1,4 +1,4 @@
-import type { AppError, AuthUser, ErrorCode } from "@caretook/data";
+import type { AppError, AuthUser, ErrorCode, Tx, Upserted } from "@caretook/data";
 import type { CrudOp } from "./sync";
 
 import {
@@ -11,12 +11,14 @@ import {
   medicationService,
   newError,
   noteDocumentService,
+  OWN_DOSE_COPY_METADATA,
   providerService,
   recipientAllergyService,
   recipientConditionService,
   timelineEntryService,
   todoService,
   UNDO_NEXT_METADATA,
+  withTransaction,
 } from "@caretook/data";
 
 // The upload registry: which device tables `sync.upload` writes, and how each
@@ -38,7 +40,8 @@ import {
 // (`UploadColumns`): syncRegistry.test.ts checks them against the device
 // schema and powersync/sync-config.yaml.
 
-type Ctx = { authUser: AuthUser };
+/** The uploader; `tx` while a PUT and its follow-ups run as one transaction. */
+type Ctx = { authUser: AuthUser; tx?: Tx };
 export type Outcome = AppError | { ok: true };
 type Handler = (ctx: Ctx, op: CrudOp) => Promise<Outcome>;
 
@@ -136,7 +139,8 @@ type Opts = object;
 
 /** What the generic handler calls. Method syntax, so each service's own input types fit. */
 type SoftDeleteService = {
-  upsert(ctx: Ctx, input: Record<string, unknown>, opts?: Opts): Promise<unknown>;
+  /** Create-if-absent: an existing row is left as it was (`created: false`). */
+  upsert(ctx: Ctx, input: Record<string, unknown>, opts?: Opts): Promise<AppError | Upserted<unknown>>;
   update(ctx: Ctx, id: string, content: Record<string, unknown>, opts?: Opts): Promise<unknown>;
   remove(ctx: Ctx, id: string): Promise<unknown>;
   getById(
@@ -166,8 +170,12 @@ type SoftDeleteSpec = {
   /** Pass the device's `updated_at` as `changedAt` (the timeline change entry's time and id). */
   changedAt?: boolean;
   /** A PUT's write, in place of `upsert`; null: nothing to do. */
-  put?: (ctx: Ctx, op: CrudOp, input: Record<string, unknown>) => Promise<unknown>;
-  /** A PUT's follow-up after the create. */
+  put?: (
+    ctx: Ctx,
+    op: CrudOp,
+    input: Record<string, unknown>,
+  ) => Promise<AppError | Upserted<unknown> | null>;
+  /** A PUT's follow-up after the create (only when this PUT created the row). */
   afterPut?: (ctx: Ctx, op: CrudOp) => Promise<Outcome>;
   /** A PATCH, after the column checks, in place of the generic one. */
   patch?: (ctx: Ctx, op: CrudOp, writes: Writes) => Promise<Outcome>;
@@ -209,16 +217,22 @@ const softDelete = (spec: SoftDeleteSpec): UploadEntry => {
     const data = op.data ?? {};
     if (op.op === "DELETE") return remove(ctx, op.id);
 
+    // PUT: a create, replayed at most (B-288). Its follow-ups (created and
+    // deleted, or ticked, before it was uploaded) belong to the create: they
+    // run only when this PUT made the row, in its transaction, so a replay
+    // never re-deletes or re-ticks what someone changed since.
     if (op.op === "PUT") {
       const input = { id: op.id, ...mapped({ ...spec.fixed, ...spec.content, ...spec.createOnly }, data) };
-      // Unchecked here on purpose: the service validates the whole shape.
-      const res = spec.put ? await spec.put(ctx, op, input) : await service.upsert(ctx, input, opts(op));
-      if (isError(res)) return res;
-      // A stale twin (todo): nothing was written, and the next sync takes it away.
-      if (res === null) return applied;
-      // Created and deleted (or ticked) before it was uploaded.
-      if (data.deleted_at) return remove(ctx, op.id);
-      return spec.afterPut ? spec.afterPut(ctx, op) : applied;
+      return withTransaction(async (tx): Promise<Outcome> => {
+        const inTx = { ...ctx, tx };
+        // Unchecked here on purpose: the service validates the whole shape.
+        const res = spec.put ? await spec.put(inTx, op, input) : await service.upsert(inTx, input, opts(op));
+        if (isError(res)) return res;
+        // A stale twin (todo), or a row that was already there: nothing more to do.
+        if (res === null || !res.created) return applied;
+        if (data.deleted_at) return remove(inTx, op.id);
+        return spec.afterPut ? spec.afterPut(inTx, op) : applied;
+      });
     }
 
     // PATCH: only the columns that changed.
@@ -238,18 +252,42 @@ const softDelete = (spec: SoftDeleteSpec): UploadEntry => {
 /** `recipient_id` left out is the group's recipient. */
 const GROUP_RECIPIENT = { group_id: text, recipient_id: (v: unknown) => text(v) ?? undefined };
 
+const TIMELINE_CONTENT: ColumnMap = {
+  ...each("title body time_zone place cancel_reason rescheduled_to series_id series_day", text),
+  ...each("occurred_at ends_at cancelled_at", timestamp),
+  ...each("all_day series_detached", flag),
+  details: json,
+};
+
 const timelineEntry = softDelete({
   service: timelineEntryService,
   errors: "timelineEntryService",
   fixed: { ...GROUP_RECIPIENT, kind: text },
-  content: {
-    ...each("title body time_zone place cancel_reason rescheduled_to series_id series_day", text),
-    ...each("occurred_at ends_at cancelled_at", timestamp),
-    ...each("all_day series_detached", flag),
-    details: json,
-  },
+  content: TIMELINE_CONTENT,
   // The service sets `cancelled_by`, like the audit columns. `via` syncs down only (connectors).
   serverSet: ["cancelled_by", "via"],
+  // A dose logged and undone before it uploaded, onto another member's row:
+  // their dose stands, live or deleted (B-614).
+  put: async (ctx, op, input) => {
+    if (op.data?.deleted_at) {
+      const theirs = await timelineEntryService.anotherMembersDose(ctx, op.id);
+      if (isError(theirs)) return theirs;
+      if (theirs?.groupId === input.groupId) return null;
+    }
+    return timelineEntryService.upsert(ctx, input as never);
+  },
+  patch: async (ctx, op, { remove, update }) => {
+    const data = op.data ?? {};
+    // The device's edit or Undo of its own copy, whose PUT was a duplicate (B-614).
+    if (op.metadata === OWN_DOSE_COPY_METADATA) {
+      const theirs = await timelineEntryService.anotherMembersDose(ctx, op.id);
+      if (isError(theirs)) return theirs;
+      if (theirs) return applied;
+    }
+    if (data.deleted_at) return remove(ctx, op.id);
+    const content = mapped(TIMELINE_CONTENT, data);
+    return Object.keys(content).length === 0 ? applied : update(ctx, op, content);
+  },
 });
 
 const provider = softDelete({

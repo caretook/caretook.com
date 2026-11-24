@@ -38,9 +38,11 @@ const pattern = (rule: RepeatRule) => {
     return `${every("week", "weekly")} on ${listed(rule.weekdays.map((d) => weekdayName(d)))}`;
   const on = !rule.monthly
     ? ""
-    : rule.monthly.by === "date"
-      ? ` on the ${ordinal(rule.monthly.day)}`
-      : ` on the ${rule.monthly.nth === -1 ? "last" : ordinal(rule.monthly.nth)} ${weekdayName(rule.monthly.weekday)}`;
+    : rule.monthly.by === "lastDay"
+      ? " on the last day"
+      : rule.monthly.by === "date"
+        ? ` on the ${ordinal(rule.monthly.day)}`
+        : ` on the ${rule.monthly.nth === -1 ? "last" : ordinal(rule.monthly.nth)} ${weekdayName(rule.monthly.weekday)}`;
   return `${every("month", "monthly")}${on}`;
 };
 

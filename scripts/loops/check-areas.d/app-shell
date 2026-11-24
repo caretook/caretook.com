@@ -7,6 +7,8 @@
 # Its header's magnifier is component tests (search/search.browser.test.tsx).
 apps/web/app/routes/app/layout/route.tsx sign-in session-end
 apps/web/app/routes/app/layout/UserMenu.tsx app-shell
+# Sign out's "changes haven't reached the server" dialog is component tests (layout/signOut.browser.test.tsx).
+apps/web/app/routes/app/layout/useSignOut.ts session-end
 apps/web/app/routes/app/layout/          -
 apps/web/app/routes/app/home/            first-sync
 apps/web/app/components/shell/           first-sync
@@ -44,6 +46,7 @@ apps/web/app/routes/app/settings/        layout-offline
 # Changes not saved (sync-safety): component tests; roundtrip finds a refusal listed.
 apps/web/app/routes/app/settings/not-saved/ roundtrip
 apps/web/app/lib/app-shell/me.ts         layout-offline
+apps/web/app/lib/app-shell/gettingStarted.sync.ts first-sync invites
 apps/web/app/components/settings/        -
 packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline
 apps/web/app/routes/app/groups/settings/members/  app-shell invites

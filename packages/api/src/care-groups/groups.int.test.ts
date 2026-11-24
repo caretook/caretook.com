@@ -7,10 +7,13 @@ import {
   careRecipientModel,
   getDb,
   isError,
+  legalAcceptanceModel,
+  legalAcceptanceService,
   medicationPassModel,
   SYSTEM_USER,
   userModel,
 } from "@caretook/data";
+import { LEGAL_VERSIONS } from "@caretook/data/schema";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -106,7 +109,90 @@ describe("access codes", () => {
       email,
       password: PASSWORD,
       group: { recipientName, preferredName: "Nana Rose" },
+      legal: true,
     });
+
+  const acceptancesOf = (userId: string) =>
+    getDb().query.legalAcceptanceSchema.findMany({ where: (t, { eq }) => eq(t.userId, userId) });
+
+  it("refuses a sign-up without the legal box, creating nothing", async () => {
+    const { api } = await staff();
+    const code = await api.admin.accessCode.create({ label: "No box", expiresInDays: 1, maxUses: 1 });
+    const email = newAddress("no-legal");
+    const input = {
+      code: code.code,
+      name: "New Person",
+      email,
+      password: PASSWORD,
+      group: { recipientName: "Rose Example" },
+    };
+    for (const attempt of [input, { ...input, legal: false }]) {
+      // @ts-expect-error the type requires `legal: true`; the server must refuse it too.
+      expect(await codesOf(anonymous.accessCode.signUp(attempt))).toMatch(/^BAD_REQUEST/);
+    }
+    expect(await userByEmail(email)).toBeNull();
+    expect((await api.admin.accessCode.get({ id: code.id })).useCount).toBe(0);
+  });
+
+  it("records one acceptance naming the versions and the source", async () => {
+    const { api } = await staff();
+    const code = await api.admin.accessCode.create({ label: "Accepts", expiresInDays: 1 });
+    const email = newAddress("accepts");
+    await signUp(code.code, email);
+    const user = await userByEmail(email);
+    expect(await acceptancesOf(user!.id)).toEqual([
+      expect.objectContaining({
+        source: "access_code",
+        termsVersion: LEGAL_VERSIONS.terms,
+        privacyVersion: LEGAL_VERSIONS.privacy,
+        healthDataPrivacyVersion: LEGAL_VERSIONS.healthDataPrivacy,
+        wordingVersion: LEGAL_VERSIONS.wording,
+      }),
+    ]);
+    expect(await legalAcceptanceService.hasCurrent(user!.id)).toBe(true);
+  });
+
+  it("writes no acceptance for an address that already has an account, with the same answer", async () => {
+    const { api } = await staff();
+    const code = await api.admin.accessCode.create({ label: "Existing", expiresInDays: 1 });
+    const existing = await createUser("legal-existing");
+    expect(await signUp(code.code, existing.user.email)).toEqual({ email: existing.user.email });
+    expect(await acceptancesOf(existing.user.id)).toEqual([]);
+    expect(await legalAcceptanceService.hasCurrent(existing.user.id)).toBe(false);
+  });
+
+  it("lets only the person read a row and only the system write one; deleting the account deletes it", async () => {
+    const { api, ctx: staffCtx } = await staff();
+    const code = await api.admin.accessCode.create({ label: "Rows", expiresInDays: 1 });
+    const email = newAddress("rows");
+    await signUp(code.code, email);
+    const user = await userByEmail(email);
+    const [row] = await acceptancesOf(user!.id);
+    const person = { authUser: { ...staffCtx.authUser, id: user!.id, role: "member" as const } };
+    const other = await createUser("legal-other");
+
+    expect(await legalAcceptanceModel.getById(row!.id, person)).toMatchObject({ id: row!.id });
+    expect(await legalAcceptanceModel.getById(row!.id, other.ctx)).toBeNull();
+    expect(await legalAcceptanceModel.getById(row!.id, staffCtx)).toBeNull();
+
+    const data = {
+      userId: user!.id,
+      source: "access_code" as const,
+      termsVersion: "x",
+      privacyVersion: "x",
+      healthDataPrivacyVersion: "x",
+      wordingVersion: "x",
+    };
+    for (const ctx of [person, other.ctx, staffCtx]) {
+      expect(isError(await legalAcceptanceModel.create({ ...ctx, data }))).toBe(true);
+    }
+    expect(await acceptancesOf(user!.id)).toHaveLength(1);
+
+    expect(
+      isError(await userModel.remove({ ...system, filter: { id: { type: "eq", value: user!.id } } })),
+    ).toBe(false);
+    expect(await acceptancesOf(user!.id)).toEqual([]);
+  });
 
   it("signs up and starts a group as its owner, in one go, and records the redemption", async () => {
     const { api } = await staff();
@@ -256,6 +342,7 @@ describe("access codes", () => {
           email,
           password: "short",
           group: { recipientName: "X" },
+          legal: true,
         }),
       ),
     ).toBe("BAD_REQUEST:ticket:weakPassword");
@@ -321,11 +408,17 @@ describe("admin.*", () => {
     if (!token) throw new Error("no invite link");
 
     // The invitee signs up from the link and joins as owner.
-    await anonymous.invite.signUp({ token, name: "New Owner", email: ownerEmail, password: PASSWORD });
+    await anonymous.invite.signUp({
+      token,
+      name: "New Owner",
+      email: ownerEmail,
+      password: PASSWORD,
+      legal: true,
+    });
     const owner = await userByEmail(ownerEmail);
     const joined = await careGroupInviteService.accept(
       { authUser: { id: owner!.id, roleNames: ["member"] } },
-      { token, consent: true },
+      { token, consent: true, legal: true },
     );
     expect(joined).toMatchObject({ groupId, role: "owner" });
   });

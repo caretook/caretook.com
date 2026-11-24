@@ -19,6 +19,7 @@ import {
   rowActions,
   TIMELINE_URL,
 } from "./plannerWorld";
+import { pickTime } from "../../../../../test/timeSelect";
 
 // Editing a series on the test device (appointments-2, slice 2): the
 // SeriesScopeDialog before Edit, Cancel, Reschedule and Delete on a series
@@ -100,6 +101,40 @@ const confirmReason = async (reason: string) => {
 beforeEach(() => fixClock(NOW));
 afterEach(() => vi.useRealTimers());
 
+describe("a monthly repeat on the last day", () => {
+  test("from the last day of a month, writes a visit on each month's last day in the 90 days", async () => {
+    vi.setSystemTime(new Date("2026-11-30T18:00:00.000Z")); // Mon 30 Nov, 10:00 in Los Angeles.
+    const device = await openPlanner({ url: `${entryUrl("new")}?kind=event` });
+    await userEvent.click(getByCss("main [data-repeat-button]"));
+    const sheet = page.getByRole("dialog", { name: "Repeat" });
+    await userEvent.selectOptions(sheet.getByRole("combobox", { name: "Repeat" }), "monthly");
+    await expect
+      .element(sheet.getByRole("radio", { name: "On the 30th (skips shorter months)" }))
+      .toBeChecked();
+    await userEvent.click(sheet.getByRole("radio", { name: "On the last day" }));
+    await expect.element(sheet.getByText("Monthly on the last day at 10:00")).toBeInTheDocument();
+    await userEvent.click(sheet.getByRole("button", { name: "Done" }));
+    await expect.element(sheet).not.toBeInTheDocument();
+
+    (await found(TITLE)).focus();
+    await userEvent.keyboard("Month-end checkup{Enter}");
+    await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
+
+    const stored = () =>
+      device.query<{ id: string; rule: string }>("SELECT id, rule FROM appointment_series WHERE title = ?", [
+        "Month-end checkup",
+      ]);
+    await expect.poll(async () => (await stored()).length).toBe(1);
+    const [made] = await stored();
+    expect(made?.rule).toBe("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1");
+    const visits = await device.query<{ series_day: string }>(
+      "SELECT series_day FROM timeline_entry WHERE series_id = ? ORDER BY series_day",
+      [made?.id],
+    );
+    expect(visits.map((v) => v.series_day)).toEqual(["2026-11-30", "2026-12-31", "2027-01-31", "2027-02-28"]);
+  });
+});
+
 describe("the scope dialog in Upcoming", () => {
   test("a series visit's ⋯ starts with Edit; a viewer's has neither Edit nor a dialog", async () => {
     const device = await openPlanner({ extra: SERIES });
@@ -145,21 +180,21 @@ describe("the scope dialog in Upcoming", () => {
     await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Delete"));
-    const dialog = page.getByRole("dialog", { name: "Delete a repeating appointment" });
+    const dialog = page.getByRole("dialog", { name: "Delete a repeating event" });
     await expect.element(dialog).toBeVisible();
     await expect.element(dialog).toHaveAccessibleDescription(/Delete only this visit/);
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-error", "backgroundColor"));
-    expect(look("This and later visits").color).toBe(token("text-error", "color"));
+    expect(look("This and later visits").color).toBe(token("text-error-ink", "color"));
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(SCOPE).toBeNull();
 
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Edit"));
-    await expect.element(page.getByRole("dialog", { name: "Change a repeating appointment" })).toBeVisible();
+    await expect.element(page.getByRole("dialog", { name: "Change a repeating event" })).toBeVisible();
     // The pointer is still where Edit was, now over this button: rest it on the title to read the unhovered tone.
-    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating appointment" }));
+    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating event" }));
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
-    expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
+    expect(look("This and later visits").color).not.toBe(token("text-error-ink", "color"));
   });
 
   test("Delete, only this visit: that visit goes at once (the dialog was the confirm), the rest stay", async () => {
@@ -261,8 +296,8 @@ describe("the scope dialog in Upcoming", () => {
     expect(sheet.querySelector<HTMLSelectElement>('select[name="repeat"]')?.value).toBe("weekly");
     expect(sheet.querySelector("[data-repeat-text]")?.textContent).toBe("Every Mon, Wed, Fri at 6:00");
 
-    await userEvent.fill(field("startTime"), "07:00");
-    await userEvent.fill(field("endTime"), "11:00");
+    await pickTime(() => field("startTime"), "07:00");
+    await pickTime(() => field("endTime"), "11:00");
     await userEvent.click(getByCss("[data-series-edit] button").filter({ hasText: /^Save$/ }));
     await expect.poll(SHEET).toBeNull();
     await device.settle();
@@ -283,6 +318,18 @@ describe("the scope dialog in Upcoming", () => {
     await expect
       .poll(() => itemEl(MON_23.id)?.querySelector("[data-when]")?.textContent ?? "")
       .toMatch(/7:00/);
+  });
+});
+
+describe("the card's time line", () => {
+  test("the repeat mark sits beside the time, on its one line", async () => {
+    await openPlanner({ extra: SERIES });
+    const row = await found(() => itemEl(MON_23.id));
+    const time = row.querySelector("[data-when]")?.getBoundingClientRect();
+    const mark = row.querySelector("[data-when-line] [data-repeat-mark]")?.getBoundingClientRect();
+    expect(mark?.left).toBeGreaterThanOrEqual(time?.right ?? Infinity);
+    expect(mark?.top).toBeLessThan(time?.bottom ?? 0);
+    expect(mark?.bottom).toBeGreaterThan(time?.top ?? Infinity);
   });
 });
 
@@ -308,7 +355,7 @@ describe("on a visit's page", () => {
     await userEvent.fill(title, "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating appointment");
+    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating event");
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => TITLE()?.value).toBe("Dialysis");
     expect(await device.queued()).toEqual([]);

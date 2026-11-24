@@ -17,6 +17,7 @@ import {
 import { isError, newError } from "../errors";
 import { careGroupModel, providerModel } from "../models";
 import { rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 
 // A care group's provider directory. Write through here, not the model:
 // this is where content is validated and the practice is checked (a
@@ -183,28 +184,27 @@ export const update = (ctx: ServiceContext, id: string, input: ProviderUpdateInp
   }, ctx);
 
 /**
- * Create the provider with this id, or bring the existing one up to date:
- * what PowerSync's upload queue sends for a row a device created. Safe to
- * replay. The group never changes, a deleted provider stays deleted, and an
- * id the actor can't see is refused without saying whether it exists.
+ * Create the provider with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now, so it never reverts a newer
+ * edit. The group never changes, and an id the actor can't see is refused
+ * without saying whether it exists.
  */
 export const upsert = (ctx: ServiceContext, input: ProviderUpsertInput) =>
   withTransaction(async (tx) => {
     const parsed = providerUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, ...content } = parsed.data;
+    const { id, groupId } = parsed.data;
 
     const existing = await providerModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, parsed.data);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, parsed.data));
 
     const visible = await providerModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId) return newError({ code: "providerService:immutable" });
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content);
+    return unchanged(visible);
   }, ctx);
 
 /**

@@ -7,7 +7,17 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { BUILD_UNSET, CI_PG_PORT, FICTIONAL_PREFIX, SECRET_NAMES, ciBuildEnv, ciEnv } from "./env.mjs";
+import {
+  BUILD_UNSET,
+  CI_PG_PORT,
+  CI_STACK,
+  CI_ZONE,
+  FICTIONAL_PREFIX,
+  SECRET_NAMES,
+  ciBrowserEnv,
+  ciBuildEnv,
+  ciEnv,
+} from "./env.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -92,6 +102,45 @@ describe("the CI build env", () => {
     for (const name of ["APP_URL", "POWERSYNC_URL", "VITE_POWERSYNC_URL"])
       expect(new URL(env[name]).hostname).toBe("localhost");
     expect(env.VITE_API_ORIGIN).toBe("");
+  });
+});
+
+describe("the CI browser env", () => {
+  it("makes a check build that mails to the dev mailbox, in the browsers' zone", () => {
+    const env = ciBrowserEnv();
+    expect(env).toMatchObject({ VITE_CHECK_BUILD: "1", MAIL_SENDER: "log", TZ: CI_ZONE });
+    expect(CI_ZONE).toBe("America/Los_Angeles");
+    expect(new URL(env.APP_URL).hostname).toBe("localhost");
+  });
+
+  it("leaves NODE_ENV unset, since the seed refuses production", () => {
+    expect(ciBrowserEnv()).not.toHaveProperty("NODE_ENV");
+  });
+
+  it("binds where PowerSync's container can reach the JWKS", () => {
+    const env = ciBrowserEnv();
+    expect(env.HOST).toBe("0.0.0.0");
+    const jwks = new URL(env.PS_JWKS_URL);
+    expect(jwks.hostname).toBe("host.docker.internal");
+    expect(jwks.port).toBe(env.PORT);
+    expect(new URL(env.BASE).port).toBe(env.PORT);
+    expect(env.POWERSYNC_URL).toBe(env.VITE_POWERSYNC_URL);
+  });
+
+  it("uses the Compose stack's database and container", () => {
+    const env = ciBrowserEnv();
+    const db = new URL(env.DATABASE_URL);
+    expect([db.hostname, db.port]).toEqual(["localhost", env.PG_PORT]);
+    expect(env.CARETOOK_STACK).toBe(CI_STACK);
+    expect(env.PG_CONTAINER).toBe(`${CI_STACK}-postgres-1`);
+  });
+
+  it("generates its keys, each marked fictional", () => {
+    const [a, b] = [ciBrowserEnv(), ciBrowserEnv()];
+    for (const name of [...SECRET_NAMES, "INVITE_LINK_KEY"]) {
+      expect(a[name].startsWith(FICTIONAL_PREFIX)).toBe(true);
+      expect(a[name]).not.toBe(b[name]);
+    }
   });
 });
 

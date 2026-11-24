@@ -48,14 +48,14 @@ export function EntryPlaceRow({
 
   const shown = shownPlace(editing ? text : stored, providers);
   const action = placeMapAction(shown);
-  const from = shown?.from && <span className="text-base-content/60 text-xs">from {shown.from}</span>;
+  const from = shown?.from && <span className="text-faint text-xs">from {shown.from}</span>;
 
   if (!canWrite) {
     if (!shown) return null;
     return (
       <div className="flex items-center gap-1.5 text-sm" data-place>
-        <MapPin className="text-base-content/60 size-4 shrink-0" aria-hidden="true" />
-        <span className={`min-w-0 ${shown.from ? "text-base-content/70" : ""}`}>
+        <MapPin className="text-faint size-4 shrink-0" aria-hidden="true" />
+        <span className={`min-w-0 ${shown.from ? "text-muted" : ""}`}>
           <span className="sr-only">Place: </span>
           {shown.text} {from}
         </span>
@@ -73,7 +73,7 @@ export function EntryPlaceRow({
 
   return (
     <div className="flex items-center gap-1.5" data-place>
-      <MapPin className="text-base-content/60 size-4 shrink-0" aria-hidden="true" />
+      <MapPin className="text-faint size-4 shrink-0" aria-hidden="true" />
       <Field label="Place" labelHidden className="min-w-0 flex-1">
         {(control) => (
           <input

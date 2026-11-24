@@ -174,7 +174,13 @@ describe("applyRoles", () => {
       Object.fromEntries(Object.entries(lists).map(([t, cols]) => [t, [...cols].sort()]));
     const expected = Object.fromEntries(generated.generated.replication.map((g) => [g.table, g.columns]));
     expect(sorted(generated.summary.publication)).toEqual(sorted(expected));
-    expect([...(generated.summary.publication.user ?? [])].sort()).toEqual(["id", "image", "name"]);
+    expect([...(generated.summary.publication.user ?? [])].sort()).toEqual([
+      "avatar_color",
+      "avatar_icon",
+      "id",
+      "image",
+      "name",
+    ]);
     expect(generated.summary.publication).not.toHaveProperty("account");
     // "user" is granted whole for the snapshot, but its changes replicate only these.
     expect(generated.summary.publication.user).not.toContain("email");

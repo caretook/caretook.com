@@ -119,6 +119,9 @@ beforeAll(() => {
   mkdirSync(join(main, "scripts/backlog"), { recursive: true });
   for (const f of readdirSync(HERE).filter((f) => /\.(sh|mjs)$/.test(f) && !f.endsWith(".test.mjs")))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
+  mkdirSync(join(main, "scripts/ci"), { recursive: true });
+  for (const f of ["outstanding.mjs", "tiers.mjs"])
+    copyFileSync(join(HERE, "../ci", f), join(main, "scripts/ci", f));
   writeFileSync(join(main, "scripts/backlog/backlog.mjs"), FAKE_BACKLOG);
   writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\nnode_modules/\n");
   mkdirSync(join(main, "plans"));
@@ -140,6 +143,8 @@ beforeAll(() => {
     git(dir, "commit", "-q", "-m", `feat(t): slice ${n}`);
     git(prd, "merge", "--no-ff", "-q", "-m", `feat(t): merge slice ${n}`, `slice/t/${n}`);
   }
+  // Their wave has landed, so nothing holds them for a fix.
+  git(main, "merge", "--no-ff", "-q", "-m", "feat(t): land the wave", "prd/t");
   writeFileSync(join(loops, "t-2", "work-2.txt"), "more, not committed\n");
   // Slice 3 is active: a commit, not merged.
   writeFileSync(join(loops, "t-3", "work-3.txt"), "wip\n");
@@ -258,6 +263,21 @@ describe("a failed process inspection", () => {
     }
   });
 
+  it("keeps a merged slice while its topic's run has no verdict or GitHub can't say", () => {
+    const none = { status: 1, stdout: "", stderr: "" };
+    const out = [{ ref: "ci/full/prd-t", name: "prd-t", sha: "a", run: 7, url: "https://ci.example/7" }];
+    let lists = sortFacts(collectTidyFacts({ main, env, lsof: none, outstanding: () => out }));
+    expect(lists.safe.some((f) => f.target === "t-1")).toBe(false);
+    expect(t1(lists)?.why).toBe(
+      "slice/t/1 is merged into prd/t, but its topic's run has no verdict: ci/full/prd-t (https://ci.example/7)",
+    );
+    lists = sortFacts(collectTidyFacts({ main, env, lsof: none, outstanding: () => null }));
+    expect(t1(lists)?.why).toMatch(/GitHub can't be read/);
+    const other = [{ ...out[0], ref: "ci/full/prd-other", name: "prd-other" }];
+    lists = sortFacts(collectTidyFacts({ main, env, lsof: none, outstanding: () => other }));
+    expect(lists.safe).toContainEqual(expect.objectContaining({ kind: "worktree", target: "t-1" }));
+  });
+
   it("an empty successful inspection still lets a merged worktree go", () => {
     const lists = sortFacts(facts({ status: 1, stdout: "", stderr: "" }));
     expect(lists.safe).toContainEqual(expect.objectContaining({ kind: "worktree", target: "t-1" }));
@@ -318,5 +338,68 @@ describe("tidy --yes", () => {
     expect(out).toMatch(/Nothing to ask about: no report filed\./);
     expect(filedAsks()).toEqual([]);
     expect(existsSync(join(loops, "t-2"))).toBe(true);
+  });
+});
+
+// Last: it swaps the fake backlog for the real one.
+describe("tidy archives finished items", () => {
+  const backlogFile = () => join(main, "plans/backlog.md");
+  const archiveFile = () => join(main, "plans/backlog-archive.md");
+  const real = (...a) =>
+    execFileSync(process.execPath, [join(main, "scripts/backlog/backlog.mjs"), ...a], {
+      cwd: main,
+      encoding: "utf8",
+      env,
+    }).trim();
+
+  beforeAll(() => {
+    for (const f of [
+      "backlog.mjs",
+      "amend.mjs",
+      "format.mjs",
+      "inbox-edit.mjs",
+      "inbox-merge.mjs",
+      "origin.mjs",
+      "registry.mjs",
+    ])
+      copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
+    writeFileSync(backlogFile(), "# Backlog\n\n## Items\n");
+    git(main, "add", "scripts/backlog", "plans/backlog.md");
+    git(main, "commit", "-q", "-m", "chore: the real backlog");
+    const sha = git(main, "rev-parse", "--short", "HEAD");
+    real("add", "bug", "Running topic landed", "--prd", "t"); // B-1
+    real("add", "bug", "Finished elsewhere", "--prd", "other"); // B-2
+    real("add", "bug", "Dropped from the running topic", "--prd", "t", "--anyway"); // B-3
+    real("add", "bug", "Still waiting", "--prd", "other"); // B-4
+    real("set", "B-1", "B-2", `commit=${sha}`, "status=ready");
+    real("set", "B-3", "status=dropped");
+  });
+
+  it("--json only lists: the running topic's item kept, nothing written", () => {
+    const head = git(main, "rev-parse", "HEAD");
+    const { safe, kept } = JSON.parse(ok(["--json"]));
+    expect(safe.find((f) => f.kind === "archive")?.ids).toEqual(["B-2", "B-3"]);
+    expect(kept.find((f) => f.kind === "archive")).toMatchObject({
+      target: "t: 1 item",
+      why: "finished, but prd/t still has a worktree (B-1)",
+    });
+    expect(git(main, "rev-parse", "HEAD")).toBe(head);
+    expect(existsSync(archiveFile())).toBe(false);
+  });
+
+  it("--yes archives them in one backlog commit and reports the count", () => {
+    const before = Number(git(main, "rev-list", "--count", "HEAD"));
+    const out = ok(["--yes"]);
+    expect(out).toMatch(/^archived 2 items$/m);
+    const archive = readFileSync(archiveFile(), "utf8");
+    expect(archive).toMatch(/### B-2 /);
+    expect(archive).toMatch(/### B-3 /);
+    const left = readFileSync(backlogFile(), "utf8");
+    expect(left).toMatch(/### B-1 /);
+    expect(left).toMatch(/### B-4 /);
+    expect(left).not.toMatch(/### B-2 |### B-3 /);
+    // One write: a new commit, or folded into the backlog commit before it.
+    expect(Number(git(main, "rev-list", "--count", "HEAD")) - before).toBeLessThanOrEqual(1);
+    expect(git(main, "log", "-1", "--format=%B")).toContain("Backlog-Tool: archive");
   });
 });

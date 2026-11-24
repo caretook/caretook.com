@@ -12,6 +12,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { pageHeader } from "../../../../../test/pageHeader";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
+import { pickTime } from "../../../../../test/timeSelect";
 
 // The Planner's Todos tab (todos slice 1; tasks-2 put it under the Planner header): the list's Filter menu, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with
@@ -117,7 +118,9 @@ describe("the todo list", () => {
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
     await expect
       .element(
-        page.getByRole("navigation", { name: "Planner or todos" }).getByRole("link", { name: "Todos" }),
+        page
+          .getByRole("navigation", { name: "Upcoming, past or todos" })
+          .getByRole("link", { name: "Todos" }),
       )
       .toHaveAttribute("aria-current", "page");
     await expect.poll(() => titles("undated")).toEqual(["Sort the batteries"]);
@@ -223,6 +226,24 @@ describe("the todo list", () => {
     expect(document.querySelector("[data-todo-undo]")).toBeNull();
   });
 
+  test("the tick and its Undo take focus and work from the keyboard, under their names", async () => {
+    await open();
+    const tick = page.getByRole("checkbox", { name: "Mark “Pick up the walker” done" });
+    await expect.element(tick).toBeInTheDocument();
+    (tick.element() as HTMLElement).focus();
+    await expect.element(tick).toHaveFocus();
+    await userEvent.keyboard(" ");
+    await expect.poll(() => titles("today")).toEqual([]);
+
+    const undo = page.getByRole("button", { name: "Undo Pick up the walker" });
+    await expect.element(undo).toBeVisible();
+    (undo.element() as HTMLElement).focus();
+    await expect.element(undo).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => titles("today")).toEqual(["Pick up the walker"]);
+    await expect.poll(() => document.querySelector("[data-todo-undo]")).toBeNull();
+  });
+
   test("two ticks each keep their own Undo; undoing the first reopens only it", async () => {
     const device = await open();
     const pharmacy = page.getByRole("checkbox", { name: "Mark “Call the pharmacy” done" });
@@ -306,7 +327,10 @@ describe("the todo sheets", () => {
     await userEvent.click(page.getByRole("option", { name: 'Assign to "Aunt May" (not in the group)' }));
     await expect.element(dialog.getByText("Aunt May (not in the group)")).toBeInTheDocument();
     await userEvent.fill(dialog.getByLabelText("Due (optional)"), day(2));
-    await userEvent.fill(dialog.getByLabelText("Time (optional)"), "17:30");
+    await pickTime(
+      () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="dueTime"]'),
+      "17:30",
+    );
     await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
 
     await expect.poll(() => titles(day(2))).toEqual(["Water the plants"]);

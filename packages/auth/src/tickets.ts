@@ -6,6 +6,8 @@ import {
   careGroupInviteService,
   emailMatches,
   isError,
+  legalAcceptanceService,
+  logError,
   newError,
   normalizeAccessCode,
   normalizeInviteEmail,
@@ -22,7 +24,9 @@ import { sendAccessCodeExistingAccount } from "./emails";
 // which also starts the person's own care group.
 
 export type Ticket =
-  { kind: "invite"; token: string } | { kind: "accessCode"; code: string; group: NewCareGroupInput };
+  // `legal`: the person ticked the box; the acceptance is recorded with the account.
+  | { kind: "invite"; token: string; legal: true }
+  | { kind: "accessCode"; code: string; group: NewCareGroupInput; legal: true };
 
 export type SignUpWithTicketInput = {
   ticket: Ticket;
@@ -73,6 +77,7 @@ export const signUpWithTicket = async ({
   }
 
   const hash = await ctx.password.hash(password);
+  let created: { id: string; email: string; emailVerified: boolean };
   try {
     const user = await ctx.internalAdapter.createUser(
       {
@@ -90,7 +95,7 @@ export const signUpWithTicket = async ({
       accountId: user.id,
       password: hash,
     });
-    return { id: user.id, email: user.email, emailVerified: byEmail };
+    created = { id: user.id, email: user.email, emailVerified: byEmail };
   } catch (e) {
     // Two sign-ups with one address at once: the unique email decides.
     if (await ctx.internalAdapter.findUserByEmail(address))
@@ -99,14 +104,29 @@ export const signUpWithTicket = async ({
         : { id: null, email: address, emailVerified: false };
     throw e;
   }
+  await recordInviteSignUp(created.id);
+  return created;
+};
+
+/**
+ * The account exists by now, so a failed write doesn't fail the sign-up:
+ * with no current acceptance, the accept step asks again.
+ */
+const recordInviteSignUp = async (userId: string) => {
+  try {
+    const recorded = await legalAcceptanceService.record(undefined, { userId, source: "invite_signup" });
+    if (isError(recorded)) logError("invite sign-up: acceptance not recorded", recorded);
+  } catch (e) {
+    logError("invite sign-up: acceptance not recorded", e);
+  }
 };
 
 /**
  * An access code's sign-up: in one transaction, the account (not yet
  * verified: the code doesn't prove the address, so the person confirms it
  * by email before using the app), its password, and the code's redemption,
- * which creates their care group with them as its owner. Any refusal (a
- * used-up code, a bad group) leaves nothing behind.
+ * which creates their care group with them as its owner, and their legal
+ * acceptance. Any refusal (a used-up code, a bad group) leaves nothing behind.
  *
  * An address that already has an account answers like a new one (`id:
  * null`, no `groupId`), so a code can't be used to find out who has an
@@ -154,6 +174,8 @@ const signUpWithAccessCode = async ({
       group: ticket.group,
     });
     if (isError(redeemed)) return redeemed;
+    const accepted = await legalAcceptanceService.record(tx, { userId: user.id, source: "access_code" });
+    if (isError(accepted)) return accepted;
     return { id: user.id, email: user.email, emailVerified: false, groupId: redeemed.groupId };
   });
   if (result === EXISTING) return existingAccount();

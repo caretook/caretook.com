@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { renderInRouter } from "../../../test/device";
 import { buttonClass } from "./buttonClass";
-import { Menu, TOOL_CIRCLE } from "./index";
+import { CIRCLE, Menu, TOOL_CIRCLE } from "./index";
 
 const classSet = (el: Element) => [...el.classList].sort();
 const ITEMS = [{ id: "edit", label: "Edit", onAction: () => undefined }];
@@ -30,14 +30,25 @@ describe("Menu's trigger", () => {
     );
   });
 
-  test("given a class string and no look, the trigger keeps exactly that string", async () => {
+  test("the tool circle is a ghost, small, square look plus CIRCLE", async () => {
     const { screen } = await renderInRouter(
-      <Menu label="Note actions" className={TOOL_CIRCLE} items={ITEMS}>
+      <Menu label="Note actions" variant="ghost" size="sm" shape="square" className={CIRCLE} items={ITEMS}>
         <EllipsisVertical className="size-4" aria-hidden="true" />
       </Menu>,
     );
     await expect
       .element(screen.getByRole("button", { name: "Note actions" }))
       .toHaveAttribute("class", TOOL_CIRCLE);
+  });
+
+  test("className never replaces the look: with no look given it adds to the default button", async () => {
+    const { screen } = await renderInRouter(
+      <Menu label="More" className="ml-auto" items={ITEMS}>
+        <EllipsisVertical className="size-4" aria-hidden="true" />
+      </Menu>,
+    );
+    expect(classSet(screen.getByRole("button", { name: "More" }).element())).toEqual(
+      [...buttonClass().split(" "), "ml-auto"].sort(),
+    );
   });
 });

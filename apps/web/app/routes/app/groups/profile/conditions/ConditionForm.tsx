@@ -6,7 +6,7 @@ import { CONDITION_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
 import { ProviderPickerField, ProvidersPickerField } from "~/components/providers";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
 import { MONTH_NAMES } from "~/lib/profiles/conditions";
 import { fitsCondition } from "~/lib/providers/providerPicker";
 import { CONDITION_FIELD } from "./conditionActions";
@@ -95,12 +95,11 @@ export function ConditionForm({
       {condition && <input type="hidden" name={CONDITION_FIELD.conditionId} value={condition.id} />}
       <ConditionNameField initial={condition?.name ?? ""} groupNames={groupNames} error={nameError} />
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Since: year (optional)" error={yearError}>
+        <Field kind="input" label="Since: year (optional)" error={yearError}>
           {(control) => (
             <input
               {...control}
               name={CONDITION_FIELD.sinceYear}
-              className="input w-full"
               defaultValue={condition?.sinceYear ?? ""}
               inputMode="numeric"
               maxLength={4}
@@ -109,14 +108,9 @@ export function ConditionForm({
             />
           )}
         </Field>
-        <Field label="Month (optional)" error={monthError}>
+        <Field kind="select" label="Month (optional)" error={monthError}>
           {(control) => (
-            <select
-              {...control}
-              name={CONDITION_FIELD.sinceMonth}
-              className="select w-full"
-              defaultValue={condition?.sinceMonth ?? ""}
-            >
+            <select {...control} name={CONDITION_FIELD.sinceMonth} defaultValue={condition?.sinceMonth ?? ""}>
               <option value="">No month</option>
               {MONTH_NAMES.map((month, i) => (
                 <option key={month} value={i + 1}>
@@ -127,12 +121,11 @@ export function ConditionForm({
           )}
         </Field>
       </div>
-      <Field label="Note (optional)" error={noteError}>
+      <Field kind="input" label="Note (optional)" error={noteError}>
         {(control) => (
           <input
             {...control}
             name={CONDITION_FIELD.note}
-            className="input w-full"
             defaultValue={condition?.note ?? ""}
             maxLength={CONDITION_LIMITS.note}
             placeholder="e.g. Diet-controlled"
@@ -179,19 +172,12 @@ export function ConditionForm({
           className="pt-1"
         />
       )}
-      {general && (
-        <p className="text-error text-sm" role="alert">
-          {general}
-        </p>
-      )}
-      <div className="flex justify-end gap-2 pt-3">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {condition ? "Save" : "Add condition"}
-        </button>
-      </div>
+      {general && <Message tone="error">{general}</Message>}
+      <FormFooter
+        submitLabel={condition ? "Save" : "Add condition"}
+        busy={busy}
+        cancel={{ label: "Cancel", onCancel }}
+      />
     </fetcher.Form>
   );
 }

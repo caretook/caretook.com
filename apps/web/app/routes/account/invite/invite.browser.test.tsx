@@ -1,6 +1,11 @@
 import type { DeviceRoute } from "../../../../test/device";
 
-import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/data/schema";
+import {
+  ATTESTATION_TEXT,
+  CONSENT_TEXT,
+  LEGAL_REQUIRED_MESSAGE,
+  SHARED_WITH_MEMBERS,
+} from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { apiCalls, refusal } from "../../../../test/api";
@@ -53,12 +58,14 @@ const signedIn = (email: string): Api => ({
 const open = (api: Api) => renderWithDevice({ route: ROUTES, url: PATH, role: null, api });
 const heading = () => page.getByRole("heading", { level: 1 });
 const field = (label: string) => page.getByLabelText(label, { exact: true });
+const legalBox = () => page.getByRole("checkbox", { name: /18 or older/ });
 const form = (name: string) => document.querySelector<HTMLFormElement>(`[data-invite-form="${name}"]`);
 
 const fillSignUp = async (password = "a long fictional passphrase", confirm = password) => {
   await userEvent.fill(field("Your name"), "Avery Invited");
   await userEvent.fill(field("Password"), password);
   await userEvent.fill(field("Password again"), confirm);
+  await userEvent.click(legalBox());
 };
 
 describe("an invite that can't be used", () => {
@@ -136,11 +143,16 @@ describe("an email invite, signed out", () => {
 
   test("Create account makes the account through invite.signUp, signs in, and comes back to the invite", async () => {
     const calls = apiCalls();
+    let session: { user: { email: string; name: string }; session: object } | null = null;
     const device = await open(
       calls.record({
         "invite.preview": () => emailInvite,
         "invite.signUp": () => ({ verified: true }),
-        "/api/auth/sign-in/email": () => ({ user: { email: emailInvite.email } }),
+        "/api/auth/get-session": () => session,
+        "/api/auth/sign-in/email": () => {
+          session = { user: { email: emailInvite.email, name: "Avery Invited" }, session: {} };
+          return { user: { email: emailInvite.email } };
+        },
       }),
     );
     await fillSignUp();
@@ -152,12 +164,29 @@ describe("an email invite, signed out", () => {
         name: "Avery Invited",
         email: "avery.invited@example.com",
         password: "a long fictional passphrase",
+        legal: true,
       },
     ]);
     expect(calls.of("/api/auth/sign-in/email")).toEqual([
       { email: "avery.invited@example.com", password: "a long fictional passphrase" },
     ]);
-    expect(device.location()).toBe(PATH);
+    // A changed URL is what tells a password manager the sign-up worked (B-666).
+    await expect.poll(device.location).toBe(`${PATH}?signedUp=1`);
+    // What the member sees next is still the invite's consent step.
+    await expect.poll(() => form("accept")).not.toBeNull();
+    expect(form("signUp")).toBeNull();
+  });
+
+  test("a password manager can read the form: username, new password, one form, a real submit (B-666)", async () => {
+    await open({ "invite.preview": () => emailInvite });
+    await expect.element(field("Email")).toHaveAttribute("autocomplete", "username");
+    await expect.element(field("Password")).toHaveAttribute("autocomplete", "new-password");
+    await expect.element(field("Password again")).toHaveAttribute("autocomplete", "new-password");
+    const signUp = form("signUp");
+    for (const name of ["email", "password", "confirm"]) {
+      expect(signUp?.querySelector(`input[name="${name}"]`)).not.toBeNull();
+    }
+    expect(signUp?.querySelector('button[type="submit"]')?.textContent).toContain("Create account");
   });
 
   test("passwords that don't match are refused before any call", async () => {
@@ -180,6 +209,28 @@ describe("an email invite, signed out", () => {
     await expect.element(field("Your name")).toHaveValue("Avery Invited");
   });
 
+  test("the box is required, and its links open in a new tab, keeping what was typed", async () => {
+    const calls = apiCalls();
+    await open(calls.record({ "invite.preview": () => emailInvite, "invite.signUp": () => ({}) }));
+    await userEvent.fill(field("Your name"), "Avery Invited");
+    await userEvent.fill(field("Password"), "a long fictional passphrase");
+    await userEvent.fill(field("Password again"), "a long fictional passphrase");
+    await expect.element(legalBox()).not.toBeChecked();
+    expect(document.querySelector<HTMLInputElement>("[data-legal-box]")?.validity.valueMissing).toBe(true);
+    await userEvent.click(page.getByRole("button", { name: "Create account" }));
+    expect(calls.of("invite.signUp")).toEqual([]);
+    for (const [name, href] of [
+      ["Terms", "/terms"],
+      ["Privacy Policy", "/privacy"],
+      ["Consumer Health Data Privacy Policy", "/health-data-privacy"],
+    ] as const) {
+      const link = page.getByRole("link", { name, exact: true });
+      await expect.element(link).toHaveAttribute("href", href);
+      await expect.element(link).toHaveAttribute("target", "_blank");
+    }
+    await expect.element(field("Your name")).toHaveValue("Avery Invited");
+  });
+
   test("Decline tells the server and says so, with nothing left to do", async () => {
     const calls = apiCalls();
     await open(calls.record({ "invite.preview": () => emailInvite, "invite.decline": () => ({}) }));
@@ -197,6 +248,8 @@ describe("a link invite, signed out", () => {
     await expect.element(page.getByText("Sam Okafor invited you to join as a viewer.")).toBeVisible();
     await expect.element(field("Email")).toHaveValue("");
     await expect.element(field("Email")).not.toHaveAttribute("readonly");
+    await expect.element(field("Email")).toHaveAttribute("autocomplete", "username");
+    await expect.element(field("Password")).toHaveAttribute("autocomplete", "new-password");
     await expect.element(page.getByText("We'll email you a link to confirm it.")).toBeVisible();
     expect(form("decline")).toBeNull();
   });
@@ -258,6 +311,65 @@ describe("the consent form", () => {
     await userEvent.click(page.getByRole("button", { name: "Ask to join" }));
     await expect.poll(device.location).toBe("/app");
     expect(calls.of("invite.accept")).toEqual([{ token: TOKEN, consent: true }]);
+  });
+
+  test("an account with a current acceptance isn't shown the legal box", async () => {
+    await open({
+      "invite.preview": () => emailInvite,
+      "invite.legalNeeded": () => ({ needed: false }),
+      ...signedIn(emailInvite.email),
+    });
+    await found(() => form("accept"));
+    expect(document.querySelector("[data-legal-box]")).toBeNull();
+  });
+
+  test.each([
+    ["an email invite", emailInvite, "Join the care group"],
+    ["a link", linkInvite, "Ask to join"],
+  ] as const)("%s: an account without one must tick the box, and it's sent", async (_, preview, button) => {
+    const calls = apiCalls();
+    const device = await open(
+      calls.record({
+        "invite.preview": () => preview,
+        "invite.legalNeeded": () => ({ needed: true }),
+        "invite.accept": () => ({ groupId: "g", status: "requested" }),
+        ...signedIn(emailInvite.email),
+      }),
+    );
+    await expect.element(legalBox()).not.toBeChecked();
+    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByRole("button", { name: button }));
+    expect(calls.of("invite.accept")).toEqual([]);
+    await userEvent.click(legalBox());
+    await userEvent.click(page.getByRole("button", { name: button }));
+    await expect.poll(device.location).toBe("/app");
+    expect(calls.of("invite.accept")).toEqual([{ token: TOKEN, consent: true, legal: true }]);
+  });
+
+  test("a server that still asks brings the box up, keeping the consent tick", async () => {
+    const calls = apiCalls();
+    let refused = false;
+    const device = await open(
+      calls.record({
+        "invite.preview": () => linkInvite,
+        "invite.legalNeeded": () => ({ needed: false }),
+        "invite.accept": () => {
+          if (refused) return { groupId: "g", status: "requested" };
+          refused = true;
+          return refusal("careGroupInviteService:legalRequired");
+        },
+        ...signedIn("anyone@example.com"),
+      }),
+    );
+    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByRole("button", { name: "Ask to join" }));
+    await expect.element(legalBox()).toBeVisible();
+    await expect.element(page.getByText(LEGAL_REQUIRED_MESSAGE)).toBeVisible();
+    await expect.element(page.getByLabelText(CONSENT_TEXT)).toBeChecked();
+    await userEvent.click(legalBox());
+    await userEvent.click(page.getByRole("button", { name: "Ask to join" }));
+    await expect.poll(device.location).toBe("/app");
+    expect(calls.of("invite.accept").at(-1)).toEqual({ token: TOKEN, consent: true, legal: true });
   });
 
   test("a refusal is shown on the form", async () => {

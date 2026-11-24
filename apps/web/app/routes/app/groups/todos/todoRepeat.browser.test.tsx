@@ -212,6 +212,45 @@ describe("a repeating todo in the list and on its page", () => {
   });
 });
 
+describe("a todo repeating on the last day of the month", () => {
+  const MONTH_END_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7d03";
+  const LAST_DAY = "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1";
+  // The test clock is 9 June 2027: due on the 30th, the next is 31 July.
+  const monthEnd = (dueOn: string) =>
+    todo({
+      id: MONTH_END_ID,
+      title: "Order supplies",
+      dueOn,
+      assigneeId: TEST_USER.id,
+      repeatRule: LAST_DAY,
+      repeatStartsOn: "2027-06-30",
+      repeatId: MONTH_END_ID,
+    });
+
+  test("says so on its page, and a tick makes the next on the next month's last day", async () => {
+    const device = await open(EVERYONE, [monthEnd("2027-06-30")]);
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Order supplies” done" }));
+    await expect.poll(() => titles("2027-07-31")).toEqual(["Order supplies"]);
+    const stillOpen = await device.query<{ due_on: string; repeat_rule: string }>(
+      "SELECT due_on, repeat_rule FROM todo WHERE repeat_id = ? AND done_at IS NULL AND deleted_at IS NULL",
+      [MONTH_END_ID],
+    );
+    expect(stillOpen).toEqual([{ due_on: "2027-07-31", repeat_rule: LAST_DAY }]);
+
+    await userEvent.click(page.getByRole("link", { name: "Order supplies" }).first());
+    await expect.element(page.getByText("Repeats monthly on the last day")).toBeVisible();
+  });
+
+  test("the sheet keeps the stored choice when the todo is due on another day", async () => {
+    await open(`${LIST}/${MONTH_END_ID}/edit?who=everyone`, [monthEnd("2027-06-15")]);
+    const dialog = page.getByRole("dialog", { name: "Edit todo" });
+    await userEvent.click(dialog.getByRole("button", { name: "Repeat: Repeats monthly on the last day" }));
+    const sheet = page.getByRole("dialog", { name: "Repeat" });
+    await expect.element(sheet.getByRole("radio", { name: "On the last day" })).toBeChecked();
+    await expect.element(sheet.getByText("Monthly on the last day", { exact: true })).toBeInTheDocument();
+  });
+});
+
 describe("Delete on a repeating todo", () => {
   const askDelete = async (title: string) => {
     await userEvent.click(page.getByRole("link", { name: title }));

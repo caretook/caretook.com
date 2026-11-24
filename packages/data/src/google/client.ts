@@ -49,6 +49,8 @@ export type GoogleEvent = {
   end: GoogleEventTime | null;
   privateProperties: Record<string, string>;
   updated: string;
+  /** An instance of an event that repeats in Google (it has a recurring event id). */
+  recurring: boolean;
 };
 
 export type GoogleChanges =
@@ -66,6 +68,12 @@ export type GoogleCalendarSession = {
   deleteEvent: (calendarId: string, eventId: string) => Promise<true | AppError>;
   /** The events changed since `syncToken` (every event with none), or that a full sync is needed. */
   listChanges: (calendarId: string, syncToken: string | null) => Promise<GoogleChanges | AppError>;
+  /**
+   * The live events between two times, repeats expanded into instances: those
+   * ending after `from` and starting before `to`, as Google's `timeMin` and
+   * `timeMax` bound them. Never reads or gives a sync token.
+   */
+  listWindow: (calendarId: string, from: Date, to: Date) => Promise<GoogleEvent[] | AppError>;
 };
 
 export type GoogleCalendarClient = {

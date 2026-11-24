@@ -11,6 +11,8 @@ import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../test/fi
 import * as entryRoute from "../../routes/app/groups/entry/route";
 import * as providerRoute from "../../routes/app/groups/provider/route";
 import * as plannerRoute from "../../routes/app/groups/planner/route";
+import { loadVisitPrepData } from "../../lib/appointments/visitPrep.sync";
+import { resolveUnits } from "@caretook/data/schema";
 
 // Visit prep on the test device: "Prepare for this visit" on an upcoming
 // appointment's page, "Prepare for a visit" on a provider's page (their next
@@ -142,6 +144,48 @@ const typedElsewhere = (documentId: string, snapshotText: Y.Doc, words: string):
   };
 };
 
+describe("the loader", () => {
+  test("returns the change entries from the window's start to now, a deleted one included", async () => {
+    const inWindow = fx.medicationChange({
+      medicationId: LISINOPRIL.id,
+      change: "changed",
+      occurredAt: hoursAgo(5 * DAY_H),
+    });
+    const deleted = fx.medicationChange({
+      medicationId: LISINOPRIL.id,
+      change: "changed",
+      occurredAt: hoursAgo(4 * DAY_H),
+      deletedAt: hoursAgo(DAY_H),
+    });
+    const longBefore = fx.medicationChange({
+      medicationId: LISINOPRIL.id,
+      change: "changed",
+      occurredAt: hoursAgo(40 * DAY_H),
+    });
+    const device = await open(entryPath(APPT.id), {
+      role: "caretaker",
+      fixtures: [...world(), inWindow, deleted, longBefore],
+    });
+    const now = new Date();
+    const data = await loadVisitPrepData(device.db, {
+      groupId: GROUP,
+      appointmentId: APPT.id,
+      window: {
+        from: new Date(now.getTime() - 10 * DAY_H * 3_600_000).toISOString(),
+        to: now.toISOString(),
+        lastVisit: null,
+      },
+      units: resolveUnits(null),
+      now,
+    });
+    const ids = data.changes?.map((c) => c.id);
+    expect(ids).toEqual(expect.arrayContaining([inWindow.id, deleted.id]));
+    expect(ids).not.toContain(longBefore.id);
+    // The section's own entries still leave the deleted one out.
+    expect(data.entries.map((e) => e.id)).not.toContain(deleted.id);
+  });
+});
+
 describe("on the appointment's page", () => {
   test("Prepare opens the sheet from the last visit; the preview leaves out empty sections; Insert (offline) puts it on top and queues it", async () => {
     const device = await open(entryPath(APPT.id), { role: "caretaker" });
@@ -246,6 +290,47 @@ describe("on the appointment's page", () => {
     }
   });
 
+  describe("asking before losing a moved start (B-603)", () => {
+    const asked = () => document.querySelector("dialog[open]") !== null;
+    const close = () => userEvent.click(page.getByRole("button", { name: "Close" }));
+    const moveStart = async () => {
+      const month = getByCss('[data-visit-prep-sheet] [data-type="month"]');
+      const before = month.element().textContent;
+      (await month.findElement()).focus();
+      await userEvent.keyboard("{ArrowDown}");
+      await expect.poll(() => month.element().textContent).not.toBe(before);
+    };
+    const openPrep = async () => {
+      await open(entryPath(APPT.id), { role: "caretaker" });
+      await userEvent.click(PREPARE());
+      await previewReady();
+    };
+
+    test("a moved start asks, and Discard closes", async () => {
+      await openPrep();
+      await moveStart();
+      await close();
+      await expect.poll(asked).toBe(true);
+      await userEvent.click(page.getByRole("button", { name: "Discard" }));
+      await expect.poll(SHEET).toBeNull();
+    });
+
+    test("an unchanged start closes without asking", async () => {
+      await openPrep();
+      await close();
+      await expect.poll(SHEET).toBeNull();
+      expect(asked()).toBe(false);
+    });
+
+    test("Insert after moving the start closes without asking", async () => {
+      await openPrep();
+      await moveStart();
+      await waitUntil(() => PREVIEW().includes("Since your last visit"), "the moved preview");
+      await insert();
+      expect(asked()).toBe(false);
+    });
+  });
+
   test("no Prepare for a viewer", async () => {
     const device = await open(entryPath(APPT.id), { role: "viewer" });
     await waitUntil(() => EDITOR()?.textContent?.includes("Bring the pill box"));
@@ -284,7 +369,7 @@ describe("on a provider's page", () => {
     await expect
       .element(getByCss("dialog[open]"))
       .toMatchTextContent(/No visit with Dr\. Ben Ortiz coming up/);
-    await userEvent.click(button("Add an appointment", "dialog[open]"));
+    await userEvent.click(button("Add an event", "dialog[open]"));
     await expect
       .poll(() => device.location())
       .toBe(`/app/groups/${GROUP}/entries/new?kind=event&when=pick&provider=${ORTIZ.id}`);

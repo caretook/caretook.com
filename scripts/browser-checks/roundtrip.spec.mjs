@@ -80,13 +80,21 @@ const NAME = `document.querySelector('[role=dialog] input[name="symptomName"]')`
 const SUBMIT = `document.querySelector('[role=dialog] button[type="submit"]')`;
 const SHEET = `document.querySelector("[role=dialog]")`;
 
-/** Add a symptom through the sheet. */
-async function addSymptom(page, name) {
+/**
+ * Add a symptom through the sheet. With `shown` (an expression), returns the ms
+ * from pressing submit until it holds, whether or not the sheet has closed yet.
+ */
+async function addSymptom(page, name, shown) {
   await addToTimeline(page, "Symptom");
   await wf(page, NAME);
   await page.locator('[role=dialog] input[name="symptomName"]').fill(name);
+  const submitted = Date.now();
   await press(page, SUBMIT);
-  await wf(page, `!${SHEET}`);
+  const [shownMs] = await Promise.all([
+    shown ? wf(page, shown).then(() => Date.now() - submitted) : undefined,
+    wf(page, `!${SHEET}`),
+  ]);
+  return shownMs;
 }
 async function timeUntil(page, expr, ms = 20_000) {
   const t0 = Date.now();
@@ -203,10 +211,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
 
     // 1. Add on A, appears on B, stored as A.
     const name = `${tag} knee pain`;
-    const t0 = Date.now();
-    await addSymptom(A, name);
-    await wf(A, rowWith(name));
-    const localMs = Date.now() - t0;
+    const localMs = await addSymptom(A, name, rowWith(name));
     const remoteMs = await timeUntil(B, rowWith(name));
     await check("add: shows on this device at once", localMs < 2000, `${localMs} ms`);
     await check("add: reaches the other member", true, `${remoteMs + localMs} ms after submit`);
@@ -608,7 +613,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     // title back. Client-side navigation through the tab bar's Planner and
     // its Todos tab: no new page loads or sign-ins.
     const plannerTab = `document.querySelector('nav[data-tab-bar] a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
-    const todosTab = `document.querySelector('main nav[aria-label="Planner or todos"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
+    const todosTab = `document.querySelector('main nav[aria-label="Upcoming, past or todos"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
     const openTodos = async (page) => {
       await press(page, plannerTab);
       await wf(page, todosTab, 20_000);
@@ -808,6 +813,25 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     // 7. Tidy up, then sign-out wipes the device.
     psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
     await wf(A, `!${rowWith(offName)}`, 15_000);
+
+    // 6z. One member chooses an avatar; the other's device receives the two ids.
+    await A.goto("/app/settings/account");
+    await A.getByRole("radiogroup", { name: "Color" })
+      .getByRole("radio", { name: "Jade" })
+      .check({ force: true });
+    await A.getByRole("radiogroup", { name: "Icon" })
+      .getByRole("radio", { name: "Bird" })
+      .check({ force: true });
+    await A.getByRole("button", { name: "Save" }).click();
+    await A.getByText("Saved.").waitFor();
+    const look = await until(async () => {
+      const [row] = await localRows(B, `SELECT avatar_color, avatar_icon FROM "user" WHERE id = ?`, [
+        memberId,
+      ]);
+      return row?.avatar_color === "jade" && row?.avatar_icon === "bird" ? row : null;
+    });
+    await check("avatar: the other member's device receives the choice", !!look, JSON.stringify(look));
+
     await signOut(A);
     await wf(A, `location.pathname === "/sign-in"`, 15_000);
     // The file stays, vacuumed: none of the care data is left in its bytes.
@@ -821,6 +845,21 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await wf(A, `location.pathname === "/sign-in"`, 15_000);
     await check("sign-out: /app needs signing in again", true);
 
+    // 8. Nothing else went unsaved (sync-safety, B-288): every replay and
+    // follow-up of the run was applied, so each device's "not saved" list
+    // holds only the change the test forced the server to refuse.
+    const unsaved = async (page) =>
+      (await localRows(page, "SELECT table_name, row_id, op FROM unsaved_change ORDER BY recorded_at")).map(
+        (r) => `${r.table_name}:${r.row_id}:${r.op}`,
+      );
+    const lists = { B: await unsaved(B), C: await unsaved(C) };
+    await check(
+      "not saved: each device lists only the change it was forced to have refused",
+      JSON.stringify(lists) ===
+        JSON.stringify({ B: [`timeline_entry:${matrix.ids.entry}:PATCH`], C: [`todo:${viewerTodo}:PATCH`] }),
+      JSON.stringify(lists),
+    );
+
     const errors = [dA, dB, dC].flatMap((d) => d.errors).filter((e) => !NOISE.test(e));
     await check(
       "no console errors or warnings",
@@ -830,6 +869,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   } finally {
     try {
       if (viewerTodo) psql(reopenViewerTodoSql);
+      psql(`UPDATE "user" SET avatar_color = NULL, avatar_icon = NULL WHERE id = '${memberId}'`);
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
       );

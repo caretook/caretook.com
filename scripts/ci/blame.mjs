@@ -4,11 +4,13 @@
 // A branch's failures are compared with a run on dev's tip. Failing there too is
 // dev's; passing there is the branch's; a test file dev doesn't have is the
 // branch's. A dev result that can't prove either (infra, cut short, a flake on
-// dev) leaves the failure unknown: it is never assigned, and never green.
+// dev, a quarantined test that didn't pass there, a named test in a file dev
+// couldn't load) leaves the failure unknown: it is never assigned, and never green.
 import { dirname } from "node:path";
 
 import { findingKey, keyMark } from "./filing.mjs";
-import { TIERS, fileTier } from "./tiers.mjs";
+import { isQuarantined } from "./lists.mjs";
+import { TIERS, fileTier, isBrowserCheckFile } from "./tiers.mjs";
 
 /** The whole tier a failed check job needs on dev. */
 const CHECK_JOB_TIER = /** @type {const} */ ({ static: "static", build: "full" });
@@ -34,11 +36,18 @@ export function verdictFailures(v) {
     (/** @type {string} */ f) => !named.has(f),
   );
   /** @type {string[]} */ const jobs = v.brake?.jobs ?? [];
+  // A flake explains a job only when the verdict says the job has no unnamed
+  // failure: a job can fail for something else after its flake passed the rerun.
+  /** @type {string[] | undefined} */ const unnamedJobs = v.failed?.unnamedJobs;
+  const flakeExplains = (/** @type {string} */ job) =>
+    !!unnamedJobs &&
+    !unnamedJobs.includes(job) &&
+    (v.flaky ?? []).some((/** @type {{ job?: string }} */ t) => t.job === job);
   const explained = (/** @type {string} */ job) =>
     jobs.includes(job) ||
     tests.some((t) => t.job === job) ||
-    files.some((f) => job.startsWith(fileTier(f))) ||
-    (v.flaky ?? []).some((/** @type {{ job?: string }} */ t) => t.job === job);
+    files.some((f) => job.startsWith(isBrowserCheckFile(f) ? "browser" : fileTier(f))) ||
+    flakeExplains(job);
   const unnamed = (v.failed?.jobs ?? []).some((/** @type {string} */ job) => !explained(job));
   return {
     tests,
@@ -53,7 +62,8 @@ const higher = (/** @type {string} */ a, /** @type {string} */ b) =>
 
 /**
  * The run dev needs: the failed files at their highest tier, or the whole tier
- * when a static or build job failed. Null when dev has nothing to run.
+ * when a static or build job or a browser check failed (a narrowed run has no
+ * browser job). Null when dev has nothing to run.
  * @param {ReturnType<typeof verdictFailures>} failures
  * @param {(file: string) => boolean} onDev
  */
@@ -66,7 +76,7 @@ export function devRunPlan(failures, onDev) {
   for (const f of files) tier = higher(tier, fileTier(f));
   for (const job of failures.jobs)
     tier = higher(tier, CHECK_JOB_TIER[/** @type {keyof typeof CHECK_JOB_TIER} */ (job)] ?? "full");
-  return { run: { tier, files, whole: failures.jobs.length > 0 }, absent };
+  return { run: { tier, files, whole: failures.jobs.length > 0 || files.some(isBrowserCheckFile) }, absent };
 }
 
 /**
@@ -106,9 +116,26 @@ export function splitFailures(failures, dev, absent) {
     );
   const failsOnDev = (/** @type {Failure} */ f) => {
     if (!devFails || !f.file) return false;
-    if (devFails.files.includes(f.file)) return true;
-    return devFails.tests.some((t) => t.file === f.file && (!f.name || t.name === f.name));
+    if (!f.name) return devFails.files.includes(f.file);
+    return devFails.tests.some((t) => t.file === f.file && t.name === f.name);
   };
+  // A skipped quarantined test hasn't passed; a verdict with no list can't say.
+  const quarantineUnproven = (/** @type {Failure} */ f) => {
+    if (!f.file || !f.name) return false;
+    const { file, name } = f;
+    if (!Array.isArray(dev?.quarantineList)) return true;
+    if (!isQuarantined(dev.quarantineList, file, name)) return false;
+    const results = (dev.quarantined ?? []).filter(
+      (/** @type {Failure & { status: string }} */ t) => t.file === file && t.name === name,
+    );
+    return !results.length || results.some((/** @type {{ status: string }} */ t) => t.status !== "passed");
+  };
+  // Dev failed this file at the other level: a load failure says nothing about an
+  // assertion, and a failed assertion says nothing about a branch's load failure.
+  const otherLevelOnDev = (/** @type {Failure} */ f) =>
+    !!f.file &&
+    (f.name ? !!devFails?.files.includes(f.file) : !!devFails?.tests.some((t) => t.file === f.file));
+  const notCompared = (/** @type {Failure} */ f) => otherLevelOnDev(f) || quarantineUnproven(f);
   const place = (/** @type {Failure} */ f) => {
     const key = findingKey(f);
     if (f.file && absent.includes(f.file)) split.branch.push({ ...f, key, brake: false, absent: true });
@@ -116,7 +143,7 @@ export function splitFailures(failures, dev, absent) {
     else if (f.job && !f.file)
       (devFails?.jobs.includes(f.job) ? split.dev : split.branch).push({ ...f, key, brake: braked(f) });
     else if (failsOnDev(f)) split.dev.push({ ...f, key, brake: braked(f) });
-    else if (flakyOnDev(f)) split.unknown.push({ ...f, key, brake: false });
+    else if (flakyOnDev(f) || notCompared(f)) split.unknown.push({ ...f, key, brake: false });
     else split.branch.push({ ...f, key, brake: false });
   };
   for (const t of failures.tests) place({ job: t.job, file: t.file, name: t.name });
@@ -129,7 +156,7 @@ export function splitFailures(failures, dev, absent) {
 export const blameExit = (/** @type {Split} */ s, partial = false) =>
   s.branch.length ? 2 : s.unknown.length || partial ? 5 : 0;
 
-const label = (/** @type {Failure} */ f) =>
+export const label = (/** @type {Failure} */ f) =>
   f.file ? `${f.file}${f.name ? `: ${f.name}` : ""}` : `the ${f.job} job`;
 
 /** A backlog title is one line and can't hold the heading's separator. */
@@ -190,7 +217,11 @@ export function sortFlakes(flaky, touched, { branch, url }) {
       title: title(`CI flake: ${label(t)}`),
       prd: "fixes-tooling",
       note: `Flaked (passed on its rerun)${t.brake ? "; on the brake list, so not quarantined" : ""}${
-        t.name ? "" : "; a whole-file flake can't be quarantined by name"
+        isBrowserCheckFile(t.file)
+          ? "; a browser check is filed, never quarantined"
+          : t.name
+            ? ""
+            : "; a whole-file flake can't be quarantined by name"
       }; found by ${branch}${url ? ` in ${url}` : ""}.`,
       quarantine: listed ? { file: t.file, name: /** @type {string} */ (t.name) } : null,
     });

@@ -6,7 +6,19 @@ import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
-import { ChoiceGroup, Field, IconButton } from "~/components/ui";
+import {
+  Button,
+  CheckField,
+  ChoiceGroup,
+  EmptyState,
+  Field,
+  IconButton,
+  LINK,
+  TimeSelect,
+} from "~/components/ui";
+import { useGroup } from "~/lib/app-shell/group";
+import { localTimeZone } from "~/lib/core/format";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 import { clockTime } from "~/lib/medications/medicationDisplay";
 import { FIELD, passAmountField } from "./medicationFormData";
 import { initialSlots } from "./scheduleSlots";
@@ -53,6 +65,8 @@ export function ScheduleFields({
   // Each row keeps its key as rows come and go, so typing stays in its field.
   const [times, setTimes] = useState(start.times);
   const id = useId();
+  // Schedule times are the recipient's, so a new one starts at their current hour.
+  const zone = useGroup().recipient?.timeZone ?? localTimeZone();
   const timesError = issueFor(issues, "schedule.times");
   const passesError = issueFor(issues, "schedule.passes");
   const live = passes.filter((p) => !p.deletedAt);
@@ -74,9 +88,7 @@ export function ScheduleFields({
       />
       {type === "scheduled" ? (
         <>
-          <p className="text-base-content/70 text-sm">
-            {zoneNote ? `Every day. ${zoneNote}.` : "Every day."}
-          </p>
+          <p className="text-muted text-sm">{zoneNote ? `Every day. ${zoneNote}.` : "Every day."}</p>
           {start.unknown.map((passId) => (
             // A pass this device doesn't have yet: kept as it is.
             <input key={passId} type="hidden" name={FIELD.passId} value={passId} />
@@ -92,12 +104,12 @@ export function ScheduleFields({
               <span id={`${id}-passes`} className="fieldset-legend">
                 Passes
               </span>
-              <Link to={passesHref} className="link link-hover text-sm" data-manage-passes>
+              <Link to={passesHref} className={`${LINK} text-sm`} data-manage-passes>
                 Manage passes
               </Link>
             </div>
             {live.length === 0 ? (
-              <p className="text-base-content/70 text-sm">No passes yet. Add Morning or Evening on Passes.</p>
+              <EmptyState>No passes yet. Add Morning or Evening on Passes.</EmptyState>
             ) : (
               <ul className="space-y-1.5">
                 {live.map((pass) => {
@@ -109,40 +121,39 @@ export function ScheduleFields({
                       className="flex flex-wrap items-start gap-x-3 gap-y-1"
                       data-pass-slot={pass.id}
                     >
-                      <label className="label text-base-content min-h-10 min-w-40 cursor-pointer gap-3 whitespace-normal">
-                        <input
-                          type="checkbox"
-                          name={FIELD.passId}
-                          value={pass.id}
-                          className="checkbox checkbox-sm"
-                          checked={!!slot}
-                          disabled={!slot && count >= MEDICATION_LIMITS.scheduleTimes}
-                          onChange={(e) => {
-                            const on = e.target.checked;
-                            setTicked((all) =>
-                              on
-                                ? { ...all, [pass.id]: { amount: "" } }
-                                : Object.fromEntries(Object.entries(all).filter(([key]) => key !== pass.id)),
-                            );
-                          }}
-                        />
-                        <span>
-                          <span className="font-medium">{pass.name}</span>{" "}
-                          <span className="text-base-content/70">{clockTime(pass.time)}</span>
-                        </span>
-                      </label>
+                      <CheckField
+                        className="min-h-10 min-w-40 content-center"
+                        label={
+                          <>
+                            <span className="font-medium">{pass.name}</span>{" "}
+                            <span className="text-muted">{clockTime(pass.time)}</span>
+                          </>
+                        }
+                        name={FIELD.passId}
+                        value={pass.id}
+                        checked={!!slot}
+                        disabled={!slot && count >= MEDICATION_LIMITS.scheduleTimes}
+                        onChange={(e) => {
+                          const on = e.target.checked;
+                          setTicked((all) =>
+                            on
+                              ? { ...all, [pass.id]: { amount: "" } }
+                              : Object.fromEntries(Object.entries(all).filter(([key]) => key !== pass.id)),
+                          );
+                        }}
+                      />
                       {slot && (
                         <Field
                           label={`Amount at ${pass.name}`}
                           labelHidden
                           className="w-44"
                           error={amountError}
+                          kind="input"
                         >
                           {(control) => (
                             <input
                               {...control}
                               name={passAmountField(pass.id)}
-                              className="input w-full"
                               maxLength={MEDICATION_LIMITS.doseAmount}
                               placeholder={placeholder}
                               autoComplete="off"
@@ -160,7 +171,7 @@ export function ScheduleFields({
               </ul>
             )}
             {passesError && (
-              <p id={`${id}-passes-error`} className="text-error text-sm">
+              <p id={`${id}-passes-error`} className="text-error-ink text-sm">
                 {passesError}
               </p>
             )}
@@ -180,34 +191,27 @@ export function ScheduleFields({
               <ul className="space-y-1.5">
                 {times.map((time, index) => (
                   <li key={time.key} className="flex flex-wrap items-start gap-x-1 gap-y-1" data-time-slot>
-                    <Field
+                    <TimeSelect
                       label={`Time ${index + 1}`}
                       labelHidden
-                      className="w-36"
+                      name={FIELD.time}
+                      className="w-44"
+                      timeZone={zone}
                       error={issueFor(issues, `schedule.times.${index}`)}
-                    >
-                      {(control) => (
-                        <input
-                          {...control}
-                          type="time"
-                          name={FIELD.time}
-                          className="input w-full"
-                          value={time.value}
-                          onChange={(e) => setTime(time.key, { value: e.target.value })}
-                        />
-                      )}
-                    </Field>
+                      value={time.value}
+                      onChange={(value) => setTime(time.key, { value })}
+                    />
                     <Field
                       label={`Amount at time ${index + 1}`}
                       labelHidden
                       className="w-44"
                       error={issueFor(issues, `schedule.times.${index}.amount`)}
+                      kind="input"
                     >
                       {(control) => (
                         <input
                           {...control}
                           name={FIELD.timeAmount}
-                          className="input w-full"
                           maxLength={MEDICATION_LIMITS.doseAmount}
                           placeholder={placeholder}
                           autoComplete="off"
@@ -227,23 +231,28 @@ export function ScheduleFields({
               </ul>
             )}
             {count < MEDICATION_LIMITS.scheduleTimes && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm self-start"
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Plus}
+                className="self-start"
                 onClick={() =>
                   setTimes((all) => [
                     ...all,
-                    { key: Math.max(-1, ...all.map((t) => t.key)) + 1, value: "", amount: "" },
+                    {
+                      key: Math.max(-1, ...all.map((t) => t.key)) + 1,
+                      value: currentHourTime(zone),
+                      amount: "",
+                    },
                   ])
                 }
-                data-add-time
+                data-add-time=""
               >
-                <Plus className="size-4" aria-hidden="true" />
                 {live.length ? "Add another time" : "Add a time"}
-              </button>
+              </Button>
             )}
             {timesError && (
-              <p id={`${id}-times-error`} className="text-error text-sm">
+              <p id={`${id}-times-error`} className="text-error-ink text-sm">
                 {timesError}
               </p>
             )}

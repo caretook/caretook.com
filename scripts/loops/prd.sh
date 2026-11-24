@@ -6,7 +6,7 @@ set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 bin=$(dirname "$0")
-# The model plan, backlog and hotfix sessions run on unless --model names another.
+# The model plan, backlog, hotfix and inbox sessions run on unless --model names another.
 agent_model=opus
 # Every command runs on .nvmrc's Node, whatever shell called it.
 use_node || true
@@ -32,8 +32,13 @@ pnpm prd <command>
     plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
-                              (either form runs on opus; --model <m> runs that one session on model m)
+                              (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next)
+    inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
+                              adds them to the inbox on origin/dev, under the right heading; Opus in fast mode
+                              (--model <m>: another model), Remote Control "inbox", opened in its own directory
+                              outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
+                              the dispatcher keeps it open once you have opened it by hand and trusted the folder
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
                               outside any PRD (reused if it exists); --open starts its session here
@@ -47,8 +52,9 @@ pnpm prd <command>
                               Vite caches, with sizes; frees them after a yes
     tidy [--yes] [--json]     leftovers sorted into safe (merged slice and landed plan worktrees, dead tickets,
                               orphan test databases, stale remote refs, dangling caretook volumes, old hang
-                              logs, ended records) and ask (finished-looking live sessions, branches without a
-                              worktree, items to archive, registry rows that look done); --yes removes the safe
+                              logs, ended records, finished items whose topic has no prd/ worktree) and ask
+                              (finished-looking live sessions, branches without a worktree, registry rows
+                              that look done); --yes removes the safe
                               ones and files the ask list as one report (prompt tidy: the haiku brief)
     test-db status|up|down|list|use   the shared test Postgres (a database per worktree, :5436)
     recover [--at HH:MM] [--wait] [--no-agent]   after a restart, crash or usage limit: Docker, stale locks,
@@ -66,6 +72,10 @@ pnpm prd <command>
                               (--background: iTerm2 stays where it is and the selected tab stays selected)
     end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
                               orchestrator or planner, after pnpm prd rm); its tab closes
+    bye [--dry-run] [--json]  a session's hand-over check, when the user says just "bye": clean (no uncommitted or
+                              unpushed work, worktree, branch, stack, server, running lease, background job or open
+                              question of its own left), it prints the hand-off line, releases its leases and ends the
+                              session (a slice only reports); else it lists each open thing and exits 3, closing nothing
     context [--keep "<why>" | --all [--json]]   this session's context size and the limit; --keep leaves it
                               alone for 30 minutes; --all lists every live session
     rotate [<topic>] [--mid-wave] [--reason <text>]   replace an orchestrator's session with a fresh one
@@ -77,12 +87,14 @@ pnpm prd <command>
     session requests [--json] the pending requests, and those settled in the last day
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
-    ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n> --defaults|--waits]   file a
-                              question; prints its id and the PushNotification line to send; a macOS
+    ask --topic <t> --question <text> --skeptic <id> [--option <a>]… [--recommend <a|n> --defaults|--waits]
+                              file a question past a skeptic (the dispatcher's own need none); prints its id and the PushNotification line to send; a macOS
                               notification, and \$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text> when set
                               (failures ignored). With a recommendation, --defaults takes it after
                               \$CARETOOK_ASK_DEFAULT_MIN (30) min unanswered; --waits (money, data, a live
                               deploy, a destructive step, a new dependency, compliance) waits however long
+    ask --decided --skeptic <id> --topic <t> --question <text> --option <a>… --chose <a|n>   file what a
+                              skeptic decided: settled, never pushed, listed under decided for you
     ask --topic <t> --report <text>   file a report (a landed wave, what to try); never pushed (no
                               PushNotification line); the same macOS notification and hook
     ask --wait <id> [--timeout <s>]   print the answer once there is one (exit 0; 75 at the timeout);
@@ -93,13 +105,22 @@ pnpm prd <command>
     answer <id> <n|text>      answer a question by its option's number or in words (wakes its --wait;
                               refused once defaulted)
 
+  Skeptic (a fresh subagent's verdict before an ask or a risky landing, in the main checkout's .loops/.skeptic)
+    prompt skeptic ask|land|plan --evidence <file>   print its brief: the rules and the evidence
+    skeptic record --kind ask|land|plan --verdict <v> --why "<one line>" [--option <a>]
+                              [--question <text> [--offer <a>]… --defaults|--waits]
+                              [--tip <full sha> --action force|no-review|"decline <thread>"]
+                              record its answer (ask: decide, ask; land: go, no; plan: go, send-back);
+                              prints the id; counts for \$CARETOOK_SKEPTIC_MAX_MIN (60) min
+    skeptic [list] [--topic <t>] [--json]   the verdicts, oldest first
+
   Notices (one-way lines for other sessions, in the main checkout's .loops/.notices; nothing waits on them)
     notice "<text>" [--for <min>] [--topic <t>]   post one line (200 characters at most); prints its id;
                               it lives 60 minutes, --for up to 1440 (24 hours)
     notices [--json]          the live ones, oldest first: session, topic, age, time left
     notices --done <id>       withdraw one
                               check, sync, slice, browser, pr, ready and land print other sessions' live
-                              notices first (stderr, five lines at most); status prints them all; a code
+                              notices first (stderr, five lines at most); status prints the count; a code
                               landing posts "landed …: sync at your next wave boundary" for six hours
 
   Inside a worktree (name or topic defaults to the one you're in)
@@ -120,7 +141,8 @@ pnpm prd <command>
     check --times [--since <date>]   the check log's summary (runs, median and total minutes, failures,
                               by mode, PRD and step, the ten most-failed test files); runs no check,
                               works from any checkout
-    sync                      merge dev into this PRD branch
+    sync [--force]            merge dev into this PRD branch when its changes need it (shared or risky
+                              files); --force merges anyway, when you need code another PRD landed
     browser <check>           one browser check; at most four run at once machine-wide
     browser --changed         the checks this worktree's changes need (--base REF, --list)
     browser --smoke …         any of these in smoke mode: each check's core path only (after a merge)
@@ -133,13 +155,15 @@ pnpm prd <command>
     ci [<branch>]             the latest whole-tier verdict for the branch's tip
 
   Land
-    land <topic> [-m subject] [--recheck "<why>"] [--no-review] [--local]
+    land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
+                              [--force] [--skeptic <id>… | --by-user]
                               merge prd/<topic> into dev (only when the dev keeper says so) through its
                               PR: merged on GitHub once its head is the local tip and Codex's verdict is
-                              clean, then dev-sync (--recheck: when the last check is stale, run it on the
-                              tip in the branch's worktree and land on a pass; --no-review: skip the
-                              verdict, on the user's word only; --local: a local merge, the fallback, on
-                              their word)
+                              clean and the CI gate passes, then dev-sync (--tier: the tier to wait for, by
+                              default the diff's proposal; below it needs --why; --fixes: the dev brake
+                              this landing fixes; --force (skip the gate) and --no-review (skip the verdict)
+                              need a land skeptic's go for this tip or --by-user; out of credits needs neither;
+                              --local: a local merge, the fallback, on their word)
     land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
     land plan/<topic>         a plan branch: always a local merge
     review <topic|branch> [--json] [--wait [min]] [--again] [--resolve <threadId>]
@@ -147,15 +171,16 @@ pnpm prd <command>
                               stale) and its findings; --again asks Codex again, --resolve closes a declined
                               thread, --wait polls until Codex answers on the head (exit 0/1/2, 4 out of credits, 75 timed out);
                               a clean verdict carries over a plain dev merge
-    pr <topic|hotfix/name> [-m subject]   push dev (fast-forward only) and the branch, then open its PR into
+    pr <topic|hotfix/name> [-m subject] [--tier <t> [--why "<reason>"]]   push dev (fast-forward only) and the branch, then open its PR into
                               dev, or update the open one (title: the landing subject; body: backlog items,
                               the check pass); plan/ branches are refused
     dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
-                              it): fast-forward, rebase backlog-only commits, or merge
+                              it): fast-forward, replay unshared backlog commits, or merge; never stops on the inbox
 
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
                      tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
+                     skeptic ask|land|plan --evidence <file>: the brief for a fresh skeptic
                      orchestrator <topic> --resume [--auto]: take over after an interruption
                      slice <topic> <n> --continue: pick up an interrupted slice
 USAGE
@@ -216,6 +241,7 @@ case $cmd in
   down) exec "$bin/down.sh" "$@" ;;
   open) exec "$bin/open-session.sh" "$@" ;;
   end) exec "$bin/end-session.sh" "$@" ;;
+  bye) exec node "$bin/bye.mjs" "$@" ;;
   rotate) exec "$bin/rotate.sh" "$@" ;;
   context) exec node "$bin/context.mjs" "$@" ;;
   session)
@@ -228,8 +254,8 @@ case $cmd in
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
     # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model
-    # (default: $agent_model, opus).
-    model=$agent_model rest=()
+    # (default: $agent_model, opus; a topic's planner on Fable when its row is flagged design).
+    model="" rest=()
     while (($#)); do
       case $1 in
         --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "plan: --model needs a model name (e.g. opus)"; model=$2; shift ;;
@@ -239,6 +265,10 @@ case $cmd in
       shift
     done
     set -- ${rest[@]+"${rest[@]}"}
+    if [[ -z $model && -n ${1:-} && $1 != --open ]]; then
+      model=$(node "$bin/planner-model.mjs" "$1" "$main" 2>/dev/null) || model=""
+    fi
+    model=${model:-$agent_model}
     model_args=(--model "$model")
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
@@ -260,6 +290,43 @@ case $cmd in
     echo
     echo "Start its planning session in a new terminal (or rerun with --open):"
     echo "  $cmd_line"
+    ;;
+  inbox)
+    # The inbox session (prompt.sh inbox): Opus in fast mode (session.sh gives
+    # the inbox kind inbox-settings.json, the context hook and fastMode in one
+    # file), opened bare: in its own directory outside the repository, so
+    # neither AGENTS.md nor the project's memory loads.
+    # --dir and --managed are the reopen's and rotation's (open-session.mjs,
+    # rotate-into.sh): the recorded directory, and the dispatcher's record.
+    model=$agent_model dir=${CARETOOK_INBOX_DIR:-$HOME/.caretook/inbox} managed=()
+    while (($#)); do
+      case $1 in
+        --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "inbox: --model needs a model name (e.g. opus)"; model=$2; shift ;;
+        --model=*) model=${1#--model=}; [[ -n $model ]] || die "inbox: --model needs a model name (e.g. opus)" ;;
+        --dir) [[ -n ${2:-} ]] || die "inbox: --dir needs a directory"; dir=$2; shift ;;
+        --managed) managed=(--managed) ;;
+        *) die "inbox: unknown argument $1 (--model <m>, --dir <d>, --managed)" ;;
+      esac
+      shift
+    done
+    fresh=0
+    [[ -d $dir ]] || { mkdir -p "$dir" || die "inbox: can't create $dir"; fresh=1; }
+    dir=$(cd "$dir" && pwd -P)
+    if top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null); then
+      die "inbox: $dir is inside the git repository $top, where AGENTS.md would load; set CARETOOK_INBOX_DIR to a directory outside any repository"
+    fi
+    d=$dir
+    while :; do
+      for f in CLAUDE.md CLAUDE.local.md AGENTS.md; do
+        [[ ! -e $d/$f ]] || die "inbox: $d/$f would load into the inbox session; set CARETOOK_INBOX_DIR to a directory with none above it"
+      done
+      [[ $d != / ]] || break
+      d=$(dirname "$d")
+    done
+    ((fresh)) && echo "Made $dir for the inbox session. Its first open asks whether you trust this folder: choose Yes, once." >&2
+    wrapper=$(cd "$bin" && pwd)/session.sh
+    prompt_text=$("$bin/prompt.sh" inbox)
+    cd "$dir" && exec "$wrapper" inbox --kind inbox ${managed[@]+"${managed[@]}"} -- --model "$model" --remote-control inbox "$prompt_text"
     ;;
   slice) exec "$bin/new.sh" slice "$@" ;;
   hotfix)
@@ -318,20 +385,21 @@ case $cmd in
       esac
       shift
     done
+    # shellcheck source=unsynced.sh
+    source "$bin/unsynced.sh"
+    unsynced_clear "$dir"
     [[ -z $(git -C "$dir" status --porcelain) ]] || die "commit your changes first: the check is recorded against a commit"
     record=$(checked_file "$dir")
-    # The mode comes from the plan (check-plan.mjs): a quick check on a diff that
-    # touches a migration, seeds, the sync config, a lockfile, a package.json
-    # (beyond its scripts) or the Vitest config is a full one, and the tooling tests join when it touches
-    # the tooling. A slice's --quick is the slice check: its own test files only,
-    # never forced to full.
+    # The plan (check-plan.mjs) names the diff's own tests, and the tooling tests
+    # join when it touches the tooling. A quick check stays quick: what a diff needs
+    # beyond it is the landing's tier. A slice's --quick is the slice check.
     asked=full
     if ((quick)); then
       asked=quick
       [[ $(git -C "$dir" branch --show-current) == slice/* ]] && asked=slice
     fi
     base=$(check_base "$dir" "$asked")
-    { read -r pmode; read -r preason; read -r ptooling; read -r pown; } < <(
+    { read -r pmode; read -r ptooling; read -r pown; } < <(
       git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD)
     rm -f "$record"
     # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
@@ -340,13 +408,11 @@ case $cmd in
       echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits ($why)"
     elif [[ $pmode == quick ]]; then
       echo "Quick check against ${base:0:7}: typecheck, lint, format, every unit test, the integration tests related to the diff, and the component tests it adds or edits ($why)"
-    elif ((quick)); then
-      echo "$preason"; why=""
     fi
     [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
     # shellcheck disable=SC2086
     (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check${pmode:+ ($pmode)}" -- \
-      "$bin/check-run.sh" "$pmode" "${why:-$preason}" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
+      "$bin/check-run.sh" "$pmode" "$why" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
     if [[ $pmode == quick || $pmode == slice ]]; then
       echo "$(git -C "$dir" rev-parse HEAD) quick $base $why" > "$record"
       echo "quick check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current)): $why"
@@ -359,8 +425,19 @@ case $cmd in
     name=$(here_name); [[ -n $name ]] || die "run pnpm prd sync inside a PRD's worktree"
     dir=$loops/$name; branch=$(git -C "$dir" branch --show-current)
     [[ $branch == prd/* || $branch == plan/* || $branch == hotfix/* ]] || die "$branch isn't a prd/, plan/ or hotfix/ branch"
+    # shellcheck source=unsynced.sh
+    source "$bin/unsynced.sh"
+    unsynced_clear "$dir"
+    sync_force=""
+    case ${1:-} in
+      "") ;;
+      --force) sync_force=1 ;;
+      *) die "sync: unknown option $1 (--force merges even when dev's changes don't need it)" ;;
+    esac
     if [[ -z $(trunk_drift "$branch") ]]; then
       echo "$branch is up to date with $trunk (only backlog commits are newer, if any)"
+    elif [[ -z $sync_force ]] && unsynced_safe "$branch" "$trunk"; then
+      echo "$branch needs no merge: $trunk's changes share no file with it and bring nothing risky. No recheck needed (pnpm prd sync --force merges anyway, when you need that code)"
     else
       git -C "$dir" merge --no-ff -m "chore(${branch#*/}): merge $trunk into $branch" "$trunk"
       echo "Merged $trunk into $branch. If seeds or migrations changed: pnpm datastore:reset. Then: pnpm prd check"
@@ -369,12 +446,23 @@ case $cmd in
   ask | asks | answer)
     # The asking session and topic default to the worktree's: plan-<t> → plan-<t>, else prd-<topic>.
     export CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks}
+    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
     here=$(here_name) here_args=()
     if [[ $cmd == ask && -n $here ]]; then
       if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
       else here_topic=$(topic_of "$here"); here_args=(--here-topic "$here_topic" --here-session "prd-$here_topic"); fi
     fi
     exec node "$bin/ask.mjs" "$cmd" "$@" ${here_args[@]+"${here_args[@]}"}
+    ;;
+  skeptic)
+    # The recording session and topic default to the worktree's, as for ask.
+    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
+    here=$(here_name) here_args=()
+    if [[ ${1:-} == record && -n $here ]]; then
+      if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
+      else here_topic=$(topic_of "$here"); here_args=(--here-topic "$here_topic" --here-session "prd-$here_topic"); fi
+    fi
+    exec node "$bin/skeptic.mjs" "$@" ${here_args[@]+"${here_args[@]}"}
     ;;
   notice | notices)
     # The posting session and topic default to the worktree's, as for ask.

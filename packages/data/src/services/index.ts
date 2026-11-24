@@ -29,6 +29,9 @@ export { providerService };
 import * as entryProviderService from "./entryProviderService";
 export { entryProviderService };
 
+import * as legalAcceptanceService from "./legalAcceptanceService";
+export { legalAcceptanceService };
+
 import * as careGroupConsentService from "./careGroupConsentService";
 export { careGroupConsentService };
 
@@ -116,6 +119,7 @@ export { todoService };
 import * as connectorGrantService from "./connectorGrantService";
 export { connectorGrantService };
 export type {
+  ConnectorConnectionView,
   ConnectorGrantView,
   ValidateToken,
   ValidatedToken,
@@ -185,6 +189,7 @@ export const services = {
   provider: providerService,
   entryProvider: entryProviderService,
   careGroupConsent: careGroupConsentService,
+  legalAcceptance: legalAcceptanceService,
   joinRequest: joinRequestService,
   accessCode: accessCodeService,
   staffGroup: staffGroupService,

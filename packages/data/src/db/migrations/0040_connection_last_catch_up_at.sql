@@ -1,0 +1,1 @@
+ALTER TABLE "google_calendar_connection" ADD COLUMN "last_catch_up_at" timestamp(3) with time zone;

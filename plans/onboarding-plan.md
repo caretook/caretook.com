@@ -4,15 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/onboarding` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------- |
-| 1     | 1    | —     | —                                           |
-| 2     | 1    | —     | —                                           |
-| 3     | 1    | —     | —                                           |
-| 4     | 2    | —     | —                                           |
-| 5     | 3    | —     | —                                           |
+| Slice | Wave | State         | Merge into `prd/onboarding` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------- |
+| 1     | 1    | landed (opus) | 8404c3a4 (ebfc909c)                         |
+| 2     | 1    | landed (opus) | 043a28f5 (c6a64dd5, bcfee496)               |
+| 3     | 1    | landed (opus) | 6bb9316c (9310f2f9, 071859ba)               |
+| 4     | 2    | landed (opus) | 9f383ea2 (cebb132d, 8b52c722)               |
+| 5     | 3    | merged (opus) | ab7d3d15 (d806ac12)                         |
 
-**Backlog:** claim B-359 when slice 1 starts, B-360 when slice 2 starts and B-31 when slice 3 starts; `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
+**Landing mode:** run everything through (started run-through): land each green wave, clean up, ask real questions only through `pnpm prd ask`.
+
+**Now (2026-11-23):** wave 1 (slices 1, 2, 3) landed in dev as 1d7d817c through PR #97. Wave 2 (slice 4) landed as 8eaf8a24 through PR #98: Codex clean, `invites` passed, `components` CI `flake` on 5e405845 (run 45137010818), a search speed test outside this branch, noted on B-619. The lean browser suite was not run for either wave (questions a101 and a110 defaulted to landing without it). Wave 2 docs are in `auth.md`, the report is a114, and no slice worktree is left. **Wave 3 is at its gate:** slice 5 merged as ab7d3d15 and B-31 is marked; `onboarding-5` stays until landing. `components` CI `flake` on d11033f9 (run 45140679335), a planner test outside this branch. `first-sync` and `invites` passed; the lean suite was not run. Synced with dev (tooling only, b25b0016); the welcome and Easy card are folded into `app-shell.md` and `timeline.md`. Next: quick check, PR, Codex, land, `pnpm prd rm onboarding`, `pnpm prd end`. Owners, admins and caretakers now get the setup card in Easy view too. Follow-ups filed: B-628 (preferences save can lose a change), B-629 (focus after dismissing the setup card), B-630 (two legal-link helpers), B-638 (no test for a waiting join request), B-642 (connector dose test fails from midnight to 00:10 Los Angeles).
+
+**Backlog:** `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
 
 ## Architectural decisions
 

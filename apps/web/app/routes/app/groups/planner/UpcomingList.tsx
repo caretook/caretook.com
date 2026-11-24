@@ -15,12 +15,13 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog, EmptyState } from "~/components/ui";
+import { ConfirmDialog, EmptyState, Message, TITLE_SECTION } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
+import { plannerReturnState } from "~/lib/appointments/plannerReturn";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
@@ -29,6 +30,7 @@ import { isPlannerTodo } from "~/lib/todos/plannerTodos";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { UpcomingRow } from "./UpcomingRow";
 import { PlannerTodoRow } from "./PlannerTodoRow";
+import { usePlannerOpener } from "./usePlannerOpener";
 
 // The Planner tab lists notes and events only, which show no vital readings: the default units do.
 const UNITS = resolveUnits(null);
@@ -81,6 +83,8 @@ export function UpcomingList({
     );
   const scope = useSeriesScope(canWrite);
   const navigate = useNavigate();
+  // The entry page goes back to this tab (B-690).
+  const opener = usePlannerOpener(false);
   const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
   const preparable = (entry: TimelineEntry) =>
     entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
@@ -92,7 +96,10 @@ export function UpcomingList({
         canWrite && asksScope(entry, data.now)
           ? () =>
               scope.ask(entry, "edit", {
-                only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
+                only: () =>
+                  void navigate(appUrls.entry(groupId, entry.id), {
+                    state: plannerReturnState(opener, ONLY_THIS_VISIT_STATE),
+                  }),
               })
           : undefined
       }
@@ -133,9 +140,7 @@ export function UpcomingList({
         {label}
       </h2>
       {(removeError || cancelling.error || scope.error) && (
-        <p role="alert" className="text-error text-sm">
-          {removeError ?? cancelling.error ?? scope.error}
-        </p>
+        <Message tone="error">{removeError ?? cancelling.error ?? scope.error}</Message>
       )}
       {data.sections.length === 0 &&
         (emptyMark ? (
@@ -143,15 +148,13 @@ export function UpcomingList({
             {empty}
           </EmptyState>
         ) : (
-          <p className="text-base-content/70" data-empty>
-            {empty}
-          </p>
+          <EmptyState data-empty="">{empty}</EmptyState>
         ))}
       {data.sections.map((section) => (
         <section key={section.key} aria-labelledby={`day-${section.key}`} data-day={section.key}>
           <h3
             id={`day-${section.key}`}
-            className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 text-base font-semibold backdrop-blur lg:text-lg"
+            className={`${TITLE_SECTION} bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 backdrop-blur lg:text-lg`}
           >
             {section.label}
           </h3>

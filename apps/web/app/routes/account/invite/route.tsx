@@ -2,10 +2,15 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { InvitePreview, UsablePreview } from "./invitePage";
 import type { Route } from "./+types/route";
 
-import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/data/schema";
+import {
+  ATTESTATION_TEXT,
+  CONSENT_TEXT,
+  LEGAL_REQUIRED_MESSAGE,
+  SHARED_WITH_MEMBERS,
+} from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { Button, Field } from "~/components/ui/plain";
+import { Button, CheckField, Field, LINK } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { authClient } from "~/lib/auth/auth-client";
@@ -16,6 +21,7 @@ import { rpc } from "~/lib/core/rpc";
 import { requireSession } from "~/lib/auth/session";
 import { waitForMembership } from "~/lib/care-groups/members.sync";
 import { AuthCard, ErrorMessage, StatusMessage, useSubmitOnce } from "../AuthCard";
+import { LegalAgreement } from "../LegalAgreement";
 import {
   invitedLine,
   inviteTitle,
@@ -33,7 +39,8 @@ import {
 // its address by email first) or offers sign-in; signed in with that
 // address, it shows what the group shares and asks for agreement before
 // joining (an email invite) or asking to join (a link, which an owner or
-// admin approves); signed in as someone else than an email invite's
+// admin approves), with the legal box only for an account that hasn't agreed
+// to the current versions (sign-up always has it); signed in as someone else than an email invite's
 // address, it says so and offers to sign out. An invite that can't be used
 // says why without naming the group.
 
@@ -59,10 +66,23 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
       () => null,
     ),
   ]);
-  return { token, preview, user };
+  // If this read fails the box stays hidden: the server still refuses the
+  // accept with `legalRequired`, and the form then shows it.
+  const legalNeeded =
+    user && preview?.state === "usable"
+      ? await rpc.invite.legalNeeded().then(
+          ({ needed }) => needed,
+          () => false,
+        )
+      : false;
+  return { token, preview, user, legalNeeded };
 }
 
-type ActionData = { intent: string; error?: string; declined?: boolean };
+type ActionData = { intent: string; error?: string; legalIssue?: string; declined?: boolean };
+
+const isLegalRequired = (e: unknown) =>
+  e instanceof ORPCError &&
+  (e.data as { code?: string } | undefined)?.code === "careGroupInviteService:legalRequired";
 
 /** What a refused API call says: our messages are written for people. */
 const apiFailure = (e: unknown): string => {
@@ -95,9 +115,16 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     const password = formString(form, "password");
     const problem = newPasswordProblem(password, formString(form, "confirm"));
     if (problem) return { intent, error: problem };
+    if (form.get("legal") !== "on") return { intent, legalIssue: LEGAL_REQUIRED_MESSAGE };
     let created: { verified: boolean };
     try {
-      created = await rpc.invite.signUp({ token, name: formString(form, "name").trim(), email, password });
+      created = await rpc.invite.signUp({
+        token,
+        name: formString(form, "name").trim(),
+        email,
+        password,
+        legal: true,
+      });
     } catch (e) {
       return { intent, error: apiFailure(e) };
     }
@@ -113,17 +140,24 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     const { error } = await authClient.signIn.email({ email, password });
     if (error) return { intent, error: requestFailure(error) ?? authMessages.failed };
     sessionChanged();
-    throw redirect(accountUrls.invite(token));
+    // A new URL, not the same one: password managers read that as a sign-up
+    // that worked, and offer to save the password (B-666).
+    throw redirect(accountUrls.inviteSignedUp(token));
   }
 
   if (intent === "accept") {
     if (formString(form, "consent") !== "on") return { intent, error: "Tick the box to agree first." };
     let joined: { groupId: string; status: "joined" | "requested" };
     try {
-      joined = await rpc.invite.accept({ token, consent: true });
+      joined = await rpc.invite.accept({
+        token,
+        consent: true,
+        ...(form.get("legal") === "on" ? { legal: true as const } : {}),
+      });
     } catch (e) {
       if (e instanceof ORPCError && e.code === "UNAUTHORIZED")
         throw redirect(accountUrls.signIn("password", accountUrls.invite(token)));
+      if (isLegalRequired(e)) return { intent, legalIssue: LEGAL_REQUIRED_MESSAGE };
       return { intent, error: apiFailure(e) };
     }
     // Asked to join (a link): home says it's waiting, and shows the group once approved.
@@ -141,12 +175,12 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
 // A refused step changed nothing to load again.
 export function shouldRevalidate({ actionResult, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
   const result = actionResult as ActionData | undefined;
-  if (result?.error) return false;
+  if (result?.error || result?.legalIssue) return false;
   return defaultShouldRevalidate;
 }
 
 export default function Invite({ loaderData, actionData }: Route.ComponentProps) {
-  const { token, preview, user } = loaderData;
+  const { token, preview, user, legalNeeded } = loaderData;
 
   if (!preview) {
     return (
@@ -197,12 +231,22 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
     <AuthCard title={inviteTitle(view.invite)}>
       <div className="space-y-1 text-sm">
         <p>{invitedLine(view.invite)}</p>
-        <p className="text-base-content/70">{roleMeaning(view.invite.role)}</p>
+        <p className="text-muted">{roleMeaning(view.invite.role)}</p>
       </div>
       {view.view === "signUp" ? (
-        <SignUpForm token={token} invite={view.invite} error={pick(actionData, "signUp")} />
+        <SignUpForm
+          token={token}
+          invite={view.invite}
+          error={pick(actionData, "signUp")}
+          legalIssue={pickLegal(actionData, "signUp")}
+        />
       ) : (
-        <ConsentForm invite={view.invite} error={pick(actionData, "accept")} />
+        <ConsentForm
+          invite={view.invite}
+          error={pick(actionData, "accept")}
+          legalNeeded={legalNeeded}
+          legalIssue={pickLegal(actionData, "accept")}
+        />
       )}
       {/* A link can't be declined: whoever has it just doesn't ask. */}
       {!isLink(view.invite) && <DeclineForm error={pick(actionData, "decline")} />}
@@ -212,10 +256,33 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
 
 const pick = (data: ActionData | undefined, intent: string) =>
   data?.intent === intent ? data.error : undefined;
+const pickLegal = (data: ActionData | undefined, intent: string) =>
+  data?.intent === intent ? data.legalIssue : undefined;
 
-const INPUT = "input w-full";
+function LegalBox({ error }: { error?: string }) {
+  return (
+    <CheckField
+      className="mt-3 text-sm"
+      name="legal"
+      required
+      error={error}
+      data-legal-box=""
+      label={<LegalAgreement />}
+    />
+  );
+}
 
-function SignUpForm({ token, invite, error }: { token: string; invite: UsablePreview; error?: string }) {
+function SignUpForm({
+  token,
+  invite,
+  error,
+  legalIssue,
+}: {
+  token: string;
+  invite: UsablePreview;
+  error?: string;
+  legalIssue?: string;
+}) {
   const submitOnce = useSubmitOnce();
   const busy = useNavigation().state !== "idle";
   return (
@@ -223,27 +290,26 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-invite-form="signUp">
         <input type="hidden" name="intent" value="signUp" />
         {isLink(invite) ? (
-          <Field label="Email" help="We'll email you a link to confirm it.">
+          <Field kind="input" label="Email" help="We'll email you a link to confirm it.">
             {(control) => (
               <input
                 {...control}
-                className={INPUT}
                 type="email"
                 name="email"
-                autoComplete="email"
+                autoComplete="username"
                 maxLength={254}
                 required
               />
             )}
           </Field>
         ) : (
-          <Field label="Email" help="The invitation is for this address.">
+          <Field kind="input" label="Email" help="The invitation is for this address.">
             {(control) => (
               <input
                 {...control}
-                className={INPUT}
                 type="email"
                 name="email"
+                autoComplete="username"
                 value={invite.email ?? ""}
                 readOnly
                 aria-readonly="true"
@@ -251,16 +317,13 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
             )}
           </Field>
         )}
-        <Field label="Your name">
-          {(control) => (
-            <input {...control} className={INPUT} name="name" autoComplete="name" maxLength={100} required />
-          )}
+        <Field kind="input" label="Your name">
+          {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
         </Field>
-        <Field label="Password" help="At least 12 characters.">
+        <Field kind="input" label="Password" help="At least 12 characters.">
           {(control) => (
             <input
               {...control}
-              className={INPUT}
               type="password"
               name="password"
               autoComplete="new-password"
@@ -269,18 +332,12 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
             />
           )}
         </Field>
-        <Field label="Password again">
+        <Field kind="input" label="Password again">
           {(control) => (
-            <input
-              {...control}
-              className={INPUT}
-              type="password"
-              name="confirm"
-              autoComplete="new-password"
-              required
-            />
+            <input {...control} type="password" name="confirm" autoComplete="new-password" required />
           )}
         </Field>
+        <LegalBox error={legalIssue} />
         {error && <ErrorMessage>{error}</ErrorMessage>}
         <Button
           type="submit"
@@ -295,7 +352,7 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
       </Form>
       <p className="text-center text-sm">
         Already have a Caretook account?{" "}
-        <Link to={accountUrls.signIn("password", accountUrls.invite(token))} className="link">
+        <Link to={accountUrls.signIn("password", accountUrls.invite(token))} className={LINK}>
           Sign in
         </Link>
       </p>
@@ -303,7 +360,17 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
   );
 }
 
-function ConsentForm({ invite, error }: { invite: UsablePreview; error?: string }) {
+function ConsentForm({
+  invite,
+  error,
+  legalNeeded,
+  legalIssue,
+}: {
+  invite: UsablePreview;
+  error?: string;
+  legalNeeded: boolean;
+  legalIssue?: string;
+}) {
   const submitOnce = useSubmitOnce();
   const busy = useNavigation().state !== "idle";
   const group = invite.groupName ? `${invite.groupName}'s care group` : "This care group";
@@ -319,16 +386,12 @@ function ConsentForm({ invite, error }: { invite: UsablePreview; error?: string 
         </ul>
       </div>
       {isLink(invite) ? (
-        <p className="text-base-content/70 text-sm">{LINK_APPROVAL_NOTE}</p>
+        <p className="text-muted text-sm">{LINK_APPROVAL_NOTE}</p>
       ) : (
-        <p className="text-base-content/70 text-sm">
-          The person who invited you confirmed: “{ATTESTATION_TEXT}”
-        </p>
+        <p className="text-muted text-sm">The person who invited you confirmed: “{ATTESTATION_TEXT}”</p>
       )}
-      <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" name="consent" className="checkbox mt-0.5" required />
-        <span>{CONSENT_TEXT}</span>
-      </label>
+      <CheckField className="text-sm" name="consent" required label={CONSENT_TEXT} />
+      {(legalNeeded || legalIssue) && <LegalBox error={legalIssue} />}
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <Button type="submit" variant="primary" block busy={busy}>
         {joinLabel(invite, busy)}

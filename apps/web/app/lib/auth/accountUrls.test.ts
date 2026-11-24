@@ -38,6 +38,7 @@ describe("accountUrls", () => {
 
   it("builds an invite's page", () => {
     expect(accountUrls.invite("abc_DEF-123")).toBe("/invite/abc_DEF-123");
+    expect(accountUrls.inviteSignedUp("abc_DEF-123")).toBe("/invite/abc_DEF-123?signedUp=1");
   });
 });
 

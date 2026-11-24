@@ -5,15 +5,11 @@ import type { BasicsField } from "./basicsFormData";
 import { useEffect, useRef } from "react";
 import { Link, useFetcher } from "react-router";
 import { BLOOD_TYPES, CODE_STATUSES, RECIPIENT_LIMITS } from "@caretook/data/schema";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { ChoiceGroup, Field, LINK } from "~/components/ui";
 import { careGroupUrls } from "~/lib/care-groups/urls";
-import {
-  bloodTypeLabel,
-  CODE_STATUS_LABELS,
-  PROFILE_NEEDS_CONNECTION,
-} from "~/lib/profiles/recipientDisplay";
+import { bloodTypeLabel, CODE_STATUS_LABELS } from "~/lib/profiles/recipientDisplay";
 import { groupSettingsAccess, timeZoneLabel } from "../settings/groupSettings";
-import { useOnline } from "./profileSheet";
+import { SheetButtons } from "./SheetButtons";
 
 const NOT_SET = "Not set";
 
@@ -42,7 +38,6 @@ export function BasicsForm({
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
-  const online = useOnline();
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -71,15 +66,9 @@ export function BasicsForm({
         max={RECIPIENT_LIMITS.preferredName}
         help="What everyone calls them. Shown in place of the name."
       />
-      <Field label="Birthday" error={error("dateOfBirth")}>
+      <Field kind="input" label="Birthday" error={error("dateOfBirth")}>
         {(control) => (
-          <input
-            {...control}
-            name="dateOfBirth"
-            type="date"
-            defaultValue={profile.dateOfBirth ?? ""}
-            className={`input w-full ${error("dateOfBirth") ? "input-error" : ""}`}
-          />
+          <input {...control} name="dateOfBirth" type="date" defaultValue={profile.dateOfBirth ?? ""} />
         )}
       </Field>
       <ChoiceGroup
@@ -89,14 +78,9 @@ export function BasicsForm({
         defaultValue={profile.codeStatus ?? ""}
         error={error("codeStatus")}
       />
-      <Field label="Blood type" error={error("bloodType")}>
+      <Field kind="select" label="Blood type" error={error("bloodType")}>
         {(control) => (
-          <select
-            {...control}
-            name="bloodType"
-            defaultValue={profile.bloodType ?? ""}
-            className={`select w-full ${error("bloodType") ? "select-error" : ""}`}
-          >
+          <select {...control} name="bloodType" defaultValue={profile.bloodType ?? ""}>
             <option value="">{NOT_SET}</option>
             {BLOOD_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -121,6 +105,7 @@ export function BasicsForm({
         max={RECIPIENT_LIMITS.pronouns}
       />
       <Field
+        kind="textarea"
         label="Note for helpers"
         help="What anyone helping should know, such as “hard of hearing on the left; uses a walker”."
         error={error("notes")}
@@ -132,31 +117,13 @@ export function BasicsForm({
             rows={4}
             defaultValue={profile.notes ?? ""}
             maxLength={RECIPIENT_LIMITS.notes + 20}
-            className={`textarea w-full ${error("notes") ? "textarea-error" : ""}`}
           />
         )}
       </Field>
 
       <TimeZoneLine groupId={profile.groupId} groupRole={role} timeZone={profile.timeZone} />
 
-      {!online && (
-        <p className="text-base-content/70 text-sm" data-needs-connection="">
-          {PROFILE_NEEDS_CONNECTION}
-        </p>
-      )}
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
-      <div className="flex justify-end gap-2 pt-3">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy || !online}>
-          {busy ? "Saving…" : "Save"}
-        </button>
-      </div>
+      <SheetButtons busy={busy} result={result} onCancel={onCancel} />
     </fetcher.Form>
   );
 }
@@ -182,16 +149,9 @@ function TextInput({
   help?: string;
 }) {
   return (
-    <Field label={label} help={help} error={error}>
+    <Field kind="input" label={label} help={help} error={error}>
       {(control) => (
-        <input
-          {...control}
-          name={name}
-          defaultValue={value ?? ""}
-          maxLength={max + 20}
-          autoComplete="off"
-          className={`input w-full ${error ? "input-error" : ""}`}
-        />
+        <input {...control} name={name} defaultValue={value ?? ""} maxLength={max + 20} autoComplete="off" />
       )}
     </Field>
   );
@@ -213,12 +173,12 @@ export function TimeZoneLine({
   const canChange = groupSettingsAccess(groupId, groupRole).editRecipient;
   if (!timeZone && !canChange) return null;
   return (
-    <p className="text-base-content/70 text-sm" data-time-zone-line="">
+    <p className="text-muted text-sm" data-time-zone-line="">
       Time zone: {timeZone ? timeZoneLabel(timeZone) : "Not set"}
       {canChange && (
         <>
           {" · "}
-          <Link to={careGroupUrls.groupSettings(groupId, "details")} className="link link-primary">
+          <Link to={careGroupUrls.groupSettings(groupId, "details")} className={LINK}>
             Change in group settings
           </Link>
         </>

@@ -83,6 +83,7 @@ export default function EditConditionSheet({ loaderData, params }: Route.Compone
   const providers = useFormProviders(params.groupId, loaderData.providerRows);
   return (
     <Sheet
+      guardChanges
       isOpen
       onOpenChange={(open) => !open && close()}
       title={condition ? `Edit ${condition.name}` : "Edit condition"}

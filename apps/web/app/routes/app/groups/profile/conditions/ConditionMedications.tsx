@@ -1,6 +1,7 @@
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Link } from "react-router";
+import { LINK, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
 
@@ -19,7 +20,7 @@ export function ConditionMedications({
   if (!medications.length) return null;
   return (
     <section aria-labelledby="condition-medications-heading" data-condition-medications>
-      <h3 id="condition-medications-heading" className="text-base-content/70 text-sm">
+      <h3 id="condition-medications-heading" className={`${TITLE_SUB} text-muted`}>
         Medications for it
       </h3>
       <ul className="mt-1 space-y-1">
@@ -27,7 +28,7 @@ export function ConditionMedications({
           <li key={m.id}>
             <Link
               to={appUrls.medication(groupId, m.id)}
-              className="link font-medium"
+              className={`${LINK} font-medium`}
               data-condition-medication={m.id}
             >
               {medicationTitle(m)}

@@ -7,26 +7,38 @@ import { VITALS } from "@caretook/data/schema";
 import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
-import { ChipGroup, CIRCLE, Collapse, Field, IconButton, UserAvatar } from "~/components/ui";
+import { MemberAvatar } from "~/components/members";
+import {
+  Button,
+  ChipGroup,
+  CIRCLE,
+  Collapse,
+  COUNT_BADGE,
+  Field,
+  ICON_SM,
+  IconButton,
+} from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
 import { recordSearch } from "~/lib/search/recentSearches";
 import { clearAuthor, clearKind, clearPeriod, clearQuery, clearVital } from "~/lib/timeline/timelineFilters";
 import { FilterSheet } from "./FilterSheet";
+import { TimelineDayPicker } from "./TimelineDayPicker";
 import { useSearchField } from "./useSearchField";
 
-const X_ICON = <X className="size-3.5" aria-hidden="true" />;
+const X_ICON = <X className={ICON_SM} aria-hidden="true" />;
 
 /**
  * The filter row: the search magnifier, then one icon-only Filter button
  * (its badge the count of filters on: kind, vital type, author, period;
- * named "Filter" or "Filter, N on"), which opens `FilterSheet`, then the
+ * named "Filter" or "Filter, N on"), which opens `FilterSheet`, the date
+ * button (`TimelineDayPicker`), then the
  * optional `trailing` control at the row's right end (the full timeline's
  * View options; drawn as `TOOL_CIRCLE`, from `ui/`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
  * clears only it, so the URL keeps the rest; see
  * `lib/timeline/timelineFilters.ts`): the kind, the vital type (`?vital=`),
- * "By <name>" (`author`: that person's name and picture), "Matching “…”"
+ * "By <name>" (`author`: that person's name and avatar), "Matching “…”"
  * (the search, while its field is closed) and "During …" (`?period=`). No
  * filters, no chip row. The magnifier opens the search field beside the
  * button; a search used there (Enter, leaving the field) is saved to the
@@ -44,7 +56,7 @@ export function FilterChips({
   trailing,
 }: {
   kind: TimelineEntryKind | null;
-  author: { name: string; image: string | null } | null;
+  author: { userId: string; name: string; image: string | null } | null;
   q: string;
   /** The vital-type filter, under the vital kind. */
   vital?: VitalType | null;
@@ -78,7 +90,15 @@ export function FilterChips({
     name: `By ${author.name}: clear this filter`,
     to: { search: clearAuthor(search) },
     current: true,
-    leading: <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />,
+    leading: (
+      <MemberAvatar
+        userId={author.userId}
+        name={author.name}
+        image={author.image}
+        size="xs"
+        className="-ml-1.5"
+      />
+    ),
     trailing: X_ICON,
   };
   const matchingChip: LinkChip | null = q
@@ -104,7 +124,7 @@ export function FilterChips({
             name: duringChipName(during),
             to: { search: clearPeriod(search) },
             current: true,
-            leading: <CalendarRange className="size-3.5" aria-hidden="true" />,
+            leading: <CalendarRange className={ICON_SM} aria-hidden="true" />,
             trailing: X_ICON,
           },
         ]
@@ -123,26 +143,25 @@ export function FilterChips({
           onPress={field.toggle}
           className={CIRCLE}
         />
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          shape="square"
+          icon={SlidersHorizontal}
           aria-haspopup="dialog"
           aria-label={count ? `Filter, ${count} on` : "Filter"}
           title={count ? `Filter, ${count} on` : "Filter"}
-          className={`btn btn-sm btn-square btn-ghost relative ${CIRCLE}`}
+          className={`relative ${CIRCLE}`}
           onClick={() => setSheetOpen(true)}
-          data-filter-button
+          data-filter-button=""
         >
-          <SlidersHorizontal className="size-4" aria-hidden="true" />
           {count > 0 && (
-            <span
-              aria-hidden="true"
-              className="badge badge-neutral badge-xs absolute -top-1 -right-1 min-w-4 px-1 font-semibold"
-              data-filter-count
-            >
+            <span aria-hidden="true" className={COUNT_BADGE} data-filter-count>
               {count}
             </span>
           )}
-        </button>
+        </Button>
+        <TimelineDayPicker label="Go to a day" />
         <Collapse open={field.open} axis="inline" id={fieldId} className="min-w-0 flex-1">
           <Field label="Search entries" labelHidden>
             {(control) => (

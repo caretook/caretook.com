@@ -13,6 +13,10 @@ export const CALENDARS_ERRORS = {
     message: "Your group's owners keep details private",
     statusCode: 403,
   },
+  "calendarSettingService:consentOutdated": {
+    message: "The wording of this consent has changed. Reload Caretook to read the new wording",
+    statusCode: 409,
+  },
   "calendarSettingService:detailsOwnerOnly": {
     message: "Only an owner can change whether details may leave Caretook",
     statusCode: 403,
@@ -30,7 +34,7 @@ export const CALENDARS_ERRORS = {
     statusCode: 404,
   },
   "reminderOverrideService:notFound": {
-    message: "Appointment not found",
+    message: "Event not found",
     statusCode: 404,
   },
   "reminderOverrideService:invalid": {

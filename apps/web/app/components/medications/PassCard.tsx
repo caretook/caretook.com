@@ -1,9 +1,11 @@
 import type { MarkStatus } from "./DoseSlotRow";
 import type { DoseSlot } from "~/lib/medications/dueDoses";
 import type { DuePass, PassState } from "~/lib/medications/duePasses";
+import type { BadgeTone } from "~/components/ui";
 
-import { CheckCheck, ChevronDown } from "lucide-react";
+import { CheckCheck } from "lucide-react";
 import { useId, useState } from "react";
+import { Badge, Button, Chevron, Collapse, Message, STATUS_TONE, TITLE_SECTION } from "~/components/ui";
 import {
   clockTime,
   givenAllLabel,
@@ -13,14 +15,15 @@ import {
   passStateText,
   passTitle,
 } from "~/lib/medications/medicationDisplay";
+import { passLogIdFor } from "~/lib/medications/duePasses";
 import { DoseSlotRow } from "./DoseSlotRow";
 import { usePassLog } from "./usePassLog";
 
-const BADGE: Record<PassState, string> = {
-  upcoming: "badge-ghost",
-  due: "badge-warning",
-  overdue: "badge-error",
-  done: "badge-primary badge-soft",
+const TONE: Record<PassState, BadgeTone> = {
+  upcoming: "neutral",
+  due: STATUS_TONE.dueSoon,
+  overdue: STATUS_TONE.overdue,
+  done: STATUS_TONE.done,
 };
 
 /**
@@ -50,10 +53,9 @@ export function PassCard({
 }) {
   const { givenAll, busy, error } = usePassLog(groupId);
   const [expanded, setExpanded] = useState(defaultExpanded);
-  // The round a single mark joins: the pass's, or one made now and kept, so
-  // marks made before the first one syncs back still share it.
-  const [freshLogId] = useState(() => crypto.randomUUID());
-  const passLogId = pass.passLogId ?? freshLogId;
+  // The round a single mark joins: the pass's, else the one its key and day
+  // derive, so two members' marks in one pass fold into one timeline item.
+  const passLogId = passLogIdFor(pass);
   const listId = useId();
   const title = passTitle(pass);
   const logged = passLoggedText(pass, nameOf);
@@ -68,66 +70,66 @@ export function PassCard({
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold">
+          <h3 className={TITLE_SECTION}>
             <span data-pass-name>{title}</span>{" "}
-            <time className="text-base-content/70 font-normal tabular-nums">{clockTime(pass.time)}</time>
+            <time className="text-muted font-normal tabular-nums">{clockTime(pass.time)}</time>
           </h3>
-          <p className="text-base-content/70 text-sm" data-pass-summary>
+          <p className="text-muted text-sm" data-pass-summary>
             {logged ?? listText(pass.slots.map((s) => medicationTitle(s.medication)))}
           </p>
         </div>
-        <span className={`badge badge-sm shrink-0 ${BADGE[pass.state]}`} data-pass-badge>
+        <Badge tone={TONE[pass.state]} className="shrink-0" data-pass-badge="">
           {passStateText(pass)}
-        </span>
+        </Badge>
         <div className="flex items-center gap-1">
           {canWrite && pass.open.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
+            <Button
+              variant="primary"
+              size="sm"
+              icon={CheckCheck}
               disabled={busy}
               aria-label={givenAllLabel(pass)}
-              data-given-all
+              data-given-all=""
               onClick={() => void givenAll(pass)}
             >
-              <CheckCheck className="size-4" aria-hidden="true" />
               Given all
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-square"
-            aria-expanded={expanded}
-            aria-controls={listId}
+          <Button
+            variant="ghost"
+            size="sm"
+            shape="square"
+            expanded={expanded}
+            controls={listId}
             aria-label={`${expanded ? "Hide" : "Show"} each medication: ${title}`}
-            data-pass-expand
+            data-pass-expand=""
             onClick={() => setExpanded((e) => !e)}
           >
-            <ChevronDown
-              className={`size-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-              aria-hidden="true"
-            />
-          </button>
+            <Chevron open={expanded} closed="down" />
+          </Button>
         </div>
         {error && (
-          <p role="alert" className="text-error w-full text-sm">
+          <Message tone="error" className="w-full">
             {error}
-          </p>
+          </Message>
         )}
       </div>
-      <ul id={listId} hidden={!expanded} className="border-base-200 divide-base-200 divide-y border-t">
-        {pass.slots.map((slot) => (
-          <DoseSlotRow
-            key={slot.medication.id}
-            slot={slot}
-            groupId={groupId}
-            timeZone={timeZone}
-            canWrite={canWrite}
-            passLogId={passLogId}
-            loggedBy={slot.dose?.createdBy ? nameOf(slot.dose.createdBy) : null}
-            onMark={(s, status) => onMark(s, status, passLogId)}
-          />
-        ))}
-      </ul>
+      <Collapse open={expanded} id={listId}>
+        <ul className="border-base-300 divide-base-300 divide-y border-t">
+          {pass.slots.map((slot) => (
+            <DoseSlotRow
+              key={slot.medication.id}
+              slot={slot}
+              groupId={groupId}
+              timeZone={timeZone}
+              canWrite={canWrite}
+              passLogId={passLogId}
+              loggedBy={slot.dose?.createdBy ? nameOf(slot.dose.createdBy) : null}
+              onMark={(s, status) => onMark(s, status, passLogId)}
+            />
+          ))}
+        </ul>
+      </Collapse>
     </section>
   );
 }

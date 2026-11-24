@@ -56,12 +56,14 @@ describe("auth", () => {
       email: owner.user.email,
       name: "owner",
       image: null,
+      avatar: { color: null, icon: null },
       groupRoles: { [group.id]: "owner" },
       preferences: {},
       units: DEFAULT_UNITS,
       timelineView: DEFAULT_TIMELINE_VIEW,
       easyMode: "full",
       daySummary: "highlights",
+      setupDismissed: [],
     });
   });
 });
@@ -99,6 +101,16 @@ describe("me.updatePreferences", () => {
     expect(me.timelineView).toBe(DEFAULT_TIMELINE_VIEW);
   });
 
+  it("adds to the dismissed setup cards, so one device's dismissal never undoes another's", async () => {
+    const { owner, group } = await setup();
+    const other = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d0001";
+    await owner.api.me.updatePreferences({ setupDismissed: [group.id] });
+    await owner.api.me.updatePreferences({ setupDismissed: [other] });
+    await owner.api.me.updatePreferences({ setupDismissed: [other] });
+    await owner.api.me.updatePreferences({ timelineView: "cards" });
+    expect((await owner.api.me.get()).setupDismissed).toEqual([group.id, other]);
+  });
+
   it("rejects unknown units and unknown settings", async () => {
     const { owner } = await setup();
     const bad = [
@@ -107,6 +119,7 @@ describe("me.updatePreferences", () => {
       { timelineView: "grid" },
       { easyMode: "sometimes" },
       { daySummary: "some" },
+      { setupDismissed: ["not-a-group"] },
     ] as never[];
     for (const input of bad) {
       expect((await rejection(owner.api.me.updatePreferences(input))).code).toBe("BAD_REQUEST");

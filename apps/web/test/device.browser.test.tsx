@@ -6,7 +6,7 @@ import { parseSearch } from "@caretook/data/schema";
 import { searchEntryIds, searchIndexStatus } from "~/lib/search/search.sync";
 import { createEntry, removeEntry } from "~/lib/timeline/timeline.sync";
 import { renderWithDevice } from "./device";
-import { found } from "./found";
+import { found, WAIT_TIMEOUT } from "./found";
 import { getByCss } from "./locators";
 import { fx, TEST_GROUP } from "./fixtures";
 import { PROBE } from "./probe";
@@ -205,6 +205,55 @@ describe("settle", () => {
     await expect(device.settle({ timeout: 300 })).rejects.toThrow(
       "settle: the screen didn't settle within 300 ms: the screen kept changing (the DOM changed in every frame).",
     );
+  });
+});
+
+describe("the first settle waits for the route to mount", () => {
+  const lateUrl = `/app/groups/${TEST_GROUP.id}/late`;
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  /** A loader still reading long after the database and the DOM have gone quiet. */
+  const framesLater = async (frames: number) => {
+    for (let i = 0; i < frames; i++) await nextFrame();
+    return null;
+  };
+  const lateRoute = (clientLoader: () => unknown) => ({
+    path: "/app/groups/:groupId/late",
+    module: { default: () => <p data-late>Mounted</p>, clientLoader },
+  });
+  const mounted = () => document.querySelector("[data-late]") !== null;
+
+  test("a route whose loader resolves late is mounted when renderWithDevice returns", async () => {
+    await renderWithDevice({ route: lateRoute(() => framesLater(30)), url: lateUrl });
+    expect(mounted()).toBe(true);
+  });
+
+  test("settle: false still returns before a late route has mounted", async () => {
+    await renderWithDevice({ route: lateRoute(() => framesLater(30)), url: lateUrl, settle: false });
+    expect(mounted()).toBe(false);
+    await expect.poll(mounted).toBe(true);
+  });
+
+  test("a screen with no main counts as mounted", async () => {
+    await renderWithDevice({ route: lateRoute(() => framesLater(5)), url: lateUrl });
+    expect(document.querySelector("main")).toBeNull();
+    expect(mounted()).toBe(true);
+  });
+
+  test("a loader that throws returns with its error showing, without waiting out the limit", async () => {
+    const start = performance.now();
+    const device = await renderWithDevice({
+      route: { path: "/admin/notes", module: serverRoute },
+      url: "/admin/notes",
+    });
+    expect(performance.now() - start).toBeLessThan(WAIT_TIMEOUT);
+    await expect
+      .element(device.screen.getByRole("heading", { name: /has a server loader/ }))
+      .toBeInTheDocument();
+  });
+
+  test("a render that never mounts returns at the limit instead of hanging or throwing", async () => {
+    await renderWithDevice({ route: lateRoute(() => new Promise(() => undefined)), url: lateUrl });
+    expect(mounted()).toBe(false);
   });
 });
 

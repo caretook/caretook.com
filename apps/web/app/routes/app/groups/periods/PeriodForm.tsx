@@ -7,7 +7,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { CARE_PERIOD_LIMITS, CARE_PERIOD_TYPES } from "@caretook/data/schema";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { CheckField, ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { PERIOD_TYPE_META } from "~/lib/care-periods/periodDisplay";
 import { FIELD, isFieldIssue } from "./periodFormData";
@@ -99,13 +99,16 @@ export function PeriodForm({
         error={issueFor(issues, FIELD.type)}
       />
 
-      <Field label={type === "other" ? "Label" : "Label (optional)"} error={issueFor(issues, FIELD.label)}>
+      <Field
+        label={type === "other" ? "Label" : "Label (optional)"}
+        kind="input"
+        error={issueFor(issues, FIELD.label)}
+      >
         {(control) => (
           <input
             {...control}
             name={FIELD.label}
             defaultValue={period?.label ?? undefined}
-            className="input w-full"
             maxLength={CARE_PERIOD_LIMITS.label}
             placeholder={type === "other" ? "e.g. Daughter's house" : "e.g. Cardiac unit"}
             autoComplete="off"
@@ -119,13 +122,12 @@ export function PeriodForm({
         error={issueFor(issues, FIELD.placeProviderId)}
       />
 
-      <Field label="Room or bed (optional)" error={issueFor(issues, FIELD.placeDetail)}>
+      <Field label="Room or bed (optional)" kind="input" error={issueFor(issues, FIELD.placeDetail)}>
         {(control) => (
           <input
             {...control}
             name={FIELD.placeDetail}
             defaultValue={period?.placeDetail ?? undefined}
-            className="input w-full"
             maxLength={CARE_PERIOD_LIMITS.placeDetail}
             placeholder="e.g. Room 412, bed B"
             autoComplete="off"
@@ -143,33 +145,27 @@ export function PeriodForm({
           timeZone={timeZone}
           error={issueFor(issues, FIELD.startedAt)}
         />
-        <label className="label text-base-content cursor-pointer gap-2 text-sm">
-          <input
-            type="checkbox"
-            name={FIELD.dateOnly}
-            className="toggle toggle-sm"
-            checked={dateOnly}
-            onChange={(e) => setDateOnly(e.target.checked)}
-          />
-          Date only (no time)
-        </label>
-        {zoneNote && <p className="text-base-content/70 text-sm">{zoneNote}</p>}
+        <CheckField
+          className="mt-2"
+          name={FIELD.dateOnly}
+          label="Date only (no time)"
+          checked={dateOnly}
+          onChange={(e) => setDateOnly(e.target.checked)}
+        />
+        {zoneNote && <p className="text-muted text-sm">{zoneNote}</p>}
       </div>
 
       {general && (
-        <p role="alert" className="text-error text-sm" data-form-error>
+        <Message tone="error" data-form-error="">
           {general}
-        </p>
+        </Message>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-3">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {period ? "Save changes" : "Save period"}
-        </button>
-      </div>
+      <FormFooter
+        submitLabel={period ? "Save changes" : "Save period"}
+        busy={busy}
+        cancel={{ label: "Cancel", onCancel }}
+      />
     </fetcher.Form>
   );
 }

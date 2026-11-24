@@ -2,8 +2,8 @@ import type { MenuEntry } from "~/components/ui";
 
 import { Ellipsis, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useFetcher } from "react-router";
-import { ConfirmDialog, Menu } from "~/components/ui";
+import { useFetcher } from "react-router";
+import { Button, ConfirmDialog, Menu, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { RepeatDeleteDialog } from "./RepeatDeleteDialog";
@@ -58,25 +58,29 @@ export function TodoActions({
 
   return (
     <>
-      <Link
+      <Button
         to={appUrls.editTodo(groupId, todoId)}
         // Closing the sheet comes back here.
         state={TODO_SHEET_STATE}
         prefetch="render"
-        className="btn btn-ghost btn-sm gap-1"
-        data-edit-todo
+        variant="ghost"
+        size="sm"
+        icon={Pencil}
+        data-edit-todo=""
       >
-        <Pencil className="size-4" aria-hidden="true" />
         Edit
-      </Link>
-      <Menu label={`Actions for ${title}`} items={items} className="btn btn-ghost btn-sm btn-square shrink-0">
+      </Button>
+      <Menu
+        label={`Actions for ${title}`}
+        items={items}
+        variant="ghost"
+        size="sm"
+        shape="square"
+        className="shrink-0"
+      >
         <Ellipsis className="size-4" aria-hidden="true" />
       </Menu>
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      {result && !result.ok && <Message tone="error">{result.error}</Message>}
       {asksRepeat ? (
         <RepeatDeleteDialog
           open={confirming}

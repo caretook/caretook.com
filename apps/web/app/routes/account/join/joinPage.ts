@@ -37,6 +37,12 @@ export const JOIN_STEPS = ["account", "recipient"] as const;
 export type JoinStep = (typeof JOIN_STEPS)[number];
 
 /** Fields of each step, so a refused sign-up opens the step with the problem. */
-const RECIPIENT_FIELDS = ["group.recipientName", "group.preferredName", "group.groupName", "recipientName"];
+const RECIPIENT_FIELDS = [
+  "group.recipientName",
+  "group.preferredName",
+  "group.groupName",
+  "recipientName",
+  "legal",
+];
 export const stepForIssues = (paths: string[]): JoinStep =>
   paths.some((p) => RECIPIENT_FIELDS.includes(p)) ? "recipient" : "account";

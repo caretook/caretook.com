@@ -8,13 +8,17 @@
 //   - otherwise a fresh session with the resume prompt:
 //       prd:  cd <dir> && scripts/loops/session.sh prd-<topic> [--auto] [--managed] -- --remote-control prd-<topic> \
 //               "$(scripts/loops/prompt.sh orchestrator <topic> --resume [--auto])"
-//       plan: cd <dir> && scripts/loops/session.sh plan-<topic> [--auto] [--managed] -- --model opus --remote-control plan-<topic> \
+//       plan: cd <dir> && scripts/loops/session.sh plan-<topic> [--auto] [--managed] -- --model <opus, or fable for a `design` row> --remote-control plan-<topic> \
 //               "$(scripts/loops/prompt.sh plan <topic> [--auto])"
 //       hotfix: cd <dir> && scripts/loops/session.sh hotfix-<name> -- --model <recorded> --remote-control hotfix-<name> \
 //               "$(scripts/loops/prompt.sh hotfix <name>)"
 //   - a backlog or recovery session, always fresh in the main checkout (it holds
 //     many conversations, so --continue could resume the wrong one), on its
 //     recorded model.
+//   - the inbox session, always fresh through `prd.sh inbox` (which checks its
+//     bare directory and gives it the fast settings), in its recorded directory
+//     on its recorded model:
+//       cd <main> && <this checkout>/scripts/loops/prd.sh inbox --dir <dir> --model <m> [--managed]
 //
 // Run-through (--auto) is the plan's _Status_ saying so, or the session's last
 // record having been run-through (carried over to the new record); a run-through
@@ -30,14 +34,17 @@
 // reaches them.
 //
 // CLI: node open-session.mjs <worktree dir>  → JSON {session, kind, topic, mode, auto, managed, command}
-//      node open-session.mjs --main <name> <main checkout>   the same, for a backlog or recovery record
+//      node open-session.mjs --main <name> <main checkout>   the same, for a backlog, recovery or inbox record
 // Env: CARETOOK_CLAUDE_PROJECTS (tests: in place of ~/.claude/projects);
-// CARETOOK_SESSIONS_DIR (default .sessions beside the worktree).
+// CARETOOK_CLAUDE_CONFIG (tests: in place of ~/.claude.json, only ever read);
+// CARETOOK_INBOX_DIR (the inbox session's directory when its record has none;
+// default ~/.caretook/inbox); CARETOOK_SESSIONS_DIR (default .sessions beside the worktree).
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { plannerModelFor } from "./planner-model.mjs";
 import { isLive, processOf, readRecord } from "./sessions.mjs";
 
 /** Claude Code's projects folder name for a working directory. */
@@ -66,12 +73,58 @@ const ownSessionSh = fileURLToPath(new URL("./session.sh", import.meta.url));
 
 /** The model backlog and hotfix sessions start on when none is recorded (prd.sh's agent_model). */
 const DEFAULT_MODEL = "opus";
-/** The sessions that live in the main checkout, and the prompt.sh role each opens with. */
-const MAIN_PROMPTS = /** @type {Record<string, string>} */ ({ backlog: "backlog", recovery: "recover" });
+/** The recorded sessions with no worktree of their own, and the prompt.sh role each opens with. */
+const MAIN_PROMPTS = /** @type {Record<string, string>} */ ({
+  backlog: "backlog",
+  recovery: "recover",
+  inbox: "inbox",
+});
+
+/** The inbox session's directory: its record's, else CARETOOK_INBOX_DIR, else ~/.caretook/inbox (prd.sh's). */
+export function inboxDirOf(/** @type {{ dir?: string } | null | undefined} */ record, env = process.env) {
+  return record?.dir || env.CARETOOK_INBOX_DIR || join(homedir(), ".caretook", "inbox");
+}
+
+/**
+ * Why the inbox session can't be opened unattended in DIR, or null when it can:
+ * Claude Code asks once whether to trust a new folder, and its default answer
+ * exits. Trusted is a saved conversation there (a session got past the
+ * question), or Claude Code's config marking DIR or a folder above it accepted.
+ * Both are only read.
+ */
+export function inboxUntrusted(
+  /** @type {string} */ dir,
+  {
+    projects = defaultProjects(),
+    config = process.env.CARETOOK_CLAUDE_CONFIG || join(homedir(), ".claude.json"),
+  } = {},
+) {
+  const ask = "run `pnpm prd inbox` once by hand and accept the folder";
+  let real;
+  try {
+    real = realpathSync(dir);
+  } catch {
+    return `its directory ${dir} doesn't exist yet: ${ask}`;
+  }
+  if (hasConversation(real, projects)) return null;
+  /** @type {Record<string, { hasTrustDialogAccepted?: boolean }>} */
+  let known = {};
+  try {
+    known = JSON.parse(readFileSync(config, "utf8")).projects ?? {};
+  } catch {
+    /* unreadable: only a saved conversation counts */
+  }
+  for (let d = real; ; d = dirname(d)) {
+    if (known[d]?.hasTrustDialogAccepted === true) return null;
+    if (dirname(d) === d) break;
+  }
+  return `its directory ${real} isn't trusted yet: ${ask}`;
+}
 
 /**
  * @param {{ dir: string, branch: string, conversation: boolean, runThrough: boolean,
- *   record?: { auto?: boolean, managed?: boolean, rotating?: boolean, model?: string } | null, wrapper?: string }} w
+ *   record?: { auto?: boolean, managed?: boolean, rotating?: boolean, model?: string } | null, wrapper?: string,
+ *   plannerModel?: string }} w
  * @returns {{ session: string, kind: "prd" | "plan" | "hotfix", topic: string, mode: "continue" | "fresh", auto: boolean,
  *   managed: boolean, command: string }}
  */
@@ -82,6 +135,7 @@ export function chooseCommand({
   runThrough: statusAuto,
   record = null,
   wrapper = ownSessionSh,
+  plannerModel = DEFAULT_MODEL,
 }) {
   const m = /^(prd|plan|hotfix)\/(.+)$/.exec(branch);
   if (!m)
@@ -94,7 +148,13 @@ export function chooseCommand({
   const auto = statusAuto || record?.auto === true;
   const managed = record?.managed === true;
   // A hotfix keeps the model it was started on (prd.sh's default when none is recorded).
-  const hotfixModel = kind === "hotfix" ? `--model ${sh(record?.model ?? DEFAULT_MODEL)} ` : "";
+  // A planner runs on its row's model, continued or fresh (opus, or Fable for a `design` row).
+  const modelArg =
+    kind === "hotfix"
+      ? `--model ${sh(record?.model ?? DEFAULT_MODEL)} `
+      : kind === "plan"
+        ? `--model ${sh(plannerModel)} `
+        : "";
   const wrap = `cd ${sh(dir)} && ${sh(wrapper)} ${session}${auto ? " --auto" : ""}${managed ? " --managed" : ""} -- `;
   if (conversation && !record?.rotating)
     return {
@@ -104,7 +164,7 @@ export function chooseCommand({
       mode: "continue",
       auto,
       managed,
-      command: `${wrap}${hotfixModel}--continue --remote-control ${session}`,
+      command: `${wrap}${modelArg}--continue --remote-control ${session}`,
     };
   const prompt =
     kind === "prd"
@@ -119,25 +179,36 @@ export function chooseCommand({
     mode: "fresh",
     auto,
     managed,
-    // A fresh planner runs on opus, as `pnpm prd plan` starts it (prd.sh's agent_model).
-    command: `${wrap}${kind === "plan" ? "--model opus " : hotfixModel}--remote-control ${session} "$(${prompt})"`,
+    command: `${wrap}${modelArg}--remote-control ${session} "$(${prompt})"`,
   };
 }
 
 /**
- * A backlog or recovery session's command: always fresh in the main checkout,
- * under its own name, on its recorded model.
+ * A backlog, recovery or inbox session's command: always fresh, under its own
+ * name, on its recorded model; the main checkout, or the inbox's own directory.
  * @param {{ name: string, main: string,
- *   record: { kind?: string, managed?: boolean, model?: string, remote?: string },
- *   wrapper?: string }} s
+ *   record: { kind?: string, managed?: boolean, model?: string, remote?: string, dir?: string },
+ *   wrapper?: string, inboxDir?: string }} s
  */
-export function chooseMainCommand({ name, main, record, wrapper = ownSessionSh }) {
+export function chooseMainCommand({ name, main, record, wrapper = ownSessionSh, inboxDir }) {
   const kind = record.kind ?? "";
   const role = MAIN_PROMPTS[kind];
   if (!role)
-    throw new Error(`open: ${name} is a ${kind || "kindless"} record, not a backlog or recovery one`);
+    throw new Error(`open: ${name} is a ${kind || "kindless"} record, not a backlog, recovery or inbox one`);
   const managed = record.managed === true;
-  const model = record.model ?? (kind === "backlog" ? DEFAULT_MODEL : null);
+  const model = record.model ?? (kind === "recovery" ? null : DEFAULT_MODEL);
+  if (kind === "inbox")
+    return {
+      session: name,
+      kind,
+      topic: "",
+      mode: /** @type {const} */ ("fresh"),
+      auto: false,
+      managed,
+      command:
+        `cd ${sh(main)} && ${sh(join(dirname(wrapper), "prd.sh"))} inbox --dir ${sh(inboxDir ?? inboxDirOf(record))} ` +
+        `--model ${sh(/** @type {string} */ (model))}${managed ? " --managed" : ""}`,
+    };
   return {
     session: name,
     kind,
@@ -167,10 +238,18 @@ export function chooseMainFor(
 ) {
   const record = readRecord(sessions, name);
   if (!record || !MAIN_PROMPTS[record.kind ?? ""])
-    throw new Error(`open: no worktree ${name}, and no recorded backlog or recovery session of that name`);
+    throw new Error(
+      `open: no worktree ${name}, and no recorded backlog, recovery or inbox session of that name`,
+    );
   refuseLive(name, record);
   return chooseMainCommand({ name, main, record });
 }
+
+/** The main checkout of DIR's repository: its first worktree. */
+const mainOf = (/** @type {string} */ dir) =>
+  execFileSync("git", ["-C", dir, "worktree", "list", "--porcelain"], { encoding: "utf8" })
+    .split("\n")[0]
+    .replace(/^worktree /, "");
 
 /** Reads the worktree's facts (branch, transcript, plan, session record) and chooses. */
 export function chooseFor(
@@ -190,6 +269,7 @@ export function chooseFor(
     conversation: hasConversation(dir, projects),
     runThrough: existsSync(plan) && runThrough(readFileSync(plan, "utf8")),
     record,
+    plannerModel: kind === "plan" ? plannerModelFor(topic, mainOf(dir)) : DEFAULT_MODEL,
   });
 }
 

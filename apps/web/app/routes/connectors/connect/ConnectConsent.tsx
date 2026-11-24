@@ -4,9 +4,13 @@ import type { ConnectorScope } from "@caretook/data/schema";
 
 import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
-import { CONNECTOR_CONSENT_TEXT, CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
+import {
+  CONNECTOR_CONSENT_TEXT,
+  CONNECTOR_READ_ONLY_BY_OWNER_LABEL,
+  CONNECTOR_SCOPE_LABELS,
+} from "@caretook/data/schema";
 import { AskOwners } from "~/components/connectors/ask";
-import { ChoiceGroup } from "~/components/ui/plain";
+import { Button, Card, CheckField, ChoiceGroup, LINK, Message, Notice } from "~/components/ui/plain";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   CONNECT_RETURN_DELAY_MS,
@@ -21,12 +25,10 @@ import {
 export function ConnectCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-8">
-      <div className="card bg-base-100 w-full max-w-md shadow-md">
-        <div className="card-body gap-4">
-          <h1 className="card-title text-2xl">{title}</h1>
-          {children}
-        </div>
-      </div>
+      <Card className="w-full max-w-md">
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        {children}
+      </Card>
     </main>
   );
 }
@@ -34,16 +36,9 @@ export function ConnectCard({ title, children }: { title: string; children: Reac
 /** Cancel: back to the assistant, nothing connected. */
 function CancelButton({ disabled }: { disabled?: boolean }) {
   return (
-    <button
-      type="submit"
-      name="intent"
-      value="cancel"
-      formNoValidate
-      className="btn btn-ghost"
-      disabled={disabled}
-    >
+    <Button type="submit" name="intent" value="cancel" formNoValidate variant="ghost" disabled={disabled}>
       Cancel
-    </button>
+    </Button>
   );
 }
 
@@ -70,10 +65,10 @@ const groupLabel = (group: { name: string; recipientName: string | null }) =>
 export function NoEligibleGroups({ offGroups }: { offGroups: OffGroup[] }) {
   return (
     <Form method="post" className="space-y-4" data-no-groups="">
-      <p role="status" className="alert alert-info alert-soft text-sm">
+      <Notice>
         None of your care groups allow assistants yet. Ask a group’s owner to turn on Assistants in the
         group’s settings, then connect again.
-      </p>
+      </Notice>
       {offGroups.length > 0 && (
         <ul className="divide-base-300 divide-y">
           {offGroups.map((group) => (
@@ -82,7 +77,7 @@ export function NoEligibleGroups({ offGroups }: { offGroups: OffGroup[] }) {
               {group.role === "owner" ? (
                 <p className="text-sm">
                   You’re an owner:{" "}
-                  <a href={appUrls.groupSettings(group.id, "assistants")} className="link link-primary">
+                  <a href={appUrls.groupSettings(group.id, "assistants")} className={LINK}>
                     turn on Assistants
                   </a>
                   , then connect again.
@@ -131,38 +126,35 @@ export function ConnectConsent({ groups, error }: { groups: ConnectGroup[]; erro
         onChange={setPicked}
       />
       {widest === "read" && (
-        <p className="text-base-content/70 text-sm" data-read-only="">
-          {group.role === "viewer"
-            ? "As a viewer in this group, you can connect for reading only."
-            : "This assistant asked only to read."}
+        <p className="text-muted text-sm" data-read-only="">
+          {group.readOnlyByOwner
+            ? CONNECTOR_READ_ONLY_BY_OWNER_LABEL
+            : group.role === "viewer"
+              ? "As a viewer in this group, you can connect for reading only."
+              : "This assistant asked only to read."}
         </p>
       )}
-      <label className="flex items-start gap-3 text-sm">
-        <input
-          type="checkbox"
-          name="consent"
-          className="checkbox checkbox-sm mt-0.5"
-          checked={agreed}
-          onChange={(e) => setAgreed(e.currentTarget.checked)}
-        />
-        <span>{CONNECTOR_CONSENT_TEXT}</span>
-      </label>
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      <CheckField
+        className="text-sm"
+        name="consent"
+        checked={agreed}
+        onChange={(e) => setAgreed(e.currentTarget.checked)}
+        label={CONNECTOR_CONSENT_TEXT}
+      />
+      {error && <Message tone="error">{error}</Message>}
       <div className="flex justify-end gap-2">
         <CancelButton disabled={busy} />
-        <button
+        <Button
           type="submit"
           name="intent"
           value="connect"
-          className="btn btn-primary"
-          disabled={!agreed || busy}
+          variant="primary"
+          disabled={!agreed}
+          busy={busy}
+          busyLabel="Connecting…"
         >
-          {busy ? "Connecting…" : "Connect"}
-        </button>
+          Connect
+        </Button>
       </div>
     </Form>
   );
@@ -209,13 +201,13 @@ export function ConnectSuccess({ connected }: { connected: ConnectSuccessData })
           <li key={example}>{example}</li>
         ))}
       </ul>
-      <p role="status" className="text-base-content/70 text-sm">
+      <p role="status" className="text-muted text-sm">
         {returning ? `Returning to ${clientName}…` : returningNote(clientName)}
       </p>
       <div className="flex justify-end">
-        <button type="button" className="btn btn-primary" onClick={goBack} disabled={returning}>
+        <Button variant="primary" onClick={goBack} disabled={returning}>
           {returnLabel(clientName)}
-        </button>
+        </Button>
       </div>
     </div>
   );

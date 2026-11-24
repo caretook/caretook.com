@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Button } from "~/components/ui";
 import {
   pruneTodoUndo,
   subscribeTodoUndo,
@@ -58,25 +59,25 @@ export function TodoUndoStatus({ groupId, className = "" }: { groupId: string; c
       data-todo-undo={shown.length ? "" : undefined}
     >
       {shown.length > 0 && (
-        <ul className="alert alert-info alert-soft flex flex-col items-stretch gap-1 py-2 text-sm">
+        <ul className="rounded-box bg-info/10 flex flex-col items-stretch gap-1 px-3 py-2 text-sm">
           {shown.map((offer) => (
             <li key={offer.key} className="flex items-center justify-between gap-3" data-todo-undo-line>
               <span data-todo-undo-label>{offer.label}</span>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-label={`Undo ${offer.title}`}
                 disabled={busy.has(offer.key)}
-                data-todo-undo-button
+                data-todo-undo-button=""
                 onClick={() => undo(offer)}
               >
                 Undo
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       )}
-      {error && <p className="text-error text-sm">{error}</p>}
+      {error && <p className="text-error-ink text-sm">{error}</p>}
     </div>
   );
 }

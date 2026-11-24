@@ -17,6 +17,7 @@ import * as profiles from "./profiles";
 import * as providers from "./providers";
 import * as realOwners from "./realOwners";
 import * as secondGroup from "./secondGroup";
+import * as setupDismissed from "./setupDismissed";
 import * as staff from "./staff";
 import * as tedderFamily from "./tedderFamily";
 import * as todos from "./todos";
@@ -68,6 +69,8 @@ export const seed = async () => {
     // After every group exists.
     const { added } = await realOwners.seed();
     if (added) console.log(`Made real account(s) owners of seeded groups: ${added} membership(s) added`);
+    // After every membership exists: seeded members don't get the setup card.
+    await setupDismissed.seed();
     // Last, once every seed has made its accounts.
     const { updated } = await accounts.rotateStagingPasswords();
     if (updated) console.log(`Set ${updated} seeded account(s) to the current SEED_USER_PASSWORD`);

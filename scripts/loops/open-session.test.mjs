@@ -19,7 +19,14 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { chooseCommand, chooseMainCommand, projectFolder, runThrough } from "./open-session.mjs";
+import {
+  chooseCommand,
+  chooseMainCommand,
+  inboxDirOf,
+  inboxUntrusted,
+  projectFolder,
+  runThrough,
+} from "./open-session.mjs";
 
 const SESSION_SH = "/o/scripts/loops/session.sh";
 const W = `cd /w/.loops/t && ${SESSION_SH} prd-t`;
@@ -117,8 +124,18 @@ beforeAll(() => {
   ])
     git(main, "config", k, v);
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
-  for (const f of ["prd.sh", "lib.sh", "open-session.sh", "open-session.mjs", "sessions.mjs"])
+  for (const f of [
+    "prd.sh",
+    "lib.sh",
+    "open-session.sh",
+    "open-session.mjs",
+    "planner-model.mjs",
+    "sessions.mjs",
+  ])
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
+  mkdirSync(join(main, "scripts/backlog"));
+  for (const f of ["registry.mjs", "format.mjs"])
+    copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
   writeFileSync(join(main, ".gitignore"), ".loops/\n");
   git(main, "add", ".");
   git(main, "commit", "-q", "-m", "chore: init");
@@ -187,8 +204,62 @@ describe("backlog, recovery and hotfix sessions", () => {
 
   it("refuses any other kind of record", () => {
     expect(() => chooseMainCommand({ name: "x", main: "/m", wrapper, record: { kind: "prd" } })).toThrow(
-      /not a backlog or recovery/,
+      /not a backlog, recovery or inbox/,
     );
+  });
+
+  it("the inbox session reopens through prd.sh inbox in its recorded directory, on its recorded model", () => {
+    const prd = wrapper.replace(/session\.sh$/, "prd.sh");
+    const record = { kind: "inbox", model: "sonnet", managed: true, dir: "/h/.caretook/inbox" };
+    expect(chooseMainCommand({ name: "inbox", main: "/m", wrapper, record })).toMatchObject({
+      session: "inbox",
+      kind: "inbox",
+      mode: "fresh",
+      managed: true,
+      command: `cd /m && ${prd} inbox --dir /h/.caretook/inbox --model sonnet --managed`,
+    });
+    // No directory or model recorded: the default directory, on Opus; by hand stays by hand.
+    expect(
+      chooseMainCommand({ name: "inbox", main: "/m", wrapper, record: { kind: "inbox" }, inboxDir: "/d" })
+        .command,
+    ).toBe(`cd /m && ${prd} inbox --dir /d --model opus`);
+  });
+
+  it("the inbox directory is the record's, else CARETOOK_INBOX_DIR, else ~/.caretook/inbox", () => {
+    expect(inboxDirOf({ dir: "/r" }, { CARETOOK_INBOX_DIR: "/e" })).toBe("/r");
+    expect(inboxDirOf(null, { CARETOOK_INBOX_DIR: "/e" })).toBe("/e");
+    expect(inboxDirOf({}, {})).toMatch(/\/\.caretook\/inbox$/);
+  });
+
+  it("the inbox directory is trusted after a saved conversation there, or Claude Code's accepted folder", () => {
+    const tmp = realpathSync(mkdtempSync(join(tmpdir(), "inbox-trust-")));
+    try {
+      const dir = join(tmp, "home/.caretook/inbox");
+      const projects = join(tmp, "projects");
+      const config = join(tmp, "claude.json");
+      const opts = { projects, config };
+      expect(inboxUntrusted(dir, opts)).toMatch(/doesn't exist yet: run `pnpm prd inbox` once by hand/);
+      mkdirSync(dir, { recursive: true });
+      expect(inboxUntrusted(dir, opts)).toBe(
+        `its directory ${dir} isn't trusted yet: run \`pnpm prd inbox\` once by hand and accept the folder`,
+      );
+      // Another folder's trust, or one not accepted, doesn't count; a folder above it does.
+      const trust = (projectsMap) => writeFileSync(config, JSON.stringify({ projects: projectsMap }));
+      trust({
+        [join(tmp, "other")]: { hasTrustDialogAccepted: true },
+        [dir]: { hasTrustDialogAccepted: false },
+      });
+      expect(inboxUntrusted(dir, opts)).toMatch(/isn't trusted yet/);
+      trust({ [join(tmp, "home")]: { hasTrustDialogAccepted: true } });
+      expect(inboxUntrusted(dir, opts)).toBeNull();
+      writeFileSync(config, "not json");
+      expect(inboxUntrusted(dir, opts)).toMatch(/isn't trusted yet/);
+      mkdirSync(join(projects, projectFolder(dir)), { recursive: true });
+      writeFileSync(join(projects, projectFolder(dir), "s.jsonl"), "{}\n");
+      expect(inboxUntrusted(dir, opts)).toBeNull();
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it("a hotfix continues in its worktree on its recorded model, and is fresh after a rotation", () => {
@@ -426,11 +497,36 @@ describe("pnpm prd open", () => {
     expect(script.match(/activate/g)).toEqual(["activate"]);
     expect(script).toMatch(/if not quiet then activate/);
     expect(script).toMatch(/set previousTab to current tab of theWindow/);
-    expect(script).toMatch(/if quiet then tell previousTab to select/);
+    expect(script).toMatch(/tell previousTab to select/);
     expect(script).toMatch(/set newSession to current session of newTab/);
     expect(script).toMatch(/tell newSession\s+set name to tabTitle\s+write text cmd/);
     // "title" is a session property in iTerm2: a variable of that name breaks "set name"
     expect(script).not.toMatch(/set title to/);
+  });
+
+  it("falls back when iTerm2 has no current window: the first window, else a new one (B-468)", () => {
+    ok(["auto", "--background"]);
+    const script = tabScript();
+    // current window is missing value when iTerm2 is hidden, minimised or has no key window.
+    expect(script).toMatch(/try\s+set theWindow to current window\s+end try/);
+    expect(script).toMatch(
+      /if theWindow is missing value then\s+try\s+set theWindow to first window\s+end try\s+end if/,
+    );
+    // Its tab is addressed only once a window is in hand, and never fails the open.
+    const inWindow = script.slice(script.indexOf("if theWindow is not missing value then"));
+    expect(script.indexOf("if theWindow is not missing value then")).toBeLessThan(
+      script.indexOf("current tab of theWindow"),
+    );
+    expect(inWindow).toMatch(/try\s+set previousTab to current tab of theWindow\s+end try/);
+    expect(script).toMatch(
+      /if quiet and previousTab is not missing value then\s+try\s+tell previousTab to select/,
+    );
+    // No usable window, or no tab made in it: a new window, and the command goes to its session.
+    expect(script).toMatch(
+      /if newSession is missing value then\s+set newWindow to \(create window with default profile\)\s+set newSession to current session of newWindow\s+end if\s+tell newSession/,
+    );
+    expect(script).not.toMatch(/current (tab|session) of current window/);
+    expect(script).not.toMatch(/count of windows/);
   });
 
   it("opens any command line in a tab with --command, exec'd so the tab closes with it", () => {
@@ -476,6 +572,26 @@ describe("pnpm prd open", () => {
         '--model opus --remote-control plan-v "$(scripts/loops/prompt.sh plan v --auto)"',
       ),
     );
+  });
+
+  it("reopens a design row's planner on Fable, fresh or continued, and any other on opus", () => {
+    mkdirSync(join(main, "plans"), { recursive: true });
+    const table = (flags) =>
+      `# Backlog\n\n## PRDs\n\n| PRD | Flags | After | Hot files | Doc and notes |\n| --- | --- | --- | --- | --- |\n| \`v\` | ${flags} | — | — | — |\n`;
+    writeFileSync(join(main, "plans/backlog.md"), table("design"));
+    try {
+      ok(["plan-v"]);
+      expect(tabCommand()).toContain('--model fable --remote-control plan-v "$(');
+      saveConversation("plan-v");
+      ok(["plan-v"]);
+      expect(tabCommand()).toContain("--model fable --continue --remote-control plan-v");
+      writeFileSync(join(main, "plans/backlog.md"), table("—"));
+      ok(["plan-v"]);
+      expect(tabCommand()).toContain("--model opus --continue --remote-control plan-v");
+    } finally {
+      rmSync(join(main, "plans/backlog.md"), { force: true });
+      rmSync(join(projects, projectFolder(join(loops, "plan-v"))), { recursive: true, force: true });
+    }
   });
 
   it("leaves --auto off when _Status_ doesn't record run-through", () => {

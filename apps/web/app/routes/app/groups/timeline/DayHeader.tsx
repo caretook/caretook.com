@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import type { TimelinePeriods } from "./timelinePeriods";
 
-import { periodAt, periodDay } from "@caretook/data/schema";
+import { periodAt, periodDayOn } from "@caretook/data/schema";
 import { ArrowRightLeft } from "lucide-react";
 import { Link } from "react-router";
-import { Button } from "~/components/ui";
+import { Button, ICON, ICON_LG } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
@@ -55,9 +55,11 @@ export function DayHeader({
         {/* One group, so a long period wraps with the + and the + stays at the far right. */}
         <div className="ms-auto flex min-w-0 items-center gap-2" data-day-actions>
           {today ? (
-            <TodayPeriod groupId={groupId} periods={periods} easy={easy} />
+            <TodayPeriod groupId={groupId} dayKey={dayKey} periods={periods} easy={easy} />
           ) : (
-            newestAt && <DayPeriod groupId={groupId} periods={periods} at={newestAt} easy={easy} />
+            newestAt && (
+              <DayPeriod groupId={groupId} dayKey={dayKey} periods={periods} at={newestAt} easy={easy} />
+            )
           )}
           {canWrite && !easy && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
         </div>
@@ -67,36 +69,45 @@ export function DayHeader({
   );
 }
 
-/** Today's: the current period, its day turning over within a minute; writers get Change. */
+/** Today's: the period in effect now, rechecked each minute; writers get Change. */
 function TodayPeriod({
   groupId,
+  dayKey,
   periods,
   easy,
 }: {
   groupId: string;
+  dayKey: string;
   periods: TimelinePeriods;
   easy: boolean;
 }) {
   const now = useNow(60_000);
-  return <DayPeriod groupId={groupId} periods={periods} at={now} change={!easy} easy={easy} />;
+  return (
+    <DayPeriod groupId={groupId} dayKey={dayKey} periods={periods} at={now} change={!easy} easy={easy} />
+  );
 }
 
 /**
  * The period care was in at `at` (for a past day, its newest row: a marker
  * that day is a row, so a change that day shows the new period), as "In
- * hospital · day 4" (days counted in the recipient's zone) with the type's
- * icon, linking to the period. No place: the line stays short, and the
- * period's page shows it. Nothing before the first period. With `change`,
- * writers get Change, which opens the add sheet.
+ * hospital · day 4" with the type's icon, linking to the period. The number
+ * counts from the start's date in the recipient's zone to this header's own
+ * date, so consecutive headers never repeat one when the viewer is in another
+ * zone (around midnight, Today can read a day ahead of the period's page); a
+ * date before the start's shows the period with no number. No place: the line
+ * stays short, and the period's page shows it. Nothing before the first
+ * period. With `change`, writers get Change, which opens the add sheet.
  */
 function DayPeriod({
   groupId,
+  dayKey,
   periods,
   at,
   change,
   easy,
 }: {
   groupId: string;
+  dayKey: string;
   periods: TimelinePeriods;
   at: string | number;
   change?: boolean;
@@ -108,13 +119,13 @@ function DayPeriod({
   const timeZone = group.recipient?.timeZone ?? "UTC";
   const { period } = span;
   const Icon = periodTypeMeta(period.type).icon;
-  const text = currentLineText(period, { day: periodDay(span.startsAt, at, timeZone) });
+  const text = currentLineText(period, { day: periodDayOn(span.startsAt, dayKey, timeZone) });
   return (
     <p
-      className={`text-base-content/70 flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
+      className={`text-muted flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
       data-period-line={period.id}
     >
-      <Icon className={easy ? "size-5 shrink-0" : "size-4 shrink-0"} aria-hidden="true" />
+      <Icon className={`${easy ? ICON_LG : ICON} shrink-0`} aria-hidden="true" />
       <Link
         to={appUrls.period(groupId, period.id)}
         className="link-hover min-w-0 break-words"

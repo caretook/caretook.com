@@ -29,6 +29,11 @@ const subscribe = (listener: () => void) => {
 const topmost = () => openSheets.at(-1) ?? null;
 const noSheet = () => null;
 
+/** Each open sheet's "would this lose changes?": a path change takes the sheets under the top one too. */
+const sheetChanges = new Map<string, () => boolean>();
+const changedUnder = (id: string) =>
+  openSheets.some((sheet) => sheet !== id && sheetChanges.get(sheet)?.() === true);
+
 const animates = () => window.matchMedia("(prefers-reduced-motion: no-preference)").matches;
 
 /** The longest transition computed on the panel, in ms. */
@@ -63,34 +68,57 @@ export function useSheetExit({
   isOpen,
   onOpenChange,
   panelRef,
+  hasChanges,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   panelRef: RefObject<HTMLElement | null>;
+  /** Asked before a dismissal or a held navigation: true opens "Discard changes?". */
+  hasChanges?: () => boolean;
 }) {
   const id = useId();
   const [phase, setPhaseState] = useState<Phase>("open");
   const phaseRef = useRef<Phase>("open");
+  const discarded = useRef(false);
   const setPhase = useCallback((next: Phase) => {
+    if (next === "open") discarded.current = false;
     phaseRef.current = next;
     setPhaseState(next);
   }, []);
   const held = useRef<Blocker | null>(null);
-  const latest = useRef({ isOpen, onOpenChange });
+  const latest = useRef({ isOpen, onOpenChange, hasChanges });
   useEffect(() => {
-    latest.current = { isOpen, onOpenChange };
+    latest.current = { isOpen, onOpenChange, hasChanges };
   });
+  const [asking, setAskingState] = useState(false);
+  const askingRef = useRef(false);
+  const setAsking = useCallback((next: boolean) => {
+    askingRef.current = next;
+    setAskingState(next);
+  }, []);
+  const wouldAsk = useCallback(() => !discarded.current && (latest.current.hasChanges?.() ?? false), []);
+  const leavingLoses = useCallback(
+    () => wouldAsk() || (!discarded.current && changedUnder(id)),
+    [wouldAsk, id],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
+    sheetChanges.set(id, wouldAsk);
     setOpenSheets([...openSheets, id]);
-    return () => setOpenSheets(openSheets.filter((sheet) => sheet !== id));
-  }, [isOpen, id]);
+    return () => {
+      sheetChanges.delete(id);
+      setOpenSheets(openSheets.filter((sheet) => sheet !== id));
+    };
+  }, [isOpen, id, wouldAsk]);
 
   // Opened again after an exit.
   useEffect(() => {
     if (isOpen && phaseRef.current === "gone") setPhase("open");
-  }, [isOpen, setPhase]);
+    // Closed with no exit (reduced motion), so the phase never left "open".
+    if (!isOpen) discarded.current = false;
+    if (!isOpen && askingRef.current) setAsking(false);
+  }, [isOpen, setPhase, setAsking]);
 
   // The exit's end: the latest held navigation goes, else the caller hears.
   useEffect(() => {
@@ -117,34 +145,73 @@ export function useSheetExit({
 
   const dismiss = useCallback(
     (open: boolean) => {
-      if (open || !animates()) return latest.current.onOpenChange(open);
+      if (open) return latest.current.onOpenChange(open);
+      if (phaseRef.current === "open" && wouldAsk()) return setAsking(true);
+      if (!animates()) return latest.current.onOpenChange(open);
       if (phaseRef.current === "open") setPhase("exiting");
     },
-    [setPhase],
+    [setPhase, setAsking, wouldAsk],
   );
   const shouldHold = useCallback<BlockerFunction>(
     ({ currentLocation, nextLocation }) =>
-      phaseRef.current !== "gone" && currentLocation.pathname !== nextLocation.pathname && animates(),
-    [],
+      phaseRef.current !== "gone" &&
+      currentLocation.pathname !== nextLocation.pathname &&
+      (animates() || leavingLoses()),
+    [leavingLoses],
   );
   const onHeld = useCallback(
     (blocker: Blocker) => {
       held.current = blocker;
+      if (askingRef.current) {
+        if (leavingLoses()) return;
+        // What it asked about is gone (the record was deleted elsewhere).
+        setAsking(false);
+      }
+      if (phaseRef.current === "open" && leavingLoses()) return setAsking(true);
+      if (!animates()) {
+        held.current = null;
+        if (blocker.state === "blocked") blocker.proceed();
+        return;
+      }
       if (phaseRef.current === "open") setPhase("exiting");
     },
-    [setPhase],
+    [setPhase, setAsking, leavingLoses],
   );
+
+  // "Keep editing": the sheet stays and a held navigation is called off.
+  const keepEditing = useCallback(() => {
+    if (!askingRef.current) return;
+    setAsking(false);
+    const blocker = held.current;
+    held.current = null;
+    if (blocker?.state === "blocked") blocker.reset();
+  }, [setAsking]);
+
+  // "Discard": the close that was asked about goes ahead, with its exit.
+  const discard = useCallback(() => {
+    setAsking(false);
+    discarded.current = true;
+    if (animates()) return setPhase("exiting");
+    const blocker = held.current;
+    held.current = null;
+    if (blocker?.state === "blocked") blocker.proceed();
+    else latest.current.onOpenChange(false);
+  }, [setAsking, setPhase]);
 
   // Whatever removed the hold (the caller closing the sheet) took the exit with it.
   const onReleased = useCallback(() => {
     held.current = null;
-  }, []);
+    if (askingRef.current) setAsking(false);
+  }, [setAsking]);
 
   const inDataRouter = useContext(UNSAFE_DataRouterContext) !== null;
   const isTopmost = useSyncExternalStore(subscribe, topmost, noSheet) === id;
   return {
     closing: phase !== "open",
     dismiss,
+    asking,
+    keepEditing,
+    discard,
     hold: inDataRouter && isOpen && isTopmost ? { shouldHold, onHeld, onReleased } : null,
   };
 }

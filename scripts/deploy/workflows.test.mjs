@@ -124,15 +124,21 @@ describe("the deploy workflows", () => {
       "components-1": "components",
       "components-2": "components",
       build: "full",
+      browser: "candidate",
+      "browser-2": "release",
+      "browser-3": "release",
+      "zone-browser": "release",
+      "zone-components-1": "release",
+      "zone-components-2": "release",
     };
     const tierJobs = Object.keys(tierOf);
-    expect(Object.keys(jobs)).toEqual(["plan", ...tierJobs, "verdict"]);
+    expect([...Object.keys(jobs)].sort()).toEqual(["plan", ...tierJobs, "verdict"].sort());
     // A narrowed run has one components job, so the second shard has its own switch.
     const switchOf = { ...tierOf, "components-2": "components2" };
     for (const name of tierJobs)
       expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${switchOf[name]} == 'true' }}`);
     expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
-    expect(jobs.verdict.needs).toEqual(["plan", ...tierJobs]);
+    expect([...jobs.verdict.needs].sort()).toEqual(["plan", ...tierJobs].sort());
     const upload = jobs.verdict.steps.at(-1);
     expect(upload.uses).toMatch(/^actions\/upload-artifact@[0-9a-f]{40}$/);
     expect(upload.with).toMatchObject({ name: "verdict", "retention-days": "7" });
@@ -164,7 +170,8 @@ describe("the deploy workflows", () => {
     }
     // One shard runs the quarantined component tests, not both.
     expect(jobs["components-2"].steps.some((s) => s.id === "quarantine")).toBe(false);
-    for (const name of ["static", "build"]) expect(jobs[name].outputs.started).toContain("steps.started");
+    for (const name of ["static", "build", "browser"])
+      expect(jobs[name].outputs.started).toContain("steps.started");
   });
 
   it("builds both targets in CI's full tier, with no debug handle in either client", () => {
@@ -176,6 +183,72 @@ describe("the deploy workflows", () => {
     for (const dir of ["apps/web/build/web/client", "apps/web/build/native/client"])
       expect(run("grep")).toContain(dir);
     expect(run("grep")).toContain("caretookSync");
+  });
+
+  it("runs the browser suite on the Docker stack, against a check build it serves itself", () => {
+    const { browser } = parseYaml(read(".github/workflows/ci.yml")).jobs;
+    expect(Number(browser["timeout-minutes"])).toBeLessThanOrEqual(35);
+    expect(browser.services).toBeUndefined();
+    expect(browser.steps.map((s) => s.id)).toEqual([
+      "checkout",
+      "setup",
+      "env",
+      "chromium",
+      "stack",
+      "migrate",
+      "seed",
+      "build",
+      "serve",
+      "powersync",
+      "started",
+      "suite",
+      "report",
+      "logs",
+    ]);
+    const run = (id) => browser.steps.find((s) => s.id === id).run;
+    expect(run("env")).toContain('node scripts/ci/env.mjs browser >> "$GITHUB_ENV"');
+    expect(run("stack")).toBe("pnpm datastore:up");
+    expect(run("serve")).toContain("NODE_ENV=production");
+    expect(run("serve")).toContain("host-headers.mjs");
+    expect(run("suite")).toBe("node scripts/ci/browser-job.mjs");
+    expect(run("report")).toBe('node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"');
+    expect(browser.outputs.failures).toBe("${{ steps.report.outputs.failures }}");
+    expect(browser.steps.find((s) => s.id === "report").if).toContain("!cancelled()");
+  });
+
+  it("runs the check-areas lint in CI's static job", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    const step = jobs.static.steps.find((s) => s.id === "check-areas");
+    expect(step.run).toBe("node scripts/loops/check-areas.mjs lint");
+    expect(step.if).toBe("${{ !cancelled() }}");
+  });
+
+  it("gives each release suite run its own job, within one suite's limit", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    const capS = read("scripts/loops/checks")
+      .split("\n")
+      .filter((line) => !line.startsWith("#"))
+      .map((line) => line.trim().split(/\s+/))
+      .filter((f) => f[3] === "yes")
+      .reduce((sum, f) => sum + Number(f[1]), 0);
+    for (const name of ["browser", "browser-2", "browser-3", "zone-browser"]) {
+      const job = jobs[name];
+      expect(Number(job["timeout-minutes"])).toBeLessThanOrEqual(35);
+      expect(capS).toBeLessThan((Number(job["timeout-minutes"]) - 3) * 60);
+      expect(job.steps.filter((s) => s.id === "suite")).toHaveLength(1);
+      expect(job.steps.find((s) => s.id === "suite").run).toBe("node scripts/ci/browser-job.mjs");
+    }
+    const same = (name) => jobs[name].steps.map((s) => ({ ...s }));
+    expect(same("browser-2")).toEqual(same("browser"));
+    expect(same("browser-3")).toEqual(same("browser"));
+    const zoneSteps = same("zone-browser").map((s) =>
+      s.id === "env"
+        ? { ...s, run: s.run.replace('node scripts/ci/env.mjs zone >> "$GITHUB_ENV"\n', "") }
+        : s,
+    );
+    expect(zoneSteps).toEqual(same("browser"));
+    for (const name of ["zone-browser", "zone-components-1", "zone-components-2"])
+      expect(jobs[name].steps.find((s) => s.id === "env").run).toContain("env.mjs zone");
   });
 
   it("runs the deploy's steps in order", () => {

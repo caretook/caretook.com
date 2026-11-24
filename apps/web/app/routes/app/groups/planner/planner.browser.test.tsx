@@ -46,6 +46,15 @@ import * as plannerRoute from "./route";
 // tests; this is what's on the screen.
 
 const MINUTE = 60_000;
+/**
+ * "10:45 AM" for `laTime(days, hour, minute)` on the device's clock. The world is set in
+ * Los Angeles wall-clock time and the Planner shows each time in the viewer's zone, so a
+ * New York device sees the 10:45 AM visit end at 1:45 PM.
+ */
+const shownAt = (days: number, hour: number, minute = 0) =>
+  new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(
+    new Date(Date.UTC(2026, 10, 18 + days, hour + 8, minute)),
+  );
 /** The Filter button, by its exact name: the menu ("Filter the Planner") and the chips ("Filters on") are named alike. */
 const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
 /** The labels of the "Filters on" chips. */
@@ -60,7 +69,7 @@ const choose = async (option: string) => {
   await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
   await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 };
-const TABS = 'main nav[aria-label="Planner or todos"]';
+const TABS = 'main nav[aria-label="Upcoming, past or todos"]';
 const tab = (label: string) =>
   [...document.querySelectorAll<HTMLAnchorElement>(`${TABS} a`)].find(
     (a) => a.textContent?.trim() === label,
@@ -163,9 +172,9 @@ describe("the list", () => {
       "Monday, Nov 23",
       "Tuesday, Nov 24",
     ]);
-    expect(rowOf(NURSE.id)?.when).toBe("Now · until 10:45 AM");
-    expect(rowOf(THERAPY.id)?.when).toBe("2:00 PM");
-    expect(rowOf(CARDIOLOGY.id)?.when).toBe("10:30 AM–11:15 AM");
+    expect(rowOf(NURSE.id)?.when).toBe(`Now · until ${shownAt(0, 10, 45)}`);
+    expect(rowOf(THERAPY.id)?.when).toBe(shownAt(0, 14));
+    expect(rowOf(CARDIOLOGY.id)?.when).toBe(`${shownAt(1, 10, 30)}–${shownAt(1, 11, 15)}`);
     expect(rowOf(HOSPICE.id)?.when).toBe("All day");
   });
 
@@ -202,49 +211,82 @@ describe("the list", () => {
     expect(rowOf(RIDE.id)?.actions).toEqual([]);
   });
 
-  test("the owner's initials sit under the time and actions, as a filter above the row's link", async () => {
+  test("at phone width the time runs on one line above the title, with no time column", async () => {
     await openPlanner();
-    const column = itemEl(CARDIOLOGY.id)?.querySelector<HTMLElement>("[data-when-column]");
-    const pill = column?.querySelector<HTMLElement>("[data-author]");
+    const row = itemEl(CARDIOLOGY.id);
+    const time = row?.querySelector("[data-when]");
+    expect(time?.getClientRects()).toHaveLength(1);
+    expect(time?.getBoundingClientRect().height).toBeLessThan(24);
+    const title = [...(row?.querySelectorAll("p") ?? [])].find(
+      (p) => p.textContent === "Cardiology follow-up",
+    );
+    expect(title?.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      time?.getBoundingClientRect().bottom ?? 0,
+    );
+    expect(row?.querySelector("[data-when-column]")).toBeNull();
+  });
+
+  test("a card with a contact has labelled Call and Directions in a footer, the initials on its right", async () => {
+    await openPlanner();
+    const footer = itemEl(CARDIOLOGY.id)?.querySelector<HTMLElement>("[data-row-footer]");
+    const call = footer?.querySelector<HTMLElement>('[data-action="call"]');
+    const map = footer?.querySelector<HTMLElement>('[data-action="map"]');
+    expect(call?.textContent).toBe("Call");
+    expect(map?.textContent).toBe("Directions");
+    expect(map?.getAttribute("aria-label")).toMatch(/^Directions to 48 Harbor/);
+    const pill = footer?.querySelector<HTMLElement>("[data-author]");
     const box = pill?.getBoundingClientRect();
-    const actions = column?.querySelector("[data-contact-actions]")?.getBoundingClientRect();
-    expect(box?.top).toBeGreaterThanOrEqual(actions?.bottom ?? Infinity);
-    expect(box?.right).toBeLessThanOrEqual(column?.getBoundingClientRect().right ?? 0);
-    // On top at its centre: the tap reaches the filter, not the row's link.
+    expect(box?.left).toBeGreaterThan(map?.getBoundingClientRect().right ?? Infinity);
+    expect(box?.right).toBeCloseTo(footer?.getBoundingClientRect().right ?? 0, 0);
+    // On top at their centres: a tap reaches the action or the filter, not the row's link.
+    const callBox = call?.getBoundingClientRect();
+    expect(call?.contains(document.elementFromPoint((callBox?.x ?? 0) + 8, (callBox?.y ?? 0) + 8))).toBe(
+      true,
+    );
     const hit = document.elementFromPoint((box?.left ?? 0) + 12, (box?.top ?? 0) + 12);
     expect(hit?.closest("[data-author]")).toBe(pill);
   });
 
-  test("an easy role's initials sit in the same column, with no filter: a tap there opens the row", async () => {
+  test("a card with no actions has no footer, and its initials end the last line", async () => {
+    await openPlanner();
+    const row = itemEl(RIDE.id);
+    expect(row?.querySelector("[data-row-footer]")).toBeNull();
+    expect(row?.querySelector("[data-contact-actions]")).toBeNull();
+    const pill = row?.querySelector("[data-author]")?.getBoundingClientRect();
+    const title = [...(row?.querySelectorAll("p") ?? [])]
+      .find((p) => p.textContent === "Ride to the senior center")
+      ?.getBoundingClientRect();
+    expect(pill?.left).toBeGreaterThanOrEqual(title?.right ?? Infinity);
+    expect(pill?.bottom).toBeGreaterThanOrEqual((title?.bottom ?? Infinity) - 1);
+  });
+
+  test("the address line has no map pin of its own", async () => {
+    await openPlanner();
+    const place = itemEl(CARDIOLOGY.id)?.querySelector("[data-place]");
+    expect(place?.textContent).toContain("48 Harbor Way, Suite 2, Port Alder");
+    expect(place?.querySelector("svg")).toBeNull();
+  });
+
+  test("an easy role's card keeps its footer, with plain initials: a tap there opens the row", async () => {
     await openPlanner({ role: "easy_viewer" });
     const row = itemEl(CARDIOLOGY.id);
-    const pill = row?.querySelector<HTMLElement>("[data-when-column] [data-author]");
+    const pill = row?.querySelector<HTMLElement>("[data-row-footer] [data-author]");
     expect(pill?.tagName).toBe("SPAN");
+    expect(row?.querySelector('a[aria-label^="Show only"]')).toBeNull();
     const box = pill?.getBoundingClientRect();
     const hit = document.elementFromPoint((box?.left ?? 0) + 12, (box?.top ?? 0) + 12);
     expect(hit?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/entries/${CARDIOLOGY.id}`);
+    expect(itemEl(RIDE.id)?.querySelector("[data-author]")?.tagName).toBe("SPAN");
   });
 
-  test("a row's call and map sit under its time, still tappable; a row without them has no gap there", async () => {
-    await openPlanner();
-    const column = (id: string) => itemEl(id)?.querySelector<HTMLElement>("[data-when-column]");
-    const withActions = column(CARDIOLOGY.id);
-    const time = withActions?.querySelector("[data-when]")?.getBoundingClientRect();
-    const actions = withActions?.querySelector("[data-contact-actions]")?.getBoundingClientRect();
-    expect(actions?.top).toBeGreaterThanOrEqual(time?.bottom ?? Infinity);
-    expect(actions?.right).toBeLessThanOrEqual(withActions?.getBoundingClientRect().right ?? 0);
-
-    const call = withActions?.querySelector<HTMLElement>('[data-action="call"]');
-    const box = call?.getBoundingClientRect();
-    const hit = document.elementFromPoint((box?.x ?? 0) + 8, (box?.y ?? 0) + 8);
-    expect(call?.contains(hit)).toBe(true);
-
-    const bare = column(RIDE.id);
-    expect(bare?.querySelector("[data-contact-actions]")).toBeNull();
-    // Only the column's gap-1 between the time and the owner's initials.
-    const bareTime = bare?.querySelector("[data-when]")?.getBoundingClientRect();
-    const barePill = bare?.querySelector("[data-author]")?.getBoundingClientRect();
-    expect((barePill?.top ?? 0) - (bareTime?.bottom ?? 0)).toBeCloseTo(4, 0);
+  test("the whole card still opens the entry, and its kind icon still filters", async () => {
+    const device = await openPlanner();
+    expect(rowOf(CARDIOLOGY.id)?.open).toBe(`/app/groups/${TEST_GROUP.id}/entries/${CARDIOLOGY.id}`);
+    expect(rowOf(CARDIOLOGY.id)?.kindLink).toBe("Show only events");
+    await userEvent.click(
+      getByCss(`[data-upcoming-item="${CARDIOLOGY.id}"] a[aria-label="Show only events"]`),
+    );
+    await expect.poll(device.location).toContain("kind=event");
   });
 
   test("an item leaves the Planner tab once its end (in progress) or its start passes, without a reload", async () => {
@@ -269,7 +311,7 @@ describe("adding", () => {
   const items = () =>
     [...document.querySelectorAll("[role=menu] [role=menuitem]")].map((m) => m.textContent?.trim());
 
-  test("a writer's + is the header's Add menu, with Appointment and Todo; Appointment is a draft that picks the time first", async () => {
+  test("a writer's + is the header's Add menu, with Event and Todo, and no Appointment; Event is a draft that picks the time first", async () => {
     const device = await openPlanner({ role: "caretaker" });
     // The header's +: its last control, icon only, "Add" its name and tooltip.
     await expect.element(addButton()).toHaveAttribute("title", "Add");
@@ -278,9 +320,9 @@ describe("adding", () => {
       addButton().element(),
     );
     await userEvent.click(addButton());
-    await expect.poll(items).toEqual(["Appointment", "Todo"]);
+    await expect.poll(items).toEqual(["Event", "Todo"]);
     const base = `/app/groups/${TEST_GROUP.id}/entries/new`;
-    await userEvent.click(page.getByRole("menuitem", { name: "Appointment" }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Event" }));
     await expect.poll(() => device.location()).toBe(`${base}?kind=event&when=pick`);
   });
 

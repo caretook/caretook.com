@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  DETAILS_CONSENT_VERSION,
   calendarFeedService,
   entryProviderService,
   memberCalendarSettingModel,
@@ -220,7 +221,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     const ics = await res.text();
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("X-WR-CALNAME:Caretook: Pat Example");
-    expect(ics).toContain("SUMMARY:Appointment for Pat Example");
+    expect(ics).toContain("SUMMARY:Event for Pat Example");
   });
 
   it("lets a viewer have a feed too", async () => {
@@ -228,7 +229,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     await s.entry({});
     const { file } = await makeFeed(s, "viewer");
     const ics = await (await fetchFeed(s.handler(), file)).text();
-    expect(ics).toContain("SUMMARY:Appointment for Pat Example");
+    expect(ics).toContain("SUMMARY:Event for Pat Example");
   });
 
   it("holds appointments and dated open todos from 90 days back to 90 ahead", async () => {
@@ -324,9 +325,13 @@ describe("GET /api/calendar/<token>.ics", () => {
     for (const secret of ["Kidney check", "Mercy Clinic", "Mercy Clinic Group"])
       expect(generic).not.toContain(secret);
 
-    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    await s.api("caretaker").calendars.settings.update({
+      groupId: s.group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
     const details = await read();
-    expect(details).toContain("Appointment for Pat Example: Kidney check");
+    expect(details).toContain("Event for Pat Example: Kidney check");
     expect(details).toContain("LOCATION:Mercy Clinic");
     expect(details).toContain("With Mercy Clinic Group");
 
@@ -337,6 +342,81 @@ describe("GET /api/calendar/<token>.ics", () => {
     await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: false });
     await s.api("owner").calendars.group.setDetailsAllowed({ groupId: s.group.id, allowed: true });
     expect(await read()).not.toContain("Kidney check");
+  });
+
+  it("still stops at 90 days ahead, though Google looks further", async () => {
+    const s = await setup();
+    const near = await s.entry({ occurredAt: daysFrom(89), endsAt: null });
+    const far = await s.entry({ occurredAt: daysFrom(200), endsAt: null });
+    const { file } = await makeFeed(s, "caretaker");
+    const ics = await (await fetchFeed(s.handler(), file)).text();
+    expect(ics).toContain(`entry:${near.id}`);
+    expect(ics).not.toContain(`entry:${far.id}`);
+  });
+
+  it("names only live providers", async () => {
+    const s = await setup();
+    const event = await s.entry({});
+    const provider = async (name: string) => {
+      const made = ok(
+        await providerService.create(s.ctx("caretaker"), { groupId: s.group.id, type: "practice", name }),
+      )!;
+      ok(
+        await entryProviderService.link(s.ctx("caretaker"), {
+          groupId: s.group.id,
+          entryId: event.id,
+          providerId: made.id,
+        }),
+      );
+      return made;
+    };
+    const gone = await provider("Harbor Cardiology");
+    await provider("Lakeside Nephrology");
+    ok(await providerService.remove(s.ctx("owner"), gone.id));
+    await s.api("caretaker").calendars.settings.update({
+      groupId: s.group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    const { file } = await makeFeed(s, "caretaker");
+    const ics = (await (await fetchFeed(s.handler(), file)).text()).replaceAll("\r\n", "\n");
+    expect(ics).toContain("Lakeside Nephrology");
+    expect(ics).not.toContain("Harbor Cardiology");
+  });
+
+  it("goes generic when the consent wording changed, until the member agrees again", async () => {
+    const s = await setup();
+    await s.entry({});
+    const handle = s.handler();
+    const { file } = await makeFeed(s, "caretaker");
+    const read = async () => (await (await fetchFeed(handle, file)).text()).replaceAll("\r\n", "\n");
+    await s.api("caretaker").calendars.settings.update({
+      groupId: s.group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    expect(await read()).toContain("Kidney check");
+
+    ok(
+      await memberCalendarSettingModel.update({
+        authUser: SYSTEM_USER,
+        filter: {
+          groupId: { type: "eq", value: s.group.id },
+          userId: { type: "eq", value: s.id("caretaker") },
+        },
+        data: { detailsConsentVersion: "2020-01-01" },
+      }),
+    );
+    const stale = await read();
+    expect(stale).not.toContain("Kidney check");
+    expect(stale).not.toContain("Mercy Clinic");
+
+    await s.api("caretaker").calendars.settings.update({
+      groupId: s.group.id,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
+    expect(await read()).toContain("Kidney check");
   });
 
   it("answers an unknown, malformed or wrongly named token with a bodyless 404", async () => {

@@ -20,7 +20,7 @@ export const schemaName = "userSchema";
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 /** What a co-member reads of another member's row (PUBLIC_PROFILE_FIELDS). */
-export type UserPublicRow = Pick<User, "id" | "name" | "image">;
+export type UserPublicRow = Pick<User, "id" | "name" | "image" | "avatarColor" | "avatarIcon">;
 
 /**
  * A whole row (yourself, staff, the system) or a co-member's public profile
@@ -35,7 +35,14 @@ export const dbToModel = (row: User | UserPublicRow) =>
         roleNames: [row.role] as PermissionRoleName[],
         isAdmin: row.role === "admin",
       }
-    : { id: row.id, name: row.name, image: row.image, publicOnly: true as const };
+    : {
+        id: row.id,
+        name: row.name,
+        image: row.image,
+        avatarColor: row.avatarColor,
+        avatarIcon: row.avatarIcon,
+        publicOnly: true as const,
+      };
 
 type Model = ReturnType<typeof dbToModel>;
 type WholeModel = Extract<Model, { publicOnly: false }>;

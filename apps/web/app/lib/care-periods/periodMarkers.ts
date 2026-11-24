@@ -27,7 +27,8 @@ const ms = (iso: string) => new Date(iso).getTime();
  * scrolling back never shows one out of place; once the timeline has reached
  * its beginning (or has no entries at all), every older marker shows too.
  * Under a filter that matches nothing (`filtered`, nothing loaded) there are
- * none: the list is its empty state alone.
+ * none: the list is its empty state alone. `before` is a jump's upper bound:
+ * nothing at or after it shows.
  */
 export const periodMarkers = <P extends TrackPeriod>(
   spans: readonly PeriodSpan<P>[],
@@ -35,7 +36,8 @@ export const periodMarkers = <P extends TrackPeriod>(
     oldestLoaded,
     hasOlder,
     filtered = false,
-  }: { oldestLoaded: string | null; hasOlder: boolean; filtered?: boolean },
+    before = null,
+  }: { oldestLoaded: string | null; hasOlder: boolean; filtered?: boolean; before?: string | null },
 ): PeriodMarker<P>[] => {
   const markers = spans.map((span, i) => ({
     id: span.period.id,
@@ -51,5 +53,5 @@ export const periodMarkers = <P extends TrackPeriod>(
       : hasOlder
         ? markers.filter((m) => ms(m.at) >= ms(oldestLoaded))
         : markers;
-  return shown.reverse();
+  return (before ? shown.filter((m) => ms(m.at) < ms(before)) : shown).reverse();
 };

@@ -260,6 +260,48 @@
       "when": 1795305779502,
       "tag": "0036_easy_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795399735029,
+      "tag": "0037_furry_skaar",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795411135722,
+      "tag": "0038_giant_eternity",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795435621400,
+      "tag": "0039_outbox_expires_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795439799893,
+      "tag": "0040_connection_last_catch_up_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795451655188,
+      "tag": "0041_member_avatars",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795458676621,
+      "tag": "0042_natural_arclight",
+      "breakpoints": true
     }
   ]
 }

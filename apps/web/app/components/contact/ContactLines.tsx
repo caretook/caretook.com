@@ -1,6 +1,7 @@
 import type { MemberContactLine } from "~/lib/profiles/memberContact";
 
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
+import { Button } from "~/components/ui";
 
 /** `data-*` attributes for the list (what checks find it by). */
 type DataAttributes = { [name: `data-${string}`]: string };
@@ -14,7 +15,7 @@ type DataAttributes = { [name: `data-${string}`]: string };
 export function ContactLines({ lines, ...data }: { lines: MemberContactLine[] } & DataAttributes) {
   if (lines.length === 0) return null;
   return (
-    <ul className="text-base-content/80 flex min-w-0 flex-col gap-0.5 text-sm" {...data}>
+    <ul className="text-muted flex min-w-0 flex-col gap-0.5 text-sm" {...data}>
       {lines.map(({ field, action, text, caption, sms }) => {
         const Icon = ACTION_ICONS[action.kind];
         return (
@@ -33,7 +34,7 @@ export function ContactLines({ lines, ...data }: { lines: MemberContactLine[] } 
               <span className="sr-only">{action.label}: </span>
               <span className="truncate">{text}</span>
               {caption && (
-                <span aria-hidden="true" className="text-base-content/60 shrink-0 text-xs">
+                <span aria-hidden="true" className="text-faint shrink-0 text-xs">
                   {caption}
                 </span>
               )}
@@ -47,16 +48,15 @@ export function ContactLines({ lines, ...data }: { lines: MemberContactLine[] } 
 }
 
 function TextLink({ action }: { action: NonNullable<MemberContactLine["sms"]> }) {
-  const Icon = ACTION_ICONS.text;
   return (
-    <a
+    <Button
       href={action.href}
-      aria-label={action.label}
-      title={action.label}
+      variant="ghost"
+      size="xs"
+      icon={ACTION_ICONS.text}
+      label={action.label}
       data-action="text"
-      className="btn btn-ghost btn-xs btn-square shrink-0"
-    >
-      <Icon className="size-3.5" aria-hidden="true" />
-    </a>
+      className="shrink-0"
+    />
   );
 }

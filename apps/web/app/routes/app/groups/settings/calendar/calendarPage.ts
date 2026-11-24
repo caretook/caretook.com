@@ -36,9 +36,13 @@ export const COMING_SOON = "Coming soon.";
 
 /** The generic default, said before the switch. */
 export const detailsExplained = (recipient: string) =>
-  `Emails, your calendar feed and Google Calendar say only "Appointment for ${recipient}", the time and a link back to Caretook.`;
+  `Emails, your calendar feed and Google Calendar say only "Event for ${recipient}", the time and a link back to Caretook.`;
 
 export const DETAILS_FORBIDDEN = "Your group's owners keep details private.";
+
+/** Under the switch when the member agreed to an older wording. */
+export const detailsStaleNote = (agreedOn: string) =>
+  `The wording has changed since you agreed on ${agreedOn}. Turn this on to agree again.`;
 
 /** What the details card shows: the switch (and whether it's on and usable), or why not. */
 export const detailsCardState = ({
@@ -56,5 +60,7 @@ export const detailsCardState = ({
     on: groupAllows && settings.detailsConsent,
     disabled: !groupAllows,
     note: groupAllows ? null : DETAILS_FORBIDDEN,
+    /** Agreed to an older wording; while the owners forbid details, there's nothing to agree to. */
+    stale: groupAllows && settings.detailsConsentStale,
   };
 };

@@ -21,6 +21,7 @@ import {
   OFF_NOTE,
   VIEWER_NOTE,
 } from "../../../../lib/connectors/connectGuide";
+import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "@caretook/data/schema";
 import { OFFLINE_ASSISTANTS } from "./assistants/assistants";
 
 // Group settings → Assistants (connectors slice 5): owners turn the switch
@@ -48,6 +49,7 @@ type Connection = {
   scope: "read" | "readWrite";
   consentedAt: string;
   lastUsedAt: string | null;
+  readOnlyByOwner: boolean;
 };
 const connection = (id: string, memberName: string, clientName: string, v: Partial<Connection> = {}) => ({
   id,
@@ -59,6 +61,7 @@ const connection = (id: string, memberName: string, clientName: string, v: Parti
   scope: "readWrite" as const,
   consentedAt: ago(2 * 24 * 60),
   lastUsedAt: ago(10),
+  readOnlyByOwner: false,
   ...v,
 });
 
@@ -92,11 +95,13 @@ const groupServer = (connections: Connection[]) => {
 const open = ({
   role = "owner",
   enabled = false,
+  readOnly = false,
   api,
   width,
 }: {
   role?: GroupRole;
   enabled?: boolean;
+  readOnly?: boolean;
   api?: Record<string, (input: unknown) => unknown>;
   width?: number;
 }) =>
@@ -105,7 +110,7 @@ const open = ({
     url: URL,
     role,
     width,
-    fixtures: [fx.group({ connectorsEnabled: enabled ? 1 : 0 })],
+    fixtures: [fx.group({ connectorsEnabled: enabled ? 1 : 0, connectorsReadOnly: readOnly ? 1 : 0 })],
     api,
   });
 
@@ -237,6 +242,80 @@ describe("group settings → Assistants", () => {
     expect(status()).toBe("Assistants are on for this care group.");
     expect(toggle().elements()).toHaveLength(0);
     expect(document.querySelector('section[data-section="group-connections"]')).toBeNull();
+  });
+});
+
+// Read only (assistant-access): the owner's choice while assistants are on,
+// everyone else's status from the device's copy.
+const readOnlyToggle = () => page.getByRole("switch", { name: "Read only" });
+const readOnlyStatus = () =>
+  document.querySelector("[data-assistants-read-only]")?.textContent.trim() ?? null;
+
+describe("group settings → Assistants' read only", () => {
+  test("an owner turns it on and off, saved at once with no confirm", async () => {
+    const server = groupServer([ANN]);
+    const device = await open({ enabled: true, api: server.api });
+    await expect.element(readOnlyToggle()).not.toBeChecked();
+
+    await userEvent.click(readOnlyToggle());
+    await expect
+      .poll(() => server.calls.of("careGroup.update"))
+      .toEqual([{ groupId: TEST_GROUP.id, connectorsReadOnly: true }]);
+    await expect.element(readOnlyToggle()).toBeChecked();
+    expect(dialog()?.open ?? false).toBe(false);
+    await device.sync(fx.group({ connectorsEnabled: 1, connectorsReadOnly: 1 }));
+    await device.settle();
+    await expect.element(readOnlyToggle()).toBeChecked();
+    await expect.poll(rows).toHaveLength(1);
+
+    await userEvent.click(readOnlyToggle());
+    await expect
+      .poll(() => server.calls.of("careGroup.update"))
+      .toEqual([
+        { groupId: TEST_GROUP.id, connectorsReadOnly: true },
+        { groupId: TEST_GROUP.id, connectorsReadOnly: false },
+      ]);
+    await expect.element(readOnlyToggle()).not.toBeChecked();
+  });
+
+  test("a refused change shows what's saved, with the reason", async () => {
+    const server = groupServer([]);
+    await open({
+      enabled: true,
+      api: { ...server.api, "careGroup.update": () => refusal("careGroupService:connectorsOwnerOnly") },
+    });
+    await userEvent.click(readOnlyToggle());
+    await expect.element(page.getByRole("alert")).toHaveTextContent("You don't have permission to do that.");
+    await expect.element(readOnlyToggle()).not.toBeChecked();
+  });
+
+  test("an owner has no read-only control while assistants are off", async () => {
+    await open({ readOnly: true, api: groupServer([]).api });
+    await expect.element(toggle()).not.toBeChecked();
+    expect(readOnlyToggle().elements()).toHaveLength(0);
+    expect(readOnlyStatus()).toBeNull();
+  });
+
+  test.each(["admin", "caretaker", "viewer"] as const)(
+    "a %s sees the status from local data, with no control, and follows a change",
+    async (role) => {
+      const device = await open({ role, enabled: true, readOnly: true });
+      await expect.poll(readOnlyStatus).toBe(CONNECTOR_READ_ONLY_BY_OWNER_LABEL);
+      expect(readOnlyToggle().elements()).toHaveLength(0);
+
+      await device.sync(fx.group({ connectorsEnabled: 1, connectorsReadOnly: 0 }));
+      await expect.poll(readOnlyStatus).toBeNull();
+    },
+  );
+
+  test("a connection the owner limited shows the owner's label; a plain read grant, Read only", async () => {
+    const limited = connection("g3", "Ann Lee", "Claude", { readOnlyByOwner: true });
+    await open({ role: "admin", enabled: true, readOnly: true, api: groupServer([limited, RAY]).api });
+    await expect.poll(rows).toHaveLength(2);
+    const [ann, ray] = rows();
+    expect(ann).toContain(`${CONNECTOR_READ_ONLY_BY_OWNER_LABEL} · Connected`);
+    expect(ray).toMatch(/Read only · Connected/);
+    expect(ray).not.toContain(CONNECTOR_READ_ONLY_BY_OWNER_LABEL);
   });
 });
 

@@ -3,8 +3,9 @@ import type { PlanSeries, SeriesEditChange } from "@caretook/data/series";
 import { parseRule, ruleText, SERIES_LIMITS } from "@caretook/data/schema";
 import { ruleFrom } from "@caretook/data/series";
 import { useState } from "react";
-import { Field, Sheet } from "~/components/ui";
+import { Field, FormFooter, Message, Sheet, TimeSelect, ToggleField } from "~/components/ui";
 import { choiceOfRule } from "~/lib/appointments/repeatChoice";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 import { repeatOutcome, RepeatField } from "./RepeatField";
 
 /** "HH:MM" plus minutes, as a wall-clock time (past midnight wraps). */
@@ -54,9 +55,9 @@ export function SeriesEditSheet({
   const [title, setTitle] = useState(series.title ?? "");
   const [place, setPlace] = useState(series.place ?? "");
   const [allDay, setAllDay] = useState(series.allDay);
-  const [startTime, setStartTime] = useState(series.startTime ?? "09:00");
+  const [startTime, setStartTime] = useState(() => series.startTime ?? currentHourTime(series.timeZone));
   const [endTime, setEndTime] = useState(
-    series.durationMinutes ? addMinutes(series.startTime ?? "09:00", series.durationMinutes) : "",
+    series.durationMinutes ? addMinutes(startTime, series.durationMinutes) : "",
   );
   const [choice, setChoice] = useState(() => choiceOfRule(ruleFrom(series, fromDay), fromDay));
 
@@ -86,7 +87,7 @@ export function SeriesEditSheet({
   };
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title="Edit this and later visits">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title="Edit this and later visits">
       <form
         className="space-y-4"
         data-series-edit
@@ -95,68 +96,52 @@ export function SeriesEditSheet({
           save();
         }}
       >
-        <Field label="Title" error={missingTitle ? "Enter a title" : undefined}>
+        <Field label="Title" kind="input" error={missingTitle ? "Enter a title" : undefined}>
           {(control) => (
             <input
               {...control}
               name="title"
               type="text"
-              className="input w-full"
               maxLength={SERIES_LIMITS.title}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           )}
         </Field>
-        <label className="label text-base-content cursor-pointer gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="allDay"
-            className="toggle toggle-sm"
-            checked={allDay}
-            onChange={(e) => setAllDay(e.target.checked)}
-          />
-          All day
-        </label>
+        <ToggleField
+          label="All day"
+          name="allDay"
+          checked={allDay}
+          onChange={(e) => setAllDay(e.target.checked)}
+        />
         {!allDay && (
-          <div className="flex gap-2">
-            <Field label={event ? "Starts" : "At"} className="flex-1">
-              {(control) => (
-                <input
-                  {...control}
-                  name="startTime"
-                  type="time"
-                  required
-                  className="input w-full"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-              )}
-            </Field>
+          <div className="flex flex-wrap gap-2">
+            <TimeSelect
+              label={event ? "Starts" : "At"}
+              name="startTime"
+              className="min-w-0 flex-1"
+              value={startTime}
+              onChange={setStartTime}
+            />
             {event && (
-              <Field label="Ends (optional)" className="flex-1">
-                {(control) => (
-                  <input
-                    {...control}
-                    name="endTime"
-                    type="time"
-                    className="input w-full"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                )}
-              </Field>
+              <TimeSelect
+                label="Ends (optional)"
+                name="endTime"
+                optional
+                className="min-w-0 flex-1"
+                value={endTime}
+                onChange={setEndTime}
+              />
             )}
           </div>
         )}
         {event && (
-          <Field label="Place (optional)">
+          <Field label="Place (optional)" kind="input">
             {(control) => (
               <input
                 {...control}
                 name="place"
                 type="text"
-                className="input w-full"
                 maxLength={SERIES_LIMITS.place}
                 value={place}
                 onChange={(e) => setPlace(e.target.value)}
@@ -165,22 +150,11 @@ export function SeriesEditSheet({
           </Field>
         )}
         <RepeatField choice={choice} onChange={setChoice} timing={timing} kind={kind} />
-        <p className="text-base-content/70 text-sm">
+        <p className="text-muted text-sm">
           Visits from this one on change. Past visits, and ones changed on their own, stay as they are.
         </p>
-        {error && (
-          <p role="alert" className="text-error text-sm">
-            {error}
-          </p>
-        )}
-        <div className="flex justify-end gap-2">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary">
-            Save
-          </button>
-        </div>
+        {error && <Message tone="error">{error}</Message>}
+        <FormFooter submitLabel="Save" cancel={{ label: "Cancel", onCancel: onClose }} />
       </form>
     </Sheet>
   );

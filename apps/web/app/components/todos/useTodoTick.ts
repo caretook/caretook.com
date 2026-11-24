@@ -4,6 +4,18 @@ import { clearTodoUndo, offerTodoUndo } from "~/lib/todos/todoUndo";
 import { getSync } from "~/lib/sync";
 import { completeTodo, reopenTodo } from "~/lib/todos/todos.sync";
 
+const WRITE_FAILED = "Couldn't save that. Try again.";
+
+/** A local write that throws (B-527) is a failed result, so every caller can show it. */
+async function caught<T extends { ok: boolean }>(write: () => Promise<T>) {
+  try {
+    return await write();
+  } catch (e) {
+    console.error("Couldn't save the todo", e);
+    return { ok: false as const, error: WRITE_FAILED };
+  }
+}
+
 /**
  * Ticking todos done and reopening them: the one path for every todo tick
  * (the list, the page, Upcoming, the easy card, `LinkedTodos`). Local
@@ -19,7 +31,7 @@ export function useTodoTick(groupId: string) {
     setBusy(true);
     setError(null);
     try {
-      const result = await write();
+      const result = await caught(write);
       if (!result.ok) setError(result.error);
       return result.ok;
     } finally {
@@ -52,7 +64,7 @@ export function useTodoTick(groupId: string) {
 
 /** Undo one tick: reopens just that todo, and drops only its offer. */
 export async function undoTodoTick(key: string, todoId: string) {
-  const result = await reopenTodo(getSync(), todoId);
+  const result = await caught(() => reopenTodo(getSync(), todoId));
   if (result.ok) clearTodoUndo(key);
   return result;
 }

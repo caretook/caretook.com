@@ -5,10 +5,12 @@
 #
 # For prd/ and hotfix/ branches; plan/ branches land locally and are refused.
 # It refuses a branch that isn't synced with dev (trunk_drift, as land does;
-# backlog-only commits on dev don't count), then:
+# backlog-only commits on dev don't count, nor drift that needs no merge:
+# unsynced_safe), then:
 #   1. pushes the main checkout's dev to origin/dev, fast-forward only, so the
-#      PR's base is the dev the branch last synced with; it stops when
-#      origin/dev has diverged (lib.sh, push_trunk);
+#      PR's base is the dev the branch last synced with; when origin/dev has
+#      commits dev lacks it runs dev-sync first, and stops if that stops
+#      (lib.sh, push_trunk);
 #   2. pushes the branch (never forced);
 #   3. opens the PR into dev, or updates the open one: the title is the landing
 #      subject (-m, else the one `land` would build); the body lists the
@@ -23,13 +25,17 @@
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
+# shellcheck source=unsynced.sh
+source "$(dirname "$0")/unsynced.sh"
 use_node || true
 
-what="" msg=""
+what="" msg="" tier="" why=""
 while (($#)); do
   case $1 in
     -m) msg=${2:?-m "subject"}; shift 2 ;;
-    -*) die "pr: unknown option $1 (-m \"<subject>\")" ;;
+    --tier) tier=${2:-}; [[ -n $tier && $tier != -* ]] || die "--tier needs a tier"; shift 2 ;;
+    --why) why=${2:-}; [[ -n $why && $why != -* ]] || die "--why needs a reason"; shift 2 ;;
+    -*) die "pr: unknown option $1 (-m \"<subject>\", --tier <t>, --why \"<reason>\")" ;;
     *) [[ -z $what ]] || die "pr: one branch or topic"; what=$1; shift ;;
   esac
 done
@@ -47,10 +53,19 @@ pr_seam "$branch"
 
 git -C "$main" rev-parse --verify --quiet "$branch" >/dev/null || die "no branch $branch"
 (($(git -C "$main" rev-list --count "$drift_ref..$branch") > 0)) || die "nothing to review: $branch has no commits that $drift_ref lacks"
-[[ -z $(trunk_drift "$branch" "$drift_ref") ]] ||
+[[ -z $(trunk_drift "$branch" "$drift_ref") ]] || unsynced_safe "$branch" "$drift_ref" ||
   die "$drift_ref has moved since $branch last synced: run \`pnpm prd sync\` (and the check) in $dir first"
 [[ ! -d $dir || -z $(git -C "$dir" status --porcelain) ]] ||
   echo "note: $dir has uncommitted changes; only the commits go up"
+
+proposed=$(propose_tier "$drift_ref" "$branch" "$tier") || die "unknown tier $tier (none, static, unit, integration, components, full)"
+{ read -r proposal; read -r proposal_why; read -r tier_status; } <<< "$proposed"
+tier=${tier:-$proposal}
+[[ $tier_status != refused ]] || die "--tier none skips the gate, and this diff proposes $proposal ($proposal_why)"
+[[ $tier_status != below || -n $why ]] ||
+  die "--tier $tier is below the proposal, $proposal ($proposal_why): add --why \"<reason>\", or declare $proposal"
+tierline="$tier (proposed $proposal: $proposal_why)"
+[[ $tier_status != below ]] || tierline+="; below the proposal because: $why"
 
 repo=$(gh_repo) || die "gh couldn't name origin's repository (gh auth status?)"
 if [[ ${CARETOOK_PR_THROWAWAY:-} != 1 ]]; then push_trunk; fi
@@ -71,6 +86,8 @@ Lands \`$branch\` in \`$trunk\` ($tip).
 
 **Backlog items:**
 $items
+
+**Tier:** $tierline
 
 **Check:** $(checked_how "$gate" "$branch")
 

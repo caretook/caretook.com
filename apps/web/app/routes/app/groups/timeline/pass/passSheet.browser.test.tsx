@@ -94,7 +94,9 @@ describe("a pass log", () => {
     );
     expect(named).toHaveLength(1);
     await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
-    await expect.poll(() => row()!.querySelector<HTMLElement>("[data-pass-log-doses]")!.hidden).toBe(false);
+    await expect
+      .poll(() => row()?.querySelector("[data-pass-log-doses]")?.hasAttribute("data-open"))
+      .toBe(true);
     const lines = [...row()!.querySelectorAll("[data-pass-log-doses] li")].map((li) => li.textContent);
     expect(lines).toHaveLength(3);
     expect(lines).toEqual(expect.arrayContaining(["Qc 5 mg: Refused", "Qa 5 mg: Given 1 tablet"]));

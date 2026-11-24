@@ -1,7 +1,5 @@
 # Care groups
 
-The care groups area's rules and decisions.
-
 The shared space for one care recipient's caretakers: always "care group", never "care circle".
 
 - **Tables** (`packages/data/src/db/schema/care-groups/`):
@@ -21,7 +19,7 @@ The shared space for one care recipient's caretakers: always "care group", never
   - `care_group_invite`: owner and admin for everything (update: status only).
   - `care_group_consent`, `care_group_join_request`: read owner, admin, yourself; writes `system`.
   - `access_code`: staff for everything (update: not the code or use count). `access_code_redemption`: read staff; `system` writes.
-  - `user`: read self, staff and co-members (id, name, image); create staff; update self (no role or email); delete self and staff.
+  - `user`: read self, staff and co-members (`PUBLIC_PROFILE_FIELDS`); create staff; update self (no role or email); delete self and staff.
   - `timeline_entry`: read any member; create loggers; update and (soft) delete writers, and an Easy helper on own entries (`groupOwn`), never changing a setup field, even to clear it. `provider`, `medication`, `care_period`, `medication_pass`, `recipient_allergy`, `recipient_condition`: read any member; create, update and (soft) delete writers.
   - `medication_condition`, `condition_manager` (`medicationConditionSchema`, `conditionManagerSchema`): read any member; create and delete writers; update `system`. Written through their services, which check both ends.
   - `task`: as above, but update also for viewers ¹. `appointment_series`: as above (writers).
@@ -45,6 +43,7 @@ The shared space for one care recipient's caretakers: always "care group", never
   - `accessCodeService` (staff `list`, `getById`, `create`, `revoke`; public `preview`; `redeem(tx, …)` as `system`, code locked `FOR UPDATE`) and `staffGroupService.createWithOwnerInvite` (a memberless group and recipient, then an owner invite through `createEmail` as `system` with the staff member as attester; the `ownerInvite` email). `careGroupModel.createWithoutOwner` is staff and system only.
   - The `groupInvite` email (no health details) goes through an injected `InviteMailer` in the service's transaction (invite and outbox row commit together), then `deliverSoon`.
 - **Seeds** (`packages/data/src/db/seeds/`): "Dev Family" (Grandma Pat) has member@ as owner, caretaker@, viewer@, an Easy helper and an Easy viewer. `secondGroup.ts` gives member@ a second group (`/app` lists groups on a fresh device); `moreGroups.ts` adds multi-role users (trio@, groupadmin@, viewer2@, owner2@, solo@ as sole owner) in four time zones; `accessCodes.ts` adds `CARE-DEMO-0001`; `invites.ts` adds `joiner@example.com` with a pending join request, an email invite and a viewer link. admin@ is no member.
-- **Easy mode data:** `care_group.easy_tiles` jsonb (`easyTilesZSchema` in `db/schema/app-shell/easyMode.ts`: `{ mode: learned | fixed | custom, tiles? }`, custom carries exactly 4; null = learned), synced through the `care_groups` stream and the device schema, written online by `careGroup.update` (`easyTiles`). Unread until a contract migration: `simple_tiles`, `care_group_member.simple_mode` and `simple_mode_locked`, the old preference key. There are no Members switches (`setMemberMode` is deleted); migration 0036 turned locked caretakers into Easy helpers and locked viewers into Easy viewers (locked owners, admins keep theirs) and dropped a stored `group` setting. Connectors are refused for easy roles ([connectors](connectors.md)).
-- **The assistants switch:** `care_group.connectors_enabled` (default false; Dev Family seeded on), owners only through `careGroup.update`. Off revokes every connector grant in the same transaction; removing or leaving revokes that member's. Synced, not uploaded ([connectors](connectors.md)).
+- **Easy mode data:** `care_group.easy_tiles` jsonb (`easyTilesZSchema` in `db/schema/app-shell/easyMode.ts`: `{ mode: learned | fixed | custom, tiles? }`, custom carries exactly 4; null = learned), synced through the `care_groups` stream and the device schema, written online by `careGroup.update` (`easyTiles`). Unread until a contract migration: `simple_tiles`, `care_group_member.simple_mode` and `simple_mode_locked`, the old preference key. Connectors are refused for easy roles ([connectors](connectors.md)).
+- **Assistants settings**, owners only through `careGroup.update`: `connectors_enabled` (default off; Dev Family on; off revokes all grants, leaving or removal that member's; synced, not uploaded) and `connectors_read_only` (default off; revokes nothing) ([connectors](connectors.md)).
+- **Member looks:** only the pure `lib/care-groups/memberLooks.ts` assigns default colors (never stored): chosen colors reserved, then join order, hashed color or next free; past ten, repeats. `MemberAvatar` reads the group layout's `MemberLooksProvider`.
 - **UI:** the role picker (`settings/members/RoleOptions.tsx`) lists the four regular roles, then "Easier to use", as native optgroups, with each role's description. The tiles card in Details (`EasyTilesCard`) saves through `parseEasyTilesChoice` (`groupSettings.ts`: refuses fewer than four, repeats and unknown tiles).

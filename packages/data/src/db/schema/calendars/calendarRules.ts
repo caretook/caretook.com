@@ -67,11 +67,26 @@ export const DETAILS_CONSENT_VERSION = "2026-11-20";
 export const DETAILS_CONSENT_TEXT =
   "Include titles, places and providers in my reminder emails, calendar feed and Google Calendar. They then go to my inbox and my calendar provider, under their terms. Notes never leave Caretook.";
 
+/**
+ * Whether a member's recorded consent counts: agreed, and to the current
+ * wording. Everything that decides a share level asks this, never the time
+ * alone, so a bumped version makes older consents generic at the next read.
+ */
+export const hasDetailsConsent = ({
+  consentAt,
+  consentVersion,
+}: {
+  consentAt: string | null | undefined;
+  consentVersion: string | null | undefined;
+}) => !!consentAt && consentVersion === DETAILS_CONSENT_VERSION;
+
 /** What a member's own calendar settings change sends (`calendars.settings.update`). Left out keeps it. */
 export const calendarSettingsChangeZSchema = z.strictObject({
   remindersOn: z.boolean().optional(),
   reminderLeads: reminderLeadsZSchema.optional(),
-  /** On records the consent (`DETAILS_CONSENT_VERSION`), off clears it. */
+  /** On records the consent, only with the current `detailsConsentVersion`; off clears it. */
   detailsConsent: z.boolean().optional(),
+  /** The version of the wording the device showed when the member turned details on. */
+  detailsConsentVersion: z.string().max(40).optional(),
 });
 export type CalendarSettingsChange = z.input<typeof calendarSettingsChangeZSchema>;

@@ -8,7 +8,7 @@ import { CalendarClock, Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { Section } from "~/components/ui";
+import { Badge, Section, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
@@ -64,9 +64,9 @@ function ProviderLink({
     <li className={ROW} data-todo-link="provider">
       <ProviderTypeIcon type={provider.type} past={removed || provider.status === "past"} />
       <div className="min-w-0 flex-1">
-        <p className="text-base-content/70 text-sm">Provider</p>
+        <p className="text-muted text-sm">Provider</p>
         {removed ? (
-          <p className="text-base-content/50 truncate" data-todo-link-name>
+          <p className="text-faint truncate" data-todo-link-name>
             {linkLabel(provider.name, true)}
           </p>
         ) : !linked ? (
@@ -109,17 +109,21 @@ function EventLink({ groupId, id, loaded }: { groupId: string; id: string; loade
         <CalendarClock className="size-4" />
       </IconDot>
       <div className="min-w-0 flex-1">
-        <p className="text-base-content/70 text-sm">Appointment</p>
+        <p className="text-muted text-sm">Event</p>
         <Link
           to={appUrls.entry(groupId, event.id)}
-          className={`${STRETCHED} ${cancelled ? "text-base-content/60 line-through" : ""}`}
+          className={`${STRETCHED} ${cancelled ? "text-faint line-through" : ""}`}
           data-todo-link-name
         >
           {upcomingTitle(event)}
         </Link>
-        <p className="text-base-content/70 text-sm" data-todo-link-when>
+        <p className="text-muted text-sm" data-todo-link-when>
           <span className={cancelled ? "line-through" : ""}>{`${day} · ${timeRange(event)}`}</span>
-          {cancelled && <span className="badge badge-sm badge-ghost ms-2 no-underline">{cancelled}</span>}
+          {cancelled && (
+            <Badge tone={STATUS_TONE.past} className="ms-2 no-underline">
+              {cancelled}
+            </Badge>
+          )}
         </p>
       </div>
     </li>
@@ -150,9 +154,9 @@ function MedicationLink({
         <Pill className="size-4" />
       </IconDot>
       <div className="min-w-0 flex-1">
-        <p className="text-base-content/70 text-sm">Medication</p>
+        <p className="text-muted text-sm">Medication</p>
         {removed ? (
-          <p className="text-base-content/50 truncate" data-todo-link-name>
+          <p className="text-faint truncate" data-todo-link-name>
             {linkLabel(title, true)}
           </p>
         ) : !linked ? (
@@ -165,7 +169,7 @@ function MedicationLink({
           </Link>
         )}
         {medication.status !== "current" && medication.stoppedOn && !removed && (
-          <p className="text-base-content/70 text-sm">Stopped {formatDate(medication.stoppedOn)}</p>
+          <p className="text-muted text-sm">Stopped {formatDate(medication.stoppedOn)}</p>
         )}
       </div>
     </li>

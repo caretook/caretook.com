@@ -11,12 +11,14 @@ import type { Filter } from "../models";
 import type { IncludeDeleted } from "../models/timelineEntry";
 import type { ServiceContext } from "./types";
 
+import { and, eq } from "drizzle-orm";
 import { SYSTEM_USER, isOwnRowLogger } from "../constants";
-import { withTransaction } from "../db";
+import { dbMayFail, withTransaction } from "../db";
 import {
   buildNoteDoc,
   canHaveNoteDocument,
   canLogEntry,
+  doseDuplicateUploadSchema,
   FUTURE_DATE_MESSAGE,
   isDoseDetails,
   isTooFarAhead,
@@ -27,6 +29,7 @@ import {
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
+  userSchema,
 } from "../db/schema";
 import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
@@ -41,6 +44,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { releaseEvent } from "./todoService";
 export const serviceName = "timelineEntry";
@@ -360,6 +364,36 @@ export const list = async (
   return isError(data) ? data : { ...page, data };
 };
 
+/**
+ * The group's medication change entries from `from` on, deleted ones too
+ * (deleting the line doesn't undo the change), as `scheduleHistory` reads them.
+ */
+export const scheduleChanges = async (
+  ctx: ServiceContext,
+  { groupId, from }: { groupId: string; from: string },
+) => {
+  const changes: { id: string; occurredAt: string; details: unknown }[] = [];
+  let cursor: string | null = null;
+  do {
+    const page = await timelineEntryModel.listPage({
+      ...ctx,
+      includeDeleted: true,
+      filter: {
+        groupId: { type: "eq", value: groupId },
+        kind: { type: "eq", value: "medicationChange" },
+        occurredAt: { type: "gte", value: from },
+      },
+      cursor,
+      limit: 500,
+    });
+    if (isError(page)) return page;
+    for (const { id, occurredAt, details } of page.data)
+      changes.push({ id, occurredAt: new Date(occurredAt).toISOString(), details });
+    cursor = page.nextCursor;
+  } while (cursor);
+  return changes;
+};
+
 /** The newest reading of each vital type in a group, with the entry it came from. */
 export const latestVitals = (ctx: ServiceContext, { groupId }: { groupId: string }) =>
   timelineEntryModel.latestReadings({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });
@@ -533,15 +567,123 @@ export const update = (
     return queued ?? updated[0] ?? null;
   }, ctx);
 
+/** The actor's id when they may log this dose in the group (an Easy helper too); else null. */
+const doseUploader = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  fields: Parameters<typeof canLogEntry>[2],
+) => {
+  if (!ctx.authUser || isSystemUser(ctx.authUser)) return null;
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  if (isError(role)) return role;
+  return canLogEntry(role, "dose", fields) ? ctx.authUser.id : null;
+};
+
 /**
- * Create the entry with this id, or bring the existing one up to date: what
- * PowerSync's upload queue sends for a row a device created. Safe to replay:
- * a second identical call changes nothing but `updatedAt`.
+ * Whether an upload brings this deleted dose back: not when the uploader
+ * deleted it, and not when it is their own dose replayed (same author, same
+ * time). The same author at another time is their other device's tap.
+ */
+const mayRestoreDose = (
+  row: Pick<TimelineEntry, "createdBy" | "updatedBy" | "occurredAt">,
+  uploader: string,
+  occurredAt: string,
+) =>
+  row.updatedBy !== uploader &&
+  !(row.createdBy === uploader && new Date(row.occurredAt).getTime() === new Date(occurredAt).getTime());
+
+/**
+ * Note an accepted dose upload (a first upload, a replay onto the uploader's
+ * own row, a duplicate or a restore), in its transaction: it commits only if
+ * the upload does. The row may change time or hands before a retry arrives,
+ * so this note is what tells the retry from a new log (B-627, B-726).
+ */
+const recordDoseUpload = (tx: Tx, entryId: string, userId: string, occurredAt: string) =>
+  dbMayFail(
+    () => tx.insert(doseDuplicateUploadSchema).values({ entryId, userId, occurredAt }).onConflictDoNothing(),
+    "timelineEntryService:duplicateRecord",
+  );
+
+/**
+ * Note both uploads a restore settles, in its transaction: the one it displaced
+ * and its own. The row keeps neither once it changes hands or its time is
+ * edited, so a retry of either would otherwise pass for a new log (B-719).
+ * `created_by` has no FK, so a displaced author with no user row (the system,
+ * a deleted account) is skipped: they have no upload left to retry.
+ */
+const recordRestoredDose = async (
+  tx: Tx,
+  displaced: Pick<TimelineEntry, "id" | "createdBy" | "occurredAt">,
+  uploader: string,
+  occurredAt: string,
+) => {
+  const author = await dbMayFail(
+    () => tx.select({ id: userSchema.id }).from(userSchema).where(eq(userSchema.id, displaced.createdBy)),
+    "timelineEntryService:duplicateRecord",
+  );
+  if (isError(author)) return author;
+  if (author.length > 0) {
+    const noted = await recordDoseUpload(tx, displaced.id, displaced.createdBy, displaced.occurredAt);
+    if (isError(noted)) return noted;
+  }
+  return recordDoseUpload(tx, displaced.id, uploader, occurredAt);
+};
+
+/** Whether this exact upload was already accepted without becoming the row: a retry, not a new log (B-627). */
+const isAcceptedDuplicate = async (tx: Tx, entryId: string, userId: string, occurredAt: string) => {
+  const rows = await dbMayFail(
+    () =>
+      tx
+        .select({ entryId: doseDuplicateUploadSchema.entryId })
+        .from(doseDuplicateUploadSchema)
+        .where(
+          and(
+            eq(doseDuplicateUploadSchema.entryId, entryId),
+            eq(doseDuplicateUploadSchema.userId, userId),
+            eq(doseDuplicateUploadSchema.occurredAt, occurredAt),
+          ),
+        )
+        .limit(1),
+    "timelineEntryService:duplicateRecord",
+  );
+  return isError(rows) ? rows : rows.length > 0;
+};
+
+/**
+ * The dose with this id when it is another member's and the actor may log
+ * doses in its group; else null. An upload of the actor's own copy of it (a
+ * PUT that already carries `deleted_at`, or a flagged PATCH) leaves it alone
+ * (B-614). Viewers get null, so their upload is refused as usual.
+ */
+export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const row = await timelineEntryModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    if (isError(row)) return row;
+    if (row?.kind !== "dose") return null;
+    const uploader = await doseUploader(ctx, tx, row.groupId, {});
+    if (isError(uploader)) return uploader;
+    return uploader && row.createdBy !== uploader ? row : null;
+  }, ctx);
+
+/**
+ * Create the entry with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. Says whether it created
+ * (`Upserted`).
  *
  * - A new id is a `create` (same validation and group check).
- * - An existing id is an `update` of its content, by the same rules. Its
- *   group, recipient and kind must match: they never change.
- * - A deleted entry stays deleted (a delete wins over a late edit).
+ * - An existing id is a replay of the create: it changes nothing (only a
+ *   PATCH edits), whatever the actor's role now, so it never reverts a newer
+ *   edit. Its group, recipient and kind must match: they never change.
+ * - A deleted entry stays deleted (a delete wins over a late replay).
+ * - A dose shares its id with the same answer for the same slot, so for
+ *   anyone who may log one: onto a live row another member created, the first
+ *   upload stands, nothing changes and the duplicate is recorded; onto a row
+ *   another member deleted, it comes back as the uploader's, unless this is
+ *   their own dose replayed or a retry of a recorded upload (B-627). Every
+ *   accepted dose upload is recorded (B-726), and a restore also records the
+ *   upload it displaced (B-719).
+ *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
  * - A medication change is never created or edited here: one that exists
@@ -572,6 +714,11 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
         .map((key) => [key, (parsed.data as Record<string, unknown>)[key]]),
     );
 
+    if (kind === "dose") {
+      const locked = await timelineEntryModel.lockId(id, tx);
+      if (isError(locked)) return locked;
+    }
+
     // Existence is checked as the system, so a taken id is refused cleanly
     // rather than failing on the primary key.
     const existing = await timelineEntryModel.getById(id, {
@@ -580,7 +727,12 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, parsed.data);
+    if (!existing) {
+      const created = await create({ ...ctx, tx }, parsed.data);
+      if (isError(created) || kind !== "dose") return asCreated(created);
+      const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
+      return noted ?? asCreated(created);
+    }
 
     const visible = await timelineEntryModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
@@ -592,25 +744,79 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       (recipientId !== undefined && visible.recipientId !== recipientId)
     )
       return newError({ code: "timelineEntryService:immutable" });
-    if (visible.deletedAt) return visible;
-    // A device's copy of a change entry the service already wrote with the
-    // medication: the service's stands.
-    if (isSystemWrittenKind(visible.kind)) return visible;
-
-    return update(
-      { ...ctx, tx },
-      id,
-      // Checked against the entry's kind once merged with the stored row.
-      {
-        title,
-        body,
-        occurredAt,
-        timeZone,
-        details: details ?? null,
-        ...scheduling,
-      } as TimelineEntryUpdateInput,
-    );
+    // Doses share an id per slot, so these run before the update permission:
+    // an Easy helper can't update another member's row, but may log this dose.
+    if (visible.kind === "dose") {
+      const uploader = await doseUploader(ctx, tx, groupId, scheduling);
+      if (isError(uploader)) return uploader;
+      if (uploader) {
+        if (!visible.deletedAt && visible.createdBy !== uploader) {
+          const recorded = await recordDoseUpload(tx, id, uploader, occurredAt);
+          return isError(recorded) ? recorded : unchanged(visible);
+        }
+        const retried =
+          visible.deletedAt && mayRestoreDose(visible, uploader, occurredAt)
+            ? await isAcceptedDuplicate(tx, id, uploader, occurredAt)
+            : null;
+        if (isError(retried)) return retried;
+        if (retried === false) {
+          const future = refuseFuture(kind, occurredAt);
+          if (future) return future;
+          const medication = await checkDoseMedication(ctx, tx, groupId, details);
+          if (medication) return medication;
+          const restored = await timelineEntryModel.restore(
+            id,
+            {
+              title: title ?? null,
+              body: body ?? null,
+              occurredAt,
+              timeZone,
+              details: details ?? null,
+              ...schedulingColumns(parsed.data),
+              cancelledBy: null,
+            },
+            { ...ctx, tx },
+          );
+          if (isError(restored)) return restored;
+          if (restored) {
+            const noted = await recordRestoredDose(tx, visible, uploader, occurredAt);
+            if (isError(noted)) return noted;
+          }
+          const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
+          // Made live again by this upload: as good as a create.
+          return queued ?? asCreated(restored);
+        }
+      }
+    }
+    // A replay of the create (deleted since, or a change entry the service
+    // wrote with the medication, or live): it changes nothing. A member's own
+    // live dose is still noted as theirs (B-726).
+    if (visible.kind === "dose" && !visible.deletedAt) {
+      const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
+      if (noted) return noted;
+    }
+    return unchanged(visible);
   }, ctx);
+
+/**
+ * Note a dose upload that became (or updated) the uploader's own row, for
+ * anyone who may log doses: a retry of it after a time edit, a restore or a
+ * delete is then still a retry, not a new log (B-726). An error, else null.
+ */
+const recordOwnDoseUpload = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  id: string,
+  groupId: string,
+  fields: Parameters<typeof canLogEntry>[2],
+  occurredAt: string,
+) => {
+  const uploader = await doseUploader(ctx, tx, groupId, fields);
+  if (isError(uploader)) return uploader;
+  if (!uploader) return null;
+  const recorded = await recordDoseUpload(tx, id, uploader, occurredAt);
+  return isError(recorded) ? recorded : null;
+};
 
 /**
  * Soft delete. The entry disappears from the timeline but syncs as deleted.

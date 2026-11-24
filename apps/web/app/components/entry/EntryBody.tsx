@@ -86,13 +86,13 @@ export function EntryBody({
     heading && (
       <p key="heading" className={`font-semibold break-words ${TEXT_CAP}`}>
         <Highlight text={heading} ranges={marks(heading)} />
-        {severity && <span className="text-base-content/70 font-normal"> · {severity}</span>}
+        {severity && <span className="text-muted font-normal"> · {severity}</span>}
       </p>
     ),
     readings.length > 0 && <Readings key="readings" readings={readings} marks={marks} />,
     providers && providers.length > 0 && <WithLine key="with" providers={providers} marks={marks} />,
     medication?.note && (
-      <p key="note" className={`text-base-content/80 break-words ${TEXT_CAP}`} data-medication-note>
+      <p key="note" className={`text-muted break-words ${TEXT_CAP}`} data-medication-note>
         <Highlight text={medication.note} ranges={marks(medication.note)} />
       </p>
     ),
@@ -103,7 +103,7 @@ export function EntryBody({
         <FullText key="body" text={body} ranges={marks(body)} />
       )),
     snippet && (
-      <p key="snippet" className={`text-base-content/80 text-sm break-words ${TEXT_CAP}`} data-snippet>
+      <p key="snippet" className={`text-muted text-sm break-words ${TEXT_CAP}`} data-snippet>
         <Highlight text={snippet.text} ranges={snippet.ranges} />
       </p>
     ),
@@ -149,14 +149,14 @@ function Readings({ readings, marks }: { readings: string[]; marks: Marks }) {
 function WithLine({ providers, marks }: { providers: readonly LinkedProviderName[]; marks: Marks }) {
   const { names, more } = withSummary(providers);
   return (
-    <p className={`text-base-content/70 text-sm break-words ${TEXT_CAP}`} data-with>
+    <p className={`text-muted text-sm break-words ${TEXT_CAP}`} data-with>
       <span className="sr-only">{withText(providers)}</span>
       <span aria-hidden="true">
         with{" "}
         {names.map((p, i) => (
           <span key={p.id}>
             {i > 0 && ", "}
-            <span data-with-name={p.id} className={p.deletedAt ? "text-base-content/50" : undefined}>
+            <span data-with-name={p.id} className={p.deletedAt ? "text-faint" : undefined}>
               <Highlight text={chipLabel(p)} ranges={marks(chipLabel(p))} />
             </span>
           </span>
@@ -195,14 +195,14 @@ function ClampedText({ text, ranges }: { text: string; ranges?: HighlightRange[]
     <>
       <p
         ref={ref}
-        className={`text-base-content/90 break-words whitespace-pre-wrap ${TEXT_CAP} ${expanded ? "" : "line-clamp-2"}`}
+        className={`break-words whitespace-pre-wrap ${TEXT_CAP} ${expanded ? "" : "line-clamp-2"}`}
       >
         <Highlight text={text} ranges={ranges} />
       </p>
       {(overflows || expanded) && (
         <button
           type="button"
-          className="link link-hover text-base-content/70 relative z-10 text-sm"
+          className="link link-hover text-muted relative z-10 text-sm"
           aria-expanded={expanded}
           onClick={() => setExpanded((e) => !e)}
         >

@@ -120,6 +120,7 @@ export default function PassSheet({ loaderData, params }: Route.ComponentProps) 
 
   return (
     <Sheet
+      guardChanges
       isOpen={!gone}
       onOpenChange={(open) => !open && close()}
       title={passName ? `Edit ${passName} log` : "Edit medication log"}

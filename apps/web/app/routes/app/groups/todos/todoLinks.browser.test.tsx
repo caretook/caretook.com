@@ -111,8 +111,11 @@ describe("the todo sheet's link pickers", () => {
     await userEvent.click(page.getByRole("option", { name: /^Corner Pharmacy/ }));
     await expect.element(dialog.getByText("Corner Pharmacy", { exact: true })).toBeInTheDocument();
 
-    // Appointments: upcoming soonest first, then the last 30 days'; never cancelled or older ones.
-    await userEvent.click(dialog.getByRole("combobox", { name: "Find an appointment" }));
+    // Events: upcoming soonest first, then the last 30 days'; never cancelled or older ones.
+    await expect
+      .element(dialog.getByRole("combobox", { name: "Find an event" }))
+      .toHaveAttribute("placeholder", "Upcoming and recent events");
+    await userEvent.click(dialog.getByRole("combobox", { name: "Find an event" }));
     await expect
       .poll(() => options().map((o) => o.split(/Tomorrow|[A-Z][a-z]+day/)[0]?.trim()))
       .toEqual(["Cardiology", "Eye doctor", "Podiatry"]);

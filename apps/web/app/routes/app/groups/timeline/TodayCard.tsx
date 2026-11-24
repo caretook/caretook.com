@@ -11,7 +11,7 @@ import { TodoRepeatMark } from "~/components/todos";
 import { Chevron } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
-import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { nextEventTitle, nextStripText } from "~/lib/appointments/upcomingLabels";
 import { todoStripText, todoStripWho } from "~/lib/todos/todoStrip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { COLUMN_CAP } from "./layout";
@@ -28,11 +28,11 @@ const VitalsIcon = KIND_META.vital.Icon;
  */
 function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySummary }) {
   const parts = [
-    overdue && { text: overdue, className: "text-error shrink-0 font-semibold", data: "overdue" },
-    soon && { text: soon, className: "text-warning shrink-0 font-semibold", data: "soon" },
+    overdue && { text: overdue, className: "text-error-ink shrink-0 font-semibold", data: "overdue" },
+    soon && { text: soon, className: "text-warning-ink shrink-0 font-semibold", data: "soon" },
     rest && {
       text: rest,
-      className: "text-base-content/70 min-w-0 overflow-hidden text-ellipsis",
+      className: "text-muted min-w-0 overflow-hidden text-ellipsis",
       data: "rest",
     },
   ].filter((p) => !!p);
@@ -41,7 +41,7 @@ function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySumma
     <span className="flex min-w-0 whitespace-pre" data-today-summary>
       {parts.map((p, i) => (
         <span key={p.data} className={p.className} data-summary-part={p.data}>
-          {i > 0 && <span className="text-base-content/40"> · </span>}
+          {i > 0 && <span className="text-faint"> · </span>}
           {p.text}
         </span>
       ))}
@@ -56,7 +56,7 @@ function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySumma
  * status (`todayStatus`) and ending in "See all ›" to its full view (the
  * vitals row instead shows all its readings in place when they don't fit,
  * B-186). Its header collapses it to one line ("3 overdue · 2 due soon · BP
- * 130/85 mmHg · 1 appt"): collapsed on every load, a tap opening it for the
+ * 130/85 mmHg · 1 event"): collapsed on every load, a tap opening it for the
  * page view. Viewers see it too (without Given all). The whole card hides
  * once every row is known to be empty.
  */
@@ -79,7 +79,8 @@ export function TodayCard({
   const today = useTodayCard({ groupId, latestVitals, next, units });
   if (today.empty) return null;
   const { collapsed, status, todos } = today;
-  const nextText = nextStripText(next, now);
+  const nextTitle = (entry: Parameters<typeof nextEventTitle>[0]) => nextEventTitle(entry, now);
+  const nextText = nextStripText(next, now, {}, nextTitle);
   const todo = todos.strip && { ...todoStripText(todos.strip), strip: todos.strip };
 
   return (
@@ -119,9 +120,9 @@ export function TodayCard({
             <span className="sr-only">Latest vitals: </span>
             {today.vitals.map(({ reading, occurredAt }, i) => (
               <span key={reading.type} title={VITALS[reading.type].label} data-vital={reading.type}>
-                {i > 0 && <span className="text-base-content/40"> · </span>}
+                {i > 0 && <span className="text-faint"> · </span>}
                 <span className="font-semibold tabular-nums">{formatReading(reading, units)}</span>{" "}
-                <time dateTime={occurredAt} className="text-base-content/60 text-xs">
+                <time dateTime={occurredAt} className="text-faint text-xs">
                   {formatAgo(occurredAt)}
                 </time>
               </span>
@@ -139,12 +140,12 @@ export function TodayCard({
             <Link
               to={appUrls.entry(groupId, next.next.id)}
               className="link-hover"
-              aria-label={`${nextText}: open ${upcomingTitle(next.next)}`}
+              aria-label={`${nextText}: open ${nextTitle(next.next)}`}
               data-next={next.next.id}
             >
               {nextText}
             </Link>
-            <RepeatMark seriesId={next.next.seriesId} className="text-base-content/70 ms-1" />
+            <RepeatMark seriesId={next.next.seriesId} className="text-muted ms-1" />
           </TodayRow>
         )}
         <TodayMedicationsRow
@@ -167,7 +168,7 @@ export function TodayCard({
             >
               <span title={todo.text} data-todo={todo.strip.todo.id} data-todo-state={todo.strip.state}>
                 <span className="font-semibold">{todo.lead}:</span> {todo.title}
-                <TodoRepeatMark todo={todo.strip.todo} className="text-base-content/70 ms-1" />
+                <TodoRepeatMark todo={todo.strip.todo} className="text-muted ms-1" />
                 {todo.rest && <span> · {todo.rest}</span>}
               </span>
             </TodayRow>

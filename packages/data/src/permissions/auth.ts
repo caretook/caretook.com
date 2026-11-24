@@ -4,9 +4,11 @@ import {
   ADMIN_ONLY_PERMISSION_ENTRY,
   ANY_GROUP_ROLE,
   DEFAULT_PERMISSION_ENTRY,
+  NO_ACCESS,
   PUBLIC_PROFILE_FIELDS,
   STAFF_ONLY,
   SYSTEM_ONLY,
+  SYSTEM_ONLY_ENTRY,
   SYSTEM_ONLY_SCHEMA,
 } from "./blocks";
 
@@ -14,7 +16,7 @@ export const AUTH_PERMISSIONS = {
   userSchema: {
     ownerField: "id",
     // Co-members of a care group can read each other's public profile only:
-    // id, name and image. Email, role and preferences stay with the user and
+    // id, name, image and avatar. Email, role and preferences stay with the user and
     // staff; services that must email a co-member read the row as the system.
     groupUserField: "id",
     // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.
@@ -48,6 +50,17 @@ export const AUTH_PERMISSIONS = {
     },
     // Members can delete their own account (a consumer-health-data requirement).
     delete: DEFAULT_PERMISSION_ENTRY,
+  },
+
+  // Who agreed to which legal versions. Only the person reads their rows
+  // (staff get no wider view); only the system writes them.
+  legalAcceptanceSchema: {
+    ownerField: "userId",
+    read: { ...NO_ACCESS, admin: ["owned"], support: ["owned"], member: ["owned"], system: ["all"] },
+    list: { ...NO_ACCESS, admin: ["owned"], support: ["owned"], member: ["owned"], system: ["all"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
   },
 
   // Better Auth's tables: it uses them through its own adapter, never our

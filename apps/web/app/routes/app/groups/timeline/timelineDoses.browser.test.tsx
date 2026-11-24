@@ -376,6 +376,7 @@ describe("the Dose sheet on a fixed clock", () => {
     await expect
       .poll(() => SHEET()?.querySelector("[data-dose-warning]")?.textContent ?? "")
       .toContain("already given");
+    expect(SHEET()?.querySelector("[data-dose-warning]")?.getAttribute("role")).toBe("alert");
     expect(await doses(device)).toHaveLength(1);
     expect(SUBMIT().textContent?.trim()).toBe("Log anyway");
     await userEvent.click(SUBMIT());

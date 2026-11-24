@@ -65,7 +65,7 @@ describe("PageHeader's add", () => {
           label: "Add",
           "data-add-menu": "",
           items: [
-            { id: "appointment", label: "Appointment", onAction: () => chosen.push("appointment") },
+            { id: "appointment", label: "Event", onAction: () => chosen.push("appointment") },
             { id: "todo", label: "Todo", onAction: () => chosen.push("todo") },
           ],
         }}
@@ -84,7 +84,7 @@ describe("PageHeader's add", () => {
         .getByRole("menuitem")
         .elements()
         .map((el) => el.textContent),
-    ).toEqual(["Appointment", "Todo"]);
+    ).toEqual(["Event", "Todo"]);
     await userEvent.click(page.getByRole("menuitem", { name: "Todo" }));
     expect(chosen).toEqual(["todo"]);
   });

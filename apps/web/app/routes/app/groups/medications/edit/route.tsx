@@ -128,6 +128,7 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
 
   return (
     <Sheet
+      guardChanges={!gone}
       isOpen
       onOpenChange={(open) => !open && close()}
       title={`Edit ${medicationTitle(loaderData.medication)}`}

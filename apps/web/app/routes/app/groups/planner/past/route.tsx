@@ -39,7 +39,9 @@ export default function PastEvents({ loaderData, params }: Route.ComponentProps)
     <Page data-past-events>
       <PlannerHeader
         view="past"
-        author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
+        author={
+          author && authorName ? { userId: author, name: authorName, image: data.imageOf(author) } : null
+        }
       />
       <UpcomingList data={data} groupId={groupId} label="Past events" empty={emptyPastText(authorName)}>
         <OlderEntries

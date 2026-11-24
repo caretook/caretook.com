@@ -4,13 +4,12 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { LinkedContact } from "./upcomingContact";
 import type { RescheduledTarget } from "./useUpcomingData";
 
-import { MapPin } from "lucide-react";
 import { Link } from "react-router";
-import { AuthorFilterLink, EntryBody, KindFilterLink, KindIcon, RepeatMark } from "~/components/entry";
-import { ContactActions } from "~/components/providers";
+import { EntryBody, KindFilterLink, KindIcon, RepeatMark } from "~/components/entry";
+import { Badge, LINK, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { initials } from "~/lib/timeline/entryDisplay";
 import { entryTiming } from "~/lib/appointments/upcoming";
+import { plannerReturnState } from "~/lib/appointments/plannerReturn";
 import {
   cancelledLabel,
   nowLabel,
@@ -19,18 +18,21 @@ import {
   upcomingTitle,
 } from "~/lib/appointments/upcomingLabels";
 import { placeLine, placeOf, upcomingActions } from "./upcomingContact";
-
-/** Breaks a range after its dash ("10:30 AM–" / "11:15 AM") when the column is narrow. */
-const breakable = (text: string) => text.replace("–", "–​");
+import { UpcomingRowActions, UpcomingRowAuthor } from "./UpcomingRowParts";
+import { usePlannerOpener } from "./usePlannerOpener";
 
 /**
- * One upcoming (or past) item as a row: kind icon (a filter), its time
- * ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM") with the call
- * and map actions and the author's initials (a filter) under it, the entry's
- * body with its "with …" line, its place, "Cancelled" (struck through) and,
- * for writers, the ⋯ menu (`menu`). The whole row opens the entry's page. `readOnly`
- * (the easy roles' Planner) shows the kind and initials without their
- * filter links, so a tap on the initials opens the row.
+ * One upcoming (or past) item as a card: the kind icon (a filter) on the left
+ * and, for writers, the ⋯ menu (`menu`) on the right. Between them its time on
+ * one line ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM") with the
+ * repeat mark, the entry's body with its "with …" line, its place, and
+ * "Cancelled" (struck through). A footer holds labelled Call and Directions on
+ * the left and the author's avatar (a filter) on the right; a card with no
+ * actions has no footer, and its avatar ends the last line, under the menu.
+ * The whole row opens the entry's page, which goes back to this tab (its
+ * filters too: `plannerReturn` in history state, B-690). `readOnly` (the easy roles' Planner)
+ * shows the kind and avatar without their filter links, so a tap on the
+ * avatar opens the row.
  */
 export function UpcomingRow({
   entry,
@@ -64,73 +66,60 @@ export function UpcomingRow({
   const when = inProgress ? nowLabel(entry) : timeRange(entry);
   const place = placeOf(entry, contacts);
   const actions = upcomingActions(entry, contacts);
+  const opened = plannerReturnState(usePlannerOpener(false));
+
+  const hasFooter = actions.length > 0;
+  const hasSide = Boolean(menu) || !hasFooter;
+  const author = (
+    <UpcomingRowAuthor userId={entry.createdBy} name={authorName} image={authorImage} readOnly={readOnly} />
+  );
 
   return (
     <li
-      className="relative isolate flex items-start gap-2.5 px-3 py-2"
+      className={`relative isolate grid gap-x-2.5 gap-y-1 px-3 py-2 ${hasSide ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]"}`}
       data-upcoming-item={entry.id}
       data-cancelled={cancelled ? "" : undefined}
     >
       <Link
         to={appUrls.entry(groupId, entry.id)}
+        state={opened}
         className="hover:bg-base-content/5 focus-visible:outline-primary absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:-outline-offset-2 focus-visible:outline-2"
         aria-label={`Open ${upcomingTitle(entry)}, ${when}${cancelled ? `, ${cancelled.toLowerCase()}` : ""}`}
       />
       {readOnly ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
-      <div className="flex w-[5.5rem] shrink-0 flex-col items-start gap-1" data-when-column>
-        <time
-          dateTime={entry.occurredAt}
-          className={`pt-0.5 text-sm tabular-nums ${inProgress ? "text-primary font-semibold" : "text-base-content/70"}`}
-          data-when
+      <div className="min-w-0">
+        <p
+          className={`flex items-center gap-1 text-sm whitespace-nowrap tabular-nums ${inProgress ? "text-primary-ink font-semibold" : "text-muted"}`}
+          data-when-line
         >
-          {breakable(when)}
-          {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
-        </time>
-        <ContactActions actions={actions} />
-        {readOnly ? (
-          <span
-            className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-            title={authorName}
-            data-author={entry.createdBy}
-          >
-            <span aria-hidden="true">{initials(authorName)}</span>
-            <span className="sr-only">{authorName}</span>
-          </span>
-        ) : (
-          <AuthorFilterLink
-            userId={entry.createdBy}
-            name={authorName}
-            initials={initials(authorName)}
-            image={authorImage}
-          />
-        )}
-      </div>
-      <div className="min-w-0 flex-1 pt-0.5">
+          <time dateTime={entry.occurredAt} data-when>
+            {when}
+          </time>
+          {entry.seriesId && <RepeatMark seriesId={entry.seriesId} />}
+        </p>
         <EntryBody
           entry={entry}
           units={units}
           clamp
           providers={contacts}
-          className={cancelled ? "text-base-content/60 line-through" : ""}
+          className={cancelled ? "text-faint line-through" : ""}
         />
         {place && (
-          <p className="text-base-content/70 flex items-start gap-1 text-sm break-words" data-place>
-            <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-            <span>
-              {placeLine(place.text)}
-              {place.from && <span className="text-base-content/50"> · from {place.from}</span>}
-            </span>
+          <p className="text-muted text-sm break-words" data-place>
+            {placeLine(place.text)}
+            {place.from && <span className="text-faint"> · from {place.from}</span>}
           </p>
         )}
         {cancelled && (
           <p className="text-sm" data-cancelled-label>
-            <span className="badge badge-sm badge-ghost">{cancelled}</span>
+            <Badge tone={STATUS_TONE.past}>{cancelled}</Badge>
             {rescheduledTo && (
               <>
                 {" · "}
                 <Link
                   to={appUrls.entry(groupId, rescheduledTo.id)}
-                  className="link text-base-content/70 relative z-10"
+                  state={opened}
+                  className={`${LINK} relative z-10`}
                   data-rescheduled-to={rescheduledTo.id}
                 >
                   {rescheduledLabel(rescheduledTo)}
@@ -140,7 +129,18 @@ export function UpcomingRow({
           </p>
         )}
       </div>
-      {menu}
+      {hasSide && (
+        <div className="flex flex-col items-end gap-1">
+          {menu}
+          {!hasFooter && <div className="mt-auto flex">{author}</div>}
+        </div>
+      )}
+      {hasFooter && (
+        <div className="col-start-2 col-end-[-1] flex items-center justify-between gap-2" data-row-footer>
+          <UpcomingRowActions actions={actions} />
+          {author}
+        </div>
+      )}
     </li>
   );
 }

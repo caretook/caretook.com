@@ -4,14 +4,38 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/agent-autonomy-3` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------------- |
-| 1     | 1    | —     | —                                                 |
-| 2     | 2    | —     | —                                                 |
-| 3     | 2    | —     | —                                                 |
-| 4     | 2    | —     | —                                                 |
+| Slice | Wave | State                           | Merge into `prd/agent-autonomy-3` (slice commits) |
+| ----- | ---- | ------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged, worktree removed (opus) | f84b26e1 (be4214ea)                               |
+| 2     | 2    | merged (opus)                   | 46b69b38 (4b209296, da666a15)                     |
+| 3     | 2    | merged (opus)                   | 94d6c681 (5774aa8e, 8845635d), wording 30befe2f   |
+| 4     | 2    | merged (opus)                   | 7b6491b2 (aba032cd, 79f4ba27)                     |
 
-**Backlog:** claim B-511 when slice 1 starts and `done` it when slice 2 merges; B-512 with slice 3; B-513 with slice 4.
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`, never the terminal.
+
+**Models:** opus for every slice (the plan's _Models_).
+
+**Open issues:** none of ours. `pnpm backlog doctor` reports three findings on other topics (B-548, B-549, B-568), left alone.
+
+**Backlog:** B-511 claimed (slice 1 started); `done` it when slice 2 merges; B-512 with slice 3; B-513 with slice 4.
+
+**From slice 1's hand-off, for wave 2:**
+
+- Slice 2: on `skeptic record`, `--option` is the option chosen and `--offer <a>` (repeated) the question's options; the hash covers the trimmed question and the options in order, so `ask` passes the same ones in the same order. A question with no recommendation counts as `waits`. `useRecord` spends the record before filing, so validate the question first or a failed `createAsk` burns the verdict.
+- Slice 3: land verdicts need the full 40-character tip and an action of `force`, `no-review` or `decline <thread>`. They aren't spent, so a retry on the same tip works: use `checkRecord`, not `useRecord`.
+- Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
+
+**Wave 1:** landed in dev as ed73b3a3 through PR #103 (Codex clean on 84079b2, tier `none`), report filed, machinery doc folded. **Wave 2 (last wave):** slices 2, 3, 4 merged with a quick check after each, B-511, B-512, B-513 marked done, dev synced (27a288dd), docs folded. Tier `none` (docs and tooling), so no CI run. Next: quick check on the synced tip, `pnpm prd rm` the three slices, `pnpm prd pr`, Codex review, land, report, `pnpm prd rm agent-autonomy-3`, `pnpm prd end`.
+
+**For the landing report:**
+
+- Sessions started before this lands carry old prompts: their questions are refused with the teaching line, and they refile.
+- `--force --by-user` can now land an unsynced tip (it still needs dev-brought's safe verdict and the merge typecheck).
+- Pre-deployment mode no longer exists (test-gates dropped the modes), so that criterion is not applicable.
+- The "Try it" ran `land.sh` in a throwaway repo only, so whether agent permission rules block `pnpm prd land --force` from a session is still unknown.
+- A planner started with a one-off `--model` reopens on its row's model.
+
+**Possible follow-ups:** an unreadable GitHub counts as "no known brake" for a skeptic's `--force` (a go could fail closed); the unattended planner report's veto line `pnpm backlog prd set <topic> flags=hold` replaces the row's flags and would drop `design` or `standing`.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 

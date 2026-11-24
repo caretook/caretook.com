@@ -51,6 +51,10 @@ export const CARE_GROUPS_ERRORS = {
     message: "Agree to what the care group shares before joining",
     statusCode: 400,
   },
+  "careGroupInviteService:legalRequired": {
+    message: "Tick the box to continue.",
+    statusCode: 400,
+  },
   "careGroupInviteService:wrongKind": {
     message: "That isn't an email invitation",
     statusCode: 400,

@@ -1,9 +1,15 @@
-import type { AvatarSize } from "./UserAvatar";
+import type { AvatarLook, AvatarSize } from "./UserAvatar";
 
 import { splitStack } from "./stack";
 import { MoreAvatar, UserAvatar } from "./UserAvatar";
 
-export type StackPerson = { id: string; name?: string | null; email?: string | null; image?: string | null };
+export type StackPerson = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  look?: AvatarLook | null;
+};
 
 /**
  * Overlapping avatars, up to `max`, then "+N". One group, named `label` (also
@@ -39,6 +45,7 @@ export function AvatarStack({
           name={person.name}
           email={person.email}
           image={person.image}
+          look={person.look}
           size={size}
           className="ring-base-100 ring-2"
         />

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router";
 import { ChipGroup } from "./ChipGroup";
 import { filterButtonName, filterChips, filterCount, filterMenuEntries } from "./filterModel";
 import { Menu } from "./Menu";
-import { TOOL_CIRCLE } from "./styles";
+import { CIRCLE, COUNT_BADGE } from "./styles";
 
 /** What both parts take: the same data, so the button and the chips always agree. */
 export type FilterMenuProps = {
@@ -51,16 +51,15 @@ export function FilterMenu({ label, sections, clear, className = "" }: FilterMen
       items={items}
       width="md"
       placement="bottom end"
-      className={`${TOOL_CIRCLE} relative ${className}`}
+      variant="ghost"
+      size="sm"
+      shape="square"
+      className={`${CIRCLE} relative ${className}`}
       data-filter-button
     >
       <SlidersHorizontal className="size-4" aria-hidden="true" />
       {count > 0 && (
-        <span
-          aria-hidden="true"
-          className="badge badge-neutral badge-xs absolute -top-1 -right-1 min-w-4 px-1 font-semibold"
-          data-filter-count
-        >
+        <span aria-hidden="true" className={COUNT_BADGE} data-filter-count>
           {count}
         </span>
       )}

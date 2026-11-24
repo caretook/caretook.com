@@ -17,7 +17,7 @@ import {
   updateProvider,
 } from "~/lib/providers/providers.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { ConfirmDialog, Sheet } from "~/components/ui";
+import { ConfirmDialog, Message, Sheet } from "~/components/ui";
 import { ProviderForm } from "../ProviderForm";
 import { issuesForRows, providerFromForm } from "../providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
@@ -86,7 +86,7 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
   const refusal = remover.state === "idle" && remover.data && !remover.data.ok ? remover.data.error : null;
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title={`Edit ${provider.name}`}>
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title={`Edit ${provider.name}`}>
       <ProviderForm
         key={provider.id}
         provider={provider}
@@ -95,11 +95,7 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
         onCancel={close}
         onDelete={() => setConfirming(true)}
       />
-      {refusal && (
-        <p role="alert" className="text-error text-sm">
-          {refusal}
-        </p>
-      )}
+      {refusal && <Message tone="error">{refusal}</Message>}
       <ConfirmDialog
         open={confirming}
         title={`Delete ${provider.name}?`}

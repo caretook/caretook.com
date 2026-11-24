@@ -11,6 +11,7 @@ describe("mailErrorCode", () => {
     expect(mailErrorCode("skipped", "Not on MAIL_ALLOWLIST (outside production)")).toBe("notAllowlisted");
     expect(mailErrorCode("skipped", "something else")).toBe("skipped");
     expect(mailErrorCode("skipped", "suppressed")).toBe("suppressed");
+    expect(mailErrorCode("skipped", "expired")).toBe("expired");
   });
 
   it("keeps only a provider error's name", () => {

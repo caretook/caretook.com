@@ -2,7 +2,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { Section } from "~/components/ui";
+import { LINK, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { allActions } from "~/lib/providers/contactActions";
 
@@ -30,11 +30,11 @@ export function PeriodPlace({
         <p className="min-w-0 flex-1 wrap-break-word" data-period-place>
           {place &&
             (removed ? (
-              <span className="text-base-content/50" data-place-removed>
+              <span className="text-faint" data-place-removed>
                 {place.name} (removed)
               </span>
             ) : (
-              <Link className="link font-medium" to={appUrls.provider(groupId, place.id)}>
+              <Link className={`${LINK} font-medium`} to={appUrls.provider(groupId, place.id)}>
                 {place.name}
               </Link>
             ))}

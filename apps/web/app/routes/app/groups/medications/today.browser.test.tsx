@@ -21,8 +21,9 @@ import {
 } from "./medicationWorld";
 
 // Today on the Schedule tab (medications.mjs's Today, pass
-// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 in
-// Los Angeles, the recipient's zone and the test browser's. Times of their
+// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 on
+// the device, with the recipient in the device's zone (whichever the run uses),
+// so her slots read as the clock does. Times of their
 // own and passes a few minutes back are due; one tap logs Given, the ⋯ marks
 // Skipped or Refused with a note, an as-needed medication past its maximum
 // asks first; Given all logs a pass's open medications in one round with
@@ -32,6 +33,9 @@ import {
 // duePasses.test.ts's; a round's upload is syncMedications.int.test.ts's.
 
 const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
+
+/** The recipient, where the device is: `CLOCK` and `clockAt` are the device's 10:00. */
+const RECIPIENT_HERE = fx.recipient({ timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
 /** Donepezil at two times of its own, both due (6 and 3 minutes back). */
 const T1 = clockAt(-6);
@@ -81,7 +85,7 @@ const open = async (fixtures: Fixture[], role: "owner" | "caretaker" | "viewer" 
     route: MEDICATION_ROUTES,
     url: SCHEDULE,
     role,
-    fixtures: [SAM, fixtures],
+    fixtures: [SAM, RECIPIENT_HERE, fixtures],
   });
   await expect.poll(() => TODAY()?.querySelector("[data-slot], [data-as-needed]")).toBeTruthy();
   return device;
@@ -141,18 +145,19 @@ describe("times of their own", () => {
     ]);
   });
 
-  test("with the recipient in New York, her slots are read in her zone, and Today says whose times they are", async () => {
-    // 13:00 in New York is 10:00 here: a slot at 12:57 New York time is due now.
-    const NY = fx.medication({
+  test("with the recipient in another zone, her slots are read in her zone, and Today says whose times they are", async () => {
+    // Noon in Chicago, a zone apart from either test zone: a slot at 11:57 her time is due now.
+    fixClock(new Date("2027-06-09T17:00:00Z"));
+    const CHICAGO = fx.medication({
       name: "Donepezil",
       strength: "5 mg",
-      schedule: { type: "scheduled", slots: [{ time: "12:57" }, { time: T1 }] },
+      schedule: { type: "scheduled", slots: [{ time: "11:57" }, { time: T1 }] },
     });
-    await open([fx.recipient({ timeZone: "America/New_York" }), NY]);
-    expect(slotState(NY.id, "12:57")).toBe("due");
-    // 09:54 New York time was three hours ago here: overdue.
-    expect(slotState(NY.id, T1)).toBe("overdue");
-    await expect.poll(() => TODAY()?.textContent).toContain("Times are New York time");
+    await open([fx.recipient({ timeZone: "America/Chicago" }), CHICAGO]);
+    expect(slotState(CHICAGO.id, "11:57")).toBe("due");
+    // 09:54 her time was two hours ago: overdue.
+    expect(slotState(CHICAGO.id, T1)).toBe("overdue");
+    await expect.poll(() => TODAY()?.textContent).toContain("Times are Chicago time");
   });
 
   test("a viewer sees Today and each slot's state, with no logging controls", async () => {
@@ -185,6 +190,25 @@ describe("as needed", () => {
 
 describe("passes", () => {
   const passWorld = [ROUNDS, ROUND_2, XA, YB, ZC, WD];
+
+  test("a pass's expander shows and hides its medications, and says which it is", async () => {
+    await open(passWorld);
+    const button = await found(() => card(ROUNDS.id)?.querySelector<HTMLElement>("[data-pass-expand]"));
+    const row = () => slot(XA.id, R1, card(ROUNDS.id));
+    const shown = () => row()?.checkVisibility({ visibilityProperty: true });
+    const region = document.getElementById(button.getAttribute("aria-controls") ?? "");
+    expect(region?.contains(row() ?? null)).toBe(true);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(shown()).toBe(false);
+
+    await userEvent.click(button);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(shown).toBe(true);
+
+    await userEvent.click(button);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("false");
+    await expect.poll(shown).toBe(false);
+  });
 
   test("Today groups by pass: its name, Due and Given all for writers; a slot in it shows the pass's amount", async () => {
     await open(passWorld);
@@ -288,6 +312,86 @@ describe("passes", () => {
     // Only Zc's is this device's new write (Sam's came by sync).
     const queued = (await device.queued()).filter((w) => w.type === "timeline_entry");
     expect(queued).toHaveLength(2);
+  });
+
+  test("two single Given taps in one pass share one round", async () => {
+    const device = await open([ROUNDS, XA, YB]);
+    await expand(ROUNDS.id);
+    await userEvent.click(await found(() => slot(XA.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(XA.id, R1)).toBe("given");
+    await userEvent.click(await found(() => slot(YB.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(YB.id, R1)).toBe("given");
+    const logged = await doses(device);
+    expect(logged).toHaveLength(2);
+    expect(logged[0]?.passLogId).toBeTruthy();
+    expect(new Set(logged.map((d) => d.passLogId)).size).toBe(1);
+  });
+
+  test("Given all, Undo, then Given on one slot shows that slot given once", async () => {
+    const device = await open([ROUNDS, XA, YB]);
+    await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("done");
+    await expect.poll(UNDO).toBe("Rounds logged");
+    await userEvent.click(getByCss("[data-pass-undo-button]"));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
+    await expand(ROUNDS.id);
+    await userEvent.click(await found(() => slot(XA.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(XA.id, R1)).toBe("given");
+    expect(slotState(YB.id, R1)).toBe("due");
+    expect((await doses(device)).map((d) => d.medicationId)).toEqual([XA.id]);
+  });
+
+  test("two Given doses on yesterday's slot leave today's due, not given", async () => {
+    const DAY = 24 * 60;
+    const added = clockMoment(-3 * DAY);
+    const med = fx.medication({
+      name: "Xa",
+      strength: "5 mg",
+      dose: "1 tablet",
+      startedOn: added.slice(0, 10),
+      createdAt: added,
+      updatedAt: added,
+      schedule: { type: "scheduled", slots: [{ passId: ROUNDS.id }] },
+    });
+    const yesterdays = [-DAY - 5, -DAY + 10].map((minutes) =>
+      fx.dose({
+        medicationId: med.id,
+        occurredAt: clockMoment(minutes),
+        details: JSON.stringify({
+          medicationId: med.id,
+          status: "given",
+          amount: "1 tablet",
+          scheduledFor: R1,
+          passId: ROUNDS.id,
+        }),
+      }),
+    );
+    await open([ROUNDS, med, ...yesterdays]);
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
+    await expand(ROUNDS.id);
+    expect(slotState(med.id, R1)).toBe("due");
+  });
+
+  test("a medication added after its pass's time has no overdue dose, and Given all leaves it out", async () => {
+    const added = clockMoment(-3);
+    const late = fx.medication({
+      name: "Late",
+      strength: "5 mg",
+      dose: "1 tablet",
+      createdAt: added,
+      updatedAt: added,
+      schedule: { type: "scheduled", slots: [{ passId: ROUNDS.id }] },
+    });
+    const start = fx.medicationChange({ medicationId: late.id, occurredAt: added });
+    const device = await open([ROUNDS, XA, late, start]);
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
+    await expand(ROUNDS.id);
+    expect(slot(XA.id, R1, card(ROUNDS.id))).toBeTruthy();
+    expect(slot(late.id, R1, card(ROUNDS.id))).toBeNull();
+    expect(card(ROUNDS.id)?.querySelectorAll("[data-slot]")).toHaveLength(1);
+
+    await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
+    await expect.poll(async () => (await doses(device)).map((d) => d.medicationId)).toEqual([XA.id]);
   });
 
   test("a viewer sees each pass's state, with no Given all, Given or ⋯", async () => {

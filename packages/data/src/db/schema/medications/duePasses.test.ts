@@ -2,7 +2,17 @@ import type { DueDose, DueMedication } from "./dueDoses";
 
 import { describe, expect, it } from "vitest";
 import { dueDoses } from "./dueDoses";
-import { duePasses, givenAllWrites, isNamedPass, isPassDueNow, passLogIdFor } from "./duePasses";
+import {
+  doseSlotDay,
+  doseSlotId,
+  doseSlotIdFor,
+  duePasses,
+  givenAllWrites,
+  isNamedPass,
+  isPassDueNow,
+  passLogIdFor,
+  passRoundId,
+} from "./duePasses";
 
 const LA = "America/Los_Angeles";
 const MORNING = "11111111-1111-4111-8111-111111111111";
@@ -148,22 +158,17 @@ describe("duePasses", () => {
 });
 
 describe("givenAllWrites", () => {
-  const ids = () => {
-    let i = 0;
-    return () => `00000000-0000-4000-8000-00000000000${++i}`;
-  };
-
   it("writes a given dose now for every open slot, with its amount, time, pass and one new round", () => {
     const [morning] = passesAt(at("08:10"));
     const now = at("08:10");
-    expect(givenAllWrites(morning!, now, ids())).toEqual(
+    expect(givenAllWrites(morning!, now)).toEqual(
       ["a", "b", "c"].map((id) => ({
         medicationId: id,
         status: "given",
         amount: id === "a" ? "1000 mg" : "1 tablet",
         scheduledFor: "08:00",
         passId: MORNING,
-        passLogId: "00000000-0000-4000-8000-000000000001",
+        passLogId: passRoundId(`pass:${MORNING}`, "2026-11-19"),
         occurredAt: now.toISOString(),
       })),
     );
@@ -175,26 +180,26 @@ describe("givenAllWrites", () => {
       dose("c", at("08:06").toISOString(), { passId: MORNING, scheduledFor: "08:00" }),
     ];
     const [morning] = passesAt(at("09:20"), doses);
-    const writes = givenAllWrites(morning!, at("09:20"), ids());
+    const writes = givenAllWrites(morning!, at("09:20"));
     expect(writes.map((w) => [w.medicationId, w.passLogId])).toEqual([["a", LOG]]);
   });
 
   it("writes nothing for a pass that's done", () => {
     const doses = ["a", "b", "c"].map((id) => dose(id, at("08:05").toISOString(), { passId: MORNING }));
     const [morning] = passesAt(at("08:10"), doses);
-    expect(givenAllWrites(morning!, at("08:10"), ids())).toEqual([]);
+    expect(givenAllWrites(morning!, at("08:10"))).toEqual([]);
   });
 
   it("logs a time of its own as a pass of one, with no pass", () => {
     const own = passesAt(at("14:05")).find((p) => !p.passId)!;
-    expect(givenAllWrites(own, at("14:05"), ids())).toEqual([
+    expect(givenAllWrites(own, at("14:05"))).toEqual([
       {
         medicationId: "c",
         status: "given",
         amount: "1 tablet",
         scheduledFor: "14:00",
         passId: null,
-        passLogId: "00000000-0000-4000-8000-000000000001",
+        passLogId: passRoundId("c@14:00", "2026-11-19"),
         occurredAt: at("14:05").toISOString(),
       },
     ]);
@@ -203,11 +208,84 @@ describe("givenAllWrites", () => {
   it("an overdue pass is logged too", () => {
     const [morning] = passesAt(at("11:00"));
     expect(morning!.state).toBe("overdue");
-    expect(givenAllWrites(morning!, at("11:00"), ids())).toHaveLength(3);
+    expect(givenAllWrites(morning!, at("11:00"))).toHaveLength(3);
   });
 
-  it("passLogIdFor reuses the pass's round, else makes one", () => {
-    expect(passLogIdFor({ passLogId: LOG }, () => "new")).toBe(LOG);
-    expect(passLogIdFor({ passLogId: null }, () => "new")).toBe("new");
+  it("reuses a started round, and otherwise gives the same round on two calls", () => {
+    const [morning] = passesAt(at("08:10"));
+    expect(passLogIdFor({ ...morning!, passLogId: LOG })).toBe(LOG);
+    const first = givenAllWrites(morning!, at("08:10"));
+    const second = givenAllWrites(morning!, at("08:40"));
+    expect(new Set([...first, ...second].map((w) => w.passLogId)).size).toBe(1);
+    expect(first[0]!.passLogId).toBe(passRoundId(morning!.key, "2026-11-19"));
+  });
+});
+
+describe("slot and round ids", () => {
+  const M = "44444444-4444-4444-8444-444444444444";
+  const N = "55555555-5555-4555-8555-555555555555";
+
+  it("doseSlotId is a stable UUID v5, distinct by medication, day, slot and answer", () => {
+    const id = doseSlotId(M, "2026-11-19", MORNING, "given");
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(doseSlotId(M.toUpperCase(), "2026-11-19", MORNING.toUpperCase(), "given")).toBe(id);
+    const others = [
+      doseSlotId(N, "2026-11-19", MORNING, "given"),
+      doseSlotId(M, "2026-11-20", MORNING, "given"),
+      doseSlotId(M, "2026-11-19", EVENING, "given"),
+      doseSlotId(M, "2026-11-19", "08:00", "given"),
+      doseSlotId(M, "2026-11-19", MORNING, "skipped"),
+      doseSlotId(M, "2026-11-19", MORNING, "refused"),
+    ];
+    expect(new Set([id, ...others]).size).toBe(7);
+  });
+
+  it("passRoundId is stable and distinct by pass and day", () => {
+    const id = passRoundId(`pass:${MORNING}`, "2026-11-19");
+    expect(passRoundId(`pass:${MORNING}`, "2026-11-19")).toBe(id);
+    expect(passRoundId(`pass:${EVENING}`, "2026-11-19")).not.toBe(id);
+    expect(passRoundId(`pass:${MORNING}`, "2026-11-20")).not.toBe(id);
+  });
+
+  it.each([
+    ["a 23:30 slot at 00:10 is last night's", "23:30", "2026-11-20T08:10:00.000Z", "2026-11-19"],
+    ["a 20:00 slot at 07:00 is today's", "20:00", "2026-11-19T15:00:00.000Z", "2026-11-19"],
+    ["a 00:30 slot at 23:45 is tomorrow's", "00:30", "2026-11-20T07:45:00.000Z", "2026-11-20"],
+    // Spring forward, Mar 8 2026: 01:30 PST to 03:15 PDT is 45 minutes.
+    ["a 01:30 slot across the spring gap", "01:30", "2026-03-08T10:15:00.000Z", "2026-03-08"],
+    // Fall back, Nov 1 2026: 23:30 PDT Oct 31, given 00:10 PDT.
+    ["a 23:30 slot on the fall-back night", "23:30", "2026-11-01T07:10:00.000Z", "2026-10-31"],
+  ])("doseSlotDay: %s", (_name, time, occurredAt, day) => {
+    expect(doseSlotDay({ occurredAt, time, timeZone: LA })).toBe(day);
+  });
+
+  it("doseSlotDay agrees with the slot the matching answers", () => {
+    const late = med("late", inPasses({ time: "23:30" }));
+    const occurredAt = "2026-11-20T08:10:00.000Z"; // 00:10 on the 20th
+    const due = dueDoses({
+      medications: [late],
+      doses: [dose("late", occurredAt, { scheduledFor: "23:30" })],
+      now: new Date(occurredAt),
+      timeZone: LA,
+    });
+    const answered = due.matched.find((s) => s.dose);
+    expect(answered?.day).toBe(doseSlotDay({ occurredAt, time: "23:30", timeZone: LA }));
+  });
+
+  it("doseSlotIdFor gives an unnamed dose none, keys by pass then time, and reads the pass's time now", () => {
+    const occurredAt = "2026-11-19T16:05:00.000Z";
+    const base = { medicationId: M, status: "given" as const, occurredAt };
+    expect(doseSlotIdFor(base, { timeZone: LA })).toBeNull();
+    expect(doseSlotIdFor({ ...base, scheduledFor: "08:00" }, { timeZone: LA })).toBe(
+      doseSlotId(M, "2026-11-19", "08:00", "given"),
+    );
+    expect(doseSlotIdFor({ ...base, passId: MORNING, scheduledFor: "08:00" }, { timeZone: LA })).toBe(
+      doseSlotId(M, "2026-11-19", MORNING, "given"),
+    );
+    // Logged with a stale 20:00, the pass now at 23:30: 00:10 belongs to last night.
+    const late = { ...base, occurredAt: "2026-11-20T08:10:00.000Z", passId: EVENING, scheduledFor: "20:00" };
+    expect(doseSlotIdFor(late, { timeZone: LA, passTime: "23:30" })).toBe(
+      doseSlotId(M, "2026-11-19", EVENING, "given"),
+    );
   });
 });

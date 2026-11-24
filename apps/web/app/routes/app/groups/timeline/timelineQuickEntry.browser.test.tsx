@@ -81,6 +81,44 @@ afterEach(() => {
   localStorage.removeItem(`caretook:settings:${TEST_USER.id}`);
 });
 
+describe("a bare number at the strength with a usual dose of several units (B-662)", () => {
+  const LINE = "gave acetaminophen 500";
+  const doses = (device: Awaited<ReturnType<typeof open>>) =>
+    device.query<{ details: string }>("SELECT details FROM timeline_entry WHERE kind = 'dose'");
+
+  test("the caretaker is asked, nothing saves until they choose, and the chosen amount is recorded", async () => {
+    const device = await open();
+    await type(LINE, ["dose"]);
+    await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
+    await expect
+      .poll(() => cards()[0]?.querySelector("[data-quick-blocking]")?.textContent)
+      .toContain("Choose the amount");
+    expect(saveButton()?.disabled).toBe(true);
+    expect(await doses(device)).toEqual([]);
+
+    await userEvent.click(page.getByRole("button", { name: "2 tablets", exact: true }));
+    await waitUntil(() => !cards()[0]?.querySelector("[data-quick-blocking]"), "the choice");
+    await expect.poll(() => cards()[0]?.textContent).toContain("Given 2 tablets");
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+
+    const saved = await doses(device);
+    expect(saved).toHaveLength(1);
+    expect(JSON.parse(saved[0]?.details ?? "null")).toMatchObject({
+      medicationId: ACETAMINOPHEN.id,
+      amount: "2 tablets",
+    });
+  });
+
+  test("Edit opens the Dose sheet with the amount empty", async () => {
+    await open();
+    await type(LINE, ["dose"]);
+    await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
+    await userEvent.click(page.getByRole("button", { name: `Edit "${LINE}"` }));
+    await expect.element(page.getByRole("textbox", { name: /Amount/ })).toHaveValue("");
+  });
+});
+
 describe("the box and its cards", () => {
   test("a vital, a dose and a symptom: three cards, saved together, offline, on the timeline and queued for upload", async () => {
     const device = await open();
@@ -637,5 +675,59 @@ describe("kind chips", () => {
       [at(new Date(Date.now() - 60_000))],
     );
     expect(kinds.map((k) => k.kind)).toEqual(["note"]);
+  });
+});
+
+describe("go to a day", () => {
+  const goCard = () => document.querySelector<HTMLElement>("[data-quick-goto]");
+  const goButton = () => page.getByRole("button", { name: "Go", exact: true });
+  const recentLines = () => localStorage.getItem(`caretook:recentLines:${TEST_USER.id}:${TEST_GROUP.id}`);
+  const entryCount = async (device: Awaited<ReturnType<typeof open>>) =>
+    (await device.query<{ n: number }>("SELECT count(*) AS n FROM timeline_entry"))[0]?.n;
+
+  test("the card goes to the day, writes nothing, records no line and clears the box", async () => {
+    const device = await open();
+    const before = await entryCount(device);
+    const recentBefore = recentLines();
+    await userEvent.fill(box(), "go to Jun 1");
+    await expect.poll(() => goCard()?.dataset.quickGoto).toBe("2027-06-01");
+    expect(cards()).toEqual([]);
+
+    await userEvent.click(goButton());
+    await expect.poll(device.location).toBe(`${TIMELINE_URL}?day=2027-06-01`);
+    await expect.element(box()).toHaveValue("");
+    await device.settle();
+    expect(await entryCount(device)).toBe(before);
+    expect(await device.queued()).toEqual([]);
+    expect(recentLines()).toBe(recentBefore);
+  });
+
+  test("Enter goes too", async () => {
+    const device = await open();
+    await userEvent.fill(box(), "show yesterday");
+    await expect.poll(() => goCard()?.dataset.quickGoto).toBe("2027-06-08");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(device.location).toBe(`${TIMELINE_URL}?day=2027-06-08`);
+  });
+
+  test("a day ahead is blocked: no navigation and nothing saved", async () => {
+    const device = await open();
+    const before = await entryCount(device);
+    await userEvent.fill(box(), "go to tomorrow");
+    await expect.poll(() => goCard()?.textContent).toContain("The timeline ends today.");
+    await expect.element(goButton()).toBeDisabled();
+    await userEvent.keyboard("{Enter}");
+    await device.settle();
+    expect(device.location()).toBe(TIMELINE_URL);
+    await expect.element(box()).toHaveValue("go to tomorrow");
+    expect(await entryCount(device)).toBe(before);
+  });
+
+  test("a line that only mentions going somewhere keeps its save cards", async () => {
+    await open();
+    await userEvent.fill(box(), "go to PT tomorrow");
+    await waitUntil(() => cards().length > 0, "the cards");
+    expect(goCard()).toBeNull();
+    expect(saveButton()?.textContent).toContain("Save");
   });
 });

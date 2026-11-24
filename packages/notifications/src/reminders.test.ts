@@ -62,9 +62,9 @@ const render = async (
 describe("reminder emails", () => {
   it("say only the kind, the time and a link in the generic form", async () => {
     const visit = await render("appointmentReminder", appointment, "generic");
-    expect(visit.subject).toBe("Appointment for Pat · Thu 19 Nov · 9:00–10:00");
+    expect(visit.subject).toBe("Event for Pat · Thu, Nov 19 · 9:00–10:00 AM PST");
     const due = await render("todoDue", todo, "generic");
-    expect(due.subject).toBe("Todo for Pat · Thu 19 Nov · 9:00");
+    expect(due.subject).toBe("Todo for Pat · Thu, Nov 19 · 9:00 AM PST");
     for (const out of [visit, due]) {
       expect(out.html).toContain("<html");
       for (const part of [out.subject, out.html, out.text]) {
@@ -81,15 +81,15 @@ describe("reminder emails", () => {
 
   it("add the title, place and providers with details", async () => {
     const visit = await render("appointmentReminder", appointment, "details");
-    expect(visit.subject).toBe("Appointment for Pat: Kidney dialysis · Thu 19 Nov · 9:00–10:00");
+    expect(visit.subject).toBe("Event for Pat: Kidney dialysis · Thu, Nov 19 · 9:00–10:00 AM PST");
     expect(visit.text).toContain("At Riverside Clinic");
     expect(visit.text).toContain("With Dr. Rivera Example");
     const due = await render("todoDue", todo, "details");
-    expect(due.subject).toBe("Todo for Pat: Refill the insulin · Thu 19 Nov · 9:00");
+    expect(due.subject).toBe("Todo for Pat: Refill the insulin · Thu, Nov 19 · 9:00 AM PST");
   });
 
   it("put the times in the member's zone", () => {
     const data = reminderEmailData({ item: appointment, timeZone: "Europe/London" }, "generic", UNSUBSCRIBE);
-    expect(data.when).toBe("Thu 19 Nov · 17:00–18:00");
+    expect(data.when).toBe("Thu, Nov 19 · 5:00–6:00 PM GMT");
   });
 });

@@ -2,7 +2,7 @@ import type { RescheduleTarget } from "~/components/entry";
 
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Sheet } from "~/components/ui";
+import { Button, CheckField, Message, Sheet } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { endError, sameSchedule } from "~/lib/appointments/entrySchedule";
 import { keepOldByDefault, scheduleOf, withMovedStart } from "~/lib/appointments/eventReschedule";
@@ -45,6 +45,7 @@ export function RescheduleSheet({
     // Nothing to move: nothing to write.
     if (!keepOld && sameSchedule(schedule, initial)) return onClose();
     setBusy(true);
+    setError(null);
     const res = await rescheduleEvent(getSync(), entry.id, { ...schedule, keepOldAsCancelled: keepOld });
     setBusy(false);
     if (!res.ok) return setError(res.issues[0]?.message ?? res.error);
@@ -53,7 +54,12 @@ export function RescheduleSheet({
   };
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title={`Reschedule ${upcomingTitle(entry)}`}>
+    <Sheet
+      guardChanges
+      isOpen
+      onOpenChange={(open) => !open && onClose()}
+      title={`Reschedule ${upcomingTitle(entry)}`}
+    >
       <form
         className="space-y-3"
         data-reschedule-sheet=""
@@ -73,32 +79,28 @@ export function RescheduleSheet({
             setError(null);
           }}
         />
-        <label className="label text-base-content cursor-pointer items-start gap-2 text-sm whitespace-normal">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm mt-0.5"
-            checked={keepOld}
-            data-keep-old=""
-            aria-describedby="reschedule-keep-help"
-            onChange={(e) => setKeepOld(e.target.checked)}
-          />
-          <span>
-            Keep the old one as cancelled
-            <span id="reschedule-keep-help" className="text-base-content/70 block">
-              {keepOld
-                ? "It stays, struck through, linking to the new one. Its notes and providers carry over."
-                : "The event just moves to the new time, with its notes and providers."}
-            </span>
-          </span>
-        </label>
-        {error && (
-          <p role="alert" className="text-error text-sm">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn-primary btn-block" disabled={busy || !!endProblem}>
-          {busy ? "Rescheduling…" : "Reschedule"}
-        </button>
+        <CheckField
+          label="Keep the old one as cancelled"
+          help={
+            keepOld
+              ? "It stays, struck through, linking to the new one. Its notes and providers carry over."
+              : "The event just moves to the new time, with its notes and providers."
+          }
+          checked={keepOld}
+          data-keep-old=""
+          onChange={(e) => setKeepOld(e.target.checked)}
+        />
+        {error && <Message tone="error">{error}</Message>}
+        <Button
+          type="submit"
+          variant="primary"
+          block
+          busy={busy}
+          busyLabel="Rescheduling…"
+          disabled={!!endProblem}
+        >
+          Reschedule
+        </Button>
       </form>
     </Sheet>
   );

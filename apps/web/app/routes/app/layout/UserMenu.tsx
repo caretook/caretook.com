@@ -5,11 +5,12 @@ import type { Theme } from "~/lib/app-shell/theme";
 
 import { LayoutGrid, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun, Users } from "lucide-react";
 import { useState } from "react";
-import { useSubmit } from "react-router";
-import { Menu, SEPARATOR, UserAvatar } from "~/components/ui";
+import { ConfirmDialog, Menu, SEPARATOR, UserAvatar } from "~/components/ui";
 import { adminLink } from "~/lib/admin/adminLink";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { useMyAvatar } from "~/lib/app-shell/myAvatar";
 import { readTheme, setTheme } from "~/lib/app-shell/theme";
+import { signOutWarning, useSignOut } from "./useSignOut";
 
 const THEME_ITEMS = [
   { id: "system", label: "System", icon: Monitor },
@@ -24,7 +25,8 @@ const isTheme = (id: string): id is Theme => THEME_ITEMS.some((t) => t.id === id
  * account menu. The header (name, email) isn't an item, so it's never focused.
  * In easy mode (`easy`) it's reduced to Settings, "Your care groups"
  * (with `severalGroups`: easy mode has no group menu), "Full app" (unless
- * locked) and Sign out.
+ * locked) and Sign out. Sign out asks first when changes haven't reached
+ * the server (`useSignOut`).
  */
 export function UserMenu({
   user,
@@ -35,7 +37,8 @@ export function UserMenu({
   easy?: EasyModeState | null;
   severalGroups?: boolean;
 }) {
-  const submit = useSubmit();
+  const signOutFlow = useSignOut();
+  const look = useMyAvatar(user.id);
   const who = user.name || user.email;
   const admin = adminLink(user.role, import.meta.env.VITE_API_ORIGIN);
   // Only read when the menu renders on the client (the popover is closed during SSR).
@@ -43,21 +46,63 @@ export function UserMenu({
     typeof window === "undefined" ? "system" : readTheme(),
   );
 
-  const signOut = {
-    id: "sign-out",
-    label: "Sign out",
-    icon: LogOut,
-    // POST, as the old header form did (a GET link could be triggered by any page).
-    onAction: () => void submit(null, { method: "post", action: "/sign-out" }),
-  };
+  const signOut = { id: "sign-out", label: "Sign out", icon: LogOut, onAction: signOutFlow.start };
+  const warning = signOutWarning(signOutFlow.waiting);
+  const dialog = (
+    <ConfirmDialog
+      open={signOutFlow.asking}
+      title={warning.title}
+      message={warning.message}
+      cancelLabel="Stay signed in"
+      confirmLabel="Sign out anyway"
+      onConfirm={signOutFlow.confirm}
+      onClose={signOutFlow.cancel}
+    />
+  );
   const settings = { id: "settings", label: "Settings", icon: Settings, href: appUrls.settings() };
 
   if (easy)
     return (
+      <>
+        <Menu
+          label={`Account menu for ${who}`}
+          menuLabel="Account"
+          variant="ghost"
+          shape="round"
+          width="lg"
+          items={[
+            {
+              type: "section",
+              id: "account",
+              header: { title: user.name || undefined, subtitle: user.email },
+              items: [
+                settings,
+                ...(severalGroups
+                  ? [{ id: "groups", label: "Your care groups", icon: Users, href: appUrls.groupList() }]
+                  : []),
+                ...(easy.canToggle
+                  ? [{ id: "full-app", label: "Full app", icon: LayoutGrid, onAction: easy.toggle }]
+                  : []),
+              ],
+            },
+            SEPARATOR,
+            signOut,
+          ]}
+        >
+          <UserAvatar name={user.name} email={user.email} image={user.image} look={look} size="md" />
+        </Menu>
+        {dialog}
+      </>
+    );
+
+  return (
+    <>
       <Menu
         label={`Account menu for ${who}`}
         menuLabel="Account"
-        className="btn btn-ghost btn-circle btn-md"
+        variant="ghost"
+        size="sm"
+        shape="round"
         width="lg"
         items={[
           {
@@ -66,73 +111,46 @@ export function UserMenu({
             header: { title: user.name || undefined, subtitle: user.email },
             items: [
               settings,
-              ...(severalGroups
-                ? [{ id: "groups", label: "Your care groups", icon: Users, href: appUrls.groupList() }]
-                : []),
-              ...(easy.canToggle
-                ? [{ id: "full-app", label: "Full app", icon: LayoutGrid, onAction: easy.toggle }]
+              // Staff only. /admin is its own server-rendered frame: a full load on
+              // the web, the system browser from the native build.
+              ...(admin
+                ? [
+                    {
+                      id: "admin",
+                      label: "Admin",
+                      icon: ShieldCheck,
+                      onAction: () =>
+                        admin.kind === "external"
+                          ? void window.open(admin.href, "_blank", "noopener")
+                          : window.location.assign(admin.href),
+                    },
+                  ]
                 : []),
             ],
+          },
+          SEPARATOR,
+          // Theme: per device (lib/app-shell/theme.ts), never sent to the server.
+          {
+            type: "section",
+            id: "theme",
+            title: "Theme",
+            items: THEME_ITEMS,
+            selection: {
+              selected: theme,
+              onChange: (next) => {
+                if (!isTheme(next)) return;
+                setTheme(next);
+                setThemeState(next);
+              },
+            },
           },
           SEPARATOR,
           signOut,
         ]}
       >
-        <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
+        <UserAvatar name={user.name} email={user.email} image={user.image} look={look} size="md" />
       </Menu>
-    );
-
-  return (
-    <Menu
-      label={`Account menu for ${who}`}
-      menuLabel="Account"
-      className="btn btn-ghost btn-circle btn-sm"
-      width="lg"
-      items={[
-        {
-          type: "section",
-          id: "account",
-          header: { title: user.name || undefined, subtitle: user.email },
-          items: [
-            settings,
-            // Staff only. /admin is its own server-rendered frame: a full load on
-            // the web, the system browser from the native build.
-            ...(admin
-              ? [
-                  {
-                    id: "admin",
-                    label: "Admin",
-                    icon: ShieldCheck,
-                    onAction: () =>
-                      admin.kind === "external"
-                        ? void window.open(admin.href, "_blank", "noopener")
-                        : window.location.assign(admin.href),
-                  },
-                ]
-              : []),
-          ],
-        },
-        SEPARATOR,
-        // Theme: per device (lib/app-shell/theme.ts), never sent to the server.
-        {
-          type: "section",
-          id: "theme",
-          title: "Theme",
-          items: THEME_ITEMS,
-          selection: {
-            selected: theme,
-            onChange: (next) => {
-              if (!isTheme(next)) return;
-              setTheme(next);
-              setThemeState(next);
-            },
-          },
-        },
-        SEPARATOR,
-        signOut,
-      ]}
-    >
-      <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
-    </Menu>
+      {dialog}
+    </>
   );
 }

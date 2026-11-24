@@ -1,3 +1,4 @@
+import { LINK } from "~/components/ui";
 import type { Route } from "./+types/route";
 
 import { NavLink, Outlet } from "react-router";
@@ -25,7 +26,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
       <header className="border-base-300 bg-base-100 border-b px-4 sm:px-6">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between gap-4">
           <span className="font-semibold">Caretook admin</span>
-          <a href="/app" className="link text-sm">
+          <a href="/app" className={`${LINK} text-sm`}>
             Back to the app
           </a>
         </div>

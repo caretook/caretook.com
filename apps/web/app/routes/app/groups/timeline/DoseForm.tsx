@@ -8,7 +8,7 @@ import type { DoseOption } from "./doseFormData";
 
 import { useState } from "react";
 import { isDoseDetails, MEDICATION_LIMITS } from "@caretook/data/schema";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { ChoiceGroup, Field, FormFooter, Message, Notice } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { formString } from "~/lib/core/form";
 import { DOSE_STATUS_OPTIONS, NEW_MEDICATION_OPTION, parseDoseOption } from "./doseFormData";
@@ -80,8 +80,9 @@ export function DoseForm(props: Props) {
   const [status, setStatus] = useState<DoseStatus>(stored?.status ?? draft?.status ?? "given");
   // The amount follows the chosen medication's dose until it's typed in (or came filled in).
   const [amount, setAmount] = useState({
-    value: stored ? (stored.amount ?? "") : draft?.amount ? draft.amount : doseOf(choice),
-    typed: !!entry || !!draft?.amount,
+    value: stored ? (stored.amount ?? "") : (draft?.amount ?? doseOf(choice)),
+    // An empty draft amount is quick entry asking: the usual dose must not fill it in.
+    typed: !!entry || (draft?.amount ?? null) !== null,
   });
   // Warnings shown for this choice; submitting again with the same ones saves.
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -154,12 +155,11 @@ export function DoseForm(props: Props) {
         error={issueFor(issues, "details.status")}
       />
 
-      <Field label="Amount (optional)" error={issueFor(issues, "details.amount")}>
+      <Field label="Amount (optional)" kind="input" error={issueFor(issues, "details.amount")}>
         {(control) => (
           <input
             {...control}
             name="amount"
-            className="input w-full"
             maxLength={MEDICATION_LIMITS.doseAmount}
             value={amount.value}
             onChange={(e) => setAmount({ value: e.target.value, typed: true })}
@@ -174,12 +174,11 @@ export function DoseForm(props: Props) {
         error={issueFor(issues, "occurredAt")}
       />
 
-      <Field label="Note (optional)" error={issueFor(issues, "details.note")}>
+      <Field label="Note (optional)" kind="textarea" error={issueFor(issues, "details.note")}>
         {(control) => (
           <textarea
             {...control}
             name="note"
-            className="textarea w-full"
             rows={2}
             maxLength={MEDICATION_LIMITS.doseNote}
             defaultValue={stored?.note ?? draft?.note ?? ""}
@@ -188,27 +187,19 @@ export function DoseForm(props: Props) {
       </Field>
 
       {warnings.length > 0 && (
-        <div role="alert" className="alert alert-warning text-sm" data-dose-warning>
-          <p>{warnings.join(" ")} Log it anyway?</p>
-        </div>
+        <Notice tone="warning" role="alert" data-dose-warning="">
+          {warnings.join(" ")} Log it anyway?
+        </Notice>
       )}
 
-      {result && !result.ok && !issues.length && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      {result && !result.ok && !issues.length && <Message tone="error">{result.error}</Message>}
 
-      <div className="flex gap-2 pt-2">
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {busy ? "Saving…" : entry ? "Save changes" : warnings.length ? "Log anyway" : "Log dose"}
-        </button>
-        {onCancel && (
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            Cancel
-          </button>
-        )}
-      </div>
+      <FormFooter
+        submitLabel={entry ? "Save changes" : warnings.length ? "Log anyway" : "Log dose"}
+        busy={busy}
+        busyLabel="Saving…"
+        cancel={onCancel && { label: "Cancel", onCancel }}
+      />
     </Form>
   );
 }

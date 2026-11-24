@@ -4,7 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { newCareGroupZSchema } from "@caretook/data/schema";
 import { redirect, useFetcher, useLocation, useNavigate } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Page, Sheet } from "~/components/ui";
+import { Button, Message, Page, Sheet } from "~/components/ui";
 import { toActionResult } from "~/lib/core/api";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { rpc } from "~/lib/core/rpc";
@@ -58,20 +58,16 @@ export default function NewGroupSheet() {
   };
   return (
     <Page>
-      <Sheet isOpen onOpenChange={(open) => !open && close()} title="New care group">
+      <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="New care group">
         <fetcher.Form method="post" className="space-y-2" data-new-group-form="">
-          <p className="text-base-content/70 text-sm">
+          <p className="text-muted text-sm">
             Who do you care for? You'll be the group's owner, and can invite others next.
           </p>
           <NewGroupFields issues={result && !result.ok ? result.issues : []} />
-          {result && !result.ok && result.error && (
-            <p role="alert" className="text-error text-sm">
-              {result.error}
-            </p>
-          )}
-          <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-            {busy ? "Creating…" : "Create care group"}
-          </button>
+          {result && !result.ok && result.error && <Message tone="error">{result.error}</Message>}
+          <Button type="submit" variant="primary" block busy={busy} busyLabel="Creating…">
+            Create care group
+          </Button>
         </fetcher.Form>
       </Sheet>
     </Page>

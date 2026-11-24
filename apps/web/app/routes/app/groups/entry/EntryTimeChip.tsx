@@ -2,10 +2,11 @@ import type { Schedule } from "~/lib/appointments/entrySchedule";
 
 import { CalendarClock } from "lucide-react";
 import { useRef, useState } from "react";
-import { Popover } from "~/components/ui";
+import { Button, Popover } from "~/components/ui";
 import { ScheduleFields } from "~/components/schedule";
 import { endError, scheduleToSave, startError } from "~/lib/appointments/entrySchedule";
 import { EntryTime } from "./EntryHeader";
+import { ENTRY_CHIP } from "./entryPage";
 
 /**
  * The entry header's time, as a chip ("Today, 2:15 PM", "Tomorrow, 10:30
@@ -52,7 +53,7 @@ export function EntryTimeChip({
       dialogLabel="When it happened"
       defaultOpen={pickDay}
       onOpenChange={(open) => !open && commit()}
-      className="badge badge-ghost hover:bg-base-300 h-auto cursor-pointer gap-1 py-0.5 text-start outline-offset-2 data-[focus-visible]:outline-2"
+      className={`${ENTRY_CHIP} text-start`}
       trigger={
         <>
           <CalendarClock className="size-3.5 shrink-0" aria-hidden="true" />
@@ -106,14 +107,14 @@ function SchedulePanel({
         }}
       />
       <div className="flex justify-end">
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
+        <Button
+          variant="primary"
+          size="sm"
           // An end before the start keeps the popover open, with the field's error.
           onClick={() => !error && onDone()}
         >
           Done
-        </button>
+        </Button>
       </div>
     </>
   );
