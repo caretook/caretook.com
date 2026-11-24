@@ -33,7 +33,7 @@ Notes for every wave:
 | 41    | B-676 | in progress (opus) |       |
 | 42    | B-762 | blocked            |       |
 | 43    | B-617 | in progress (opus) |       |
-| 44    | B-756 | in progress (opus) |       |
+| 44    | B-756 | handed off 97ae1c89 |       |
 | 45    | B-691 | in progress (opus) |       |
 | 46    | B-692 | blocked            |       |
 | 47    | B-736 | in progress (opus) |       |
