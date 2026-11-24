@@ -4,11 +4,15 @@
 
 ## Status
 
-**Where it stands (2026-11-24):** wave 1 started. `quick-entry-2` (a11d93f8) and `dose-accuracy` have landed in dev; dev (300afb36) is in `prd/symptom-catalog`. B-549 claimed. Slice 1 (opus) handed off and merged as cebc11e8; wave 1's CI run (full, run 45392598122 on bc1d3823) was a brake: the static job (the plan's table formatting, fixed by the orchestrator) and `timelineQuickEntry.browser.test.tsx` "Edit a symptom opens the symptom sheet filled in" (slice 1's: the `datalist` makes the name input a combobox, the test looks for a textbox); blame put both on the branch. A fresh opus fix agent fixed the locator (4f751ee2, quick check passed), merged again as b343d483; the second full run was **green** (run 45399536534 on 79c09ebf). Slice 1's worktree removed. `pnpm prd sync` merged dev (f019fadd, no new migration); dev's new `fixtureShape` test needed `symptom_type` registered (f253754b: a default fixture, and no schema until slice 3's upload, with the reason), run alone and passing, with `sync-matrix.test.mjs` and a clean typecheck. Per the user's no-double-tests rule (2026-11-24), no CI rerun after the sync: land with `--force --by-user` if the gate refuses only for that. Browser checks skipped (memory: no `--suite` unasked, browser test skip until test-gates slice 8). PR #149 open; Codex out of credits (review exit 4), so wave 1 lands `--no-review`. Docs folded into [timeline](../docs/domain/timeline.md) (the catalog bullet; trimmed to budget). **Landing wave 1** with `--tier full --no-review`: `--force --by-user` was classifier-blocked (only a memory stood for the user's word), and the sync wasn't harmless (dev's `fixtureShape` test broke on the new table), so the gate runs the full tier on the synced tip. After it: file the report, then drain and rotate (no slice in flight); wave 2 (slice 2) starts in the fresh session.
+**Where it stands (hand-over, 2026-11-24):** **wave 1 landed** in dev as ca4dbb54 (PR #149, tier full, `--no-review`: Codex out of credits). Gate run 45402448788 was a flake in `calendarCron.int.test.ts` (not ours, filed B-743). Report filed as ask a181; to-test file `to-test/2026-11-24-0831-symptom-catalog.md`. Docs folded into timeline.md. No slice in flight; slice 1's worktree removed. B-549 stays claimed (done when the last slice merges).
 
-**For slice 3:** add `symptom_type` to `FIXTURE_SCHEMAS` in `apps/web/test/fixtureShape.ts` (drop its `NO_FIXTURE_SCHEMA` reason) and a case in `packages/api/src/accessSweep.int.test.ts` when it adds the upload entry. Slice 1's worktree and branch stay until the verdict is green. Its agent ended past 230k: a fix goes to a fresh `--continue` agent.
+**Next (fresh session):** wave boundary (`pnpm backlog ingest`, `doctor`, `list`), `pnpm prd sync`, then wave 2: `pnpm prd slice symptom-catalog 2` and an opus agent. Give it slice 1's hand-off notes (below).
 
-**Hand-off notes for slice 2:** `symptomTypeService.ensure(ctx, groupId, name)` is ready for the write path (advisory lock on the derived id); extend `symptomTypeService.backfill` with the pointer step; `SYMPTOM_NAME_MAX` is separate from `timelineEntry.ts` so the composite FK has no import cycle; the backfill runs from `scripts/migrate.ts` (not test setup), so integration tests call it directly; migration `0043_symptom_catalog.sql` has a redundant `symptom_type_group_idx` to drop on regeneration.
+**Slice 1 hand-off notes, for slice 2:** `symptomTypeService.ensure(ctx, groupId, name)` is ready for the write path (advisory lock on the derived id); extend `symptomTypeService.backfill` with the pointer step; `SYMPTOM_NAME_MAX` is separate from `timelineEntry.ts` so the composite FK has no import cycle; the backfill runs from `scripts/migrate.ts` (not test setup), so integration tests call it directly; migration `0043_symptom_catalog.sql` has a redundant `symptom_type_group_idx` to drop when slice 2 regenerates it (one pending migration for the topic: since 0043 landed, slice 2 adds the next number).
+
+**For slice 3:** add `symptom_type` to `FIXTURE_SCHEMAS` in `apps/web/test/fixtureShape.ts` (drop its `NO_FIXTURE_SCHEMA` reason) and a case in `packages/api/src/accessSweep.int.test.ts` when it adds the upload entry.
+
+**Lessons from wave 1:** an `<input list>` is a `combobox`, not a `textbox`, in tests. `--force --by-user` resting only on a memory is classifier-blocked; land through the gate instead. A dev sync can bring registry-style tests that need a new table registered: check new `*Sweep`/`fixtureShape`-style tests after each sync.
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`).
 
@@ -16,7 +20,7 @@
 
 | Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
-| 1     | 1    | merged      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
+| 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
 | 2     | 2    | not started |                                                  |
 | 3     | 3    | not started |                                                  |
 | 4     | 4    | not started |                                                  |
