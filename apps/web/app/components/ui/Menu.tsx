@@ -51,7 +51,7 @@ const ITEM =
  * The menu is named by the button (its `label`, else its text) unless
  * `menuLabel` is given. Link items navigate through React Router, with their
  * `state` as history state. The menu fades in and out (`motion-overlay`,
- * `--motion-fast`); it leaves the DOM after its exit, well inside the wait
+ * `--motion`); it leaves the DOM after its exit, well inside the wait
  * `useShowModal` gives a dialog opened from one of its items.
  */
 export function Menu({

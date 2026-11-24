@@ -21,10 +21,10 @@ describe("Chevron", () => {
     await expect.element(screen.getByRole("img")).not.toBeInTheDocument();
   });
 
-  test("it turns with the kit's duration", async () => {
+  test("it turns with the kit's duration (--motion, 240 ms)", async () => {
     await renderInRouter(<Chevron open={false} />);
     const style = getComputedStyle(document.querySelector("svg")!);
     expect(style.transitionProperty).toContain("rotate");
-    expect(style.transitionDuration.split(",").map((s) => parseFloat(s))).toContain(0.18);
+    expect(style.transitionDuration.split(",").map((s) => parseFloat(s))).toContain(0.24);
   });
 });

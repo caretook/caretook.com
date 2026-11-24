@@ -99,7 +99,7 @@ describe("the list", () => {
     expect(badge("Oxybutynin")).toBeNull();
   });
 
-  test("at phone width the type badge sits at the row's right edge, and a long name wraps beside it", async () => {
+  test("at phone width the type badge sits at the name column's right edge (beside Log), and a long name wraps beside it", async () => {
     const longName = "Hydroxychloroquinesulfateextendedreleaseformulation with a very long descriptive name";
     await open({
       width: 320,
@@ -113,8 +113,14 @@ describe("the list", () => {
       const pill = row.querySelector("[data-medication-type]")!.getBoundingClientRect();
       const link = row.querySelector("[data-medication-name]")!.getBoundingClientRect();
       const rowBox = row.getBoundingClientRect();
-      const contentRight = rowBox.right - parseFloat(getComputedStyle(row).paddingRight);
-      expect(Math.abs(pill.right - contentRight)).toBeLessThanOrEqual(1);
+      const style = getComputedStyle(row);
+      // The text column ends at the row's content edge, or a gap before the
+      // card's actions (Log) when it has them.
+      const actions = row.querySelector("[data-card-actions]")?.getBoundingClientRect();
+      const columnRight = actions
+        ? actions.left - parseFloat(style.columnGap)
+        : rowBox.right - parseFloat(style.paddingRight);
+      expect(Math.abs(pill.right - columnRight)).toBeLessThanOrEqual(1);
       expect(link.right).toBeLessThanOrEqual(pill.left);
       expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
     }

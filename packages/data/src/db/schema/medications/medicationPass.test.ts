@@ -9,7 +9,6 @@ import {
   passMoved,
   passMovedId,
   passNameTaken,
-  reorderPasses,
   slotTimes,
   sortPasses,
   withoutPass,
@@ -55,13 +54,14 @@ describe("pass content", () => {
 });
 
 describe("sortPasses", () => {
-  it("orders by sort order, then time, then name", () => {
-    const tied = pass(NOON, "Brunch", "08:00", 0);
-    expect(sortPasses([evening, noon, tied, morning]).map((p) => p.name)).toEqual([
+  it("orders by time, then name, whatever the sort order says", () => {
+    const tied = pass(NOON, "Brunch", "08:00", 9);
+    const early = pass(EVENING, "Evening", "20:00", 0);
+    expect(sortPasses([early, noon, tied, pass(MORNING, "Morning", "08:00", 5)]).map((p) => p.name)).toEqual([
       "Brunch",
       "Morning",
-      "Evening",
       "Noon",
+      "Evening",
     ]);
     expect(
       sortPasses([pass(NOON, "b", "08:00", 0), pass(EVENING, "A", "08:00", 0)]).map((p) => p.name),
@@ -89,36 +89,6 @@ describe("names and the cap", () => {
     expect(nextSortOrder([])).toBe(0);
     expect(nextSortOrder([morning, evening])).toBe(2);
     expect(nextSortOrder([morning, pass(NOON, "Noon", "12:00", 5, "2026-11-01T00:00:00.000Z")])).toBe(1);
-  });
-});
-
-describe("reorderPasses", () => {
-  it("swaps a pass with its neighbour and renumbers what changed", () => {
-    expect(reorderPasses([morning, evening, noon], NOON, "up")).toEqual([
-      { id: NOON, sortOrder: 1 },
-      { id: EVENING, sortOrder: 2 },
-    ]);
-    expect(reorderPasses([morning, evening, noon], MORNING, "down")).toEqual([
-      { id: EVENING, sortOrder: 0 },
-      { id: MORNING, sortOrder: 1 },
-    ]);
-  });
-
-  it("does nothing at either end, or for an unknown or deleted pass", () => {
-    expect(reorderPasses([morning, evening], MORNING, "up")).toEqual([]);
-    expect(reorderPasses([morning, evening], EVENING, "down")).toEqual([]);
-    expect(reorderPasses([morning, evening], "nope", "up")).toEqual([]);
-    expect(
-      reorderPasses([morning, { ...evening, deletedAt: "2026-11-01T00:00:00.000Z" }], EVENING, "up"),
-    ).toEqual([]);
-  });
-
-  it("fixes gaps and ties in old sort orders as it goes", () => {
-    const loose = [pass(MORNING, "Morning", "08:00", 3), pass(EVENING, "Evening", "20:00", 3)];
-    expect(reorderPasses(loose, EVENING, "up")).toEqual([
-      { id: EVENING, sortOrder: 0 },
-      { id: MORNING, sortOrder: 1 },
-    ]);
   });
 });
 

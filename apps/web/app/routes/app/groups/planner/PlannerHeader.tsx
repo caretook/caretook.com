@@ -1,69 +1,17 @@
-import type { MenuEntry } from "~/components/ui";
-import type { FilterMenuProps } from "~/components/ui";
-import type { UpcomingShow } from "./upcomingFilters";
+import type { MenuEntry, SearchFilterBarProps } from "~/components/ui";
 
 import { CalendarPlus, ListTodo } from "lucide-react";
-import { useMemo } from "react";
 import { useLocation } from "react-router";
-import { MemberAvatar } from "~/components/members";
-import { FilterMenu, FilterMenuChips, PageHeader, TabNav } from "~/components/ui";
+import { PageHeader, SearchFilterBar, TabNav } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
-import { clearAuthor } from "~/lib/timeline/timelineFilters";
 import { listSearch, PLANNER_TODO_STATE, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { plannerReturnState } from "~/lib/appointments/plannerReturn";
-import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
+import { tabSearch } from "./upcomingFilters";
 import { usePlannerOpener } from "./usePlannerOpener";
 
 type PlannerView = "upcoming" | "past";
-type PlannerAuthor = { userId: string; name: string; image: string | null };
-
-/** The Filter menu and chips of Upcoming (Show, and the author) or Past (the author's chip alone). */
-const plannerFilters = (
-  search: string,
-  view: PlannerView,
-  show: UpcomingShow,
-  author: PlannerAuthor | null,
-): FilterMenuProps => ({
-  label: "Filter the Planner",
-  clear: setShow(search, "all"),
-  sections:
-    view === "past"
-      ? []
-      : [
-          {
-            id: "show",
-            title: "Show",
-            current: show,
-            defaultId: "all",
-            options: UPCOMING_SHOWS.map((s) => ({
-              id: s,
-              label: UPCOMING_SHOW_LABELS[s],
-              search: setShow(search, s),
-            })),
-          },
-        ],
-  chips: author
-    ? [
-        {
-          id: "author",
-          label: `By ${author.name}`,
-          name: `By ${author.name}: clear this filter`,
-          search: clearAuthor(search),
-          leading: (
-            <MemberAvatar
-              userId={author.userId}
-              name={author.name}
-              image={author.image}
-              size="xs"
-              className="-ml-1.5"
-            />
-          ),
-        },
-      ]
-    : [],
-});
 
 /**
  * The Planner section's header, the same on its tabs: the "Planner" heading;
@@ -73,28 +21,14 @@ const plannerFilters = (
  * (`TabNav`), links that carry the filters each reads (Upcoming: what it
  * shows and the author; Past: the author; Todos: its `?who=` chip).
  *
- * `view` is the Planner list on screen (none on Todos, which has its own
- * filter row). On Upcoming the Filter menu (one section, "Show": All, Events,
- * Todos) sits beside the tabs, its chips beneath; Past has no menu. With an
- * author filter on, a last chip ("By <name>") clears only the author; it
- * isn't counted.
+ * `view` is the Planner list on screen (none on Todos). `bar` is the open
+ * tab's search and filter bar (`plannerFilters`, `todos/TodoFilters`): it
+ * sits under the tabs and acts on that tab only.
  */
-export function PlannerHeader({
-  view,
-  show = "all",
-  author = null,
-}: {
-  view?: PlannerView;
-  show?: UpcomingShow;
-  author?: PlannerAuthor | null;
-}) {
+export function PlannerHeader({ view, bar }: { view?: PlannerView; bar?: SearchFilterBarProps }) {
   const { id: groupId, canWrite, easyRole } = useGroup();
   const { search } = useLocation();
   const section = sectionAccent("planner", { easy: easyRole });
-  const filters = useMemo(
-    () => (view ? plannerFilters(search, view, show, author) : null),
-    [search, view, show, author],
-  );
   const eventOpener = usePlannerOpener(true);
   const upcoming = appUrls.planner(groupId);
   const tabs = [
@@ -130,18 +64,8 @@ export function PlannerHeader({
   return (
     <div className="space-y-3">
       <PageHeader title="Planner" add={canWrite && { label: "Add", items: add }} {...section} />
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <TabNav
-            label="Upcoming, past or todos"
-            tabs={tabs}
-            accent={section?.accent}
-            className="min-w-0 flex-1 sm:flex-none"
-          />
-          {view === "upcoming" && filters && <FilterMenu {...filters} />}
-        </div>
-        {filters && <FilterMenuChips {...filters} />}
-      </div>
+      <TabNav label="Upcoming, past or todos" tabs={tabs} accent={section?.accent} />
+      {bar && <SearchFilterBar {...bar} />}
     </div>
   );
 }

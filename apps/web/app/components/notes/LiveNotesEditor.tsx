@@ -3,21 +3,27 @@ import type { Ref } from "react";
 import type { BindNoteDocOptions, NoteDocParts } from "~/lib/live-notes/notes.sync";
 import type { MentionFromGroup, MentionProvider } from "~/lib/providers/mentionOptions";
 import type { ImportSource } from "~/lib/providers/providerImport";
+import type { NoteFullScreenOptions } from "./NoteFullScreen";
 import type { MentionAddResult } from "./useMentionPopup";
 
 import { NOTE_FRAGMENT } from "@caretook/data/schema";
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
+import { Bold, Heading2, Italic, List, ListOrdered, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Button, Message } from "~/components/ui";
+import { Button, IconButton, Message } from "~/components/ui";
 import { bindNoteDoc, createNoteDoc } from "~/lib/live-notes/notes.sync";
 import { useOtherGroupProviders } from "~/lib/providers/otherGroupProviders.sync";
 import { createProvider, importProviders } from "~/lib/providers/providers.sync";
 import { MentionTargets } from "./MentionChip";
 import { MentionPopup, mentionOptionId } from "./MentionPopup";
+import { NoteFullScreen } from "./NoteFullScreen";
 import { ProviderMention, useMentionPopup } from "./useMentionPopup";
+
+/** The bar above the text: the toolbar, and the full-screen button. */
+const BAR =
+  "border-base-300 bg-(--color-field)/95 sticky top-0 z-10 rounded-t-box border-b p-1 backdrop-blur";
 
 const NO_PROVIDERS: readonly MentionProvider[] = [];
 
@@ -46,6 +52,11 @@ export type LiveNotesEditorHandle = {
  * (the entry page imports and links), else `importProviders` (no link).
  * `linkMentions={false}` shows the chips as names, not links (the easy
  * roles, who can't open a provider's page).
+ *
+ * `fullScreen` (the entry page) adds an "Open full screen" button, readers
+ * included: the same editor moves into a modal over the page, with the
+ * given heading and `aside`; the button again or Escape brings it back,
+ * focus on the button.
  */
 export function LiveNotesEditor({
   label,
@@ -57,6 +68,7 @@ export function LiveNotesEditor({
   onAdd,
   onImport,
   linkMentions = true,
+  fullScreen,
   ...options
 }: BindNoteDocOptions & {
   label: string;
@@ -74,6 +86,8 @@ export function LiveNotesEditor({
   /** Put the cursor in the document on open (a writer starting a new entry). */
   autofocus?: boolean;
   ref?: Ref<LiveNotesEditorHandle>;
+  /** Offer a full-screen view, headed by its `title`. */
+  fullScreen?: NoteFullScreenOptions;
 }) {
   const { db, documentId, groupId, canWrite, ensureSaved } = options;
   // One Y.Doc for the component's lifetime, holding what the loader read,
@@ -145,6 +159,16 @@ export function LiveNotesEditor({
     if (editor && editor.isEditable !== canWrite) editor.setEditable(canWrite);
   }, [editor, canWrite]);
 
+  // Full screen moves the frame, not the editor: its document and selection stay.
+  const [full, setFull] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const wasFull = useRef(false);
+  useEffect(() => {
+    // Back on the page: focus returns to the button that left it.
+    if (wasFull.current && !full) toggle.current?.focus();
+    wasFull.current = full;
+  }, [full]);
+
   // The text box points at the open popup and its highlighted option (focus stays in the text).
   const { id: popupId, options: shown, active } = mentions.popup;
   useEffect(() => {
@@ -159,9 +183,26 @@ export function LiveNotesEditor({
     }
   }, [editor, popupId, shown, active]);
 
-  return (
-    <div className="rounded-box border-base-300 border bg-(--color-field)">
-      {canWrite && editor && <Toolbar editor={editor} />}
+  const toolbar = canWrite && editor && <Toolbar editor={editor} bare={!!fullScreen} />;
+  const frame = (
+    <div
+      className={`rounded-box border-base-300 border bg-(--color-field) ${full ? "min-h-0 flex-1 overflow-y-auto" : ""}`}
+    >
+      {fullScreen ? (
+        <div className={`${BAR} flex items-center gap-1`}>
+          <div className="min-w-0 flex-1">{toolbar}</div>
+          <IconButton
+            ref={toggle}
+            label={full ? "Exit full screen" : "Open full screen"}
+            icon={full ? Minimize2 : Maximize2}
+            haspopup={full ? undefined : "dialog"}
+            onPress={() => setFull((on) => !on)}
+            data-note-full-screen-toggle=""
+          />
+        </div>
+      ) : (
+        toolbar
+      )}
       <MentionTargets value={targets}>
         <EditorContent editor={editor} />
       </MentionTargets>
@@ -172,6 +213,19 @@ export function LiveNotesEditor({
         </Message>
       )}
     </div>
+  );
+  if (!fullScreen) return frame;
+  return (
+    <NoteFullScreen
+      open={full}
+      {...fullScreen}
+      onOpen={() => {
+        if (canWriteRef.current) editor?.commands.focus();
+      }}
+      onClose={() => setFull(false)}
+    >
+      {frame}
+    </NoteFullScreen>
   );
 }
 
@@ -191,7 +245,13 @@ const importInto = async (
 };
 
 /** Formatting buttons. Kept small: these are working notes, not documents. */
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({
+  editor,
+  bare,
+}: {
+  editor: Editor;
+  /** Inside the full-screen bar, which owns the edge. */ bare: boolean;
+}) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -227,11 +287,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   ] as const;
 
   return (
-    <div
-      role="toolbar"
-      aria-label="Formatting"
-      className="border-base-300 bg-(--color-field)/95 sticky top-0 z-10 flex gap-1 rounded-t-box border-b p-1 backdrop-blur"
-    >
+    <div role="toolbar" aria-label="Formatting" className={bare ? "flex gap-1" : `${BAR} flex gap-1`}>
       {buttons.map(({ key, label, Icon, run }) => (
         <Button
           key={key}

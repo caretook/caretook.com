@@ -4,17 +4,17 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { useCallback } from "react";
-import { Outlet } from "react-router";
+import { useCallback, useState } from "react";
+import { Outlet, useLocation } from "react-router";
 import { TodoUndoStatus, useTodoTick } from "~/components/todos";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { todosQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
-import { whoOf } from "~/lib/todos/todoList";
+import { emptyTodosText, todoQueryOf, whoOf } from "~/lib/todos/todoList";
 import { PlannerHeader } from "../planner/PlannerHeader";
 import { DoneTodos } from "./DoneTodos";
-import { TodoFilterRow } from "./TodoFilters";
+import { todoFilterBar } from "./TodoFilters";
 import { TodoSections } from "./TodoSections";
 import { onlyTodoSheetChanged } from "~/lib/todos/todoSheets";
 import { DONE_PAGE, useTodoList } from "./useTodoList";
@@ -22,17 +22,12 @@ import { DONE_PAGE, useTodoList } from "./useTodoList";
 // Shared by web + native. The Planner section's Todos tab: the group's
 // todos, read from the device's local copy (live, so it works offline and
 // follows other members' changes): the open ones the Filter menu's Assigned
-// to shows (Everyone, or `?who=` Mine / Unassigned), in sections by due, then Done. A tick
+// to shows (Everyone, or `?who=` Mine / Unassigned) and the search box's text
+// (`?q=`) keeps, in sections by due, then Done. A tick
 // completes a todo on the device, with Undo. The add and edit sheets render
 // over it (the header's Add menu opens the add sheet).
 
 export const meta = () => [{ title: "Todos · Caretook" }];
-
-const EMPTY: Record<string, string> = {
-  mine: "Nothing assigned to you.",
-  unassigned: "No unassigned todos.",
-  everyone: "No open todos.",
-};
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -68,7 +63,10 @@ export function shouldRevalidate({
 }
 
 export default function Todos({ loaderData, params }: Route.ComponentProps) {
-  const list = useTodoList(params.groupId, loaderData);
+  // The box filters as you type; the URL follows (see `SearchFilterBar`).
+  const urlQuery = todoQueryOf(useLocation().search);
+  const [text, setText] = useState(urlQuery);
+  const list = useTodoList(params.groupId, loaderData, text);
   const { complete, reopen, busy, error } = useTodoTick(params.groupId);
   const onTick = useCallback(
     (todo: LocalTodo, done: boolean) => void (done ? complete(todo) : reopen(todo)),
@@ -78,13 +76,12 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <Page>
-      <PlannerHeader />
+      <PlannerHeader bar={todoFilterBar({ who: list.who, value: text, urlQuery, onChange: setText })} />
 
-      <TodoFilterRow who={list.who} />
       <TodoUndoStatus groupId={params.groupId} />
       {error && <Message tone="error">{error}</Message>}
 
-      <TodoSections sections={list.sections} empty={EMPTY[list.who] ?? EMPTY.everyone!} {...row} />
+      <TodoSections sections={list.sections} empty={emptyTodosText(list.who, text)} {...row} />
       <DoneTodos todos={list.done} more={list.moreDone} onMore={list.showMoreDone} {...row} />
 
       {/* The add and edit sheets render here, over the list. */}

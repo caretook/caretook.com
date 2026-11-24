@@ -144,8 +144,8 @@ describe("duePasses", () => {
     expect(due.missed.length).toBe(5);
   });
 
-  it("puts a named pass before a time of its own at the same moment, and passes in their order", () => {
-    const noon = { id: "44444444-4444-4444-8444-444444444444", name: "Noon", time: "08:00", sortOrder: 2 };
+  it("puts a named pass before a time of its own at the same moment, and passes at one time by name", () => {
+    const noon = { id: "44444444-4444-4444-8444-444444444444", name: "Early", time: "08:00", sortOrder: 2 };
     const passes = [...PASSES, noon];
     const medications = [
       med("x", inPasses({ time: "08:00" })),
@@ -153,7 +153,7 @@ describe("duePasses", () => {
       med("z", inPasses({ passId: MORNING })),
     ];
     const due = dueDoses({ medications, passes, doses: [], now: at("07:00"), timeZone: LA });
-    expect(duePasses(due, passes).map((p) => p.name ?? p.key)).toEqual(["Morning", "Noon", "x@08:00"]);
+    expect(duePasses(due, passes).map((p) => p.name ?? p.key)).toEqual(["Early", "Morning", "x@08:00"]);
   });
 });
 

@@ -367,14 +367,13 @@ describe("filters", () => {
     });
   const todoRows = () => document.querySelectorAll("main [data-planner-todo]").length;
 
-  test("on Upcoming the Filter button sits beside the tabs, with no chip row while All", async () => {
+  test("on Upcoming the search and Filter bar sits below the tabs, with no chip row while All", async () => {
     await openPlanner();
     await expect.element(filterButton()).toHaveAccessibleName("Filter");
     const bar = document.querySelector<HTMLElement>(TABS)!.getBoundingClientRect();
     const button = filterButton().element().getBoundingClientRect();
-    expect(button.left).toBeGreaterThanOrEqual(bar.right);
-    expect(button.top).toBeLessThan(bar.bottom);
-    expect(button.bottom).toBeGreaterThan(bar.top);
+    expect(button.top).toBeGreaterThanOrEqual(bar.bottom);
+    expect(page.getByRole("searchbox", { name: "Search the Planner" }).query()).not.toBeNull();
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
     expect(document.querySelector('main nav[aria-label="Filters on"]')).toBeNull();
     expect(document.querySelector('main nav[aria-label="Show items"]')).toBeNull();
@@ -435,12 +434,12 @@ describe("filters", () => {
     await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
     expect(filterChips()).toEqual(["Events", "By Sam Okafor"]);
 
-    // Past keeps the author, drops the rest: no Filter button, only the author chip.
+    // Past keeps the author, drops the rest: its own Filter menu, By, with the author on.
     await userEvent.click(tab("Past"));
     await expect.poll(() => device.location()).toBe(`${PAST_URL}?author=${SAM.id}`);
     await expect.element(by).toBeVisible();
     expect(filterChips()).toEqual(["By Sam Okafor"]);
-    expect(filterButton().query()).toBeNull();
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
     // Back to Upcoming: the author stays, the show choice is reset.
     await userEvent.click(tab("Upcoming"));
     await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?author=${SAM.id}`);
@@ -459,7 +458,7 @@ describe("the Past tab", () => {
     await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
     expect(tab("Past").getAttribute("aria-current")).toBe("page");
     expect(tab("Upcoming").getAttribute("aria-current")).toBeNull();
-    expect(filterButton().query()).toBeNull();
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
     const rows = listed();
     expect(rows.slice(0, 3).map((r) => r.id)).toEqual([BLOOD_DRAW.id, HEARING.id, PODIATRY.id]);
     expect(rowOf(HEARING.id)).toMatchObject({ cancelled: true, struck: true });
