@@ -89,6 +89,16 @@ prd_count() {
 
 die() { echo "$*" >&2; exit 1; }
 
+# run_log [--once <field,…>] KIND [key=value|key:=json]… → one event in the run log
+# (run-log.mjs; $CARETOOK_RUN_LOG, else .loops/.run-log.jsonl in the main
+# checkout). It never prints and never fails: watching never hurts the work.
+run_log() {
+  local once=()
+  if [[ ${1:-} == --once ]]; then once=(--once "${2:-}"); shift 2; fi
+  node "$(dirname "${BASH_SOURCE[0]}")/run-log.mjs" append --log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
+    ${once[@]+"${once[@]}"} "$@" </dev/null >/dev/null 2>&1 || true
+}
+
 # here_name → the name of the .loops worktree the shell is in, or nothing.
 here_name() {
   local top
@@ -258,6 +268,20 @@ node_is() {
 trunk_drift() {
   git -C "$main" diff --name-only "$1...${2:-$trunk}" |
     grep -vxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt || true
+}
+
+# trunk_lists BRANCH [REF] → CI's two lists that dev (or REF) changed since
+# BRANCH last merged it and BRANCH itself didn't: what `sync` copies when it skips
+# the merge. A list both sides changed is shared, so dev-brought.mjs refuses and
+# sync merges instead.
+trunk_lists() {
+  local base f
+  base=$(git -C "$main" merge-base "$1" "${2:-$trunk}") || return 0
+  for f in scripts/ci/brake-list.txt scripts/ci/quarantine.txt; do
+    git -C "$main" diff --quiet "$base" "${2:-$trunk}" -- "$f" && continue
+    git -C "$main" diff --quiet "$base" "$1" -- "$f" || continue
+    echo "$f"
+  done
 }
 
 # Machine-wide leases (browser checks, pnpm prd check) live in lease.sh.
