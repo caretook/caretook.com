@@ -1,50 +1,69 @@
 import { describe, expect, it } from "vitest";
 
-import { precacheList } from "./manifest.mjs";
+import { precacheList, SQLITE_WASM } from "./manifest.mjs";
 import { serviceWorkerVersion } from "./service-worker.mjs";
 
-// A trimmed Vite client manifest: the entry (with the fonts its CSS uses), a
-// route with CSS, a shared chunk, a lazy chunk, SQLite's WASM as a chunk's
-// asset, and an image.
-const viteManifest = {
-  "app/root.tsx": {
-    file: "assets/root-a1.js",
-    imports: ["_utils-c3.js"],
-    css: ["assets/app-b2.css"],
-    assets: ["assets/Font-Variable-k1.woff2", "assets/Font-Italic-Variable-k2.woff2", "assets/logo-m3.png"],
-    isEntry: true,
-  },
-  "app/fonts/Font-Variable.woff2": { file: "assets/Font-Variable-k1.woff2" },
-  "_utils-c3.js": { file: "assets/utils-c3.js" },
-  "app/routes/app/layout/route.tsx": { file: "assets/route-d4.js", dynamicImports: ["_notes-e5.js"] },
-  "_notes-e5.js": { file: "assets/notes-e5.js", isDynamicEntry: true },
-  "node_modules/@journeyapps/wa-sqlite/dist/wa-sqlite.mjs": {
-    file: "assets/wa-sqlite-f6.js",
-    assets: ["assets/wa-sqlite-g7.wasm"],
-  },
-  "app/app.css?url": { file: "assets/app-b2.css" },
-};
+// A trimmed assets/ directory: the entry, its CSS and fonts, a shared and a
+// lazy chunk, the route manifest, an image, and PowerSync's database worker
+// bundle (B-777): its own chunks, which Vite's client manifest doesn't list,
+// and the four SQLite builds' WASM.
+const files = [
+  "root-a1.js",
+  "app-b2.css",
+  "Font-Variable-k1.woff2",
+  "Font-Italic-Variable-k2.woff2",
+  "logo-m3.png",
+  "utils-c3.js",
+  "notes-e5.js",
+  "manifest-h8.js",
+  "worker-q4.js",
+  "IDBBatchAtomicVFS-r5.js",
+  "wa-sqlite-async-j9.js",
+  "wa-sqlite-async-Ab_9-x.wasm",
+  "wa-sqlite-g7.wasm",
+  "mc-wa-sqlite-async-p2.wasm",
+  "mc-wa-sqlite-s6.wasm",
+];
 
 describe("precacheList", () => {
-  it("lists the shell first, then every JS, CSS and font file once, with the route manifest", () => {
-    expect(precacheList({ viteManifest, routeManifestFile: "assets/manifest-h8.js" })).toEqual([
+  it("lists the shell first, then every JS, CSS and font file in assets/ once, and the SQLite WASM", () => {
+    expect(precacheList({ files: [...files, "root-a1.js"] })).toEqual([
       "/app",
       "/assets/Font-Italic-Variable-k2.woff2",
       "/assets/Font-Variable-k1.woff2",
+      "/assets/IDBBatchAtomicVFS-r5.js",
       "/assets/app-b2.css",
       "/assets/manifest-h8.js",
       "/assets/notes-e5.js",
       "/assets/root-a1.js",
-      "/assets/route-d4.js",
       "/assets/utils-c3.js",
-      "/assets/wa-sqlite-f6.js",
+      "/assets/wa-sqlite-async-Ab_9-x.wasm",
+      "/assets/wa-sqlite-async-j9.js",
+      "/assets/worker-q4.js",
     ]);
   });
 
-  it("leaves the WASM and images out: nothing but scripts, styles and fonts", () => {
-    const [shell, ...assets] = precacheList({ viteManifest, routeManifestFile: "assets/manifest-h8.js" });
-    expect(shell).toBe("/app");
-    expect(assets.filter((path) => !/\.(js|css|woff2)$/.test(path))).toEqual([]);
+  // B-777: offline, PowerSync's database worker gets these through the service
+  // worker at every start; without them the database can't open.
+  it("precaches the database worker's own chunks and the WASM it loads (async, unencrypted)", () => {
+    const list = precacheList({ files });
+    expect(list).toContain("/assets/worker-q4.js");
+    expect(list).toContain("/assets/IDBBatchAtomicVFS-r5.js");
+    expect(list.filter((path) => path.endsWith(".wasm"))).toEqual(["/assets/wa-sqlite-async-Ab_9-x.wasm"]);
+  });
+
+  it("leaves images and the other SQLite builds out", () => {
+    const list = precacheList({ files });
+    expect(list).not.toContain("/assets/logo-m3.png");
+    for (const wasm of ["wa-sqlite-g7.wasm", "mc-wa-sqlite-async-p2.wasm", "mc-wa-sqlite-s6.wasm"])
+      expect(list).not.toContain(`/assets/${wasm}`);
+  });
+
+  it("matches only the unencrypted async build's WASM", () => {
+    expect(SQLITE_WASM.test("wa-sqlite-async-B3FiUnt1.wasm")).toBe(true);
+    expect(SQLITE_WASM.test("mc-wa-sqlite-async-aRcIGeKj.wasm")).toBe(false);
+    expect(SQLITE_WASM.test("wa-sqlite-CePoIZt_.wasm")).toBe(false);
+    expect(SQLITE_WASM.test("wa-sqlite-async-Bi9nxNBX.js")).toBe(false);
   });
 });
 

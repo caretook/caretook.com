@@ -33,3 +33,24 @@ export async function fromCache(caches: Caches, version: string, key: string) {
   const cache = await caches.open(cacheName(version));
   return cache.match(key);
 }
+
+/**
+ * A kept asset (`keep` in `routeRequest`): fetched, and a whole good answer
+ * (200, same-origin) stored in this version's cache under `key`, so the next
+ * request for it, offline too, comes from the cache. Anything else (an error
+ * page, a partial answer) is passed on and not stored; a failed fetch rejects
+ * as the network would. The store finishes before it resolves.
+ */
+export async function fetchAndKeep(
+  caches: Caches,
+  version: string,
+  key: string,
+  request: Request,
+  fetchFn: (request: Request) => Promise<Response> = fetch,
+) {
+  const response = await fetchFn(request);
+  if (response.status !== 200 || response.type !== "basic") return response;
+  const cache = await caches.open(cacheName(version));
+  await cache.put(key, response.clone());
+  return response;
+}

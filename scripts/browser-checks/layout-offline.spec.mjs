@@ -18,6 +18,13 @@
 //
 // The sheets open offline too, once a full load has their route modules (a
 // row's edit sheet).
+//
+// A start offline with an empty HTTP cache (B-777; phones evict it, so the
+// installed app's cold start in airplane mode has only the worker's cache)
+// still opens the app: the shell, the route chunks, and the files PowerSync's
+// database worker loads (its own chunks and SQLite's WASM) all come from the
+// worker's cache. Without them the database couldn't open and the page stayed
+// empty.
 import { assetsSettled, DEV_FAMILY, expect, psql, signIn, signOut, test, waitFor } from "./fixtures.mjs";
 
 const EMAIL = "member@example.com";
@@ -239,4 +246,72 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
   } finally {
     resetPrefs();
   }
+});
+
+test("offline with an empty HTTP cache: the app still opens from the worker's cache", async ({ device }) => {
+  // caretaker@ has one group, so sign-in lands on its timeline.
+  const d = await device("caretaker", { offlineable: true });
+  const { page, context } = d;
+  await signIn(page, "caretaker@example.com");
+  await expect(rows(page).first()).toBeVisible({ timeout: 20_000 });
+  const timeline = new URL(page.url()).pathname;
+  const providers = timeline.replace(/\/timeline$/, "/providers");
+
+  // A controlling worker has finished installing: its precache is complete.
+  await test.step("service worker: installed and controlling the page", async () => {
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => navigator.serviceWorker.ready.then(() => !!navigator.serviceWorker.controller)),
+        {
+          timeout: 20_000,
+        },
+      )
+      .toBe(true);
+  });
+  await test.step("the worker's cache holds the SQLite WASM the database loads", async () => {
+    const cached = await page.evaluate(async () => {
+      for (const name of await caches.keys()) {
+        const keys = await (await caches.open(name)).keys();
+        const wasm = keys.find((r) => /\/assets\/wa-sqlite-async-[\w-]+\.wasm$/.test(r.url));
+        if (wasm) return new URL(wasm.url).pathname;
+      }
+      return null;
+    });
+    expect(cached).toMatch(/^\/assets\/wa-sqlite-async-/);
+  });
+
+  await assetsSettled(page);
+  // What a phone's cold start has: no HTTP cache, no network (the proxy cuts
+  // workers too; setOffline makes navigator.onLine false, as a real drop does).
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Network.clearBrowserCache");
+  await cdp.detach();
+  d.offline(true);
+  await context.setOffline(true);
+  try {
+    await test.step("offline reload: the timeline opens, its header and local rows", async () => {
+      await page.reload();
+      await expect(page.locator("header").first()).toBeVisible({ timeout: 30_000 });
+      await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
+      expect(await page.evaluate(() => performance.getEntriesByType("navigation")[0].workerStart > 0)).toBe(
+        true,
+      );
+    });
+    await test.step("offline: another /app screen opens from local data", async () => {
+      await page.goto(providers);
+      await expect(page.locator("header").first()).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator("main h1")).toContainText("Providers", { timeout: 30_000 });
+      await expect(page.locator("main a[href*='/providers/']").first()).toBeVisible({ timeout: 30_000 });
+    });
+  } finally {
+    await context.setOffline(false);
+    d.offline(false);
+  }
+
+  const noise =
+    /Failed to fetch|ERR_|net::|NetworkError|WebSocket|PowerSync|sync|error closing database connection/i;
+  await test.step("no unexpected console errors", () => {
+    expect(d.errors.filter((e) => !noise.test(e)).slice(0, 3)).toEqual([]);
+  });
 });
