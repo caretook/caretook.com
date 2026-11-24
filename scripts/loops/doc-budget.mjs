@@ -3,7 +3,9 @@
 //
 //   node scripts/loops/doc-budget.mjs [warn]
 //       Lists the docs over budget with their sizes. Always exits 0, even if
-//       the measuring itself fails (it runs inside `pnpm check`).
+//       the measuring itself fails (it runs inside `pnpm check`). Then, for
+//       each topic in plans/backlog.md's registry not flagged done, warns when
+//       its plan's _Status_ passes 6 KB (trim it: `pnpm prd status-trim`).
 //   node scripts/loops/doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]
 //       Exits 1 if any doc is over budget AND bigger than at <base>, naming
 //       each with its size, budget and base size. --head measures that ref
@@ -11,9 +13,11 @@
 //
 // A doc over budget that didn't grow (or shrank) never blocks anything.
 import { execFileSync } from "node:child_process";
-import { readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { BUDGETS } from "./doc-budget.config.mjs";
+import { STATUS_WARN_BYTES, statusBytes } from "./status-trim.mjs";
 
 /** The budget in bytes for a repo-relative path, or null if it has none. */
 export function budgetFor(path, budgets = BUDGETS) {
@@ -91,6 +95,27 @@ export function docSizes(repo, ref = null) {
   return sizes;
 }
 
+/**
+ * The running topics' plans whose _Status_ is over `limit` bytes, as
+ * { topic, size }: every registry row not flagged done that has a plan.
+ */
+export function longStatuses(repo, limit = STATUS_WARN_BYTES) {
+  const backlog = join(repo, "plans", "backlog.md");
+  if (!existsSync(backlog)) return [];
+  // Loaded here, not at the top, so land mode needs nothing outside scripts/loops/.
+  const { parseRegistry } = createRequire(import.meta.url)("../backlog/registry.mjs");
+  const reg = parseRegistry(readFileSync(backlog, "utf8"));
+  if (reg.format !== "new") return [];
+  const out = [];
+  for (const row of reg.rows) {
+    const plan = join(repo, "plans", `${row.topic}-plan.md`);
+    if (row.flags.includes("done") || !existsSync(plan)) continue;
+    const size = statusBytes(readFileSync(plan, "utf8"));
+    if (size > limit) out.push({ topic: row.topic, size });
+  }
+  return out;
+}
+
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 const line = (r) =>
   `  ${r.path}: ${r.size} B (${kb(r.size)}), budget ${r.budget} B (${kb(r.budget)}), ` +
@@ -115,6 +140,14 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
       } else out("doc budget: all docs within budget");
     } catch (e) {
       out(`doc budget: skipped (${e.message.split("\n")[0]})`);
+    }
+    try {
+      for (const r of head ? [] : longStatuses(repo))
+        out(
+          `plan status: plans/${r.topic}-plan.md's _Status_ is ${kb(r.size)}, over ${kb(STATUS_WARN_BYTES)} (a warning): pnpm prd status-trim ${r.topic}`,
+        );
+    } catch (e) {
+      out(`plan status: skipped (${e.message.split("\n")[0]})`);
     }
     return 0;
   }
