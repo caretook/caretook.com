@@ -428,6 +428,37 @@ describe("the floating tab bar", () => {
     expect(spacer.height).toBeGreaterThanOrEqual(innerHeight - b.top);
   });
 
+  test("at 420: the links split the bar into equal full-height sections, the current one marked and filled edge to edge, the focus ring inside it", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const b = bar().getBoundingClientRect();
+    const links = barLinks();
+    const rects = links.map((a) => a.getBoundingClientRect());
+    const widths = rects.map((r) => r.width);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
+    expect(widths.reduce((sum, w) => sum + w, 0)).toBeGreaterThan(b.width - 1);
+    expect(rects[0]!.left - b.left).toBeLessThan(1);
+    expect(b.right - rects.at(-1)!.right).toBeLessThan(1);
+    for (const r of rects) {
+      expect(r.height).toBeGreaterThanOrEqual(44);
+      expect(r.top - b.top).toBeLessThan(1);
+      expect(b.bottom - r.bottom).toBeLessThan(1);
+    }
+    const current = links.filter((a) => a.getAttribute("aria-current") === "page");
+    expect(current.map((a) => a.getAttribute("aria-label"))).toEqual(["Timeline"]);
+    // No per-link circle: a middle link is square, the bar clips the ends.
+    expect(getComputedStyle(links[1]!).borderTopLeftRadius).toBe("0px");
+    expect(getComputedStyle(bar()).overflow).toBe("hidden");
+    // Keyboard focus draws the ring inside the link, in the bar's content colour.
+    links[0]!.focus();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(links[1]);
+    const ring = getComputedStyle(links[1]!);
+    expect(ring.outlineStyle).toBe("solid");
+    expect(parseFloat(ring.outlineOffset)).toBeLessThan(0);
+    expect(ring.outlineColor).toBe(getComputedStyle(bar()).color);
+  });
+
   test("at 420: a toast sits above the bar", async () => {
     await open();
     await expect.element(page.getByText("Slept well")).toBeVisible();
