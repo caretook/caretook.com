@@ -13,7 +13,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
-| `asks-relay` | — | `inbox-agent` | `scripts/loops/ask`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/session`, `scripts/loops/prd.sh` | Released 2026-11-23 by the user. The backlog session as go-between for every agent's questions, and asks queue hygiene. Cut from inbox-agent by its planner (plans/inbox-agent-prd.md, Follow-on topic) |
 | `test-gates` | done | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
 | `fixes-tooling` | standing | `test-gates` | `scripts/loops/recover`, `scripts/loops/browser`, `packages/api/src/connectors/mcp.int.test.ts`, `packages/api/src/connectors/readTools.int.test.ts`, `scripts/loops/context`, `scripts/loops/lease` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
 | `agent-autonomy` | done | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
@@ -107,6 +106,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `onboarding-2` | hold | — | — | — |
+| `asks-relay` | — | `inbox-agent` | `scripts/loops/ask`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/session`, `scripts/loops/prd.sh` | Released 2026-11-23 by the user. The backlog session as go-between for every agent's questions, and asks queue hygiene. Cut from inbox-agent by its planner (plans/inbox-agent-prd.md, Follow-on topic) |
 
 ## Summary
 
@@ -384,6 +384,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-738 | bug | triaged | fixes-tooling |  | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-739 | change | triaged | fixes-tooling |  | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
 | B-740 | bug | triaged | fixes-tooling |  | Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3 |
+| B-741 | bug | triaged | fixes-tooling |  | Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race) |
 
 ## Items
 
@@ -2250,6 +2251,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (prd/test-gates): scripts/loops/check-body.sh:69 greps the verbose output for 'unhandled error', and browser/check-body tests include the passing title "doesn't rerun after an unhandled error". So any tooling failure prints 'an unhandled error, so no rerun' and skips its one rerun. Seen on prd/test-gates 518a041f, 2026-11-23.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 6 (check flow). After agent-autonomy, which holds the check scripts. Confirm B-574 and B-576 still happen before fixing them: test-gates wave 4 gave lint 6 GB.
+- 2026-11-24 (prd/fixes-tooling): 2026-11-24: every fixes-tooling wave 4 slice check (25, 28, 29, 30) ended 'tooling: an unhandled error, so no rerun' on plain test timeouts, so load flakes in stack.test (B-740), tidy-cli and ask.test were never retried.
 
 ### B-625 · chore · Drop todo.event_id and its old-client mirror once no device writes it
 
@@ -3181,3 +3183,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling wave 4 slice checks (slices 25 and 29, loads 60-66), passes alone 3/3 at load 18. This item: wave 4 kind (known flakes by cause); find the cause.
+
+### B-741 · bug · Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling slice 30's quick check; passes alone 3/3. This item: wave 4 kind (known flakes by cause): drive the countdown from a fixed now.
