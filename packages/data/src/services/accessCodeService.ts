@@ -19,6 +19,7 @@ import * as adminAuditService from "./adminAuditService";
 import { signupRefusal } from "./appSettingService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
+import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
 export const serviceName = "accessCode";
 export const schemaName = accessCodeModel.schemaName;
@@ -178,6 +179,8 @@ export const redeem = async (
   const created = await careGroupModel.create({ ...system(tx), ownerId: userId, data: { name } });
   if (isError(created)) return created;
   if (!created) return newError({ code: "baseModel:create:nothingCreated" });
+  const symptoms = await addDefaultSymptoms(tx, created.id);
+  if (symptoms) return symptoms;
   const recipientRow = await careRecipientModel.create({
     ...system(tx),
     data: { ...recipient, groupId: created.id },

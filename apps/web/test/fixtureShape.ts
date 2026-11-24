@@ -66,6 +66,8 @@ export const FIXTURE_SCHEMAS: Readonly<Record<string, Shape>> = {
 /** Synced tables with no server schema for their rows, each with why. */
 export const NO_FIXTURE_SCHEMA: Readonly<Record<string, string>> = {
   member_contact_share: "written only by the member's own contact form, with no schema for the row",
+  symptom_type:
+    "server-written only (a group's defaults, the backfill, a symptom write) until devices upload it",
 };
 
 /** The device tables that sync (local-only ones never come from the server). */
