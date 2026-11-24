@@ -6,6 +6,10 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page.
+- On the timeline, after jumping to a day, trying to scroll always takes you back to that day.
+  Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
+
 ## Change requests
 
 ## Feature requests
@@ -19,6 +23,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Tags on everything so users can organize data how they want. (B-548)
 - Symomtons need to be repeatble and filterable need multi filter. (B-549)
 - nested todos (B-550)
+- A link icon on each timeline day header and item so users can easily send links to other people.
 
 ## Big plans
 

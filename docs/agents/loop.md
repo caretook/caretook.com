@@ -4,15 +4,15 @@ For a slice agent (a loop): one background agent working one slice of a PRD in `
 
 ## Loop rules
 
-- Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24; browser checks need its global `WebSocket`).
-- Read the docs your slice's `Reads` field names. A missing field means no stack and nothing extra to read ([fields](planner.md#slice-fields)).
+- Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24).
+- Read the docs your slice's `Reads` names (none given: no stack, nothing extra; [fields](planner.md#slice-fields)).
 - Your stack is your own: `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` use your ports. Never touch the main checkout, other worktrees or other Compose projects.
 - Run the dev server with `pnpm prd serve` (background; `WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
-- Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
-- No new dependencies. All data stays fictional.
+- Keep shared-file edits small. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
 - **Past 175k context** a hook asks you to judge ([the watch](machinery.md#the-context-watch)): continue or hand off, and say which in the hand-off. **Past 300k** hand off now: commit, start no check, name any unfinished fix.
 - **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, below); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 - **Your hand-off releases your stack** (`pnpm prd stack down`); then wait: the orchestrator may send back a failure from the wave's CI run.
+- **Bye** (a message of just 'bye'): your hand-off ready, your stack down, then `pnpm prd bye` (it only reports); send your orchestrator what it lists.
 - **A fix request is only:** `pnpm prd stack up` if the slice uses one; `git merge --no-ff -m "chore(<topic>): merge prd/<topic> for a fix" prd/<topic>`; a new commit; `pnpm prd check --quick "slice fix"`; `stack down`; a new hand-off line.
 
 ## Hand-off
