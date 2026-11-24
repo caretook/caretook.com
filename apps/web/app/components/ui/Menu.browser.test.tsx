@@ -1,5 +1,6 @@
 import { EllipsisVertical, Plus } from "lucide-react";
 import { describe, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 
 import { renderInRouter } from "../../../test/device";
 import { buttonClass } from "./buttonClass";
@@ -50,5 +51,53 @@ describe("Menu's trigger", () => {
     expect(classSet(screen.getByRole("button", { name: "More" }).element())).toEqual(
       [...buttonClass().split(" "), "ml-auto"].sort(),
     );
+  });
+});
+
+describe("Menu's section headings", () => {
+  const choose = { selected: "a", onChange: () => undefined };
+  const SECTIONS = [
+    {
+      type: "section" as const,
+      id: "layout",
+      title: "Layout",
+      items: [
+        { id: "a", label: "List" },
+        { id: "b", label: "Cards" },
+      ],
+      selection: choose,
+    },
+    {
+      type: "section" as const,
+      id: "summaries",
+      title: "Day summaries",
+      items: [{ id: "c", label: "Show" }],
+    },
+  ];
+
+  test("a heading after another section sits at least 8px below the item above; the first keeps its spacing", async () => {
+    const { screen } = await renderInRouter(
+      <Menu label="View options" items={SECTIONS}>
+        View
+      </Menu>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "View options" }));
+    const cards = screen.getByRole("menuitemradio", { name: "Cards" });
+    await expect.element(cards).toBeVisible();
+    const heading = (text: string) => {
+      const el = [...document.querySelectorAll("[role=menu] header")].find((h) => h.textContent === text);
+      if (!el) throw new Error(`no heading ${text}`);
+      return el;
+    };
+    const first = heading("Layout");
+    const second = heading("Day summaries");
+
+    const gap = second.getBoundingClientRect().top - cards.element().getBoundingClientRect().bottom;
+    expect(gap).toBeGreaterThanOrEqual(8);
+    // The first heading: no room added above its section, only its own top padding.
+    const firstSection = first.parentElement;
+    if (!firstSection) throw new Error("no section around Layout");
+    expect(getComputedStyle(firstSection).marginTop).toBe("0px");
+    expect(getComputedStyle(first).paddingTop).toBe("4px");
   });
 });

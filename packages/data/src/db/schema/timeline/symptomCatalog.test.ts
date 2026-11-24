@@ -89,7 +89,16 @@ describe("similarSymptoms (the check before a new name)", () => {
 
   it("offers one name's words inside the other's, either way", () => {
     expect(similar("Left knee pain", catalog("Knee pain", "Nausea"))).toEqual(["Knee pain"]);
-    expect(similar("Pain", catalog("Back pain", "Fever"))).toEqual(["Back pain"]);
+    expect(similar("Knee pain", catalog("Left knee pain", "Fever"))).toEqual(["Left knee pain"]);
+    expect(similar("Lower back pain", catalog(...DEFAULT_SYMPTOMS, "Back pain"))).toEqual(["Back pain"]);
+  });
+
+  it("needs two words or more inside: one word isn't enough", () => {
+    expect(similar("Knee pain", catalog(...DEFAULT_SYMPTOMS))).toEqual([]);
+    expect(similar("Pain", catalog("Back pain", "Fever"))).toEqual([]);
+    // Reordered words and typos still match whatever the length.
+    expect(similar("pain knee", catalog(...DEFAULT_SYMPTOMS, "Knee pain"))).toEqual(["Knee pain"]);
+    expect(similar("Painn", catalog(...DEFAULT_SYMPTOMS))).toEqual(["Pain"]);
   });
 
   it("offers a small typo", () => {
@@ -109,8 +118,13 @@ describe("similarSymptoms (the check before a new name)", () => {
   it("offers at most three, the closest first, then A to Z", () => {
     const rows = catalog("Back pain", "Chest pain", "Neck pain", "Pain knee", "Knee pains");
     expect(SIMILAR_SYMPTOMS_MAX).toBe(3);
-    // Reordered words, then the typo, then one contained word (A to Z).
+    // Reordered words, then the typo; one word inside ("Back pain") doesn't count.
     expect(similar("Knee pain", rows)).toEqual(["Pain knee", "Knee pains"]);
-    expect(similar("pain", rows)).toEqual(["Back pain", "Chest pain", "Neck pain"]);
+    const sharp = catalog("Sharp knee pain", "Sharp back pain", "Sharp neck pain", "Sharp chest pain");
+    // Two words inside each, A to Z, capped at three.
+    expect(similar("Sharp pain", sharp)).toEqual(["Sharp back pain", "Sharp chest pain", "Sharp knee pain"]);
+    // Reordered words and a typo come before the words inside.
+    const mixed = catalog("Sharp knee pain", "Sharp back pain", "Pain sharp", "Sharp paine");
+    expect(similar("Sharp pain", mixed)).toEqual(["Pain sharp", "Sharp paine", "Sharp back pain"]);
   });
 });

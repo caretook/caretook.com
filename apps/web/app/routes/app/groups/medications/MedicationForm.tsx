@@ -1,5 +1,5 @@
 import type { MedicationType } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medications.sync";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
@@ -119,10 +119,11 @@ export function MedicationForm({
   /** What the medication is for as the form opens. */
   conditionIds?: readonly string[];
   zoneNote: string | null;
-  onDone: () => void;
+  /** After a save; adding one passes the new medication's id. The form itself never navigates. */
+  onDone: (id?: string) => void;
   onCancel: () => void;
 }) {
-  const fetcher = useFetcher<ActionResult>();
+  const fetcher = useFetcher<ActionResult | CreateResult>();
   const formRef = useRef<HTMLFormElement>(null);
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   const issues = result && !result.ok ? result.issues : [];
@@ -152,13 +153,13 @@ export function MedicationForm({
     if (next !== "prescription") setDetailsOpen(hasPrescriptionDetails(formRef.current));
   };
 
-  // A save closes the sheet; a refusal moves focus to the first field it's about.
-  const handled = useRef<ActionResult | undefined>(undefined);
+  // A save goes to `onDone`; a refusal moves focus to the first field it's about.
+  const handled = useRef<ActionResult | CreateResult | undefined>(undefined);
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data || handled.current === fetcher.data) return;
     handled.current = fetcher.data;
     if (fetcher.data.ok) {
-      onDone();
+      onDone("id" in fetcher.data ? fetcher.data.id : undefined);
       return;
     }
     const form = formRef.current;

@@ -17,6 +17,7 @@ import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { entryOpen, SHEET_LINK_STATE } from "~/lib/timeline/entryOpen";
 import { dayLabel, formatTime, localTimeZone } from "~/lib/core/format";
 import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { dueText } from "~/lib/todos/todoDisplay";
 import { CONDITION_STATUS_LABELS, sinceText } from "~/lib/profiles/conditions";
@@ -218,6 +219,8 @@ export function MedicationResultItem({
   const title = medicationTitle(medication);
   const summary = medicationSummaryLine(medication, passes);
   const snippet = notesSnippet([title, summary], notes, search);
+  // Its page's Back comes back to these results.
+  const linkState = useMedicationLinkState();
   return (
     <li
       className={`${ROW} hover:bg-base-200/50`}
@@ -235,6 +238,7 @@ export function MedicationResultItem({
         <p className="flex min-w-0 items-center gap-1.5">
           <OpenName
             to={appUrls.medication(medication.groupId, medication.id)}
+            state={linkState}
             onOpen={onOpen}
             className={`font-medium wrap-break-word ${STRETCHED} ${stopped ? "text-muted" : ""}`}
           >

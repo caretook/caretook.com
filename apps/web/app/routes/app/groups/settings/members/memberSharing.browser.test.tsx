@@ -68,6 +68,13 @@ const boxes = () =>
     (b) => `${b.value}:${b.checked}`,
   );
 
+/** Your own card's "What this group sees" starts folded: open it. */
+const unfold = async () => {
+  const toggle = page.getByRole("button", { name: "What this group sees" });
+  await userEvent.click(toggle);
+  await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
+};
+
 /** The co-member shares their phone, and says how they're related. */
 const sharedPhone = [
   ctMember({ relationship: RELATIONSHIP, sharedFields: '["phones"]' }),
@@ -79,9 +86,26 @@ const sharedPhone = [
 ];
 
 describe("your own row", () => {
+  test("the sharing form starts folded under what you share, and opens and closes", async () => {
+    await open({ "me.contact": () => FILLED });
+    await ready();
+    const toggle = page.getByRole("button", { name: "What this group sees" });
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    const own = await found(() => rowOf(TEST_USER.id));
+    expect(own.querySelector("[data-sharing-summary]")?.textContent).toMatch(/^You share /);
+    expect(sharing()?.closest("[inert]")).not.toBeNull();
+    await unfold();
+    await expect.poll(() => sharing()?.closest("[inert]") ?? null).toBeNull();
+    expect(own.querySelector("[data-sharing-summary]")).toBeNull();
+    await userEvent.click(toggle);
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect.poll(() => sharing()?.closest("[inert]") ?? null).not.toBeNull();
+  });
+
   test("with nothing entered: no choices, and a link to Contact details that opens it", async () => {
     const device = await open({});
     await ready();
+    await unfold();
     await expect.poll(() => !!sharing()?.querySelector("[data-no-contact]")).toBe(true);
     expect(boxes()).toEqual([]);
     expect((await found(() => rowOf(TEST_USER.id))).querySelector("[data-member-contact]")).toBeNull();
@@ -93,6 +117,7 @@ describe("your own row", () => {
   test("offers what's filled in (not the empty email), nothing ticked, and names the relationship for the recipient", async () => {
     await open({ "me.contact": () => FILLED });
     await ready();
+    await unfold();
     await expect.poll(boxes).toEqual(["phones:false", "address:false"]);
     const labels = [...sharing()!.querySelectorAll("li")].map((l) => l.textContent ?? "");
     expect(labels[0]).toContain(PHONE);
@@ -108,6 +133,7 @@ describe("your own row", () => {
       calls.record({ "me.contact": () => FILLED, "careGroup.updateMySharing": () => ({}) }),
     );
     await ready();
+    await unfold();
     await expect.poll(boxes).toEqual(["phones:false", "address:false"]);
     await userEvent.click(page.getByRole("checkbox", { name: /Phone numbers/ }));
     await userEvent.fill(

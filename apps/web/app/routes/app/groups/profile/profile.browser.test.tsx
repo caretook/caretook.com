@@ -358,6 +358,9 @@ describe("the Contact sheet", () => {
       ...document.querySelectorAll<HTMLInputElement>('[role=dialog] [name="phoneNumber"]'),
     ];
     expect(numbers().map((n) => n.value)).toEqual(["(555) 010-7100"]);
+    // The recipient's labels stay free text (only a provider's are a select).
+    expect(document.querySelector('[role=dialog] [name="phoneLabel"]')?.tagName).toBe("INPUT");
+    expect(document.querySelector("[role=dialog] [data-phone-label]")).toBeNull();
     await expect.element(field("email")).toHaveValue(DETAILS.email);
     await expect.element(field("address")).toHaveValue(DETAILS.address);
 

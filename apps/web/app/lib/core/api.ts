@@ -4,6 +4,8 @@ import { signInUrl } from "./redirect";
 
 export type FieldIssue = { path: string; message: string };
 export type ActionResult = { ok: true } | { ok: false; error: string; issues: FieldIssue[] };
+/** An action that adds a row: a save gives its id, so the sheet can open what it made. */
+export type CreateResult = { ok: true; id: string } | Extract<ActionResult, { ok: false }>;
 
 /**
  * Await an API call in a clientLoader. A lost session goes to sign-in;
