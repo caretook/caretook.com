@@ -1,6 +1,6 @@
 # Orchestrator handbook
 
-For a PRD orchestrator: a top-level session (spawned agents can't spawn more), one per PRD, opened by the user in the integration worktree `.loops/<topic>` on `prd/<topic>`, where the user steers that PRD. It reads `dev`, never works in the main checkout, and runs loops ([loop](loop.md)). **At most four PRDs run at once** (`CARETOOK_MAX_PRDS`). Also here: the [rules across PRDs](#rules-across-prds) every slice follows.
+For a PRD orchestrator: a top-level session (spawned agents can't spawn more), one per PRD, opened by the user in the integration worktree `.loops/<topic>` on `prd/<topic>`, where the user steers that PRD. It reads `dev`, never works in the main checkout, and runs loops ([loop](loop.md)). **At most four PRDs run at once** (`prd dispatch --cap`). Also here: the [rules across PRDs](#rules-across-prds) every slice follows.
 
 ## Branches and protection
 
