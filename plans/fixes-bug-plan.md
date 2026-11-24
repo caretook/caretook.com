@@ -108,7 +108,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 62    | B-729 | landed (test only)                         | 7c92d280 |
 | 63    | B-726 | landed                                     | 731dd3fa |
 | 64    | B-728 | landed (ask a168, vetoable)                | 5f29ce60 |
-| 65    | B-715 | started (opus)                             |          |
+| 65    | B-715 | merged (test only)                         | 5a088bc9 |
 | 66    | B-689 | started (opus)                             |          |
 | 67    | B-690 | started (opus)                             |          |
 
