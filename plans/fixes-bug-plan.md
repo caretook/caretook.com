@@ -107,6 +107,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 61    | B-714 | landed                                     | e1fb3268 |
 | 62    | B-729 | landed (test only)                         | 7c92d280 |
 | 63    | B-726 | started (opus)                             |          |
+| 64    | B-728 | started (opus)                             |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
@@ -125,7 +126,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Next session (wave 13):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 13 from the triaged items: B-726 (a retried dose upload after a time edit), and B-689, B-690, B-715 once member-avatars no longer holds `routes/app/groups/planner/`. B-728 (repeat preview pairs the recipient's day with the viewer's time) needs a product choice first: ask through `pnpm prd ask` before planning it.
 
-**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); a skeptic reads it first, then `pnpm prd ask --defaults`; on an answer it becomes slice 64 in this wave (`components/repeat/RepeatField.tsx`, not hot for a running topic). **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`).
+**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); skeptic s20 decided A (ask a168, filed for veto under "decided for you"); slice 64 (B-728) on opus. **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`).
 
 ## Wave 1
 
@@ -766,3 +767,14 @@ Slice 52 (B-719) records a restore's displaced author and restoring upload in `d
 - A retry of an accepted dose upload is recognised whatever happened to the row since (a time edit, a restore, a delete), and leaves an undone dose undone. Recording every accepted dose upload is the likely shape; if so, keep any migration additive.
 - A genuine new log of that dose still works as it does today, and B-719's, B-614's and B-616's rules still hold (an upload leaves another member's dose alone; two members' doses for one slot stay two rows).
 - Integration tests in `packages/api/src/syncMedications.int.test.ts` (or beside it): both scenarios above end with the dose still deleted; a fresh log after a delete still records.
+
+### Slice 64: the repeat preview reads each visit in the viewer's zone (B-728)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`visitLabel` in `apps/web/app/components/repeat/RepeatField.tsx` formats the series day (the recipient's zone) as the day and the visit's start instant in the viewer's zone as the time, so a Wed 10:00 PM Los Angeles visit reads "Wed, 1:00 AM" in New York. Decided (skeptic s20, ask a168, the user can veto): a timed visit's line shows its day and time both in the viewer's zone, as the Planner and the entry page do.
+
+- A timed visit's line is the start instant's day and time in the viewer's zone ("Thu, 1:00 AM" for that viewer).
+- An all-day visit keeps its series day (no zone shift).
+- Leave `SeriesEditSheet`'s start and end pickers as they are (they use the series' zone; a separate item if anything).
+- Component test in `entryRepeat.browser.test.tsx`: a late-evening Los Angeles visit read in New York shows the next day; it passes under both `TZ=America/New_York` and `TZ=America/Los_Angeles` (with `CARETOOK_TEST_ZONE` set to match).
