@@ -9,11 +9,12 @@ import {
   providerService,
   recipientConditionService,
   SYSTEM_USER,
+  symptomTypeService,
   timelineEntryModel,
   todoService,
   timelineEntryService,
 } from "@caretook/data";
-import { doseSlotIdFor, fromBase64, MENTION_NODE } from "@caretook/data/schema";
+import { doseSlotIdFor, fromBase64, MENTION_NODE, symptomTypeId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -141,6 +142,28 @@ describe("/mcp write tools", () => {
       kind: "symptom",
       via: CLIENT,
     });
+
+    // symptom-catalog: an existing name in another case reuses its type and
+    // spelling; a new one joins the catalog as written, with no question.
+    const catalog = async () =>
+      ok(await symptomTypeService.list(w.owner.ctx, { groupId: w.group.id })).data.map((t) => t.name);
+    const before = await catalog();
+    const nausea = await tool(token, "log_symptom", { name: "  NAUSEA ", severity: 3 });
+    expect(nausea.isError).toBeUndefined();
+    expect(await w.entry(nausea.structuredContent.entryIds![0]!)).toMatchObject({
+      kind: "symptom",
+      details: { name: "Nausea", severity: 3 },
+      symptomTypeId: symptomTypeId(w.group.id, "Nausea"),
+    });
+    expect(await catalog()).toEqual(before);
+    // Similar to the default "Pain", which the sheet would ask about: a tool call adds it unasked.
+    const fresh = await tool(token, "log_symptom", { name: "Knee pain" });
+    expect(fresh.isError).toBeUndefined();
+    expect(await w.entry(fresh.structuredContent.entryIds![0]!)).toMatchObject({
+      details: { name: "Knee pain" },
+      symptomTypeId: symptomTypeId(w.group.id, "knee pain"),
+    });
+    expect((await catalog()).sort()).toEqual([...before, "Knee pain"].sort());
 
     const dose = await tool(token, "log_dose", {
       medicationId: w.ibuprofen.id,

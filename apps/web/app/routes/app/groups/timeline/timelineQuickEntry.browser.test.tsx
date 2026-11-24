@@ -4,7 +4,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { symptomTypeId } from "@caretook/data/schema";
+import { at, fx, symptomType, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import * as entryRoute from "../entry/route";
@@ -116,6 +117,80 @@ describe("a bare number at the strength with a usual dose of several units (B-66
     await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
     await userEvent.click(page.getByRole("button", { name: `Edit "${LINE}"` }));
     await expect.element(page.getByRole("textbox", { name: /Amount/ })).toHaveValue("");
+  });
+});
+
+describe("symptoms and the group's catalog (symptom-catalog)", () => {
+  const CATALOG = [symptomType("Nausea"), symptomType("Knee pain")];
+  const typeId = (name: string) => symptomTypeId(TEST_GROUP.id, name);
+  const openWithCatalog = () => open({ fixtures: [METFORMIN, ...CATALOG] });
+  const gate = () => document.querySelector<HTMLElement>("[data-quick-card] [data-symptom-gate]");
+  const gateChoices = () =>
+    [...(gate()?.querySelectorAll("button") ?? [])].map((b) => b.textContent?.trim() ?? "");
+  const saved = (device: Awaited<ReturnType<typeof open>>) =>
+    device.query<{ name: string; symptom_type_id: string | null }>(
+      `SELECT json_extract(details, '$.name') AS name, symptom_type_id FROM timeline_entry
+        WHERE kind = 'symptom' AND deleted_at IS NULL`,
+    );
+  const catalogNames = async (device: Awaited<ReturnType<typeof open>>) =>
+    (await device.query<{ name: string }>("SELECT name FROM symptom_type ORDER BY name_key")).map(
+      (r) => r.name,
+    );
+  const queuedTypes = async (device: Awaited<ReturnType<typeof open>>) =>
+    (await device.queued()).filter((w) => w.type === "symptom_type").map((w) => [w.op, w.data?.name]);
+
+  test("an exact match takes the catalog's name and saves with no question", async () => {
+    const device = await openWithCatalog();
+    await type("KNEE   pain 4", ["symptom"]);
+    await waitUntil(() => cardWith("Knee pain 4"), "the catalog's spelling");
+    expect(gate()).toBeNull();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Knee pain", symptom_type_id: typeId("Knee pain") }]);
+    expect(await catalogNames(device)).toEqual(["Knee pain", "Nausea"]);
+    expect(await queuedTypes(device)).toEqual([]);
+  });
+
+  test('a similar name asks on its card; Save waits, and "Use <name>" saves that type', async () => {
+    const device = await openWithCatalog();
+    await type("knee pian 4", ["symptom"]);
+    await expect.poll(gateChoices).toEqual(["Use Knee pain", "Add new"]);
+    expect(gate()?.textContent).toContain("“Knee pian”");
+    // The box keeps focus while typing: the question doesn't take it.
+    await expect.element(box()).toHaveFocus();
+    expect(saveButton()?.disabled).toBe(true);
+
+    await userEvent.click(page.getByRole("button", { name: "Use Knee pain" }));
+    await expect.poll(gate).toBeNull();
+    expect(cardWith("Knee pain 4")).toBeTruthy();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Knee pain", symptom_type_id: typeId("Knee pain") }]);
+    expect(await catalogNames(device)).toEqual(["Knee pain", "Nausea"]);
+    expect(await queuedTypes(device)).toEqual([]);
+  });
+
+  test('"Add new" saves the name as typed, its catalog row in the same write', async () => {
+    const device = await openWithCatalog();
+    await type("knee pian 4", ["symptom"]);
+    await expect.poll(gateChoices).toEqual(["Use Knee pain", "Add new"]);
+    await userEvent.click(page.getByRole("button", { name: "Add new" }));
+    await expect.poll(gate).toBeNull();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Knee pian", symptom_type_id: typeId("Knee pian") }]);
+    expect(await catalogNames(device)).toEqual(["Knee pain", "Knee pian", "Nausea"]);
+    expect(await queuedTypes(device)).toEqual([["PUT", "Knee pian"]]);
+  });
+
+  test("a name like nothing in the catalog saves at once, adding its row", async () => {
+    const device = await openWithCatalog();
+    await type("hiccups 2", ["symptom"]);
+    expect(gate()).toBeNull();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Hiccups", symptom_type_id: typeId("Hiccups") }]);
+    expect(await catalogNames(device)).toEqual(["Hiccups", "Knee pain", "Nausea"]);
   });
 });
 
@@ -457,11 +532,13 @@ describe("the runner", () => {
       ids,
     );
     expect(ids.map((id) => rows.find((r) => r.id === id)?.kind)).toEqual(["note", "symptom"]);
-    // The entry is queued before its document and the document's text.
+    // The entry is queued before its document and the document's text; a
+    // new symptom name's catalog row before its entry (symptom-catalog).
     expect((await device.queued()).map((w) => w.type)).toEqual([
       "timeline_entry",
       "note_document",
       "note_update",
+      "symptom_type",
       "timeline_entry",
     ]);
   });
