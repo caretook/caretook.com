@@ -177,10 +177,13 @@ describe("adding a provider", () => {
     await fill("email", "brooks@neuro.example");
     await fill("website", "neuro.example");
     await fill("address", "9 Elm Lane\nSpringfield");
-    await fill("phoneLabel", "Office");
+    await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("phoneLabel")), "Office");
     await fill("phoneNumber", "(555) 010-7700");
     await addPhone();
-    await fill("phoneLabel", "After hours", 1);
+    await userEvent.selectOptions(
+      await found(() => field<HTMLSelectElement>("phoneLabel", 1)),
+      "After hours",
+    );
     await fill("phoneNumber", "(555) 010-7701", 1);
     await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("practiceId")), WESTSIDE.id);
     await userEvent.click(submit());
@@ -209,6 +212,52 @@ describe("adding a provider", () => {
     back();
     await expect.poll(() => device.location()).toBe(providerUrl(PATEL.id));
     expect(FORM()).toBeNull();
+  });
+
+  test("a phone's label is a select: Nurse line saves as is; Custom shows a focused text box whose text saves; the row fits at phone width", async () => {
+    const device = await open({ role: "caretaker" });
+    await openAdd();
+    const select = await found(() => field<HTMLSelectElement>("phoneLabel"));
+    expect(select.tagName).toBe("SELECT");
+    expect([...select.options].map((o) => o.text)).toEqual([
+      "No label",
+      "Office",
+      "Mobile",
+      "Front desk",
+      "Nurse line",
+      "After hours",
+      "Refills",
+      "Fax",
+      "Custom",
+    ]);
+    expect(select.value).toBe("");
+
+    await fill("name", "Dr. Lena Ortiz");
+    await userEvent.selectOptions(select, "Nurse line");
+    await fill("phoneNumber", "(555) 010-7800");
+    await addPhone();
+    await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("phoneLabel", 1)), "Custom");
+    // Custom names the text box, not the select, so the row still posts one label.
+    const custom = await found(() => field<HTMLInputElement>("phoneLabel", 1));
+    expect(custom.tagName).toBe("INPUT");
+    expect(custom.maxLength).toBe(40);
+    await expect.poll(() => document.activeElement).toBe(custom);
+    await userEvent.type(custom, "Billing");
+    await fill("phoneNumber", "(555) 010-7801", 1);
+
+    // At the test device's phone width (420), each row stays inside the form.
+    const formRight = FORM()!.getBoundingClientRect().right;
+    for (const row of FORM()!.querySelectorAll("[data-phone-row]"))
+      expect(row.getBoundingClientRect().right).toBeLessThanOrEqual(formRight);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+
+    await userEvent.click(submit());
+    await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
+    const row = (await storedNamed(device, "Dr. Lena Ortiz"))!;
+    expect(JSON.parse(row.phones)).toEqual([
+      { label: "Nurse line", number: "(555) 010-7800" },
+      { label: "Billing", number: "(555) 010-7801" },
+    ]);
   });
 
   test("?type=pharmacy starts the form as a pharmacy, with no practice field", async () => {
@@ -256,6 +305,34 @@ describe("editing a provider", () => {
     await device.settle();
     expect(listNames("Current providers")).not.toContain("Dr. Nadia Brooks");
     await expect.poll(() => listNames("Past providers")).toContain("Dr. Nadia Brooks");
+  });
+
+  test("a stored label that isn't a choice opens Custom with its text, a choice selects it, a blank one stays blank; saving keeps all three", async () => {
+    const phones = [
+      { label: "Billing", number: "(555) 010-7800" },
+      { label: "Fax", number: "(555) 010-7801" },
+      { label: "", number: "(555) 010-7802" },
+    ];
+    const ORTIZ = fx.provider({ name: "Dr. Lena Ortiz", phones });
+    const device = await open({ url: `${PROVIDERS_URL}/${ORTIZ.id}/edit`, fixtures: [directory(), ORTIZ] });
+    await waitUntil(() => !!FORM(), "the edit sheet");
+    const selects = () => [...FORM()!.querySelectorAll<HTMLSelectElement>("[data-phone-label] select")];
+    expect(selects().map((s) => s.value)).toEqual(["(custom)", "Fax", ""]);
+    expect(selects()[0]?.selectedOptions[0]?.text).toBe("Custom");
+    const labels = () => [...FORM()!.querySelectorAll<HTMLInputElement>('[name="phoneLabel"]')];
+    expect(labels().map((l) => [l.tagName, l.value])).toEqual([
+      ["INPUT", "Billing"],
+      ["SELECT", "Fax"],
+      ["SELECT", ""],
+    ]);
+    // Only a pick moves focus; opening the sheet onto Custom doesn't.
+    expect(document.activeElement).not.toBe(labels()[0]);
+
+    await fill("specialty", "Billing office");
+    await userEvent.click(submit());
+    await expect.poll(async () => (await stored(device, ORTIZ.id))?.specialty).toBe("Billing office");
+    const saved = await stored(device, ORTIZ.id);
+    expect(JSON.parse(saved?.phones ?? "null")).toEqual(phones);
   });
 
   test("Delete asks first: Escape and Cancel close only the confirm; Delete closes the sheet and soft-deletes it; its edit URL is then the list", async () => {

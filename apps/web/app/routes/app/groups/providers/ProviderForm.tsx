@@ -25,6 +25,17 @@ const NAME_PLACEHOLDER: Record<ProviderType, string> = {
   other: "e.g. Sam (neighbor)",
 };
 
+/** A provider phone's label choices (before Custom), from the labels people use. */
+const PHONE_LABELS = [
+  "Office",
+  "Mobile",
+  "Front desk",
+  "Nurse line",
+  "After hours",
+  "Refills",
+  "Fax",
+] as const;
+
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
 const TYPE_OPTIONS = PROVIDER_TYPES.map((t) => ({ value: t, label: PROVIDER_TYPE_META[t].label }));
@@ -132,7 +143,7 @@ export function ProviderForm({
         </Field>
       )}
 
-      <PhoneFields initial={provider?.phones} issues={issues} />
+      <PhoneFields initial={provider?.phones} issues={issues} labelOptions={PHONE_LABELS} />
 
       <Field label="Email (optional)" kind="input" error={issueFor(issues, "email")}>
         {(control) => (
