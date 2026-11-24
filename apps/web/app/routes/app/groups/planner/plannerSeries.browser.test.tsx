@@ -20,6 +20,7 @@ import {
   TIMELINE_URL,
 } from "./plannerWorld";
 import { pickTime } from "../../../../../test/timeSelect";
+import { deviceTime } from "../../../../../test/zone";
 
 // Editing a series on the test device (appointments-2, slice 2): the
 // SeriesScopeDialog before Edit, Cancel, Reschedule and Delete on a series
@@ -317,7 +318,8 @@ describe("the scope dialog in Upcoming", () => {
     expect((await entry(device, WED_18.id)).occurred_at).toMatch(/^2026-11-18[T ]14:00/);
     await expect
       .poll(() => itemEl(MON_23.id)?.querySelector("[data-when]")?.textContent ?? "")
-      .toMatch(/7:00/);
+      // In the viewer's zone: 7:00 AM here, 10:00 AM in New York.
+      .toMatch(new RegExp(`^${deviceTime("2026-11-23T15:00:00Z")}`));
   });
 });
 

@@ -149,7 +149,8 @@ describe("the deploy workflows", () => {
     const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`components-${n}`];
     const run = (id) => job.steps.find((s) => s.id === id).run;
     expect(run("chromium")).toBe("pnpm exec playwright install --with-deps chromium");
-    expect(run("test")).toContain(`--project web:components --shard=${n}/2`);
+    // Both zones' component projects: the second zone every day for its screens (B-372).
+    expect(run("test")).toContain(`--project web:components --project web:components:ny --shard=${n}/2`);
     expect(run("test")).toContain(`--outputFile.json=ci-results/components-${n}.json`);
     expect(run("report")).toContain(`ci-results/components-${n}.json`);
   });
