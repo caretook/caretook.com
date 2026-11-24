@@ -4,18 +4,22 @@
 
 ## Status
 
-| Slice                                       | Wave | State         | Merge    |
-| ------------------------------------------- | ---- | ------------- | -------- |
-| 1. A rejected batch can't block the queue   | 1    | merged (opus) | 159df711 |
-| 2. Every entry point refuses                | 1    | merged (opus) | 0b9da399 |
-| 3. Fixtures in the shape devices receive    | 1    | merged (opus) | 04f07d63 |
-| 4. Round trip compares columns              | 1    | merged (opus) | 9e03018d |
-| 5. Round trip through the app's own writers | 2    | not started   |          |
-| 6. A second time zone                       | 3    | not started   |          |
+| Slice                                       | Wave | State                          | Merge    |
+| ------------------------------------------- | ---- | ------------------------------ | -------- |
+| 1. A rejected batch can't block the queue   | 1    | landed f4281e0 (PR #147, opus) | 159df711 |
+| 2. Every entry point refuses                | 1    | landed f4281e0 (PR #147, opus) | 0b9da399 |
+| 3. Fixtures in the shape devices receive    | 1    | landed f4281e0 (PR #147, opus) | 04f07d63 |
+| 4. Round trip compares columns              | 1    | landed f4281e0 (PR #147, opus) | 9e03018d |
+| 5. Round trip through the app's own writers | 2    | not started                    |          |
+| 6. A second time zone                       | 3    | not started                    |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-24):** `sync-safety` and `test-gates-2` slice 5 are in `dev`, so wave 1 is ready. B-371, B-373, B-374 claimed. Slices 1 to 4 worktrees made (`.loops/test-health-2-<n>`; 4 has a stack), one opus agent each spawned. Slice 2 found no holes; the router now has 91 procedures (8 public), not 89. Slice 3 changed `fx.group` and `fx.member` defaults (not-null switches), so other component tests first meet them in the wave's CI run. Slice 4 merged 9e03018d (roundtrip 48 s at load 66, removal step adds a 4th device, ~3 s); B-373 done, B-371 stays open for slice 5. **Wave 1 gate:** `components` CI run (the check plan's proposal) requested on the prd tip; `roundtrip` runs locally at landing. **Wave 1 green:** `components` run 45391545805 on ebe33b81 (one quarantined failure, not counted); worktrees 1 to 4 removed. `pnpm prd sync`: no merge needed. PR #147 open; Codex out of credits (exit 4), so wave 1 lands `--no-review`. Docs folded: sync (the 400 path), loop (column comparison, removal step), both trimmed under budget. Local `roundtrip` (42 s) and `live-notes` (54 s) passed. Synced dev again (tooling and docs only, 36 files), so the `components` verdict carries. **Landing wave 1** `--tier components --no-review`. B-372 holds `test-gates-2`'s New York overflow (7 files, `roundtrip` among them): slice 6 repoints it.
+**Wave 1 landed** in `dev` as f4281e0 through PR #147, **without a Codex review (out of credits)**, at tier `components` (run 45391545805 green on ebe33b81; dev's later changes were tooling and docs only). Local `roundtrip` (42 s) and `live-notes` passed. Report a179 filed; to-test file `to-test/2026-11-24-0737-test-health-2.md`. B-373 and B-374 done. Docs folded: sync (the 400 path), loop (column comparison, removal step); both at budget (sync.md 10232 of 10240, loop.md 15349 of 15360): trim at least what you fold.
+
+**Next: wave 2, slice 5** (opus; Stack: yes; claim nothing new, B-371 is already claimed). `pnpm prd slice test-health-2 5`, then its prompt. Tell its agent: reuse slice 4's `writtenRow` and `columnMismatches` in `sync-matrix.mjs` (additive edits only, hot file); an app writer that fills more columns may need new `SERVER_SET_COLUMNS` entries. Gate: the check plan's tier plus local `roundtrip`. Then wave 3, slice 6 (needs slice 3, merged): repoint `test-gates-2`'s overflow from B-372 (7 files, `roundtrip` among them) to a live item.
+
+**Notes from wave 1:** slice 2 found no holes; three list reads (`timeline.list`, `latestVitals`, `members`) answer an outsider with an empty list, not an error, by design. Slice 3 only validated builder defaults; slice 6 could run the `*World.tsx` worlds through `fixtureProblems`. The removal step adds a 4th device to `roundtrip` (about 3 s).
 
 ## Architectural decisions
 
