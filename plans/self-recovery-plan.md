@@ -19,6 +19,8 @@
 
 **Wave 1 docs:** folded into recovery.md (usage reading there, not machinery.md, which is at its budget). **Notes for later slices:** for slice 4: read `recover.running/pid` from inventory facts, call `recover --unattended`, 75 = already running, back-off so failed runs don't each file a report. For slice 5: no subscriber overage flag, `overage` = a plan window at 100%; end a session with `markStalled(dir, name, {error: "limited", pid})`. For slice 6: `clearStalled` on resume.
 
+**Slice 4 fold (recovery.md, machinery.md):** `down --stay [<why>]` writes `.loops/.stay-down.json`; recover `--unattended` with it exits 0, a hand recover clears it; `CARETOOK_RECOVER_REPORT=off`; `pnpm prd autostart install|remove|status` (LaunchAgent `com.caretook.prd-watchdog`, every 300 s, RunAtLoad, log `.loops/.watchdog.log`); `pnpm prd watchdog [--dry-run]` (state `.loops/.watchdog.json`, back-off 10/20/30 min, one report per incident, 75 neither). A closed hand-opened tab reads as a crash (one recover). Slice 4's `limitedOf` may give way to slice 5's drain decision. Pre-existing: `prd.sh help` prints `line 17: design: command not found`.
+
 **Backlog:** claim B-407 when slice 1 starts, B-462 and B-463 when slice 2 starts, B-433 when slice 3 starts. `done` B-462 and B-463 when slice 2 merges, B-433 when slice 3 merges, B-407 when the last of slices 1, 2, 4, 5 and 6 merges.
 
 ## Architectural decisions
