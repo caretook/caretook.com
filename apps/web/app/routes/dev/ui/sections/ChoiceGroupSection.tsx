@@ -7,8 +7,16 @@ const UNITS = [
   { value: "metric", label: "°C, kg" },
 ] as const;
 
+const PLACES = [
+  { value: "home", label: "Home" },
+  { value: "clinic", label: "Clinic" },
+  { value: "rehab", label: "Rehab or skilled nursing" },
+  { value: "other", label: "Other" },
+] as const;
+
 export function ChoiceGroupSection() {
   const [units, setUnits] = useState<"imperial" | "metric" | null>(null);
+  const [place, setPlace] = useState<(typeof PLACES)[number]["value"] | null>("home");
   return (
     <>
       <Example label="Controlled, none chosen yet">
@@ -22,6 +30,16 @@ export function ChoiceGroupSection() {
           value={null}
           onChange={() => undefined}
           error="Pick one."
+        />
+      </Example>
+      <Example label="Grid: two equal columns for a longer list">
+        <ChoiceGroup
+          name="place"
+          label="Where is care now?"
+          layout="grid"
+          options={PLACES}
+          value={place}
+          onChange={setPlace}
         />
       </Example>
     </>

@@ -6,22 +6,27 @@ import { Button } from "~/components/ui";
 /**
  * The inline choice before a new symptom name is added (symptom-catalog
  * slice 3): the group's similar names, each "Use <name>", and "Add new" for
- * the name as typed. Focus moves to the first choice when it opens.
+ * the name as typed. Focus moves to the first choice when it opens, unless
+ * `takeFocus` is false (quick entry's card, which shows it while typing).
  */
 export function SymptomGate({
   gate,
   onUse,
   onAddNew,
   size = "md",
+  takeFocus = true,
 }: {
   gate: SymptomGateState;
   onUse: (name: string) => void;
   onAddNew: () => void;
   size?: "md" | "lg";
+  takeFocus?: boolean;
 }) {
   const id = useId();
   const first = useRef<HTMLButtonElement>(null);
-  useEffect(() => first.current?.focus(), [gate]);
+  useEffect(() => {
+    if (takeFocus) first.current?.focus();
+  }, [gate, takeFocus]);
   return (
     <div
       role="group"

@@ -44,55 +44,78 @@ export type GroupRoleName = (typeof GROUP_ROLE_NAMES)[number];
 export type GroupRoleGroup = "regular" | "easier";
 
 /**
- * Each role's label and description, in picker order. The descriptions are
- * shown to the managers who pick a role, never to the member: the easy
- * roles' "who it's for" lives only here, and the role's name says nothing
- * about the person.
+ * Each role's label and what it may do, in picker order, checked against
+ * the permissions (docs/domain/care-groups.md). `description` is the short
+ * line under a role picker; `sees` and `changes` are the longer words of
+ * "What can each role do?". All of it is shown to the managers who pick a
+ * role, never about a member: the easy roles' "who it's for" lives only
+ * here, and the role's name says nothing about the person.
  */
 export const GROUP_ROLES = [
   {
     name: "owner",
     label: "Owner",
     group: "regular",
-    description: "Manages the group, its members and owners. Can delete the group.",
+    description: "Runs the group: can change everything, owners included, and can delete the group.",
+    sees: "Everything in the group, including the care recipient's contact details, insurance and outside contacts.",
+    changes:
+      "All care information, the group's details and settings, and every member and invitation, other owners included. Only an owner can turn on assistants or delete the group. A group always keeps at least one owner.",
   },
   {
     name: "admin",
     label: "Admin",
     group: "regular",
-    description: "Manages members and invitations, but can't touch owners or delete the group.",
+    description:
+      "Helps run the group: invites and manages members, but can't change owners or delete the group.",
+    sees: "Everything in the group, including the care recipient's contact details, insurance and outside contacts.",
+    changes:
+      "All care information, the group's name and settings, invitations, requests to join, and the roles of members who aren't owners. Can't add, change or remove an owner, change the assistants settings or delete the group.",
   },
   {
     name: "caretaker",
     label: "Caretaker",
     group: "regular",
-    description: "Reads and writes care data.",
+    description: "Adds and changes care information, but doesn't manage the group or its members.",
+    sees: "Everything about the care, including the care recipient's contact details, insurance and outside contacts.",
+    changes:
+      "The timeline, medications and doses, providers, events, todos and the care recipient's profile. Can't change the emergency contacts, rename the group, or change who is in it.",
   },
   {
     name: "viewer",
     label: "Viewer",
     group: "regular",
-    description: "Reads care data only.",
+    description: "Sees care information but can't change it, apart from ticking off todos assigned to them.",
+    sees: "The timeline, medications, providers, events, todos and the care recipient's basic profile. Not the recipient's phone numbers, email, address, insurance or outside contacts.",
+    changes: "Nothing about the care, except ticking off todos assigned to them.",
   },
   {
     name: "easy_helper",
     label: "Easy helper",
     group: "easier",
     description:
-      "For someone who isn't comfortable with apps or who has memory or thinking difficulties. Large type, one screen, a few big buttons. They can log care and tick their own todos but can't change medications, providers or settings.",
+      "For someone who isn't comfortable with apps or who has memory or thinking difficulties. Large type, one screen, a few big buttons: they log care and tick off todos assigned to them.",
+    sees: "The group's care in the easy view. Not the care recipient's phone numbers, email, address, insurance or outside contacts.",
+    changes:
+      "Logs care (notes, symptoms, doses) and can fix or remove only what they logged; ticks off todos assigned to them. Can't change medications, providers, events or settings.",
   },
   {
     name: "easy_viewer",
     label: "Easy viewer",
     group: "easier",
     description:
-      "For someone who isn't comfortable with apps or who has memory or thinking difficulties. Large type, one screen. They can read and tick their own todos but can't change anything else.",
+      "For someone who isn't comfortable with apps or who has memory or thinking difficulties. Large type, one screen: they read and tick off todos assigned to them.",
+    sees: "The group's care in the easy view. Not the care recipient's phone numbers, email, address, insurance or outside contacts.",
+    changes: "Nothing, except ticking off todos assigned to them.",
   },
 ] as const satisfies readonly {
   name: GroupRoleName;
   label: string;
   group: GroupRoleGroup;
   description: string;
+  /** What the role can see, in plain words. */
+  sees: string;
+  /** What the role can change, in plain words. */
+  changes: string;
 }[];
 
 export const isGroupRoleName = (name: unknown): name is GroupRoleName =>

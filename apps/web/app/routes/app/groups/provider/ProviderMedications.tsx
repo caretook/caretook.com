@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { IconChip, List, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { medicationSummaryLine, medicationTitle } from "~/lib/medications/medicationDisplay";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { useLiveQuery } from "~/lib/sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { providerMedicationsQuery, toMedications } from "~/lib/medications/medications.sync";
@@ -23,6 +24,7 @@ export function ProviderMedications({ groupId, providerId }: { groupId: string; 
   const rows = useLiveQuery<MedicationRow>(query.sql, query.params, NO_ROWS);
   const medications = useMemo(() => toMedications(rows), [rows]);
   const passes = useSchedulePasses(groupId);
+  const linkState = useMedicationLinkState();
   if (medications.length === 0) return null;
 
   return (
@@ -37,6 +39,7 @@ export function ProviderMedications({ groupId, providerId }: { groupId: string; 
             <li key={m.id}>
               <Link
                 to={appUrls.medication(groupId, m.id)}
+                state={linkState}
                 className="hover:bg-base-200/50 flex items-center gap-3 px-3 py-2.5"
                 data-medication-id={m.id}
               >

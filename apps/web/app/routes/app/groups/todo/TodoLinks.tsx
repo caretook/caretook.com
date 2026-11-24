@@ -12,6 +12,7 @@ import { Badge, Section, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { useLiveQuery } from "~/lib/sync";
 import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
@@ -145,6 +146,7 @@ function MedicationLink({
   const q = medicationQuery(id);
   const rows = useLiveQuery<MedicationRow>(q.sql, q.params, loaded);
   const medication = rows[0] ? toMedication(rows[0]) : null;
+  const linkState = useMedicationLinkState();
   if (!medication || medication.groupId !== groupId) return null;
   const removed = !!medication.deletedAt;
   const title = medicationTitle(medication);
@@ -164,7 +166,12 @@ function MedicationLink({
             {title}
           </p>
         ) : (
-          <Link to={appUrls.medication(groupId, medication.id)} className={STRETCHED} data-todo-link-name>
+          <Link
+            to={appUrls.medication(groupId, medication.id)}
+            state={linkState}
+            className={STRETCHED}
+            data-todo-link-name
+          >
             {title}
           </Link>
         )}

@@ -33,7 +33,8 @@ const TYPE_OPTIONS = [
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
 /**
- * The schedule: at set times every day (in the recipient's time zone) or as
+ * The schedule: a new medication starts as needed (an existing one keeps its
+ * own); at set times every day (in the recipient's time zone) or as
  * needed (with an optional most-in-a-day). At set times is the group's passes
  * to tick (Morning, Evening…), each with an amount when it differs from the
  * usual dose, plus times of their own ("Add another time"), each with its
@@ -59,7 +60,7 @@ export function ScheduleFields({
   /** "Times are Los Angeles time", when the device is in another zone. */
   zoneNote: string | null;
 }) {
-  const [type, setType] = useState<ScheduleType>(initial?.type ?? "scheduled");
+  const [type, setType] = useState<ScheduleType>(initial?.type ?? "asNeeded");
   const [start] = useState(() => initialSlots(initial, passes));
   const [ticked, setTicked] = useState(start.passes);
   // Each row keeps its key as rows come and go, so typing stays in its field.

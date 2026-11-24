@@ -70,12 +70,15 @@ const sorted = (schedule: string) => {
 };
 const BY_PASS = "Morning (50 mg), Evening and 14:00 (12.5 mg)";
 
-/** Add "Atenolol" by passes from the list; returns its id. */
+/** Add "Atenolol" by passes from the list (the save opens its page); returns its id. */
 const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await openAddMedication();
   await userEvent.fill(await found(() => field("name")), "Atenolol");
   await userEvent.fill(await found(() => field("dose")), "25 mg");
-  await userEvent.click(passBox(MORNING.id));
+  await userEvent.click(
+    await found(() => FORM()?.querySelector('input[name="scheduleType"][value="scheduled"]')),
+  );
+  await userEvent.click(await found(() => passBox(MORNING.id)));
   await expect.poll(() => passAmount(MORNING.id)).toBeTruthy();
   const placeholder = passAmount(MORNING.id)!.placeholder;
   await userEvent.fill(await found(() => passAmount(MORNING.id)), "50 mg");
@@ -88,6 +91,7 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await expect.poll(() => SHEET()).toBeNull();
   await device.settle();
   const [added] = await device.query<{ id: string }>("SELECT id FROM medication WHERE name = 'Atenolol'");
+  await expect.poll(() => device.location()).toBe(medicationUrl(added!.id));
   return { id: added!.id, placeholder };
 };
 
@@ -96,6 +100,12 @@ describe("a schedule by passes", () => {
     const device = await open(LIST);
     const { id, placeholder } = await addByPasses(device);
     expect(placeholder).toBe("25 mg");
+    // Its page says it by pass too; the list is a link away.
+    await expect
+      .poll(() => medPage().rows.schedule ?? "")
+      .toMatch(new RegExp(`^${BY_PASS.replace(/[()]/g, "\\$&")}`));
+    await userEvent.click(await found(() => document.querySelector<HTMLAnchorElement>("main a")));
+    await expect.poll(() => device.location()).toBe(LIST);
     const [row] = await device.query<{ schedule: string }>(MEDICATION_SQL, [id]);
     expect(sorted(row?.schedule ?? "null")).toEqual(
       sorted(

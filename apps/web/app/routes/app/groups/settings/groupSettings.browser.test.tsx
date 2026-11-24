@@ -1,6 +1,7 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
+import { GROUP_ROLES } from "@caretook/data/permissions";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as timeline from "~/routes/app/groups/timeline/route";
@@ -245,7 +246,7 @@ describe("Members", () => {
     expect(list.textContent).not.toContain("@example.com");
   });
 
-  test("the role menu groups the easy roles under Easier to use, each option described for the manager", async () => {
+  test("the role menu groups the easy roles under Easier to use, with no per-option descriptions", async () => {
     await open({ url: MEMBERS });
     await ready();
     const select = row("Rita").querySelector("select")!;
@@ -257,10 +258,41 @@ describe("Members", () => {
       ["Regular roles", ["Owner", "Admin", "Caretaker", "Viewer"]],
       ["Easier to use", ["Easy helper", "Easy viewer"]],
     ]);
-    const titles = Object.fromEntries([...select.options].map((o) => [o.value, o.title]));
-    expect(titles.viewer).toBe("Reads care data only.");
-    expect(titles.easy_helper).toMatch(/^For someone who isn't comfortable with apps or who has memory/);
-    expect(titles.easy_viewer).toMatch(/They can read and tick their own todos/);
+    // Phones don't show an option's title: "What can each role do?" explains them instead.
+    expect([...select.options].map((o) => o.title).filter(Boolean)).toEqual([]);
+  });
+
+  test("What can each role do? (B-677): owners and admins get the link above the list, opening every role; closing returns focus", async () => {
+    for (const role of ["owner", "admin"] as const) {
+      const device = await open({ url: MEMBERS, role });
+      await ready();
+      const link = page.getByRole("button", { name: "What can each role do?" });
+      await userEvent.click(link);
+      const dialog = page.getByRole("dialog", { name: "What can each role do?" });
+      await expect.element(dialog).toBeVisible();
+      for (const known of GROUP_ROLES) {
+        await expect.element(dialog.getByText(known.label, { exact: true })).toBeVisible();
+        await expect.element(dialog.getByText(known.description, { exact: true })).toBeVisible();
+      }
+      await userEvent.click(dialog.getByRole("button", { name: "Done" }));
+      await expect
+        .poll(() => document.querySelector("dialog[data-role-guide]")?.hasAttribute("open"))
+        .toBe(false);
+      await expect.element(link).toHaveFocus();
+      await device.screen.unmount();
+    }
+  });
+
+  test("What can each role do? isn't offered to a caretaker, or offline", async () => {
+    for (const [role, online] of [
+      ["caretaker", true],
+      ["owner", false],
+    ] as const) {
+      const device = await open({ url: MEMBERS, role, online });
+      await ready();
+      expect(document.querySelector("[data-role-help]")).toBeNull();
+      await device.screen.unmount();
+    }
   });
 
   test("a member with an easy role reads as Easy helper: a menu for the owner, plain text for a caretaker", async () => {
@@ -445,7 +477,7 @@ describe("Members", () => {
     await ready();
     expect(listed()).toBe("Sam Okafor:Caretaker,Alex Moreno (you):Viewer:Leave,Rita Okafor:Viewer");
     const live = [...document.querySelectorAll("main input, main select, main button")].filter(
-      (el) => !el.closest("dialog:not([open])") && !el.closest("[data-sharing-form]"),
+      (el) => !el.closest("dialog:not([open])") && !el.closest("[data-sharing-form], [data-sharing-toggle]"),
     );
     expect(live.map((el) => el.textContent?.trim())).toEqual(["Leave"]);
 

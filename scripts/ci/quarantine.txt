@@ -8,3 +8,5 @@ apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the list an item
 apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page Back, then the filter that's on picked again: a dose still names its medication (B-235)	B-633
 apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx	the New care group sheet the group menu's New care group opens it; closing it goes back to the timeline	B-769
 apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page three pages down, an entry's page and Back: all three pages' rows are there at once, and the next page still loads	B-633
+apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-776
+packages/data/src/services/accountAdmin.int.test.ts	accountAdminService.setRole makes an account support, admin and a member again, each with an audit entry	B-778

@@ -4,14 +4,16 @@
 
 ## Status
 
-| Slice                                       | Wave | State                          | Merge    |
-| ------------------------------------------- | ---- | ------------------------------ | -------- |
-| 1. A rejected batch can't block the queue   | 1    | landed f4281e0 (PR #147, opus) | 159df711 |
-| 2. Every entry point refuses                | 1    | landed f4281e0 (PR #147, opus) | 0b9da399 |
-| 3. Fixtures in the shape devices receive    | 1    | landed f4281e0 (PR #147, opus) | 04f07d63 |
-| 4. Round trip compares columns              | 1    | landed f4281e0 (PR #147, opus) | 9e03018d |
-| 5. Round trip through the app's own writers | 2    | landed 2724ace (PR #151, opus) | fd67ffc4 |
-| 6. A second time zone                       | 3    | merged (opus)                  | 84cb89b2 |
+**Done.** Wave 3 landed in `dev` as f9b32d87 through PR #154 at tier `full` (run 45424681240 green on 24218d92), without a Codex review (out of credits). Report a188; to-test `to-test/2026-11-24-1036-test-health-2.md`. Next: `pnpm prd rm test-health-2`, `pnpm prd end`.
+
+| Slice                                       | Wave | State                           | Merge    |
+| ------------------------------------------- | ---- | ------------------------------- | -------- |
+| 1. A rejected batch can't block the queue   | 1    | landed f4281e0 (PR #147, opus)  | 159df711 |
+| 2. Every entry point refuses                | 1    | landed f4281e0 (PR #147, opus)  | 0b9da399 |
+| 3. Fixtures in the shape devices receive    | 1    | landed f4281e0 (PR #147, opus)  | 04f07d63 |
+| 4. Round trip compares columns              | 1    | landed f4281e0 (PR #147, opus)  | 9e03018d |
+| 5. Round trip through the app's own writers | 2    | landed 2724ace (PR #151, opus)  | fd67ffc4 |
+| 6. A second time zone                       | 3    | landed f9b32d87 (PR #154, opus) | 84cb89b2 |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
