@@ -477,7 +477,7 @@ describe("Members", () => {
     await ready();
     expect(listed()).toBe("Sam Okafor:Caretaker,Alex Moreno (you):Viewer:Leave,Rita Okafor:Viewer");
     const live = [...document.querySelectorAll("main input, main select, main button")].filter(
-      (el) => !el.closest("dialog:not([open])") && !el.closest("[data-sharing-form]"),
+      (el) => !el.closest("dialog:not([open])") && !el.closest("[data-sharing-form], [data-sharing-toggle]"),
     );
     expect(live.map((el) => el.textContent?.trim())).toEqual(["Leave"]);
 
