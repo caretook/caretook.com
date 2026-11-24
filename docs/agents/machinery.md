@@ -18,19 +18,20 @@ The scripts behind `pnpm prd` (`scripts/loops/`).
 ## Recorded sessions
 
 - **`session.sh <name> [--kind <k>] [--topic <t>] [--auto] [--managed] -- <claude args>`** runs `claude` (`CARETOOK_CLAUDE_BIN` in tests) and keeps a record in the main checkout's `.loops/.sessions/<name>.json`: `pid` (claude's own), `kind`, `topic`, `started`, `command`, `auto`, `managed`, `model`, `dir`, `rotating`, `ended`, `exit`. Names: `prd-<t>`, `plan-<t>`, `backlog[-<n>]`, `inbox`, `hotfix-<n>`, `recover`. Records outlive the session (`rm.sh` and `tidy` delete them), never in a worktree.
-- Every session starts through it: `prd start`'s command, the dispatcher, `prd plan`, `prd hotfix`, `recover.sh`, the opener.
+- Every session starts through it.
 - **Live** means no `ended`, the pid exists and that process started within a minute of `started`.
-- **`pnpm prd end [<name>]`** ends a session (TERM, KILL after `CARETOOK_END_WAIT`, 10 s): the named record, or with no name the caller's own, so it works after `pnpm prd rm`. With neither a record nor an ancestor it refuses.
+- **`pnpm prd end [<name>]`** ends a session (TERM, KILL after `CARETOOK_END_WAIT`, 10 s): the named record, or with no name the caller's own, so it works after `pnpm prd rm`. With neither, it refuses.
 - **`pnpm prd bye`** (`bye.mjs`; `--dry-run`, `--json`), on just 'bye': by role (a `slice/` branch, else the caller's record or branch), what's open: uncommitted or unpushed work, worktrees, unmerged branches, a stack or server, a live lease, background shells, its unanswered questions (its topic's notices only listed). Clean: the hand-off line, its own leases freed, `end` (a slice only reports). Else each thing, exit 3, nothing closed.
 - **The opener** (`open-session.sh`) writes `cd <dir> && exec …` to the tab it made, so the tab closes with the session. It carries `auto` and `managed` over and opens fresh after a `rotating` record. Backlog and recovery sessions reopen fresh in the main checkout on their recorded model; inbox through `prd.sh inbox` with its recorded `dir` and model; a hotfix with `--continue` in its worktree; a live one is refused. `--background`: iTerm2 stays behind. No current window: the first, else a new one.
 
 ## Rotation
 
 - **`pnpm prd rotate [<topic>] [--mid-wave] [--reason <text>]`** (`rotate.sh`) finds the session (the live `prd-<topic>` record, else the shell's ancestor `claude`) and opens `rotate-into.sh` in a background tab. It refuses with uncommitted plan changes, a requested run out or GitHub unreadable, slice worktrees left (those two unless `--mid-wave`), or no session. A leftover `ci/` ref counts as out. Without iTerm2 it only prints the command.
-- `rotate-into.sh <name> <pid>` sets `rotating`, ends the pid (TERM, KILL after `CARETOOK_ROTATE_WAIT`, 20 s), waits for its wrapper to record the end, then execs `session.sh` with `prompt.sh orchestrator <topic> --resume` (`--auto` from the record or _Status_): fresh, the same name.
-- **`rotate --self [--brief <file>]`** finds the caller by its ancestor `claude` pid. A backlog session reopens fresh in the main checkout (same name, model, Remote Control), the brief on top of its prompt; an orchestrator rotates as plain `rotate`; other kinds and `slice/` branches are refused. `--brief-path` prints where to write the brief; a stale one is deleted at session start.
+- `rotate-into.sh <name> <pid>` sets `rotating`, ends the pid (as `end`; `CARETOOK_ROTATE_WAIT`, 20 s), waits for the recorded end, then execs `session.sh` with `prompt.sh orchestrator <topic> --resume` (`--auto` from the record or _Status_): fresh, the same name.
+- **`rotate --self [--brief <file>]`** finds the caller by its ancestor `claude` pid. A backlog session reopens fresh in the main checkout (same record and model), the brief on top of its prompt; an orchestrator rotates as plain `rotate`; other kinds and `slice/` branches are refused. `--brief-path` prints where to write the brief; a stale one is deleted at session start.
+- **Captains** (`captain.mjs`): the main backlog session's Remote Control name and tab title is a captain, drawn at each start, rotate, hand-off and reopen, never the last; the record stays `backlog`; a `--remote-control <Captain>` process is live.
 - `rm.sh`, removing a merged `prd/` worktree whose _Status_ has no slice left, sets the registry's `done` flag (dropping `hold`), except for a `standing` topic.
-- `pnpm prd status` adds the recorded sessions (ended over a day ago left out), pending session requests, the open asks and _Slices_: each slice working, handed off, waiting for the run, or fixing.
+- `pnpm prd status` adds the recorded sessions, pending session requests, the open asks and _Slices_: each slice working, handed off, waiting for the run, or fixing.
 
 ## The context watch
 
@@ -47,12 +48,12 @@ The scripts behind `pnpm prd` (`scripts/loops/`).
 - **The context follow-up** (`dispatch-context.mjs`; `CARETOOK_CONTEXT_WATCH=off`): a live managed orchestrator, backlog or inbox session over the hard limit, unkept, is nudged `CARETOOK_CONTEXT_NUDGE_MIN` (15) after crossing it and asked the same wait after delivery ("rotate it now", or "leave it", the backlog default). It rotates once no `pnpm prd` or `pnpm backlog` command runs under it: an orchestrator mid-wave; a backlog session through `rotate-into.sh`, with a brief newer than the delivery, else `--no-brief`; an inbox session with no brief.
 - **The keep-alive** (`keep-alive.mjs`; `CARETOOK_KEEP_SESSIONS=off`, or pause): keeps one managed `backlog` and one `inbox` session open (live: a record, one `rotating`, or a `--remote-control <kind>` process), outside the PRD slots. The inbox one opens only once its folder is trusted (a saved conversation there, or `~/.claude.json`): open it by hand first. Three quick deaths ask whether to keep it alive.
 - **The pickup:** `prd.sh dev-sync` every `CARETOOK_PICKUP_EVERY` s (300; `off`), not while paused, at most 120 s (`lastPickup` in `.dispatch.json`); a failure logs one line.
-- **Session requests** (`session-requests.mjs`, `.loops/.requests/`): one per tick, after the keep-alive, opens `backlog-<name>` (Remote Control `backlog - <name>`), managed, not kept alive, or refuses a live name or past `CARETOOK_MAX_BACKLOG_SESSIONS` (4). A notice says which (one that can't post: `session requests`).
+- **Session requests** (`session-requests.mjs`, `.loops/.requests/`): one per tick, after the keep-alive, opens `backlog-<name>` (Remote Control `backlog - <name>`), managed, not kept alive, or refuses a live name or past `CARETOOK_MAX_BACKLOG_SESSIONS` (4). A notice says which.
 - **Files** in the main checkout's `.loops/`: `.dispatch.lock` (pid; a dead one is taken over atomically), `.dispatch.json`, `.dispatch.log`. On an idle tick every six hours it runs `pnpm prd tidy --yes`.
 
 ## The load gate
 
-- `load-gate.mjs`: busy when the 5-minute load is above `CARETOOK_LOAD_BUSY` (20, twice the cores; 30 for quick and slice checks and slice starts, `CARETOOK_LOAD_LANE=light`); `CARETOOK_LOAD_GATE=off` and an unreadable load are never busy. Checks (holding the lease), browser runs (before it) and slice worktree creation wait, polling every `CARETOOK_LOAD_POLL` (15 s) up to `CARETOOK_LOAD_WAIT` (600 s), then proceed and say so. `start` only warns, the dispatcher starts and plans nothing, `prd status` prints the gate line.
+- `load-gate.mjs`: busy when the 5-minute load is above `CARETOOK_LOAD_BUSY` (20, twice the cores; 30 for quick and slice checks and slice starts, `CARETOOK_LOAD_LANE=light`); `CARETOOK_LOAD_GATE=off` and an unreadable load are never busy. Checks (holding the lease), browser runs (before it) and slice worktree creation wait, polling every `CARETOOK_LOAD_POLL` (15 s) up to `CARETOOK_LOAD_WAIT` (600 s), then proceed and say so. `start` only warns, the dispatcher starts and plans nothing.
 
 ## The check runner
 
