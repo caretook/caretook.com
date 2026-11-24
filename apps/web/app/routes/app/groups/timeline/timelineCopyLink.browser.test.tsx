@@ -26,9 +26,9 @@ const headerOf = (label: string) =>
   [...document.querySelectorAll<HTMLElement>("[data-day-header]")].find(
     (h) => h.querySelector("h3")?.textContent === label,
   );
-const copyButton = (within: Element | undefined) =>
+const copyButton = (within: Element | null | undefined) =>
   within?.querySelector<HTMLButtonElement>("[data-copy-link] button") ?? null;
-const statusOf = (within: Element | undefined) =>
+const statusOf = (within: Element | null | undefined) =>
   within?.querySelector("[data-copy-link] [role=status]")?.textContent ?? null;
 
 const own = ["clipboard"] as const;
