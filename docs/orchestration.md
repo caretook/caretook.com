@@ -177,7 +177,7 @@ chore(app-shell): merge dev into prd/app-shell
 - **Types:** `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `build`, `ci`, `chore`, `revert`.
 - **Scope** (optional): the PRD topic, or the area. Backlog ids go at the end, in parentheses.
 - **Breaking change:** `feat(api)!: …`, with a `BREAKING CHANGE:` footer.
-- The tools write their own: `pnpm backlog` commits as `chore(backlog): …`, `pnpm prd sync` as `chore(<topic>): merge dev …`, and `pnpm prd land` takes `-m "feat(<topic>): …"` (or writes a default).
+- `pnpm backlog`, `pnpm prd sync` and `pnpm prd land` (`-m`, else a default) write their own.
 
 ## Commands at a glance
 
