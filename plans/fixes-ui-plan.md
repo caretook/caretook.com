@@ -23,23 +23,23 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                                                                       | Merge    |
-| ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
-| 34    | B-594 | merged                                                                                                      | 86d98496 |
-| 35    | B-672 | merged (typing-mode lists cover the next field: tests Tab after a fill)                                     | d1cdca07 |
-| 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
-| 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
-| 38    | B-664 | merged                                                                                                      | 221141c3 |
-| 39    | B-636 | merged                                                                                                      | 5cbbe830 |
-| 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                            | 6df9f7cb |
-| 41    | B-676 | merged                                                                                                      | ec911d5d |
-| 42    | B-762 | started 2026-11-24 (session 4, opus)                                                                        |          |
-| 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  | abb099ce |
-| 44    | B-756 | merged                                                                                                      | d59db667 |
-| 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
-| 46    | B-692 | started 2026-11-24 (session 4, opus)                                                                        |          |
-| 47    | B-736 | merged                                                                                                      | da9de73f |
-| 48    | B-737 | handed off 1727845a, waits for 42 and 46 (plan order); easy mode gets no copy links                         |          |
+| Slice | Item  | State                                                                                                                                     | Merge    |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 34    | B-594 | merged                                                                                                                                    | 86d98496 |
+| 35    | B-672 | merged (typing-mode lists cover the next field: tests Tab after a fill)                                                                   | d1cdca07 |
+| 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34)                               | f0f672c7 |
+| 37    | B-679 | merged (packages/: integration tier)                                                                                                      | 3d21f402 |
+| 38    | B-664 | merged                                                                                                                                    | 221141c3 |
+| 39    | B-636 | merged                                                                                                                                    | 5cbbe830 |
+| 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                                                          | 6df9f7cb |
+| 41    | B-676 | merged                                                                                                                                    | ec911d5d |
+| 42    | B-762 | started 2026-11-24 (session 4, opus)                                                                                                      |          |
+| 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                                                | abb099ce |
+| 44    | B-756 | merged                                                                                                                                    | d59db667 |
+| 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                                               | 4ad16c07 |
+| 46    | B-692 | handed off f48291e1, waits for 42; DateTimeField `onCalendarPick` (ui-kit doc at landing); a `?when=pick` day pick now closes the popover |          |
+| 47    | B-736 | merged                                                                                                                                    | da9de73f |
+| 48    | B-737 | handed off 1727845a, waits for 42 and 46 (plan order); easy mode gets no copy links                                                       |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
