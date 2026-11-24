@@ -251,7 +251,9 @@ fieldset:disabled :is(.input, .select, .textarea) {
    scale above 1. Every rule that animates sits under `no-preference`, and
    under "reduce motion" nothing moves at all (daisyUI's own 0.2s on `.btn`
    is switched off too). `Chevron` takes `motion-turn`, `ListRow` and other
-   hover surfaces `motion-colors`; `Collapse` is the `[data-collapse]` rules. */
+   hover surfaces `motion-colors`, a link with a button's feel that isn't a
+   `.btn` (an entry's kind and author filters) `motion-press`; `Collapse` is
+   the `[data-collapse]` rules. */
 :root {
   --motion-fast: 120ms;
   --motion: 180ms;
@@ -293,6 +295,16 @@ fieldset:disabled :is(.input, .select, .textarea) {
     transition-property: color, background-color, border-color;
     transition-duration: var(--motion-fast);
     transition-timing-function: var(--motion-ease);
+  }
+}
+@utility motion-press {
+  @media (prefers-reduced-motion: no-preference) {
+    transition-property: color, background-color, border-color, box-shadow, scale;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
+    &:active {
+      scale: 0.97;
+    }
   }
 }
 @utility motion-turn {

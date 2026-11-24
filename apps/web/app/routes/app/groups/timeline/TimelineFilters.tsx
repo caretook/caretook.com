@@ -8,16 +8,7 @@ import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { MemberAvatar } from "~/components/members";
-import {
-  Button,
-  ChipGroup,
-  CIRCLE,
-  Collapse,
-  COUNT_BADGE,
-  Field,
-  ICON_SM,
-  IconButton,
-} from "~/components/ui";
+import { ChipGroup, CIRCLE, Collapse, Field, ICON_SM, IconButton } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
@@ -164,24 +155,15 @@ export function FilterChips({
           onPress={field.toggle}
           className={CIRCLE}
         />
-        <Button
-          variant="ghost"
-          size="sm"
-          shape="square"
+        <IconButton
+          label={count ? `Filter, ${count} on` : "Filter"}
           icon={SlidersHorizontal}
-          aria-haspopup="dialog"
-          aria-label={count ? `Filter, ${count} on` : "Filter"}
-          title={count ? `Filter, ${count} on` : "Filter"}
-          className={`relative ${CIRCLE}`}
-          onClick={() => setSheetOpen(true)}
+          count={count}
+          haspopup="dialog"
+          onPress={() => setSheetOpen(true)}
+          className={CIRCLE}
           data-filter-button=""
-        >
-          {count > 0 && (
-            <span aria-hidden="true" className={COUNT_BADGE} data-filter-count>
-              {count}
-            </span>
-          )}
-        </Button>
+        />
         <TimelineDayPicker label="Go to a day" />
         <Collapse open={field.open} axis="inline" id={fieldId} className="min-w-0 flex-1">
           <Field label="Search entries" labelHidden>
