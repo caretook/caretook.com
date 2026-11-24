@@ -874,9 +874,9 @@ describe("sync.upload: two members' doses for one slot", () => {
       // A's upload is accepted but its response is lost, so A's device keeps it queued.
       const first = put("given", sqliteTime(-60 * 60_000), "A's dose");
       expect(await upload(caretaker.api, [first])).toEqual([{ id: first.id, status: "applied" }]);
-      expect(await upload(owner.api, [timeEdit(first.id, owner.user.id, sqliteTime(-30 * 60_000))])).toEqual(
-        [{ id: first.id, status: "applied" }],
-      );
+      expect(await upload(owner.api, [timeEdit(first.id, owner.user.id, sqliteTime(-30 * 60_000))])).toEqual([
+        { id: first.id, status: "applied" },
+      ]);
       await upload(owner.api, [undoPatch(first.id, owner.user.id)]);
 
       expect(await upload(caretaker.api, [first])).toEqual([{ id: first.id, status: "applied" }]);
