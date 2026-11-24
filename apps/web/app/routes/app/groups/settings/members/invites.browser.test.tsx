@@ -1,11 +1,13 @@
 import type { DeviceRoute } from "../../../../../../test/device";
 import type { GroupRole } from "../../../../../../test/fixtures";
 
+import { GROUP_ROLES } from "@caretook/data/permissions";
 import { ATTESTATION_TEXT } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { apiCalls, refusal } from "../../../../../../test/api";
 import { renderWithDevice } from "../../../../../../test/device";
+import { getByCss } from "../../../../../../test/locators";
 import { TEST_GROUP } from "../../../../../../test/fixtures";
 import * as settingsLayout from "../layout/route";
 import * as members from "./route";
@@ -111,19 +113,25 @@ describe("the Invite by email sheet", () => {
         ["Easier to use", ["Easy helper", "Easy viewer"]],
       ],
     );
-    await expect.element(page.getByText("Reads and writes care data.")).toBeVisible();
-    await userEvent.selectOptions(page.getByLabelText("Role"), "easy_helper");
+    // The chosen role's short line is the select's help (the guide's closed dialog repeats it).
+    const select = page.getByLabelText("Role");
     await expect
-      .element(
-        page.getByText(
-          /^For someone who isn't comfortable with apps .* can log care and tick their own todos/,
-        ),
-      )
-      .toBeVisible();
-    await userEvent.selectOptions(page.getByLabelText("Role"), "easy_viewer");
+      .element(select)
+      .toHaveAccessibleDescription(
+        "Adds and changes care information, but doesn't manage the group or its members.",
+      );
+    await userEvent.selectOptions(select, "easy_helper");
     await expect
-      .element(page.getByText(/^For someone who isn't comfortable with apps .* can read and tick/))
-      .toBeVisible();
+      .element(select)
+      .toHaveAccessibleDescription(
+        /^For someone who isn't comfortable with apps .* they log care and tick off todos/,
+      );
+    await userEvent.selectOptions(select, "easy_viewer");
+    await expect
+      .element(select)
+      .toHaveAccessibleDescription(
+        /^For someone who isn't comfortable with apps .* they read and tick off todos/,
+      );
   });
 
   test("Send invitation calls invite.createEmail with the role and the attestation, closes, and says to whom", async () => {
@@ -380,5 +388,49 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
     await userEvent.click(page.getByRole("button", { name: "Create link", exact: true }));
     await expect.poll(linkSheet).toBeNull();
     expect(asked()).toBe(false);
+  });
+});
+
+describe("What can each role do? (B-677)", () => {
+  // The sheet's own link (owners also have one above the members list).
+  const help = () => getByCss("form [data-role-help]");
+  const guide = () => page.getByRole("dialog", { name: "What can each role do?" });
+  const guideOpen = () => document.querySelector("dialog[data-role-guide]")?.hasAttribute("open");
+
+  /** The link beside Role opens every role with its description, what it sees and what it changes. */
+  const opensEveryRole = async () => {
+    await userEvent.click(help());
+    await expect.element(guide()).toBeVisible();
+    for (const role of GROUP_ROLES) {
+      const entry = getByCss(`[data-role-guide-role="${role.name}"]`, { within: guide() });
+      await expect.element(entry.getByText(role.label, { exact: true })).toBeVisible();
+      await expect.element(entry.getByText(role.description, { exact: true })).toBeVisible();
+      expect(entry.element().textContent).toContain(`Sees: ${role.sees}`);
+      expect(entry.element().textContent).toContain(`Changes: ${role.changes}`);
+    }
+  };
+
+  test("Invite by email: beside Role, it opens over the sheet, and Done returns focus to it with the sheet still open", async () => {
+    await open();
+    await userEvent.click(inviteButton());
+    // Beside the label: in the role field, just before it.
+    expect(sheet()?.querySelector('[data-role-help] ~ fieldset select[name="role"]')).not.toBeNull();
+    await opensEveryRole();
+    await userEvent.click(guide().getByRole("button", { name: "Done" }));
+    await expect.poll(guideOpen).toBe(false);
+    await expect.element(help()).toHaveFocus();
+    expect(sheet()).not.toBeNull();
+  });
+
+  test("Create a link: Escape closes only the dialog, returning focus to the link, and the sheet stays", async () => {
+    await open();
+    await userEvent.click(page.getByRole("button", { name: "Create a link" }));
+    await opensEveryRole();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(guideOpen).toBe(false);
+    await expect.element(help()).toHaveFocus();
+    expect(document.querySelector("[data-link-sheet]")).not.toBeNull();
+    // Nothing changed in the form, so closing the sheet still asks nothing.
+    expect(document.querySelector("dialog[open]")).toBeNull();
   });
 });

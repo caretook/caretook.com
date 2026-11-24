@@ -93,6 +93,7 @@ export function PeriodForm({
       <ChoiceGroup<CarePeriodType | "">
         name={FIELD.type}
         label="Where is care now?"
+        layout="grid"
         options={TYPE_OPTIONS}
         value={type}
         onChange={setType}

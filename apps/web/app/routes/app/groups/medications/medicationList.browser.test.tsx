@@ -260,6 +260,22 @@ describe("the list", () => {
     await expect.poll(device.location).toContain("/medications/schedule/new");
   });
 
+  test("the Print menu's item text fits inside the menu at phone width, and the menu stays on screen", async () => {
+    await open({ url: SCHEDULE });
+    await userEvent.click(page.getByRole("button", { name: "Print" }));
+    await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
+    const items = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role="menuitem"]')];
+    expect(items).toHaveLength(2);
+    for (const item of items) {
+      for (const text of item.querySelectorAll<HTMLElement>("span.truncate")) {
+        expect(text.scrollWidth, text.textContent ?? "").toBeLessThanOrEqual(text.clientWidth);
+      }
+    }
+    const box = document.querySelector<HTMLElement>('[role="menu"]')!.getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(0);
+    expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+  });
+
   test("a medication stopped on another device moves below the current ones", async () => {
     const device = await open();
     // Another device discontinued it: the row arrives changed.

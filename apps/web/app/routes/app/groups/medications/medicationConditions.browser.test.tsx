@@ -186,21 +186,20 @@ describe("the For field", () => {
     const device = await open(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Amlodipine");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.fill(await found(() => field("reason")), "Swelling too");
     await pickCondition("High blood pressure");
     await pickCondition("Glaucoma");
     const before = (await device.queued()).length;
     await userEvent.click(submit());
-    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
-    await device.settle();
+    await expect
+      .poll(() => device.query("SELECT id FROM medication WHERE name = 'Amlodipine'"))
+      .toHaveLength(1);
     const [made] = await device.query<{ id: string; reason: string }>(
       "SELECT id, reason FROM medication WHERE name = 'Amlodipine'",
     );
+    // The save opens its page in the sheet's place.
+    await expect.poll(() => !SHEET() && device.location()).toBe(medicationUrl(made!.id));
+    await device.settle();
     expect(made?.reason).toBe("Swelling too");
     expect(await linksOf(device, made?.id ?? "")).toEqual(["Glaucoma", "High blood pressure"]);
     const queued = (await device.queued()).slice(before).map((w) => `${w.op} ${w.type}`);
