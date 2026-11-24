@@ -23,7 +23,7 @@ Notes for every wave:
 
 | Slice | Item  | State                                                                                                       | Merge    |
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
-| 34    | B-594 | merged in progress (opus)                                                                                   | 86d98496 |
+| 34    | B-594 | merged                                                                                                      | 86d98496 |
 | 35    | B-672 | ready, not started                                                                                          |          |
 | 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
 | 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
