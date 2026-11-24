@@ -82,7 +82,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 42    | B-595     | started (opus)                                                                                                                                                              | —        |
 | 43    | B-596     | started (opus)                                                                                                                                                              | —        |
 | 44    | B-598     | started (opus)                                                                                                                                                              | —        |
-| 45    | B-696     | started (opus)                                                                                                                                                              | —        |
+| 45    | B-696     | handed off (opus; 63ec16a2; parseArgs first, --base computes the diff, `pnpm prd tier`; quick passed)                                                                       | —        |
 | 46    | B-464     | started (opus; +B-650)                                                                                                                                                      | —        |
 | 47    | B-576     | merged (opus; root lint scripts at 6 GB + lint-heap.test; quick passed; 4.8 of 6 GB used, headroom note)                                                                    | f96a6f48 |
 | 48    | B-705     | merged (sonnet; quick exit 0)                                                                                                                                               | c3eb9ee2 |
