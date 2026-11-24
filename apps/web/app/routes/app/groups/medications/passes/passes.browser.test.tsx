@@ -186,7 +186,7 @@ describe("the add-pass sheet's URL", () => {
 });
 
 describe("a writer", () => {
-  test("adds a pass, last in the list, and the sheet closes back to the tab; a taken name (any case) is refused on its field", async () => {
+  test("adds a pass, in its place by time, and the sheet closes back to the tab; a taken name (any case) is refused on its field", async () => {
     const device = await open();
     await addPass();
     await expect.poll(() => device.location()).toBe(NEW_PASS);
@@ -197,7 +197,7 @@ describe("a writer", () => {
       .poll(() => document.getElementById(describedBy)?.textContent)
       .toBe("Another pass already has that name");
     await fillForm({ name: "Noon", time: "12:00" });
-    await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00", "Noon 12:00"]);
+    await expect.poll(passList).toEqual(["Morning 08:00", "Noon 12:00", "Evening 20:00"]);
     await expect.poll(() => !FORM() && device.location()).toBe(PASSES);
     await expect
       .poll(() => row("Noon")?.querySelector("[data-pass-medications-none]")?.textContent)
