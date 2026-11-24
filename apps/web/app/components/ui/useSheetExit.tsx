@@ -36,12 +36,17 @@ const changedUnder = (id: string) =>
 
 const animates = () => window.matchMedia("(prefers-reduced-motion: no-preference)").matches;
 
-/** The longest transition computed on the panel, in ms. */
+/** The longest transition computed on the panel or the overlay around it (the one that fades), in ms. */
 function exitMs(panel: Element | null) {
   if (!panel) return 0;
-  const durations = getComputedStyle(panel)
-    .transitionDuration.split(",")
-    .map((s) => parseFloat(s) * 1000);
+  const overlay = panel.closest('[data-sheet="overlay"]');
+  const durations = [panel, overlay].flatMap((el) =>
+    el
+      ? getComputedStyle(el)
+          .transitionDuration.split(",")
+          .map((s) => parseFloat(s) * 1000)
+      : [],
+  );
   return Math.max(0, ...durations);
 }
 

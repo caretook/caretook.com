@@ -12,8 +12,9 @@ import {
 } from "~/components/ui";
 import { Example } from "../Example";
 
-// Motion (ui-kit-2, overlays ui-kit-3): what moves, with the kit's
-// durations; under "reduce motion" every one of these changes at once.
+// Motion (ui-kit-2, overlays ui-kit-3, timings B-613): what moves, with the
+// kit's two durations (feedback 120 ms; opening and closing 240 ms); under
+// "reduce motion" every one of these changes at once.
 export function MotionSection() {
   const [open, setOpen] = useState(false);
   const [turned, setTurned] = useState(false);
@@ -22,12 +23,12 @@ export function MotionSection() {
   const id = useId();
   return (
     <>
-      <Example label="Buttons (hover, press)">
+      <Example label="Buttons (hover, press: 120 ms)">
         <Button variant="primary">Save</Button>
         <Button>Cancel</Button>
         <Button variant="ghost">Show more</Button>
       </Example>
-      <Example label="A link row (hover, press)">
+      <Example label="A link row (hover, press: 120 ms)">
         <List label="Pharmacies" className="w-full">
           <ListRow to="/dev/ui">
             <p className="font-medium">Corner Pharmacy</p>
@@ -35,14 +36,14 @@ export function MotionSection() {
           </ListRow>
         </List>
       </Example>
-      <Example label="Chevron (closed right, or down)">
+      <Example label="Chevron (closed right, or down: 240 ms)">
         <Button size="sm" pressed={turned} onClick={() => setTurned((t) => !t)}>
           Turn
         </Button>
         <Chevron open={turned} />
         <Chevron open={turned} closed="down" />
       </Example>
-      <Example label="Collapse (an expander with its chevron)">
+      <Example label="Collapse (an expander with its chevron: 240 ms)">
         <div className="w-full">
           <button
             type="button"
@@ -62,7 +63,7 @@ export function MotionSection() {
           </Collapse>
         </div>
       </Example>
-      <Example label="Overlays fade in and out (menu, popover: fast; dialog, toast: the default)">
+      <Example label="Overlays fade in and out (menu, popover, dialog, toast; sheets too: 240 ms)">
         <Menu
           label="Note actions"
           variant="secondary"

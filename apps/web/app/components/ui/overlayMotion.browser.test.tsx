@@ -5,8 +5,8 @@ import { cdp, page, userEvent } from "vitest/browser";
 import { renderInRouter } from "../../../test/device";
 import { ChoiceDialog, ConfirmDialog, Menu, Popover, Toast } from "./index";
 
-// Overlay motion (ui-kit-3 slice 5): menus and popovers fade in and out on
-// `--motion-fast`, toasts and the native modal dialogs on `--motion`, with no
+// Overlay motion (ui-kit-3 slice 5; 240 ms, B-613): menus, popovers, toasts
+// and the native modal dialogs fade in and out on `--motion`, with no
 // scale; under "reduce motion" nothing animates and each is gone at once.
 // Reduced motion is emulated from this file (Chrome DevTools), reset after
 // each test.
@@ -79,7 +79,7 @@ const parentOf = (el: Element) => {
 const ITEMS = [{ id: "edit", label: "Edit", onAction: () => undefined }];
 
 describe("Menu and Popover fade", () => {
-  test("a menu fades in, and on close stays for its fast fade-out, then leaves the DOM", async () => {
+  test("a menu fades in, and on close stays for its fade-out, then leaves the DOM", async () => {
     const { screen } = await renderInRouter(
       <Menu label="Note actions" variant="secondary" items={ITEMS}>
         ⋯
@@ -89,17 +89,17 @@ describe("Menu and Popover fade", () => {
     const menu = page.getByRole("menu");
     await expect.element(menu).toBeVisible();
     const popover = menu.element().parentElement!;
-    // It fades in on the fast duration.
-    expect(getComputedStyle(popover).transitionDuration).toBe("0.12s");
+    // It fades in on the kit's overlay duration.
+    expect(getComputedStyle(popover).transitionDuration).toBe("0.24s");
     await expect.poll(() => getComputedStyle(popover).opacity).toBe("1");
     const exit = watchExit(popover);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
-    expect(exit).toMatchObject({ transition: "opacity 0.12s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(100);
+    expect(exit).toMatchObject({ transition: "opacity 0.24s" });
+    expect(stayed(exit)).toBeGreaterThanOrEqual(200);
   });
 
-  test("a popover fades out on the fast duration, then leaves the DOM; focus returns to its button", async () => {
+  test("a popover fades out on the overlay duration, then leaves the DOM; focus returns to its button", async () => {
     const { screen } = await renderInRouter(
       <Popover label="Change the time" dialogLabel="When" trigger="4:40 PM">
         <p>Pick a time</p>
@@ -114,8 +114,8 @@ describe("Menu and Popover fade", () => {
     const exit = watchExit(panel);
     await userEvent.keyboard("{Escape}");
     await expect.element(dialog).not.toBeInTheDocument();
-    expect(exit).toMatchObject({ transition: "opacity 0.12s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(100);
+    expect(exit).toMatchObject({ transition: "opacity 0.24s" });
+    expect(stayed(exit)).toBeGreaterThanOrEqual(200);
     await expect.poll(active).toBe(trigger.element());
   });
 
@@ -261,8 +261,8 @@ describe.each(DIALOGS)("$name's fade", ({ opener, title, which }) => {
       const { native, box } = await openIt(onClose);
       for (const el of [native, box]) {
         const style = getComputedStyle(el);
-        expect(seconds(style.transitionDuration)).toContain(0.18);
-        expect(Math.max(...seconds(style.transitionDuration))).toBeLessThanOrEqual(0.18);
+        expect(seconds(style.transitionDuration)).toContain(0.24);
+        expect(Math.max(...seconds(style.transitionDuration))).toBeLessThanOrEqual(0.24);
         expect(style.transitionProperty).not.toMatch(/scale|translate|transform/);
       }
       expect(getComputedStyle(native).transitionProperty).toContain("background-color");
@@ -323,8 +323,8 @@ describe("Toast", () => {
     const exit = watchExit(toast);
     await userEvent.click(page.getByRole("button", { name: "Reload" }));
     await expect.element(status).not.toBeInTheDocument();
-    expect(exit).toMatchObject({ animation: "fade-out", duration: "0.18s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(150);
+    expect(exit).toMatchObject({ animation: "fade-out", duration: "0.24s" });
+    expect(stayed(exit)).toBeGreaterThanOrEqual(200);
 
     // Open again: it comes back.
     await userEvent.click(page.getByRole("button", { name: "Toggle" }));
