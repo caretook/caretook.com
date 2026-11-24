@@ -14,6 +14,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 ## Change requests
 
 - Placeholder and search bar on timeline should read "Type to search". (B-748)
+- App first load is way too long.
+  We need to either speed it up or make the loading message more friendly with a progress bar.
 
 ## Feature requests
 
