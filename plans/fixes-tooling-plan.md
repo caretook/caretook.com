@@ -86,7 +86,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 46    | B-464     | waiting on 41 (+B-650)                                                                                                                                                      | —        |
 | 47    | B-576     | started (opus; +B-574, measurement)                                                                                                                                         | —        |
 | 48    | B-705     | started (sonnet; one config key + test)                                                                                                                                     | —        |
-| 49    | B-586     | started (opus; investigation, no code)                                                                                                                                      | —        |
+| 49    | B-586     | handed off (opus; no commits; likely cause: no push while the tab has focus; phone test filed as a question)                                                                | —        |
 
 ## Wave 1
 
