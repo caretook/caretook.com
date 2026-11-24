@@ -402,6 +402,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-756 | change | triaged | fixes-ui |  | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-758 | change | triaged | symptom-catalog |  | Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain') |
+| B-759 | feature | triaged | onboarding-2 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 
 ## Items
 
@@ -3406,3 +3407,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/symptom-catalog): From slice 3 (3c3f8466): similarSymptoms' contained-words rule (rank 2) follows the PRD, but with the default 'Pain' in every catalog most pain names prompt. Options: drop rank 2 for single-word defaults, or require the contained name to have 2+ words. Proposed by the orchestrator; for user review.
+
+### B-759 · feature · Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again'
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): From the user (2026-11-24). Show only in a mobile browser that isn't already running the installed app (display-mode: standalone / navigator.standalone). (1) Onboarding: when the setup flow runs on a mobile device, one step explains installing Caretook to the home screen. (2) Sign-in: each time the user signs in from a mobile browser that isn't the installed app, a dismissable tip. Dismiss means it comes back at the next sign-in; 'Never show me again' stops it for good (store it per user, e.g. in user preferences, so it holds across devices). Android: the button triggers the browser's install prompt (beforeinstallprompt). iOS can't be triggered: show the Share, Add to Home Screen steps. Why: the app is already installable (B-360: site.webmanifest, standalone, service worker) but nothing tells people; installing also protects the offline copy from iOS clearing storage of sites unused for about a week. Toast/tip may use B-669 the shared toast system.
