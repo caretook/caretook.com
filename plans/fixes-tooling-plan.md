@@ -442,3 +442,15 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-groups.md · Tests: i
 `careGroupInviteService`'s `askWithLink` returns a waiting request before the legal check, but the test 'a waiting request isn't asked again' sends `legal: true` with a current row, so nothing pins that order.
 
 - No code change unless the test shows a bug. Integration test in `packages/data/src/services/careGroupInvite.int.test.ts`: an account with a waiting request and no current legal acceptance asks again with the link and gets its waiting request back (no new row, no legal refusal); all data fictional.
+
+### Slice 39: a slim, fast inbox session (B-739)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/inbox.md, docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+Added to wave 5 on the user's word (via the backlog session, 2026-11-24); inbox-agent is done, so its files are free. The goal is speed: the user talks at the phone to manage the inbox.
+
+- **Sonnet at low effort:** the inbox session opens on Sonnet at low effort, set in the session's own settings file (`prd.sh`'s inbox default model; `--model` still overrides); fast mode stays off. It holds across `prd rotate`, a phone hand-off (`prd rotate --self`) and a keep-alive reopen, **with no dispatcher restart**: `open-session.mjs` reopens on the session's recorded model, so an old record saying opus must give way to the new default (or the rotation rewrites the record).
+- **The prompt** (`prompt.sh`'s inbox prompt): only add, reword, move or remove unfiled lines on the user's word; never read the backlog, no separate `pnpm backlog similar` step before an add, no extra work. Dedupe and triage stay with ingest, the backlog session and the planner.
+- **Keep `inbox add`'s look-alike stop** (exit 3, rerun with `--anyway` on the user's word); `backlog add` is unchanged.
+- **New commands:** `pnpm backlog inbox edit` and `pnpm backlog inbox remove` for unfiled lines; they refuse filed lines, as `inbox move` does.
+- Unit tests: a keep-alive reopen and a rotation of an inbox session recorded on opus come up on Sonnet low; `--model` still wins; the prompt names no backlog read or `similar` step; `inbox edit`/`remove` change an unfiled line and refuse a filed one; `inbox add` still stops on a look-alike.
