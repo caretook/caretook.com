@@ -6,7 +6,7 @@
 
 **Where it stands (hand-over, 2026-11-24):** **wave 1 landed** in dev as ca4dbb54 (PR #149, tier full, `--no-review`: Codex out of credits). Gate run 45402448788 was a flake in `calendarCron.int.test.ts` (not ours, filed B-743). Report filed as ask a181; to-test file `to-test/2026-11-24-0831-symptom-catalog.md`. Docs folded into timeline.md. No slice in flight; slice 1's worktree removed. B-549 stays claimed (done when the last slice merges).
 
-**Wave 2 (2026-11-24):** boundary done (ingest: nothing new; nothing to propose), sync: already up to date with dev. Slice 2 started: worktree `symptom-catalog-2` (slot 1), opus agent spawned with slice 1's hand-off notes. Next: on its hand-off, review and merge, then `pnpm prd ci run <tier> --wait` as the wave gate.
+**Wave 2 (2026-11-24):** boundary done (ingest: nothing new; nothing to propose), sync: already up to date with dev. Slice 2 handed off (e4e6310b, migration 0044_symptom_entry_type, must stay last: regenerate if dev brings a 0044) and merged as b7b7a990. Wave gate: `pnpm prd ci run full --wait` requested. Next: green → `pnpm prd rm symptom-catalog-2`, sync, PR, review, land.
 
 **Slice 1 hand-off notes, for slice 2:** `symptomTypeService.ensure(ctx, groupId, name)` is ready for the write path (advisory lock on the derived id); extend `symptomTypeService.backfill` with the pointer step; `SYMPTOM_NAME_MAX` is separate from `timelineEntry.ts` so the composite FK has no import cycle; the backfill runs from `scripts/migrate.ts` (not test setup), so integration tests call it directly; migration `0043_symptom_catalog.sql` has a redundant `symptom_type_group_idx` to drop when slice 2 regenerates it (one pending migration for the topic: since 0043 landed, slice 2 adds the next number).
 
@@ -21,7 +21,7 @@
 | Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
-| 2     | 2    | started     |                                                  |
+| 2     | 2    | merged      | b7b7a990 (e4e6310b)                              |
 | 3     | 3    | not started |                                                  |
 | 4     | 4    | not started |                                                  |
 | 5     | 3    | not started |                                                  |
