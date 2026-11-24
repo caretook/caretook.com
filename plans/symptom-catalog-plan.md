@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 3 running):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (ingest: nothing new; doctor: two title-rewrite notes only; no new items for this topic); `pnpm prd sync`: already up to date. **Wave 3 started:** worktrees `symptom-catalog-3` (stack slot 1), `-5`, `-6` made from 18a18117; one opus agent spawned for each. **Slice 6 handed off** (0202848a, slice check green, 6 files: daySummary, visitPrep, quickEntryPredictions group by `symptomKey` per the PRD's _Null pointers_); reviewed, waits to merge after 3 and 5. Slice 3's first stack start failed (container unhealthy under load); `pnpm prd stack up` again worked.
+**Where it stands (2026-11-24, wave 3 running):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (ingest: nothing new; doctor: two title-rewrite notes only; no new items for this topic); `pnpm prd sync`: already up to date. **Wave 3 started:** worktrees `symptom-catalog-3` (stack slot 1), `-5`, `-6` made from 18a18117; one opus agent spawned for each. **Slice 6 handed off** (0202848a, slice check green, 6 files: daySummary, visitPrep, quickEntryPredictions group by `symptomKey` per the PRD's _Null pointers_); reviewed, waits to merge after 3 and 5. **Slice 5 handed off** (d78e5483, slice check green, 14 files: `?symptom=` filter, `symptom_type_id IN (…)` device query, device index `timeline_entry_group_symptom_type`, new `symptomFilter.sync.ts`); reviewed, merges after 3. The wave run must include `timelineFilters.browser.test.tsx` (FilterSheet and chips changed). Slice 3's first stack start failed (container unhealthy under load); `pnpm prd stack up` again worked.
 
 **Next:** merge 3, 5, 6 in plan order (3 then 5 then 6) as they hand off; then the wave's CI run (tier the check plan proposes: likely `full`, slice 3 may add a migration or sync-config change); then sync, PR, land. Wave 4 (slice 4) after.
 
@@ -24,7 +24,7 @@
 | 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
 | 3     | 3    | started     |                                                  |
 | 4     | 4    | not started |                                                  |
-| 5     | 3    | started     |                                                  |
+| 5     | 3    | handed off  |                                                  |
 | 6     | 3    | handed off  |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
