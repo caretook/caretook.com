@@ -38,7 +38,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
 | 17    | B-468 | started (opus; worktree made, agent spawned)                                                  | —        |
 | 18    | B-525 | started (opus; worktree made, agent spawned)                                                  | —        |
-| 19    | B-526 | started (opus; worktree made, agent spawned)                                                  | —        |
+| 19    | B-526 | handed off 5cd1cc20 (opus; quick passed; merge after 17, 18; follow-up B-731)                 | —        |
 | 20    | B-452 | queued (opus)                                                                                 | —        |
 | 21    | B-453 | started (opus; worktree made, agent spawned)                                                  | —        |
 | 22    | B-454 | started (opus; worktree made, agent spawned)                                                  | —        |
