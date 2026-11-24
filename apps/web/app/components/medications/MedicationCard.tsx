@@ -62,7 +62,11 @@ export function MedicationCard({
         </p>
         {children}
       </div>
-      {actions && <div className="relative z-10 flex shrink-0 items-center gap-1 self-center">{actions}</div>}
+      {actions && (
+        <div className="relative z-10 flex shrink-0 items-center gap-1 self-center" data-card-actions="">
+          {actions}
+        </div>
+      )}
       {notes && <div className="w-full space-y-1 pl-11">{notes}</div>}
     </ListRow>
   );
