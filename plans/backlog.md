@@ -197,7 +197,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
 | B-432 | chore | triaged | fixes-tooling |  | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
 | B-433 | feature | triaged | self-recovery |  | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
-| B-434 | feature | in-progress | worker-watch | prd/worker-watch | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
+| B-434 | feature | ready | worker-watch | prd/worker-watch | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -260,7 +260,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-586 | bug | landed | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
-| B-594 | change | in-progress | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
+| B-594 | change | ready | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
 | B-595 | chore | landed | fixes-tooling | prd/fixes-tooling | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
 | B-596 | chore | landed | fixes-tooling | prd/fixes-tooling | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
 | B-597 | chore | landed | fixes-tooling | prd/fixes-tooling | Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs |
@@ -270,17 +270,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-613 | change | triaged | fixes-ui |  | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
-| B-617 | bug | in-progress | fixes-ui | prd/fixes-ui | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
+| B-617 | bug | ready | fixes-ui | prd/fixes-ui | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
 | B-618 | change | landed | fixes-ui | prd/fixes-ui | Timeline day header: move Change care period to the left of the period text |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
-| B-621 | feature | in-progress | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
+| B-621 | feature | ready | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-623 | bug | triaged | fixes-tooling |  | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-626 | feature | triaged | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
 | B-629 | bug | landed | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-633 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
-| B-636 | change | in-progress | fixes-ui | prd/fixes-ui | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
+| B-636 | change | ready | fixes-ui | prd/fixes-ui | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
 | B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
 | B-638 | chore | landed | fixes-tooling | prd/fixes-tooling | No test pins that a waiting join request from an account with no current legal acceptance isn't asked again |
 | B-639 | bug | triaged | fixes-tooling |  | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
@@ -293,19 +293,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-658 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
 | B-663 | bug | landed | fixes-ui | prd/fixes-ui | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
-| B-664 | bug | in-progress | fixes-ui | prd/fixes-ui | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
+| B-664 | bug | ready | fixes-ui | prd/fixes-ui | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | landed | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-672 | feature | in-progress | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
-| B-673 | feature | in-progress | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
+| B-673 | feature | ready | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | landed | fixes-ui | prd/fixes-ui | Add a medication: the schedule starts on As needed |
-| B-676 | change | in-progress | fixes-ui | prd/fixes-ui | Quick entry: the suggested result card can be clicked to add it, as Enter does |
+| B-676 | change | ready | fixes-ui | prd/fixes-ui | Quick entry: the suggested result card can be clicked to add it, as Enter does |
 | B-677 | change | landed | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
 | B-678 | bug | landed | fixes-ui | prd/fixes-ui | Manage members: cards truncate names and details on phone and desktop; redo the layout |
-| B-679 | feature | in-progress | fixes-ui | prd/fixes-ui | Manage members: show email confirmation status (last login only if easy) |
+| B-679 | feature | ready | fixes-ui | prd/fixes-ui | Manage members: show email confirmation status (last login only if easy) |
 | B-680 | change | triaged | fixes-ui |  | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
 | B-682 | change | landed | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
@@ -315,7 +315,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-686 | change | landed | fixes-ui | prd/fixes-ui | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
 | B-687 | change | landed | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
 | B-688 | change | landed | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
-| B-691 | bug | in-progress | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
+| B-691 | bug | ready | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
 | B-692 | change | in-progress | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
 | B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
@@ -340,7 +340,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-732 | bug | landed | fixes-tooling | prd/fixes-tooling | tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix |
 | B-734 | feature | landed | fixes-tooling | hotfix/lane-cap | Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word |
 | B-735 | bug | triaged | fixes-ui |  | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
-| B-736 | bug | in-progress | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
+| B-736 | bug | ready | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
 | B-737 | feature | in-progress | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
 | B-738 | bug | triaged | fixes-tooling |  | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-739 | change | landed | fixes-tooling | prd/fixes-tooling | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
@@ -360,7 +360,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-753 | bug | triaged | fixes-tooling |  | CI doesn't name the file a hung shard is stuck on |
 | B-754 | bug | triaged | fixes-tooling |  | backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44) |
 | B-755 | change | triaged | fixes-perf |  | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
-| B-756 | change | in-progress | fixes-ui | prd/fixes-ui | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
+| B-756 | change | ready | fixes-ui | prd/fixes-ui | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-758 | change | landed | symptom-catalog | prd/symptom-catalog | Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain') |
 | B-759 | feature | triaged | onboarding-2 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
@@ -1237,10 +1237,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-434 · feature · Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command
 
-- status: in-progress
+- status: ready
 - prd: worker-watch
 - owner: prd/worker-watch
-- commit:
+- commit: 0d93242f
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Only .loops/.check-times.log and pnpm prd check --times exist; B-408 needs usual times to spot a stuck worker.
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
@@ -1953,10 +1953,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-594 · change · Manage allergies on the Profile page; Medications keeps a read-only summary
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-22 (Robert Bo Davis): User decision 2026-11-22. An allergy is a fact about the care recipient, so Profile becomes the one place to manage it. (1) Add an Allergies section to the Profile page next to Conditions, with add, edit, remove and No known allergies, for the same roles as today. (2) The Medications list and each medication page keep a read-only allergy summary with a Manage link to Profile, and severe allergies stay prominent: the safety check must stay where medications are given and added. (3) Printed sheets, the emergency sheet and the connector view do not change. Must work offline as Conditions does, although most of the Profile page does not sync. No migration expected: recipient_allergy already belongs to the recipient and syncs. Old allergy URLs should redirect or keep working. Triage: fixes-ui (flow change on existing data). Sequencing: ui-kit-4 sweeps the medications and profile folders, so take this after those slices land or coordinate through hot files; if it proves too large for a fixes slice, move it to its own topic.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: stays in fixes-ui for now. If onboarding-2 (group onboarding, B-670) starts before this is done, onboarding-2 picks this up and does it first, so the profile basics step reuses the finished Profile allergies section.
@@ -2057,10 +2057,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-617 · bug · List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, reported by the user: Timeline's search, filter and view mode buttons don't animate; the Filter on Providers and Planner doesn't change under the cursor. Likely cause, read from the code and not yet confirmed in a browser: CIRCLE in components/ui/styles.ts sets bg-base-100 and border-base-300, and those utilities beat daisyUI's layered btn hover colours, so all circle tools lose hover. Fix it once in the shared style, keeping the outlined circle at rest and giving it a visible hover and press at the kit's 120 ms. Check every list's Filter (FilterMenu), including Medications and Todos. chipClass uses the same bg-base-100 on unselected chips, so check those too. Also: Timeline's Filter is a hand-written button with btn classes in TimelineFilters.tsx; move it to the kit's IconButton (it needs its count badge kept). Verify hover by eye or a browser test in light and dark.
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: the author and type filter controls on timeline entries should also be buttons with a hover change and animation. KindFilterLink and AuthorFilterLink (components/entry/KindIcon.tsx) are hand-styled links: type has only hover:brightness-95 with no transition, author initials and name have no kit motion. Give them the kit's button feel (visible hover and press at 120 ms, none under reduced motion) in every form: type icon, initials circle and name link, on Timeline rows, cards and pass log items, and on the Planner, which shares them. They navigate to a filtered URL, so keep them real links with their names, using the kit's link-styled Button or look. Keep the accent colours and the row's stretched-link layering (z-10), so tapping one filters and doesn't open the entry.
@@ -2095,10 +2095,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-621 · feature · Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: when a user clicks into the quick entry box, the first 3 times, a tooltip comes up below it with an advanced suggestion, to show it does more than it appears. No icon, no button, no dismiss control: just a line like: Why don't you try “bp 130/85 hr 72”? Use the examples removed with the rotating placeholder in 189bf74b (B-198), one per focus in order: bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm. They still live in QUICK_ENTRY_RULES (quickEntryCopy.ts); share one list. Behaviour, proposed where the user did not say: shows only while the box is focused and empty; goes on typing or blur; floats over the page and pushes nothing (B-216), and takes no taps (pointer-events none); uses the kit's overlay fade at the motion default from B-613, nothing under reduced motion. Count real user focuses only: not autofocus, the refocus after Save, closing a sheet or returning from the Suggestions popover. Store the count per user per device in localStorage with try/catch, cleared with the app's other per-user keys at sign-out; if storage fails, show nothing. The box's accessible description already carries the rules, so screen readers should not hear the tip twice. Applies to the shared QuickEntryBox in both the full timeline and Easy mode: B-157 removed permanent typing tips from Easy mode, but this one is brief and the user named the easy entry box; in Easy mode check it against the dictation hint under the box. Must not cover name completions or the suggestions popover.
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's update, replacing the first note where they differ: the tip can be rather large and also shows the shorthand create codes. It is a panel below the box with: Why don't you try, then all four examples (bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm, so none is dropped), then the codes the parser really takes: n: note, e: event, s: symptom, v: vital, d: dose, t: todo, and commas to log several at once. Read the codes from one shared list so the panel can't drift from the parser (PREFIXES and TODO_PREFIX in quickEntry.ts). It disappears when focus leaves the box. It shows on the first 3 focuses, and an X ends it for good on that first press (stored with the count). The X replaces the earlier no-button and no-taps rules: the panel takes taps, pressing the X or the panel must not blur the box first, and the X is a real labelled kit IconButton reachable by keyboard, with focus on it counting as still in the box. Proposed where the user did not say: it stays while typing a code, so the reference is there when needed, and gets out of the way when a preview card or name completions appear, since it must not cover them. At phone width with the keyboard up it must fit or scroll inside itself. The panel's text should not be read twice with the box's accessible description.
@@ -2172,10 +2172,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-636 · change · Planner todo rows keep the old time column, so they align differently from event cards in the same list
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): From fixes-ui wave 3's report (a93): event cards moved the time above the title (B-592), todo rows did not. Look and layout, so fixes-ui.
 
@@ -2309,10 +2309,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-664 · bug · Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): User report with iPhone screenshot on staging, 2026-11-23: focusing the Timeline's 'Type what happened' box lifts the floating tab bar above the keyboard, where it covers the content the user may need to see. The bar is position fixed to the bottom in apps/web/app/routes/app/layout/SectionNav.tsx (mobile only). The app has no keyboard handling today (no visualViewport or interactive-widget use). Should stay off-screen or hidden for any text field while the keyboard is open and return when it closes. Verify on a real iPhone; also check Android and the later Capacitor app.
 
@@ -2389,10 +2389,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-673 · feature · Add a medication: suggest common medication names as you type, like conditions
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: medications get a suggestion list too, same rules as conditions (B-668) and allergies (B-672): nothing on focus, filtered from the first character, clearing closes it, free text always allowed. Today NameField.tsx (components/medications; used by MedicationForm and the Dose sheet quick add in QuickAddFields.tsx) shows only "Used before" chips from the group own names via suggestMedicationNames, with no curated list. Wanted: the group names first, then a bundled curated list of common medications (works offline, no new dependency), in the same ComboBox pattern, replacing the chips. Keep the allergy-match warning on the typed or picked name, and keep it non-blocking. Look-alike names are a real risk (hydroxyzine and hydralazine): a pick must show the full name, never autofill on a partial match, and fill only the name, never a dose or strength. Do B-668 first and reuse its ComboBox option; share the matcher with B-672 if it fits. Check on a phone, in the sheet too.
 
@@ -2407,10 +2407,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-676 · change · Quick entry: the suggested result card can be clicked to add it, as Enter does
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): User report 2026-11-23: "when adding something from the quick entry field, the main selection should be clickable AND enter should add the suggestion." Open with the user: which selection. (a) The top name in the floating Matching names list (QuickEntryCompletions): chips are already clickable, but nothing is highlighted and Enter saves the line as typed even while the list is open (QuickEntryBox.tsx:109). (b) The result card (QuickEntryCard): not clickable today; Enter already saves it. Confirm before building. If Enter completes a name, a second Enter saves, and Shift+Enter stays a new line. A saved reading must never come from a stray tap on a card without a clear affordance.
 - 2026-11-23 (Robert Bo Davis): User answer 2026-11-23, settles the open question: the "main selector" is the default suggested item in Timeline quick entry, the result card (QuickEntryCard). It cannot be clicked today; Enter adds it correctly; it should be a real button. Enter behavior stays as is, and the Matching names list is out of scope. Build: make the main reading (icon, kind, when, title, detail) a native button that does what Enter does, with hover, focus and an accessible name saying what it adds. Do not wrap the whole card: Remove, Edit and the Make it a note chips are their own buttons and must not nest. A blocked card (red warning) or a busy save leaves it disabled, matching q.canSave. For a line with several cards Enter and Save all write every card, so the plan must decide whether a click adds that card alone or all of them; default to matching Enter unless the user says otherwise. Check on a phone.
@@ -2438,10 +2438,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-679 · feature · Manage members: show email confirmation status (last login only if easy)
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: show email confirmation status for invited users and last login on the Members page. Neither reaches the device today: PowerSync member_profiles syncs only user id, name and image (powersync/sync-config.yaml:172), so this needs a manager-only oRPC read and shows only online; do not add these to the synced user row. email_verified exists on user. Last sign-in exists only in the staff admin view, derived from live sessions (packages/api/src/admin/usersAdmin.ts:70), so it disappears when sessions expire or sign out; a durable value needs a new additive column set at sign-in, which means a migration and a fixes slice or PRD. Return status and time only, never the sign-in email (docs/domain/profiles.md). Open with the user: who sees last login. It tells co-members when someone was last active, so default to owners and admins only. Build with the card redo (B-678 if numbered next).
 - 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: last login is optional, only if it is easy. Email confirmation status is the required part. Read "easy" as: no migration and no new sign-in hook. If the existing session rows can give it through the same manager-only read, show it to owners and admins, and show nothing (not "never") when no session remains. If it needs the durable column, leave last login out and do not add a migration for it. This replaces the earlier note on a new column.
@@ -2537,10 +2537,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-691 · bug · Event time picker: the calendar spills outside its overlay instead of sitting inside it
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev with a screenshot, 2026-11-23 (dark theme, new event page): the calendar is not contained in the date picker overlay. It floats over the Starts panel, wider than it and past its left and bottom edges, covering the fields below. Code read: EntryTimeChip's Popover is a w-72 PopoverPanel, and DateTimeField (components/ui/date/DateTimeField.tsx:194) opens its calendar as a second, nested PopoverPanel placed bottom end, with a w-72 Calendar plus p-3. So the calendar's surface is wider than the outer panel and is positioned independently of it. Fix: when DateTimeField is inside another popover, render the calendar inline in that panel, expanding it below the field, with no second surface. Use an explicit prop or context so fields in sheets and forms keep their current popover. The calendar must fit the panel's content width (w-72 less padding) with 44px-friendly day cells as far as that width allows. Keep calendarOpen on arrival (Add event's pickDay), the first picked day starting at 9:00, the calendar toggle, Esc closing the calendar before the outer panel, and a tap in the calendar not counting as a tap outside. With Starts and Ends, only one calendar is open at a time. The taller panel must stay on screen at phone width and short heights, scrolling inside if needed, with Done reachable. Update the DateTimeField and entry time chip browser tests.
 
@@ -2785,10 +2785,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-736 · bug · On the timeline, after jumping to a day, trying to scroll always takes you back to that day.
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-24 (prd/test-health-2): From the inbox: Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
 - 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
@@ -2975,10 +2975,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-756 · change · Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: da9de73f
 
 - 2026-11-24 (prd/symptom-catalog): From symptom-catalog slice 5 (d78e5483): with ?symptom= chosen and no matching entries, the empty state reads as if the group had no symptoms at all. Proposed by the symptom-catalog orchestrator; for user review.
 
