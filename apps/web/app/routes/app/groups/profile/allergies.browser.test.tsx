@@ -1,7 +1,8 @@
 import type { GroupRole } from "../../../../../test/fixtures";
 
 import { describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
+import { reactionSuggestions, substanceSuggestions } from "~/lib/medications/allergySuggestions";
 import { found, waitUntil } from "../../../../../test/found";
 import { allergy, at, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
@@ -12,11 +13,13 @@ import { JUNE, openProfile, PROFILE_URL, sections } from "./profileWorld";
 // severe first and a severe one marked; No known allergies; not recorded),
 // No known allergies recorded and cleared from the section, the sheet over
 // the profile (add, which clears No known allergies; edit; remove behind a
-// confirm, soft; Done back to the profile), and a viewer with no controls
+// confirm, soft; Done back to the profile), both text fields suggesting only
+// once typed (the group's own first) with free text still saved, and a viewer with no controls
 // whose sheet URL shows the profile. The device is offline throughout, so
 // every write is a local one. The Medications summary and the old URL are
 // medications/allergies/allergies.browser.test.tsx's; the server's rules are
-// recipientAllergy's integration tests; an allergy reaching another device is
+// recipientAllergy's integration tests; the suggestions' matching is
+// allergySuggestions.test.ts's; an allergy reaching another device is
 // roundtrip's sync matrix (6b).
 
 const SECTION = () => document.querySelector<HTMLElement>("main [data-section=allergies]");
@@ -43,16 +46,20 @@ const dialogButton = (text: string) =>
     .filter({ hasText: new RegExp(`^${text}$`) })
     .first();
 
-/** Fill one of the sheet's forms and save it. */
+/** Fill one of the sheet's forms and save it (Tab after each text field closes its suggestions). */
 const save = async (
   form: () => HTMLFormElement | null,
   { substance, reaction, severity }: { substance?: string; reaction?: string; severity?: string },
 ) => {
   await waitUntil(() => !!form(), "the allergy form");
-  if (substance !== undefined)
-    await userEvent.fill(await found(() => form()?.querySelector("[name=substance]")), substance);
-  if (reaction !== undefined)
-    await userEvent.fill(await found(() => form()?.querySelector("[name=reaction]")), reaction);
+  for (const [name, text] of [
+    ["substance", substance],
+    ["reaction", reaction],
+  ] as const) {
+    if (text === undefined) continue;
+    await userEvent.fill(await found(() => form()?.querySelector(`[name=${name}]`)), text);
+    await userEvent.keyboard("{Tab}");
+  }
   if (severity)
     await userEvent.click(
       await found(() => form()?.querySelector(`input[name="severity"][value="${severity}"]`)),
@@ -162,5 +169,58 @@ describe("the sheet", () => {
       severe: ["Penicillin (hives, severe)"],
       edit: "Edit allergies",
     });
+  });
+});
+
+describe("suggestions", () => {
+  const input = (field: string) =>
+    ADD()?.querySelector<HTMLInputElement>(`[data-allergy-field=${field}] input[role="combobox"]`);
+  const listed = () =>
+    [...document.querySelectorAll('[role="listbox"] [role="option"]')].map((o) => o.textContent?.trim());
+  const PECANS = allergy({ substance: "Pecans", reaction: "Swelling of the lips", severity: "moderate" });
+
+  test("nothing on focus; a letter lists the filtered names, the group's own first; a pick fills the field", async () => {
+    const device = await open("caretaker", { fixtures: [PECANS], url: `${PROFILE_URL}/allergies` });
+    const group = [{ substance: "Pecans", reaction: "Swelling of the lips" }];
+
+    await userEvent.click(await found(() => input("substance")));
+    await expect.poll(() => input("substance")?.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    await userEvent.keyboard("p");
+    const substances = substanceSuggestions("p", group);
+    expect(substances[0]).toBe("Pecans");
+    expect(substances).not.toEqual(substanceSuggestions("", group));
+    await expect.poll(listed).toEqual(substances);
+    await userEvent.keyboard("en");
+    await userEvent.click(page.getByRole("option", { name: "Penicillin" }));
+    await expect.poll(() => input("substance")?.value).toBe("Penicillin");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+
+    await userEvent.click(await found(() => input("reaction")));
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    await userEvent.keyboard("s");
+    const reactions = reactionSuggestions("s", group);
+    expect(reactions[0]).toBe("Swelling of the lips");
+    await expect.poll(listed).toEqual(reactions);
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+    await userEvent.keyboard("hiv");
+    await userEvent.click(page.getByRole("option", { name: "Hives" }));
+    await expect.poll(() => input("reaction")?.value).toBe("Hives");
+
+    await userEvent.click(await found(() => ADD()?.querySelector('button[type="submit"]')));
+    await expect
+      .poll(() => device.query(ALLERGY_SQL, ["Penicillin"]))
+      .toEqual([{ substance: "Penicillin", reaction: "Hives", severity: "unknown", deleted_at: null }]);
+  });
+
+  test("free text with no suggestion still saves", async () => {
+    const device = await open("owner", { url: `${PROFILE_URL}/allergies` });
+    await save(ADD, { substance: "Zqx paint thinner", reaction: "Burning eyes" });
+    await expect
+      .poll(() => device.query(ALLERGY_SQL, ["Zqx paint thinner"]))
+      .toEqual([
+        { substance: "Zqx paint thinner", reaction: "Burning eyes", severity: "unknown", deleted_at: null },
+      ]);
   });
 });
