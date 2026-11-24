@@ -15,3 +15,4 @@ apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the t
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the list an item leaves the Planner tab once its end (in progress) or its start passes, without a reload	B-653
 scripts/loops/lease.test.mjs	pnpm prd check's check lease makes the runs beyond the default limit of two wait, and holders shows who holds what	B-654
 packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-658
+packages/notifications/src/calendarCron.int.test.ts	/api/cron/calendar runs the reminders first, then Google push and pull, and the series top-up last by default	B-743
