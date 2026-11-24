@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
-| ----- | ---- | -------------- | --------------------------------------------- |
-| 1     | 1    | merged         | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
-| 2     | 2    | merged (opus)  | 5310ab85 (893c22ff)                           |
-| 3     | 2    | merged (opus)  | ac7b0b0c (d4819e33, b06de0b6)                 |
-| 4     | 3    | merged (opus)  | 1bcec0f4 (f817b808)                           |
-| 5     | 4    | merged (opus)  | 5a173de3 (e2e1baab)                           |
-| 6     | 4    | started (opus) | —                                             |
+| Slice | Wave | State         | Merge into `prd/worker-watch` (slice commits) |
+| ----- | ---- | ------------- | --------------------------------------------- |
+| 1     | 1    | merged        | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
+| 2     | 2    | merged (opus) | 5310ab85 (893c22ff)                           |
+| 3     | 2    | merged (opus) | ac7b0b0c (d4819e33, b06de0b6)                 |
+| 4     | 3    | merged (opus) | 1bcec0f4 (f817b808)                           |
+| 5     | 4    | merged (opus) | 5a173de3 (e2e1baab)                           |
+| 6     | 4    | merged (opus) | 1efcd79f (1355163d, fab12225)                 |
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -21,9 +21,9 @@
 
 **Wave 3 landed** in dev as cdafa3e7 through PR #166 (2026-11-24; tier none; gate the slice check's `pnpm test:tooling` 86 files / 2069 tests and lint on f817b808; Codex out of credits, `--no-review`; unsynced tip, typecheck ran; report a202; to-test `2026-11-24-1614-worker-watch.md`). Docs folded: the watch into machinery (15,356 B, budget 15,360: the next fold must trim as much); `pnpm prd watch` into orchestration.md's status-watch row. Worktree worker-watch-4 removed.
 
-**Wave 4 started** (2026-11-24): boundary done (ingest nothing new; doctor findings none ours; `pnpm prd sync --force` merged dev as 66d1bd89 so slices build on current hot files). Worktrees worker-watch-5 and -6 made, one opus agent each, in parallel. The gate after both merge: `pnpm prd tier` (expect none: `pnpm test:tooling` + `eslint scripts`). Notes: `pnpm prd watch` is `watch.mjs` (pure `decide`, `reading`, marks in `.loops/.watch/<topic>/marks.jsonl`, state in `state.json`; `CARETOOK_WATCH_DIR` in tests, `CARETOOK_WATCH_WAKE=off`). Slice 5: the second-restart-becomes-skeptic case already holds (any earlier nudged/restarted mark); add its test and the unconfirmed-stop path. Slice 6: read `state.json` `actions[n].since` for a watch action left unhandled. Wave 4's fold: slice 5's hand-off gave ready-made orchestrator.md and machinery.md edits with trims (scratchpad orch.diff / mach.diff; if lost, its wording: a **Stalls** bullet after step 8 of _Running a wave_, the stall skeptic kind and the unconfirmed-stop/second-restart cases in machinery). Slice 5 notes: unverified whether TaskStop fires the heartbeat's stop record (if not, every restart goes to the skeptic: safe side); `--mark restarted` takes no `--skeptic`.
+**Wave 4 merged** (2026-11-24): slices 5 (5a173de3) and 6 (1efcd79f) in plan order after `pnpm prd sync --force` (66d1bd89); B-408 done. Tier none: the gate is `pnpm test:tooling` + `eslint scripts` on 1efcd79f, running. Docs folded (slice 5's handbook steps: a **Stalls** bullet in orchestrator.md, the stall skeptic and restart rules in machinery.md; slice 6's stuck-orchestrator bullet in machinery's dispatcher section), trimmed: orchestrator.md 15,320 B, machinery.md 15,347 B (budget 15,360). Next: on green, `pnpm prd rm worker-watch-5`/`-6`, sync, `pnpm prd pr worker-watch`, land (docs+tooling, no review wait if Codex out of credits), report, then `pnpm prd rm worker-watch` and `pnpm prd end` (last wave). Notes: unverified whether TaskStop fires the heartbeat's stop record (if not, every restart goes to the skeptic: safe side); `--mark restarted` takes no `--skeptic`.
 
-**Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
+**Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; B-434 landed; B-408 done at 1efcd79f.
 
 ## Architectural decisions
 
