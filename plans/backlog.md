@@ -194,7 +194,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
 | B-432 | chore | triaged | fixes-tooling |  | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
-| B-433 | feature | ready | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
+| B-433 | feature | landed | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -204,8 +204,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
 | B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
 | B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
-| B-462 | bug | ready | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
-| B-463 | bug | ready | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
+| B-462 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
+| B-463 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
@@ -1135,7 +1135,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-433 · feature · A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one)
 
-- status: ready
+- status: landed
 - prd: self-recovery
 - owner: prd/self-recovery
 - commit: 2221f009
@@ -1239,7 +1239,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-462 · bug · pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure
 
-- status: ready
+- status: landed
 - prd: self-recovery
 - owner: prd/self-recovery
 - commit: 2221f009
@@ -1249,7 +1249,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-463 · bug · pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept
 
-- status: ready
+- status: landed
 - prd: self-recovery
 - owner: prd/self-recovery
 - commit: 2221f009
