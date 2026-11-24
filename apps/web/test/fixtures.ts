@@ -262,10 +262,15 @@ const event = ({ text, ...v }: EntryValues & { text?: string } = {}) => {
   return row("timelineEntries", entry, doc);
 };
 
+/** A symptom, pointing at its name's catalog row as the server sets it (symptom-catalog slice 2). */
 const symptom = ({ name = "Headache", severity = 3, ...v }: EntryValues & Partial<SymptomDetails> = {}) =>
   row(
     "timelineEntries",
-    entryBase("symptom", { details: pgJson({ name, severity } satisfies SymptomDetails), ...v }),
+    entryBase("symptom", {
+      details: pgJson({ name, severity } satisfies SymptomDetails),
+      symptomTypeId: symptomTypeRow(v.groupId ?? groupId, name).id,
+      ...v,
+    }),
   );
 
 const vital = ({

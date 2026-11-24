@@ -13,7 +13,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Change requests
 
-- Placeholder and search bar on timeline should read "Type to search".
+- Placeholder and search bar on timeline should read "Type to search". (B-748)
 
 ## Feature requests
 

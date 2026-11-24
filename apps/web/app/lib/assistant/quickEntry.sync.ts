@@ -44,6 +44,7 @@ import {
   invalid,
   nowTimestamp,
   readRows,
+  symptomTypeColumn,
 } from "../timeline/timeline.sync";
 
 // Carrying out assistant actions (quick entry's cards) on this device: every
@@ -228,6 +229,7 @@ export const runActions = async (
         recipientId: group.recipient.id,
         kind: content.data.kind,
         ...contentColumns(content.data),
+        ...symptomTypeColumn(groupId, content.data),
         cancelledBy: null,
         deletedAt: null,
         ...audit,

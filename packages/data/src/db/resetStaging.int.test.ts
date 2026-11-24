@@ -11,7 +11,9 @@ import {
   careGroupSchema,
   DEFAULT_SYMPTOMS,
   symptomKey,
+  symptomTypeId,
   symptomTypeSchema,
+  timelineEntrySchema,
   userSchema,
 } from "./schema";
 import { DEV_GROUP_ID } from "./seeds/careGroups";
@@ -125,6 +127,20 @@ describe("resetStaging", () => {
       expect.arrayContaining([...DEFAULT_SYMPTOMS.map(symptomKey), "knee pain", "sudden confusion"]),
     );
     expect(new Set(keys).size).toBe(keys.length);
+    // And every live seeded symptom points at its name's type (slice 2).
+    const symptoms = await db
+      .select({
+        groupId: timelineEntrySchema.groupId,
+        details: timelineEntrySchema.details,
+        deletedAt: timelineEntrySchema.deletedAt,
+        symptomTypeId: timelineEntrySchema.symptomTypeId,
+      })
+      .from(timelineEntrySchema)
+      .where(eq(timelineEntrySchema.kind, "symptom"));
+    const live = symptoms.filter((e) => !e.deletedAt);
+    expect(live.length).toBeGreaterThan(0);
+    for (const e of live)
+      expect(e.symptomTypeId).toBe(symptomTypeId(e.groupId, (e.details as { name: string }).name));
 
     // The real account owns every group (all of them are seeded now).
     const memberships = await db
