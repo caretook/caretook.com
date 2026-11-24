@@ -10,10 +10,12 @@
 | 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
 | 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
 | 4     | 3    | landed (opus) in dev `faadbc1b`, PR #139 | `b57c2f99` (`336f9121`)                      |
-| 5     | 4    | —                                        | —                                            |
+| 5     | 4    | started (opus) 2026-11-24, B-515 claimed | —                                            |
 | 6     | 5    | —                                        | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Wave 4 (2026-11-24):** slice 5 started: worktree `inbox-agent-5`, agent spawned on opus, B-515 claimed. Ingest found nothing new; no items proposed.
 
 **Hand-over (2026-11-24): wave 3 landed; start wave 4 (slice 5) next.** Wave 3 landed in dev as `faadbc1b` through PR #139 with `--no-review` (Codex out of credits), at CI integration green on `146487aa` (run 45370404316), after `sync --force` (`67239401`): land refused an unsynced tip under the stale B-729 brake notice n83 (B-729 is fixed). The landing report is filed; the to-test file is `to-test/2026-11-24-0504-inbox-agent.md`. Docs folded: `docs/agents/inbox.md`, its _Area index_ entry, an orchestration row, the inbox file's opening lines. B-425 done; `inbox-agent-4` removed. No slice in flight. Next: claim B-515 and start slice 5; it lands at integration (it touches `scripts/loops/`). Models: every slice on opus.
 
