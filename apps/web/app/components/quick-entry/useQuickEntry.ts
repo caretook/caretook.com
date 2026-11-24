@@ -1,10 +1,10 @@
 import type { QuickEntryReading, UnitChoices } from "@caretook/data/schema";
-import type { QuickEntryCard } from "./quickEntryCards";
+import type { QuickEntryCard, SymptomChoice } from "./quickEntryCards";
 import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { parseQuickEntry, readGoTo } from "@caretook/data/schema";
+import { parseQuickEntry, readGoTo, symptomKey } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
@@ -18,6 +18,7 @@ import { setDay } from "~/lib/timeline/timelineFilters";
 import { JUMP_LINK_STATE, jumpDayText } from "~/lib/timeline/timelineJump";
 import { withoutSheetParams } from "~/lib/timeline/urls";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
+import { useSymptomTypes } from "~/lib/timeline/symptomTypes.sync";
 import {
   buildCards,
   canSaveCards,
@@ -31,6 +32,7 @@ import {
   openAfterSave,
   pruneCardState,
   savedText,
+  withSymptomGates,
 } from "./quickEntryCards";
 import { GO_TO_AHEAD } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
@@ -59,11 +61,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const { search } = useLocation();
   const { medications, providers, members } = useQuickEntryData(groupId);
   const { passes, dueNow } = useQuickEntryPasses(groupId);
+  const symptoms = useSymptomTypes(groupId);
   const passLog = usePassLog(groupId);
   const [text, setTextState] = useState("");
   const [chosen, setChosen] = useState<ReadonlyMap<string, number>>(new Map());
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<ReadonlyMap<string, string>>(new Map());
+  const [symptomChoices, setSymptomChoices] = useState<ReadonlyMap<string, SymptomChoice>>(new Map());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -71,9 +75,17 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const timeZone = group.recipient?.timeZone ?? deviceZone();
   const parts = useMemo(
     () =>
-      parseQuickEntry(text, { now: new Date(), timeZone, units, medications, providers, passes, members })
-        .parts,
-    [text, timeZone, units, medications, providers, passes, members],
+      parseQuickEntry(text, {
+        now: new Date(),
+        timeZone,
+        units,
+        medications,
+        providers,
+        passes,
+        members,
+        symptoms,
+      }).parts,
+    [text, timeZone, units, medications, providers, passes, members, symptoms],
   );
 
   // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
@@ -81,10 +93,11 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const isGoTo = goTo !== null;
 
   // Forget a card's state as soon as its part of the line is gone (adjusted while rendering, so no stale frame).
-  const kept = pruneCardState(parts, { chosen, removed, errors });
+  const kept = pruneCardState(parts, { chosen, removed, errors, symptoms: symptomChoices });
   if (kept.chosen !== chosen) setChosen(kept.chosen);
   if (kept.removed !== removed) setRemoved(kept.removed);
   if (kept.errors !== errors) setErrors(kept.errors);
+  if (kept.symptoms !== symptomChoices) setSymptomChoices(kept.symptoms!);
 
   const preview = useMemo(() => {
     const context = {
@@ -101,8 +114,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
   const cards = useMemo(
-    () => (isGoTo ? [] : markDraft(buildCards(parts, { chosen, removed }, titleOf))),
-    [isGoTo, parts, chosen, removed, titleOf],
+    () =>
+      isGoTo
+        ? []
+        : markDraft(
+            withSymptomGates(buildCards(parts, { chosen, removed }, titleOf), symptoms, symptomChoices),
+          ),
+    [isGoTo, parts, chosen, removed, titleOf, symptoms, symptomChoices],
   );
 
   // Announce the cards once typing settles, not on every keystroke.
@@ -131,6 +149,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     setChosen(new Map());
     setRemoved(new Set());
     setErrors(new Map());
+    setSymptomChoices(new Map());
   };
 
   const choose = (card: QuickEntryCard, index: number) => {
@@ -140,6 +159,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       next.delete(card.key);
       return next;
     });
+  };
+
+  /** A symptom card's answer: the catalog's name to use, or null to add the name as typed. */
+  const chooseSymptom = (card: QuickEntryCard, use: string | null) => {
+    if (!card.symptomGate) return;
+    const answer = { key: symptomKey(card.symptomGate.name), use };
+    setSymptomChoices((m) => new Map(m).set(card.key, answer));
   };
 
   const remove = (card: QuickEntryCard) => setRemoved((s) => new Set(s).add(card.key));
@@ -272,6 +298,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     announcement,
     canSave: canSaveCards(cards) && !busy,
     choose,
+    chooseSymptom,
     remove,
     save,
     edit,

@@ -4,18 +4,8 @@
 #
 # One test per line, three tab-separated fields:
 # <repo-relative test file><TAB><full test name><TAB><backlog item>
-apps/web/app/routes/app/groups/medications/print/print.browser.test.tsx	the weekly chart Next, Previous and This week move it by a week; a start day of its own shows that week (seven days across a clock change is weeklySheet.test.ts's)	B-568
-apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx	the owner's sheet builds the list: a member removed and added back, moved up by keyboard, an outside contact refused then added, a new primary; one save	B-568
-apps/web/app/routes/app/groups/provider/provider.browser.test.tsx	the page with no links: says how to link one	B-568
-apps/web/app/routes/app/groups/providers/providers.browser.test.tsx	contact details on each row (B-44) a clinician's numbers dial (an extension after a pause) and her email mails her, each named for what it does	B-568
-apps/web/app/routes/app/groups/providers/providers.browser.test.tsx	contact details on each row (B-44) a practice's row: every number, and its address as a maps link in a new tab	B-568
-apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page Back, then the filter that's on picked again: a dose still names its medication (B-235)	B-568
-apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page three pages down, an entry's page and Back: all three pages' rows are there at once, and the next page still loads	B-633
-apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-645
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the list an item leaves the Planner tab once its end (in progress) or its start passes, without a reload	B-653
-packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-658
-packages/notifications/src/calendarCron.int.test.ts	/api/cron/calendar runs the reminders first, then Google push and pull, and the series top-up last by default	B-743
-scripts/loops/load-gate.test.mjs	the scripts that wait or warn a slice start waits while busy and starts when the load drops	B-744
-scripts/loops/load-gate.test.mjs	the scripts that wait or warn a slice start goes ahead after the bounded wait and says so	B-745
-scripts/loops/load-gate.test.mjs	the scripts that wait or warn a slice start waits for nothing with CARETOOK_LOAD_GATE=off or CARETOOK_LEASES=off	B-746
-scripts/loops/load-gate.test.mjs	the scripts that wait or warn is off in the tooling tests' shared env (vitest.config.ts), so their slice starts never poll	B-747
+apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page Back, then the filter that's on picked again: a dose still names its medication (B-235)	B-633
+apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx	the New care group sheet the group menu's New care group opens it; closing it goes back to the timeline	B-769
+apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page three pages down, an entry's page and Back: all three pages' rows are there at once, and the next page still loads	B-633
+apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-776

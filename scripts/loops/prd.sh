@@ -138,6 +138,9 @@ pnpm prd <command>
                               sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
                               check; the tooling tests join when the diff touches the tooling
                               (docs and tooling-only changes need neither: docs/agents/orchestrator.md, _The check gate_)
+    status-trim [topic] [--dry-run] [--next]   keep the plan's _Status_ short (after each landing): move the
+                              hand-offs but the latest, and a fixes plan's landed waves (their paragraphs and
+                              table rows), to plans/<topic>-history.md, newest first; --next: the next slice number
     wait [check|browser|<kind>] [--timeout <s>]   block until this worktree's check (or that lease kind's
                               holder or queued taker here) is gone; exit 75 at the timeout (default 3600 s),
                               naming it. Wait on a background check with this, never \`pgrep -f\` (it matches itself)
@@ -156,6 +159,7 @@ pnpm prd <command>
                               (static, unit, integration, components, full; each includes the ones before);
                               --wait blocks for the verdict (0 green, 1 not green, 75 at the timeout)
     ci [<branch>]             the latest whole-tier verdict for the branch's tip
+    tier [--base <ref>]       the CI tier this worktree's commits propose against <ref> (default $trunk), and why
 
   Land
     land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
@@ -239,6 +243,12 @@ case $cmd in
   test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
   queue) exec node "$bin/queue.mjs" "$@" ;;
+  status-trim)
+    t=""
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
+    if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "status-trim: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
+    exec node "$bin/status-trim.mjs" "$t" "$@"
+    ;;
   dispatch) exec node "$bin/dispatch.mjs" "$@" ;;
   recover) exec "$bin/recover.sh" "$@" ;;
   down) exec "$bin/down.sh" "$@" ;;
@@ -254,6 +264,20 @@ case $cmd in
     ;;
   review) exec "$bin/review.sh" "$@" ;;
   pr) exec "$bin/pr.sh" "$@" ;;
+  tier)
+    tbase=$trunk
+    while (($#)); do
+      case $1 in
+        --base) tbase=${2:?"usage: pnpm prd tier [--base <ref>]"}; shift 2 ;;
+        *) die "usage: pnpm prd tier [--base <ref>]" ;;
+      esac
+    done
+    tip=$(git rev-parse HEAD) || die "not in a git worktree"
+    proposed=$(propose_tier "$tbase" "$tip") || die "can't propose a tier for $tbase...HEAD"
+    { read -r ptier; read -r pwhy; } <<< "$proposed"
+    echo "$ptier ($pwhy)"
+    [[ -z $(git status --porcelain) ]] || echo "(uncommitted changes don't count: commit them first)" >&2
+    ;;
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
     # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model
@@ -280,7 +304,7 @@ case $cmd in
       captain=$(CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} node "$bin/captain.mjs" next) ||
         die "plan: couldn't pick the backlog session's captain"
       cd "$main" && exec "$wrapper" backlog --kind backlog -- \
-        ${model_args[@]+"${model_args[@]}"} --remote-control "$captain" "$("$bin/prompt.sh" backlog)"
+        ${model_args[@]+"${model_args[@]}"} --remote-control "$captain" "$(CARETOOK_CAPTAIN=$captain "$bin/prompt.sh" backlog)"
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do

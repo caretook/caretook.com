@@ -100,16 +100,25 @@ const NAME = `document.querySelector('[role=dialog] input[name="symptomName"]')`
 const SUBMIT = `document.querySelector('[role=dialog] button[type="submit"]')`;
 const SHEET = `document.querySelector("[role=dialog]")`;
 
+const GATE_ADD = `document.querySelector('[role=dialog] [data-symptom-gate] [data-add-symptom]')`;
+
 /**
  * Add a symptom through the sheet. With `shown` (an expression), returns the ms
  * from pressing submit until it holds, whether or not the sheet has closed yet.
+ * A run's names are new: when the catalog has a similar one (the seeds'
+ * "Pain", an earlier run's), the sheet asks first, and this adds it as new.
  */
 async function addSymptom(page, name, shown) {
   await addToTimeline(page, "Symptom");
   await wf(page, NAME);
   await page.locator('[role=dialog] input[name="symptomName"]').fill(name);
-  const submitted = Date.now();
+  let submitted = Date.now();
   await press(page, SUBMIT);
+  await wf(page, `!${SHEET} || !!${GATE_ADD}${shown ? ` || !!(${shown})` : ""}`);
+  if (await page.evaluate(`!!${GATE_ADD}`)) {
+    submitted = Date.now();
+    await press(page, GATE_ADD);
+  }
   const [shownMs] = await Promise.all([
     shown ? wf(page, shown).then(() => Date.now() - submitted) : undefined,
     wf(page, `!${SHEET}`),
@@ -250,6 +259,9 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await wf(B, `${SHEET}?.textContent.includes("Edit symptom") && ${NAME}`);
     await B.locator('[role=dialog] input[name="symptomName"]').fill(`${name}, edited`);
     await press(B, SUBMIT);
+    // Like the name it had, so the sheet asks first: a new name.
+    await wf(B, `!${SHEET} || !!${GATE_ADD}`);
+    if (await B.evaluate(`!!${GATE_ADD}`)) await press(B, GATE_ADD);
     const editMs = await timeUntil(A, `${rowWith(name)}?.textContent.includes("edited")`);
     await check("edit: reaches the other member", true, `${editMs} ms`);
     await check(
@@ -275,6 +287,39 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE details->>'name' LIKE '${tag}%'`,
         (r) => r === "true",
       )) === "true",
+    );
+
+    // 3a. The same new symptom from both members, each offline (symptom-catalog):
+    // each device adds the catalog row with its entry, under the id derived
+    // from the group and the name; on reconnect they converge on one row.
+    const sameName = `${tag} hiccup spell`;
+    const sameKey = sameName.toLowerCase();
+    dA.offline(true);
+    dB.offline(true);
+    await addSymptom(A, sameName);
+    await addSymptom(B, sameName.toUpperCase());
+    dA.offline(false);
+    dB.offline(false);
+    const typesOn = (page) =>
+      localRows(page, "SELECT id, name FROM symptom_type WHERE group_id = ? AND name_key = ?", [
+        DEV_FAMILY,
+        sameKey,
+      ]);
+    const onServer = await waitForSql(
+      `SELECT (SELECT count(*) FROM symptom_type WHERE group_id = '${DEV_FAMILY}' AND name_key = '${sameKey}')
+        || ':' || (SELECT count(*) || '/' || count(DISTINCT symptom_type_id) FROM timeline_entry
+          WHERE group_id = '${DEV_FAMILY}' AND lower(details->>'name') = '${sameKey}' AND deleted_at IS NULL)`,
+      (r) => r === "1:2/1",
+      30_000,
+    );
+    const converged = await until(async () => {
+      const [a, b] = [await typesOn(A), await typesOn(B)];
+      return a.length === 1 && b.length === 1 && a[0].id === b[0].id && a[0].name === b[0].name ? a[0] : null;
+    }, 30_000);
+    await check(
+      "symptom catalog: two members adding the same new name offline converge on one row",
+      onServer === "1:2/1" && !!converged,
+      `server ${onServer} (rows:entries/types); A ${JSON.stringify(await typesOn(A))}; B ${JSON.stringify(await typesOn(B))}`,
     );
 
     // 3b. A connector's write through /mcp reaches this device with its "via" tag.
@@ -1038,6 +1083,11 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
       psql(`DELETE FROM "user" WHERE email = '${removedEmail}'`);
       psql(cleanupSql(matrix, recordedAt));
+      // The run's symptom names in the catalog (rows are never soft-deleted), any case.
+      psql(
+        `UPDATE timeline_entry SET deleted_at = coalesce(deleted_at, now()), symptom_type_id = NULL WHERE group_id = '${DEV_FAMILY}' AND details->>'name' ILIKE '${tag}%';
+         DELETE FROM symptom_type WHERE group_id = '${DEV_FAMILY}' AND name ILIKE '${tag}%'`,
+      );
       psql(writerCleanupSql({ timeline_entry: matrix.ids.entry }));
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,

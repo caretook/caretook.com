@@ -2,6 +2,7 @@ import type { AssistantAction, QuickEntryPart, QuickEntryReading } from "@careto
 
 import type { DoseDraft, EntryDraft } from "../../lib/assistant/quickEntryDraft";
 
+import { similarSymptoms, symptomKey, symptomName } from "@caretook/data/schema";
 import { appUrls } from "../../lib/app-shell/appUrls";
 import { QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
 import { TODO_SHEET_STATE } from "../../lib/todos/todoSheetLink";
@@ -27,7 +28,22 @@ export type QuickEntryCard = {
   notices: string[];
   /** Save opens this card on the new-event page to finish, instead of writing it (`draftCardOf`). */
   opensDraft: boolean;
+  /**
+   * A symptom whose name is new to the group but like some it has
+   * (`withSymptomGates`): the card asks "Use <name>" or "Add new", and
+   * Save waits for the answer.
+   */
+  symptomGate?: SymptomGate;
 };
+
+/** A symptom card's question: the name as typed, and the catalog's similar names. */
+export type SymptomGate = { name: string; similar: { id: string; name: string }[] };
+
+/**
+ * A symptom card's answer, by card key: `use` is the catalog name chosen,
+ * null for "Add new". It answers only the name it was given for (`key`).
+ */
+export type SymptomChoice = { key: string; use: string | null };
 
 /** The part's key: its place in the line and its text. */
 export const partKey = (index: number, part: QuickEntryPart) => `${index}:${part.text}`;
@@ -83,11 +99,37 @@ export const buildCards = (
     ];
   });
 
-/** What the box remembers per card: the reading chosen, the cards removed, a refusal's message. */
+/**
+ * The catalog check on symptom cards (symptom-catalog), as the symptom sheet
+ * does it, on the device's catalog: the parser already took an exact
+ * match's spelling, so a name with similar ones (`similarSymptoms`) asks
+ * on its card, until answered. An answer to "Use <name>" saves that name;
+ * "Add new" saves the name as typed. Pure.
+ */
+export const withSymptomGates = (
+  cards: readonly QuickEntryCard[],
+  catalog: readonly { id: string; name: string }[],
+  choices: ReadonlyMap<string, SymptomChoice>,
+): QuickEntryCard[] =>
+  cards.map((card) => {
+    const [action, ...more] = card.reading.actions;
+    if (action?.type !== "logSymptom" || more.length) return card;
+    const choice = choices.get(card.key);
+    if (choice && choice.key === symptomKey(action.name)) {
+      if (choice.use === null) return card;
+      return { ...card, reading: { ...card.reading, actions: [{ ...action, name: choice.use }] } };
+    }
+    const { exact, similar } = similarSymptoms(action.name, catalog);
+    if (exact || !similar.length) return card;
+    return { ...card, symptomGate: { name: symptomName(action.name), similar } };
+  });
+
+/** What the box remembers per card: the reading chosen, the cards removed, a refusal's message, a symptom's answer. */
 export type QuickEntryCardState = {
   chosen: ReadonlyMap<string, number>;
   removed: ReadonlySet<string>;
   errors: ReadonlyMap<string, string>;
+  symptoms?: ReadonlyMap<string, SymptomChoice>;
 };
 
 const keepMapKeys = <V>(map: ReadonlyMap<string, V>, keys: ReadonlySet<string>): ReadonlyMap<string, V> =>
@@ -100,7 +142,7 @@ const keepMapKeys = <V>(map: ReadonlyMap<string, V>, keys: ReadonlySet<string>):
  */
 export const pruneCardState = (
   parts: readonly QuickEntryPart[],
-  { chosen, removed, errors }: QuickEntryCardState,
+  { chosen, removed, errors, symptoms }: QuickEntryCardState,
 ): QuickEntryCardState => {
   const keys = new Set(parts.map((part, i) => partKey(i, part)));
   return {
@@ -109,6 +151,7 @@ export const pruneCardState = (
       ? removed
       : new Set([...removed].filter((k) => keys.has(k))),
     errors: keepMapKeys(errors, keys),
+    ...(symptoms && { symptoms: keepMapKeys(symptoms, keys) }),
   };
 };
 
@@ -116,9 +159,12 @@ export const pruneCardState = (
 export const cardActions = (cards: readonly QuickEntryCard[]) =>
   cards.flatMap((card) => card.reading.actions.map((action) => ({ action, key: card.key })));
 
+/** Whether a card waits on something: a blocking message, or a symptom's unanswered question. */
+const waits = (card: QuickEntryCard) => card.blocking.length > 0 || !!card.symptomGate;
+
 /** Whether the cards can be saved: at least one, and none blocked. */
 export const canSaveCards = (cards: readonly QuickEntryCard[]) =>
-  cards.length > 0 && cards.every((c) => c.blocking.length === 0);
+  cards.length > 0 && cards.every((c) => !waits(c));
 
 const counted = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -137,10 +183,7 @@ export const cardsAnnouncement = (
 ) =>
   cards.length
     ? `${cards.length} ${cards.length === 1 ? "card" : "cards"}: ${cards
-        .map(
-          (c) =>
-            `${c.reading.label}, ${titleOf(c.reading)}${c.blocking.length ? ", can't be saved yet" : ""}`,
-        )
+        .map((c) => `${c.reading.label}, ${titleOf(c.reading)}${waits(c) ? ", can't be saved yet" : ""}`)
         .join("; ")}`
     : "";
 

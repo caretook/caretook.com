@@ -2,7 +2,7 @@
 // copied in: the plain prompts, the resume and continue variants, and the
 // every-step _Status_ rule. Nothing here starts a session.
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -27,6 +27,92 @@ Stack: no · Reads: docs/loops.md · Tests: unit
 Stack: yes · Reads: none · Tests: e2e:invites
 `;
 
+// A topic with a PRD: slices cite its parts, and one decision row names an item.
+const V_PLAN = `# Plan: V
+
+## Status
+
+| Slice | Wave | State |
+| ----- | ---- | ----- |
+| 1     | 1    | not started |
+
+## Architectural decisions
+
+- **Tooling only:** every slice follows this.
+
+## Slice 1: The store
+
+Stack: no · Reads: docs/agents/machinery.md · Tests: unit
+
+**User stories:** US 1 to 2.
+
+**Build:** the PRD's _The store_ and the _Quiet rule_ row (B-9).
+
+## Slice 2: The brief
+
+Stack: no · Reads: none · Tests: unit
+
+**Build:** the PRD's _The brief_, nothing else.
+`;
+
+const V_PRD = `# PRD: V
+
+## Decisions
+
+| Decision                         | Why    | Source     | Cost |
+| -------------------------------- | ------ | ---------- | ---- |
+| **Quiet rule:** stores are quiet | asked  | assumed    | low  |
+| Briefs are short                 | budget | item B-9   | low  |
+| Briefs name no model             | rules  | item B-10  | low  |
+
+## User stories
+
+1. As a loop, I want a store, so that I keep things.
+2. As a loop, I want it quiet, so that I hear nothing.
+3. As a loop, I want a brief, so that I know things.
+
+## Implementation decisions
+
+- **The store** keeps one file per record.
+- **The brief:** prints a short text.
+`;
+
+// A fixes topic, its slices under wave headings and no PRD.
+const FIXES_PLAN = `# Plan: fixes-w
+
+## Status
+
+| Slice | Wave | State |
+| ----- | ---- | ----- |
+| 4     | 2    | not started |
+
+## Wave 1
+
+The first wave's intro.
+
+### Slice 3: An old fix
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+Old fix text.
+
+## Wave 2
+
+The second wave's intro: slice 4 goes first.
+
+### Slice 4: A new fix (B-40)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+New fix text.
+
+### Slice 5: Another fix
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+Another fix text.
+`;
+
 let root, main, loops;
 const prompt = (...args) => {
   const r = spawnSync("bash", [join(main, "scripts/loops/prompt.sh"), ...args], {
@@ -48,11 +134,15 @@ beforeAll(() => {
   loops = join(main, ".loops");
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
   mkdirSync(join(main, "plans"), { recursive: true });
-  for (const f of ["prompt.sh", "lib.sh", "slice-fields.mjs"]) {
+  for (const f of ["prompt.sh", "lib.sh", "slice-fields.mjs", "slice-brief.mjs"]) {
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   }
+  cpSync(join(HERE, "prompts"), join(main, "scripts/loops/prompts"), { recursive: true });
   writeFileSync(join(main, "plans/T-plan.md"), PLAN);
   writeFileSync(join(main, "plans/T-prd.md"), "# PRD: T\n");
+  writeFileSync(join(main, "plans/V-plan.md"), V_PLAN);
+  writeFileSync(join(main, "plans/V-prd.md"), V_PRD);
+  writeFileSync(join(main, "plans/fixes-w-plan.md"), FIXES_PLAN);
   git(root, "init", "-q", "-b", "dev", main);
   git(main, "add", ".");
   git(main, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--no-verify", "-m", "chore: init");
@@ -79,6 +169,16 @@ describe("orchestrator", () => {
     expect(out).not.toContain(RESUME);
     expect(out).not.toContain("--continue");
     expect(out.trimEnd()).toMatch(/Record the answers in the plan's _Status_ and follow them\..*$/);
+  });
+
+  it("runs the status trim after each landing, in every variant (B-598)", () => {
+    for (const flags of [[], ["--auto"], ["--resume"], ["--resume", "--auto"]]) {
+      const out = ok("orchestrator", "T", ...flags);
+      expect(out).toContain("Then run `pnpm prd status-trim T`");
+      expect(out).toContain("plans/T-history.md; commit both files");
+      expect(out).toContain("Keep _Status_ under about 6 KB");
+    }
+    expect(ok("orchestrator", "fixes-x")).toContain("numbered on from `pnpm prd status-trim fixes-x --next`");
   });
 
   it("carries the PR flow in every variant", () => {
@@ -237,13 +337,17 @@ describe("slice", () => {
     expect(out).toContain("never a bare `pnpm check`");
     expect(out).not.toContain("`pnpm check` still runs everything");
     expect(out).not.toContain(CONTINUE);
-    expect(out.trimEnd()).toMatch(/Your orchestrator merges it again\.$/);
+    expect(out).toMatch(/Your orchestrator merges it again\.\n\nSlice 1, from plans\/T-plan\.md/);
+    expect(out.trimEnd()).toMatch(/----- end$/);
   });
 
-  it("--continue: the slice prompt with its fields, then the continue text", () => {
+  it("--continue: the slice prompt with its fields, then the continue text, then the slice's text", () => {
     const plain = ok("slice", "T", "2");
     const out = ok("slice", "T", "2", "--continue");
-    expect(out.startsWith(plain)).toBe(true);
+    const rules = plain.slice(0, plain.indexOf("\nSlice 2, from"));
+    expect(out.startsWith(rules)).toBe(true);
+    expect(out.indexOf(CONTINUE)).toBeLessThan(out.indexOf("\nSlice 2, from"));
+    expect(out.endsWith(plain.slice(rules.length))).toBe(true);
     expect(out).toContain("  - Stack: yes\n  - Reads: none\n  - Tests: e2e:invites\n");
     expect(out).toContain("**You're continuing slice 2, not starting it.**");
     expect(out).toContain("`pnpm log --oneline prd/T..HEAD`, `git status`, `git diff prd/T...HEAD`");
@@ -253,6 +357,52 @@ describe("slice", () => {
       "If everything is committed and `pnpm prd check` (or `--quick`) passes, don't rebuild",
     );
     expect(out).toContain("write the hand-off");
+  });
+
+  it("embeds its own section and the wave's intro, not another slice's text (a fixes plan)", () => {
+    for (const out of [ok("slice", "fixes-w", "4"), ok("slice", "fixes-w", "4", "--continue")]) {
+      expect(out).toContain("Your slice's section and what it needs from plans/fixes-w-plan.md");
+      expect(out).toContain("there's no plans/fixes-w-prd.md: the plan is the whole spec");
+      expect(out).toContain("open the whole plan only for a question they leave");
+      expect(out).not.toContain("Then read slice 4 in");
+      expect(out).toContain(
+        "----- plans/fixes-w-plan.md: Wave 2, its intro\nThe second wave's intro: slice 4 goes first.",
+      );
+      expect(out).toContain("### Slice 4: A new fix (B-40)");
+      expect(out).toContain("New fix text.");
+      expect(out).toContain("docs/agents/loop.md");
+      for (const other of ["first wave's intro", "Old fix text", "Slice 5", "Another fix text", "| Slice |"])
+        expect(out).not.toContain(other);
+    }
+  });
+
+  it("embeds the PRD parts and decision rows it cites, not the uncited ones", () => {
+    for (const out of [ok("slice", "V", "1"), ok("slice", "V", "1", "--continue")]) {
+      expect(out).toContain("from plans/V-plan.md and plans/V-prd.md are at the end");
+      expect(out).toContain("open the whole plan or PRD only for a question they leave");
+      expect(out).toContain("----- plans/V-plan.md: _Architectural decisions_\n- **Tooling only:**");
+      expect(out).toContain("**Build:** the PRD's _The store_");
+      // Cited by its bold lead, and by the slice's backlog item in its Source.
+      expect(out).toContain("| **Quiet rule:** stores are quiet | asked | assumed | low |");
+      expect(out).toContain("| Briefs are short | budget | item B-9 | low |");
+      expect(out).not.toContain("Briefs name no model");
+      expect(out).toContain("- **The store** keeps one file per record.");
+      expect(out).not.toContain("prints a short text");
+      expect(out).toContain("1. As a loop, I want a store");
+      expect(out).toContain("2. As a loop, I want it quiet");
+      expect(out).not.toContain("I want a brief");
+      expect(out).not.toContain("Slice 2: The brief");
+    }
+    const two = ok("slice", "V", "2");
+    expect(two).toContain("- **The brief:** prints a short text.");
+    expect(two).not.toContain("keeps one file per record");
+    expect(two).not.toContain("Quiet rule");
+  });
+
+  it("a slice the plan lacks falls back to reading the files", () => {
+    const out = ok("slice", "T", "9");
+    expect(out).toContain("Then read plans/T-prd.md and slice 9 in plans/T-plan.md, then the docs");
+    expect(out).not.toContain("----- end");
   });
 
   it("refuses an unknown flag", () => {
@@ -268,7 +418,9 @@ describe("sending failures back", () => {
     expect(out).toContain("no local quick check after a merge or dev sync when a CI run follows");
     expect(out).not.toContain('`pnpm prd check --quick "slice <n> merged"`');
     expect(out).toContain("`pnpm prd ci run <tier> --wait` in the background");
-    expect(out).toContain("the tier the check plan proposes unless you have a reason");
+    expect(out).toContain(
+      "the tier `pnpm prd tier` proposes (it prints the tier and why) unless you have a reason",
+    );
     expect(out).toContain("run `pnpm prd ci blame`");
     expect(out).toContain(
       "to the agent whose slice it names (SendMessage), with the failing tests and the run link",
@@ -331,7 +483,10 @@ describe("plan and backlog", () => {
         "**The dispatcher is running, so deciding what runs next is moving and holding rows**",
       );
       expect(text).toContain("`pnpm backlog prd move <topic> --first|--before <t>|--after <t>`");
-      expect(text).toContain("`pnpm backlog prd set <topic> flags=hold`");
+      expect(text).toContain(
+        "`pnpm backlog prd set <topic> flags+=hold` to keep it back (`flags-=hold` releases it",
+      );
+      expect(text).not.toContain("flags=hold");
       expect(text).toContain("**Print no start commands**");
       expect(text).toContain("What to run: move up, hold or leave each topic.");
       expect(text).toContain("leave it to the dispatcher (move it first;");
@@ -389,6 +544,13 @@ describe("plan and backlog", () => {
       expect(out).not.toContain("A fresh skeptic reads every question");
   });
 
+  it("both planner prompts cap a slice at about 8 files and one running topic's hot file", () => {
+    for (const plan of [ok("plan", "T"), ok("plan", "T", "--auto")])
+      expect(plan).toContain(
+        "**a slice that would touch more than about 8 files, or more than one running topic's hot file** (`pnpm backlog prd list`), **is split into slices that each land on their own**",
+      );
+  });
+
   it("both planner prompts run the skeptic from the plan brief, with send-back and one retry", () => {
     for (const plan of [ok("plan", "T"), ok("plan", "T", "--auto")]) {
       expect(plan).toContain("`pnpm prd prompt skeptic plan --evidence <file>`");
@@ -401,9 +563,10 @@ describe("plan and backlog", () => {
       /second \*\*send-back\*\* is the user's: put it to them with AskUserQuestion/,
     );
     const auto = ok("plan", "T", "--auto");
-    expect(auto).toContain("`pnpm backlog prd set T flags=<its flags>,hold`");
+    expect(auto).toContain("`pnpm backlog prd set T flags+=hold`");
+    expect(auto).not.toContain("flags=");
     expect(auto).toContain("`--waits` question with `--skeptic <that record's id>`");
-    expect(auto.indexOf("flags=<its flags>,hold")).toBeLessThan(auto.indexOf("`--waits` question with"));
+    expect(auto.indexOf("flags+=hold")).toBeLessThan(auto.indexOf("`--waits` question with"));
   });
 
   it("plan --auto: questions and the report through pnpm prd ask with a push, never AskUserQuestion", () => {
@@ -432,7 +595,8 @@ describe("plan and backlog", () => {
       expect(report).toBeGreaterThan(land);
       expect(rm).toBeGreaterThan(report);
       expect(plan.indexOf("&& pnpm prd end`")).toBeGreaterThan(rm);
-      expect(plan).toContain("`pnpm backlog prd set T flags=hold`");
+      expect(plan).toContain("`pnpm backlog prd set T flags+=hold`");
+      expect(plan).not.toContain("flags=");
     }
     const r = prompt("plan", "T", "--resume");
     expect(r.code).toBe(1);

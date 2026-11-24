@@ -45,6 +45,15 @@ export const CONDITION_MANAGER_NAMESPACE = "8a2e4c71-5b9d-4f06-a3c8-1e7d9b4f2a65
 export const conditionManagerId = (conditionId, providerId) =>
   uuidV5(`${conditionId.toLowerCase()}:${providerId.toLowerCase()}`, CONDITION_MANAGER_NAMESPACE);
 
+/** packages/data's SYMPTOM_TYPE_NAMESPACE: a catalog row's id comes from its group and folded name. */
+export const SYMPTOM_TYPE_NAMESPACE = "b4e7c2d9-6a13-4f58-9c0e-2d8a5f1b7e36";
+/** packages/data's `symptomKey`: case and spaces folded. */
+export const symptomKey = (name) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+export const symptomTypeId = (groupId, name) =>
+  uuidV5(`${groupId.toLowerCase()}:${symptomKey(name)}`, SYMPTOM_TYPE_NAMESPACE);
+/** The matrix's new catalog name (a symptom's), unique to the run by its tag. */
+export const matrixSymptomName = (tag) => `${tag} matrix symptom`;
+
 /** An empty Yjs update (base64): the smallest valid `note_update`. */
 const EMPTY_YJS_UPDATE = "AAA=";
 
@@ -78,6 +87,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       medicationCondition: medicationConditionId(medication, condition),
       conditionManager: conditionManagerId(condition, provider),
       series: randomUUID(),
+      symptomType: symptomTypeId(groupId, matrixSymptomName(tag)),
     },
   };
 };
@@ -356,10 +366,18 @@ export const SYNC_MATRIX = [
     "care_recipient_details",
     (ctx) => `SELECT id FROM care_recipient_details WHERE group_id = '${ctx.groupId}' ORDER BY id LIMIT 1`,
   ),
-  // The group's symptom catalog: its defaults, written when the group was made.
-  server(
+  // A new name in the group's symptom catalog (its id derived from the group and the name).
+  device(
     "symptom_type",
-    (ctx) => `SELECT id FROM symptom_type WHERE group_id = '${ctx.groupId}' ORDER BY id LIMIT 1`,
+    (ctx) => ctx.ids.symptomType,
+    (ctx) =>
+      insert("symptom_type", {
+        id: ctx.ids.symptomType,
+        group_id: ctx.groupId,
+        name: matrixSymptomName(ctx.tag),
+        name_key: symptomKey(matrixSymptomName(ctx.tag)),
+        ...audit(ctx),
+      }),
   ),
 ];
 
@@ -404,6 +422,9 @@ export const cleanupSql = (ctx, recordedAt) =>
         `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.todo}', '${ctx.ids.series}')`,
     ),
     `UPDATE recipient_condition SET deleted_at = now() WHERE deleted_at IS NULL AND id = '${ctx.ids.condition}'`,
+    // The catalog row (never soft-deleted), after the symptom that added it lets go of it.
+    `UPDATE timeline_entry SET deleted_at = coalesce(deleted_at, now()), symptom_type_id = NULL WHERE symptom_type_id = '${ctx.ids.symptomType}'`,
+    `DELETE FROM symptom_type WHERE id = '${ctx.ids.symptomType}'`,
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,
   ].join(";\n");
 
