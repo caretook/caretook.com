@@ -4,9 +4,9 @@
 
 ## Status
 
-**Where it stands (hand-over, 2026-11-24):** **wave 2 landed** in dev as 7cff84e1 (PR #152, tier full, `--no-review`: Codex out of credits). Gate: run 45411480362 green after one cancelled run (components-2 hung after its last passing file; not filed, rerun once); synced-tip run 45413057947 green. Report filed; to-test `to-test/2026-11-24-0954-symptom-catalog.md`. Docs folded into timeline.md. No slice in flight; slice 2's worktree removed. B-549 stays claimed.
+**Where it stands (2026-11-24, wave 3 running):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (ingest: nothing new; doctor: two title-rewrite notes only; no new items for this topic); `pnpm prd sync`: already up to date. **Wave 3 started:** worktrees `symptom-catalog-3` (stack slot 1), `-5`, `-6` made from 18a18117; one opus agent spawned for each. Slice 3's first stack start failed (container unhealthy under load); `pnpm prd stack up` again worked.
 
-**Next (fresh session):** wave boundary (`pnpm backlog ingest`, `doctor`, `list`), `pnpm prd sync`, then wave 3: slices 3, 5 and 6 together (`pnpm prd slice symptom-catalog <n>` each, opus agents). Give slice 3 the notes below; slices 5 and 6 slice 2's notes.
+**Next:** merge 3, 5, 6 in plan order (3 then 5 then 6) as they hand off; then the wave's CI run (tier the check plan proposes: likely `full`, slice 3 may add a migration or sync-config change); then sync, PR, land. Wave 4 (slice 4) after.
 
 **Slice 2 hand-off notes, for wave 3:** the entry's pointer is written locally already (`symptomTypeColumn(groupId, content)` in `timeline.sync.ts`; quick entry uses it too). Slice 3 only adds the `symptom_type` row in the same local write, plus its upload entry. Slice 5: filter on the stored `symptom_type_id` (partial index `timeline_entry_symptom_type_idx` on the server; no device index yet, add one if the filter needs it); seeded and fixture symptoms carry pointers. Slice 4 later: keep `symptomTypeColumn` when quick entry matches the catalog. Migration: 0044 is landed, so slice 3 (if it needs one) takes the next number.
 
@@ -22,10 +22,10 @@
 | ----- | ---- | ----------- | ------------------------------------------------ |
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
 | 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
-| 3     | 3    | not started |                                                  |
+| 3     | 3    | started     |                                                  |
 | 4     | 4    | not started |                                                  |
-| 5     | 3    | not started |                                                  |
-| 6     | 3    | not started |                                                  |
+| 5     | 3    | started     |                                                  |
+| 6     | 3    | started     |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
