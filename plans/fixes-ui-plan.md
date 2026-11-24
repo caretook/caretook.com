@@ -26,7 +26,7 @@ Notes for every wave:
 | 34    | B-594 | in progress (opus)                                                                      |       |
 | 35    | B-672 | blocked                                                                                 |       |
 | 36    | B-673 | in progress (opus)                                                                      |       |
-| 37    | B-679 | in progress (opus)                                                                      |       |
+| 37    | B-679 | handed off c30e1271 (packages/: integration tier)                                       |       |
 | 38    | B-664 | handed off 0377bb95                                                                     |       |
 | 39    | B-636 | handed off 69ef1d98                                                                     |       |
 | 40    | B-621 | handed off 6559847d (other quick entry tests may now see the panel: watch CI)           |       |
