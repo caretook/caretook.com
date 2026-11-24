@@ -12,7 +12,7 @@ Waves 1–3 landed (PR #78, #84, #86); details in the history file.
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-**CI hold (2026-11-24, from the backlog session on the user's word):** start no CI run with the components tier (components, full, release) until the backlog session (caretook-com-a6) messages that the third components shard landed on dev; then `pnpm prd sync` and run.
+**CI hold lifted:** the third components shard landed on dev as 2aff6468. Before the wave's first run, `pnpm prd sync`, then confirm `.github/workflows/ci.yml` has `components-3` (if sync says current and it doesn't, merge origin/dev by hand: B-771). That run is the shard's first real test: tell the user (in the landing report) if components-3 does anything odd.
 
 Notes for every wave:
 
@@ -40,7 +40,7 @@ Notes for every wave:
 | 17    | B-603 | merged (opus)    | 18180d36 |
 | 18    | B-618 | started (opus)   |          |
 | 19    | B-663 | started (opus)   |          |
-| 20    | B-702 | started (sonnet) |          |
+| 20    | B-702 | handed off (sonnet) 25ef94a9 |          |
 | 21    | B-682 | started (sonnet) |          |
 | 22    | B-683 | started (opus)   |          |
 | 23    | B-763 | waits (opus)     |          |
@@ -52,7 +52,7 @@ Notes for every wave:
 | 29    | B-668 | started (opus)   |          |
 | 30    | B-677 | started (opus)   |          |
 | 31    | B-678 | waits (opus)     |          |
-| 32    | B-629 | started (opus)   |          |
+| 32    | B-629 | handed off (opus) 035359d2 |          |
 | 33    | B-699 | started (opus)   |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
