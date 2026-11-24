@@ -10,7 +10,7 @@ import { at, TEST_USER, todo } from "../../../../test/fixtures";
 import { found } from "../../../../test/found";
 import { LIST, MEDICATION_ROUTES, PASSES } from "./medications/medicationWorld";
 import { PERIOD_ROUTES, PERIODS_URL } from "./periods/periodWorld";
-import { PLANNER_ROUTES, PLANNER_URL, TODOS_URL } from "./planner/plannerWorld";
+import { PAST_URL, PLANNER_ROUTES, PLANNER_URL, TODOS_URL } from "./planner/plannerWorld";
 import { PROVIDER_ROUTES, PROVIDERS_URL } from "./providers/providerWorld";
 import { chooseEasyMode, openTimeline } from "./timeline/timelineWorld";
 
@@ -48,8 +48,6 @@ describe("a section with nothing in it", () => {
     ["Providers", "providers", PROVIDER_ROUTES, PROVIDERS_URL, "No providers yet."],
     ["the Medications list", "medications", MEDICATION_ROUTES, LIST, "No medications yet."],
     ["Passes", "medications", MEDICATION_ROUTES, PASSES, "No passes yet."],
-    ["the Planner", "planner", PLANNER_ROUTES, PLANNER_URL, "No upcoming events or todos."],
-    ["Todos", "planner", PLANNER_ROUTES, TODOS_URL, "No open todos."],
   ] as const)("%s shows its icon circle and its words", async (_name, section, route, url, words) => {
     await renderWithDevice({ route: [...route], url, fixtures: [] });
     await expect.element(page.getByText(words)).toBeVisible();
@@ -78,6 +76,17 @@ describe("a section with nothing in it", () => {
 });
 
 describe("what stays quiet", () => {
+  test.each([
+    ["Upcoming", PLANNER_URL, "No upcoming events or todos."],
+    ["Past", PAST_URL, "No past events yet."],
+    ["Todos", TODOS_URL, "No open todos."],
+  ] as const)("the empty %s tab shows its line and no icon", async (_name, url, words) => {
+    await renderWithDevice({ route: PLANNER_ROUTES, url, fixtures: [] });
+    await expect.element(page.getByText(words)).toBeVisible();
+    expect(chip()).toBeNull();
+    expect(document.querySelector("main [data-icon-chip]")).toBeNull();
+  });
+
   test("a filtered timeline shows its line and no circle", async () => {
     await openTimeline({ role: "viewer", fixtures: [], query: "?kind=symptom" });
     await found(() => document.querySelector("[data-empty]"));
