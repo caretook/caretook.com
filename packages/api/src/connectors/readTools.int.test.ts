@@ -421,7 +421,7 @@ describe("read tools", { timeout: 60_000 }, () => {
             kind: "dose",
             occurredAt: new Date(now.getTime() - minutesBefore * 60_000).toISOString(),
             timeZone: "America/Los_Angeles",
-            details,
+            details: details as never,
           },
         }),
       );
