@@ -186,11 +186,6 @@ describe("the For field", () => {
     const device = await open(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Amlodipine");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.fill(await found(() => field("reason")), "Swelling too");
     await pickCondition("High blood pressure");
     await pickCondition("Glaucoma");

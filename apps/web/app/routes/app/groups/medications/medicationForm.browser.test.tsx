@@ -161,6 +161,7 @@ describe("adding", () => {
       "",
     ]);
 
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     const passes = [...FORM()!.querySelectorAll("[data-pass-slot]")].map((li) =>
       li.querySelector("label")?.textContent?.trim(),
     );
@@ -178,6 +179,7 @@ describe("adding", () => {
   test("validation shows on the fields: a name, each time once (focus on the name), and an as-needed maximum in range", async () => {
     await open(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
@@ -196,8 +198,39 @@ describe("adding", () => {
     await expect.poll(() => errorOf("maxPerDay")).toBe("At most 24 a day");
   });
 
+  test("a new medication starts on As needed, with the choice visible, and saves as needed without touching it", async () => {
+    const device = await open(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    expect(scheduleType("asNeeded").checked).toBe(true);
+    expect(scheduleType("scheduled").checked).toBe(false);
+    expect(scheduleType("asNeeded").checkVisibility({ visibilityProperty: true })).toBe(true);
+    expect(FORM()?.querySelector("[data-schedule-passes]")).toBeNull();
+    expect(field("maxPerDay")).not.toBeNull();
+
+    await userEvent.fill(await found(() => field("name")), "Albuterol");
+    await userEvent.click(submit());
+    const id = await savedOpens(device, "Albuterol");
+    expect(JSON.parse(String((await medication(device, id)).schedule))).toEqual({ type: "asNeeded" });
+  });
+
+  test("switching a new medication to At set times offers the usual starting slots: the passes, none ticked, no time of its own", async () => {
+    await open(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
+    await waitUntil(() => !!FORM()?.querySelector("[data-schedule-passes]"), "the passes");
+    const names = [...(FORM()?.querySelectorAll("[data-pass-slot]") ?? [])].map((li) =>
+      li.querySelector("label")?.textContent?.trim(),
+    );
+    expect(names).toEqual(["Morning 8:00", "Evening 20:00"]);
+    expect(FORM()?.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked')).toHaveLength(0);
+    expect(times()).toHaveLength(0);
+    expect(scheduleType("scheduled").checked).toBe(true);
+  });
+
   test("a new time row starts at the current hour in the recipient's zone, not the device's", async () => {
     await open(`${LIST}/new`, { fixtures: [fx.recipient({ timeZone: "Asia/Tokyo" })] });
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     await waitUntil(() => times().length === 1, "the first row");
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "the new row");
@@ -209,6 +242,7 @@ describe("adding", () => {
     const device = await open(LIST);
     await openAddSheet();
     await userEvent.fill(await found(() => field("name")), "Sertraline");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
@@ -251,7 +285,6 @@ describe("adding", () => {
     await openAddSheet();
     expect(device.location()).toBe(`${SCHEDULE}/new`);
     await userEvent.fill(await found(() => field("name")), "Sertraline");
-    await userEvent.click(scheduleType("asNeeded"));
     await userEvent.click(submit());
 
     await savedOpens(device, "Sertraline");
@@ -295,6 +328,7 @@ describe("editing", () => {
     await openEdit(device);
     expect(field("name")?.value).toBe("Losartan");
     expect(field("dose")?.value).toBe("1 tablet");
+    expect(scheduleType("scheduled").checked).toBe(true);
     expect(times().map((t) => t.value)).toEqual(["08:00", "20:00"]);
     expect(pickerChip("prescriber")).toBe("Dr. Mira Lark");
     expect(SHEET()?.querySelector("[data-status-now]")?.textContent?.trim()).toBe("Current: taken now");
@@ -358,11 +392,6 @@ describe("the type", () => {
     expect(summaryShown()).toBe(false);
 
     await userEvent.fill(await found(() => field("name")), "Sertraline");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.click(submit());
     const id = await savedOpens(device, "Sertraline");
     expect(await typeOf(device, id)).toBe("prescription");
@@ -372,11 +401,6 @@ describe("the type", () => {
     const device = await openWith(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Loratadine");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.click(typeRadio("otc"));
 
     await expect.poll(() => detailsOpen()).toBe(false);
@@ -415,11 +439,6 @@ describe("the type", () => {
     await openWith(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Loratadine");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.click(typeRadio("otc"));
     await userEvent.click(await found(toggle));
     await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
