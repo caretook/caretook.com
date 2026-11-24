@@ -44,6 +44,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { releaseEvent } from "./todoService";
 export const serviceName = "timelineEntry";
@@ -666,14 +667,15 @@ export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
   }, ctx);
 
 /**
- * Create the entry with this id, or bring the existing one up to date: what
- * PowerSync's upload queue sends for a row a device created. Safe to replay:
- * a second identical call changes nothing but `updatedAt`.
+ * Create the entry with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. Says whether it created
+ * (`Upserted`).
  *
  * - A new id is a `create` (same validation and group check).
- * - An existing id is an `update` of its content, by the same rules. Its
- *   group, recipient and kind must match: they never change.
- * - A deleted entry stays deleted (a delete wins over a late edit).
+ * - An existing id is a replay of the create: it changes nothing (only a
+ *   PATCH edits), whatever the actor's role now, so it never reverts a newer
+ *   edit. Its group, recipient and kind must match: they never change.
+ * - A deleted entry stays deleted (a delete wins over a late replay).
  * - A dose shares its id with the same answer for the same slot, so for
  *   anyone who may log one: onto a live row another member created, the first
  *   upload stands, nothing changes and the duplicate is recorded; onto a row
@@ -727,9 +729,9 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     if (isError(existing)) return existing;
     if (!existing) {
       const created = await create({ ...ctx, tx }, parsed.data);
-      if (isError(created) || !created || kind !== "dose") return created;
+      if (isError(created) || kind !== "dose") return asCreated(created);
       const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
-      return noted ?? created;
+      return noted ?? asCreated(created);
     }
 
     const visible = await timelineEntryModel.getById(id, { ...ctx, tx, includeDeleted: true });
@@ -750,7 +752,7 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       if (uploader) {
         if (!visible.deletedAt && visible.createdBy !== uploader) {
           const recorded = await recordDoseUpload(tx, id, uploader, occurredAt);
-          return isError(recorded) ? recorded : visible;
+          return isError(recorded) ? recorded : unchanged(visible);
         }
         const retried =
           visible.deletedAt && mayRestoreDose(visible, uploader, occurredAt)
@@ -781,31 +783,19 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
             if (isError(noted)) return noted;
           }
           const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
-          return queued ?? restored;
+          // Made live again by this upload: as good as a create.
+          return queued ?? asCreated(restored);
         }
       }
     }
-    if (visible.deletedAt) return visible;
-    // A device's copy of a change entry the service already wrote with the
-    // medication: the service's stands.
-    if (isSystemWrittenKind(visible.kind)) return visible;
-
-    const updated = await update(
-      { ...ctx, tx },
-      id,
-      // Checked against the entry's kind once merged with the stored row.
-      {
-        title,
-        body,
-        occurredAt,
-        timeZone,
-        details: details ?? null,
-        ...scheduling,
-      } as TimelineEntryUpdateInput,
-    );
-    if (isError(updated) || !updated || visible.kind !== "dose") return updated;
-    const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
-    return noted ?? updated;
+    // A replay of the create (deleted since, or a change entry the service
+    // wrote with the medication, or live): it changes nothing. A member's own
+    // live dose is still noted as theirs (B-726).
+    if (visible.kind === "dose" && !visible.deletedAt) {
+      const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
+      if (noted) return noted;
+    }
+    return unchanged(visible);
   }, ctx);
 
 /**
