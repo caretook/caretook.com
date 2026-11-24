@@ -39,7 +39,7 @@ Notes for every wave:
 | 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
 | 46    | B-692 | started 2026-11-24 (session 4, opus)                                                                        |          |
 | 47    | B-736 | merged                                                                                                      | da9de73f |
-| 48    | B-737 | started 2026-11-24 (session 4, opus)                                                                        |          |
+| 48    | B-737 | handed off 1727845a, waits for 42 and 46 (plan order); easy mode gets no copy links                         |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
