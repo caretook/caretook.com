@@ -22,6 +22,7 @@ import {
   isPassMovedDetails,
   isSymptomDetails,
   isVitalDetails,
+  symptomKey,
   toDisplay,
   VITAL_TYPES,
   VITALS,
@@ -255,18 +256,16 @@ const vitalLines = (now: readonly PrepEntry[], before: readonly PrepEntry[], uni
   });
 };
 
-const foldName = (name: string) => name.trim().toLocaleLowerCase("en-US");
-
 const symptomLines = (now: readonly PrepEntry[], before: readonly PrepEntry[]) => {
   const seenBefore = new Set(
     before.flatMap((e) =>
-      e.kind === "symptom" && isSymptomDetails(e.details) ? [foldName(e.details.name)] : [],
+      e.kind === "symptom" && isSymptomDetails(e.details) ? [symptomKey(e.details.name)] : [],
     ),
   );
   const groups = new Map<string, { name: string; count: number; worst: number | null }>();
   for (const e of [...now].sort(byTime)) {
     if (e.kind !== "symptom" || !isSymptomDetails(e.details)) continue;
-    const key = foldName(e.details.name);
+    const key = symptomKey(e.details.name);
     if (!key) continue;
     const group = groups.get(key) ?? { name: e.details.name.trim(), count: 0, worst: null };
     group.count++;
