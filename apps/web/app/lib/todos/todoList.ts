@@ -1,6 +1,7 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
 
 import { assigneeOf, localDate, todoOrder, todoState } from "@caretook/data/schema";
+import { matchingText } from "../core/textFilter";
 import { dayHeading } from "./todoDisplay";
 
 // The todo list's shape (pure; web:unit tests it): which todos the
@@ -40,6 +41,31 @@ export const clearWho = (search: string) => {
   const rest = params.toString();
   return rest ? `?${rest}` : "";
 };
+
+/** The list's quick text filter's URL param (the search box; never a filter in the menu). */
+export const TODO_QUERY_PARAM = "q";
+
+/** `?q=` from a search string, trimmed ("" for none). */
+export const todoQueryOf = (search: string) =>
+  (new URLSearchParams(search).get(TODO_QUERY_PARAM) ?? "").trim();
+
+/** `search` with `q` as its text (trimmed; empty drops `?q=`), the rest kept. */
+export const setTodoQuery = (search: string, q: string) => {
+  const params = new URLSearchParams(search);
+  if (q.trim()) params.set(TODO_QUERY_PARAM, q.trim());
+  else params.delete(TODO_QUERY_PARAM);
+  const rest = params.toString();
+  return rest ? `?${rest}` : "";
+};
+
+const EMPTY_TODOS: Record<TodoWho, string> = {
+  mine: "Nothing assigned to you",
+  unassigned: "No unassigned todos",
+  everyone: "No open todos",
+};
+
+/** What an empty open list says, naming the filter and the text on. */
+export const emptyTodosText = (who: TodoWho, q = "") => `${EMPTY_TODOS[who]}${matchingText(q)}.`;
 
 /** The filter with no `?who=`: Everyone, always (Mine and Unassigned narrow it). */
 export const DEFAULT_WHO: TodoWho = "everyone";

@@ -278,7 +278,7 @@ export const addNote = defineTool({
   name: "add_note",
   title: "Add a note",
   description:
-    "Add a note to the timeline, for what has happened (a note can't be in the future: use add_todo with a due day for something to do later, or add_event for an appointment): plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
+    "Add a note to the timeline, for what has happened (a note can't be in the future: use add_todo with a due day for something to do later, or add_event for an event or appointment ahead): plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(addNoteActionZSchema),
@@ -297,9 +297,9 @@ export const addNote = defineTool({
 
 export const addEvent = defineTool({
   name: "add_event",
-  title: "Add an event or appointment",
+  title: "Add an event",
   description:
-    "Add an event to the timeline: something that happened, or an appointment ahead (a future time is fine). Optionally all day, an end time, a place and providers (ids from the provider directory). Ask the member before calling.",
+    "Add an event to the timeline: something that happened, or an event ahead such as an appointment (a future time is fine). Optionally all day, an end time, a place and providers (ids from the provider directory). Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(addEventActionZSchema),

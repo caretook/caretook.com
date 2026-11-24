@@ -8,6 +8,7 @@ import { useId, useState } from "react";
 import { Badge, Button, Chevron, Collapse, Message, STATUS_TONE, TITLE_SECTION } from "~/components/ui";
 import {
   clockTime,
+  extraDoseText,
   givenAllLabel,
   listText,
   medicationTitle,
@@ -17,9 +18,11 @@ import {
 } from "~/lib/medications/medicationDisplay";
 import { passLogIdFor } from "~/lib/medications/duePasses";
 import { DoseSlotRow } from "./DoseSlotRow";
+import { ExtraDoseWarning } from "./ExtraDoseWarning";
 import { usePassLog } from "./usePassLog";
 
-const TONE: Record<PassState, BadgeTone> = {
+/** A pass state's badge tone (here and on the Passes tab). */
+export const PASS_TONE: Record<PassState, BadgeTone> = {
   upcoming: "neutral",
   due: STATUS_TONE.dueSoon,
   overdue: STATUS_TONE.overdue,
@@ -31,7 +34,8 @@ const TONE: Record<PassState, BadgeTone> = {
  * state, who logged what so far, and, for writers while anything in it is
  * open, **Given all** (every open medication, given now; then Undo). The
  * expand lists each medication with its own Given, Skipped and Refused, which
- * join the pass's round. Viewers see the same without logging controls.
+ * join the pass's round. A medication given twice in it is called out on
+ * the card. Viewers see the same without logging controls.
  */
 export function PassCard({
   pass,
@@ -59,6 +63,11 @@ export function PassCard({
   const listId = useId();
   const title = passTitle(pass);
   const logged = passLoggedText(pass, nameOf);
+  // Shown on the card itself, so a double dose reads without opening it.
+  const twice = pass.slots.flatMap((slot) => {
+    const text = extraDoseText(slot, timeZone);
+    return text ? [{ id: slot.medication.id, text: `${medicationTitle(slot.medication)}: ${text}` }] : [];
+  });
 
   return (
     <section
@@ -78,7 +87,7 @@ export function PassCard({
             {logged ?? listText(pass.slots.map((s) => medicationTitle(s.medication)))}
           </p>
         </div>
-        <Badge tone={TONE[pass.state]} className="shrink-0" data-pass-badge="">
+        <Badge tone={PASS_TONE[pass.state]} className="shrink-0" data-pass-badge="">
           {passStateText(pass)}
         </Badge>
         <div className="flex items-center gap-1">
@@ -108,6 +117,9 @@ export function PassCard({
             <Chevron open={expanded} closed="down" />
           </Button>
         </div>
+        {twice.map((t) => (
+          <ExtraDoseWarning key={t.id} text={t.text} className="w-full" />
+        ))}
         {error && (
           <Message tone="error" className="w-full">
             {error}

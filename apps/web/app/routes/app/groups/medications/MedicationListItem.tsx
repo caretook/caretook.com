@@ -1,11 +1,11 @@
+import type { DueDoses } from "~/lib/medications/dueDoses";
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
-import { Pill } from "lucide-react";
-import { Link } from "react-router";
-import { Badge, ListRow } from "~/components/ui";
+import { Plus } from "lucide-react";
+import { MedicationCard } from "~/components/medications";
+import { Badge, Button, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import {
   MEDICATION_TYPE_LABELS,
   medicationSummaryLine,
@@ -13,71 +13,89 @@ import {
   medicationTypeBadge,
   stoppedText,
 } from "~/lib/medications/medicationDisplay";
+import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
 
 /**
- * A medication in the list: its name and strength, a badge with its type at the row's right edge
- * (none when it isn't set), its form, dose and schedule, and why it's taken; a stopped one also says how and when. The
- * name is a link stretched over the row, so a tap anywhere opens its page.
+ * A medication in the list, as its `MedicationCard` (the whole card opens
+ * its page): its name and strength, a badge with its type at the name's
+ * right edge (none when it isn't set), its form, dose and schedule, and why
+ * it's taken; a stopped one also says how and when. Writers get Log on a
+ * current one: a scheduled medication opens the Dose sheet on it, an
+ * as-needed one logs a dose now (asking first past its maximum, once
+ * today's doses are known: `dueReady`). A stopped one has no Log.
  */
 export function MedicationListItem({
   medication,
   passes,
+  canWrite,
+  due,
+  dueReady,
 }: {
   medication: LocalMedication;
   passes: readonly SchedulePass[];
+  canWrite: boolean;
+  /** Today's doses, for an as-needed Log's warnings. */
+  due: DueDoses;
+  dueReady: boolean;
 }) {
   const stopped = stoppedText(medication);
   const badge = medicationTypeBadge(medication.type);
-  const linkState = useMedicationLinkState();
-  return (
-    <ListRow
-      className="hover:bg-base-200/50 relative isolate flex items-start gap-3"
-      data-medication-id={medication.id}
+  const logging = useAsNeededLog(medication.groupId, due, medication);
+  const canLog = canWrite && medication.status === "current";
+  const title = medicationTitle(medication);
+
+  const log = !canLog ? null : medication.schedule.type === "asNeeded" ? (
+    dueReady && <AsNeededLogButton medication={medication} logging={logging} />
+  ) : (
+    <Button
+      size="sm"
+      icon={Plus}
+      to={appUrls.newDose(medication.groupId, { medicationId: medication.id })}
+      aria-label={`Log a dose of ${title}`}
+      data-log-dose=""
     >
-      <span
-        aria-hidden="true"
-        className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${stopped ? "bg-base-200 text-faint" : "bg-primary/15 text-primary"}`}
-      >
-        <Pill className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex min-w-0 items-start justify-between gap-2">
-          <Link
-            to={appUrls.medication(medication.groupId, medication.id)}
-            state={linkState}
-            className={`min-w-0 font-medium wrap-break-word outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${stopped ? "text-muted" : ""}`}
-            data-medication-name
+      Log
+    </Button>
+  );
+
+  return (
+    <MedicationCard
+      medication={medication}
+      groupId={medication.groupId}
+      stopped={!!stopped}
+      data-medication-id={medication.id}
+      badge={
+        badge &&
+        medication.type && (
+          <span
+            className="mt-0.5 flex shrink-0"
+            title={MEDICATION_TYPE_LABELS[medication.type]}
+            data-medication-type={medication.type}
           >
-            {medicationTitle(medication)}
-          </Link>
-          {badge && medication.type && (
-            <span
-              className="mt-0.5 flex shrink-0"
-              title={MEDICATION_TYPE_LABELS[medication.type]}
-              data-medication-type={medication.type}
-            >
-              <Badge>
-                <span aria-hidden="true">{badge}</span>
-                <span className="sr-only">{MEDICATION_TYPE_LABELS[medication.type]}</span>
-              </Badge>
-            </span>
-          )}
+            <Badge>
+              <span aria-hidden="true">{badge}</span>
+              <span className="sr-only">{MEDICATION_TYPE_LABELS[medication.type]}</span>
+            </Badge>
+          </span>
+        )
+      }
+      actions={log}
+      notes={logging.error && <Message tone="error">{logging.error}</Message>}
+    >
+      <p className="text-muted text-sm" data-medication-summary>
+        {medicationSummaryLine(medication, passes)}
+      </p>
+      {medication.reason && (
+        <p className="text-muted text-sm" data-medication-reason>
+          <span className="sr-only">Reason: </span>
+          {medication.reason}
         </p>
-        <p className="text-muted text-sm" data-medication-summary>
-          {medicationSummaryLine(medication, passes)}
+      )}
+      {stopped && (
+        <p className="text-muted text-sm" data-medication-stopped>
+          {stopped}
         </p>
-        {medication.reason && (
-          <p className="text-muted text-sm" data-medication-reason>
-            <span className="sr-only">Reason: </span>
-            {medication.reason}
-          </p>
-        )}
-        {stopped && (
-          <p className="text-muted text-sm" data-medication-stopped>
-            {stopped}
-          </p>
-        )}
-      </div>
-    </ListRow>
+      )}
+    </MedicationCard>
   );
 }

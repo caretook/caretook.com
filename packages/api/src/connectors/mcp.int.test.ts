@@ -199,15 +199,25 @@ describe("/mcp", () => {
       ).result.prompts.map((p) => p.name);
     expect(await names(writer.tokens.access_token)).toEqual([
       "catch_me_up",
-      "prepare_for_appointment",
+      "prepare_for_event",
       "weekly_summary",
       "log_what_happened",
     ]);
     expect(await names(reader.tokens.access_token)).toEqual([
       "catch_me_up",
-      "prepare_for_appointment",
+      "prepare_for_event",
       "weekly_summary",
     ]);
+    // Event everywhere (B-583): the old name has no alias.
+    expect(await names(writer.tokens.access_token)).not.toContain("prepare_for_appointment");
+    const old = (await (
+      await mcpPost(
+        handler,
+        writer.tokens.access_token,
+        rpc("prompts/get", { name: "prepare_for_appointment" }),
+      )
+    ).json()) as { error?: { code: number } };
+    expect(old.error).toBeDefined();
 
     const got = await mcpPost(
       handler,
