@@ -207,7 +207,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-432 | chore | triaged | fixes-tooling |  | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
 | B-433 | feature | triaged | self-recovery |  | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
 | B-434 | feature | triaged | worker-watch |  | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
-| B-435 | feature | in-progress | inbox-agent | prd/inbox-agent | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
+| B-435 | feature | ready | inbox-agent | prd/inbox-agent | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -228,7 +228,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | triaged | fixes-tooling |  | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
-| B-474 | change | in-progress | inbox-agent | prd/inbox-agent | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
+| B-474 | change | ready | inbox-agent | prd/inbox-agent | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
 | B-480 | bug | triaged | fixes-tooling |  | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
@@ -1273,6 +1273,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
 - 2026-11-21 (plan/inbox-agent): Planned (2026-11-21): plans/inbox-agent-prd.md and plans/inbox-agent-plan.md, six slices in five waves. B-425: slices 1, 3 and 5 (a pickup that never stops on the inbox, inbox lines written to origin/dev, the inbox session). B-435: slices 2 and 3 (look-alikes before filing, archiving by the cleanup run). B-406: slices 4, 5 and 6 (the Next up list, its edit commands and queue, the dispatcher following it).
 - 2026-11-23 (Robert Bo Davis): User, 2026-11-23: the inbox session starts bare, outside the repo, with one short self-contained prompt (no AGENTS.md, memory, role doc or opening poll). Amended in the plan and PRD, landed 0f486182.
+- 2026-11-24 (prd/inbox-agent): Slice 3: ingest with the main checkout mid-merge prints that the pickup skipped, then refuses as before (write() refuses mid-merge; a commit mid-merge isn't safe), rather than filing the local lines. Accepted at merge; revisit only if it bites.
 
 ### B-429 · change · Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user
 
@@ -1340,10 +1341,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-435 · feature · Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run
 
-- status: in-progress
+- status: ready
 - prd: inbox-agent
 - owner: prd/inbox-agent
-- commit:
+- commit: 8a2b35bc
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. backlog doctor finds duplicate ids only; pnpm backlog archive is manual (B-403 mentions it). Fits the inbox agent B-425.
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
@@ -1564,10 +1565,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-474 · change · Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items
 
-- status: in-progress
+- status: ready
 - prd: inbox-agent
 - owner: prd/inbox-agent
-- commit:
+- commit: 8a2b35bc
 
 - 2026-11-21 (Robert Bo Davis): The user's answers to the inbox-agent planning report (ask a20, 2026-11-21, backlog session). They confirmed the plan (inbox-only pushes to origin/dev with automatic dev-sync; the Next up list; asks-relay after inbox-agent) with two additions, in their words: (1) 'inbox cannot leave staged changes ever. it must either stash or commit/push'; (2) 'inbox agent (or somebody) needs to have responsibility for cleanup of complete items'. For the inbox-agent orchestrator: fold both into the PRD and the slices that own them (B-425 the agent and its pushes; B-406 Next up; B-435 archiving). Backlog session's reading of (2): finished work must not pile up anywhere the user reads, so one named owner removes Next up lines and inbox bullets whose items have landed, as well as archiving tracker items; the plan's cleanup run archives tracker items only. Ask the user if the owner or the scope is unclear.
 - 2026-11-23 (plan/inbox-agent): 2026-11-23 replan with the user: now in the inbox-agent PRD and plan (B-474 slices 1-3, B-515 slice 5, B-551 slice 6). The plan is uncommitted on plan/inbox-agent until the user approves landing.
