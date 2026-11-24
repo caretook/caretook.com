@@ -12,7 +12,7 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-**Wave 5 (session 3, 2026-11-24):** synced dev by hand (627f1311, clean; CI lists checked). Slices 34–48 written (15 items, claimed; hot files set). Ready at start: 34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 47; then 35 (after 34, 36), 42 (after 41), 46 (after 45), 48 (after 47). Models: opus for every slice. Still held: B-748 (with B-680), B-765 (too vague for an unattended slice), B-583 (connectors-3 planned on that area), plus the list above.
+**Wave 5 hand-over (session 3 rotates for context, 2026-11-24):** slices 34, 36–41, 43–45, 47 merged into prd/fixes-ui in plan order with no conflicts (tip da9de73f; items marked done). Their worktrees stay until the wave's verdict is green; their agents are gone, so a CI failure goes to a fresh `--continue` agent in that slice's worktree. **Next:** start slices 35 (B-672, reuse `lib/core/nameSuggestions.ts` `suggestNames`; the form is now `profile/allergies/AllergyForm.tsx`), 42 (B-762, the card is a button since slice 41), 46 (B-692, slice 45 returns focus to "Pick a date" after an inline calendar closes: take over that target on the first pick), 48 (B-737; `?day=` unchanged by slice 47), all on opus; merge them; then the wave's CI run (`pnpm prd tier`; at least integration, slice 37 touches `packages/`). Risks for the run: slice 40's tips panel shows in every empty quick entry box (other quick entry tests may trip on it); slice 45 made every `PopoverPanel` scroll inside; slice 36 changed `ui/ComboBox.tsx` (no reopen after a pick); slice 43 changed `OUTLINED`/`TOGGLE_OFF` for every off toggle. Docs at landing: ui-kit (`OUTLINED`, `motion-press`, IconButton `count`, `InlineCalendars`, ComboBox `control`), profiles (allergies live on Profile), care-groups (member statuses, managers only). Hand tests for the report: B-664 on a real iPhone, Android and Capacitor; B-621 in Easy mode over the dictation hint; B-676 says "Add" on a provider event that opens a draft. Filed: B-779 (fixes-bug, timeline `?day=` lands low with no entries today). Still held: B-748 (with B-680), B-765 (too vague unattended), B-583 (connectors-3 planned), plus the list above.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -21,23 +21,23 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                                                                                    | Merge |
-| ----- | ----- | ------------------------------------------------------------------------------------------------------------------------ | ----- |
-| 34    | B-594 | in progress (opus)                                                                                                       |       |
-| 35    | B-672 | blocked                                                                                                                  |       |
-| 36    | B-673 | handed off 7f7c938e (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) |       |
-| 37    | B-679 | handed off c30e1271 (packages/: integration tier)                                                                        |       |
-| 38    | B-664 | handed off 0377bb95                                                                                                      |       |
-| 39    | B-636 | handed off 69ef1d98                                                                                                      |       |
-| 40    | B-621 | handed off 6559847d (other quick entry tests may now see the panel: watch CI)                                            |       |
-| 41    | B-676 | handed off 34cc3bd3                                                                                                      |       |
-| 42    | B-762 | blocked                                                                                                                  |       |
-| 43    | B-617 | handed off 2db75204 (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  |       |
-| 44    | B-756 | handed off 97ae1c89                                                                                                      |       |
-| 45    | B-691 | handed off 30dc31be (touches ui/Popover.tsx: all popovers scroll inside)                                                 |       |
-| 46    | B-692 | blocked                                                                                                                  |       |
-| 47    | B-736 | handed off b154ba6f                                                                                                      |       |
-| 48    | B-737 | blocked                                                                                                                  |       |
+| Slice | Item  | State                                                                                                       | Merge    |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
+| 34    | B-594 | merged in progress (opus)                                                                                   | 86d98496 |
+| 35    | B-672 | ready, not started                                                                                          |          |
+| 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
+| 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
+| 38    | B-664 | merged                                                                                                      | 221141c3 |
+| 39    | B-636 | merged                                                                                                      | 5cbbe830 |
+| 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                            | 6df9f7cb |
+| 41    | B-676 | merged                                                                                                      | ec911d5d |
+| 42    | B-762 | ready, not started                                                                                          |          |
+| 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  | abb099ce |
+| 44    | B-756 | merged                                                                                                      | d59db667 |
+| 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
+| 46    | B-692 | ready, not started                                                                                          |          |
+| 47    | B-736 | merged                                                                                                      | da9de73f |
+| 48    | B-737 | ready, not started                                                                                          |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
