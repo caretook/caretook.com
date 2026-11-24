@@ -30,6 +30,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Symomtons need to be repeatble and filterable need multi filter. (B-549)
 - nested todos (B-550)
 - A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later (B-737)
+- Ability to open live notes full screen.
 
 ## Big plans
 
