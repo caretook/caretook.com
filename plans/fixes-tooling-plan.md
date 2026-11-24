@@ -18,32 +18,32 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                         | Merge    |
-| ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                                | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                            | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                          | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                      | 1a7ad440 |
-| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test) | d971f6fa |
-| 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
-| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
-| 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
-| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                        | 4adeb2da |
-| 10    | B-445 | merged (quick passed on slice)                                                                | da329245 |
-| 11    | B-534 | merged (full passed on slice)                                                                 | 0d7e9205 |
-| 12    | B-444 | merged (quick passed on slice)                                                                | 9a1479e9 |
-| 13    | B-405 | merged (quick passed on slice)                                                                | 6f8d07be |
-| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                     | e962e40d |
-| 15    | B-450 | merged (quick passed on slice)                                                                | d0b0324b |
-| 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
-| 17    | B-468 | started (opus; worktree made, agent spawned)                                                  | —        |
-| 18    | B-525 | started (opus; worktree made, agent spawned)                                                  | —        |
-| 19    | B-526 | handed off 5cd1cc20 (opus; quick passed; merge after 17, 18; follow-up B-731)                 | —        |
-| 20    | B-452 | queued (opus)                                                                                 | —        |
-| 21    | B-453 | started (opus; worktree made, agent spawned)                                                  | —        |
-| 22    | B-454 | started (opus; worktree made, agent spawned)                                                  | —        |
-| 23    | B-570 | handed off b2051308 (opus; quick passed; ~12 lines in dispatch.mjs request catch)             | —        |
-| 24    | B-600 | started (opus; worktree made, agent spawned)                                                  | —        |
+| Slice | Item  | State                                                                                           | Merge    |
+| ----- | ----- | ----------------------------------------------------------------------------------------------- | -------- |
+| 1     | B-381 | merged (quick passed on slice)                                                                  | 3df76253 |
+| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                              | 26e83fa4 |
+| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                            | 7ccc8ff8 |
+| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                        | 1a7ad440 |
+| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)   | d971f6fa |
+| 6     | B-458 | merged (tooling)                                                                                | a8ab24cc |
+| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                    | cd8cc1f5 |
+| 8     | B-484 | merged (quick passed on slice)                                                                  | af134b65 |
+| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                          | 4adeb2da |
+| 10    | B-445 | merged (quick passed on slice)                                                                  | da329245 |
+| 11    | B-534 | merged (full passed on slice)                                                                   | 0d7e9205 |
+| 12    | B-444 | merged (quick passed on slice)                                                                  | 9a1479e9 |
+| 13    | B-405 | merged (quick passed on slice)                                                                  | 6f8d07be |
+| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                       | e962e40d |
+| 15    | B-450 | merged (quick passed on slice)                                                                  | d0b0324b |
+| 16    | B-466 | merged (full passed on slice)                                                                   | 3f739326 |
+| 17    | B-468 | started (opus; worktree made, agent spawned)                                                    | —        |
+| 18    | B-525 | started (opus; worktree made, agent spawned)                                                    | —        |
+| 19    | B-526 | handed off 5cd1cc20 (opus; quick passed; merge after 17, 18; follow-up B-731)                   | —        |
+| 20    | B-452 | queued (opus)                                                                                   | —        |
+| 21    | B-453 | handed off 43174cc9 (opus; quick: only tidy-cli beforeAll timeout at load 30, B-461; alone 3/3) | —        |
+| 22    | B-454 | started (opus; worktree made, agent spawned)                                                    | —        |
+| 23    | B-570 | handed off b2051308 (opus; quick passed; ~12 lines in dispatch.mjs request catch)               | —        |
+| 24    | B-600 | started (opus; worktree made, agent spawned)                                                    | —        |
 
 ## Wave 1
 
