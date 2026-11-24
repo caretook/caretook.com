@@ -81,7 +81,7 @@ export function AllergyList({
       <ConfirmDialog
         open={!!removing}
         title={removing ? `Remove ${removing.substance}?` : "Remove allergy?"}
-        message="It comes off the medication list and the printed sheets."
+        message="It comes off the profile, the medication list and the printed sheets."
         confirmLabel="Remove"
         onConfirm={() => {
           if (removing) post({ [ALLERGY_FIELD.intent]: "remove", [ALLERGY_FIELD.allergyId]: removing.id });

@@ -17,7 +17,7 @@ import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 
 // Sheets over the Medications tabs are child routes (`medications/<tab>/new`,
-// `medications/<tab>/:medicationId/edit`, `medications/<tab>/allergies`): the
+// `medications/<tab>/:medicationId/edit`): the
 // tab stays mounted underneath, with its search, filter and scroll position. Like the directory's sheets
 // (`providerSheet.ts`).
 

@@ -2,6 +2,7 @@ import type { Device, DeviceOptions, DeviceRoute } from "../../../../../test/dev
 import type { Fixtures, GroupRole } from "../../../../../test/fixtures";
 
 import * as timeline from "~/routes/app/groups/timeline/route";
+import * as allergies from "./allergies/route";
 import * as basics from "./basics/route";
 import * as editCondition from "./conditions/edit/route";
 import * as newCondition from "./conditions/new/route";
@@ -48,6 +49,7 @@ export const PROFILE_ROUTES: DeviceRoute[] = [
       { path: `${P}/contact`, module: contact },
       { path: `${P}/insurance`, module: insurance },
       { path: `${P}/emergency`, module: emergency },
+      { path: `${P}/allergies`, module: allergies },
       { path: `${P}/conditions/new`, module: newCondition },
       { path: `${P}/conditions/:conditionId`, module: viewCondition },
       { path: `${P}/conditions/:conditionId/edit`, module: editCondition },
