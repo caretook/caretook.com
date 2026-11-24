@@ -1,12 +1,19 @@
-import { describe, expect, test } from "vitest";
+import type { DoseRow } from "../medicationWorld";
+
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../../test/found";
+import { fixClock, found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { fx, medicationPass } from "../../../../../../test/fixtures";
+import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../../test/fixtures";
 import { pickTime } from "../../../../../../test/timeSelect";
 import { currentHourTime } from "~/lib/core/timeOfDay";
+import { clearUndo } from "~/lib/medications/passUndo";
 import {
+  CLOCK,
+  clockAt,
+  clockMoment,
   dialogButton,
+  DOSES_SQL,
   EVENING,
   MEDICATION_ROUTES,
   menuItem,
@@ -27,7 +34,10 @@ import {
 // viewer or a full group to the tab. The device never connects, so every
 // write here is the offline one too. The pass rules are
 // medicationPass.test.ts's; the service's retime and delete are
-// medicationPass.int.test.ts's and syncPasses.int.test.ts's. The tabs and
+// medicationPass.int.test.ts's and syncPasses.int.test.ts's. Each card
+// shows today's state, and a writer logs a pass from it (Given all, then
+// Undo here, B-700), on a fixed clock as Schedule's are (today.browser.test.tsx
+// has Given all's rules). The tabs and
 // the `+` menu from each tab are tabs.browser.test.tsx's.
 
 const NEW_PASS = `${PASSES}/new`;
@@ -273,5 +283,91 @@ describe("a writer", () => {
       [PASS_MED.id],
     );
     expect(changes).toHaveLength(0);
+  });
+});
+
+describe("today on the tab, on a fixed clock", () => {
+  const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
+  /** Rounds, 7 minutes back, with two medications; Late, 4 minutes back, already given by Sam. */
+  const ROUNDS = medicationPass({ name: "Rounds", time: clockAt(-7), sortOrder: 0 });
+  const LATE = medicationPass({ name: "Late", time: clockAt(-4), sortOrder: 1 });
+  const inPass = (name: string, passId: string) =>
+    fx.medication({
+      name,
+      strength: "5 mg",
+      dose: "1 tablet",
+      schedule: { type: "scheduled", slots: [{ passId }] },
+    });
+  const XA = inPass("Xa", ROUNDS.id);
+  const YB = inPass("Yb", ROUNDS.id);
+  const ZC = inPass("Zc", LATE.id);
+  const ZC_GIVEN = fx.dose({
+    medicationId: ZC.id,
+    createdBy: SAM.id,
+    occurredAt: clockMoment(-2),
+    details: JSON.stringify({
+      medicationId: ZC.id,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: LATE.row.time,
+      passId: LATE.id,
+    }),
+  });
+  const world = [SAM, fx.recipient({ timeZone: TEST_TIME_ZONE }), ROUNDS, LATE, XA, YB, ZC, ZC_GIVEN];
+  const openToday = (role: "caretaker" | "viewer" = "caretaker") =>
+    renderWithDevice({ route: MEDICATION_ROUTES, url: PASSES, role, fixtures: world });
+  const state = (passId: string) => document.querySelector<HTMLElement>(`main [data-pass="${passId}"]`);
+  const givenAll = (passId: string) => state(passId)?.querySelector<HTMLElement>("[data-given-all]") ?? null;
+  const badge = (passId: string) => state(passId)?.querySelector("[data-pass-badge]")?.textContent ?? null;
+  const UNDO = () =>
+    document.querySelector<HTMLElement>("[data-pass-undo-label]")?.textContent?.trim() ?? null;
+  const doses = (device: { query: <T>(sql: string) => Promise<T[]> }) => device.query<DoseRow>(DOSES_SQL);
+
+  beforeEach(() => {
+    fixClock(CLOCK);
+  });
+  afterEach(() => {
+    clearUndo();
+    vi.useRealTimers();
+  });
+
+  test("a writer's Given all logs every open medication in that pass and offers Undo here; Undo removes them", async () => {
+    const device = await openToday();
+    await expect.poll(() => badge(ROUNDS.id)).toBe("Due");
+    expect(givenAll(ROUNDS.id)?.getAttribute("aria-label")).toContain("Given all: Rounds, ");
+    await userEvent.click(await found(() => givenAll(ROUNDS.id)));
+    await expect.poll(() => state(ROUNDS.id)?.dataset.passState).toBe("done");
+    await expect.poll(UNDO).toBe("Rounds logged");
+    expect(givenAll(ROUNDS.id)).toBeNull();
+    expect(state(ROUNDS.id)?.querySelector("[data-pass-logged]")?.textContent).toBe("you logged 2 of 2");
+    const logged = (await doses(device)).filter((d) => d.passId === ROUNDS.id);
+    expect(logged.map((d) => d.medicationId).sort()).toEqual([XA.id, YB.id].sort());
+    expect(logged.every((d) => d.status === "given")).toBe(true);
+    expect(new Set(logged.map((d) => d.passLogId)).size).toBe(1);
+    // The card itself opens nothing; the menu stays.
+    expect(state(ROUNDS.id)?.querySelector('button[aria-label="Actions for Rounds"]')).toBeTruthy();
+
+    await userEvent.click(await found(() => document.querySelector("[data-pass-undo-button]")));
+    await expect.poll(() => state(ROUNDS.id)?.dataset.passState).toBe("due");
+    await expect.poll(UNDO).toBeNull();
+    expect((await doses(device)).filter((d) => d.passId === ROUNDS.id)).toHaveLength(0);
+    expect(givenAll(ROUNDS.id)).toBeTruthy();
+  });
+
+  test("a done pass shows its state and who logged it, with no Given all", async () => {
+    await openToday();
+    await expect.poll(() => badge(LATE.id)).toBe("Done");
+    expect(state(LATE.id)?.dataset.passState).toBe("done");
+    expect(state(LATE.id)?.querySelector("[data-pass-logged]")?.textContent).toBe("Sam Okafor logged 1 of 1");
+    expect(givenAll(LATE.id)).toBeNull();
+  });
+
+  test("a viewer sees each pass's state with no Given all and no Undo", async () => {
+    await openToday("viewer");
+    await expect.poll(() => badge(ROUNDS.id)).toBe("Due");
+    expect(badge(LATE.id)).toBe("Done");
+    expect(document.querySelector("main [data-given-all]")).toBeNull();
+    expect(document.querySelector("[data-pass-undo]")).toBeNull();
+    expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
   });
 });

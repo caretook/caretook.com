@@ -21,7 +21,8 @@ import { DoseSlotRow } from "./DoseSlotRow";
 import { ExtraDoseWarning } from "./ExtraDoseWarning";
 import { usePassLog } from "./usePassLog";
 
-const TONE: Record<PassState, BadgeTone> = {
+/** A pass state's badge tone (here and on the Passes tab). */
+export const PASS_TONE: Record<PassState, BadgeTone> = {
   upcoming: "neutral",
   due: STATUS_TONE.dueSoon,
   overdue: STATUS_TONE.overdue,
@@ -86,7 +87,7 @@ export function PassCard({
             {logged ?? listText(pass.slots.map((s) => medicationTitle(s.medication)))}
           </p>
         </div>
-        <Badge tone={TONE[pass.state]} className="shrink-0" data-pass-badge="">
+        <Badge tone={PASS_TONE[pass.state]} className="shrink-0" data-pass-badge="">
           {passStateText(pass)}
         </Badge>
         <div className="flex items-center gap-1">
