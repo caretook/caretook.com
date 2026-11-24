@@ -7,13 +7,19 @@ import { Button, ConfirmDialog, ListRow, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { doseWarnings } from "~/lib/medications/dueDoses";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
-import { asNeededCountText, doseWarningText, medicationTitle } from "~/lib/medications/medicationDisplay";
+import { ExtraDoseWarning } from "~/components/medications";
+import {
+  asNeededCountText,
+  doseWarningText,
+  medicationTitle,
+  overMaxText,
+} from "~/lib/medications/medicationDisplay";
 import { useLogDose } from "./useLogDose";
 
 /**
  * An as-needed medication's day: "2 of 4 today", and, for writers, Log (a
  * dose given now). Past the maximum it asks first, and still logs on
- * confirm.
+ * confirm; once past it, it says so with each time.
  */
 export function AsNeededRow({
   item,
@@ -31,6 +37,7 @@ export function AsNeededRow({
   const [warning, setWarning] = useState<string | null>(null);
   const { medication } = item;
   const title = medicationTitle(medication);
+  const over = overMaxText(item, due.timeZone);
   const give = () => log({ medicationId: medication.id, status: "given", amount: medication.dose });
   const tap = () => {
     const found = doseWarnings(due, { medicationId: medication.id, status: "given" }, new Date());
@@ -64,6 +71,7 @@ export function AsNeededRow({
           Log
         </Button>
       )}
+      {over && <ExtraDoseWarning text={over} className="w-full" />}
       {error && (
         <Message tone="error" className="w-full">
           {error}
