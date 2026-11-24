@@ -10,6 +10,8 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Hand-off (2026-11-24, after the wave 5 landing; no slices in flight).** Wave 5 (slices 31–40, all opus) landed in dev as 21e81e41 through PR #153, tier integration; Codex out of credits, landed `--no-review` (said in the report). Gate: integration green on d379cb6d (run 45420630465) and on the dev-synced tip 91eb0473 (run 45421980434). Report: ask a186; to-test `to-test/2026-11-24-1015-fixes-tooling.md`. Slice 31's 24 no-failure items closed by skeptic decide s21 (ask a184, the user can veto). Docs folded: loop.md (fixed clock file, renamed fake files, a world per describe); slice 39 updated inbox.md and backlog.md. Slice worktrees 31–40 removed. Filed: B-751, B-754 (backlog.test beforeAll under load), B-755 (fixes-perf, batch series visits). **Next: wave 6**, the user's contents below (agent efficiency first); then the pause after wave 6 (below). First `pnpm backlog ingest`/`doctor`/`list`, `pnpm prd sync`, and check hot files (`pnpm backlog prd list`).
 
+**Wave 6 (2026-11-24, this session; run-through).** Reconciled: wave 5 landed (21e81e41), no slices in flight, prd/fixes-tooling up to date with dev. test-gates and inbox-agent are done, so `prompt.sh`/`ci.mjs` are free. Slices 41 (B-597 split, first), 47 (B-576/B-574 measure), 48 (B-705), 49 (B-586 investigation) start now; 42–46 wait on 41's merge. B-542 to wave 7 (vitest.config.ts, test-health-2's), not run before the pause. Models: opus, 48 sonnet.
+
 **Pause after wave 6 (the user, via the backlog session, 2026-11-24).** Run waves 5 and 6 as planned; if wave 6's clashes spill items into a wave 7, don't run it. After wave 6 lands and its docs are folded: `pnpm backlog prd set fixes-tooling flags=standing,hold` (keep standing; plain `flags=hold` drops it, B-464), and add to the row's notes "**On hold <date>: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).**" Then wind down as a finished orchestrator does (`pnpm prd rm fixes-tooling`, `cd` to the main checkout, `pnpm prd end`), so the fixes slot and the lane go to UI fixes.
 
 **Wave 6 contents (the user, via the backlog session, 2026-11-24; replaces the old wave 6–8 order for these items).** In priority order: (1) agent efficiency, the user's top concern: B-595 (slice agents read only their section), B-596 (cap slice size at planning), B-597 (split ci.mjs and prompt.sh), B-598 (short plan Status); (2) B-696 (check-plan can hang forever); (3) test load: B-542 (cap unit-test workers), B-576 (local lint OOM at 4 GB), B-574 (ESLint exit 134); (4) B-586 (backlog session's phone notifications never arrive); (5) B-705 (minimumReleaseAge missing from pnpm-workspace.yaml); (6) B-464 and B-650 (a hold write drops standing or other flags). Split by hot files as usual; anything that clashes goes to wave 7 in the same order. Codex-review items wait (Codex is out of credits). Wave 5 is unchanged.
@@ -76,6 +78,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 38    | B-638     | merged (opus; quick passed; test only)                                                                                                                                      | 29736cac |
 | 39    | B-739     | merged (opus; quick passed; Sonnet low, `inbox edit/remove`; its inbox.md/backlog.md edits are the B-739 doc fold)                                                          | 245e2e87 |
 | 40    | B-500     | merged (opus; quick passed; one world per describe, afterEach cleanup, 15 s timeout kept for 37-39-visit tests; perf follow-up filed)                                       | 31738047 |
+| 41    | B-597     | started (opus)                                                                                                                                                              | —        |
+| 42    | B-595     | waiting on 41                                                                                                                                                               | —        |
+| 43    | B-596     | waiting on 41                                                                                                                                                               | —        |
+| 44    | B-598     | waiting on 41                                                                                                                                                               | —        |
+| 45    | B-696     | waiting on 41                                                                                                                                                               | —        |
+| 46    | B-464     | waiting on 41 (+B-650)                                                                                                                                                      | —        |
+| 47    | B-576     | started (opus; +B-574, measurement)                                                                                                                                         | —        |
+| 48    | B-705     | started (sonnet; one config key + test)                                                                                                                                     | —        |
+| 49    | B-586     | started (opus; investigation, no code)                                                                                                                                      | —        |
 
 ## Wave 1
 
@@ -473,3 +484,96 @@ Slice 31 re-measured it: 'writes visits through today + 90 for a series without 
 
 - Measure where the file's time goes and cut it for the whole file: a world built once per describe where tests don't change it, only the parts a test needs, batched inserts in the fixture; keep every assertion. An explicit timeout only if the work still needs it, with a comment saying why. Don't touch the shared test fixtures test-health-2 holds (`apps/web/test/`); `packages/data` fixtures are fine.
 - Integration test: the same assertions, with before/after times at load in the hand-off.
+
+## Wave 6
+
+The user's contents and order (via the backlog session, 2026-11-24): agent efficiency first (B-597, B-595, B-596, B-598), then the check flow (B-696), test load (B-576, B-574; B-542 waits), phone pushes (B-586), the release-age wait (B-705), and the hold flags (B-464, B-650). **Slice 41 goes first:** it splits `prompt.sh` and `ci.mjs`, which 42–46 then edit in their own parts; 47–49 run beside it. Never touch a running topic's hot files (`pnpm backlog prd list`: test-health-2's `vitest.config.ts`, `apps/web/test/`, sync paths, `router.int.test.ts`, `roundtrip.spec.mjs`, `sync-matrix*`; symptom-catalog's timeline paths). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain, and the orchestrator folds it. Not in this wave: B-542 (the unit-test worker cap lives in `vitest.config.ts`, test-health-2's; wave 7, which the user said not to run before the pause).
+
+### Slice 41: split ci.mjs and prompt.sh so an agent reads only the part it needs (B-597)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/ci/ci.mjs` (47 KB) and `scripts/loops/prompt.sh` (51 KB) are each read whole by agents changing one part.
+
+- **A refactor, no behaviour change.** `prompt.sh` becomes a thin dispatcher plus one file per prompt kind (orchestrator, plan, slice, the backlog/inbox/skeptic kinds, shared helpers such as `bye_line`), e.g. `scripts/loops/prompts/<kind>.sh` sourced by it; `pnpm prd prompt …` prints byte-identical text for every kind and flag. `ci.mjs` keeps its CLI and splits its subcommands into modules beside the existing `scripts/ci/*.mjs` (no file over about 15 KB); what other modules import from it stays importable.
+- A header comment in each says which part lives where, so an agent can open just that file.
+- Unit tests: the existing `prompt.test.mjs` and `ci.test.mjs` pass unchanged (move tests only if they follow the code); a new test compares every prompt kind's output before and after on a fixed plan (a golden file made from the pre-split script). Hand-off: the old and new file sizes, and the lines `machinery.md` should gain.
+
+### Slice 42: slice agents read only their slice's section and the decisions it cites (B-595)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md · Tests: unit · Blocked by: 41
+
+A slice agent's startup reads about 110 KB (the whole plan, the PRD, the role docs) while its own section is about 3 KB.
+
+- The slice prompt (`pnpm prd prompt slice`, its part after slice 41) embeds the slice's own section of the plan and the PRD's _Decisions_ rows or sections it names, instead of telling the agent to read the whole plan and PRD; it still names the section's `Reads` docs and `loop.md`. A plan with no PRD (a fixes topic) embeds only the section and the wave's intro paragraph.
+- `--continue` does the same.
+- Unit tests: a slice prompt on a fixture plan holds its own section and the wave intro, not another slice's text; a cited PRD decision is embedded and an uncited one isn't. Hand-off: the startup bytes before and after for one real slice of this plan, and the lines `loop.md` should change.
+
+### Slice 43: cap slice size at planning (B-596)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/planner.md · Tests: unit · Blocked by: 41
+
+test-gates slice 6 touched 15 files and took three Opus agents.
+
+- The planner prompt (and the plan skeptic's brief) gains the rule: a slice that would touch more than about 8 files, or more than one running topic's hot file, is split into slices that each land on their own.
+- `pnpm prd slice`'s merge side: when a slice's branch changes more than 12 files, the orchestrator's merge line (or `pnpm prd status`) warns once, so the next planning learns from it; no refusal.
+- Unit tests: the planner and plan-skeptic prompts carry the rule; the warning shows for a 13-file fixture branch and not for 8. Hand-off: the lines `planner.md` should gain.
+
+### Slice 44: a plan's Status stays short (B-598)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit · Blocked by: 41
+
+This plan's Status is 57 KB; every fresh orchestrator reads it.
+
+- Finished-wave history moves to `plans/<topic>-history.md`: a `pnpm prd status-trim <topic>` (or a name that fits `pnpm prd help`) moves every hand-off paragraph but the latest, and for a fixes plan the Status table's rows of slices whose wave has landed, into the history file (appended, newest first), leaving a one-line pointer. `fixes-plans.test.mjs`'s table rule keeps holding (allow the trimmed table; next slice number still comes from the highest slice in plan plus history).
+- The orchestrator prompt tells it to run the trim after each landing; `pnpm docs:budget` (or the plan check) warns when a plan's Status passes about 6 KB.
+- Unit tests: the trim on a fixture plan keeps the latest hand-off, the open rows and the landing mode, and moves the rest; a rerun changes nothing; the next-slice number survives a trim. Hand-off: the lines `orchestrator.md` should gain.
+
+### Slice 45: check-plan never hangs and never reports no changes by mistake (B-696)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit · Blocked by: 41
+
+On 2026-11-23 two orchestrators waited hours on `node scripts/loops/check-plan.mjs --base dev`: the CLI reads stdin to EOF before its flags (check-plan.mjs:150), and with empty stdin `--propose` prints "none / no changes".
+
+- Validate the arguments before reading stdin: require `--mode` or `--propose`, refuse unknown flags (exit 2 with usage).
+- With `--propose` and `--base`/`--head`, compute the diff itself (`git diff --name-only <base>...<head>`); read stdin only when no base is given.
+- One command prints the proposed tier for the branch (e.g. `pnpm prd tier [--base dev]`), named in the orchestrator prompt where it now says "the tier the check plan proposes".
+- Unit tests: `--base dev` alone exits 2 at once with stdin left open; `--propose --base` on a fixture repo with changes doesn't print "no changes"; stdin still works for `propose_tier`. Hand-off: the orchestrator rule for `orchestrator.md` (don't chain a lookup ahead of a long check; confirm a check holds a lease in `pnpm prd status` before reporting it running).
+
+### Slice 46: a hold keeps a row's other flags (B-464, B-650)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/backlog.md · Tests: unit · Blocked by: 41
+
+`pnpm backlog prd set <topic> flags=hold` replaces the flag list, so a hold drops `standing`, `alone` or `design`. The prompts (backlog run line, the planner report's veto line) and `dispatch.mjs` write it that way.
+
+- `prd set` gains an add and a remove form (e.g. `flags+=hold`, `flags-=hold`), keeping the others; plain `flags=` still replaces.
+- Every prompt line and `dispatch.mjs` call that holds or releases uses it.
+- Unit tests: `flags+=hold` on a `standing` row leaves `standing,hold`; `flags-=hold` leaves `standing`; adding a present flag changes nothing; the prompts' and dispatcher's hold lines use the add form. Hand-off: the line `backlog.md` should change.
+
+### Slice 47: confirm local lint no longer runs out of memory (B-576, B-574)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: none (measurement only)
+
+test-gates wave 4 (2991461a) gave local lint 6 GB; both items say to confirm no recurrence, then close.
+
+- Change nothing at first. Search the check logs and check-times records since 2991461a (all worktrees) for a lint step exiting 134 or a heap-limit message; then run `pnpm lint` 5 times at check-like load (a concurrent `pnpm test:tooling`), recording peak memory if the shell can show it (`/usr/bin/time -l`).
+- If none fails, hand off proposing close for both. If one does, show the cause and fix it in the lint script or ESLint config (not `vitest.config.ts`), with a unit test where one fits.
+- Hand-off: the logs searched, the runs, load, peak memory and the proposal.
+
+### Slice 48: the one-day wait on new packages is enforced (B-705)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+AGENTS.md says to keep `minimumReleaseAge`, but `pnpm-workspace.yaml` has none.
+
+- Add `minimumReleaseAge: 1440` (minutes) to `pnpm-workspace.yaml`; confirm pnpm 12.21.0 accepts the key (unknown keys fail) and `pnpm install --frozen-lockfile` still passes; no lockfile change.
+- A tooling unit test reads `pnpm-workspace.yaml` and fails without the key at 1440 or more.
+
+### Slice 49: why the backlog session's phone pushes don't arrive (B-586)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, docs/agents/backlog.md · Tests: none (investigation only)
+
+The item says: test with the user on the real phone before planning a fix or calling it fixed. Run-through can't do that, so this slice does the part that needs no phone and readies the test.
+
+- Change no code. Compare how each session kind is started (`--remote-control`, settings files such as `inbox-settings.json`, `context-settings.json`, `agentPushNotifEnabled`), what `pnpm prd ask` does for a push (`CARETOOK_ASK_NOTIFY`), and what differs between the backlog session and a managed `prd-` session or the dispatcher helper.
+- Hand-off: the differences found, the likely causes ranked, and a short phone test for the user (which session sends what, what to look for), which the orchestrator files as a question. No fix and no close.
