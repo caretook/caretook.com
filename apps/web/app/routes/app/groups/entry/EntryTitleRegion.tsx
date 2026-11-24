@@ -1,4 +1,5 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { Ref } from "react";
 import type { TitleState } from "./entryPage";
 
 import { useState } from "react";
@@ -16,6 +17,7 @@ export function EntryTitleRegion({
   kind,
   title,
   groupId,
+  inputRef,
   onCommit,
   onPick,
   onTextChange,
@@ -25,6 +27,8 @@ export function EntryTitleRegion({
   kind: TimelineEntryKind;
   title: string | null;
   groupId: string;
+  /** The title input, for the page to focus. */
+  inputRef?: Ref<HTMLInputElement>;
   onCommit: (title: string) => void;
   /** A suggested name was chosen. */
   onPick: (title: string) => void;
@@ -45,6 +49,7 @@ export function EntryTitleRegion({
       <EntryTitle
         value={state.value}
         placeholder={state.placeholder}
+        inputRef={inputRef}
         onCommit={onCommit}
         onTextChange={(text) => {
           setTyped(text);

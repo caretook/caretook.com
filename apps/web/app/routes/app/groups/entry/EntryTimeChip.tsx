@@ -2,6 +2,7 @@ import type { Schedule } from "~/lib/appointments/entrySchedule";
 
 import { CalendarClock } from "lucide-react";
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Button, Popover } from "~/components/ui";
 import { ScheduleFields } from "~/components/schedule";
 import { InlineCalendars } from "~/components/ui/date";
@@ -18,15 +19,20 @@ import { ENTRY_CHIP } from "./entryPage";
  * every keystroke. An end before the start shows the field's error: Done
  * stays open, and closing otherwise keeps what was saved.
  *
- * `pickDay` (a draft opened by Add appointment) opens the
- * popover and its calendar on arrival, and the first day picked starts at
- * 9:00. Later openings behave as usual.
+ * `pickDay` (a draft opened by Add event) opens the popover and its
+ * calendar on arrival, and the first day picked starts at the current hour.
+ * That first pick in the calendar (B-692) also closes the popover, saving
+ * the schedule, then calls `onFirstDayPick` inside the same tap (the page
+ * focuses the title, and iOS opens a keyboard only within a gesture; focus
+ * moved out of the popover isn't returned to the chip). Typing the
+ * date, and later openings, behave as usual.
  */
 export function EntryTimeChip({
   kind,
   schedule,
   timeZone,
   pickDay = false,
+  onFirstDayPick,
   onChange,
 }: {
   kind: "note" | "event";
@@ -34,6 +40,8 @@ export function EntryTimeChip({
   /** The entry's own zone, where an all-day item's day is. */
   timeZone: string;
   pickDay?: boolean;
+  /** `pickDay`'s first day picked in the calendar, just before the popover closes. */
+  onFirstDayPick?: () => void;
   /** Called with the new schedule when it differs from `schedule`. */
   onChange: (schedule: Schedule) => void;
 }) {
@@ -69,6 +77,16 @@ export function EntryTimeChip({
           timeZone={timeZone}
           pickDay={askDay}
           onEdit={(next) => (edited.current = next)}
+          onDayPick={
+            askDay
+              ? () => {
+                  // Closed now, so the popover no longer holds focus in; then the
+                  // page moves it, still inside the tap.
+                  flushSync(close);
+                  onFirstDayPick?.();
+                }
+              : undefined
+          }
           onDone={close}
         />
       )}
@@ -83,6 +101,7 @@ function SchedulePanel({
   timeZone,
   pickDay,
   onEdit,
+  onDayPick,
   onDone,
 }: {
   kind: "note" | "event";
@@ -90,6 +109,7 @@ function SchedulePanel({
   timeZone: string;
   pickDay: boolean;
   onEdit: (schedule: Schedule) => void;
+  onDayPick?: () => void;
   onDone: () => void;
 }) {
   const [schedule, setSchedule] = useState(initial);
@@ -103,6 +123,7 @@ function SchedulePanel({
         schedule={schedule}
         timeZone={timeZone}
         pickDay={pickDay}
+        onDayPick={onDayPick}
         onChange={(next) => {
           setSchedule(next);
           onEdit(next);
