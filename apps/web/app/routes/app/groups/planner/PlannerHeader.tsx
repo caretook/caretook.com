@@ -11,7 +11,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clearAuthor } from "~/lib/timeline/timelineFilters";
-import { listSearch, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
+import { listSearch, PLANNER_TODO_STATE, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
 
 type PlannerView = "upcoming" | "past";
@@ -115,9 +115,10 @@ export function PlannerHeader({
       id: "todo",
       label: "Todo",
       icon: ListTodo,
-      // On the Todos tab its chip is kept for the list under the sheet.
+      // On the Todos tab its chip is kept for the list under the sheet. From
+      // Upcoming or Past a save lands on Todos; Cancel goes back to the tab.
       href: appUrls.newTodo(groupId, {}, listSearch(search)),
-      state: TODO_SHEET_STATE,
+      state: view ? PLANNER_TODO_STATE : TODO_SHEET_STATE,
     },
   ];
 
