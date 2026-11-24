@@ -6,7 +6,7 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { CheckCheck, Clock, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
-import { PASS_TONE, PassUndoStatus, usePassLog } from "~/components/medications";
+import { PASS_TONE, PassExtraDoseWarnings, PassUndoStatus, usePassLog } from "~/components/medications";
 import {
   Badge,
   Button,
@@ -52,6 +52,7 @@ export function PassList({
   groupId,
   passes,
   today,
+  timeZone,
   canWrite,
   nameOf,
   onEdit,
@@ -60,6 +61,8 @@ export function PassList({
   passes: readonly PassWithMedications[];
   /** Today's state of each pass, by pass id (none when nothing in it falls today). */
   today: ReadonlyMap<string, DuePass>;
+  /** The recipient's zone, which today's dose times read in. */
+  timeZone: string;
   canWrite: boolean;
   /** A user's name as it reads here ("you" for the viewer). */
   nameOf: (userId: string) => string;
@@ -88,6 +91,7 @@ export function PassList({
             pass={pass}
             medications={medications}
             today={today.get(pass.id) ?? null}
+            timeZone={timeZone}
             canWrite={canWrite}
             nameOf={nameOf}
             onEdit={onEdit}
@@ -119,6 +123,7 @@ function PassRow({
   pass,
   medications,
   today,
+  timeZone,
   canWrite,
   nameOf,
   onEdit,
@@ -128,6 +133,7 @@ function PassRow({
   pass: LocalPass;
   medications: readonly LocalMedication[];
   today: DuePass | null;
+  timeZone: string;
   canWrite: boolean;
   nameOf: (userId: string) => string;
   onEdit: (pass: LocalPass) => void;
@@ -196,6 +202,7 @@ function PassRow({
             {logged}
           </p>
         )}
+        {today && <PassExtraDoseWarnings pass={today} timeZone={timeZone} className="mt-1" />}
       </div>
       {canWrite && (
         <div className="flex shrink-0 items-center gap-1 self-center">

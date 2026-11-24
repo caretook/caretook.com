@@ -53,11 +53,19 @@ export function usePassZoneNote() {
   );
 }
 
-/** Today's state of each named pass (Schedule's `DuePass`), by pass id, live; `initial` is the loader's `loadDueDoses`. */
-export function useTodayPasses(groupId: string, initial: DueDosesRows): ReadonlyMap<string, DuePass> {
-  const { due, passes } = useDueDoses(groupId, initial);
-  return useMemo(
+/**
+ * Today's state of each named pass (Schedule's `DuePass`), by pass id, live,
+ * and the recipient's zone it's read in (the cards' double-dose times);
+ * `initial` is the loader's `loadDueDoses`.
+ */
+export function useTodayPasses(
+  groupId: string,
+  initial: DueDosesRows,
+): { today: ReadonlyMap<string, DuePass>; timeZone: string } {
+  const { due, passes, timeZone } = useDueDoses(groupId, initial);
+  const today = useMemo(
     () => new Map(duePasses(due, passes).flatMap((p) => (p.passId ? [[p.passId, p] as const] : []))),
     [due, passes],
   );
+  return { today, timeZone };
 }
