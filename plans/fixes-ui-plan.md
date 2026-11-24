@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Wave 6** (session started 2026-11-24 after wave 5's landing): slices 49–58 written; base prd/fixes-ui 06a7d588 (dev f7d3ec8b plus docs). Asks a199–a201 decided by skeptics (B-698 Log opens the Dose sheet, B-700 Given all as Schedule, B-680 builds from its notes). Chains 54→55, 53+55→56, 57→58. Models: opus for all but 58 (sonnet). Still held, with why: B-684 and B-695 (app-wide sweeps, a wave each, after wave 6); B-693, B-697 (toast system B-669, onboarding-2 held); B-694 (user approves each form live); B-325 (Capacitor). Consent text in connectorRules.ts says "appointments": slice 49 leaves it (a consent change is the user's).
+**Wave 6** (session started 2026-11-24 after wave 5's landing): slices 49–58 written; base prd/fixes-ui 06a7d588 (dev f7d3ec8b plus docs). Asks a199–a201 decided by skeptics (B-698 Log opens the Dose sheet, B-700 Given all as Schedule, B-680 builds from its notes). Chains 54→55, 53+55→56, 57→58. Models: opus for all but 58 (sonnet). Still held, with why: B-684 and B-695 (app-wide sweeps, a wave each, after wave 6); B-693, B-697 (toast system B-669, onboarding-2 held); B-694 (user approves each form live); B-325 (Capacitor). Consent text in connectorRules.ts says "appointments": slice 49 left it (a consent change is the user's). At landing fold into connectors.md: `upcoming` is "Upcoming events and todos" (items `event`/`todo`), prompt `prepare_for_event` with arg `event`, `add_event` titled "Add an event"; no aliases.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,18 +19,18 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State          | Merge |
-| ----- | ----- | -------------- | ----- |
-| 49    | B-583 | running (opus) |       |
-| 50    | B-613 | running (opus) |       |
-| 51    | B-765 | running (opus) |       |
-| 52    | B-735 | running (opus) |       |
-| 53    | B-701 | running (opus) |       |
-| 54    | B-606 | running (opus) |       |
-| 55    | B-698 | written        |       |
-| 56    | B-700 | written        |       |
-| 57    | B-680 | running (opus) |       |
-| 58    | B-748 | written        |       |
+| Slice | Item  | State          | Merge    |
+| ----- | ----- | -------------- | -------- |
+| 49    | B-583 | merged (opus)  | aef5557c |
+| 50    | B-613 | running (opus) |          |
+| 51    | B-765 | running (opus) |          |
+| 52    | B-735 | running (opus) |          |
+| 53    | B-701 | running (opus) |          |
+| 54    | B-606 | running (opus) |          |
+| 55    | B-698 | written        |          |
+| 56    | B-700 | written        |          |
+| 57    | B-680 | running (opus) |          |
+| 58    | B-748 | written        |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
