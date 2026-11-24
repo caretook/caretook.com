@@ -2155,6 +2155,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729). Also tracks the sibling timelineBack test 'Back, then the filter that's on picked again' (was under B-568) [ci-key d923e28bf2a5].
 - 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729). Also tracks the sibling timelineBack test 'Back, then the filter that is on picked again' (was under B-568) [ci-key d923e28bf2a5].
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
 
 ### B-636 · change · Planner todo rows keep the old time column, so they align differently from event cards in the same list
 
