@@ -11,9 +11,11 @@
 | 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
 | 4     | 3    | landed (opus) in dev `faadbc1b`, PR #139 | `b57c2f99` (`336f9121`)                      |
 | 5     | 4    | landed (opus) in dev `35946394`, PR #141 | `2a3d7845` (`47bdd9a5`)                      |
-| 6     | 5    | —                                        | —                                            |
+| 6     | 5    | started (opus), worktree `inbox-agent-6` | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Now (2026-11-24): wave 5 running.** Ingest: nothing new; no new items for this topic. B-551 claimed; `inbox-agent-6` made and its opus agent spawned. Gate: it touches `scripts/loops/` (the browser harness counts), so land at integration.
 
 **Hand-over (2026-11-24): wave 4 landed; start wave 5 (slice 6) next.** Wave 4 landed in dev as `35946394` through PR #141 with `--no-review` (Codex out of credits), at CI integration green on `4468be44` (run 45376608990), after `sync --force` (`dbfb89a9`) because land refused an unsynced tip under the stale B-729 brake notice n83. Landing report a174; to-test file `to-test/2026-11-24-0543-inbox-agent.md`. Docs folded: machinery (inbox keep-alive and its trust gate, the pickup, `dir`, hook and opener for inbox; trimmed under dev's size) and inbox (trust gate, always on). B-515 done; `inbox-agent-5` removed. No slice in flight. Next: ingest, claim B-551 and start slice 6 (opus). Slice 5 notes for slice 6: `prompt.sh`'s inbox prompt has a hand-off line (`prd rotate --self`) and its size test allows 1900 characters; if `prd.sh inbox` refuses mid-rotation the record stays `rotating` and the keep-alive retries after the grace period. Slice 6 is the last wave: after it lands, `pnpm prd rm inbox-agent`, then `pnpm prd end` from the main checkout.
 
