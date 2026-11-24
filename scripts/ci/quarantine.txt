@@ -11,3 +11,4 @@ apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from 
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-776
 packages/data/src/services/accountAdmin.int.test.ts	accountAdminService.setRole makes an account support, admin and a member again, each with an audit entry	B-778
 packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-782
+apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx	scrolling newer from a day Back from an entry after loading newer restores the window	B-785
