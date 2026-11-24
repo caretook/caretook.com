@@ -142,4 +142,29 @@ describe("the symptom-type filter", () => {
     expect(rows().length).toBe(35);
     expect(rowNames().every((text) => text.includes("Nausea"))).toBe(true);
   });
+
+  test("nothing matching names the chosen types and offers every symptom again; with no type chosen, the old line", async () => {
+    const empty = () => document.querySelector("[data-empty]");
+    const device = await openTimeline({
+      query: `?kind=symptom&symptom=${KNEE.id}&symptom=${COUGH.id}`,
+      fixtures: [KNEE, COUGH, FALL, fx.symptom({ name: "Fall", occurredAt: minutesAgo(3) })],
+    });
+    await expect
+      .poll(() => empty()?.querySelector("p")?.textContent)
+      .toBe("No knee pain or cough on the timeline yet.");
+    expect(rows()).toEqual([]);
+
+    await userEvent.click(device.screen.getByRole("link", { name: "Show all symptoms" }));
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
+    await expect.poll(() => rows().length).toBe(1);
+    expect(empty()).toBeNull();
+  });
+
+  test("an unfiltered empty symptom list keeps its line, with nothing to clear", async () => {
+    const device = await openTimeline({ query: "?kind=symptom", fixtures: [KNEE, COUGH] });
+    await expect
+      .poll(() => document.querySelector("[data-empty] p")?.textContent)
+      .toBe("No symptoms on the timeline yet.");
+    expect(device.screen.getByRole("link", { name: "Show all symptoms" }).query()).toBeNull();
+  });
 });
