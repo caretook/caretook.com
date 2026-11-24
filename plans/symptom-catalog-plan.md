@@ -4,9 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 boundary done (ingest: nothing new; sync: up to date). B-758 decided by the skeptic (s24, ask a193, the user may veto): new slice 7, the words-inside rule needs the shorter name to have 2+ words; B-758 claimed. **Slice 4 started** (worktree symptom-catalog-4, opus agent, told not to touch `similarSymptoms`' rules). **Slice 7 handed off** (c9b1580b, quick check green; only symptomCatalog.ts and its unit test; merges after slice 4; note for docs: roundtrip.spec.mjs comment still names "Pain" as a similar-name example, stale). B-756 (fixes-ui) stays with fixes-ui.
+**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 (the last): slice 4 merged as f08fd876 (eac5e4df), slice 7 (B-758, decided by skeptic s24, ask a193: words-inside needs 2+ words) merged as e64bc270 (c9b1580b). B-549, B-758 marked done (ready). Worktrees 4 and 7 kept until the wave's verdict is green. **Wave gate:** `pnpm prd ci run components --wait` (tier proposal: components).
 
-**Next:** on hand-offs, merge in plan order (4, then 7), `backlog done B-549` after slice 4, `done B-758` after slice 7; then the wave's CI run (`pnpm prd tier`), PR, review, land; this is the last wave, so after landing `pnpm prd rm symptom-catalog` and `pnpm prd end`.
+**Next:** green → `pnpm prd rm symptom-catalog-4`, `-7`; `pnpm prd sync`; browser checks (`--suite` once: quick entry flow changed); PR, review (exit 4: `--no-review`), land `--tier components`; fold docs (assistant/connectors: the parser's `symptoms` context, the card's Use/Add new question that Save waits for, the runner adding the catalog row, `log_symptom` taking the catalog's spelling; timeline: words-inside needs 2+ words; roundtrip.spec.mjs comment still names "Pain" as a similar example, stale); `status-trim`; `pnpm prd rm symptom-catalog`, `pnpm prd end`.
 
 **For slice 4 (from slices 2 and 3):** `quickEntry.sync.ts` doesn't add the catalog row locally yet: call `addSymptomTypeIn(tx, …)` (`symptomTypes.sync.ts`) inside its transaction; keep `symptomTypeColumn`; match names through `similarSymptoms`/`symptomKey` (`symptomCatalog.ts`). `ui-kit-3` holds `QuickEntryCard`: sync first, keep the card change small. A test that asserts the upload queue after a new symptom name sees the `symptom_type` PUT first (see `device.browser.test.tsx`).
 
@@ -21,10 +21,10 @@
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
 | 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
 | 3     | 3    | landed      | 8e7cca8f (3c3f8466), fix ab9b42e8 (fff9414a)     |
-| 4     | 4    | started     |                                                  |
+| 4     | 4    | merged      | f08fd876 (eac5e4df)                              |
 | 5     | 3    | landed      | 27ad45f3 (d78e5483)                              |
 | 6     | 3    | landed      | 625e47ec (0202848a)                              |
-| 7     | 4    | handed off  |                                                  |
+| 7     | 4    | merged      | e64bc270 (c9b1580b)                              |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
