@@ -16,7 +16,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
 | `test-gates` | done | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
-| `fixes-tooling` | standing | `test-gates` | `scripts/loops/prompt`, `scripts/ci/ci.mjs`, `scripts/ci/`, `scripts/loops/check-plan`, `scripts/loops/prd.sh`, `scripts/loops/dispatch`, `scripts/loops/fixes-plans`, `scripts/loops/doc-budget`, `scripts/backlog/`, `pnpm-workspace.yaml`, `package.json`, `eslint.config.js` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
+| `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
 | `agent-autonomy` | done | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
 | `agent-autonomy-2` | done | — | `scripts/loops/session`, `scripts/loops/context`, `scripts/loops/prompt.sh`, `scripts/loops/rotate`, `scripts/loops/open-session`, `scripts/loops/recover`, `scripts/loops/tidy`, `scripts/loops/end-session`, `scripts/loops/request` | [PRD](agent-autonomy-2-prd.md), [plan](agent-autonomy-2-plan.md) (B-507, B-508, B-509): 2 slices in 2 waves: a context hook that tells a session past 160k to rotate, sizes in status, the dispatcher's follow-up. Cut from agent-autonomy by its planner. Tooling only |
 | `test-gates-2` | done | `test-gates` | `.github/workflows/ci.yml`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `scripts/loops/browser.sh`, `scripts/loops/serve.sh`, `scripts/loops/check-plan`, `scripts/loops/check-areas.d/`, `scripts/loops/prd.sh`, `vitest.config.ts`, `ops/runbook.md` | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
@@ -214,7 +214,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-461 | bug | landed | fixes-tooling | prd/fixes-tooling | tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x |
 | B-462 | bug | triaged | self-recovery |  | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
 | B-463 | bug | triaged | self-recovery |  | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
-| B-464 | bug | ready | fixes-tooling | prd/fixes-tooling | The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone |
+| B-464 | bug | landed | fixes-tooling | prd/fixes-tooling | The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone |
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | staging | fixes-tooling | prd/fixes-tooling | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
@@ -254,17 +254,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-568 | bug | landed | fixes-tooling | prd/fixes-tooling | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-570 | bug | staging | fixes-tooling | prd/fixes-tooling | Session request notices can exceed the notice board's 200 characters and get dropped |
 | B-573 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
-| B-574 | bug | ready | fixes-tooling | prd/fixes-tooling | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
-| B-576 | bug | ready | fixes-tooling | prd/fixes-tooling | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
+| B-574 | bug | landed | fixes-tooling | prd/fixes-tooling | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
+| B-576 | bug | landed | fixes-tooling | prd/fixes-tooling | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
 | B-582 | bug | landed | fixes-tooling | prd/fixes-tooling | MCP rate-limit integration test times out at 5 s under machine load |
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
-| B-586 | bug | ready | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
+| B-586 | bug | landed | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
 | B-594 | change | triaged | fixes-ui |  | Manage allergies on the Profile page; Medications keeps a read-only summary |
-| B-595 | chore | ready | fixes-tooling | prd/fixes-tooling | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
-| B-596 | chore | ready | fixes-tooling | prd/fixes-tooling | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
-| B-597 | chore | ready | fixes-tooling | prd/fixes-tooling | Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs |
-| B-598 | chore | ready | fixes-tooling | prd/fixes-tooling | Keep a plan's Status short by moving finished-wave history out of it |
+| B-595 | chore | landed | fixes-tooling | prd/fixes-tooling | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
+| B-596 | chore | landed | fixes-tooling | prd/fixes-tooling | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
+| B-597 | chore | landed | fixes-tooling | prd/fixes-tooling | Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs |
+| B-598 | chore | landed | fixes-tooling | prd/fixes-tooling | Keep a plan's Status short by moving finished-wave history out of it |
 | B-600 | change | staging | fixes-tooling | prd/fixes-tooling | Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type |
 | B-606 | feature | triaged | fixes-ui |  | Highlight a double dose on a next-dose-due notification |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
@@ -287,7 +287,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-642 | bug | landed | fixes-tooling | prd/fixes-tooling | Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday |
 | B-645 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-649 | bug | triaged | fixes-tooling |  | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
-| B-650 | bug | ready | fixes-tooling | prd/fixes-tooling | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
+| B-650 | bug | landed | fixes-tooling | prd/fixes-tooling | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
 | B-653 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-654 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-658 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
@@ -320,7 +320,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-695 | change | triaged | fixes-ui |  | Rename "passes" to "Med times" everywhere users see it |
-| B-696 | bug | ready | fixes-tooling | prd/fixes-tooling | check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours |
+| B-696 | bug | landed | fixes-tooling | prd/fixes-tooling | check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours |
 | B-697 | change | triaged | fixes-ui |  | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
 | B-698 | change | triaged | fixes-ui |  | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
 | B-699 | bug | triaged | fixes-ui |  | Medication page: Back returns to where you came from, not always the Medications list |
@@ -328,7 +328,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-701 | change | triaged | fixes-ui |  | Passes always sort by time: remove Move up and Move down |
 | B-702 | bug | triaged | fixes-ui |  | Medications Print menu: text overflows or crowds the menu box |
 | B-704 | bug | landed | fixes-tooling | prd/fixes-tooling | browser.test.mjs can leave its fixture's process group running when the test is interrupted |
-| B-705 | chore | ready | fixes-tooling | prd/fixes-tooling | Enforce the one-day wait on new packages: minimumReleaseAge is missing from pnpm-workspace.yaml |
+| B-705 | chore | landed | fixes-tooling | prd/fixes-tooling | Enforce the one-day wait on new packages: minimumReleaseAge is missing from pnpm-workspace.yaml |
 | B-716 | bug | landed | fixes-tooling | prd/fixes-tooling | phase2 browser check: offline, then reconnect times out waiting for the entry written elsewhere under load |
 | B-720 | chore | triaged | fixes-tooling |  | Confirm dev syncs that share no files with a branch no longer trigger a second CI run |
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
@@ -374,6 +374,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-767 | bug | triaged | fixes-tooling |  | A backlog amend repeats the Backlog-Tool trailer in the commit message |
 | B-768 | bug | triaged | fixes-tooling |  | slice-fields.mjs warns on a slice fields line that carries Blocked by |
 | B-769 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx: the New care group sheet the group menu's New c… |
+| B-770 | bug | dropped | fixes-tooling |  | pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy |
+| B-771 | bug | triaged | fixes-tooling |  | prd sync skips dev's CI list updates (quarantine, brake list) |
 
 ## Items
 
@@ -1411,7 +1413,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-464 · bug · The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 8c921e3e
@@ -1873,7 +1875,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-574 · bug · ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c3eb9ee2
@@ -1885,7 +1887,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-576 · bug · Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c3eb9ee2
@@ -1930,7 +1932,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-586 · bug · Phone notifications from the backlog session never arrive
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: e9ba13d8
@@ -1952,7 +1954,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-595 · chore · Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 53481483
@@ -1962,7 +1964,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-596 · chore · Cap slice size at planning: split a slice touching more than about 8 files or several hot files
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 53481483
@@ -1972,7 +1974,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-597 · chore · Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c3eb9ee2
@@ -1982,7 +1984,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-598 · chore · Keep a plan's Status short by moving finished-wave history out of it
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 8c921e3e
@@ -2156,6 +2158,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729). Also tracks the sibling timelineBack test 'Back, then the filter that is on picked again' (was under B-568) [ci-key d923e28bf2a5].
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
 
 ### B-636 · change · Planner todo rows keep the old time column, so they align differently from event cards in the same list
 
@@ -2228,7 +2232,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-650 · bug · Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 8c921e3e
@@ -2251,6 +2255,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (prd/symptom-catalog): Still flaking after landing: symptom-catalog runs 45427105181 and 45433991590 (2026-11-24), 15 s test timeout under load; 3/3 alone at load ~73.
 - 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729); a184's light-load re-measure missed it.
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
 
 ### B-654 · bug · CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai…
 
@@ -2572,7 +2577,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-696 · bug · check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 8c921e3e
@@ -2646,7 +2651,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-705 · chore · Enforce the one-day wait on new packages: minimumReleaseAge is missing from pnpm-workspace.yaml
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c3eb9ee2
@@ -3085,3 +3090,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 02b5c8552f3e] Flaked (passed on its rerun); found by prd/symptom-catalog.
+
+### B-770 · bug · pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy
+
+- status: dropped
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling wave 6: dev restored the quarantine at 3aa912d3; unsynced.sh unsynced_commits counts the CI lists as no drift, so sync said up to date and the branch kept the emptied list (merged by hand, e6247bcf). Sync should merge when dev changed the CI lists; reported by the backlog session.
+- 2026-11-24 (prd/fixes-tooling): Duplicate of B-771 (prd sync skips dev's CI list updates), filed by the backlog session on the user's word.
+
+### B-771 · bug · prd sync skips dev's CI list updates (quarantine, brake list)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: trunk_drift (scripts/loops/lib.sh:262) and unsynced_commits (unsynced.sh:117) drop scripts/ci/quarantine.txt and brake-list.txt, so prd sync / dev-sync --force call a branch current while it holds a stale list; CI reads the branch's own copy (scripts/ci/lists.mjs). Hit when 326c611d emptied the quarantine and 3aa912d3 restored it: fixes-tooling merged origin/dev by hand (e6247bcf). Want: sync pulls list-only drift (a merge that keeps the recorded pass, as keeps_check already allows) and a CI run warns or pulls when its lists trail dev. Lists still shouldn't count as code drift for land/recheck.
+- 2026-11-24 (prd/fixes-tooling): Same as dropped B-770. Seen in fixes-tooling wave 6: sync --force skipped 3aa912d3's quarantine restore; merged by hand as e6247bcf. Next fixes-tooling wave (after the post-wave-6 pause).
