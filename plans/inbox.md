@@ -9,6 +9,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page. (B-735)
 - On the timeline, after jumping to a day, trying to scroll always takes you back to that day. (B-736)
   Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
+- Inbox agent opened with Opus medium instead of low.
 
 ## Change requests
 
