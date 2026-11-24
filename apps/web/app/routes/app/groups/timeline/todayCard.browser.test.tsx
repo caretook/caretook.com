@@ -374,6 +374,8 @@ describe("the appointment row", () => {
 
 describe("collapsing the card", () => {
   const expanded = () => toggle().getAttribute("aria-expanded");
+  const region = () => document.getElementById(toggle().getAttribute("aria-controls") ?? "")!;
+  const seconds = (list: string) => list.split(",").map((t) => parseFloat(t));
   const summary = () => CARD()?.querySelector<HTMLElement>("[data-today-summary]") ?? null;
   const part = (name: string) =>
     summary()?.querySelector<HTMLElement>(`[data-summary-part="${name}"]`) ?? null;
@@ -386,14 +388,49 @@ describe("collapsing the card", () => {
       .poll(() => summary()?.textContent)
       .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 todo today");
     expect(expanded()).toBe("false");
-    expect(document.getElementById(toggle().getAttribute("aria-controls") ?? "")?.hidden).toBe(true);
-    expect(row("vitals")?.checkVisibility()).toBe(false);
+    expect(region().hasAttribute("data-open")).toBe(false);
+    expect(row("vitals")?.checkVisibility({ visibilityProperty: true })).toBe(false);
 
     await userEvent.click(toggle());
     await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
     expect(summary()).toBeNull();
     await userEvent.click(toggle());
     await expect.poll(expanded).toBe("false");
+  });
+
+  test("its rows slide open and shut through Collapse, like a day's summary; closed, none takes focus", async () => {
+    await open(EVERYTHING);
+    await expect.poll(shownRows).toHaveLength(4);
+    // aria-controls names the collapsing region, which holds the rows.
+    expect(region().dataset.collapse).toBe("block");
+    expect(region().contains(row("vitals"))).toBe(true);
+    // The same slide and duration as the chevron that turns with it.
+    const chevron = toggle().querySelector("svg")!;
+    expect(seconds(getComputedStyle(region()).transitionDuration)).toContain(0.24);
+    expect(seconds(getComputedStyle(chevron).transitionDuration)).toContain(0.24);
+    const collapsedHeight = toggle().getBoundingClientRect().height;
+
+    // Closed: inert, and Tab from the toggle goes past every row.
+    expect(region().inert).toBe(true);
+    toggle().focus();
+    await userEvent.tab();
+    expect(region().contains(document.activeElement)).toBe(false);
+
+    await userEvent.click(toggle());
+    await expect.poll(() => region().hasAttribute("data-settled")).toBe(true);
+    expect(region().inert).toBe(false);
+    // The header line keeps its height as the summary goes.
+    expect(summary()).toBeNull();
+    expect(toggle().getBoundingClientRect().height).toBe(collapsedHeight);
+    toggle().focus();
+    await userEvent.tab();
+    expect(region().contains(document.activeElement)).toBe(true);
+
+    await userEvent.click(toggle());
+    await expect.poll(expanded).toBe("false");
+    expect(region().inert).toBe(true);
+    await expect.poll(() => row("vitals")?.checkVisibility({ visibilityProperty: true })).toBe(false);
+    expect(toggle().getBoundingClientRect().height).toBe(collapsedHeight);
   });
 
   test("on a narrow phone the counts stay whole; the rest is cut off", async () => {
