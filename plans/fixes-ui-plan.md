@@ -12,7 +12,7 @@ Waves 1–3 landed (PR #78, #84, #86); details in the history file.
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-**Session 2 (resumed 2026-11-24 after the mid-wave rotation):** merged 18, 20, 21, 24, 25, 30, 32, 33. Respawned with `--continue` (opus): 19 (B-663), 22 (B-683), 26 (B-687), 29 (B-668); each branch had its commit, clean worktree. 31 (B-678): worktree made this session, agent spawned (opus), item claimed. Then: 23 after 22 merges; 27 after 26; 28 after 27. The wave gate after all 16 merge: the hand dev merge below, then `pnpm prd tier` and `pnpm prd ci run <tier> --wait`. Docs to fold at landing: ui-kit.md (ChoiceGroup `layout="grid"`), care-periods.md (type grid), care-groups.md (RoleHelp, `GROUP_ROLES` sees/changes; member rows show no role description on purpose), providers.md (phone label select with Custom), medications.md (Back origin via `lib/medications/medicationOrigin.ts`). Slice 33 touched 13 files (hook warned): split earlier next time.
+**Session 2 (resumed 2026-11-24 after the mid-wave rotation):** merged 18, 20, 21, 24, 25, 30, 32, 33. Respawned with `--continue` (opus): 19 (B-663), 22 (B-683), 26 (B-687), 29 (B-668); each branch had its commit, clean worktree. 31 (B-678): worktree made this session, agent spawned (opus), item claimed. Merged 26 (3c1d55a1, adds `CreateResult` in `lib/core/api.ts`) and 29 (760dca52, ComboBox `opensOn="typing"`, for ui-kit.md at landing); 27 started (opus). Then: 23 after 22 merges; 27 after 26; 28 after 27. The wave gate after all 16 merge: the hand dev merge below, then `pnpm prd tier` and `pnpm prd ci run <tier> --wait`. Docs to fold at landing: ui-kit.md (ChoiceGroup `layout="grid"`), care-periods.md (type grid), care-groups.md (RoleHelp, `GROUP_ROLES` sees/changes; member rows show no role description on purpose), providers.md (phone label select with Custom), medications.md (Back origin via `lib/medications/medicationOrigin.ts`). Slice 33 touched 13 files (hook warned): split earlier next time.
 
 **CI hold lifted:** the third components shard landed on dev as 2aff6468. **At the wave boundary (not mid-wave), sync by hand until B-771 lands** (`pnpm prd sync` can miss dev's CI lists): `git fetch origin && git merge origin/dev -m "chore(fixes-ui): merge dev into prd/fixes-ui"`; then `git diff origin/dev -- .github/workflows/ci.yml scripts/` shows only our changes (the merge is also what brings in new loop tooling: `pnpm prd` runs this worktree's `scripts/loops/`), `ci.yml` has `components-3`, `scripts/ci/quarantine.txt` has the B-633, B-653 and B-769 lines; `pnpm install` if the lockfile moved. Tell the user if that merge conflicts. The first components run is components-3's first real test: report anything odd from it.
 
@@ -48,10 +48,10 @@ Notes for every wave:
 | 23    | B-763 | waits (opus)                |          |
 | 24    | B-685 | merged (opus)               | 4fee8d5d |
 | 25    | B-686 | merged (opus)               | 948eebc8 |
-| 26    | B-687 | respawned --continue (opus) |          |
-| 27    | B-688 | waits (opus)                |          |
+| 26    | B-687 | merged (opus)               | 3c1d55a1 |
+| 27    | B-688 | started (opus)              |          |
 | 28    | B-674 | waits (sonnet)              |          |
-| 29    | B-668 | respawned --continue (opus) |          |
+| 29    | B-668 | merged (opus)               | 760dca52 |
 | 30    | B-677 | merged (opus)               | 7603ae58 |
 | 31    | B-678 | started (opus)              |          |
 | 32    | B-629 | merged (opus)               | 4cbcd7b2 |
