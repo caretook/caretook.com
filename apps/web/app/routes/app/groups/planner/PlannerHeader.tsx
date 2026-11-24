@@ -12,7 +12,9 @@ import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clearAuthor } from "~/lib/timeline/timelineFilters";
 import { listSearch, PLANNER_TODO_STATE, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
+import { plannerReturnState } from "~/lib/appointments/plannerReturn";
 import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
+import { usePlannerOpener } from "./usePlannerOpener";
 
 type PlannerView = "upcoming" | "past";
 type PlannerAuthor = { userId: string; name: string; image: string | null };
@@ -93,6 +95,7 @@ export function PlannerHeader({
     () => (view ? plannerFilters(search, view, show, author) : null),
     [search, view, show, author],
   );
+  const eventOpener = usePlannerOpener(true);
   const upcoming = appUrls.planner(groupId);
   const tabs = [
     {
@@ -110,6 +113,8 @@ export function PlannerHeader({
       label: "Event",
       icon: CalendarPlus,
       href: appUrls.newPlannerEntry(groupId, "event"),
+      // Its back link returns to the Planner: Upcoming or Past by its time once saved (B-690).
+      state: plannerReturnState(eventOpener),
     },
     {
       id: "todo",
