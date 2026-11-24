@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/sync-safety` (slice commits) |
-| ----- | ---- | -------------- | -------------------------------------------- |
-| 1     | 1    | landed (opus)  | 5a140ed9 (8cc4d866, 2e34d947)                |
-| 2     | 1    | landed (opus)  | 385a1ba8 (a67973a0)                          |
-| 3     | 2    | started (opus) |                                              |
-| 4     | 2    | merged (opus)  | 8e5032d4 (a6c85065)                          |
-| 5     | 2    | started (opus) |                                              |
-| 6     | 1    | landed (opus)  | f4c6ad13 (a822dcba, 625bf09a)                |
+| Slice | Wave | State                     | Merge into `prd/sync-safety` (slice commits) |
+| ----- | ---- | ------------------------- | -------------------------------------------- |
+| 1     | 1    | landed (opus)             | 5a140ed9 (8cc4d866, 2e34d947)                |
+| 2     | 1    | landed (opus)             | 385a1ba8 (a67973a0)                          |
+| 3     | 2    | built (opus), waits for 5 | (62ba5822, 22c41a57; to remerge prd after 5) |
+| 4     | 2    | merged (opus)             | 8e5032d4 (a6c85065)                          |
+| 5     | 2    | started (opus)            |                                              |
+| 6     | 1    | landed (opus)             | f4c6ad13 (a822dcba, 625bf09a)                |
 
 **Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
 
