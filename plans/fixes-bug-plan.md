@@ -92,20 +92,22 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
 | 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
 | 48    | B-675 | landed                                     | 3d8e9cf5 |
-| 49    | B-615 | merged (opus), ask a161                    | ec9155df |
-| 50    | B-717 | merged (opus)                              | 16156d44 |
-| 51    | B-718 | merged (opus)                              | 01632c12 |
-| 52    | B-719 | merged (opus)                              | 09e91a94 |
-| 53    | B-706 | merged (opus)                              | b692a863 |
-| 54    | B-707 | merged (opus)                              | db29dbe1 |
-| 55    | B-708 | merged (opus)                              | b965c5cd |
-| 56    | B-709 | merged (opus)                              | 4d419f6f |
-| 57    | B-710 | merged (opus)                              | 2767bd9d |
-| 58    | B-711 | merged (opus)                              | 00c8c823 |
-| 59    | B-712 | merged (opus)                              | 57459518 |
-| 60    | B-713 | merged (opus)                              | 417c0719 |
-| 61    | B-714 | merged (opus)                              | e1fb3268 |
-| 62    | B-729 | merged (opus, test only)                   | 7c92d280 |
+| 49    | B-615 | landed (ask a161)                          | ec9155df |
+| 50    | B-717 | landed                                     | 16156d44 |
+| 51    | B-718 | landed                                     | 01632c12 |
+| 52    | B-719 | landed                                     | 09e91a94 |
+| 53    | B-706 | landed                                     | b692a863 |
+| 54    | B-707 | landed                                     | db29dbe1 |
+| 55    | B-708 | landed                                     | b965c5cd |
+| 56    | B-709 | landed                                     | 4d419f6f |
+| 57    | B-710 | landed                                     | 2767bd9d |
+| 58    | B-711 | landed                                     | 00c8c823 |
+| 59    | B-712 | landed                                     | 57459518 |
+| 60    | B-713 | landed                                     | 417c0719 |
+| 61    | B-714 | landed                                     | e1fb3268 |
+| 62    | B-729 | landed (test only)                         | 7c92d280 |
+| 63    | B-726 | merged (green)                             | 731dd3fa |
+| 64    | B-728 | merged (green)                             | 5f29ce60 |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
@@ -119,6 +121,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 - **Docs at landing:** `connectors.md` and `medications.md` (`log_dose` slot identity, "Already logged", the repeat rule); `assistant.md` _Doses_ (`asksAmount` is for a given dose only; at budget, trim); `calendars.md` (reload on an outdated consent; at budget, trim). `docs/agents/machinery.md` is 8 B over budget from before this wave: don't grow it.
 - **Still held:** B-689, B-690, B-715 (member-avatars holds the Planner folder).
 - **Resumed after the mid-wave rotation (2026-11-23); git matched this Status.** Nothing merged, 50–61 clean at the SHAs above, `prd/fixes-bug` is 35 commits behind `dev`. Slice 49 respawned with `--continue` on opus to confirm its tests and check on 4b5bc80d. Its slice check passed on 4b5bc80d (30 of 30 integration tests). **All of 49 to 61 are merged (tip e1fb3268); worktrees stay until the wave is green.** The landing report must say: a `log_dose` that leaves out the amount or note counts as a repeat of the recorded dose (`saysTheSame`), so a real second dose logged bare reports "Already logged"; this is looser than a161's wording. Synced with dev as 64d52d8c (no migration or sync config change); `components` CI requested on the synced tip, no quick check. **`components` CI on 4bd1a186: `brake`** (run 45258699609), one failure: `syncMedications.int.test.ts` "two members' doses for one slot keeps Given and Skipped as two rows". It fails on dev too (inbox-agent's narrowed run 45259937817 on 54a43bf1; our blame returned unknown, GitHub unreachable), filed as B-729 to fixes-bug. **Slice 62 (B-729) started on opus** to find the cause and fix it; inbox-agent-37 waits on it (told yes; message it when B-729 lands in dev). No rotation until 62 is merged and the wave is green. Slice 62 merged as 7c92d280: the test read due slots at the real clock, so after 20:00 UTC the dose answered tomorrow's slot; test only, no app change. **`components` CI green on 3f0707eb (run 45358073493).** Slice worktrees 49-62 removed; database migrated, server restarted (no sync config change since wave 11, so no PowerSync restart); docs folded (medications, connectors, assistant, calendars, all under 10 KB). `browser --changed --base dev` running (pulls the lean set; run once). **Next:** `pnpm datastore:migrate` (never reset), PowerSync restart if `sync-config.yaml` changed, `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev` once, `pnpm prd rm` slices 49-61, fold docs, `pnpm prd pr fixes-bug`, review, land `--tier components`.
+
+**Wave 12 landed in dev through PR #135 as bcf6ffff** (2026-11-24): `components` CI green on 3f0707eb (run 45358073493), `browser --changed --base dev` 11/11 (lean set included). **Codex did not review it** (out of credits, `--no-review`). Report: ask a166. To-test: `to-test/2026-11-24-0353-fixes-bug.md`. Docs folded (medications, connectors, assistant, calendars; all within a few bytes of 10 KB: trim when adding). Slice worktrees removed. B-729 (the dev brake) was a test reading due slots at the real clock; inbox-agent-37 was told it's in dev.
+
+**Next session (wave 13):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 13 from the triaged items: B-726 (a retried dose upload after a time edit), and B-689, B-690, B-715 once member-avatars no longer holds `routes/app/groups/planner/`. B-728 (repeat preview pairs the recipient's day with the viewer's time) needs a product choice first: ask through `pnpm prd ask` before planning it.
+
+**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); skeptic s20 decided A (ask a168, filed for veto under "decided for you"); slice 64 (B-728) on opus. **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`); a background watch exits when its row leaves `running`, and they become a later wave (this one only if 63 and 64 are still in flight). **Both merged** (63 as 731dd3fa after a quick check on f5b17cc3; 64 as 5f29ce60 after a quick check on dffccc4f); worktrees stay until the wave is green. No migration. `browser --changed --base dev --list` names no check for this diff (none run). Database migrated, server restarted on the tip. **Docs folded** (`medications.md`, now 10 230 B; `appointments.md`; `sync.md` has no upload rule to change). Were: `medications.md` and `sync.md` _On upload_: every accepted dose upload is recorded in `dose_duplicate_upload` (the name dates from B-627), not only duplicates and restores; server-written doses (connector, assistant, Given all round) aren't. `appointments.md` _Repeating_: a timed visit's preview line is its day and time in the viewer's zone (B-728). Hand test for the report: the repeat preview in a browser set to another zone than the group's. **`components` CI green on 9d3f2e2c (run 45362438054; one quarantined failure, `scripts/loops/lease.test.mjs`, not this branch's).** Slice worktrees 63-64 removed; `prd sync` needs no merge. **Next:** `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): retried dose uploads leave undone doses undone, repeat preview in the viewer's zone (B-726, B-728)"`. No Status commit between the review and the landing. The report names ask a168 (B-728 decided, vetoable) and the hand test: the repeat preview with the browser in another zone than the group's.
 
 ## Wave 1
 
@@ -745,3 +753,28 @@ A brake on `dev` (54a43bf1) and on this branch: `packages/api/src/syncMedication
 - If the app is wrong, fix it so two members' doses for one slot keep both rows and the earlier reads the slot, without undoing B-719's retry rule or B-614/B-616's "an upload leaves another member's dose alone".
 - If the test is stale, correct its expectation without weakening what it asserts.
 - The test passes, and `timelineEntry.int.test.ts` still passes.
+
+## Wave 13
+
+As before: **first confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it and change no app code. Stay out of `routes/app/groups/planner/` and member-avatars' other hot files (`pnpm backlog prd list`), and out of `vitest.config.ts` and `scripts/ci/`.
+
+### Slice 63: a retried dose upload after a time edit can't bring back an undone dose (B-726)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+Slice 52 (B-719) records a restore's displaced author and restoring upload in `dose_duplicate_upload`, but two gaps remain (read from the code, no test yet): (1) another member edits the dose's time before the restore, so the displaced row's `occurred_at` no longer matches A's original upload and A's retry isn't recognised; (2) with no restore at all, A's upload loses its response, the time is edited, someone deletes the dose, and A's retry reads as a new tap and brings it back.
+
+- A retry of an accepted dose upload is recognised whatever happened to the row since (a time edit, a restore, a delete), and leaves an undone dose undone. Recording every accepted dose upload is the likely shape; if so, keep any migration additive.
+- A genuine new log of that dose still works as it does today, and B-719's, B-614's and B-616's rules still hold (an upload leaves another member's dose alone; two members' doses for one slot stay two rows).
+- Integration tests in `packages/api/src/syncMedications.int.test.ts` (or beside it): both scenarios above end with the dose still deleted; a fresh log after a delete still records.
+
+### Slice 64: the repeat preview reads each visit in the viewer's zone (B-728)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`visitLabel` in `apps/web/app/components/repeat/RepeatField.tsx` formats the series day (the recipient's zone) as the day and the visit's start instant in the viewer's zone as the time, so a Wed 10:00 PM Los Angeles visit reads "Wed, 1:00 AM" in New York. Decided (skeptic s20, ask a168, the user can veto): a timed visit's line shows its day and time both in the viewer's zone, as the Planner and the entry page do.
+
+- A timed visit's line is the start instant's day and time in the viewer's zone ("Thu, 1:00 AM" for that viewer).
+- An all-day visit keeps its series day (no zone shift).
+- Leave `SeriesEditSheet`'s start and end pickers as they are (they use the series' zone; a separate item if anything).
+- Component test in `entryRepeat.browser.test.tsx`: a late-evening Los Angeles visit read in New York shows the next day; it passes under both `TZ=America/New_York` and `TZ=America/Los_Angeles` (with `CARETOOK_TEST_ZONE` set to match).
