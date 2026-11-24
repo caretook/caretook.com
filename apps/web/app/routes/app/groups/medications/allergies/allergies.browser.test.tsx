@@ -69,10 +69,11 @@ describe("the summary", () => {
     expect(region().text).toBe("Allergies: Penicillin (hives, severe) · Sulfa (rash, mild)");
     expect(severe()).toEqual(["Penicillin (hives, severe)"]);
     // Manage is its only control: nothing here edits.
-    expect([...REGION()!.querySelectorAll("a, button")]).toEqual([MANAGE()]);
-    expect(MANAGE()!.getAttribute("href")).toBe(`${PROFILE}/allergies`);
+    const manage = await found(MANAGE);
+    expect([...(REGION()?.querySelectorAll("a, button") ?? [])]).toEqual([manage]);
+    expect(manage.getAttribute("href")).toBe(`${PROFILE}/allergies`);
 
-    await userEvent.click(MANAGE()!);
+    await userEvent.click(manage);
     await waitUntil(() => !!SHEET(), "the profile's allergies sheet");
     expect(device.location()).toBe(`${PROFILE}/allergies`);
     expect(document.querySelector("[data-profile]")).not.toBeNull();
@@ -94,7 +95,7 @@ describe("the summary", () => {
     await waitUntil(() => !!MANAGE(), "the summary");
     expect(region().text).toContain("Penicillin (hives, severe)");
     expect(severe()).toEqual(["Penicillin (hives, severe)"]);
-    expect(MANAGE()!.getAttribute("href")).toBe(`${PROFILE}/allergies`);
+    expect((await found(MANAGE)).getAttribute("href")).toBe(`${PROFILE}/allergies`);
   });
 
   test("a viewer reads the summary with no controls", async () => {
