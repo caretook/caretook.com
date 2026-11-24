@@ -14,6 +14,8 @@ Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the to
 
 **Wave 5 hand-over (session 3 rotates for context, 2026-11-24):** slices 34, 36–41, 43–45, 47 merged into prd/fixes-ui in plan order with no conflicts (tip da9de73f; items marked done). Their worktrees stay until the wave's verdict is green; their agents are gone, so a CI failure goes to a fresh `--continue` agent in that slice's worktree. **Next:** start slices 35 (B-672, reuse `lib/core/nameSuggestions.ts` `suggestNames`; the form is now `profile/allergies/AllergyForm.tsx`), 42 (B-762, the card is a button since slice 41), 46 (B-692, slice 45 returns focus to "Pick a date" after an inline calendar closes: take over that target on the first pick), 48 (B-737; `?day=` unchanged by slice 47), all on opus; merge them; then the wave's CI run (`pnpm prd tier`; at least integration, slice 37 touches `packages/`). Risks for the run: slice 40's tips panel shows in every empty quick entry box (other quick entry tests may trip on it); slice 45 made every `PopoverPanel` scroll inside; slice 36 changed `ui/ComboBox.tsx` (no reopen after a pick); slice 43 changed `OUTLINED`/`TOGGLE_OFF` for every off toggle. Docs at landing: ui-kit (`OUTLINED`, `motion-press`, IconButton `count`, `InlineCalendars`, ComboBox `control`), profiles (allergies live on Profile), care-groups (member statuses, managers only). Hand tests for the report: B-664 on a real iPhone, Android and Capacitor; B-621 in Easy mode over the dictation hint; B-676 says "Add" on a provider event that opens a draft. Filed: B-779 (fixes-bug, timeline `?day=` lands low with no entries today). Still held: B-748 (with B-680), B-765 (too vague unattended), B-583 (connectors-3 planned), plus the list above.
 
+**Session 4 (2026-11-24):** resumed; Status matched git. Slices 35, 42, 46, 48 started (worktrees made, opus agents spawned). Next: merge them in plan order, then the wave's CI run.
+
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
 Notes for every wave:
@@ -24,20 +26,20 @@ Notes for every wave:
 | Slice | Item  | State                                                                                                       | Merge    |
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
 | 34    | B-594 | merged                                                                                                      | 86d98496 |
-| 35    | B-672 | ready, not started                                                                                          |          |
+| 35    | B-672 | started 2026-11-24 (session 4, opus)                                                                        |          |
 | 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
 | 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
 | 38    | B-664 | merged                                                                                                      | 221141c3 |
 | 39    | B-636 | merged                                                                                                      | 5cbbe830 |
 | 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                            | 6df9f7cb |
 | 41    | B-676 | merged                                                                                                      | ec911d5d |
-| 42    | B-762 | ready, not started                                                                                          |          |
+| 42    | B-762 | started 2026-11-24 (session 4, opus)                                                                        |          |
 | 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  | abb099ce |
 | 44    | B-756 | merged                                                                                                      | d59db667 |
 | 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
-| 46    | B-692 | ready, not started                                                                                          |          |
+| 46    | B-692 | started 2026-11-24 (session 4, opus)                                                                        |          |
 | 47    | B-736 | merged                                                                                                      | da9de73f |
-| 48    | B-737 | ready, not started                                                                                          |          |
+| 48    | B-737 | started 2026-11-24 (session 4, opus)                                                                        |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
