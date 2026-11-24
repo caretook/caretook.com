@@ -299,7 +299,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-668 | change | landed | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
-| B-672 | feature | in-progress | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
+| B-672 | feature | ready | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | ready | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | landed | fixes-ui | prd/fixes-ui | Add a medication: the schedule starts on As needed |
 | B-676 | change | ready | fixes-ui | prd/fixes-ui | Quick entry: the suggested result card can be clicked to add it, as Enter does |
@@ -2379,10 +2379,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-672 · feature · Add an allergy: suggest substances and reactions as you type, like conditions
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: d1cdca07
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: a suggestion list for allergies similar to the conditions one, with the same "display on new character, not on focus" behavior as B-668. Today "Allergic to" in AllergyForm.tsx is a plain text input. Model on ConditionNameField and conditionSuggestions (lib/profiles): the group own substances first, then a curated list of common drug, food and environmental allergens worded as a family would, word-prefix match, accent- and case-insensitive, de-duplicated, free text always allowed. Nothing on focus with an empty field; the first character opens the filtered list; clearing closes it. Do B-668 first and reuse its ComboBox option (other pickers keep browsing on focus); consider sharing the matcher instead of copying it. Build after or with B-594 (manage allergies on Profile), which moves this form; B-670 profile basics then reuses it. Check on a phone.
 - 2026-11-23 (Robert Bo Davis): User addition 2026-11-23: the "Reaction (optional)" field gets a suggestion list too, same rules: nothing on focus, filtered from the first character, clearing closes it, free text always allowed. The group own reactions first, then a curated list of common reactions worded as a family would (hives, rash, swelling, trouble breathing, nausea and so on). Keep within ALLERGY_LIMITS.
