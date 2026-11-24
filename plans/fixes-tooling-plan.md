@@ -8,13 +8,13 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
 
-**Held for test-gates (backlog session, 2026-11-22; row flagged standing,hold).** This session landed wave 2, then ran `pnpm prd rm fixes-tooling` and ended without rotating. The row is released after test-gates lands; the next orchestrator starts wave 3 from the triaged list.
+**Wave 3 (2026-11-24, this session; started run-through).** Test-gates is done, so the hold is over. Waves follow the user's order (see _Wave 3_). Slices 17 (B-468, open-session only), 18 (B-525), 19 (B-526), all opus. Inbox-agent-ec confirmed (2026-11-24) its slice 6 leaves `dispatch*.mjs`, `session-requests.mjs`, `context.mjs` alone and narrowed its hot list (keeps `session.sh`, `sessions.mjs`); it messages on landing. So also slices 20 (B-452, after 17), 21 (B-453), 22 (B-454), 23 (B-570), 24 (B-600), all opus. B-586 (phone pushes) needs the user on the real phone: not sliced. B-477 is `scripts/backlog/` (inbox-agent): later.
 
 **Hand-off (2026-11-22, wave 2 landing).** Wave 2 (slices 9–16, all opus) merged; dev synced (brought the tedder family seed, switched to `seedPasswordHash` in 1399ff15). Full check passed on 1399ff15 (5722/5722, tooling 811/811). Docs folded (55b318af): machinery.md (`pnpm prd wait`, worker db names, load gate off in `tooling:unit`), data-layer.md (worker names, 10 s test connect, shared seed hash), orchestrator.md (tooling lint), runbook (`DATABASE_CONNECT_TIMEOUT_MS`); loop.md not touched (near budget; the prompts carry `pnpm prd wait check`). Browser: the lean set (the diff touches `package.json` and the pool config). Follow-ups filed: B-544 (fixes-nit, stale `vitest.config.ts:196` comment), B-545 (`rm.sh` reads prd list twice).
 
 **B-547 (dev red, fixed here on the user's word, e0c21bbf):** React Aria hides a popover with inline styles until it is placed, and ui-kit-3's `motion-overlay` fade also ran on that hiding. React Aria cancels the fade when it reveals the panel, so an Escape in that window left the close waiting forever: an invisible calendar stayed in the DOM and took taps. `motion-overlay` now has no transition while that inline hiding is on (`[style*="clip-path"]`; a React Aria upgrade could change it, `overlayMotion.browser.test.tsx` guards it). sync-safety only shifted the timing (no single change pinned). Full check passed on e0c21bbf (5811, tooling 812; the first run failed only the print menu race, filed). The lean browser set passed before this fix (1b120e9c) and was not rerun.
 
-**Wave 3 candidates** (triaged, prd=fixes-tooling): the app-test load flakes B-479, B-480, B-485–B-502 (B-489–B-491 touch `components/ui/`: after ui-kit-3); codex-review B-239–B-244; dispatcher/recover B-452–B-454, B-464, B-465 (B-462 and B-463 moved to self-recovery); B-370, B-375, B-418, B-431, B-432, B-442, B-443, B-446, B-447, B-459, B-461, B-468, B-477, B-525, B-526, B-539, B-545. Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
+**Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
@@ -36,6 +36,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                     | e962e40d |
 | 15    | B-450 | merged (quick passed on slice)                                                                | d0b0324b |
 | 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
+| 17    | B-468 | started (opus)                                                                                | —        |
+| 18    | B-525 | started (opus)                                                                                | —        |
+| 19    | B-526 | started (opus)                                                                                | —        |
+| 20    | B-452 | queued (opus)                                                                                 | —        |
+| 21    | B-453 | queued (opus)                                                                                 | —        |
+| 22    | B-454 | queued (opus)                                                                                 | —        |
+| 23    | B-570 | queued (opus)                                                                                 | —        |
+| 24    | B-600 | queued (opus)                                                                                 | —        |
 
 ## Wave 1
 
@@ -193,3 +201,85 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md, ops/runbook
 
 - Find where the time goes (time the wipe and each seed step) and cut it: a lighter world for the test (a small seed through the same reset path), batching, or one transaction; the reset's behaviour on staging doesn't change.
 - Integration test: the same assertions, well under the limit (before/after in the hand-off).
+
+## Wave 3
+
+The user's wave order (2026-11-23): 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. Same rules as waves 1 and 2. Never touch a running topic's hot files (`pnpm backlog prd list`: inbox-agent's `scripts/backlog/`, `scripts/loops/lib.sh`, `prd.sh`, `prompt.sh`, `dispatch*`, `tidy*`, `queue*`, `session*`, `rotate*`; sync-safety's sync paths). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain.
+
+### Slice 17: open-session.sh opens a tab when iTerm2 has no current window (B-468)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/open-session.sh` (~79) takes `current window` when `(count of windows) > 0`; with iTerm2 hidden, minimised or without a key window that is `missing value`, and osascript exits 1 ("Can't get current tab of missing value (-1728)").
+
+- When `current window` is missing value, fall back to the first window, or create a window when there is none usable; the tab then opens as usual. Keep the change inside the AppleScript and its shell wrapper.
+- The dispatcher tells "the tab never opened" (the opener exited non-zero) from "the session died": an open failure adds no reopen count, leaves no worktree that blocks other planners or starts, logs one line and retries at a later tick (`dispatch.mjs`; inbox-agent confirmed 2026-11-24 its last slice leaves it alone).
+- Unit tests: the generated AppleScript handles a missing current window (falls back, never addresses `current tab of missing value`); a dispatcher tick whose opener fails records no death and no reopen.
+- Slices 20–22 also edit `dispatch.mjs`: keep this change to the open path.
+
+### Slice 18: an ask lock's takeover is atomic (B-525)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`withAskLock` (`scripts/loops/asks.mjs` ~227–261): two processes that both see a dead holder's lock as stale both `rmSync` it, so one can delete the other's fresh lock, and an answer and a default overlap.
+
+- Take over a stale lock atomically: rename-then-verify, or a short takeover mutex like `lease.sh`'s `.takeover`, so only one taker wins and a fresh lock is never removed. A live holder's lock is never removed.
+- Unit test (`asks.test.mjs`): two takers racing over one stale lock end with exactly one holder, and a lock taken fresh after the stale check is not deleted (drive the interleaving deterministically, e.g. by a hook between the stale check and the removal).
+
+### Slice 19: notice ids never go back (B-526)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`createNotice` (`scripts/loops/notices.mjs` ~109–152): the `.seq` high-water mark is updated check-then-rename, so two concurrent posts can lower it; once both notices expire an id is reused, and a late `notices --done` withdraws a newer notice.
+
+- Serialise the seq update (a lock) or raise it so it can only move up (e.g. re-read and retry until the stored value is at least n), so an id is never handed out twice.
+- Unit test (`notices.test.mjs`): the n1/n2 interleaving Codex reproduced (the lower write landing last) leaves `.seq` at the higher id, and a later post gets a new id.
+
+### Slice 20: a failed new.sh in a dispatcher start leaves no orphan worktree (B-452)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`dispatch.mjs` (~408): `writeRecord` comes after the `new.sh` break, so a start or plan whose `new.sh` fails after making the worktree leaves it with no managed record; later ticks treat it as opened by hand and it holds a slot for good.
+
+- Write the managed record (a setup state) before `new.sh`, or remove the partial worktree on failure; either way a failed setup frees its slot and is retried or reported, never counted as a hand-opened session.
+- Unit test (`dispatch.test.mjs`): a `new.sh` that fails after creating the worktree leaves no slot held at the next tick.
+- Blocked by slice 17 (both change the start path of `dispatch.mjs`); slices 21–22 edit other functions there.
+
+### Slice 21: a 'hold the topic' answer is consumed only once the hold is written (B-453)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`dispatch.mjs` (~353): `updateState` deletes `asked` and `reopens` whatever the backlog write's `r.ok`, so a failed hold write lets the same tick reopen the session.
+
+- Consume the answer and clear the count only after the hold is written; on a failed write keep both, skip the topic this tick, log one line, and retry next tick.
+- Unit test: a failing hold write leaves the answer and the count, and the topic isn't reopened that tick; a succeeding one consumes them.
+
+### Slice 22: the dispatcher lock's takeover is atomic (B-454)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`dispatch.mjs` `takeLock` (~200) unlinks a dead holder's lock from an earlier pid read, so two dispatchers starting together can both take it (Codex reproduced 6/30).
+
+- Make the takeover atomic (rename a temp lock over it and re-read, or a mkdir lock): exactly one of two racing starters holds it. If slice 18 lands a shared helper for stale-lock takeover first, reuse it; otherwise keep it local.
+- Unit test: two takers racing over a stale lock (deterministic interleaving) end with one holder; a live holder's lock is never taken.
+
+### Slice 23: session request notices fit the notice board (B-570)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`requestNotice` in `scripts/loops/session-requests.mjs` has no length bound: with 40-character names a refusal reaches 201 characters, `createNotice` rejects it, and the requester hears nothing.
+
+- Bound the text to the board's `MAX_TEXT`, keeping the request id and its outcome (cut the variable parts, e.g. names or the opener's error, with an ellipsis); if a post still fails, the request step logs it where the requester can see it.
+- Unit test (`session-requests.test.mjs`): long names and a long opener error give a notice within `MAX_TEXT` that still carries the id and outcome.
+
+### Slice 24: soft and hard context limits for orchestrators and the backlog session (B-600)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+Slice agents already have soft 175k / hard 300k (`context.mjs`, hotfix 86447987). Orchestrators and the backlog session still share one 160k limit (`limitOf`), and a backlog session is told to hand off unasked while the dispatcher's question (`dispatch-context.mjs`) defaults to rotating. The user (2026-11-22, 2026-11-23): orchestrators and backlog soft 160k, hard 225k; **a backlog session's limit is soft and never a forced close**: past it the session tells the user and lets them choose (hand off or keep going); no answer means keep going.
+
+- Orchestrators: the soft reminder at 160k (judge, as slice agents do), the hard one at 225k (rotate at the next safe point, as today's text says); `CARETOOK_CONTEXT_LIMIT` keeps overriding the soft value; the dispatcher's rotation question waits for the hard limit.
+- Backlog session: a soft reminder only (tell the user its size and ask, hand off or keep going); no hard hand-off; the dispatcher's question for a backlog session defaults to "leave it" (keep going), never rotating.
+- Keep `pnpm prd context` and `liveSizes` output right for both limits.
+- Unit tests (`context.test.mjs`, `dispatch-context.test.mjs`): the orchestrator's soft and hard thresholds; the backlog session's reminder never says to hand off unasked; the dispatcher's backlog question defaults to keep going.
+- Hand-off: the lines loop.md, machinery.md and orchestrator.md should change (they state 160k).
