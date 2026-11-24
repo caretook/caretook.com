@@ -84,4 +84,4 @@ The scripts behind `pnpm prd` (`scripts/loops/`).
 ## Landing reports
 
 - After merging a `prd/` or `hotfix/` branch whose diff isn't Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout: what landed, commit and PR, dev URL, seed accounts, what wasn't checked; agents only add.
-- **Unsynced:** sync, pr, ready and land skip a merge if dev's files miss the branch and risky list (`dev-brought.mjs`); land needs no brake and a typecheck. Never with `--fixes`; `--force` needs `--by-user`.
+- **Unsynced:** sync, pr, ready and land skip a merge if dev's files miss the branch's (Markdown both changed doesn't count) and the risky list (`dev-brought.mjs`); land needs no brake and a typecheck. Never with `--fixes`; `--force` needs `--by-user`. CI reads the branch's own quarantine and brake list, so `sync` always brings dev's in: a merge when nothing else moved, a `take dev's CI lists` commit when it skips the merge; either keeps the recorded check.
