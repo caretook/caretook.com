@@ -1,7 +1,8 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
 import { Link, useLocation } from "react-router";
-import { IconChip, UserAvatar } from "~/components/ui";
+import { MemberAvatar } from "~/components/members";
+import { IconChip } from "~/components/ui";
 import { Tooltip } from "~/components/ui/tooltip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { setAuthor, setKind } from "~/lib/timeline/timelineFilters";
@@ -50,21 +51,21 @@ const AUTHOR_FOCUS =
  * An entry's author as a filter: a link that shows only that person's
  * entries (`?author=`), named "Show only Alex Rivera's entries". Like the
  * kind icon it sits above the row's open target (`relative z-10`), and goes
- * where you already are when that author is already showing. With `initials`
- * it's the small circle a row shows, with a tooltip (their avatar and full
+ * where you already are when that author is already showing. With `circle`
+ * it's the small avatar a row shows, with a tooltip (their avatar and full
  * name) on hover and keyboard focus; without, the name as text (a card's
  * footer), which needs no tooltip.
  */
 export function AuthorFilterLink({
   userId,
   name,
-  initials,
+  circle,
   image,
 }: {
   userId: string;
   name: string;
-  initials?: string;
-  /** Their picture, for the tooltip's avatar. */
+  circle?: boolean;
+  /** Their picture, for the circle and the tooltip. */
   image?: string | null;
 }) {
   const { search } = useLocation();
@@ -75,7 +76,7 @@ export function AuthorFilterLink({
     "aria-label": `Show only ${name}'s entries`,
     "data-author": userId,
   };
-  if (initials === undefined) {
+  if (!circle) {
     return (
       <Link {...link} className={`${AUTHOR_FOCUS} rounded-sm hover:underline`}>
         {name}
@@ -86,17 +87,40 @@ export function AuthorFilterLink({
     <Tooltip
       content={
         <span className="flex items-center gap-2" data-author-tooltip={userId}>
-          <UserAvatar name={name} image={image} size="sm" />
+          <MemberAvatar userId={userId} name={name} image={image} size="sm" />
           <span className="font-medium">{name}</span>
         </span>
       }
     >
-      <Link
-        {...link}
-        className={`${AUTHOR_FOCUS} bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold hover:brightness-95`}
-      >
-        <span aria-hidden="true">{initials}</span>
+      <Link {...link} className={`${AUTHOR_FOCUS} inline-flex shrink-0 rounded-full hover:brightness-95`}>
+        <MemberAvatar userId={userId} name={name} image={image} size="row" />
       </Link>
     </Tooltip>
+  );
+}
+
+/**
+ * An entry's author where they aren't a filter (easy mode, the easy roles):
+ * the same avatar with no link, so a tap on it opens the row. `label` is what
+ * a screen reader hears.
+ */
+export function AuthorCircle({
+  userId,
+  name,
+  image,
+  label,
+  title,
+}: {
+  userId: string;
+  name: string;
+  image?: string | null;
+  label: string;
+  title?: string;
+}) {
+  return (
+    <span className="inline-flex shrink-0" title={title} data-author={userId}>
+      <MemberAvatar userId={userId} name={name} image={image} size="row" />
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }

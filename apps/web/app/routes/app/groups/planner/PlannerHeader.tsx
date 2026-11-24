@@ -5,7 +5,8 @@ import type { UpcomingShow } from "./upcomingFilters";
 import { CalendarPlus, ListTodo } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation } from "react-router";
-import { FilterMenu, FilterMenuChips, PageHeader, TabNav, UserAvatar } from "~/components/ui";
+import { MemberAvatar } from "~/components/members";
+import { FilterMenu, FilterMenuChips, PageHeader, TabNav } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
@@ -14,7 +15,7 @@ import { listSearch, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
 
 type PlannerView = "upcoming" | "past";
-type PlannerAuthor = { name: string; image: string | null };
+type PlannerAuthor = { userId: string; name: string; image: string | null };
 
 /** The Filter menu and chips of Upcoming (Show, and the author) or Past (the author's chip alone). */
 const plannerFilters = (
@@ -48,7 +49,15 @@ const plannerFilters = (
           label: `By ${author.name}`,
           name: `By ${author.name}: clear this filter`,
           search: clearAuthor(search),
-          leading: <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />,
+          leading: (
+            <MemberAvatar
+              userId={author.userId}
+              name={author.name}
+              image={author.image}
+              size="xs"
+              className="-ml-1.5"
+            />
+          ),
         },
       ]
     : [],

@@ -74,6 +74,3 @@ export const entrySummary = (entry: TimelineEntry, units: UnitChoices) => {
     body: entry.body || null,
   };
 };
-
-/** "Dev Caretaker" → "DC" (shared with `UserAvatar`; see `lib/core/initials.ts`). */
-export { initials } from "../core/initials";
