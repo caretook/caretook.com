@@ -5,6 +5,7 @@ import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { at, condition, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
+import { conditionSuggestions } from "~/lib/profiles/conditionSuggestions";
 import { JUNE, openProfile, PROFILE_URL } from "./profileWorld";
 
 // The recipient's conditions on the profile (conditions slice 1): the card
@@ -141,6 +142,42 @@ describe("adding", () => {
       },
     ]);
     expect((await device.query<{ at: string | null }>(NO_KNOWN_SQL, [TEST_RECIPIENT.id]))[0]?.at).toBeNull();
+  });
+
+  test("the name suggests only once typed: nothing on focus, the first letter filters, clearing closes it", async () => {
+    await open("caretaker", { url: `${PROFILE_URL}/conditions/new` });
+    const listed = () =>
+      [...document.querySelectorAll('[role="listbox"] [role="option"]')].map((o) => o.textContent?.trim());
+    await userEvent.click(await found(nameInput));
+    await expect.poll(() => nameInput()?.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+
+    await userEvent.keyboard("d");
+    const expected = conditionSuggestions("d", []);
+    expect(expected.length).toBeGreaterThan(0);
+    expect(expected).not.toEqual(conditionSuggestions("", []));
+    await expect.poll(listed).toEqual(expected);
+
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+    expect(nameInput()?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("a provider picker on the same form still opens its list on focus", async () => {
+    const lee = fx.provider({ name: "Dr. Mei Lee", specialty: "Cardiology" });
+    await open("caretaker", { fixtures: [lee], url: `${PROFILE_URL}/conditions/new` });
+    await userEvent.click(
+      await found(() =>
+        FORM()?.querySelector<HTMLInputElement>('[data-provider-picker=diagnosedBy] input[role="combobox"]'),
+      ),
+    );
+    await expect
+      .poll(() =>
+        [...document.querySelectorAll('[role="listbox"] [role="option"]')].map(
+          (o) => o.firstElementChild?.textContent,
+        ),
+      )
+      .toContain("Dr. Mei Lee");
   });
 
   test("with free text, as past, and the group's own names suggested first", async () => {
