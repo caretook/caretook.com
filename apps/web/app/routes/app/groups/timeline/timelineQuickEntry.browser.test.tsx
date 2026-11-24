@@ -808,3 +808,65 @@ describe("go to a day", () => {
     expect(saveButton()?.textContent).toContain("Save");
   });
 });
+
+describe("the card's reading is a button that saves (B-676)", () => {
+  const cardButton = (card: HTMLElement) => card.querySelector<HTMLButtonElement>("[data-quick-save-card]")!;
+
+  test("clicking a card's reading saves the whole line as Enter does, and its name says what it adds", async () => {
+    const device = await open();
+    await type("bp 130/85, gave metformin", ["vital", "dose"]);
+    const dose = page.getByRole("button", { name: "Add all 2, with Dose: Metformin 500 mg", exact: true });
+    await expect.element(dose).toBeEnabled();
+    await expect
+      .element(page.getByRole("button", { name: "Add all 2, with Vital: BP 130/85 mmHg", exact: true }))
+      .toBeVisible();
+
+    await userEvent.click(dose);
+    await expect.poll(status).toBe("Saved 2 entries");
+    expect(cards()).toEqual([]);
+    const kinds = await device.query<{ kind: string }>(
+      "SELECT kind FROM timeline_entry WHERE kind IN ('vital', 'dose') ORDER BY kind",
+    );
+    expect(kinds.map((k) => k.kind)).toEqual(["dose", "vital"]);
+    expect(device.location()).toBe(TIMELINE_URL);
+  });
+
+  test("a lone card's button is named Add and opens what it saved, as Enter does", async () => {
+    const device = await open();
+    await type("n: Grandma had a good day", ["note"]);
+    await userEvent.click(
+      page.getByRole("button", { name: "Add Note: Grandma had a good day", exact: true }),
+    );
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
+  });
+
+  test("a blocked card's button is disabled; Remove, Edit and the chips sit outside it and still work", async () => {
+    const device = await open();
+    await type("bp 1300/85, dizzy", ["vital", "symptom"]);
+    const blocked = cardWith("BP");
+    await waitUntil(() => !!blocked.querySelector("[data-quick-blocking]"), "the block");
+    // Save waits for every card, so both readings' buttons wait.
+    expect(cardButton(blocked).disabled).toBe(true);
+    expect(cardButton(cardWith("Dizzy")).disabled).toBe(true);
+
+    // None of the card's other buttons is inside its reading.
+    for (const card of cards()) expect(cardButton(card).querySelector("button, a, [role=button]")).toBeNull();
+
+    // The chips only switch the reading.
+    const chips = page.getByRole("list", { name: 'Other ways to save "dizzy"' });
+    await userEvent.click(chips.getByRole("button", { name: "Make it a note" }));
+    await waitUntil(() => cardKinds().join() === "vital,note");
+    expect(
+      await device.query("SELECT id FROM timeline_entry WHERE kind = 'note' AND body = 'dizzy'"),
+    ).toEqual([]);
+
+    // Remove drops the blocked card; the other's button now saves.
+    await userEvent.click(page.getByRole("button", { name: 'Remove "bp 1300/85"' }));
+    await waitUntil(() => cardKinds().join() === "note");
+    await expect.poll(() => cards().map((c) => cardButton(c).disabled)).toEqual([false]);
+
+    // Edit is its own button: a note's Edit saves it and opens its page.
+    await userEvent.click(page.getByRole("button", { name: 'Edit "dizzy"' }));
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
+  });
+});
