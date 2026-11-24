@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 (the last): slice 4 merged as f08fd876 (eac5e4df), slice 7 (B-758, decided by skeptic s24, ask a193: words-inside needs 2+ words) merged as e64bc270 (c9b1580b). B-549, B-758 marked done (ready). Worktrees 4 and 7 kept until the wave's verdict is green. **Wave gate:** `pnpm prd ci run components --wait` (tier proposal: components).
+**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 (the last): slice 4 merged as f08fd876 (eac5e4df), slice 7 (B-758, decided by skeptic s24, ask a193: words-inside needs 2+ words) merged as e64bc270 (c9b1580b). B-549, B-758 marked done (ready). Worktrees 4 and 7 kept until the wave's verdict is green. **Wave gate:** run 45458619825 braked on static (Prettier on this plan, fixed); rerun 45461153153 on fd2142cb: **flake** (planner.browser.test.tsx, not ours; lands, filed after merge). Docs folded (e3abd15a). Worktrees 4, 7 removed. Next: PR, review, land.
 
 **Next:** browser --changed --base dev: none needed (serve restarted on :6573). green → `pnpm prd rm symptom-catalog-4`, `-7`; `pnpm prd sync`; browser checks (`--suite` once: quick entry flow changed); PR, review (exit 4: `--no-review`), land `--tier components`; fold docs (assistant/connectors: the parser's `symptoms` context, the card's Use/Add new question that Save waits for, the runner adding the catalog row, `log_symptom` taking the catalog's spelling; timeline: words-inside needs 2+ words; roundtrip.spec.mjs comment still names "Pain" as a similar example, stale); `status-trim`; `pnpm prd rm symptom-catalog`, `pnpm prd end`.
 
