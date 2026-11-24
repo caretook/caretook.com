@@ -147,6 +147,9 @@ export function QuickEntryBox({
                 onSymptomChoice={(use) => q.chooseSymptom(card, use)}
                 onEdit={() => void q.edit(card)}
                 onRemove={() => q.remove(card)}
+                onSave={() => void q.save()}
+                canSave={q.canSave}
+                count={count}
               />
             ))}
           </ul>
