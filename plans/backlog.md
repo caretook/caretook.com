@@ -36,7 +36,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `onboarding` | done | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
 | `assistant-access` | done | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
-| `fixes-bug` | standing | — | `packages/api/src/syncMedications`, `packages/api/src/sync`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/db/schema/timeline/`, `packages/data/drizzle/`, `apps/web/app/components/repeat/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/lib/appointments/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety` | — | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
@@ -337,8 +337,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-686 | change | triaged | fixes-ui |  | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
 | B-687 | change | triaged | fixes-ui |  | Add a provider: saving opens the new provider's page instead of returning to the list |
 | B-688 | change | triaged | fixes-ui |  | Add a medication: saving opens the new medication's page instead of returning to the list |
-| B-689 | bug | triaged | fixes-bug |  | Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab |
-| B-690 | bug | triaged | fixes-bug |  | Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened |
+| B-689 | bug | in-progress | fixes-bug | prd/fixes-bug | Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab |
+| B-690 | bug | in-progress | fixes-bug | prd/fixes-bug | Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened |
 | B-691 | bug | triaged | fixes-ui |  | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
 | B-692 | change | triaged | fixes-ui |  | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
 | B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
@@ -362,7 +362,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-712 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx fails in America/New_York |
 | B-713 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/period/period.browser.test.tsx fails in America/New_York |
 | B-714 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/periods/periods.browser.test.tsx fails in America/New_York |
-| B-715 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx fails in America/New_York |
+| B-715 | bug | in-progress | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx fails in America/New_York |
 | B-716 | bug | triaged | fixes-tooling |  | phase2 browser check: offline, then reconnect times out waiting for the entry written elsewhere under load |
 | B-717 | bug | landed | fixes-bug | prd/fixes-bug | Calendar consent: a device on an older app bundle is refused each time it agrees after a wording bump, and the error doesn't say to reload |
 | B-718 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry asks for an amount on a skipped or refused dose when a bare number matches the strength: 'skipped lisinopril 10' with a usual 2 tablets |
@@ -2707,18 +2707,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-689 · bug · Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: sporadically, after adding a todo from the Upcoming or Past tabs, they aren't taken to the Todos tab. Expected: always land on Todos after a save. Not reproduced; code read only. useCloseTodoSheet (routes/app/groups/todos/todoSheet.ts:29) has two outcomes. With TODO_SHEET_STATE, which the Planner's Add menu sets (PlannerHeader.tsx:111), it does navigate(-1), back to the opener tab. Without that state (comment: a bookmark, a reload) it replaces with the Todos list. So the Todos landing is the fallback rather than the designed path, which would explain it appearing only sometimes; confirm which condition drops the state. Fix: the Planner's Add Todo marks its intent (for example a separate field in its link state), and a successful save from it navigates to appUrls.todos(groupId, listSearch(search)) with replace, so Back doesn't reopen the form or bounce oddly. Cancel, Escape and a tap outside still return to the opener tab. Don't change other openers that share this sheet: quick entry's Edit on the timeline, LinkedTodos and a todo's page must keep returning where they were. Check that a kept Todos filter (Mine, Unassigned) doesn't hide the new todo right after landing. Add a browser test from both Upcoming and Past in planner.browser.test.tsx.
 
 ### B-690 · bug · Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23, reported as two bugs with one fix: (1) on completion, adding an event from the Planner goes to the Timeline instead of the Planner; (2) it should go to the tab matching the event's time: Past if it's in the past, Upcoming if it's in the future. Code read, not reproduced: Add > Event (PlannerHeader.tsx:103) opens the full entry page at entries/new?kind=event&when=pick with no link state. That page autosaves and has no Save or Done button, so 'completion' is leaving it, and its only exit is BackLink to={timelineUrl} labelled Timeline (routes/app/groups/entry/route.tsx:103). Fix: mark the Planner as the opener in link state. The first save does navigate(appUrls.entry(...), { replace: true }) in useLiveEntry.ts (lines 199 and 227, one-off and repeating), which drops history state unless it's carried over, so carry it. While that mark is present, the back link reads Planner and goes to appUrls.plannerPast when the event is past, else appUrls.planner, decided when the user leaves so a time edited on the page counts. Use the Planner's own rule, isUpcoming/entryTiming in lib/appointments/upcoming.ts: in progress and today's all-day events count as Upcoming. An abandoned unsaved draft returns to the tab it was opened from. Deleting that event (EntryPageHeader.tsx:146, useLiveEntry.ts:342) should also return to the Planner rather than the Timeline. Entries opened any other way keep the Timeline link. Add browser tests for a past event, a future event, an in-progress event and a time changed before leaving.
@@ -2947,9 +2947,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-715 · bug · CI: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx fails in America/New_York
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (prd/test-gates-2): [ci-key b22c2d3eee0c] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
