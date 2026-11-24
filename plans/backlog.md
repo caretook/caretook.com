@@ -377,7 +377,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-731 | bug | triaged | fixes-tooling |  | Session requests: .seq is raised check-then-rename like notices' was, so two concurrent requests can lower it and reuse an id (session-requests.mjs) |
 | B-732 | bug | triaged | fixes-tooling |  | tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix |
 | B-733 | feature | ready | inbox-agent | prd/inbox-agent | The main backlog session shows a random Enterprise captain's name: each new session (rotate or handoff too) draws one, different from the last, for its Remote Control name and tab title; the session record stays backlog |
-| B-734 | feature | in-progress | fixes-tooling | hotfix/lane-cap | Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word |
+| B-734 | feature | landed | fixes-tooling | hotfix/lane-cap | Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word |
 | B-735 | bug | inbox |  |  | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
 | B-736 | bug | inbox |  |  | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
 | B-737 | feature | inbox |  |  | A link icon on each timeline day header and item so users can easily send links to other people.… |
@@ -3110,16 +3110,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: inbox-agent
 - owner: prd/inbox-agent
-- commit:
+- commit: 444b8008
 
 - 2026-11-24 (Robert Bo Davis): User asked 2026-11-24 for a quick slice in inbox-agent. Display name only: .loops/.sessions record, keep-alive, rotate and asks still use 'backlog'. Pool: Archer, April, Pike, Kirk, Decker, Harriman, Garrett, Picard, Shelby, Riker. Not for backlog-<name> request sessions or other roles.
 
 ### B-734 · feature · Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word
 
-- status: in-progress
+- status: landed
 - prd: fixes-tooling
 - owner: hotfix/lane-cap
-- commit:
+- commit: 91f6bd26
 
 - 2026-11-24 (Robert Bo Davis): User 2026-11-24: wants the backlog agent to manage the PRD orchestrator cap. Today CARETOOK_MAX_PRDS is read only at dispatcher start (default 4; running dispatcher has none, so 4). The stored cap wins over the env var and the default; lowering it stops new starts only, never ends a running PRD. Add it to the backlog guide's commands the backlog session may run (prompt.sh backlog --guide, docs/agents/backlog.md, machinery.md). fixes-tooling: dispatch.mjs is its hot file.
 - 2026-11-24 (Robert Bo Davis): User 2026-11-24, the goal: away from the computer, tell the backlog session 'after this work finishes I want only 3 (or 2, or 5, 6) lanes for a while' and have it apply with no restart and nothing typed at the machine. Lowering never ends running PRDs: it only stops new starts until the count falls under the cap. Raising past 4 must work too: new.sh and lib.sh enforce CARETOOK_MAX_PRDS as well as dispatch.mjs/dispatch-pick.mjs, so all read the stored cap; check the slot, port, check and browser lease limits still fit 6 PRDs. It stays until changed (no expiry). The cap change leaves a notice.
