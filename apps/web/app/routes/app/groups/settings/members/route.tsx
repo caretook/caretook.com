@@ -24,7 +24,7 @@ import { InviteButton } from "./InviteSheet";
 import { CreateLinkButton, InviteLinks } from "./InviteLinks";
 import { JoinRequests } from "./JoinRequests";
 import { isLinkIntent, linkAction, loadLinksAndRequests } from "./linkApi";
-import { loadMemberStatuses } from "./memberStatus";
+import { loadMemberStatuses } from "./memberStatusApi";
 import { Members } from "./MembersList";
 import { PendingInvites } from "./PendingInvites";
 
