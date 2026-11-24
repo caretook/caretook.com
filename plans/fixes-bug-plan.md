@@ -109,7 +109,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 63    | B-726 | landed                                     | 731dd3fa |
 | 64    | B-728 | landed (ask a168, vetoable)                | 5f29ce60 |
 | 65    | B-715 | merged (test only)                         | 5a088bc9 |
-| 66    | B-689 | started (opus)                             |          |
+| 66    | B-689 | merged                                     | c25d2c1b |
 | 67    | B-690 | started (opus)                             |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
