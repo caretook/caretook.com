@@ -437,6 +437,23 @@ describe("visitPrepSection", () => {
     ]);
   });
 
+  it('counts "Knee pain", "knee pain" and "Knee  Pain" as one symptom, for worst and new', () => {
+    const entries = [
+      symptom("2026-11-02T16:00:00Z", "Knee pain", 7),
+      symptom("2026-11-04T16:00:00Z", "knee pain", 3),
+      symptom("2026-11-06T16:00:00Z", "Knee  Pain"),
+    ];
+    expect(texts(visitPrepSection(data({ entries }), WINDOW)).slice(1)).toEqual([
+      "Symptoms",
+      "Knee  Pain: 3 times, worst 7/10, new",
+    ]);
+    const before = symptom("2026-10-05T16:00:00Z", "knee   PAIN", 2);
+    expect(texts(visitPrepSection(data({ entries: [before, ...entries] }), WINDOW)).slice(1)).toEqual([
+      "Symptoms",
+      "Knee  Pain: 3 times, worst 7/10",
+    ]);
+  });
+
   it("lists events, leaving out cancelled ones, the last visit and the appointment itself", () => {
     const entries = [
       entry("event", WINDOW.from, { id: "last-visit", title: "Checkup" }),
