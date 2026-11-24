@@ -26,7 +26,7 @@ Notes for every wave:
 | Slice | Item  | State                                                                                                       | Merge    |
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
 | 34    | B-594 | merged                                                                                                      | 86d98496 |
-| 35    | B-672 | started 2026-11-24 (session 4, opus)                                                                        |          |
+| 35    | B-672 | merged (typing-mode lists cover the next field: tests Tab after a fill)                                     | d1cdca07 |
 | 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
 | 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
 | 38    | B-664 | merged                                                                                                      | 221141c3 |
