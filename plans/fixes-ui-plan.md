@@ -45,7 +45,7 @@ Notes for every wave:
 | 22    | B-683 | started (opus)   |          |
 | 23    | B-763 | waits (opus)     |          |
 | 24    | B-685 | started (opus)   |          |
-| 25    | B-686 | started (opus)   |          |
+| 25    | B-686 | handed off (opus) 8ebf0bd7 |          |
 | 26    | B-687 | waits (opus)     |          |
 | 27    | B-688 | waits (opus)     |          |
 | 28    | B-674 | waits (sonnet)   |          |
@@ -53,7 +53,7 @@ Notes for every wave:
 | 30    | B-677 | started (opus)   |          |
 | 31    | B-678 | waits (opus)     |          |
 | 32    | B-629 | handed off (opus) 035359d2 |          |
-| 33    | B-699 | started (opus)   |          |
+| 33    | B-699 | handed off (opus) 1316e8ce |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
