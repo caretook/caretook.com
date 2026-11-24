@@ -247,7 +247,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-500 | bug | triaged | fixes-tooling |  | Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone |
 | B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
-| B-515 | feature | in-progress | inbox-agent | prd/inbox-agent | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
+| B-515 | feature | ready | inbox-agent | prd/inbox-agent | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
@@ -336,7 +336,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-687 | change | triaged | fixes-ui |  | Add a provider: saving opens the new provider's page instead of returning to the list |
 | B-688 | change | triaged | fixes-ui |  | Add a medication: saving opens the new medication's page instead of returning to the list |
 | B-689 | bug | ready | fixes-bug | prd/fixes-bug | Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab |
-| B-690 | bug | in-progress | fixes-bug | prd/fixes-bug | Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened |
+| B-690 | bug | ready | fixes-bug | prd/fixes-bug | Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened |
 | B-691 | bug | triaged | fixes-ui |  | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
 | B-692 | change | triaged | fixes-ui |  | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
 | B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
@@ -1783,10 +1783,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-515 · feature · Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too
 
-- status: in-progress
+- status: ready
 - prd: inbox-agent
 - owner: prd/inbox-agent
-- commit:
+- commit: 2a3d7845
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: backlog and inbox sessions must hand off to a fresh agent of the same type from the phone, and stay running alongside the dispatcher. Needs the inbox agent (B-425, inbox-agent) for the inbox half; until it lands, the backlog session only.
 - 2026-11-22 (plan/agent-autonomy-2): 2026-11-22 planned: agent-autonomy-2 slices 5-6 keep the backlog session alive; the inbox half lands with whichever of agent-autonomy-2 and inbox-agent comes second (it then sets this landed)
@@ -2689,10 +2689,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-690 · bug · Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: ce0cbf74
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23, reported as two bugs with one fix: (1) on completion, adding an event from the Planner goes to the Timeline instead of the Planner; (2) it should go to the tab matching the event's time: Past if it's in the past, Upcoming if it's in the future. Code read, not reproduced: Add > Event (PlannerHeader.tsx:103) opens the full entry page at entries/new?kind=event&when=pick with no link state. That page autosaves and has no Save or Done button, so 'completion' is leaving it, and its only exit is BackLink to={timelineUrl} labelled Timeline (routes/app/groups/entry/route.tsx:103). Fix: mark the Planner as the opener in link state. The first save does navigate(appUrls.entry(...), { replace: true }) in useLiveEntry.ts (lines 199 and 227, one-off and repeating), which drops history state unless it's carried over, so carry it. While that mark is present, the back link reads Planner and goes to appUrls.plannerPast when the event is past, else appUrls.planner, decided when the user leaves so a time edited on the page counts. Use the Planner's own rule, isUpcoming/entryTiming in lib/appointments/upcoming.ts: in progress and today's all-day events count as Upcoming. An abandoned unsaved draft returns to the tab it was opened from. Deleting that event (EntryPageHeader.tsx:146, useLiveEntry.ts:342) should also return to the Planner rather than the Timeline. Entries opened any other way keep the Timeline link. Add browser tests for a past event, a future event, an in-progress event and a time changed before leaving.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: existing events opened from the Planner should also return to the Planner, specifically to where the event was opened. This extends the item. Two rules: a NEW event added from the Planner goes to Past or Upcoming by its time when leaving. An EXISTING event opened from a Planner row goes back to the tab it was opened from, even if its time was edited so it now belongs on the other tab, with that tab's URL filters kept and its scroll position restored where the router allows. Pass the opener's full URL (path and search) in the row links' history state on Upcoming and Past, and label the back link Planner. Deleting an existing event opened this way also returns to that opener. A reload should keep the return path if history state survives; a direct link or bookmark has no opener and keeps the Timeline link. Add browser tests for opening from Upcoming and from Past with a filter set, including Back after editing the time.
