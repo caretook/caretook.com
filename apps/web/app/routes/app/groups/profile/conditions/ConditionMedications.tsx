@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { LINK, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 
 /**
  * A condition's current medications (conditions slice 4): the live ones the
@@ -17,6 +18,7 @@ export function ConditionMedications({
   groupId: string;
   medications: readonly LocalMedication[];
 }) {
+  const linkState = useMedicationLinkState();
   if (!medications.length) return null;
   return (
     <section aria-labelledby="condition-medications-heading" data-condition-medications>
@@ -28,6 +30,7 @@ export function ConditionMedications({
           <li key={m.id}>
             <Link
               to={appUrls.medication(groupId, m.id)}
+              state={linkState}
               className={`${LINK} font-medium`}
               data-condition-medication={m.id}
             >
