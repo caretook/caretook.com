@@ -36,7 +36,7 @@ Notes for every wave:
 | 44    | B-756 | handed off 97ae1c89 |       |
 | 45    | B-691 | handed off 30dc31be (touches ui/Popover.tsx: all popovers scroll inside) |       |
 | 46    | B-692 | blocked            |       |
-| 47    | B-736 | in progress (opus) |       |
+| 47    | B-736 | handed off b154ba6f |       |
 | 48    | B-737 | blocked            |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
