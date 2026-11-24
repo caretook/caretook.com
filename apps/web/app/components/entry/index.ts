@@ -3,7 +3,7 @@ export type { EntryCancelActions } from "./EntryActions";
 export { CancelEventDialog } from "./CancelEventDialog";
 export { EntryActions } from "./EntryActions";
 export { EntryBody } from "./EntryBody";
-export { AuthorFilterLink, KindFilterLink, KindIcon } from "./KindIcon";
+export { AuthorCircle, AuthorFilterLink, KindFilterLink, KindIcon } from "./KindIcon";
 export { OlderEntries } from "./OlderEntries";
 export { RepeatMark } from "./RepeatMark";
 export { SeriesScopeDialog } from "./SeriesScopeDialog";
