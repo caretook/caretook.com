@@ -301,7 +301,8 @@ describe("the author tooltip", () => {
         .closest("li")!
         .querySelector<HTMLElement>('a[aria-label^="Show only"]:not([data-author])')!
         .focus();
-      for (let i = 0; i < 3 && document.activeElement !== link; i++) await userEvent.keyboard("{Tab}");
+      // Past More (when clamped), the copy link and the ⋯ menu, in reading order.
+      for (let i = 0; i < 4 && document.activeElement !== link; i++) await userEvent.keyboard("{Tab}");
       expect(document.activeElement).toBe(link);
     };
     await fromIcon();
