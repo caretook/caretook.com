@@ -5,6 +5,7 @@ import { Pill } from "lucide-react";
 import { Link } from "react-router";
 import { Badge, ListRow } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import {
   MEDICATION_TYPE_LABELS,
   medicationSummaryLine,
@@ -27,6 +28,7 @@ export function MedicationListItem({
 }) {
   const stopped = stoppedText(medication);
   const badge = medicationTypeBadge(medication.type);
+  const linkState = useMedicationLinkState();
   return (
     <ListRow
       className="hover:bg-base-200/50 relative isolate flex items-start gap-3"
@@ -42,6 +44,7 @@ export function MedicationListItem({
         <p className="flex min-w-0 items-start justify-between gap-2">
           <Link
             to={appUrls.medication(medication.groupId, medication.id)}
+            state={linkState}
             className={`min-w-0 font-medium wrap-break-word outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${stopped ? "text-muted" : ""}`}
             data-medication-name
           >

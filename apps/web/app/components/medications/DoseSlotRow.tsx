@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { Badge, Button, ListRow, Menu, Message, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { isOpen } from "~/lib/medications/dueDoses";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
 import { usePassLog } from "./usePassLog";
 
@@ -58,6 +59,7 @@ export function DoseSlotRow({
   onMark: (slot: DoseSlot, status: MarkStatus) => void;
 }) {
   const { logSlot, busy, error } = usePassLog(groupId);
+  const linkState = useMedicationLinkState();
   const { medication } = slot;
   const title = medicationTitle(medication);
   const open = canWrite && isOpen(slot);
@@ -68,7 +70,11 @@ export function DoseSlotRow({
       data-slot={`${medication.id}@${slot.time}`}
     >
       <div className="min-w-0 flex-1">
-        <Link to={appUrls.medication(groupId, medication.id)} className="link-hover font-medium break-words">
+        <Link
+          to={appUrls.medication(groupId, medication.id)}
+          state={linkState}
+          className="link-hover font-medium break-words"
+        >
           {title}
         </Link>
         {slot.amount && <p className="text-muted text-sm">{slot.amount}</p>}
