@@ -24,8 +24,10 @@ await run("Database migrated", async () => {
   if (isError(migrated)) return migrated;
   const symptoms = await backfill();
   if (isError(symptoms)) return symptoms;
-  const { groups, defaults, history, unreadable } = symptoms;
-  console.log(`Symptom catalog: ${groups} group(s), ${defaults} default(s) and ${history} name(s) added`);
+  const { groups, defaults, history, pointers, unreadable } = symptoms;
+  console.log(
+    `Symptom catalog: ${groups} group(s), ${defaults} default(s) and ${history} name(s) added, ${pointers} entry pointer(s) filled`,
+  );
   if (unreadable.length)
     console.warn(`Symptom catalog: ${unreadable.length} entry name(s) unreadable: ${unreadable.join(", ")}`);
   return migrated;

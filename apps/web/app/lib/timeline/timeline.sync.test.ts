@@ -1,3 +1,4 @@
+import { symptomTypeRow } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { timelineLinksQuery } from "../providers/providers.sync";
 import {
@@ -5,6 +6,7 @@ import {
   entryWindow,
   futureRefusal,
   historyQuery,
+  symptomTypeColumn,
   upcomingQuery,
   upcomingWindow,
 } from "./timeline.sync";
@@ -115,5 +117,25 @@ describe("futureRefusal (the device's rule)", () => {
     expect(futureRefusal("note", at(6 * 60_000), now)).not.toBeNull();
     expect(futureRefusal("note", at(5 * 60_000), now)).toBeNull();
     expect(futureRefusal("event", at(86_400_000), now)).toBeNull();
+  });
+});
+
+describe("symptomTypeColumn (a local write's symptom type)", () => {
+  it("stores the id the server derives from the same name, in any case or spacing", () => {
+    const server = symptomTypeRow(GROUP, "knee pain").id;
+    for (const name of ["knee pain", "  Knee   PAIN ", "KNEE PAIN"])
+      expect(symptomTypeColumn(GROUP, { kind: "symptom", details: { name, severity: 3 } }), name).toEqual({
+        symptomTypeId: server,
+      });
+    expect(
+      symptomTypeColumn(GROUP, { kind: "symptom", details: { name: "Knee ache" } }).symptomTypeId,
+    ).not.toBe(server);
+  });
+
+  it("is null for every other kind", () => {
+    expect(symptomTypeColumn(GROUP, { kind: "note", details: null })).toEqual({ symptomTypeId: null });
+    expect(
+      symptomTypeColumn(GROUP, { kind: "vital", details: { readings: [{ type: "heartRate", value: 70 }] } }),
+    ).toEqual({ symptomTypeId: null });
   });
 });

@@ -21,10 +21,12 @@ import {
   doseDuplicateUploadSchema,
   FUTURE_DATE_MESSAGE,
   isDoseDetails,
+  isSymptomDetails,
   isTooFarAhead,
   noteText,
   SERVER_FUTURE_SKEW_MS,
   isSystemWrittenKind,
+  symptomTypeId,
   timelineEntryContentZSchema,
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
@@ -46,6 +48,7 @@ import {
 import { isSystemUser, rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
+import { ensure as ensureSymptomType } from "./symptomTypeService";
 import { releaseEvent } from "./todoService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
@@ -119,6 +122,28 @@ const checkDoseMedication = async (
           issues: [{ path: "details.medicationId", message: "Choose a medication in this care group" }],
         },
       });
+};
+
+/**
+ * A symptom's catalog row (symptom-catalog), derived from `details.name` on
+ * every write, whatever a device sent: the group's row for the name, added
+ * (as the actor, a logger) when the group has none. `current` is the stored
+ * pointer: when it's already the derived one, nothing is read or added.
+ * Null for every other kind.
+ */
+const symptomTypeFor = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  kind: string,
+  details: TimelineEntry["details"] | undefined,
+  current?: string | null,
+) => {
+  if (kind !== "symptom" || !isSymptomDetails(details)) return null;
+  if (current && current === symptomTypeId(groupId, details.name)) return current;
+  const row = await ensureSymptomType({ ...ctx, tx }, groupId, details.name);
+  if (isError(row)) return row;
+  return row ? row.id : rejectError(ctx.authUser);
 };
 
 /** Postgres timestamptz text → ISO 8601, so stored rows re-validate. */
@@ -437,6 +462,9 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
     const series = await checkSeries(ctx, tx, data);
     if (series) return series;
 
+    const symptomType = await symptomTypeFor(ctx, tx, data.groupId, data.kind, details);
+    if (isError(symptomType)) return symptomType;
+
     const created = await timelineEntryModel.create({
       ...ctx,
       tx,
@@ -446,6 +474,7 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
         cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
         recipientId: resolved,
         details: details ?? null,
+        symptomTypeId: symptomType,
         ...(opts.via ? { via: opts.via } : {}),
       },
     });
@@ -551,6 +580,18 @@ export const update = (
         meta: { issues: [{ path: "seriesId", message: "A past visit stays as it was" }] },
       });
 
+    // A renamed symptom moves to its name's type (added when new); a stored
+    // pointer that's missing or stale is put right on any edit.
+    const symptomType = await symptomTypeFor(
+      ctx,
+      tx,
+      existing.groupId,
+      existing.kind,
+      content.details,
+      existing.symptomTypeId,
+    );
+    if (isError(symptomType)) return symptomType;
+
     const updated = await timelineEntryModel.update({
       ...ctx,
       tx,
@@ -560,6 +601,7 @@ export const update = (
         ...schedulingColumns(content),
         cancelledBy: cancelledByFor(ctx, existing, content.cancelledAt),
         details: content.details ?? null,
+        symptomTypeId: symptomType,
       },
     });
     if (isError(updated)) return updated;
