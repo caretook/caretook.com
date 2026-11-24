@@ -615,8 +615,7 @@ describe("appointments", () => {
     await pickAheadDay(5);
     await waitUntil(() => !GRID() && !!seg("hour"), "the calendar to close");
     await device.settle();
-    expect(CHIP_DIALOG()).toBeTruthy();
-    expect(CHIP_DIALOG()!.contains(document.activeElement)).toBe(true);
+    expect(CHIP_DIALOG()?.contains(document.activeElement)).toBe(true);
     expect(document.activeElement).toBe(PICK_DATE());
     // The time picked first stays (the current hour applies to the first pick only).
     expect(`${seg("hour")?.textContent}:${seg("minute")?.textContent}`).toBe(`${hour % 12 || 12}:00`);
