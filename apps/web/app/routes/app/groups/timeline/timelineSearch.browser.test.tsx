@@ -110,7 +110,7 @@ describe("searching the timeline", () => {
     await openField();
     const box = device.screen.getByRole("searchbox", { name: "Search entries" });
     await expect.element(box).toBeVisible();
-    expect(field().placeholder).toBe("Type to search");
+    expect(field()?.placeholder).toBe("Type to search");
   });
 
   test("the magnifier is the field's toggle: it opens the field focused; Escape closes it, focus back on the magnifier; the magnifier closes it too", async () => {
