@@ -283,3 +283,12 @@ export const SERIES_VISIT_NAMESPACE = "3f9b6a1e-2c4d-4b8a-9e7f-5d1c0a2b8e64";
  */
 export const seriesVisitId = (seriesId: string, day: string) =>
   uuidV5(`${seriesId.toLowerCase()}:${day}`, SERIES_VISIT_NAMESPACE);
+
+/**
+ * The server's second id for a visit whose `seriesVisitId` another row holds
+ * (another group's, under a device-chosen id: B-289): derived from the
+ * series, the day and a fixed salt, so the day is never skipped and a second
+ * top-up finds it by `(series_id, series_day)`. Never change the salt.
+ */
+export const seriesVisitFallbackId = (seriesId: string, day: string) =>
+  uuidV5(`${seriesId.toLowerCase()}:${day}:taken`, SERIES_VISIT_NAMESPACE);

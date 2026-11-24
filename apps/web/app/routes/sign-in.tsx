@@ -5,6 +5,8 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 import { Button, Field, LINK, TabNav } from "~/components/ui/plain";
 import { accountUrls, parseSignInMethod } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
+import { expireKeptCopy } from "~/lib/auth/keptCopy";
+import { finishPendingSignOut } from "~/lib/auth/pendingSignOut";
 import { sessionChanged } from "~/lib/auth/sessionEpoch";
 import {
   authMessages,
@@ -34,8 +36,14 @@ export function meta({}: Route.MetaArgs) {
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const params = new URL(request.url).searchParams;
   const redirectTo = safeRedirect(params.get("redirectTo"));
+  // A copy kept for its owner past its limit goes, even if nobody signs in (B-290).
+  await expireKeptCopy().catch((e: unknown) => console.error("Couldn't expire the kept copy", e));
+  // A sign-out made offline is finished first: its session must not skip ahead.
+  const stillPending = await finishPendingSignOut();
   // Offline (the request throws), there's no session to skip ahead with.
-  const { data } = await authClient.getSession().catch(() => ({ data: null }));
+  const { data } = stillPending
+    ? { data: null }
+    : await authClient.getSession().catch(() => ({ data: null }));
   if (data) throw redirect(redirectTo);
   return {
     redirectTo,
@@ -56,6 +64,13 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
   const intent = formString(form, "intent");
   const email = formString(form, "email").trim();
   const redirectTo = safeRedirect(formString(form, "redirectTo"));
+  // An offline sign-out's server half goes first: while it's owed, the next
+  // session check would end the new session too. It fails only offline.
+  if (await finishPendingSignOut())
+    return {
+      intent: intent === "send-email" || intent === "code" ? "email" : "password",
+      error: authMessages.offline,
+    };
 
   if (intent === "send-email") {
     // One request, one email: the server adds the code to the link's email.

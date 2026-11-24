@@ -19,6 +19,7 @@ import {
 import { isError, newError } from "../errors";
 import { careRecipientModel, recipientAllergyModel } from "../models";
 import { rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import { resolveRecipient } from "./medicationService";
 
 // The care recipient's allergies. Write through here, not the model: content
@@ -110,15 +111,17 @@ export const update = (ctx: ServiceContext, id: string, input: RecipientAllergyU
   }, ctx);
 
 /**
- * Create the allergy with this id, or bring the existing one up to date
- * (PowerSync's upload queue). Safe to replay; the group and recipient never
- * change, and a deleted allergy stays deleted.
+ * Create the allergy with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now, so it never reverts a newer
+ * edit. The group and recipient never change, and an id the actor can't see is refused
+ * without saying whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (ctx: ServiceContext, input: RecipientAllergyUpsertInput) =>
   withTransaction(async (tx) => {
     const parsed = recipientAllergyUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, ...content } = parsed.data;
+    const { id, groupId, recipientId } = parsed.data;
 
     const existing = await recipientAllergyModel.getById(id, {
       authUser: SYSTEM_USER,
@@ -126,16 +129,14 @@ export const upsert = (ctx: ServiceContext, input: RecipientAllergyUpsertInput) 
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
 
     const visible = await recipientAllergyModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
       return newError({ code: "recipientAllergyService:immutable" });
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content);
+    return unchanged(visible);
   }, ctx);
 
 /** Soft delete (writers). */
