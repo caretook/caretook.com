@@ -4,9 +4,11 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 3 running):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (ingest: nothing new; doctor: two title-rewrite notes only; no new items for this topic); `pnpm prd sync`: already up to date. **Wave 3 started:** worktrees `symptom-catalog-3` (stack slot 1), `-5`, `-6` made from 18a18117; one opus agent spawned for each. **Slice 6 handed off** (0202848a, slice check green, 6 files: daySummary, visitPrep, quickEntryPredictions group by `symptomKey` per the PRD's _Null pointers_); reviewed, waits to merge after 3 and 5. **Slice 5 handed off** (d78e5483, slice check green, 14 files: `?symptom=` filter, `symptom_type_id IN (…)` device query, device index `timeline_entry_group_symptom_type`, new `symptomFilter.sync.ts`); reviewed, merges after 3. The wave run must include `timelineFilters.browser.test.tsx` (FilterSheet and chips changed). Slice 3's first stack start failed (container unhealthy under load); `pnpm prd stack up` again worked.
+**Where it stands (2026-11-24, wave 3 merged):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (nothing new; filed B-756 (fixes-ui): the empty filtered list names no symptoms; B-758 (this topic, triaged): the similar-name check's words-inside rule asks too often, e.g. "Knee pain" offers "Pain"). Wave 3: all three slices handed off (opus agents) and merged in plan order: slice 3 (3c3f8466) as 8e7cca8f, slice 5 (d78e5483) as 27ad45f3, slice 6 (0202848a) as 625e47ec; `timeline.sync.ts` auto-merged. Worktrees `symptom-catalog-3`, `-5`, `-6` kept until the wave run is green. No migration in this wave.
 
-**Next:** merge 3, 5, 6 in plan order (3 then 5 then 6) as they hand off; then the wave's CI run (tier the check plan proposes: likely `full`, slice 3 may add a migration or sync-config change); then sync, PR, land. Wave 4 (slice 4) after.
+**Next:** the wave's CI run (`components`, requested on 625e47ec+status); it must include `timelineFilters.browser.test.tsx`, `timelineSheets`, `timelineEasyTiles`, `timelineSheetUrls` (touched indirectly). On green: `pnpm prd rm` the three worktrees, `pnpm prd sync`, synced-tip run, PR, review, land, report. Then wave 4 (slice 4) in a fresh session.
+
+**For slice 4 (from slice 3):** `quickEntry.sync.ts` doesn't add the catalog row locally yet; call `addSymptomTypeIn(tx, …)` (`symptomTypes.sync.ts`) inside its transaction. Keep `symptomTypeColumn`.
 
 **Slice 2 hand-off notes, for wave 3:** the entry's pointer is written locally already (`symptomTypeColumn(groupId, content)` in `timeline.sync.ts`; quick entry uses it too). Slice 3 only adds the `symptom_type` row in the same local write, plus its upload entry. Slice 5: filter on the stored `symptom_type_id` (partial index `timeline_entry_symptom_type_idx` on the server; no device index yet, add one if the filter needs it); seeded and fixture symptoms carry pointers. Slice 4 later: keep `symptomTypeColumn` when quick entry matches the catalog. Migration: 0044 is landed, so slice 3 (if it needs one) takes the next number.
 
@@ -22,10 +24,10 @@
 | ----- | ---- | ----------- | ------------------------------------------------ |
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
 | 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
-| 3     | 3    | started     |                                                  |
+| 3     | 3    | merged      |                                                  |
 | 4     | 4    | not started |                                                  |
-| 5     | 3    | handed off  |                                                  |
-| 6     | 3    | handed off  |                                                  |
+| 5     | 3    | merged      |                                                  |
+| 6     | 3    | merged      |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
