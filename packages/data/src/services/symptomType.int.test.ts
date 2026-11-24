@@ -225,7 +225,7 @@ describe("backfill", () => {
     expect(await keysOf(g.groupId)).toEqual(sortedDefaults());
   });
 
-  it("doesn't touch the entries it reads", async () => {
+  it("changes nothing on the entries it reads but their pointer (slice 2)", async () => {
     const g = await bareGroup();
     const [entry] = await symptomEntry(g, { name: "Sore wrist" });
     ok(await symptomTypeService.backfill());
@@ -233,7 +233,7 @@ describe("backfill", () => {
       .select()
       .from(timelineEntrySchema)
       .where(eq(timelineEntrySchema.id, entry!.id));
-    expect(after).toEqual(entry);
+    expect(after).toEqual({ ...entry, symptomTypeId: symptomTypeId(g.groupId, "sore wrist") });
   });
 });
 

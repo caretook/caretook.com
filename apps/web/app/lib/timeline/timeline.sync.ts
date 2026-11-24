@@ -17,7 +17,9 @@ import {
   canChangeEntry,
   canLogEntry,
   isKnownReading,
+  isSymptomDetails,
   isTooFarAhead,
+  symptomTypeId,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { and, eq, isNull } from "drizzle-orm";
@@ -104,6 +106,8 @@ export type EntryRow = {
   series_id?: string | null;
   series_day?: string | null;
   series_detached?: number | null;
+  // A symptom's catalog row (symptom-catalog; optional: rows from before it synced).
+  symptom_type_id?: string | null;
 };
 
 /**
@@ -138,6 +142,7 @@ export const toTimelineEntry = (row: EntryRow): TimelineEntry | null => {
     seriesId: row.series_id ?? null,
     seriesDay: row.series_day ?? null,
     seriesDetached: row.series_detached === 1,
+    symptomTypeId: row.symptom_type_id ?? null,
   };
 };
 
@@ -500,6 +505,21 @@ export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => (
   seriesDetached: content.seriesDetached ? 1 : 0,
 });
 
+/**
+ * A symptom's catalog row, derived from its name as the server derives it
+ * (`symptomTypeId`), so the local copy points where the server's will; null
+ * for every other kind. The server ignores the device's value (serverSet).
+ */
+export const symptomTypeColumn = (
+  groupId: string,
+  content: { kind: string; details?: TimelineEntryContent["details"] },
+) => ({
+  symptomTypeId:
+    content.kind === "symptom" && isSymptomDetails(content.details)
+      ? symptomTypeId(groupId, content.details.name)
+      : null,
+});
+
 /** The refusal when an entry of this kind is dated past now plus the device's skew (5 minutes). */
 export const futureRefusal = (kind: string, occurredAt: string, now = new Date()): ActionResult | null =>
   isTooFarAhead(kind, occurredAt, now, DEVICE_FUTURE_SKEW_MS)
@@ -526,6 +546,7 @@ export const createEntry = async (db: SyncDb, groupId: string, input: unknown): 
     recipientId: group.recipient.id,
     kind: parsed.data.kind,
     ...contentColumns(parsed.data),
+    ...symptomTypeColumn(groupId, parsed.data),
     cancelledBy: parsed.data.cancelledAt ? db.userId : null,
     deletedAt: null,
     createdAt: now,
@@ -595,8 +616,8 @@ export const updateEntry = async (
   // Only what changed: the details rewritten unchanged would be re-sent and
   // overwrite a co-member's newer ones on the server.
   const changed = changedColumns(
-    { ...contentColumns(stored), cancelledBy: entry.cancelledBy },
-    { ...contentColumns(merged.data), cancelledBy },
+    { ...contentColumns(stored), cancelledBy: entry.cancelledBy, symptomTypeId: entry.symptomTypeId },
+    { ...contentColumns(merged.data), cancelledBy, ...symptomTypeColumn(entry.groupId, merged.data) },
     ["details"],
   );
   if (!Object.keys(changed).length) return { ok: true };
