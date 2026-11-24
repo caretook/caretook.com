@@ -265,7 +265,8 @@ const timelineEntry = softDelete({
   fixed: { ...GROUP_RECIPIENT, kind: text },
   content: TIMELINE_CONTENT,
   // The service sets `cancelled_by`, like the audit columns. `via` syncs down only (connectors).
-  serverSet: ["cancelled_by", "via"],
+  // `symptom_type_id`: the service derives it from the name (symptom-catalog); the device's is ignored.
+  serverSet: ["cancelled_by", "via", "symptom_type_id"],
   // A dose logged and undone before it uploaded, onto another member's row:
   // their dose stands, live or deleted (B-614).
   put: async (ctx, op, input) => {

@@ -111,6 +111,29 @@ export const addDefaults = async (tx: Tx, groupId: string) => {
   return isError(added) ? added : null;
 };
 
+/**
+ * Point entries at their types, only where the pointer is still null. Raw
+ * SQL, so Drizzle's `$onUpdate` doesn't bump `updated_at`, and `updated_by`
+ * is never named: an edit made on a device since still wins, and
+ * `details.name` is left as written. Returns how many were filled.
+ */
+const fillPointers = async (pointers: { entryId: string; typeId: string }[]) => {
+  if (!pointers.length) return 0;
+  const values = sql.join(
+    pointers.map((p) => sql`(${p.entryId}::uuid, ${p.typeId}::uuid)`),
+    sql`, `,
+  );
+  const filled = await dbMayFail(
+    () =>
+      getDb().execute(sql`
+        UPDATE timeline_entry AS e SET symptom_type_id = v.type_id
+        FROM (VALUES ${values}) AS v(id, type_id)
+        WHERE e.id = v.id AND e.symptom_type_id IS NULL`),
+    "symptomTypeService:backfill",
+  );
+  return isError(filled) ? filled : (filled.rowCount ?? 0);
+};
+
 /** Rows per batch: groups for the defaults, entries for their names. */
 const BATCH = 500;
 
@@ -121,6 +144,8 @@ export type BackfillSummary = {
   defaults: number;
   /** Rows added for names found on live symptom entries. */
   history: number;
+  /** Live symptom entries given their type (their pointer was null). */
+  pointers: number;
   /** Live symptom entries whose name can't be read (missing, empty or too long): left out. */
   unreadable: string[];
 };
@@ -130,12 +155,14 @@ export type BackfillSummary = {
  * changed: the missing `DEFAULT_SYMPTOMS`, and one row per distinct key
  * among **live** symptom entries' names (the earliest entry's spelling). A
  * soft-deleted entry adds no name. Run by `pnpm datastore:migrate` after the
- * SQL migrations, and as the seed's last step. Idempotent: a rerun adds
- * nothing. Writes only `symptom_type`, as the system, in batches.
+ * SQL migrations, and as the seed's last step. Each of those entries whose
+ * `symptom_type_id` is null then points at its type, with its wording,
+ * `updated_at` and `updated_by` as they were. Idempotent: a rerun changes
+ * nothing. Writes as the system, in batches.
  */
 export const backfill = async () => {
   const db = getDb();
-  const summary: BackfillSummary = { groups: 0, defaults: 0, history: 0, unreadable: [] };
+  const summary: BackfillSummary = { groups: 0, defaults: 0, history: 0, pointers: 0, unreadable: [] };
 
   // Every group's defaults.
   let afterGroup: string | null = null;
@@ -165,7 +192,7 @@ export const backfill = async () => {
   // Names on live symptom entries, oldest first, so the first spelling wins.
   const e = timelineEntrySchema;
   type Cursor = { createdAt: string; id: string };
-  type EntryName = Cursor & { groupId: string; name: unknown };
+  type EntryName = Cursor & { groupId: string; name: unknown; symptomTypeId: string | null };
   let after: Cursor | null = null;
   for (;;) {
     const cursor: Cursor | null = after;
@@ -177,6 +204,7 @@ export const backfill = async () => {
             groupId: e.groupId,
             createdAt: e.createdAt,
             name: sql<unknown>`${e.details}->'name'`,
+            symptomTypeId: e.symptomTypeId,
           })
           .from(e)
           .where(
@@ -199,6 +227,7 @@ export const backfill = async () => {
     if (!entries.length) break;
 
     const rows = new Map<string, ReturnType<typeof symptomTypeRow>>();
+    const pointers: { entryId: string; typeId: string }[] = [];
     for (const entry of entries) {
       const name = typeof entry.name === "string" ? symptomName(entry.name) : "";
       if (!name || name.length > SYMPTOM_NAME_MAX) {
@@ -207,10 +236,14 @@ export const backfill = async () => {
       }
       const row = symptomTypeRow(entry.groupId, name);
       if (!rows.has(row.id)) rows.set(row.id, row);
+      if (!entry.symptomTypeId) pointers.push({ entryId: entry.id, typeId: row.id });
     }
     const added = await insertRows(undefined, [...rows.values()]);
     if (isError(added)) return added;
     summary.history += added;
+    const pointed = await fillPointers(pointers);
+    if (isError(pointed)) return pointed;
+    summary.pointers += pointed;
     after = { createdAt: entries.at(-1)!.createdAt, id: entries.at(-1)!.id };
   }
 

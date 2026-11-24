@@ -100,6 +100,9 @@ export const timelineEntries = sqliteTable(
     seriesId: text("series_id"),
     seriesDay: text("series_day"),
     seriesDetached: integer("series_detached"),
+    // A symptom's catalog row (symptom-catalog): symptomTypeId(group, name),
+    // written locally with the entry; the server derives its own copy.
+    symptomTypeId: text("symptom_type_id"),
   },
   (t) => [
     index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt),
