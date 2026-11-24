@@ -105,7 +105,7 @@ describe("searching the timeline", () => {
     expect(vitals()).toBe(vitalsBefore);
   });
 
-  test("the field's placeholder is the shared \"Type to search\" and its accessible name stays \"Search entries\"", async () => {
+  test('the field\'s placeholder is the shared "Type to search" and its accessible name stays "Search entries"', async () => {
     const device = await open();
     await openField();
     const box = device.screen.getByRole("searchbox", { name: "Search entries" });
