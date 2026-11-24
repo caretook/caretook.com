@@ -53,11 +53,11 @@ describe("titleState", () => {
     });
   });
 
-  it("shows an unnamed event empty: Title on a draft, Add a title once saved", () => {
+  it("shows an unnamed event empty: Enter a title to save on a draft, Add a title once saved", () => {
     expect(titleState({ ...writer, kind: "event", title: null, saved: false })).toEqual({
       editable: true,
       value: "",
-      placeholder: "Title",
+      placeholder: "Enter a title to save",
     });
     expect(titleState({ ...writer, kind: "event", title: "Event", saved: true })).toEqual({
       editable: true,

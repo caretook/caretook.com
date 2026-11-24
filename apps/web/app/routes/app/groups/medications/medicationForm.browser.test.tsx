@@ -7,7 +7,7 @@ import { userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx } from "../../../../../test/fixtures";
+import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
   CHANGES_SQL,
   daysAgo,
@@ -38,6 +38,8 @@ import {
 } from "./medicationWorld";
 import { pickTime } from "../../../../../test/timeSelect";
 import { currentHourTime } from "~/lib/core/timeOfDay";
+import { medicationNameSuggestions } from "~/lib/medications/medicationNames";
+import { medicationNamesQuery } from "~/lib/medications/medications.sync";
 import * as medicationPage from "../medication/route";
 
 // Adding, editing, stopping, restarting and deleting a medication
@@ -105,11 +107,12 @@ const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[
     ...options,
   });
 
+/** The name's suggestions, as listed under it (a popover, outside the form). */
 const suggestions = () =>
-  [...(FORM()?.querySelectorAll("[data-name-suggestions] button") ?? [])].map((b) => b.textContent?.trim());
+  [...document.querySelectorAll('[role="listbox"] [role="option"]')].map((o) => o.textContent?.trim());
 const suggestion = (text: string) =>
-  [...(FORM()?.querySelectorAll<HTMLButtonElement>("[data-name-suggestions] button") ?? [])].find(
-    (b) => b.textContent?.trim() === text,
+  [...document.querySelectorAll<HTMLElement>('[role="listbox"] [role="option"]')].find(
+    (o) => o.textContent?.trim() === text,
   );
 const scheduleType = (value: "scheduled" | "asNeeded") =>
   FORM()!.querySelector<HTMLInputElement>(`input[name="scheduleType"][value="${value}"]`)!;
@@ -153,7 +156,7 @@ describe("adding", () => {
     await userEvent.fill(await found(() => field("name")), "lis");
     await waitUntil(() => !!suggestion("Lisinopril"), "the suggestion");
     await userEvent.click(await found(() => suggestion("Lisinopril")));
-    await waitUntil(() => !FORM()?.querySelector("[data-name-suggestions]"), "the chips to go");
+    await waitUntil(() => !document.querySelector('[role="listbox"]'), "the list to close");
     expect(["name", "strength", "dose", "reason"].map((n) => field(n)!.value)).toEqual([
       "Lisinopril",
       "",
@@ -174,6 +177,44 @@ describe("adding", () => {
       .poll(() => FORM()?.querySelector("[data-manage-passes]")?.getAttribute("href"))
       .toBe(`${MEDS}/passes`);
     expect(suggestions()).toEqual([]);
+  });
+
+  test("the name suggests only once typed: nothing on focus; one letter lists the group's names, then common ones; a partial name never fills; a pick fills the full name only", async () => {
+    const device = await open(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    const name = () => field("name");
+    await userEvent.click(await found(name));
+    await expect.poll(() => name()?.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+
+    await userEvent.keyboard("l");
+    const { sql, params } = medicationNamesQuery(TEST_GROUP.id);
+    const used = await device.query<{ name: string }>(sql, params);
+    const expected = medicationNameSuggestions("l", used);
+    // The group's own (in the order they were last saved), then the curated list.
+    expect(new Set(expected.slice(0, 3))).toEqual(new Set(["Latanoprost", "Lisinopril", "Losartan"]));
+    expect(expected.indexOf("Labetalol")).toBeGreaterThan(2);
+    await expect.poll(suggestions).toEqual(expected);
+
+    // Look-alikes are listed in full; leaving a partial name keeps it as typed.
+    await userEvent.fill(await found(name), "hydr");
+    await expect.poll(suggestions).toEqual(expect.arrayContaining(["Hydralazine", "Hydroxyzine"]));
+    await userEvent.keyboard("{Tab}");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+    expect(name()?.value).toBe("hydr");
+
+    await userEvent.click(await found(name));
+    await userEvent.keyboard("ox");
+    await userEvent.click(await found(() => suggestion("Hydroxyzine")));
+    await expect.poll(() => name()?.value).toBe("Hydroxyzine");
+    expect(["strength", "dose", "directions"].map((n) => field<HTMLInputElement>(n)?.value ?? "")).toEqual([
+      "",
+      "",
+      "",
+    ]);
+
+    await userEvent.fill(await found(name), "");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
   });
 
   test("validation shows on the fields: a name, each time once (focus on the name), and an as-needed maximum in range", async () => {

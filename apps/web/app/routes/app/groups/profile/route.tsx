@@ -20,6 +20,9 @@ import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/profiles/pr
 import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/recipientDetails.sync";
 import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
 import { loadConditions, setNoKnownConditions, useConditions } from "~/lib/profiles/conditions.sync";
+import { loadAllergies, setNoKnownAllergies, useAllergies } from "~/lib/medications/allergies.sync";
+import { allergyActionFromForm } from "./allergies/allergyActions";
+import { AllergiesSection } from "./AllergiesSection";
 import { conditionActionFromForm } from "./conditions/conditionActions";
 import { ConditionsSection } from "./ConditionsSection";
 import { ContactSection, InsuranceSection } from "./DetailsSections";
@@ -35,6 +38,7 @@ import { VitalAveragesSection } from "./VitalAveragesSection";
 // (`profile/basics`, `profile/contact`, `profile/insurance`), online only.
 // Writers also see the recipient's Contact and Insurance (slice 3) and the
 // emergency list (slice 5; owners and admins edit it in `profile/emergency`).
+// Allergies and conditions are written on the device, so they work offline.
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData?.title ? `${loaderData.title} · Profile · Caretook` : "Profile · Caretook" }];
@@ -49,7 +53,8 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   ]);
   // Recent vital averages: the windows are days in the recipient's zone.
   const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
-  // The conditions section (every role).
+  // The allergies and conditions sections (every role).
+  const allergies = await loadAllergies(db, params.groupId);
   const conditionRows = await loadConditions(db, params.groupId);
   // Writers' details: only owners', admins' and caretakers' devices have them.
   const detailsRows = canReadRecipient(group.role, "details")
@@ -65,18 +70,25 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     units,
     detailsRows,
     memberRows,
+    allergies,
     conditionRows,
     title: group.recipient?.displayName ?? group.displayName,
   };
 }
 
-/** The conditions section's "No known conditions" (writers; a local write, so it works offline). */
+/**
+ * The allergies and conditions sections' "No known allergies" and "No known
+ * conditions" (writers; local writes, so they work offline).
+ */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const action = conditionActionFromForm(await request.formData());
-  if (action?.intent !== "noKnownConditions") return { ok: false, error: "Nothing to do", issues: [] };
-  return setNoKnownConditions(db, group.id, action.on);
+  const form = await request.formData();
+  const allergy = allergyActionFromForm(form);
+  if (allergy?.intent === "noKnown") return setNoKnownAllergies(db, group.id, allergy.on);
+  const condition = conditionActionFromForm(form);
+  if (condition?.intent === "noKnownConditions") return setNoKnownConditions(db, group.id, condition.on);
+  return { ok: false, error: "Nothing to do", issues: [] };
 }
 
 /** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
@@ -110,6 +122,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const editsDetails = canEditRecipient(group.role, "details");
   const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
   const members = useLiveQuery<MemberDetailRow>(membersQuery.sql, membersQuery.params, loaderData.memberRows);
+  const { state: allergies } = useAllergies(params.groupId, loaderData.allergies);
   const conditions = useConditions(params.groupId, loaderData.conditionRows);
   const averages = useVitalAverages(
     params.groupId,
@@ -130,6 +143,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
             <ProfileHeader profile={profile} />
           </Section>
           <BasicsSection profile={profile} />
+          <AllergiesSection groupId={group.id} state={allergies} canWrite={group.canWrite} />
           <ConditionsSection groupId={group.id} state={conditions.state} canWrite={group.canWrite} />
           <NoteSection profile={profile} canEdit={group.canWrite} />
           {averages && <VitalAveragesSection rows={averages} />}

@@ -11,14 +11,16 @@ import { useGroup } from "~/lib/app-shell/group";
 import { currentLineText, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
 import { useNow } from "~/lib/live-notes/editors.sync";
+import { CopyLinkButton } from "./CopyLinkButton";
 import { QuickAddMenu } from "./QuickAddMenu";
+import { dayLinkPath } from "./timelineLinks";
 import { dayKeyIn } from "./timelineDays";
 
 /**
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov
  * 16") on the left; on the right the care period that covers the day
- * (`DayPeriod`) and, last, the writers' + menu (`QuickAddMenu`: adds start on
- * that day). The heading names the section (`day-<key>`); the period isn't part of it.
+ * (`DayPeriod`), a copy-link button (the day's `?day=` link; not in easy
+ * mode) and, last, the writers' + menu (`QuickAddMenu`: adds start on that day). The heading names the section (`day-<key>`); the period isn't part of it.
  * Under them, `summary` (the day's `DaySummaryLine`), so it stays pinned with
  * its date while the day scrolls by. Easy mode shows the period too, in
  * larger type and without Change.
@@ -61,6 +63,7 @@ export function DayHeader({
               <DayPeriod groupId={groupId} dayKey={dayKey} periods={periods} at={newestAt} easy={easy} />
             )
           )}
+          {!easy && <CopyLinkButton path={dayLinkPath(groupId, dayKey)} label={`Copy link to ${label}`} />}
           {canWrite && !easy && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
         </div>
       </div>

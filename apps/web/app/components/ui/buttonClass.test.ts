@@ -79,6 +79,8 @@ describe("buttonClass", () => {
       "btn-square",
       "border-base-300",
       "bg-base-100",
+      "hover:bg-base-300",
+      "active:bg-base-300",
     ]);
   });
 

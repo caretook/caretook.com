@@ -52,8 +52,17 @@ const SHAPE: Record<ButtonShape, string> = {
   round: "btn-circle",
 };
 
+/**
+ * The outlined rest look (a toggle off, an unselected chip, the list tools'
+ * circle): a card fill and edge, filled with `base-300` on hover and press.
+ * Its plain `bg-` and `border-` utilities beat daisyUI's layered `.btn:hover`,
+ * so the hover and press fills are named here too (B-617); `.btn`'s own
+ * transition fades them (`--motion-fast`, none under reduced motion).
+ */
+export const OUTLINED = "border-base-300 bg-base-100 hover:bg-base-300 active:bg-base-300";
+
 const TOGGLE_ON = "btn-neutral";
-const TOGGLE_OFF = "border-base-300 bg-base-100";
+const TOGGLE_OFF = OUTLINED;
 
 export const buttonClass = ({
   variant = "secondary",

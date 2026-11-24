@@ -27,19 +27,24 @@ export const actionsLabel = (entry: Labelled) =>
  * by Alex Rivera yet." (`authorName` is the author filter's name.) With a
  * search (`q`): "No symptoms by Alex Rivera match “fall”." With a vital
  * type (`vital`, under the vital kind): "No blood pressure readings yet."
+ * With symptom types (`symptomNames`, the chosen catalog names, under the
+ * symptom kind): "No pain or nausea on the timeline yet."
  */
 export const emptyTimelineText = (
   kind: TimelineEntryKind | null,
   authorName?: string | null,
   q?: string | null,
   vital?: VitalType | null,
+  symptomNames?: readonly string[] | null,
 ) => {
   const what =
     vital && kind === "vital"
       ? vitalReadings(vital)
-      : kind
-        ? KIND_META[kind].plural.toLowerCase()
-        : "entries";
+      : symptomNames?.length && kind === "symptom"
+        ? orList(symptomNames.map(lowerFirst))
+        : kind
+          ? KIND_META[kind].plural.toLowerCase()
+          : "entries";
   if (q) {
     return `No ${what}${authorName ? ` by ${authorName}` : ""} match “${q}”.`;
   }
@@ -48,7 +53,11 @@ export const emptyTimelineText = (
 };
 
 /** A vital type's readings, as a sentence names them: "blood pressure readings", "oxygen (SpO₂) readings". */
-const vitalReadings = (vital: VitalType) => {
-  const label = VITALS[vital].label;
-  return `${label.charAt(0).toLowerCase()}${label.slice(1)} readings`;
-};
+const vitalReadings = (vital: VitalType) => `${lowerFirst(VITALS[vital].label)} readings`;
+
+/** A label as a sentence's middle has it: "Knee pain" is "knee pain". */
+const lowerFirst = (label: string) => `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+
+/** "a", "a or b", "a, b or c". */
+const orList = (names: readonly string[]) =>
+  names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} or ${names.at(-1)}`;

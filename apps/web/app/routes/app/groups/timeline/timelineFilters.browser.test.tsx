@@ -102,6 +102,26 @@ describe("the kind icon", () => {
     await expect.poll(rowKinds).toBe("Note: ");
   });
 
+  test("a row's kind icon has the kit's button feel and filters without opening the entry (B-617)", async () => {
+    const device = await openTimeline();
+    const note = await found(() => rowOf("Note"));
+    const icon = iconOf(note);
+    expect(icon.classList).toContain("motion-press");
+    expect(getComputedStyle(icon).transitionDuration.split(",").map(parseFloat)).toContain(0.12);
+    expect(getComputedStyle(icon).zIndex).toBe("10");
+    expect(authorOf(note).classList).toContain("motion-press");
+    const rest = getComputedStyle(icon).boxShadow;
+    await userEvent.hover(icon);
+    await expect.poll(() => getComputedStyle(icon).boxShadow).not.toBe(rest);
+
+    await userEvent.click(icon);
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=note`);
+    await expect.poll(rowKinds).toBe("Note: ");
+    await device.settle();
+    expect(device.location()).toBe(`${TIMELINE_URL}?kind=note`);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+  });
+
   test("cards: the same icon filters", async () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
@@ -215,7 +235,7 @@ describe("the Filter button and its sheet", () => {
   const typeChip = (label: string) => types().find((a) => a.textContent?.trim() === label)!;
   /** The button's name: "Filter", or "Filter, N on" (its badge shows N). */
   const buttonName = () => filterButton().getAttribute("aria-label");
-  const badge = () => filterButton().querySelector("[data-filter-count]")?.textContent ?? null;
+  const badge = () => filterButton().querySelector("[data-count]")?.textContent ?? null;
   const chipRow = () => document.querySelector('nav[aria-label="Filters on"]');
 
   test("at phone width, no chip row and a plain Filter until a filter is set", async () => {
@@ -302,6 +322,17 @@ describe("the Filter button and its sheet", () => {
     await expect.poll(() => document.activeElement).toBe(filterButton());
     expect(buttonName()).toBe("Filter");
     expect(currentChips()).toBe("Matching “reading”: clear the search");
+  });
+
+  test("Filter is the kit's IconButton, the magnifier's look plus its badge (B-617)", async () => {
+    const device = await openTimeline({ width: 420, query: `?kind=symptom&author=${SAM.id}` });
+    await waitUntil(() => activeChips().length === 2);
+    const magnifier = device.screen.getByRole("button", { name: "Search entries" }).element();
+    const classes = (el: Element) => [...el.classList].sort();
+    expect(classes(filterButton())).toEqual([...classes(magnifier), "relative"].sort());
+    expect(filterButton().getAttribute("title")).toBe("Filter, 2 on");
+    expect(badge()).toBe("2");
+    expect(filterButton().querySelector("[data-count]")?.getAttribute("aria-hidden")).toBe("true");
   });
 
   test("icon-only, one circle with the magnifier: “Filter” with nothing on; with a kind and an author, “Filter, 2 on” and a badge of 2; it opens the sheet", async () => {

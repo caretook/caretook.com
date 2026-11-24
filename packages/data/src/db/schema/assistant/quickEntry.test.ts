@@ -1492,6 +1492,15 @@ describe("the vocabulary", () => {
         expect(top(`${phrase} the thing in the evening`).kind).toBe("todo");
         return;
       }
+      if (role === "newMedication" || role === "newProvider") {
+        // Opening a line, a card that opens the Add sheet ("started" needs a strength or form to lead).
+        const kind = role === "newMedication" ? "medication" : "provider";
+        const r = top(`${phrase} ${role === "newMedication" ? "Amlodipine 5 mg" : "Dr Kim"}`);
+        expect(r.kind).toBe(kind);
+        expect(r.actions).toEqual([]);
+        expect(r.newItem).toMatchObject({ kind, name: role === "newMedication" ? "Amlodipine" : "Dr Kim" });
+        return;
+      }
       if (role === "reportWord") {
         expect(top(`call the pharmacy ${phrase} in the evening`).kind).toBe("note");
         return;
@@ -1517,6 +1526,100 @@ describe("the vocabulary", () => {
     for (const e of QUICK_ENTRY_VOCABULARY) if (e.role === "symptomIncident") expect(e.name).toBeTruthy();
     const phrases = QUICK_ENTRY_VOCABULARY.map((e) => e.phrase);
     expect(new Set(phrases).size).toBe(phrases.length);
+  });
+});
+
+describe("new medications and providers (B-762)", () => {
+  const newItem = (line: string) => {
+    const parts = parse(line);
+    expect(parts).toHaveLength(1);
+    const r = parts[0]!.readings[0]!;
+    expect(r.actions).toEqual([]);
+    return r;
+  };
+
+  test('"new med lisinopril 10 mg tablet" is a new medication with its name, strength and form, not the current Lisinopril', () => {
+    const r = newItem("new med lisinopril 10 mg tablet");
+    expect(r.kind).toBe("medication");
+    expect(r.label).toBe("New medication");
+    expect(r.newItem).toEqual({
+      kind: "medication",
+      name: "Lisinopril",
+      strength: "10 mg",
+      form: "tablet",
+      directions: null,
+    });
+    // Nothing reads it as the group's Lisinopril.
+    for (const other of parse("new med lisinopril 10 mg tablet")[0]!.readings)
+      expect(JSON.stringify(other.actions)).not.toContain(LIS);
+  });
+
+  test('"add provider Dr Kim cardiology 555-0100" is a new provider with its name, specialty and phone', () => {
+    const r = newItem("add provider Dr Kim cardiology 555-0100");
+    expect(r.kind).toBe("provider");
+    expect(r.label).toBe("New provider");
+    expect(r.newItem).toEqual({
+      kind: "provider",
+      type: "clinician",
+      name: "Dr Kim",
+      specialty: "Cardiology",
+      practiceId: null,
+      phone: "555-0100",
+      address: null,
+    });
+  });
+
+  test.each([
+    [
+      "add medication amlodipine 5mg tablets once daily with food",
+      { name: "Amlodipine", strength: "5 mg", form: "tablet", directions: "once daily with food" },
+    ],
+    ["new med insulin glargine 100 units/ml", { name: "Insulin glargine", strength: "100 units/mL" }],
+    ["new med amoxicillin 250mg/5ml liquid", { name: "Amoxicillin", strength: "250 mg/5mL", form: "liquid" }],
+    ["started metformin 500 mg", { name: "Metformin", strength: "500 mg", form: null }],
+    ["new medication eye drops", { name: "Eye", form: "drops" }],
+    ["new med", { name: "", strength: null, form: null, directions: null }],
+  ])("%s", (line, draft) => {
+    const r = newItem(line);
+    expect(r.kind).toBe("medication");
+    expect(r.newItem).toMatchObject({ kind: "medication", ...draft });
+  });
+
+  test.each([
+    [
+      "add provider dr kim, heart doctor, (555) 555-0100, 12 Main St, Springfield",
+      {
+        name: "Dr Kim",
+        specialty: "Heart doctor",
+        phone: "(555) 555-0100",
+        address: "12 Main St, Springfield",
+      },
+    ],
+    ["new doctor Dr Patel at Riverside", { name: "Dr Patel", practiceId: RIVER, address: null }],
+    ["new doctor Dr Patel at 400 Example Ave", { practiceId: null, address: "400 Example Ave" }],
+    [
+      "add provider Example Pharmacy 555-0199",
+      { type: "pharmacy", name: "Example Pharmacy", phone: "555-0199" },
+    ],
+    ["new provider Lakeside Clinic", { type: "practice", name: "Lakeside Clinic" }],
+  ])("%s", (line, draft) => {
+    const r = newItem(line);
+    expect(r.kind).toBe("provider");
+    expect(r.newItem).toMatchObject({ kind: "provider", ...draft });
+  });
+
+  test('a line opening "new med" or "add provider" stays whole; "started" alone is offered, not first', () => {
+    expect(splitQuickEntry("add provider Dr Kim, cardiology, 555-0100")).toEqual([
+      "add provider Dr Kim, cardiology, 555-0100",
+    ]);
+    expect(splitQuickEntry("started metformin 500 mg, bp 130/85")).toEqual([
+      "started metformin 500 mg",
+      "bp 130/85",
+    ]);
+    expect(top("started physical therapy").kind).toBe("note");
+    expect(parse("started physical therapy")[0]!.readings.map((r) => r.kind)).toContain("medication");
+    expect(top("started coughing").kind).toBe("symptom");
+    expect(top("gave lisinopril").kind).toBe("dose");
   });
 });
 

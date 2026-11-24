@@ -48,6 +48,7 @@ const SAMS = todo({
   id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7c13",
   title: "Fax the form",
   dueOn: day(3),
+  dueTime: "15:30",
   assigneeId: SAM_ID,
 });
 
@@ -108,20 +109,34 @@ describe("todos on the Planner tab", () => {
     await expect.element(page.getByRole("heading", { name: `Todo page ${LATE.id}` })).toBeInTheDocument();
   });
 
-  test("the assignee sits under the time, not the title, and a long name stays inside the column", async () => {
+  test("a todo row is laid out like an event card: its due time above the title, the assignee on the right (B-636)", async () => {
     await open();
+    await expect.poll(() => rowOf(SAMS)?.querySelector("[data-when]")?.textContent).toBe("15:30");
+    const row = rowOf(SAMS)!;
+    // No side column of times: the time and the title share one column, time first.
+    expect(row.querySelector("[data-when-column]")).toBeNull();
+    const box = (sel: string) => row.querySelector(sel)!.getBoundingClientRect();
+    const time = box("[data-when]");
+    const title = box("[data-todo-title]");
+    const tick = box("[data-todo-tick]");
+    const pill = box("[data-todo-assignee]");
+    expect(time.bottom).toBeLessThanOrEqual(title.top + 1);
+    expect(Math.abs(time.left - title.left)).toBeLessThan(1);
+    expect(tick.right).toBeLessThan(title.left);
+    // The assignee pill sits where an event card has its author: right of the title.
+    expect(pill.left).toBeGreaterThanOrEqual(title.right - 1);
+
+    // Its left edge matches the event card's on the same day.
+    const event = document.querySelector(`[data-day="${day(3)}"] [data-upcoming-item]`)!;
+    const eventTime = event.querySelector("[data-when]")!.getBoundingClientRect();
+    expect(Math.abs(eventTime.left - time.left)).toBeLessThan(1);
+
+    // And the checkbox still completes it.
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Fax the form” done" }));
     await expect
-      .poll(() => rowOf(SAMS)?.querySelector("[data-when-column] [data-todo-assignee]"))
-      .toBeTruthy();
-    const row = rowOf(SAMS);
-    const column = row?.querySelector("[data-when-column]")?.getBoundingClientRect();
-    const time = row?.querySelector("[data-when]")?.getBoundingClientRect();
-    const pill = row?.querySelector("[data-todo-assignee]")?.getBoundingClientRect();
-    expect(pill?.top).toBeGreaterThanOrEqual(time?.bottom ?? Infinity);
-    expect(pill?.right).toBeLessThanOrEqual(column?.right ?? 0);
-    expect(
-      row?.querySelector("[data-todo-title]")?.parentElement?.querySelector("[data-todo-assignee]"),
-    ).toBeNull();
+      .element(page.getByRole("status").filter({ hasText: "Done: Fax the form" }))
+      .toBeInTheDocument();
+    await expect.poll(() => rowOf(SAMS)).toBeNull();
   });
 
   test("ticking a todo completes it (a done-only upload); it leaves the Planner tab, and Undo brings it back", async () => {

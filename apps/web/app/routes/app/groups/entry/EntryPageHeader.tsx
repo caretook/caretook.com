@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { TitleState } from "./entryPage";
 import type { LiveEntry } from "./useLiveEntry";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   CancelEventDialog,
   EntryActions,
@@ -69,6 +69,7 @@ export function EntryPageHeader({
   const currentTitle = typed && typed.over === entry.title ? typed.text : entry.title;
   const schedule = { occurredAt: entry.occurredAt, endsAt: entry.endsAt, allDay: entry.allDay };
   const liveKind = entry.kind === "event" || entry.kind === "note" ? entry.kind : null;
+  const titleInput = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -82,6 +83,7 @@ export function EntryPageHeader({
             kind={entry.kind}
             title={entry.title}
             groupId={groupId}
+            inputRef={titleInput}
             onCommit={live.commitTitle}
             onPick={onPickTitle}
             onTextChange={(text) => setTyped({ text, over: entry.title })}
@@ -95,6 +97,8 @@ export function EntryPageHeader({
               schedule={schedule}
               timeZone={entry.timeZone}
               pickDay={pickDay}
+              // A new event's day picked first: a title is what saves it (B-692).
+              onFirstDayPick={() => titleInput.current?.focus()}
               onChange={live.changeSchedule}
             />
           ) : (

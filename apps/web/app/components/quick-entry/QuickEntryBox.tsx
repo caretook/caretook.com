@@ -8,6 +8,7 @@ import { QuickEntryCard } from "./QuickEntryCard";
 import { QuickEntryGoToCard } from "./QuickEntryGoToCard";
 import { QuickEntryCompletions, useCompletionsOverlay } from "./QuickEntryCompletions";
 import { QuickEntrySuggestButton, SUGGEST_ROOM } from "./QuickEntrySuggestButton";
+import { QuickEntryTips, useQuickEntryTips } from "./QuickEntryTips";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
 import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
 import { QUICK_ENTRY_PLACEHOLDER, QUICK_ENTRY_RULES } from "./quickEntryCopy";
@@ -29,8 +30,9 @@ const TEXTAREA_CLASS: Record<QuickEntrySize, string> = {
  * Undo for the whole line for about 10 s. An empty box offers suggestions
  * behind the Sparkles button inside it; while typing, matching names float
  * under the field. Nothing is saved before Save, except a due pass's chip,
- * which is Given all in one tap (with the same Undo). Writers only: the
- * timeline leaves it out for viewers.
+ * which is Given all in one tap (with the same Undo). On a user's first few
+ * focuses a tips panel floats under the empty box (`QuickEntryTips`).
+ * Writers only: the timeline leaves it out for viewers.
  */
 export function QuickEntryBox({
   groupId,
@@ -61,6 +63,8 @@ export function QuickEntryBox({
   const empty = !q.text.trim();
   const due = passChips ? q.dueNow : [];
   const suggest = empty && (due.length > 0 || usual.length > 0 || recent.length > 0);
+  const showNames = !empty && completions.length > 0 && names.open;
+  const tips = useQuickEntryTips(field, count === 0 && !q.goTo && !showNames);
   /** A suggestion fills the box and waits there, the cursor at the end (it never saves). */
   const fill = (value: string) => {
     q.setText(value);
@@ -91,11 +95,19 @@ export function QuickEntryBox({
           className={size === "lg" ? "[&>label]:text-xl [&>label]:font-semibold [&>p]:text-base" : ""}
         >
           {(control) => (
-            <div className="relative" {...names.area}>
+            <div
+              className="relative"
+              onFocus={names.area.onFocus}
+              onBlur={(e) => {
+                names.area.onBlur(e);
+                tips.area.onBlur(e);
+              }}
+            >
               <textarea
                 {...control}
                 aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
                 ref={field}
+                {...tips.field}
                 name="quickEntry"
                 rows={1}
                 className={`${control.className ?? ""} field-sizing-content max-h-48 resize-none ${TEXTAREA_CLASS[size]} ${suggest ? SUGGEST_ROOM[size] : ""}`}
@@ -124,9 +136,10 @@ export function QuickEntryBox({
                   passBusy={q.passBusy}
                 />
               )}
-              {!empty && completions.length > 0 && names.open && (
+              {showNames && (
                 <QuickEntryCompletions completions={completions} onFill={fill} onKeyDown={names.onKeyDown} />
               )}
+              {tips.visible && <QuickEntryTips onDismiss={tips.dismiss} />}
             </div>
           )}
         </Field>
@@ -147,6 +160,9 @@ export function QuickEntryBox({
                 onSymptomChoice={(use) => q.chooseSymptom(card, use)}
                 onEdit={() => void q.edit(card)}
                 onRemove={() => q.remove(card)}
+                onSave={() => void q.save()}
+                canSave={q.canSave}
+                count={count}
               />
             ))}
           </ul>

@@ -373,9 +373,8 @@ describe("on a provider's page", () => {
     await expect
       .poll(() => device.location())
       .toBe(`/app/groups/${GROUP}/entries/new?kind=event&when=pick&provider=${ORTIZ.id}`);
-    // The calendar is open first; picking a day (then Done) saves the appointment with Dr. Ortiz.
+    // The calendar is open first; picking a day closes the picker and saves the appointment with Dr. Ortiz.
     await pickDayAhead(3);
-    await userEvent.click(button("Done"));
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     const id = device.location().split("/").at(-1)!;
     await expect
