@@ -8,14 +8,16 @@
 | ----- | ---- | ---------------------------------------- | -------------------------------------------- |
 | 1     | 1    | landed (opus) in dev `24440550`, PR #134 | `0c37dc6d` (`ced2c458`)                      |
 | 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
-| 3     | 2    | merged (opus)                            | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
+| 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
 | 4     | 3    | —                                        | —                                            |
 | 5     | 4    | —                                        | —                                            |
 | 6     | 5    | —                                        | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Wave 2 (2026-11-24): green, landing.** CI integration green on `295fc0c6` (run 45364603017); slice 3's worktree removed; sync a no-op; PR #137; Codex out of credits (exit 4), so landing with `--no-review`. Docs folded: backlog (the origin path, who may change the inbox) and AGENTS.md (`pnpm prd dev-sync`). **Wave 2 (2026-11-24): slice 3 merged** as `8a2b35bc` (opus; slice check green on `54c810c3`); B-474 and B-435 done. Its worktree stays until the wave's CI verdict is green. Next: `pnpm prd ci run integration --wait`, then sync, PR, review, land. Accepted gap (noted on B-425): `ingest` with the main checkout mid-merge prints that the pickup skipped, then refuses as before rather than filing. Slice 4 notes: the inbox session runs `pnpm backlog similar`, `inbox add`, `inbox move` and `inbox` by the main checkout's path; pickup output is on stderr, the result line on stdout. Wave 1 landed as `24440550` (PR #134, `--no-review`, Codex out of credits; report ask a167). B-425 stays claimed until slice 4 merges.
+**Hand-over (2026-11-24): wave 2 landed; start wave 3 (slice 4) next.** Wave 2 landed in dev as `fb6688e6` through PR #137 with `--no-review` (Codex out of credits), at CI integration green on `295fc0c6` (run 45364603017). The landing report is ask a169; the to-test file is `to-test/2026-11-24-0429-inbox-agent.md`. Docs folded: backlog (the origin path, who may change the inbox) and AGENTS.md (`pnpm prd dev-sync`). B-474 and B-435 done; B-425 stays claimed until slice 4 merges. No slice in flight. Accepted gap (noted on B-425): `ingest` with the main checkout mid-merge prints that the pickup skipped, then refuses as before. Models: every slice on opus.
+
+**Slice 3 notes for slice 4:** the inbox session runs `pnpm backlog similar`, `inbox add`, `inbox move` and `inbox` by the main checkout's path; pickup output is on stderr, the result line ("added under <heading> on origin/dev as <sha>: …") on stdout. `BACKLOG_PICKUP=off` turns the pickup off. Slice 4 starts with two real-session checks (fast mode through `--settings`, and the bare directory loading neither AGENTS.md nor memory); if either fails, ask the user.
 
 **Gate, corrected:** `scripts/loops/lib.sh` counts as the browser harness, so a wave that touches it lands at the **integration** tier (land requests the CI run itself). `pnpm test:tooling` and `pnpm exec eslint scripts` remain the local pre-check. The B-729 dev brake that held wave 1 about 12 hours is fixed in dev (`bcf6ffff`, fixes-bug). Skeptic s19 / ask a165 (wait for fixes-bug) is settled. Open issues: none. `pnpm backlog doctor` still reports two old inbox-line mismatches (B-548, B-549), not this topic's.
 
