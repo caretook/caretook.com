@@ -19,7 +19,7 @@
 
 Slice 1 handed off (quick check passed on e397e1d5); review sent one fix back: the unsynced landing path clears land.sh's EXIT trap, dropping `land-end`.
 
-Slice 1's fix came back (e90ae361; the trap was already safe, since unsynced runs in a child process, but now re-armed and tested); merged as 0d93242f, B-434 done. Synced with dev (ed428dc2, carries B-773/B-774). Wave 1 CI run at tier `integration` (browser.sh changed) requested on the synced tip. Slice 1's agent is past 200k: any further fix goes to a fresh `--continue` agent. Worktree kept until green.
+**Wave 1:** slice 1 merged as 0d93242f (fix e90ae361), B-434 done; synced (ed428dc2, B-773/B-774). CI `integration` green on a4550c9e (run 45477738470; the first run braked on my own plan formatting). Worktree removed. PR #163; Codex out of credits, so landing `--no-review`. Docs folded: machinery (the run log, `metrics`; trimmed to stay under dev's size), orchestration (the `metrics` row). Landing now.
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
