@@ -9,11 +9,13 @@
 | 1     | 1    | landed (opus) in dev `24440550`, PR #134 | `0c37dc6d` (`ced2c458`)                      |
 | 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
 | 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
-| 4     | 3    | —                                        | —                                            |
+| 4     | 3    | started (opus), worktree inbox-agent-4   | —                                            |
 | 5     | 4    | —                                        | —                                            |
 | 6     | 5    | —                                        | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Now (2026-11-24): wave 3 under way.** Slice 4's worktree is made and its agent (opus) spawned; told to verify the two real-session checks non-interactively if it can, else report and the orchestrator asks. Ingest at the wave boundary: nothing new.
 
 **Hand-over (2026-11-24): wave 2 landed; start wave 3 (slice 4) next.** Wave 2 landed in dev as `fb6688e6` through PR #137 with `--no-review` (Codex out of credits), at CI integration green on `295fc0c6` (run 45364603017). The landing report is ask a169; the to-test file is `to-test/2026-11-24-0429-inbox-agent.md`. Docs folded: backlog (the origin path, who may change the inbox) and AGENTS.md (`pnpm prd dev-sync`). B-474 and B-435 done; B-425 stays claimed until slice 4 merges. No slice in flight. Accepted gap (noted on B-425): `ingest` with the main checkout mid-merge prints that the pickup skipped, then refuses as before. Models: every slice on opus.
 
