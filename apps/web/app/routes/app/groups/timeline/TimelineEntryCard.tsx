@@ -9,7 +9,7 @@ import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
-import { CANCELLED_TEXT, CancelledBadge } from "./TimelineEntryRow";
+import { CANCELLED_TEXT, CancelledBadge, EntryCopyLink } from "./TimelineEntryRow";
 
 /** One entry as a compact card: the body's first line beside the time, all its text, then who wrote it. */
 export function TimelineEntryCard({
@@ -61,6 +61,7 @@ export function TimelineEntryCard({
           </>
         }
       />
+      <EntryCopyLink entry={entry} />
       {(onDelete || canHaveNoteDocument(entry.kind)) && (
         <EntryActions
           kind={entry.kind}
