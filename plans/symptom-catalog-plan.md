@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 boundary done (ingest: nothing new; sync: up to date). B-758 decided by the skeptic (s24, ask a193, the user may veto): new slice 7, the words-inside rule needs the shorter name to have 2+ words; B-758 claimed. **Slice 4 started** (worktree symptom-catalog-4, opus agent, told not to touch `similarSymptoms`' rules). Slice 7 starting next (opus). B-756 (fixes-ui) stays with fixes-ui.
+**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 boundary done (ingest: nothing new; sync: up to date). B-758 decided by the skeptic (s24, ask a193, the user may veto): new slice 7, the words-inside rule needs the shorter name to have 2+ words; B-758 claimed. **Slice 4 started** (worktree symptom-catalog-4, opus agent, told not to touch `similarSymptoms`' rules). **Slice 7 started** (worktree symptom-catalog-7, opus agent). B-756 (fixes-ui) stays with fixes-ui.
 
 **Next:** on hand-offs, merge in plan order (4, then 7), `backlog done B-549` after slice 4, `done B-758` after slice 7; then the wave's CI run (`pnpm prd tier`), PR, review, land; this is the last wave, so after landing `pnpm prd rm symptom-catalog` and `pnpm prd end`.
 
@@ -14,7 +14,7 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`).
 
-**Models:** every slice on opus (slices 3, 5, 6 and the wave 3 fix agent ran on opus).
+**Models:** every slice on opus (slices 3, 4, 5, 6, 7 and the wave 3 fix agent ran on opus).
 
 | Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
@@ -24,7 +24,7 @@
 | 4     | 4    | started     |                                                  |
 | 5     | 3    | landed      | 27ad45f3 (d78e5483)                              |
 | 6     | 3    | landed      | 625e47ec (0202848a)                              |
-| 7     | 4    | not started |                                                  |
+| 7     | 4    | started     |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
