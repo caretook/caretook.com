@@ -53,7 +53,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 27    | B-582 | started (opus)                                                                                                                             |          |
 | 28    | B-642 | handed off c3ab42cf (opus; fixed 2030 clock, 00:05 case fails on old code; quick passed, tooling red only stack.test B-740, tidy-cli)      |          |
 | 29    | B-723 | handed off 4e1f251d (opus; quick red only in untouched files under load: stack, backlog, tidy-cli)                                         |          |
-| 30    | B-654 | started (opus)                                                                                                                             |          |
+| 30    | B-654 | handed off c91d833c (opus; holders wait on a go file, slowed-taker case; quick red only stack.test, ask.test (filed), tidy-cli)            |          |
 
 ## Wave 1
 
