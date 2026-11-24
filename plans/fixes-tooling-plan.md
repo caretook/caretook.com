@@ -84,7 +84,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 44    | B-598     | waiting on 41                                                                                                                                                               | —        |
 | 45    | B-696     | waiting on 41                                                                                                                                                               | —        |
 | 46    | B-464     | waiting on 41 (+B-650)                                                                                                                                                      | —        |
-| 47    | B-576     | started (opus; +B-574, measurement)                                                                                                                                         | —        |
+| 47    | B-576     | handed off (opus; 0a196c64; root lint scripts still at 4 GB, now 6 GB + lint-heap.test; quick passed; propose close both)                                                   | —        |
 | 48    | B-705     | handed off (sonnet; 92adb693; quick exit 0 in check-times 15:20Z; merge after 41)                                                                                           | —        |
 | 49    | B-586     | done (no commits; the user: phone notifications were off, B-586 resolved, a187)                                                                                             | —        |
 
