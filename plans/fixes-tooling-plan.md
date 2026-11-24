@@ -85,7 +85,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 45    | B-696     | waiting on 41                                                                                                                                                               | —        |
 | 46    | B-464     | waiting on 41 (+B-650)                                                                                                                                                      | —        |
 | 47    | B-576     | started (opus; +B-574, measurement)                                                                                                                                         | —        |
-| 48    | B-705     | started (sonnet; one config key + test)                                                                                                                                     | —        |
+| 48    | B-705     | handed off (sonnet; 92adb693; quick exit 0 in check-times 15:20Z; merge after 41)                                                                                           | —        |
 | 49    | B-586     | done (no commits; the user: phone notifications were off, B-586 resolved, a187)                                                                                             | —        |
 
 ## Wave 1
