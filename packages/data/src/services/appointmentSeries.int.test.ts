@@ -1,8 +1,10 @@
 import type { AppointmentSeriesCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { and, eq, inArray, isNull } from "drizzle-orm";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createWorld, ok, system } from "../../test/fixtures";
+import { appointmentSeriesSchema, getDb } from "../db";
 import { entryProviderId, seriesVisitFallbackId, seriesVisitId } from "../db/schema";
 import { isError } from "../errors";
 import { appointmentSeriesModel, timelineEntryModel } from "../models";
@@ -14,16 +16,41 @@ import {
   timelineEntryService,
 } from ".";
 
-// Every test builds its own group and users. The clock is the appointments
-// area's: Wed 2026-11-18 10:00 in Los Angeles.
+// Each describe builds one world before its tests (none changes its members);
+// each test makes its own series. The clock is the appointments area's:
+// Wed 2026-11-18 10:00 in Los Angeles.
 
 const NOW = new Date("2026-11-18T18:00:00.000Z");
 const WRITERS = ["owner", "admin", "caretaker"] as const;
 
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
-const setup = async () => {
-  const { u, group, recipient } = await createWorld({ extras: ["outsider", "staff"] });
+// Every group this file makes. After each test their live series are
+// soft-deleted: the top-up reads every series in the worker's database, so
+// earlier tests' series would otherwise be topped up again by a later run
+// (a moved clock tops up all of them), and a group's list holds only the
+// running test's series.
+const groups = new Set<string>();
+afterEach(async () => {
+  if (!groups.size) return;
+  await getDb()
+    .update(appointmentSeriesSchema)
+    .set({ deletedAt: new Date().toISOString() })
+    .where(
+      and(inArray(appointmentSeriesSchema.groupId, [...groups]), isNull(appointmentSeriesSchema.deletedAt)),
+    );
+});
+
+/** Another group, owned by `owner`. */
+const otherGroup = async (owner: Parameters<typeof createGroup>[0]) => {
+  const other = await createGroup(owner);
+  groups.add(other.group.id);
+  return other;
+};
+
+const withInput = <W extends { group: { id: string } }>(world: W) => {
+  const { group } = world;
+  groups.add(group.id);
   const input = (overrides: Partial<AppointmentSeriesCreateInput> = {}): AppointmentSeriesCreateInput => ({
     groupId: group.id,
     kind: "event",
@@ -37,8 +64,21 @@ const setup = async () => {
     toppedUpThrough: "2027-02-16",
     ...overrides,
   });
-  return { u, group, recipient, input };
+  return { ...world, input };
 };
+
+/** A world built once for the describe it's called in, read by its tests. */
+const shared = <T>(make: () => Promise<T>) => {
+  let value: T | undefined;
+  beforeAll(async () => {
+    value = await make();
+  });
+  return () => {
+    if (!value) throw new Error("Fixture failed: the describe's world isn't built");
+    return value;
+  };
+};
+const plainWorld = async () => withInput(await createWorld());
 
 const visitsOf = async (seriesId: string) => {
   const page = ok(
@@ -53,8 +93,10 @@ const visitsOf = async (seriesId: string) => {
 };
 
 describe("appointmentSeriesService: roles", () => {
+  const world = shared(async () => withInput(await createWorld({ extras: ["outsider", "staff"] })));
+
   it("lets writers create, edit and soft-delete; viewers read only; outsiders and staff see nothing", async () => {
-    const { u, group, recipient, input } = await setup();
+    const { u, group, recipient, input } = world();
 
     for (const role of WRITERS) {
       const created = ok(await appointmentSeriesService.create(u[role].ctx, input({ title: `By ${role}` })));
@@ -107,7 +149,7 @@ describe("appointmentSeriesService: roles", () => {
   });
 
   it("validates the merged series on update", async () => {
-    const { u, input } = await setup();
+    const { u, input } = world();
     const series = ok(await appointmentSeriesService.create(u.owner.ctx, input()));
     const res = await appointmentSeriesService.update(u.owner.ctx, series.id, {
       rule: "FREQ=WEEKLY;INTERVAL=1",
@@ -126,9 +168,17 @@ describe("appointmentSeriesService: roles", () => {
   });
 });
 
-describe("appointmentSeriesService: visits", () => {
+// Several visits and top-up tests write 37-39 visits through the services
+// (each an entry, its document and its links, with their checks). That
+// work, not the world, takes 1.2-1.7 s at load ~15 and up to 6-7 s at load
+// 65-100 (B-500): hence 15 s instead of the default 5 s.
+const VISITS_TIMEOUT = 15_000;
+
+describe("appointmentSeriesService: visits", { timeout: VISITS_TIMEOUT }, () => {
+  const world = shared(plainWorld);
+
   it("writes visits through today + 90 for a series without them: links, documents, ids", async () => {
-    const { u, group, input } = await setup();
+    const { u, group, input } = world();
     const clinic = ok(
       await providerService.create(u.caretaker.ctx, {
         groupId: group.id,
@@ -184,7 +234,7 @@ describe("appointmentSeriesService: visits", () => {
   });
 
   it("writes no visits for a device's series, and accepts the device's own visits, replayed without duplicates", async () => {
-    const { u, group, recipient, input } = await setup();
+    const { u, group, recipient, input } = world();
     const id = randomUUID();
     ok(await appointmentSeriesService.upsert(u.caretaker.ctx, { ...input(), id }, { now: NOW }));
     ok(await appointmentSeriesService.upsert(u.caretaker.ctx, { ...input(), id }, { now: NOW }));
@@ -228,8 +278,8 @@ describe("appointmentSeriesService: visits", () => {
   });
 
   it("refuses a provider or recipient from another group, and a visit of another group's series", async () => {
-    const { u, group, input } = await setup();
-    const other = await createGroup(u.owner);
+    const { u, group, input } = world();
+    const other = await otherGroup(u.owner);
     const elsewhere = ok(
       await providerService.create(u.owner.ctx, {
         groupId: other.group.id,
@@ -270,8 +320,8 @@ describe("appointmentSeriesService: visits", () => {
   });
 
   it("keeps a series' group, recipient and kind, and a deleted series deleted", async () => {
-    const { u, input } = await setup();
-    const other = await createGroup(u.owner);
+    const { u, input } = world();
+    const other = await otherGroup(u.owner);
     const id = randomUUID();
     ok(await appointmentSeriesService.upsert(u.owner.ctx, { ...input(), id }));
     expect(
@@ -289,6 +339,8 @@ describe("appointmentSeriesService: visits", () => {
 });
 
 describe("appointmentSeriesService: events only", () => {
+  const world = shared(plainWorld);
+
   const noteSeries = (input: AppointmentSeriesCreateInput) =>
     ({
       ...input,
@@ -300,7 +352,7 @@ describe("appointmentSeriesService: events only", () => {
     }) as unknown as AppointmentSeriesCreateInput;
 
   it("refuses a new series of kind note, through create and upsert", async () => {
-    const { u, input } = await setup();
+    const { u, input } = world();
     expect(codeOf(await appointmentSeriesService.create(u.owner.ctx, noteSeries(input())))).toBe(
       "appointmentSeriesService:invalid",
     );
@@ -312,7 +364,7 @@ describe("appointmentSeriesService: events only", () => {
   });
 
   it("refuses an edit of a stored note series and still edits an event series", async () => {
-    const { u, group, recipient, input } = await setup();
+    const { u, group, recipient, input } = world();
     const stored = ok(
       await appointmentSeriesModel.create({
         ...system,
@@ -337,11 +389,16 @@ describe("appointmentSeriesService: events only", () => {
   });
 });
 
-describe("appointmentSeriesService.topUp", () => {
+describe("appointmentSeriesService.topUp", { timeout: VISITS_TIMEOUT }, () => {
+  const world = shared(plainWorld);
+
   // The series' own zone (Los Angeles) is at 2026-11-18 on NOW, so the
   // target is 2027-02-16. The test database is shared with other tests'
   // series, so each run loops until nothing is left to do.
   const TARGET = "2027-02-16";
+  // For tests that need only a few visits, not all 39 of Mon, Wed and Fri.
+  const MONDAYS = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+  const WEDNESDAYS = "FREQ=WEEKLY;INTERVAL=1;BYDAY=WE";
   const topUpAll = async (now = NOW) => {
     const total = { checked: 0, toppedUp: 0, visits: 0, failed: 0 };
     for (let i = 0; i < 20; i++) {
@@ -377,7 +434,7 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("adds the missing days after topped_up_through, with documents and provider links, and a second run writes nothing", async () => {
-    const { u, group, input } = await setup();
+    const { u, group, input } = world();
     const provider = ok(
       await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
     )!;
@@ -419,18 +476,18 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("writes a day whose visit id another group's row holds under a second id, once (B-289)", async () => {
-    const { u, input } = await setup();
+    const { u, input } = world();
     const series = ok(
       await appointmentSeriesService.create(
         u.owner.ctx,
-        input({ startsOn: "2026-11-16", toppedUpThrough: "2026-11-20" }),
+        input({ rule: MONDAYS, startsOn: "2026-11-16", toppedUpThrough: "2026-11-20" }),
       ),
     );
     // Someone in another group takes the id Monday's visit would have.
     const taken = seriesVisitId(series.id, "2026-11-23");
-    const theirs = await createWorld();
+    const theirs = await otherGroup(u.owner);
     ok(
-      await timelineEntryService.create(theirs.u.caretaker.ctx, {
+      await timelineEntryService.create(u.owner.ctx, {
         id: taken,
         groupId: theirs.group.id,
         kind: "note",
@@ -462,7 +519,7 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("keeps topping up after one of the series' providers is deleted, linking only the live ones (B-310)", async () => {
-    const { u, group, input } = await setup();
+    const { u, group, input } = world();
     const clinic = ok(
       await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
     )!;
@@ -476,7 +533,11 @@ describe("appointmentSeriesService.topUp", () => {
     const series = ok(
       await appointmentSeriesService.create(
         u.owner.ctx,
-        input({ toppedUpThrough: "2026-11-20", providerIds: [clinic.id, nephrologist.id] }),
+        input({
+          rule: WEDNESDAYS,
+          toppedUpThrough: "2026-11-20",
+          providerIds: [clinic.id, nephrologist.id],
+        }),
       ),
     );
     ok(await providerService.remove(u.owner.ctx, nephrologist.id));
@@ -496,7 +557,7 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("skips days that already have a live or deleted visit, and converges with a device's ids", async () => {
-    const { u, group, recipient, input } = await setup();
+    const { u, group, recipient, input } = world();
     const series = ok(
       await appointmentSeriesService.create(
         u.owner.ctx,
@@ -524,7 +585,7 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("writes no visits for a stored note series and still tops up an event series", async () => {
-    const { u, group, recipient, input } = await setup();
+    const { u, group, recipient, input } = world();
     const stored = ok(
       await appointmentSeriesModel.create({
         ...system,
@@ -556,7 +617,7 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("stops at COUNT and UNTIL, and ignores deleted series", async () => {
-    const { u, input } = await setup();
+    const { u, input } = world();
     const counted = ok(
       await appointmentSeriesService.create(
         u.owner.ctx,
@@ -595,7 +656,7 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("leaves a series that is already 90 days ahead alone, and follows the clock", async () => {
-    const { u, input } = await setup();
+    const { u, input } = world();
     const series = ok(await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: TARGET })));
     await topUpAll();
     expect(await visitsOf(series.id)).toEqual([]);
@@ -610,11 +671,11 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("starts no earlier than today after a gap, so no past visits are invented", async () => {
-    const { u, input } = await setup();
+    const { u, input } = world();
     const series = ok(
       await appointmentSeriesService.create(
         u.owner.ctx,
-        input({ startsOn: "2026-10-01", toppedUpThrough: "2026-10-20" }),
+        input({ rule: WEDNESDAYS, startsOn: "2026-10-01", toppedUpThrough: "2026-10-20" }),
       ),
     );
     await topUpAll();
@@ -624,28 +685,28 @@ describe("appointmentSeriesService.topUp", () => {
   });
 
   it("goes past failing series instead of stalling on them", async () => {
-    await topUpAll(); // drain other tests' series first
-    const { u, group, input } = await setup();
+    await topUpAll(); // drain other files' series first
+    const { u, input } = world();
     const bad = ok(
       await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2000-01-01" })),
     );
     const good = ok(
-      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ rule: WEDNESDAYS, toppedUpThrough: "2026-11-17" }),
+      ),
     );
     // An unreadable provider list makes the bad series' visits fail to write.
-    const { getDb, appointmentSeriesSchema } = await import("../db");
-    const { eq } = await import("drizzle-orm");
     await getDb()
       .update(appointmentSeriesSchema)
       .set({ rule: "FREQ=DAILY;INTERVAL=1", providerIds: [randomUUID()] })
       .where(eq(appointmentSeriesSchema.id, bad.id));
-    void group;
     const res = ok(await appointmentSeriesService.topUp(NOW, { limit: 1 }));
     expect(res).toMatchObject({ failed: 1, toppedUp: 1 });
     expect((await days(good.id)).length).toBeGreaterThan(0);
   });
   it("moves today's all-day visit onto a new series, but not a timed visit that started earlier today", async () => {
-    const { u, group, recipient, input } = await setup();
+    const { u, group, recipient, input } = world();
     const old = ok(
       await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
     );
