@@ -12,7 +12,7 @@ Waves 1–3 landed (PR #78, #84, #86); details in the history file.
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-**Session 2 (resumed 2026-11-24 after the mid-wave rotation):** merged 18, 20, 21, 24, 25, 30, 32, 33. Respawned with `--continue` (opus): 19 (B-663), 22 (B-683), 26 (B-687), 29 (B-668); each branch had its commit, clean worktree. 31 (B-678): worktree made this session, agent spawned (opus), item claimed. Merged 26 (3c1d55a1, adds `CreateResult` in `lib/core/api.ts`) and 29 (760dca52, ComboBox `opensOn="typing"`, for ui-kit.md at landing); 27 started (opus). Merged 22 (d832219e); 23 started (opus). Merged 19 (28e7247b), 31 (dad4b7b0; MemberItem.tsx split out, own card's "What this group sees" now a folded disclosure: fold into care-groups.md at landing), 23 (633ba99c; `--tab-bar-bottom`/`--tab-bar-inset` in app.css: fold into app-shell.md; the real iPhone inset needs a hand test, put it in the landing report), 27 (a7d65e3c; a conditions refusal after the write is not shown, the page opens: a backlog follow-up if the user wants it shown); 28 started (sonnet). Then: 23 after 22 merges; 27 after 26; 28 after 27. The wave gate after all 16 merge: the hand dev merge below, then `pnpm prd tier` and `pnpm prd ci run <tier> --wait`. Docs to fold at landing: ui-kit.md (ChoiceGroup `layout="grid"`), care-periods.md (type grid), care-groups.md (RoleHelp, `GROUP_ROLES` sees/changes; member rows show no role description on purpose), providers.md (phone label select with Custom), medications.md (Back origin via `lib/medications/medicationOrigin.ts`). Slice 33 touched 13 files (hook warned): split earlier next time.
+**Session 2 (resumed 2026-11-24 after the mid-wave rotation):** merged 18, 20, 21, 24, 25, 30, 32, 33. Respawned with `--continue` (opus): 19 (B-663), 22 (B-683), 26 (B-687), 29 (B-668); each branch had its commit, clean worktree. 31 (B-678): worktree made this session, agent spawned (opus), item claimed. Merged 26 (3c1d55a1, adds `CreateResult` in `lib/core/api.ts`) and 29 (760dca52, ComboBox `opensOn="typing"`, for ui-kit.md at landing); 27 started (opus). Merged 22 (d832219e); 23 started (opus). Merged 19 (28e7247b), 31 (dad4b7b0; MemberItem.tsx split out, own card's "What this group sees" now a folded disclosure: fold into care-groups.md at landing), 23 (633ba99c; `--tab-bar-bottom`/`--tab-bar-inset` in app.css: fold into app-shell.md; the real iPhone inset needs a hand test, put it in the landing report), 27 (a7d65e3c; a conditions refusal after the write is not shown, the page opens: a backlog follow-up if the user wants it shown); Merged 28 (e6739d85). All 16 merged; dev merged by hand (f7ad33f5, clean; ci.yml and scripts/ match dev, lockfile unchanged). Wave gate: CI run requested (see below). Then: 23 after 22 merges; 27 after 26; 28 after 27. The wave gate after all 16 merge: the hand dev merge below, then `pnpm prd tier` and `pnpm prd ci run <tier> --wait`. Docs to fold at landing: ui-kit.md (ChoiceGroup `layout="grid"`), care-periods.md (type grid), care-groups.md (RoleHelp, `GROUP_ROLES` sees/changes; member rows show no role description on purpose), providers.md (phone label select with Custom), medications.md (Back origin via `lib/medications/medicationOrigin.ts`). Slice 33 touched 13 files (hook warned): split earlier next time.
 
 **CI hold lifted:** the third components shard landed on dev as 2aff6468. **At the wave boundary (not mid-wave), sync by hand until B-771 lands** (`pnpm prd sync` can miss dev's CI lists): `git fetch origin && git merge origin/dev -m "chore(fixes-ui): merge dev into prd/fixes-ui"`; then `git diff origin/dev -- .github/workflows/ci.yml scripts/` shows only our changes (the merge is also what brings in new loop tooling: `pnpm prd` runs this worktree's `scripts/loops/`), `ci.yml` has `components-3`, `scripts/ci/quarantine.txt` has the B-633, B-653 and B-769 lines; `pnpm install` if the lockfile moved. Tell the user if that merge conflicts. The first components run is components-3's first real test: report anything odd from it.
 
@@ -21,41 +21,41 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State            | Merge    |
-| ----- | ----- | ---------------- | -------- |
-| 1     | B-256 | merged (opus)    | b5373bc9 |
-| 2     | B-416 | merged (opus)    | f6f40e4f |
-| 3     | B-538 | merged (opus)    | 439b6571 |
-| 4     | B-412 | merged (opus)    | 91aced06 |
-| 5     | B-519 | merged (opus)    | b2aa214a |
-| 6     | B-413 | merged (opus)    | 13ac9f5a |
-| 7     | B-422 | merged (opus)    | 8834115b |
-| 8     | B-421 | merged (opus)    | fc5dbe18 |
-| 9     | B-319 | merged (opus)    | 488e09bf |
-| 10    | B-536 | merged (sonnet)  | c9c510cf |
-| 11    | B-575 | merged (sonnet)  | 123f2b24 |
-| 12    | B-537 | merged (opus)    | 5566480a |
-| 13    | B-535 | merged (opus)    | 1dc972d8 |
-| 14    | B-316 | merged (opus)    | 3c7a6607 |
-| 15    | B-585 | merged (opus)    | 52d2e14b |
-| 16    | B-592 | merged (opus)    | 6af2f056 |
-| 17    | B-603 | merged (opus)    | 18180d36 |
-| 18    | B-618 | merged (opus)    | 4ecaa3f5 |
-| 19    | B-663 | merged (opus)    | 28e7247b |
-| 20    | B-702 | merged (sonnet)  | a0510b3d |
-| 21    | B-682 | merged (sonnet)  | 5d3a4404 |
-| 22    | B-683 | merged (opus)    | d832219e |
-| 23    | B-763 | merged (opus)    | 633ba99c |
-| 24    | B-685 | merged (opus)    | 4fee8d5d |
-| 25    | B-686 | merged (opus)    | 948eebc8 |
-| 26    | B-687 | merged (opus)    | 3c1d55a1 |
-| 27    | B-688 | merged (opus)    | a7d65e3c |
-| 28    | B-674 | started (sonnet) |          |
-| 29    | B-668 | merged (opus)    | 760dca52 |
-| 30    | B-677 | merged (opus)    | 7603ae58 |
-| 31    | B-678 | merged (opus)    | dad4b7b0 |
-| 32    | B-629 | merged (opus)    | 4cbcd7b2 |
-| 33    | B-699 | merged (opus)    | 98a3381c |
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 1     | B-256 | merged (opus)   | b5373bc9 |
+| 2     | B-416 | merged (opus)   | f6f40e4f |
+| 3     | B-538 | merged (opus)   | 439b6571 |
+| 4     | B-412 | merged (opus)   | 91aced06 |
+| 5     | B-519 | merged (opus)   | b2aa214a |
+| 6     | B-413 | merged (opus)   | 13ac9f5a |
+| 7     | B-422 | merged (opus)   | 8834115b |
+| 8     | B-421 | merged (opus)   | fc5dbe18 |
+| 9     | B-319 | merged (opus)   | 488e09bf |
+| 10    | B-536 | merged (sonnet) | c9c510cf |
+| 11    | B-575 | merged (sonnet) | 123f2b24 |
+| 12    | B-537 | merged (opus)   | 5566480a |
+| 13    | B-535 | merged (opus)   | 1dc972d8 |
+| 14    | B-316 | merged (opus)   | 3c7a6607 |
+| 15    | B-585 | merged (opus)   | 52d2e14b |
+| 16    | B-592 | merged (opus)   | 6af2f056 |
+| 17    | B-603 | merged (opus)   | 18180d36 |
+| 18    | B-618 | merged (opus)   | 4ecaa3f5 |
+| 19    | B-663 | merged (opus)   | 28e7247b |
+| 20    | B-702 | merged (sonnet) | a0510b3d |
+| 21    | B-682 | merged (sonnet) | 5d3a4404 |
+| 22    | B-683 | merged (opus)   | d832219e |
+| 23    | B-763 | merged (opus)   | 633ba99c |
+| 24    | B-685 | merged (opus)   | 4fee8d5d |
+| 25    | B-686 | merged (opus)   | 948eebc8 |
+| 26    | B-687 | merged (opus)   | 3c1d55a1 |
+| 27    | B-688 | merged (opus)   | a7d65e3c |
+| 28    | B-674 | merged (sonnet) | e6739d85 |
+| 29    | B-668 | merged (opus)   | 760dca52 |
+| 30    | B-677 | merged (opus)   | 7603ae58 |
+| 31    | B-678 | merged (opus)   | dad4b7b0 |
+| 32    | B-629 | merged (opus)   | 4cbcd7b2 |
+| 33    | B-699 | merged (opus)   | 98a3381c |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
