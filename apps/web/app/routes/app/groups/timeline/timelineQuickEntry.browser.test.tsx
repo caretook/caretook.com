@@ -346,7 +346,7 @@ describe("Edit", () => {
     await userEvent.click(page.getByRole("button", { name: 'Edit "nausea 3/10 after breakfast"' }));
     const dialog = page.getByRole("dialog", { name: "Add to the timeline" });
     await expect.element(dialog).toBeVisible();
-    await expect.element(dialog.getByRole("textbox", { name: /Symptom|What/ })).toHaveValue("Nausea");
+    await expect.element(dialog.getByRole("combobox", { name: "Symptom" })).toHaveValue("Nausea");
     await expect
       .element(dialog.getByRole("textbox", { name: "Notes (optional)" }))
       .toHaveValue("after breakfast");
