@@ -12,9 +12,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
+| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
 | `test-gates` | done | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
-| `fixes-tooling` | standing | `test-gates` | `scripts/loops/recover`, `scripts/loops/browser`, `packages/api/src/connectors/mcp.int.test.ts`, `packages/api/src/connectors/readTools.int.test.ts`, `scripts/loops/context`, `scripts/loops/lease` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
+| `fixes-tooling` | standing | `test-gates` | `scripts/loops/stack`, `scripts/loops/ask.test`, `scripts/loops/lease`, `scripts/loops/load-gate.test`, `scripts/loops/tidy-cli.test`, `scripts/loops/session-requests`, `scripts/loops/notices`, `packages/data/src/services/careGroupInvite.int.test.ts`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/open-session`, `scripts/backlog/`, `packages/data/src/services/appointmentSeries` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
 | `agent-autonomy` | done | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
 | `agent-autonomy-2` | done | — | `scripts/loops/session`, `scripts/loops/context`, `scripts/loops/prompt.sh`, `scripts/loops/rotate`, `scripts/loops/open-session`, `scripts/loops/recover`, `scripts/loops/tidy`, `scripts/loops/end-session`, `scripts/loops/request` | [PRD](agent-autonomy-2-prd.md), [plan](agent-autonomy-2-plan.md) (B-507, B-508, B-509): 2 slices in 2 waves: a context hook that tells a session past 160k to rotate, sizes in status, the dispatcher's follow-up. Cut from agent-autonomy by its planner. Tooling only |
 | `test-gates-2` | done | `test-gates` | `.github/workflows/ci.yml`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `scripts/loops/browser.sh`, `scripts/loops/serve.sh`, `scripts/loops/check-plan`, `scripts/loops/check-areas.d/`, `scripts/loops/prd.sh`, `vitest.config.ts`, `ops/runbook.md` | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
@@ -22,28 +24,26 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `worker-watch` | — | `test-gates`, `agent-autonomy-2`, `agent-autonomy-3` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/check-times`, `scripts/loops/check-run`, `scripts/loops/check-body`, `scripts/loops/land.sh`, `scripts/loops/review.sh`, `scripts/loops/browser.sh`, `scripts/loops/new.sh`, `scripts/loops/rm.sh`, `scripts/loops/status-extra`, `scripts/loops/dispatch`, `scripts/loops/context`, `scripts/loops/skeptic`, `scripts/loops/ask` | To write. Run metrics in one summary, then stuck workers handled against usual times (B-434, B-408). Cut from orchestration-3 |
 | `agent-autonomy-3` | done | `agent-autonomy`, `agent-autonomy-2` | `scripts/loops/ask`, `scripts/loops/skeptic`, `scripts/loops/prompt.sh`, `scripts/loops/land`, `scripts/loops/prd.sh`, `scripts/loops/dispatch`, `scripts/loops/open-session`, `scripts/backlog/registry` | To write. A Fable skeptic before every ask, before risky landings (a forced landing, a flaky pass, a declined Codex finding), and as the final check on Opus planners, with a registry flag that keeps a design topic's planner on Fable (B-511, B-512, B-513). Filed into agent-autonomy after its plan landed; builds on its defaulting asks and flake rule |
 | `self-recovery` | — | `test-gates`, `agent-autonomy`, `agent-autonomy-2` | `scripts/loops/recover`, `scripts/loops/land.sh`, `scripts/loops/lib.sh`, `scripts/loops/session`, `scripts/loops/open-session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/inventory`, `scripts/loops/down.sh`, `scripts/loops/new.sh`, `scripts/loops/status-extra`, `scripts/loops/prompt.sh` | To write. launchd recovery, draining before a usage limit, step-in-progress markers, cost records, records for every session kind, headless sessions (B-407, B-433, B-437, B-438). Cut from orchestration-3; its planner cuts headless out if over six slices |
-| `self-recovery-2` | — | `self-recovery` | `scripts/loops/session`, `scripts/loops/open-session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh` | Cost record and headless sessions, cut from self-recovery to keep it at six slices |
+| `self-recovery-2` | hold | `self-recovery` | `scripts/loops/session`, `scripts/loops/open-session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** Cost record and headless sessions, cut from self-recovery to keep it at six slices |
 | `staging-ship` | hold | `test-gates-2`, `inbox-agent` | `scripts/loops/review.sh`, `scripts/loops/codex-review`, `scripts/loops/prd.sh`, `scripts/loops/land.sh`, `scripts/loops/lib.sh`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/ask`, `scripts/ci/candidate`, `scripts/ci/promote` | To write. Ship dev to staging in one command, Codex findings filed by tool, a staging to-test report (B-404, B-430, B-436). Cut from orchestration-3; doesn't need the dispatcher |
 | `ui-kit-3` | done | `ui-kit-2` | `apps/web/app/app.css`, `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/lib/timeline/entryDisplay.ts`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/components/quick-entry/QuickEntryCard.tsx`, `apps/web/app/lib/app-shell/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-398, B-269, B-448 and overlay motion): every remaining area swept onto the kit, one area per slice; then the lint guard. Cut from ui-kit-2 to keep it at six slices; starts after ui-kit-2 so the sweeps copy its final Button, header and motion contracts; before test-health waves 5 to 7; never beside i18n. Hot files when planned: most route and component folders, one area per slice |
 | `ui-kit-4` | done | `ui-kit-3` | `eslint.config.js`, `scripts/eslint/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/period/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/search/`, `apps/web/app/components/medications/`, `apps/web/app/components/schedule/`, `apps/web/app/components/providers/`, `apps/web/app/components/contact/`, `apps/web/app/components/todos/`, `apps/web/app/components/visitPrep/`, `apps/web/app/components/repeat/` | — |
 | `ui-kit-5` | done | `ui-kit-4`, `quick-entry-2` | `scripts/eslint/`, `apps/web/app/components/ui/Menu.tsx`, `apps/web/app/components/ui/FilterMenu.tsx`, `apps/web/app/components/ui/overlayMotion.browser.test.tsx`, `apps/web/app/routes/dev/ui/sections/MenuSection.tsx`, `apps/web/app/routes/dev/mail/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/new/`, `apps/web/app/components/entry/`, `apps/web/app/components/notes/`, `apps/web/app/components/quick-entry/`, `apps/web/app/components/connectors/`, `apps/web/app/routes/admin/`, `apps/web/app/routes/account/`, `apps/web/app/routes/connectors/`, `apps/web/app/routes/marketing/`, `apps/web/app/routes/app/layout/`, `apps/web/app/routes/app/home/` | — |
 | `quick-entry-2` | done | — | `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/timelineQuickEntry` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card · Depends on: `planner-2` in `dev` (it edits quick entry's future note; last item B-248) · Hot files: `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
 | `dose-accuracy` | done | — | `packages/data/src/db/schema/medications/dueDoses.ts`, `packages/data/src/db/schema/medications/duePasses.ts`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/medications/dueDoses.sync.ts`, `apps/web/app/lib/appointments/visitPrep`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/connectors/tools/todaysDoses.ts` | to write (B-297 to B-299), from the 2026-11-21 code review: a dose answers only its own day's slot, deterministic dose ids, visit prep's missed doses per schedule epoch · Hot files: `db/schema/medications/dueDoses.ts`, `medications.sync.ts` (`logDoses`), `visitPrep.ts` |
-| `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `symptom-catalog` | — | `quick-entry-2`, `dose-accuracy` | `packages/data/src/db/schema/timeline/`, `packages/data/src/services/timelineEntryService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/SymptomFields.tsx`, `apps/web/app/routes/app/groups/timeline/FeelingFields.tsx`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/daySummary`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/lib/assistant/quickEntryPredictions`, `apps/web/app/components/quick-entry/` | to write (B-549): symptoms as a catalog type with a default set, quick add with a similar-name check, a multi-symptom filter; adds a migration |
 | `tags` | — | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `onboarding` | done | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
 | `assistant-access` | done | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
-| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety` | done | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
-| `todo-subtasks` | — | `planner-3` | — | to write (B-550): nested todos, 3 levels in code, parent auto-completes |
+| `todo-subtasks` | hold | `planner-3` | — | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `calendars-2` | done | — | `packages/data/src/google/`, `packages/data/src/services/calendar`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/db/schema/appointments/repeatRule`, `packages/data/src/db/schema/appointments/seriesVisits`, `packages/notifications/`, `apps/web/app/lib/appointments/repeatChoice`, `apps/web/app/lib/calendars/`, `apps/web/app/components/repeat/`, `apps/web/app/routes/app/groups/settings/calendar/` | [PRD](calendars-2-prd.md), [plan](calendars-2-plan.md) (B-304 to B-309): 7 slices, waves (1, 3, 5, 6) → (2, 4) → 7: Google deletes leave started items and todos alone; Google sync looks a year ahead with a daily catch-up; reminders expire at the event's start; deleted providers leave pushes; a stale consent goes generic and asks again; times name their zone; monthly on the last day. Two additive migrations (waves 1 and 3), no deps, no stack. Push notifications (B-377) are calendars-3 |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
-| `sync-safety-2` | — | `sync-safety` | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`, `apps/web/app/lib/todos/` | Released 2026-11-23 by the user. to write (B-294 to B-296, B-382 to B-384, B-387): cut from sync-safety by its planner, 2026-11-21: device transactions applied atomically, device clocks on change entries, the stale tab, and the repeating-todo races |
+| `sync-safety-2` | hold | `sync-safety` | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`, `apps/web/app/lib/todos/` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** Its planner was stopped mid-plan: uncommitted drafts plans/sync-safety-2-prd.md and -plan.md are in .loops/plan-sync-safety-2. Released 2026-11-23 by the user. to write (B-294 to B-296, B-382 to B-384, B-387): cut from sync-safety by its planner, 2026-11-21: device transactions applied atomically, device clocks on change entries, the stale tab, and the repeating-todo races |
 | `orchestration` | done | — | — | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done** (`94e6b80`) |
 | `live-notes-ux` | done | — | — | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done** |
 | `quick-fixes` | done | — | — | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) in `dev`; wave 15 (B-180, B-182, B-225, B-211) in `dev` (`2152bbed`; B-207 landed as hotfix `fc373a34`); wave 16 (B-228, B-230, B-232 to B-235, B-237, B-238) in `dev` (`5a47c18f`, PR #20); the next wave is **running**; new fixes append as the next slice · Hot files: varies by slice; none now |
@@ -106,7 +106,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `onboarding-2` | hold | — | — | — |
-| `asks-relay` | — | `inbox-agent` | `scripts/loops/ask`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/session`, `scripts/loops/prd.sh` | Released 2026-11-23 by the user. The backlog session as go-between for every agent's questions, and asks queue hygiene. Cut from inbox-agent by its planner (plans/inbox-agent-prd.md, Follow-on topic) |
+| `asks-relay` | hold | `inbox-agent` | `scripts/loops/ask`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/session`, `scripts/loops/prd.sh` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** Also moved to the bottom of the queue by the user 2026-11-24. Released 2026-11-23 by the user. The backlog session as go-between for every agent's questions, and asks queue hygiene. Cut from inbox-agent by its planner (plans/inbox-agent-prd.md, Follow-on topic) |
 
 ## Summary
 
@@ -185,8 +185,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
 | B-370 | chore | triaged | fixes-tooling |  | Quick check always runs the guards that read source by path (scripts/loops/sync-matrix.test.mjs, rolesSql.test.ts): vitest --changed can't select them |
-| B-371 | chore | ready | test-health-2 | prd/test-health-2 | Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only) |
-| B-372 | chore | triaged | test-health-2 |  | A second time zone in tests: device, recipient and seed are all America/Los_Angeles in 106 of 113 component test files, while 29 production call sites read the device's zone |
+| B-371 | chore | landed | test-health-2 | prd/test-health-2 | Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only) |
+| B-372 | chore | in-progress | test-health-2 | prd/test-health-2 | A second time zone in tests: device, recipient and seed are all America/Los_Angeles in 106 of 113 component test files, while 29 production call sites read the device's zone |
 | B-373 | chore | landed | test-health-2 | prd/test-health-2 | Role coverage gaps: a removed member writing or reading a care table, staff support on care tables, non-member writes through sync upload on 10 of 15 tables, and a real every-procedure unauthenticated sweep |
 | B-374 | chore | landed | test-health-2 | prd/test-health-2 | A test for the device's uploadData: a 400 or 500 from sync.upload must not wedge the queue |
 | B-375 | chore | triaged | fixes-tooling |  | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
@@ -199,7 +199,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-407 | feature | triaged | self-recovery |  | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-408 | feature | triaged | worker-watch |  | Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
-| B-418 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
+| B-418 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
 | B-425 | feature | landed | inbox-agent | prd/inbox-agent | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
@@ -212,7 +212,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
 | B-443 | bug | triaged | fixes-tooling |  | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
-| B-446 | bug | ready | fixes-tooling | prd/fixes-tooling | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
+| B-446 | bug | landed | fixes-tooling | prd/fixes-tooling | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 | B-447 | bug | triaged | fixes-tooling |  | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
 | B-452 | bug | landed | fixes-tooling | prd/fixes-tooling | Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good |
 | B-453 | bug | landed | fixes-tooling | prd/fixes-tooling | Dispatcher: a 'hold the topic' answer is consumed and the reopen count cleared even when the backlog write fails, so the same tick reopens the session |
@@ -221,7 +221,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
 | B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
 | B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
-| B-461 | bug | triaged | fixes-tooling |  | tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x |
+| B-461 | bug | ready | fixes-tooling | prd/fixes-tooling | tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x |
 | B-462 | bug | triaged | self-recovery |  | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
 | B-463 | bug | triaged | self-recovery |  | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-464 | bug | triaged | fixes-tooling |  | The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone |
@@ -230,23 +230,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-468 | bug | landed | fixes-tooling | prd/fixes-tooling | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
 | B-474 | change | landed | inbox-agent | prd/inbox-agent | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
-| B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
-| B-480 | bug | triaged | fixes-tooling |  | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
-| B-485 | bug | triaged | fixes-tooling |  | Flaky under load: print.browser.test.tsx 'Next, Previous and This week move it by a week…' reads 2027-06-07 for 2027-05-31 (Matcher did not succeed in time) in a full check; passes alone |
-| B-488 | bug | triaged | fixes-tooling |  | Flaky under load: passes.browser.test.tsx 'adds a pass, last in the list; a taken name (any case) is refused on its field' fails in about 200-330 ms beside other component files (2 of 3 with four files), passes alone 6x |
-| B-489 | bug | triaged | fixes-tooling |  | Flaky under load: Button.browser.test.tsx 'a submit Button submits its form once, however quickly it's tapped' fails in a full check; passes alone |
-| B-490 | bug | triaged | fixes-tooling |  | Flaky under load: List.browser.test.tsx 'a row with to is one link covering the row; its trailing control is still clickable' fails in a full check; passes alone |
-| B-491 | bug | triaged | fixes-tooling |  | Flaky under load: primitives.browser.test.tsx 'at 1280, dark > Tooltip: hover and keyboard focus show it…; Escape hides it' fails in a full check; passes alone |
-| B-493 | bug | triaged | fixes-tooling |  | Flaky under load: entryMentions.browser.test.tsx 'a viewer sees mentions as links to the provider's page… and gets no popup' fails in a full check; passes alone |
-| B-494 | bug | triaged | fixes-tooling |  | Flaky under load: plannerSeries.browser.test.tsx 'renaming, this and later: later visits take the new title' (and once 'a viewer's page asks nothing and offers no Edit') fail in a full check; passes alone |
-| B-495 | bug | triaged | fixes-tooling |  | Flaky under load: profile.browser.test.tsx Basics, Contact and Insurance sheet tests ('refused on its field… nothing sent') fail in full checks (4 of 7 runs); passes alone |
-| B-496 | bug | triaged | fixes-tooling |  | Flaky under load: provider.browser.test.tsx 'Edit opens the directory's sheet, filled in; Cancel goes back to the page' fails in a full check; passes alone |
-| B-497 | bug | triaged | fixes-tooling |  | Flaky under load: frame.browser.test.tsx 'a tap on Settings opens /app/settings, which keeps the header and has no group menu' fails in a full check; passes alone |
-| B-498 | bug | triaged | fixes-tooling |  | Flaky under load: syncAppointmentSeries.int.test.ts 'takes a series and its visits, documents and links from one batch, and again on a replay' times out in a full check; passes alone |
-| B-499 | bug | triaged | fixes-tooling |  | Flaky under load: syncPasses.int.test.ts 'refuses a viewer, a moved group, and another group's pass' times out at 5 s in a full check; passes alone |
-| B-500 | bug | triaged | fixes-tooling |  | Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone |
-| B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
-| B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
+| B-479 | bug | ready | fixes-tooling | prd/fixes-tooling | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
+| B-480 | bug | ready | fixes-tooling | prd/fixes-tooling | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
+| B-485 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: print.browser.test.tsx 'Next, Previous and This week move it by a week…' reads 2027-06-07 for 2027-05-31 (Matcher did not succeed in time) in a full check; passes alone |
+| B-488 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: passes.browser.test.tsx 'adds a pass, last in the list; a taken name (any case) is refused on its field' fails in about 200-330 ms beside other component files (2 of 3 with four files), passes alone 6x |
+| B-489 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: Button.browser.test.tsx 'a submit Button submits its form once, however quickly it's tapped' fails in a full check; passes alone |
+| B-490 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: List.browser.test.tsx 'a row with to is one link covering the row; its trailing control is still clickable' fails in a full check; passes alone |
+| B-491 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: primitives.browser.test.tsx 'at 1280, dark > Tooltip: hover and keyboard focus show it…; Escape hides it' fails in a full check; passes alone |
+| B-493 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: entryMentions.browser.test.tsx 'a viewer sees mentions as links to the provider's page… and gets no popup' fails in a full check; passes alone |
+| B-494 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: plannerSeries.browser.test.tsx 'renaming, this and later: later visits take the new title' (and once 'a viewer's page asks nothing and offers no Edit') fail in a full check; passes alone |
+| B-495 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: profile.browser.test.tsx Basics, Contact and Insurance sheet tests ('refused on its field… nothing sent') fail in full checks (4 of 7 runs); passes alone |
+| B-496 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: provider.browser.test.tsx 'Edit opens the directory's sheet, filled in; Cancel goes back to the page' fails in a full check; passes alone |
+| B-497 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: frame.browser.test.tsx 'a tap on Settings opens /app/settings, which keeps the header and has no group menu' fails in a full check; passes alone |
+| B-498 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: syncAppointmentSeries.int.test.ts 'takes a series and its visits, documents and links from one batch, and again on a replay' times out in a full check; passes alone |
+| B-499 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: syncPasses.int.test.ts 'refuses a viewer, a moved group, and another group's pass' times out at 5 s in a full check; passes alone |
+| B-500 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone |
+| B-501 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
+| B-502 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
 | B-515 | feature | landed | inbox-agent | prd/inbox-agent | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-525 | bug | landed | fixes-tooling | prd/fixes-tooling | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | landed | fixes-tooling | prd/fixes-tooling | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
@@ -264,12 +264,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
-| B-568 | bug | triaged | fixes-tooling |  | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
+| B-568 | bug | ready | fixes-tooling | prd/fixes-tooling | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-570 | bug | landed | fixes-tooling | prd/fixes-tooling | Session request notices can exceed the notice board's 200 characters and get dropped |
-| B-573 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
+| B-573 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
-| B-582 | bug | ready | fixes-tooling | prd/fixes-tooling | MCP rate-limit integration test times out at 5 s under machine load |
+| B-582 | bug | landed | fixes-tooling | prd/fixes-tooling | MCP rate-limit integration test times out at 5 s under machine load |
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-586 | bug | triaged | fixes-tooling |  | Phone notifications from the backlog session never arrive |
@@ -293,20 +293,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-626 | feature | triaged | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
 | B-629 | bug | triaged | fixes-ui |  | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
-| B-633 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
+| B-633 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 | B-636 | change | triaged | fixes-ui |  | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
 | B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
-| B-638 | chore | triaged | fixes-tooling |  | No test pins that a waiting join request from an account with no current legal acceptance isn't asked again |
+| B-638 | chore | ready | fixes-tooling | prd/fixes-tooling | No test pins that a waiting join request from an account with no current legal acceptance isn't asked again |
 | B-639 | bug | triaged | fixes-tooling |  | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
-| B-642 | bug | ready | fixes-tooling | prd/fixes-tooling | Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday |
-| B-645 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
+| B-642 | bug | landed | fixes-tooling | prd/fixes-tooling | Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday |
+| B-645 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-649 | bug | triaged | fixes-tooling |  | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
 | B-650 | bug | triaged | fixes-tooling |  | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
-| B-653 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
-| B-654 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
+| B-653 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
+| B-654 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-656 | bug | landed | fixes-bug | prd/fixes-bug | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
 | B-657 | bug | landed | fixes-bug | prd/fixes-bug | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
-| B-658 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
+| B-658 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-659 | bug | landed | fixes-bug | prd/fixes-bug | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
 | B-662 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
@@ -326,7 +326,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-677 | change | triaged | fixes-ui |  | Role pickers: explain what each role can do, when inviting and managing members |
 | B-678 | bug | triaged | fixes-ui |  | Manage members: cards truncate names and details on phone and desktop; redo the layout |
 | B-679 | feature | triaged | fixes-ui |  | Manage members: show email confirmation status (last login only if easy) |
-| B-680 | change | triaged | fixes-ui |  | Planner: same filter place on Upcoming, Past and Todos, plus a quick filter input on all three |
+| B-680 | change | triaged | fixes-ui |  | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
 | B-682 | change | triaged | fixes-ui |  | Planner: remove the icons from the empty lists on all tabs |
 | B-683 | change | triaged | fixes-ui |  | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
@@ -349,7 +349,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-700 | feature | triaged | fixes-ui |  | Passes tab: quick log a pass, with cards matching the new medication card |
 | B-701 | change | triaged | fixes-ui |  | Passes always sort by time: remove Move up and Move down |
 | B-702 | bug | triaged | fixes-ui |  | Medications Print menu: text overflows or crowds the menu box |
-| B-704 | bug | ready | fixes-tooling | prd/fixes-tooling | browser.test.mjs can leave its fixture's process group running when the test is interrupted |
+| B-704 | bug | landed | fixes-tooling | prd/fixes-tooling | browser.test.mjs can leave its fixture's process group running when the test is interrupted |
 | B-705 | chore | triaged | fixes-tooling |  | Enforce the one-day wait on new packages: minimumReleaseAge is missing from pnpm-workspace.yaml |
 | B-706 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/account/join/join.browser.test.tsx fails in America/New_York |
 | B-707 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/admin/new-group/newGroup.browser.test.tsx fails in America/New_York |
@@ -361,32 +361,44 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-713 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/period/period.browser.test.tsx fails in America/New_York |
 | B-714 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/periods/periods.browser.test.tsx fails in America/New_York |
 | B-715 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx fails in America/New_York |
-| B-716 | bug | triaged | fixes-tooling |  | phase2 browser check: offline, then reconnect times out waiting for the entry written elsewhere under load |
+| B-716 | bug | ready | fixes-tooling | prd/fixes-tooling | phase2 browser check: offline, then reconnect times out waiting for the entry written elsewhere under load |
 | B-717 | bug | landed | fixes-bug | prd/fixes-bug | Calendar consent: a device on an older app bundle is refused each time it agrees after a wording bump, and the error doesn't say to reload |
 | B-718 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry asks for an amount on a skipped or refused dose when a bare number matches the strength: 'skipped lisinopril 10' with a usual 2 tablets |
 | B-719 | bug | landed | fixes-bug | prd/fixes-bug | A retry of an upload displaced by a restore can bring back an undone dose: a restore changes created_by and only duplicates are recorded, so A's retried first upload, or B's restoring upload after a time edit, matches no record |
 | B-720 | chore | triaged | fixes-tooling |  | Confirm dev syncs that share no files with a branch no longer trigger a second CI run |
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
-| B-723 | bug | ready | fixes-tooling | prd/fixes-tooling | Tooling test context.test.mjs flaked in a quick check: '--all --json lists live sessions only' failed its first-row size assertion (line 388) |
+| B-723 | bug | landed | fixes-tooling | prd/fixes-tooling | Tooling test context.test.mjs flaked in a quick check: '--all --json lists live sessions only' failed its first-row size assertion (line 388) |
 | B-726 | bug | landed | fixes-bug | prd/fixes-bug | A retried dose upload can still bring back an undone dose when the dose's time was edited before the restore or delete |
-| B-727 | bug | triaged | fixes-tooling |  | ui browser check: the phone add sheet intermittently measures zero size |
+| B-727 | bug | ready | fixes-tooling | prd/fixes-tooling | ui browser check: the phone add sheet intermittently measures zero size |
 | B-728 | bug | landed | fixes-bug | prd/fixes-bug | Repeat preview pairs the recipient's day with the viewer's time: a Wed 10 PM Los Angeles visit reads 'Wed, 1:00 AM' in New York, really Thu |
 | B-729 | bug | landed | fixes-bug | prd/fixes-bug | CI: packages/api/src/syncMedications.int.test.ts: sync.upload: two members' doses for one slot keeps Given and Skipped … |
 | B-730 | bug | triaged | sync-safety-2 |  | A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't) |
-| B-731 | bug | triaged | fixes-tooling |  | Session requests: .seq is raised check-then-rename like notices' was, so two concurrent requests can lower it and reuse an id (session-requests.mjs) |
-| B-732 | bug | triaged | fixes-tooling |  | tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix |
+| B-731 | bug | ready | fixes-tooling | prd/fixes-tooling | Session requests: .seq is raised check-then-rename like notices' was, so two concurrent requests can lower it and reuse an id (session-requests.mjs) |
+| B-732 | bug | ready | fixes-tooling | prd/fixes-tooling | tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix |
 | B-733 | feature | landed | inbox-agent | prd/inbox-agent | The main backlog session shows a random Enterprise captain's name: each new session (rotate or handoff too) draws one, different from the last, for its Remote Control name and tab title; the session record stays backlog |
 | B-734 | feature | landed | fixes-tooling | hotfix/lane-cap | Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word |
-| B-735 | bug | inbox |  |  | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
-| B-736 | bug | inbox |  |  | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
-| B-737 | feature | inbox |  |  | A link icon on each timeline day header and item so users can easily send links to other people.… |
+| B-735 | bug | triaged | fixes-ui |  | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
+| B-736 | bug | triaged | fixes-ui |  | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
+| B-737 | feature | triaged | fixes-ui |  | A link icon on each timeline day header and item so users can easily send links to other people.… |
 | B-738 | bug | triaged | fixes-tooling |  | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
-| B-739 | change | triaged | fixes-tooling |  | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
-| B-740 | bug | triaged | fixes-tooling |  | Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3 |
-| B-741 | bug | triaged | fixes-tooling |  | Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race) |
-| B-742 | bug | triaged | fixes-tooling |  | lease.sh: a TERM between a lease's mkdir and the lease_path= assignment leaves the lease behind (could flake 'TERMed mid-check') |
-| B-743 | bug | triaged | fixes-tooling |  | CI flake: packages/notifications/src/calendarCron.int.test.ts: /api/cron/calendar runs the reminders first, then Google… |
+| B-739 | change | ready | fixes-tooling | prd/fixes-tooling | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
+| B-740 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3 |
+| B-741 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race) |
+| B-742 | bug | ready | fixes-tooling | prd/fixes-tooling | lease.sh: a TERM between a lease's mkdir and the lease_path= assignment leaves the lease behind (could flake 'TERMed mid-check') |
+| B-743 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/notifications/src/calendarCron.int.test.ts: /api/cron/calendar runs the reminders first, then Google… |
+| B-744 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start waits while busy and starts whe… |
+| B-745 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start goes ahead after the bounded wa… |
+| B-746 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start waits for nothing with CARETOOK… |
+| B-747 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn is off in the tooling tests' shared env (vite… |
+| B-748 | change | triaged | fixes-ui |  | Placeholder and search bar on timeline should read "Type to search". |
+| B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
+| B-750 | bug | triaged | fixes-bug |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
+| B-751 | chore | triaged | fixes-tooling |  | A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test |
+| B-752 | bug | inbox | fixes-bug |  | timelineJump.browser.test.tsx can hang a components shard in CI |
+| B-753 | bug | triaged | fixes-tooling |  | CI doesn't name the file a hung shard is stuck on |
+| B-754 | bug | triaged | fixes-tooling |  | backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44) |
+| B-755 | change | triaged | fixes-perf |  | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
 
 ## Items
 
@@ -1099,7 +1111,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-371 · chore · Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only)
 
-- status: ready
+- status: landed
 - prd: test-health-2
 - owner: prd/test-health-2
 - commit: 83cadbcf
@@ -1111,9 +1123,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-372 · chore · A second time zone in tests: device, recipient and seed are all America/Los_Angeles in 106 of 113 component test files, while 29 production call sites read the device's zone
 
-- status: triaged
+- status: in-progress
 - prd: test-health-2
-- owner:
+- owner: prd/test-health-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Suggest a Vitest browser instance in America/New_York for the timeline, doses and appointments screens; pin TZ in the node projects.
@@ -1265,7 +1277,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-418 · bug · Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: cd0e8eae
@@ -1410,7 +1422,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-446 · bug · browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -1506,10 +1518,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-461 · bug · tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 245e2e87
 
 - 2026-11-21 (hotfix/reseed-staging): Seen 2026-11-21 on hotfix/reseed-staging (a8c39d78), which does not touch scripts/loops/: 1 failed file of 45, 638 tests passed, the failure at file level (no test named), with the 1-minute load near 32. Alone it passed three times in 7 to 9 s. Same family as B-446 (browser.test.mjs under load).
 - 2026-11-22 (prd/agent-autonomy): 2026-11-22 (prd/agent-autonomy): failed as a whole file again in pnpm test:tooling at 5-min load ~19; passed alone and in a full rerun
@@ -1601,204 +1613,222 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-479 · bug · calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone)
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-21 (prd/fixes-bug): fixes-bug landing full check 2026-11-21, 1-min load ~28; passed 3/3 alone. Give it a longer timeout like the other cron tests.
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (prd/ui-kit-3): Seen again in ui-kit-3 wave 1's full check, 2026-11-22 (a282700a), load ~42; passed alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 33 runs (quarantine run). Proposed: close; its quarantine line can go.
 
 ### B-480 · bug · timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone)
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-21 (prd/fixes-bug): fixes-bug landing full check 2026-11-21, 1-min load ~28; passed 3/3 alone. Check whether it reads before the save renders (fix the race, not the timeout).
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-485 · bug · Flaky under load: print.browser.test.tsx 'Next, Previous and This week move it by a week…' reads 2027-06-07 for 2027-05-31 (Matcher did not succeed in time) in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/ui-kit-2): Seen in ui-kit-2's wave-1 full check (2026-11-22, load ~11); passed alone 3x.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-488 · bug · Flaky under load: passes.browser.test.tsx 'adds a pass, last in the list; a taken name (any case) is refused on its field' fails in about 200-330 ms beside other component files (2 of 3 with four files), passes alone 6x
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/ui-kit-2): Seen in ui-kit-2's wave-1 gate (2026-11-22, load ~17). Also failing in the same full check, passing alone: provider.browser 'Edit opens the directory's sheet', providers.browser contact rows (B-44 tests), mcp.int 60 calls/min 429.
 - 2026-11-22 (slice/ui-kit-2/3): ui-kit-2 slice 3 (71fce0c5): the 'adds a pass' test clicked $('main [data-add-pass]')! once, a read-before-render race (fails in ~200 ms when the button isn't there yet). Rewritten: the add now goes through the header's + menu via found(), and the taken-name message is polled. Likely fixed; watch the next gate.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-489 · bug · Flaky under load: Button.browser.test.tsx 'a submit Button submits its form once, however quickly it's tapped' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-490 · bug · Flaky under load: List.browser.test.tsx 'a row with to is one link covering the row; its trailing control is still clickable' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-491 · bug · Flaky under load: primitives.browser.test.tsx 'at 1280, dark > Tooltip: hover and keyboard focus show it…; Escape hides it' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-493 · bug · Flaky under load: entryMentions.browser.test.tsx 'a viewer sees mentions as links to the provider's page… and gets no popup' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-494 · bug · Flaky under load: plannerSeries.browser.test.tsx 'renaming, this and later: later visits take the new title' (and once 'a viewer's page asks nothing and offers no Edit') fail in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-495 · bug · Flaky under load: profile.browser.test.tsx Basics, Contact and Insurance sheet tests ('refused on its field… nothing sent') fail in full checks (4 of 7 runs); passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-496 · bug · Flaky under load: provider.browser.test.tsx 'Edit opens the directory's sheet, filled in; Cancel goes back to the page' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-497 · bug · Flaky under load: frame.browser.test.tsx 'a tap on Settings opens /app/settings, which keeps the header and has no group menu' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: component flake filed before the harness fix B-607 (d0fe52d8). Re-measure before fixing, and close if it no longer fails.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-498 · bug · Flaky under load: syncAppointmentSeries.int.test.ts 'takes a series and its visits, documents and links from one batch, and again on a replay' times out in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 42 runs; slowest 4.1 s against the 5 s limit at load ~100, little room. Proposed: close.
 
 ### B-499 · bug · Flaky under load: syncPasses.int.test.ts 'refuses a viewer, a moved group, and another group's pass' times out at 5 s in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 42 runs. Proposed: close.
 
 ### B-500 · bug · Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 31738047
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31: still fails, 6 of 42 runs, 'Test timed out in 5000ms', mostly at load above 80 (one at 18-32). The test takes 1.3-2.7 s at load ~20 and 3.9-5.1 s at 80-100: createWorld with outsider and staff, then 39 visits with links and documents. Seven other tests in the file's topUp block also timed out 1-2 times in 32 runs. Fix the whole file: fixes-tooling slice 40.
+- 2026-11-24 (slice/fixes-tooling/40): Slice 40 (c2cb40f0): world once per describe, the file's series soft-deleted after each test (a moved clock no longer tops up every earlier series), weekly rules in 4 topUp tests needing few visits, 15 s describe timeout for the 37-39-visit tests (the service's own per-visit writes: up to 6-7 s at load 65-100). Side-by-side at a load spike: before 5 tests timed out, after none. Possible fixes-perf follow-up: batch writeVisits.
 
 ### B-501 · bug · Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 42 runs. Proposed: close.
 
 ### B-502 · bug · Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 42 runs. Proposed: close.
 
 ### B-515 · feature · Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too
 
@@ -1982,16 +2012,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-568 · bug · Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3; each differs between runs of the same code, causes not investigated. providers.browser (rowLinks, two different tests: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45077489750); provider.browser 'with no links' and emergency.browser 'builds the list' (https://github.com/caretook/caretook.com/actions/runs/45076033356); search.sync.browser 2,000-entry speed, timelineBack.browser B-235 and medications print.browser weekly chart (https://github.com/caretook/caretook.com/actions/runs/45076033291).
 - 2026-11-22 (Robert Bo Davis): Moved to test-gates by the user (2026-11-22): these keep the components CI tier from going green. B-568's intermittent failures go through the flake quarantine (B-530).
 - 2026-11-22 (slice/test-gates/9): Slice 9 quarantined six tests (print weekly chart, emergency builds the list, provider with no links, both providers rowLinks tests, timelineBack B-235). Not quarantined: search.sync.browser's 2,000-entry speed test, which is on the brake list. In run https://github.com/caretook/caretook.com/actions/runs/45088030543 the provider and both providers tests failed again in the quarantine step, reading rows before the first render (rowLinks: undefined.querySelectorAll), so they look like read-before-render races rather than load flakes.
 - 2026-11-22 (prd/test-gates): test-gates slice 9 quarantined six of these (scripts/ci/quarantine.txt names this item); keep it open, since closing it removes the entries. Moved to fixes-tooling because the PRD leaves fixing the flakes there. The search speed test is on the brake list, so it is not quarantined. In CI run 45088030543 the three provider tests failed again in the quarantine step: they read a row before it renders (undefined.querySelectorAll in rowLinks), so they look like read-before-render races to fix; cause not confirmed.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 5 (re-measure test flakes). The first slice re-measures after the harness fix B-607 and proposes closing what no longer fails. Only what still fails gets a fix slice.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs each for print weekly chart, emergency builds the list, provider with no links, timelineBack B-235. The two providers.browser 'contact details on each row (B-44)' quarantine lines name tests that no longer exist. Proposed: close (all its quarantine lines go).
 
 ### B-570 · bug · Session request notices can exceed the notice board's 200 characters and get dropped
 
@@ -2005,7 +2036,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-573 · bug · Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -2040,7 +2071,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-582 · bug · MCP rate-limit integration test times out at 5 s under machine load
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -2294,13 +2325,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-633 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-23 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/onboarding.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-636 · change · Planner todo rows keep the old time column, so they align differently from event cards in the same list
 
@@ -2322,10 +2354,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-638 · chore · No test pins that a waiting join request from an account with no current legal acceptance isn't asked again
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 245e2e87
 
 - 2026-11-23 (prd/onboarding): From onboarding slice 4. The code returns the waiting request before the legal check (askWithLink in careGroupInviteService), but the test 'a waiting request isn't asked again' sends legal: true with a current row, so it doesn't prove this path.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
@@ -2342,7 +2374,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-642 · bug · Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -2352,13 +2384,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-645 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U…
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-23 (Robert Bo Davis): [ci-key e2d38cbde9e2] Flaked (passed on its rerun); found by prd/onboarding.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-649 · bug · A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed
 
@@ -2383,18 +2416,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-653 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once…
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-23 (Robert Bo Davis): [ci-key 490c60a6d926] Flaked (passed on its rerun); found by prd/ui-kit-5.
 - 2026-11-23 (Robert Bo Davis): Merged from B-486 (2026-11-23): times out at 15 s stepping 4 h of fake timers; fails alone 3/3 at load ~18, passes 3/3 at ~8. Fix: step the clock in fewer, larger jumps, or raise this test's timeout. This item owns the quarantine entry.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
 
 ### B-654 · bug · CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai…
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -2423,13 +2457,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-658 · bug · CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma…
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-23 (Robert Bo Davis): [ci-key 81e93b941241] Flaked (passed on its rerun); found by prd/calendars-2.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 33 runs (quarantine run). Proposed: close; its quarantine line can go.
 
 ### B-659 · bug · A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording
 
@@ -2626,7 +2661,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: show email confirmation status for invited users and last login on the Members page. Neither reaches the device today: PowerSync member_profiles syncs only user id, name and image (powersync/sync-config.yaml:172), so this needs a manager-only oRPC read and shows only online; do not add these to the synced user row. email_verified exists on user. Last sign-in exists only in the staff admin view, derived from live sessions (packages/api/src/admin/usersAdmin.ts:70), so it disappears when sessions expire or sign out; a durable value needs a new additive column set at sign-in, which means a migration and a fixes slice or PRD. Return status and time only, never the sign-in email (docs/domain/profiles.md). Open with the user: who sees last login. It tells co-members when someone was last active, so default to owners and admins only. Build with the card redo (B-678 if numbered next).
 - 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: last login is optional, only if it is easy. Email confirmation status is the required part. Read "easy" as: no migration and no new sign-in hook. If the existing session rows can give it through the same manager-only read, show it to owners and admins, and show nothing (not "never") when no session remains. If it needs the durable column, leave last login out and do not add a migration for it. This replaces the earlier note on a new column.
 
-### B-680 · change · Planner: same filter place on Upcoming, Past and Todos, plus a quick filter input on all three
+### B-680 · change · Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only
 
 - status: triaged
 - prd: fixes-ui
@@ -2634,6 +2669,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: the Past tab has no filters, and Todos and Upcoming keep theirs in different places. All tabs should have the filter in the same place, and each gets a quick filter input. Today PlannerHeader.tsx:126 renders FilterMenu only for Upcoming (Show, author); Past reads ?author= but offers only a clear chip after tapping a card author (past/route.tsx); Todos has its own TodoFilterRow under the header (routes/app/groups/todos/TodoFilters.tsx). Wanted: one filter row in PlannerHeader for all three tabs, each tab supplying its own FilterMenu sections (Past gets at least author), then one quick text input in the same spot. Past is paged (loadPast), so its text filter must run in the local SQL query and not only over the loaded page, or older matches are missed; empty results need a filtered empty state. Match case- and accent-insensitively (foldSearchText), and work offline. Decide in the plan whether typed text carries across tabs through tabSearch. Easy roles Planner stays without filters (readOnly). Related: B-617 list tool buttons show no hover. Check on a phone, where the row must not crowd the tabs.
+- 2026-11-24 (Robert Bo Davis): Widened by the user, 2026-11-24 (backlog session): every list page gets one unified search-and-filter UX, not only the Planner. The timeline is the exception and keeps its more complex options (search, Filter sheet, View). On tabbed pages (the Planner: Upcoming, Past, Todos) the bar sits below the tabs and only acts on the open tab. Today's list pages and their pieces: medications (MedicationFilters.tsx), providers (DirectoryFilters.tsx), Planner (PlannerHeader.tsx FilterMenu on Upcoming only), Todos (TodoFilters.tsx row), care periods (no search or filter yet); the shared parts are ui/FilterMenu.tsx and filterModel.ts. The user may add preferences; ask before building. Overlap: the tags PRD (B-548) adds a tag filter to each list, so this should land first or tags should plug into this bar.
+- 2026-11-24 (Robert Bo Davis): Scope, the user 2026-11-24: this is only about the search box and the filters, nothing else on the page. Make the existing search and filter controls look and sit the same on every list page; don't add search or filters to pages that lack them (care periods stays as is) and don't change headers, tabs, cards or other layout.
+- 2026-11-24 (Robert Bo Davis): The scope note doesn't cancel the 2026-11-23 request: the Planner's Past tab still gets its filter (at least author) and all three Planner tabs still get the quick filter input.
 
 ### B-681 · bug · Promotion prints a passing flake's tests but doesn't file them in the backlog
 
@@ -2846,7 +2884,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-704 · bug · browser.test.mjs can leave its fixture's process group running when the test is interrupted
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -2967,13 +3005,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-716 · bug · phase2 browser check: offline, then reconnect times out waiting for the entry written elsewhere under load
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-23 (prd/test-gates-2): Failed once on test-gates-2 at 2fbb7670 (load 60 to 70, 30s timeout at fixtures.mjs:90), passed on retry. .browser-flakes.log has 7 phase2 lines. Log: .git/worktrees/test-gates-2/caretook-browser/phase2-20261123-131102.log. Decide whether it is only load or a real sync race.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 5 runs of the browser check with --no-retry, load 42-80. Proposed: close.
 
 ### B-717 · bug · Calendar consent: a device on an older app bundle is refused each time it agrees after a wording bump, and the error doesn't say to reload
 
@@ -3035,7 +3074,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-723 · bug · Tooling test context.test.mjs flaked in a quick check: '--all --json lists live sessions only' failed its first-row size assertion (line 388)
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 6e8ba3f8
@@ -3055,13 +3094,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-727 · bug · ui browser check: the phone add sheet intermittently measures zero size
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: fe811b8e
 
 - 2026-11-23 (prd/member-avatars): Seen once on prd/member-avatars 5c165580 (2026-11-23, load about 30), 420 dark, ui.spec.mjs:83: width and height 0 and parent width 0, so the sheet was probably detached or hidden while the check awaited its animations. Three runs alone at the same load passed. Cause unknown: either the spec holds a stale element or the open sheet remounts in the app. Wave 3 adds MemberLooksProvider above the group's Outlet; it keeps children mounted, but this was not proven unrelated. Log: .git/worktrees/member-avatars/caretook-browser/ui-20261123-145424.log
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 5 runs of the browser check with --no-retry, load 42-80. Proposed: close.
 
 ### B-728 · bug · Repeat preview pairs the recipient's day with the viewer's time: a Wed 10 PM Los Angeles visit reads 'Wed, 1:00 AM' in New York, really Thu
 
@@ -3093,20 +3133,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-731 · bug · Session requests: .seq is raised check-then-rename like notices' was, so two concurrent requests can lower it and reuse an id (session-requests.mjs)
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 245e2e87
 
 - 2026-11-24 (prd/fixes-tooling): Found by fixes-tooling slice 19 (B-526) on 2026-11-24: notices.mjs now keeps its high-water mark as .seq.d/ files that only move up; session-requests.mjs still has the old pattern. Same fix.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: a later wave (sessions), once inbox-agent no longer holds scripts/loops/session*.
 
 ### B-732 · bug · tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 245e2e87
 
 - 2026-11-24 (prd/inbox-agent): Recurrence of archived B-460 (Flaky under load: tidy-cli beforeAll timeout). Seen in inbox-agent slice 6's slice check, 2026-11-24, at 5-min load ~40; passed alone 3x and on rerun.
 - 2026-11-24 (prd/fixes-tooling): With B-461 (same file). This item: wave 4 kind, deferred while inbox-agent holds scripts/loops/tidy.
@@ -3133,30 +3173,35 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-735 · bug · After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-24 (prd/test-health-2): From the inbox: After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page.
+- 2026-11-24 (Robert Bo Davis): B-B-736
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
+- 2026-11-24 (Robert Bo Davis): By the fixes rules this is wrong behaviour (fixes-bug): likely a stale client after a deploy, not a look or layout fix. Placed in fixes-ui on the user's word so it runs with the next UI wave.
 
 ### B-736 · bug · On the timeline, after jumping to a day, trying to scroll always takes you back to that day.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-24 (prd/test-health-2): From the inbox: Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
 
 ### B-737 · feature · A link icon on each timeline day header and item so users can easily send links to other people.…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-24 (prd/test-health-2): From the inbox: A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
 
 ### B-738 · bug · Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run
 
@@ -3169,46 +3214,160 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-739 · change · Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 245e2e87
 
 - 2026-11-24 (Robert Bo Davis): The user, 2026-11-24: speed is the goal; talk at the phone to manage the inbox. (1) Open on Sonnet at low effort, set in the session's own settings file (prd.sh inbox default model, keep --model; keep across rotate/reopen); fast mode stays off (no credits). (2) Prompt: only add, reword, move or remove unfiled lines on the user's word; no backlog similar, never read the backlog, no extra work; dedupe and triage stay with ingest, the backlog session and the planner. (3) New commands: backlog inbox edit and inbox remove for unfiled lines (refuse filed ones, like move). (4) inbox add drops the look-alike stop (exit 3/--anyway); backlog add keeps it. Do it after inbox-agent lands (same files: prd.sh, prompt.sh). Why fixes-tooling: scripts and prompts only.
 - 2026-11-24 (Robert Bo Davis): Correction (the user, 2026-11-24): KEEP inbox add's look-alike stop (exit 3, rerun with --anyway on the user's word); drop only the separate backlog similar step before each add, so (4) above is void. Also: the user must not need to be at the keyboard for this to take effect. No dispatcher restart: a phone 'hand off' (prd rotate --self) or a keep-alive reopen must bring the session up on Sonnet low. The opener reopens the inbox on its RECORDED model (open-session.mjs), so an old record saying opus must give way to the new default (or the rotation rewrites it); test that.
 
 ### B-740 · bug · Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 6570ad88
 
 - 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling wave 4 slice checks (slices 25 and 29, loads 60-66), passes alone 3/3 at load 18. This item: wave 4 kind (known flakes by cause); find the cause.
 
 ### B-741 · bug · Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race)
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 8e04cb51
 
 - 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling slice 30's quick check; passes alone 3/3. This item: wave 4 kind (known flakes by cause): drive the countdown from a fixed now.
 
 ### B-742 · bug · lease.sh: a TERM between a lease's mkdir and the lease_path= assignment leaves the lease behind (could flake 'TERMed mid-check')
 
-- status: triaged
+- status: ready
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/fixes-tooling
+- commit: 8e04cb51
 
 - 2026-11-24 (prd/fixes-tooling): Found by fixes-tooling slice 26 (2026-11-24) reading the trap path; not reproduced. This item: wave 4 kind (known flakes by cause).
 
 ### B-743 · bug · CI flake: packages/notifications/src/calendarCron.int.test.ts: /api/cron/calendar runs the reminders first, then Google…
 
+- status: ready
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: fe811b8e
+
+- 2026-11-24 (Robert Bo Davis): [ci-key 89980d75f7f3] Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 33 runs (quarantine run). Proposed: close; its quarantine line can go.
+
+### B-744 · bug · CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start waits while busy and starts whe…
+
+- status: ready
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 245e2e87
+
+- 2026-11-24 (Robert Bo Davis): [ci-key c2854053b0df] Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-24 (slice/fixes-tooling/35): Cause (slice 35, 717aaa9c): the test's writeFileSync truncates the fake load file before writing it, so new.sh's poll read it empty as 'unread' (never busy) and went ahead ('load dropped to -'); the first test then failed before removing t-1 and the next three hit 't-1 already exists'. Fixed: atomic write-and-rename, wait on the busy line not a sleep, cleanup in finally. 20/20 at load 70-98.
+
+### B-745 · bug · CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start goes ahead after the bounded wa…
+
+- status: ready
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 245e2e87
+
+- 2026-11-24 (Robert Bo Davis): [ci-key f778e22497c6] Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-24 (slice/fixes-tooling/35): Cause (slice 35, 717aaa9c): the test's writeFileSync truncates the fake load file before writing it, so new.sh's poll read it empty as 'unread' (never busy) and went ahead ('load dropped to -'); the first test then failed before removing t-1 and the next three hit 't-1 already exists'. Fixed: atomic write-and-rename, wait on the busy line not a sleep, cleanup in finally. 20/20 at load 70-98.
+
+### B-746 · bug · CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start waits for nothing with CARETOOK…
+
+- status: ready
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 245e2e87
+
+- 2026-11-24 (Robert Bo Davis): [ci-key a2a14bf9f706] Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-24 (slice/fixes-tooling/35): Cause (slice 35, 717aaa9c): the test's writeFileSync truncates the fake load file before writing it, so new.sh's poll read it empty as 'unread' (never busy) and went ahead ('load dropped to -'); the first test then failed before removing t-1 and the next three hit 't-1 already exists'. Fixed: atomic write-and-rename, wait on the busy line not a sleep, cleanup in finally. 20/20 at load 70-98.
+
+### B-747 · bug · CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn is off in the tooling tests' shared env (vite…
+
+- status: ready
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 245e2e87
+
+- 2026-11-24 (Robert Bo Davis): [ci-key 951deb28c518] Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-24 (slice/fixes-tooling/35): Cause (slice 35, 717aaa9c): the test's writeFileSync truncates the fake load file before writing it, so new.sh's poll read it empty as 'unread' (never busy) and went ahead ('load dropped to -'); the first test then failed before removing t-1 and the next three hit 't-1 already exists'. Fixed: atomic write-and-rename, wait on the busy line not a sleep, cleanup in finally. 20/20 at load 70-98.
+
+### B-748 · change · Placeholder and search bar on timeline should read "Type to search".
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
+- 2026-11-24 (Robert Bo Davis): Goes with B-680 (one search and filter bar on every list page): the timeline keeps its own controls, but its search placeholder wording should match whatever B-680 settles on.
+
+### B-749 · chore · check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip
+
 - status: triaged
 - prd: fixes-tooling
 - owner:
 - commit:
 
-- 2026-11-24 (Robert Bo Davis): [ci-key 89980d75f7f3] Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (prd/test-health-2): From test-health-2 slice 5 (B-371, landed 2724ace): sync-writers.mjs calls these through the module hook, so a change to one should run roundtrip.
+
+### B-750 · bug · Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-24 (prd/test-health-2): Standing umbrella for release.mjs ZONE_OVERFLOW_ITEM (moved off B-372 by test-health-2 slice 6). Each overflow note lists the extra files; split each into its own fixes-bug item when triaged.
+
+### B-751 · chore · A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Found by fixes-tooling slice 31 (2026-11-24): two providers.browser 'contact details on each row (B-44)' lines under B-568 name tests that no longer exist. A check (in pnpm prd ci or a tooling test) should flag a quarantine name matching no test.
+
+### B-752 · bug · timelineJump.browser.test.tsx can hang a components shard in CI
+
+- status: inbox
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): CI full run 45407562750 (prd/symptom-catalog, cbb5b074): components-2 printed its last line from this file at 13:55:18 (test 3, 'a fresh load of the URL scrolls...'), every other file in the shard finished by 13:58:05, then nothing until the job was cancelled at 14:10. It's the only one of the 187 component test files that never reported. No test timeout fired, so suspect a step that leaves the runner's page: the later tests use Back and history (tests 8-10). The rerun on the same commit (45411480362) passed. Fix the hang, don't rerun past it.
+
+### B-753 · bug · CI doesn't name the file a hung shard is stuck on
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): CI full run 45407562750: components-2 hung in timelineJump.browser.test.tsx (B-752) and was cancelled after 20 minutes. The verdict said only 'blame: unknown', and naming the file took a manual diff of every file the shards reported against the full list. Wanted: a hung file fails on its own with its name, either through a per-file watchdog or by having test-job.mjs list the started-but-unfinished files when the job hits its limit, so the verdict blames it and the filer files it like any flake.
+
+### B-754 · bug · backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling slice 32 and 33 quick checks (14:31Z, 5-min load 43-44, .loops/.check-times.log), beside tidy-cli's beforeAll (B-461). Error text not kept. Likely the same kind as B-461 (a slow fixture setup); measure and cut it. Not in wave 5.
+
+### B-755 · change · Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Found by fixes-tooling slice 40 (B-500), 2026-11-24: appointmentSeriesService.ts writeVisits writes each visit's entry, document and links in turn; creating a series on the server without toppedUpThrough pays it too. Batching would speed the product and appointmentSeries.int.test.ts.
