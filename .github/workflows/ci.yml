@@ -345,15 +345,16 @@ jobs:
         name: Native build
         if: ${{ !cancelled() }}
         run: pnpm build:native
-      # A production client must not carry the debug handle (B-341).
+      # A production client must not carry the debug handles (B-341): the
+      # local database and the module hook (lib/sync/index.ts).
       - id: grep
         name: No caretookSync in the built clients
         if: ${{ !cancelled() }}
         run: |
           for dir in apps/web/build/web/client apps/web/build/native/client; do
             test -d "$dir" || { echo "no build at $dir"; exit 1; }
-            if grep -rl caretookSync "$dir"; then
-              echo "caretookSync is in the production client at $dir"
+            if grep -rlE "caretookSync|caretookModules" "$dir"; then
+              echo "a debug handle (caretookSync, caretookModules) is in the production client at $dir"
               exit 1
             fi
           done
