@@ -147,3 +147,7 @@ export type * from "./reminderOverride/types";
 import * as assistantRequestModel from "./assistantRequest";
 export { assistantRequestModel };
 export type * from "./assistantRequest/types";
+
+import * as symptomTypeModel from "./symptomType";
+export { symptomTypeModel };
+export type * from "./symptomType/types";
