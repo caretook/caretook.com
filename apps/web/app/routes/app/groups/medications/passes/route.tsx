@@ -9,7 +9,7 @@ import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { onlyMedicationSheetChanged } from "~/lib/medications/medicationSheets";
-import { createPass, movePass, removePass, updatePass } from "~/lib/medications/medicationPasses.sync";
+import { createPass, removePass, updatePass } from "~/lib/medications/medicationPasses.sync";
 import { passActionFromForm } from "./passActions";
 import { PassForm } from "./PassForm";
 import { PassList } from "./PassList";
@@ -42,8 +42,6 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
       return createPass(db, group.id, { name: action.name, time: action.time });
     case "update":
       return updatePass(db, action.passId, { name: action.name, time: action.time });
-    case "move":
-      return movePass(db, action.passId, action.direction);
     case "remove":
       return removePass(db, action.passId);
   }

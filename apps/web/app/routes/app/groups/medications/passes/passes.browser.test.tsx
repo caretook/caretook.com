@@ -19,7 +19,8 @@ import {
 // in order with the medications in each, under the Medications header; a
 // writer adds one through the header's `+` (Pass, the add-pass sheet; a
 // taken name refused, any case), retimes it (every medication moves with it,
-// and one passMoved entry says so), moves it up, renames it and deletes it (a
+// and one passMoved entry says so; the list stays by time, then name, with
+// no Move up or Move down, B-701), renames it and deletes it (a
 // confirm saying the medications keep the time, which they do, with no
 // change entries); a retime from another device shows without a reload; a
 // viewer reads it with no controls, and the add-pass sheet's URL sends a
@@ -115,6 +116,21 @@ describe("the tab", () => {
     expect(description()).not.toContain("You can view");
   });
 
+  test("passes show by time, then name, whatever their sort orders say; the menu has no Move up or Move down", async () => {
+    const late = medicationPass({ name: "Late", time: "22:00", sortOrder: 0 });
+    const brunch = medicationPass({ name: "brunch", time: "08:00", sortOrder: 7 });
+    await open({ extra: [late, brunch] });
+    await expect.poll(passList).toEqual(["brunch 08:00", "Morning 08:00", "Evening 20:00", "Late 22:00"]);
+    await userEvent.click(
+      await found(() => row("Morning")?.querySelector('button[aria-label="Actions for Morning"]')),
+    );
+    await found(() => menuItem("Edit"));
+    const items = [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].map((m) =>
+      m.textContent?.trim(),
+    );
+    expect(items).toEqual(["Edit", "Delete"]);
+  });
+
   test("a viewer reads the passes and their medications, told so, with no controls", async () => {
     await open({ role: "viewer" });
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
@@ -193,7 +209,7 @@ describe("a writer", () => {
     expect((await device.queued()).some((w) => w.type === "medication_pass")).toBe(true);
   });
 
-  test("a retime moves its medications with it and writes one passMoved entry naming them; Move up puts it before Evening; a rename saves", async () => {
+  test("a retime moves its medications with it and writes one passMoved entry naming them; the list stays by time; a rename saves", async () => {
     const device = await open();
     const noon = await addNoon(device);
     const PASS_MED = fx.medication({
@@ -223,12 +239,7 @@ describe("a writer", () => {
     });
     expect(medsIn("Noon")).toEqual(["Pass med 5 mg"]);
 
-    await action("Noon", "Move up");
-    await expect.poll(passList).toEqual(["Morning 08:00", "Noon 12:30", "Evening 20:00"]);
-    const order = await device.query<{ name: string }>(
-      "SELECT name FROM medication_pass WHERE deleted_at IS NULL ORDER BY sort_order, time",
-    );
-    expect(order.map((p) => p.name)).toEqual(["Morning", "Noon", "Evening"]);
+    expect(passList()).toEqual(["Morning 08:00", "Noon 12:30", "Evening 20:00"]);
 
     await action("Noon", "Edit");
     await fillForm({ name: "Lunch" });

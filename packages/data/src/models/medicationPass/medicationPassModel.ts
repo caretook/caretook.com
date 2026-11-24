@@ -34,8 +34,8 @@ export const getById = (id: string, args: Omit<QuerySelectArgs<K>, "filter"> & I
 
 /** In the day's order: `sortPasses` in medicationPass.ts has the full rule. */
 export const PASS_ORDER = [
-  { field: "sortOrder", direction: "asc" },
   { field: "time", direction: "asc" },
+  { field: "name", direction: "asc" },
   { field: "id", direction: "asc" },
 ] as const satisfies QuerySelectArgs<K>["orderBy"];
 

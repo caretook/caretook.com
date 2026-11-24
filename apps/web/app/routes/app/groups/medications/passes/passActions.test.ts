@@ -22,11 +22,6 @@ describe("passActionFromForm", () => {
         time: "12:30",
       },
     );
-    expect(passActionFromForm(form({ intent: "move", passId: "p", direction: "down" }))).toEqual({
-      intent: "move",
-      passId: "p",
-      direction: "down",
-    });
     expect(passActionFromForm(form({ intent: "remove", passId: "p" }))).toEqual({
       intent: "remove",
       passId: "p",
@@ -35,7 +30,7 @@ describe("passActionFromForm", () => {
 
   it("refuses anything else", () => {
     expect(passActionFromForm(form({ intent: "remove" }))).toBeNull();
-    expect(passActionFromForm(form({ intent: "move", passId: "p", direction: "sideways" }))).toBeNull();
+    expect(passActionFromForm(form({ intent: "move", passId: "p", direction: "up" }))).toBeNull();
     expect(passActionFromForm(form({ intent: "rename", passId: "p" }))).toBeNull();
     expect(passActionFromForm(form({}))).toBeNull();
   });
