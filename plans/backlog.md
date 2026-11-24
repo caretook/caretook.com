@@ -272,7 +272,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-582 | bug | landed | fixes-tooling | prd/fixes-tooling | MCP rate-limit integration test times out at 5 s under machine load |
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
-| B-586 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
+| B-586 | bug | ready | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
 | B-594 | change | triaged | fixes-ui |  | Manage allergies on the Profile page; Medications keeps a read-only summary |
 | B-595 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
 | B-596 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
@@ -400,6 +400,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-754 | bug | triaged | fixes-tooling |  | backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44) |
 | B-755 | change | triaged | fixes-perf |  | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
 | B-756 | change | triaged | fixes-ui |  | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
+| B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
+| B-758 | change | triaged | symptom-catalog |  | Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain') |
 
 ## Items
 
@@ -2106,13 +2108,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-586 · bug · Phone notifications from the backlog session never arrive
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: e9ba13d8
 
 - 2026-11-22 (Robert Bo Davis): From the user, 2026-11-22. PLANNER: test this with the user on the real phone before planning a fix or calling it fixed; do not rely on the tool result. Seen: 4 PushNotification calls from the backlog session all returned "Terminal notification sent. Mobile push requested." and none arrived, including one filed with pnpm prd ask (a81) and one with the phone locked and the app closed, so an open app is ruled out for that last one. Setup: session started with --remote-control backlog, agentPushNotifEnabled true, inputNeededNotifEnabled false, CARETOOK_ASK_NOTIFY unset. Cause unknown. To compare: whether a push from a managed prd- session or the dispatcher helper reaches the phone, phone OS and Claude app notification settings, and whether CARETOOK_ASK_NOTIFY should provide a separate route. Blocks the phone step of B-584. Triaged to fixes-tooling: notification tooling.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 3 (context, dispatcher, sessions). B-600 goes first. Avoids agent-autonomy's hot files.
+- 2026-11-24 (slice/fixes-tooling/49): fixes-tooling slice 49 (investigation, no code): the likely cause is Claude Code's own presence rule. The Remote Control docs (code.claude.com/docs/en/remote-control, Mobile push notifications) say it 'skips mobile push notifications while you are typing in or focused on the connected terminal'. The backlog session is the user's foreground iTerm2 tab, and fullscreen tui reports focus. Managed prd- sessions and the dispatch-push helper run in background tabs. A locked phone doesn't change that: Mac focus does. The tool result says 'Mobile push requested' either way (147 such results across transcripts, none differ). The sessions are started almost the same way: backlog and prd- both get context-settings.json (session.sh:97-101), which sets no push keys; agentPushNotifEnabled and inputNeededNotifEnabled are user-level (~/.claude/settings.json:142-143), the same for every session. CLAUDE_CLIENT_PRESENCE_FILE is unset. CARETOOK_ASK_NOTIFY is a separate route that doesn't depend on Claude (ask.mjs:164-169). Next: the phone test in slice 49's hand-off (switch focus away from the backlog tab, or lock the Mac, before the push).
+- 2026-11-24 (prd/fixes-tooling): Resolved 2026-11-24 (the user, ask a187): notifications were turned off on the phone; no code change. Slice 49's findings stand as a note: Claude Code also skips a push while its terminal tab has focus.
 
 ### B-594 · change · Manage allergies on the Profile page; Medications keeps a read-only summary
 
@@ -3382,3 +3386,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/symptom-catalog): From symptom-catalog slice 5 (d78e5483): with ?symptom= chosen and no matching entries, the empty state reads as if the group had no symptoms at all. Proposed by the symptom-catalog orchestrator; for user review.
+
+### B-757 · chore · Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/test-health-2): From test-health-2 slice 6: scripts/loops/check-body.sh passes only --project web:components, so a slice touching timeline/medications/planner tests never sees New York until CI.
+
+### B-758 · change · Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain')
+
+- status: triaged
+- prd: symptom-catalog
+- owner:
+- commit:
+
+- 2026-11-24 (prd/symptom-catalog): From slice 3 (3c3f8466): similarSymptoms' contained-words rule (rank 2) follows the PRD, but with the default 'Pain' in every catalog most pain names prompt. Options: drop rank 2 for single-word defaults, or require the contained name to have 2+ words. Proposed by the orchestrator; for user review.
