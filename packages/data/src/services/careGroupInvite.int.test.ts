@@ -5,7 +5,14 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
-import { appSettingSchema, careGroupInviteSchema, CONSENT_VERSION, userSchema } from "../db/schema";
+import {
+  appSettingSchema,
+  careGroupInviteSchema,
+  careGroupJoinRequestSchema,
+  CONSENT_VERSION,
+  legalAcceptanceSchema,
+  userSchema,
+} from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupConsentModel, careGroupInviteModel, careGroupMemberModel } from "../models";
 import {
@@ -14,6 +21,7 @@ import {
   careGroupInviteService,
   careGroupMemberService,
   groupAdminService,
+  legalAcceptanceService,
   staffGroupService,
   userService,
 } from ".";
@@ -404,6 +412,47 @@ describe("declining, resending, revoking and previewing", () => {
     ok(await careGroupInviteService.revoke(s.owner.ctx, sent.id));
     expect(codeOf(await careGroupInviteService.ticketFor(token))).toBe("ticket:invalid");
     expect(codeOf(await careGroupInviteService.ticketFor("made-up-token-made-up"))).toBe("ticket:invalid");
+  });
+});
+
+describe("asking again with a link (B-638)", () => {
+  it("returns a waiting request to an account with no current legal acceptance, unasked", async () => {
+    const s = await setup();
+    const { token, invite: made } = ok(
+      await careGroupInviteService.createLink(s.owner.ctx, { groupId: s.groupId, role: "viewer" }),
+    );
+    const asker = await createUser("inv-asker");
+    const first = ok(await careGroupInviteService.accept(asker.ctx, { token, consent: true, legal: true }));
+    expect(first).toMatchObject({ status: "requested" });
+
+    // The legal texts move on: the acceptance recorded with the request is no longer current.
+    await getDb()
+      .update(legalAcceptanceSchema)
+      .set({ termsVersion: "2000-01-01" })
+      .where(eq(legalAcceptanceSchema.userId, asker.user.id));
+    expect(ok(await legalAcceptanceService.hasCurrent(asker.user.id))).toBe(false);
+
+    const again = await careGroupInviteService.accept(asker.ctx, { token, consent: true });
+    expect(codeOf(again)).toBe("ok");
+    expect(ok(again)).toMatchObject({
+      status: "requested",
+      groupId: s.groupId,
+      role: "viewer",
+      requestId: ok(first).requestId,
+    });
+
+    const requests = await getDb()
+      .select()
+      .from(careGroupJoinRequestSchema)
+      .where(eq(careGroupJoinRequestSchema.userId, asker.user.id));
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ status: "pending", inviteId: made.id });
+    const acceptances = await getDb()
+      .select()
+      .from(legalAcceptanceSchema)
+      .where(eq(legalAcceptanceSchema.userId, asker.user.id));
+    expect(acceptances).toHaveLength(1);
+    expect(ok(await careGroupInviteModel.getById(made.id, system))).toMatchObject({ useCount: 1 });
   });
 });
 
