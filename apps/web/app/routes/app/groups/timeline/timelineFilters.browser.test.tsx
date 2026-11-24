@@ -104,12 +104,12 @@ describe("the kind icon", () => {
 
   test("a row's kind icon has the kit's button feel and filters without opening the entry (B-617)", async () => {
     const device = await openTimeline();
-    await waitUntil(() => !!rowOf("Note"));
-    const icon = iconOf(rowOf("Note")!);
+    const note = await found(() => rowOf("Note"));
+    const icon = iconOf(note);
     expect(icon.classList).toContain("motion-press");
     expect(getComputedStyle(icon).transitionDuration.split(",").map(parseFloat)).toContain(0.12);
     expect(getComputedStyle(icon).zIndex).toBe("10");
-    expect(authorOf(rowOf("Note")!).classList).toContain("motion-press");
+    expect(authorOf(note).classList).toContain("motion-press");
     const rest = getComputedStyle(icon).boxShadow;
     await userEvent.hover(icon);
     await expect.poll(() => getComputedStyle(icon).boxShadow).not.toBe(rest);
