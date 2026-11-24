@@ -23,7 +23,7 @@ Notes for every wave:
 | ----- | ----- | -------------------- | ----- |
 | 59    | B-777 | agent spawned (opus) |       |
 | 60    | B-783 | agent spawned (opus) |       |
-| 61    | B-784 | agent spawned (opus) |       |
+| 61    | B-784 | handed off 731378ec, check passed |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
