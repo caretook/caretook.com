@@ -3,7 +3,7 @@ import type { AppointmentSeriesCreateInput } from "../db";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createWorld, ok, system } from "../../test/fixtures";
-import { entryProviderId, seriesVisitId } from "../db/schema";
+import { entryProviderId, seriesVisitFallbackId, seriesVisitId } from "../db/schema";
 import { isError } from "../errors";
 import { appointmentSeriesModel, timelineEntryModel } from "../models";
 import {
@@ -416,6 +416,49 @@ describe("appointmentSeriesService.topUp", () => {
     const second = await topUpAll();
     expect(second).toMatchObject({ toppedUp: 0, visits: 0, failed: 0 });
     expect(await days(series.id)).toEqual(got);
+  });
+
+  it("writes a day whose visit id another group's row holds under a second id, once (B-289)", async () => {
+    const { u, input } = await setup();
+    const series = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ startsOn: "2026-11-16", toppedUpThrough: "2026-11-20" }),
+      ),
+    );
+    // Someone in another group takes the id Monday's visit would have.
+    const taken = seriesVisitId(series.id, "2026-11-23");
+    const theirs = await createWorld();
+    ok(
+      await timelineEntryService.create(theirs.u.caretaker.ctx, {
+        id: taken,
+        groupId: theirs.group.id,
+        kind: "note",
+        title: "Not a visit",
+        occurredAt: "2026-11-17T12:00:00.000Z",
+        timeZone: "America/Los_Angeles",
+      }),
+    );
+
+    expect(await topUpAll()).toMatchObject({ failed: 0 });
+    const monday = (await visitsOf(series.id)).filter((v) => v.seriesDay === "2026-11-23");
+    expect(monday.map((v) => v.id)).toEqual([seriesVisitFallbackId(series.id, "2026-11-23")]);
+    expect(ok(await timelineEntryModel.getById(taken, system))).toMatchObject({
+      groupId: theirs.group.id,
+      title: "Not a visit",
+      seriesId: null,
+    });
+
+    // Bring the series back to before Monday: a second top-up finds the day written.
+    ok(
+      await appointmentSeriesModel.update({
+        ...system,
+        filter: { id: { type: "eq", value: series.id } },
+        data: { toppedUpThrough: "2026-11-20" },
+      }),
+    );
+    expect(await topUpAll()).toMatchObject({ failed: 0 });
+    expect((await visitsOf(series.id)).filter((v) => v.seriesDay === "2026-11-23")).toHaveLength(1);
   });
 
   it("keeps topping up after one of the series' providers is deleted, linking only the live ones (B-310)", async () => {
