@@ -257,7 +257,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-574 | bug | landed | fixes-tooling | prd/fixes-tooling | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-576 | bug | landed | fixes-tooling | prd/fixes-tooling | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
 | B-582 | bug | landed | fixes-tooling | prd/fixes-tooling | MCP rate-limit integration test times out at 5 s under machine load |
-| B-583 | change | in-progress | fixes-ui | prd/fixes-ui | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
+| B-583 | change | ready | fixes-ui | prd/fixes-ui | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-586 | bug | landed | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
 | B-594 | change | landed | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
@@ -1920,10 +1920,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-583 · change · Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump)
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: aef5557c
 
 - 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 12 (B-537), which kept these on purpose: packages/api/src/connectors/ is API-facing and tests pin it; connectorRules.ts is consent text. Needs the user's call before any slice.
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user's call: connectors should respond the same to 'event' and 'appointment'. Keep both words working in tool and prompt text (prompts.ts, upcoming.ts, listTimeline.ts, writes.ts are static strings the assistant reads, so naming both is the change). Not decided: renaming prepare_for_appointment or the kind: appointment output; no consent text change or version bump is called for by this.
