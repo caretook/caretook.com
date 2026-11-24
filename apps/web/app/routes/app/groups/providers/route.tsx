@@ -78,7 +78,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
   const groups = useLiveQuery<GroupRow>(mine.sql, mine.params, loaderData.groups);
   const canImport = group.canWrite && groups.some((g) => g.id !== groupId);
 
-  // The box filters as you type; the URL follows (see `ProviderSearch`).
+  // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
     () => directoryList(providers, { q: text, type: filters.type }),

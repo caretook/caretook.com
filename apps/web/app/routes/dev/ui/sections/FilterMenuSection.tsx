@@ -1,7 +1,8 @@
 import type { FilterSection } from "~/components/ui";
 
+import { useState } from "react";
 import { useLocation } from "react-router";
-import { FilterMenu, FilterMenuChips } from "~/components/ui";
+import { FilterMenu, FilterMenuChips, SearchFilterBar } from "~/components/ui";
 import { Example } from "../Example";
 
 /** A status filter read from `?status=`, as a list screen builds it. */
@@ -20,13 +21,35 @@ const statusFilter = (search: string): FilterSection => {
   };
 };
 
+/** `search` with `q` as its text, the rest kept. */
+const withQuery = (search: string, q: string) => {
+  const params = new URLSearchParams(search);
+  if (q.trim()) params.set("q", q.trim());
+  else params.delete("q");
+  const rest = params.toString();
+  return rest ? `?${rest}` : "";
+};
+
 export function FilterMenuSection() {
   const { search } = useLocation();
+  const [text, setText] = useState("");
   const filters = { label: "Filter to-dos", sections: [statusFilter(search)], clear: "" };
   return (
-    <Example label="The button with its count, and the chips">
-      <FilterMenu {...filters} />
-      <FilterMenuChips {...filters} />
-    </Example>
+    <>
+      <Example label="The button with its count, and the chips">
+        <FilterMenu {...filters} />
+        <FilterMenuChips {...filters} />
+      </Example>
+      <Example label="Every list page's search and filter bar">
+        <SearchFilterBar
+          searchLabel="Search to-dos"
+          value={text}
+          urlQuery={new URLSearchParams(search).get("q") ?? ""}
+          onChange={setText}
+          withQuery={withQuery}
+          filters={() => ({ ...filters, clear: withQuery("", text) })}
+        />
+      </Example>
+    </>
   );
 }

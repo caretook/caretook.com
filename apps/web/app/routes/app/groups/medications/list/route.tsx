@@ -67,7 +67,7 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
   const passes = useSchedulePasses(params.groupId, loaderData.passRows);
   const { state: allergies } = useAllergies(params.groupId, loaderData.allergies);
 
-  // The box filters as you type; the URL follows (see `MedicationSearch`).
+  // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
     () => medicationList(medications, { q: text, status: filters.status, type: filters.type }),
