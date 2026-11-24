@@ -137,7 +137,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-286 | bug | in-progress | sync-safety | prd/sync-safety | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-288 | bug | in-progress | sync-safety | prd/sync-safety | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
 | B-289 | bug | in-progress | sync-safety | prd/sync-safety | Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days |
-| B-290 | bug | in-progress | sync-safety | prd/sync-safety | Sign-out and a lapsed session wipe the device without checking the upload queue: unsent changes are destroyed with no warning |
+| B-290 | bug | ready | sync-safety | prd/sync-safety | Sign-out and a lapsed session wipe the device without checking the upload queue: unsent changes are destroyed with no warning |
 | B-294 | bug | triaged | sync-safety-2 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
@@ -373,6 +373,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-727 | bug | triaged | fixes-tooling |  | ui browser check: the phone add sheet intermittently measures zero size |
 | B-728 | bug | landed | fixes-bug | prd/fixes-bug | Repeat preview pairs the recipient's day with the viewer's time: a Wed 10 PM Los Angeles visit reads 'Wed, 1:00 AM' in New York, really Thu |
 | B-729 | bug | landed | fixes-bug | prd/fixes-bug | CI: packages/api/src/syncMedications.int.test.ts: sync.upload: two members' doses for one slot keeps Given and Skipped … |
+| B-730 | bug | triaged | sync-safety-2 |  | A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't) |
 
 ## Items
 
@@ -629,10 +630,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-290 · bug · Sign-out and a lapsed session wipe the device without checking the upload queue: unsent changes are destroyed with no warning
 
-- status: in-progress
+- status: ready
 - prd: sync-safety
 - owner: prd/sync-safety
-- commit:
+- commit: 8e5032d4
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. lib/auth/session.ts:113,164, routes/sign-out.tsx:18. Offline, the wipe runs first and authClient.signOut() then throws: the user lands on the root error page with a still-valid session cookie (UserMenu.tsx:46-52). Fix idea: count queued ops and ask; catch the sign-out failure; keep the database when the same user's session merely expired.
 - 2026-11-21 (plan/sync-safety): Planned in plans/sync-safety-plan.md (2026-11-21). Slices: 1 = B-291, B-292, B-293; 2 = B-285; 3 = B-286; 4 = B-290; 5 = B-288, B-289; 6 = B-287.
@@ -3038,3 +3039,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): [ci-key cf23e37e260d] Fails on dev too (a brake); found by prd/inbox-agent in https://github.com/caretook/caretook.com/actions/runs/45259169004.
 - 2026-11-24 (slice/fixes-bug/62): Cause: the test, not the app. It read dueDoses at the real clock in UTC with a 24h window; from 20:00 UTC the nearest 08:00 slot is tomorrow's, so today's slots had no dose (both failing CI runs ran ~20:30 UTC). Fixed in slice 62 (0f1d2374): doses pinned to yesterday's 08:00 in the recipient's zone.
+
+### B-730 · bug · A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't)
+
+- status: triaged
+- prd: sync-safety-2
+- owner:
+- commit:
+
+- 2026-11-24 (prd/sync-safety): Found in sync-safety slice 4's hand-off (B-290): the caretook:sign-out-pending marker is finished by resolveUser, which signs out the new session too. Guard the magic-link and invite landings like sign-in.tsx's loader.
