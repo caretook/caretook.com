@@ -29,7 +29,11 @@ import {
   editTarget,
   isDraftReading,
   markDraft,
+  newItemLine,
+  newItemPreview,
+  newItemTarget,
   openAfterSave,
+  partsForRole,
   pruneCardState,
   savedText,
   withSymptomGates,
@@ -75,17 +79,20 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const timeZone = group.recipient?.timeZone ?? deviceZone();
   const parts = useMemo(
     () =>
-      parseQuickEntry(text, {
-        now: new Date(),
-        timeZone,
-        units,
-        medications,
-        providers,
-        passes,
-        members,
-        symptoms,
-      }).parts,
-    [text, timeZone, units, medications, providers, passes, members, symptoms],
+      partsForRole(
+        parseQuickEntry(text, {
+          now: new Date(),
+          timeZone,
+          units,
+          medications,
+          providers,
+          passes,
+          members,
+          symptoms,
+        }).parts,
+        group.canWrite,
+      ),
+    [text, timeZone, units, medications, providers, passes, members, symptoms, group.canWrite],
   );
 
   // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
@@ -109,7 +116,11 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       members: new Map(members.map((m) => [m.id, { name: m.id === group.userId ? "You" : m.name }])),
       recipientTimeZone: timeZone,
     };
-    return (reading: QuickEntryReading) => actionPreview(reading.actions[0]!, context);
+    const practiceName = (id: string) => context.providers.get(id)?.name;
+    return (reading: QuickEntryReading) =>
+      reading.newItem
+        ? newItemPreview(reading.newItem, practiceName)
+        : actionPreview(reading.actions[0]!, context);
   }, [units, medications, providers, passes, members, group.userId, timeZone]);
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
@@ -195,14 +206,22 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   /** What a card that opens as the draft says: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
   const draftLine = (card: QuickEntryCard) => {
+    if (card.opensDraft && card.reading.newItem) return newItemLine(card.reading.newItem);
     const action = card.reading.actions[0];
     if (!card.opensDraft || action?.type !== "addEvent") return null;
     const names = action.providerIds.flatMap((id) => providers.find((p) => p.id === id)?.name ?? []);
     return draftSummary(names, preview(card.reading).when);
   };
 
-  /** Open a provider event on the new-event page, filled in: nothing is written until it saves there. */
+  /**
+   * Open a provider event on the new-event page, or a new medication or
+   * provider on its Add sheet, filled in: nothing is written until it saves there.
+   */
   const openDraft = (card: QuickEntryCard) => {
+    if (card.reading.newItem) {
+      const target = newItemTarget(card.reading.newItem, groupId);
+      return navigate(target.to, { state: target.state });
+    }
     const action = card.reading.actions[0];
     if (action?.type !== "addEvent") return;
     return navigate(appUrls.newEntry(groupId, "event"), {
@@ -263,15 +282,14 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   };
 
   const edit = async (card: QuickEntryCard) => {
-    const action = card.reading.actions[0]!;
-    // A provider event is finished on the new-event page: Edit opens it there, writing nothing.
-    if (isDraftReading(card.reading)) {
+    // A provider event is finished on the new-event page, a new medication or provider on its Add sheet: Edit opens it there, writing nothing.
+    if (isDraftReading(card.reading) || card.reading.newItem) {
       if (card.blocking.length) return;
       remove(card);
       await openDraft(card);
       return;
     }
-    const target = editTarget(action, groupId, search, card.reading.asksAmount);
+    const target = editTarget(card.reading.actions[0]!, groupId, search, card.reading.asksAmount);
     if (target === "saveAndOpen") {
       // A note or event is written on its page: save this card and open it there.
       if (card.blocking.length) return;
