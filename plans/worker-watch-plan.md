@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
-| ----- | ---- | -------------- | --------------------------------------------- |
-| 1     | 1    | merged         | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
-| 2     | 2    | —              | —                                             |
-| 3     | 2    | —              | —                                             |
-| 4     | 3    | —              | —                                             |
-| 5     | 4    | —              | —                                             |
-| 6     | 4    | —              | —                                             |
+| Slice | Wave | State  | Merge into `prd/worker-watch` (slice commits) |
+| ----- | ---- | ------ | --------------------------------------------- |
+| 1     | 1    | merged | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
+| 2     | 2    | —      | —                                             |
+| 3     | 2    | —      | —                                             |
+| 4     | 3    | —      | —                                             |
+| 5     | 4    | —      | —                                             |
+| 6     | 4    | —      | —                                             |
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
