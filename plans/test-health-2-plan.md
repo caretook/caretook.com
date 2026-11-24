@@ -19,7 +19,7 @@
 
 **Next: wave 3, slice 6** (opus; Stack: no; `pnpm backlog claim B-372` first). Its blocker `test-gates-2` slice 5 landed (4160dee5). Tell its agent: repoint `ZONE_OVERFLOW_ITEM` in `scripts/ci/release.mjs` (and `release.test.mjs`'s two `B-372` expectations) from B-372 to a live item (file one, e.g. a `fixes-bug` umbrella for New York failures past the cap); B-706 to B-715 are the New York failures already filed; slice 3's `fixtureProblems` could run the `*World.tsx` worlds. Gate: the check plan's tier. This is the last wave: after it lands, `pnpm prd rm test-health-2`, then `cd` to the main checkout and `pnpm prd end`.
 
-**Follow-ups noted:** add `roundtrip` to the check-areas rules of the `*.sync.ts` writers it now calls (todos, allergies, conditions, medicationConditions, notes); slice 5's `note_update` writer types into a `Y.Text` named "matrix", not the editor's XML fragment.
+**Follow-ups noted:** B-749 (fixes-tooling): add `roundtrip` to the check-areas rules of the `*.sync.ts` writers it now calls (todos, allergies, conditions, medicationConditions, notes); slice 5's `note_update` writer types into a `Y.Text` named "matrix", not the editor's XML fragment.
 
 **Notes from wave 1:** slice 2 found no holes; three list reads (`timeline.list`, `latestVitals`, `members`) answer an outsider with an empty list, not an error, by design. The removal step adds a 4th device to `roundtrip` (about 3 s).
 
