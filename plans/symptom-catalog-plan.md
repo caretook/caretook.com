@@ -4,11 +4,15 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started. Starts after `quick-entry-2` and `dose-accuracy`.
+**Where it stands (2026-11-24):** wave 1 started. `quick-entry-2` (a11d93f8) and `dose-accuracy` have landed in dev; dev (300afb36) is in `prd/symptom-catalog`. B-549 claimed. Slice 1: worktree `.loops/symptom-catalog-1` (slot 6), agent spawned on opus.
+
+**Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`).
+
+**Models:** every slice on opus (each has real logic: a table, the write path, a gate, a filter, groupings).
 
 | Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
-| 1     | 1    | not started |                                                  |
+| 1     | 1    | started     |                                                  |
 | 2     | 2    | not started |                                                  |
 | 3     | 3    | not started |                                                  |
 | 4     | 4    | not started |                                                  |
