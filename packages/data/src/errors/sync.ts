@@ -9,4 +9,13 @@ export const SYNC_ERRORS = {
     message: "Devices can't write this column",
     statusCode: 400,
   },
+  // A NUL character anywhere in an op's data: Postgres can't store it in text or jsonb.
+  "sync:invalid": {
+    message: "This change has a character that can't be saved",
+    statusCode: 400,
+  },
+  // The server couldn't process this one op (an `upload` result, not a response).
+  "sync:failed": {
+    message: "The server couldn't save this change",
+  },
 } as const;
