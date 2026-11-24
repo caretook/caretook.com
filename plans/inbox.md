@@ -23,6 +23,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Tags on everything so users can organize data how they want. (B-548)
 - Symomtons need to be repeatble and filterable need multi filter. (B-549)
 - nested todos (B-550)
+- A link icon on each timeline day header and item so users can easily send links to other people.
 
 ## Big plans
 
