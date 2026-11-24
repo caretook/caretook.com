@@ -1,6 +1,8 @@
 import type { MedicationChangeDetails } from "@caretook/data";
 
 import {
+  addDays,
+  dayInZone,
   doseSlotIdFor,
   dueDoses,
   medicationChangeId,
@@ -9,6 +11,7 @@ import {
   OWN_DOSE_COPY_METADATA,
   providerService,
   timelineEntryService,
+  zonedInstant,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -823,9 +826,12 @@ describe("sync.upload: two members' doses for one slot", () => {
 
   it("keeps Given and Skipped as two rows, and the earlier reads the slot", async () => {
     const { medication, put, doses, owner, caretaker } = await doseSetup();
-    const earlier = sqliteTime(-120_000);
-    const given = put("given", earlier, "gave it");
-    const skipped = put("skipped", sqliteTime(-60_000), "thought it was missed");
+    // Pinned to yesterday's 08:00 in the recipient's zone, not the clock: read
+    // at "now", the nearest 08:00 is tomorrow's from 20:00 UTC on (B-729).
+    const slotAt = zonedInstant(addDays(dayInZone(new Date(), TZ), -1), "08:00", TZ).getTime();
+    const at = (minutes: number) => new Date(slotAt + minutes * 60_000).toISOString().replace(/Z$/, "000Z");
+    const given = put("given", at(1), "gave it");
+    const skipped = put("skipped", at(2), "thought it was missed");
     expect(skipped.id).not.toBe(given.id);
 
     await upload(caretaker.api, [skipped]);
@@ -841,11 +847,11 @@ describe("sync.upload: two members' doses for one slot", () => {
         details: row.details as never,
         createdBy: row.createdBy,
       })),
-      now: new Date(),
-      timeZone: "UTC",
+      now: new Date(slotAt + 10 * 60_000),
+      timeZone: TZ,
       windowMinutes: 24 * 60,
     });
-    expect(due.slots.find((slot) => slot.dose)?.dose?.id).toBe(given.id);
+    expect(due.slots.find((slot) => slot.time === "08:00")?.dose?.id).toBe(given.id);
   });
 
   it("keeps a slot id for a dose naming a slot the medication no longer has", async () => {

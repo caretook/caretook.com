@@ -29,6 +29,7 @@ import {
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
+  userSchema,
 } from "../db/schema";
 import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
@@ -598,7 +599,32 @@ const recordDuplicateDose = (tx: Tx, entryId: string, userId: string, occurredAt
     "timelineEntryService:duplicateRecord",
   );
 
-/** Whether this exact upload was already accepted as a duplicate: a retry, not a new log (B-627). */
+/**
+ * Note both uploads a restore settles, in its transaction: the one it displaced
+ * and its own. The row keeps neither once it changes hands or its time is
+ * edited, so a retry of either would otherwise pass for a new log (B-719).
+ * `created_by` has no FK, so a displaced author with no user row (the system,
+ * a deleted account) is skipped: they have no upload left to retry.
+ */
+const recordRestoredDose = async (
+  tx: Tx,
+  displaced: Pick<TimelineEntry, "id" | "createdBy" | "occurredAt">,
+  uploader: string,
+  occurredAt: string,
+) => {
+  const author = await dbMayFail(
+    () => tx.select({ id: userSchema.id }).from(userSchema).where(eq(userSchema.id, displaced.createdBy)),
+    "timelineEntryService:duplicateRecord",
+  );
+  if (isError(author)) return author;
+  if (author.length > 0) {
+    const noted = await recordDuplicateDose(tx, displaced.id, displaced.createdBy, displaced.occurredAt);
+    if (isError(noted)) return noted;
+  }
+  return recordDuplicateDose(tx, displaced.id, uploader, occurredAt);
+};
+
+/** Whether this exact upload was already accepted without becoming the row: a retry, not a new log (B-627). */
 const isAcceptedDuplicate = async (tx: Tx, entryId: string, userId: string, occurredAt: string) => {
   const rows = await dbMayFail(
     () =>
@@ -647,7 +673,8 @@ export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
  *   anyone who may log one: onto a live row another member created, the first
  *   upload stands, nothing changes and the duplicate is recorded; onto a row
  *   another member deleted, it comes back as the uploader's, unless this is
- *   their own dose replayed or a retry of a recorded duplicate (B-627).
+ *   their own dose replayed or a retry of a recorded upload (B-627). A
+ *   restore records the upload it displaced and its own (B-719).
  *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
@@ -738,6 +765,10 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
             { ...ctx, tx },
           );
           if (isError(restored)) return restored;
+          if (restored) {
+            const noted = await recordRestoredDose(tx, visible, uploader, occurredAt);
+            if (isError(noted)) return noted;
+          }
           const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
           return queued ?? restored;
         }

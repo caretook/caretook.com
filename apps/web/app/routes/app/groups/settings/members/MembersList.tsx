@@ -6,7 +6,8 @@ import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
-import { Badge, Button, ConfirmDialog, List, ListRow, Message, UserAvatar } from "~/components/ui";
+import { MemberAvatar } from "~/components/members";
+import { Badge, Button, ConfirmDialog, List, ListRow, Message } from "~/components/ui";
 import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -156,7 +157,7 @@ function MemberItem({
   return (
     <ListRow data-member={member.user_id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <UserAvatar name={member.name} image={member.image} size="lg" />
+        <MemberAvatar userId={member.user_id} name={member.name} image={member.image} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">
             {name}

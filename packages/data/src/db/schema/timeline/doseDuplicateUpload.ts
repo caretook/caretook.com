@@ -3,7 +3,8 @@ import { userSchema } from "../auth/user";
 import { timelineEntrySchema } from "./timelineEntry";
 
 // Each upload the server accepted as a duplicate of another member's dose
-// (B-627). A retry of one looks exactly like a first upload, so this is how
+// (B-627), and the two a restore settles: the one it displaced and its own
+// (B-719). A retry of one looks exactly like a first upload, so this is how
 // the restore rule tells them apart: a match leaves a deleted dose deleted.
 // The system's only (see PERMISSIONS): written and read by
 // timelineEntryService.upsert, never through a model, and it never syncs.

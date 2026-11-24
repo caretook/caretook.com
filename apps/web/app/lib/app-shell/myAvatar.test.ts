@@ -5,7 +5,7 @@ import { appUrls } from "./appUrls";
 const api = vi.hoisted(() => ({ get: vi.fn(), updatePreferences: vi.fn(), setAvatar: vi.fn() }));
 vi.mock("../core/rpc", () => ({ rpc: { me: api } }));
 
-const { forgetMyAvatar, saveMyAvatar } = await import("./myAvatar");
+const { forgetMyAvatar, myAvatarOverlay, saveMyAvatar, settleMyAvatar } = await import("./myAvatar");
 const { forgetSettings, loadSettings, saveSettings } = await import("./me");
 
 const USER = "u1";
@@ -137,6 +137,49 @@ describe("beside the settings queue", () => {
     await loadSettings(request, USER);
     await vi.waitFor(() => expect(stored(SETTINGS_PENDING)).toBeNull());
     expect(stored(PENDING)).toEqual(JADE);
+  });
+});
+
+describe("the overlay on your synced row", () => {
+  it("holds an accepted choice until the synced row matches it", async () => {
+    api.setAvatar.mockImplementation(echo);
+    await saveMyAvatar(USER, JADE);
+    expect(store.has(PENDING)).toBe(false);
+    expect(myAvatarOverlay(USER)).toEqual(JADE);
+
+    settleMyAvatar(USER, CLEARED);
+    expect(myAvatarOverlay(USER)).toEqual(JADE);
+
+    settleMyAvatar(USER, JADE);
+    expect(myAvatarOverlay(USER)).toBeNull();
+  });
+
+  it("holds a cleared choice as a choice, not as nothing to show", async () => {
+    api.setAvatar.mockImplementation(echo);
+    await saveMyAvatar(USER, CLEARED);
+    expect(myAvatarOverlay(USER)).toEqual(CLEARED);
+    settleMyAvatar(USER, CLEARED);
+    expect(myAvatarOverlay(USER)).toBeNull();
+  });
+
+  it("shows a queued choice while offline, and no overlay after a refusal", async () => {
+    api.setAvatar.mockRejectedValueOnce(offline());
+    await saveMyAvatar(USER, JADE);
+    expect(myAvatarOverlay(USER)).toEqual(JADE);
+    settleMyAvatar(USER, JADE);
+    expect(myAvatarOverlay(USER)).toEqual(JADE);
+
+    forgetMyAvatar();
+    api.setAvatar.mockRejectedValueOnce(refused());
+    await expect(saveMyAvatar(USER, JADE)).rejects.toBeDefined();
+    expect(myAvatarOverlay(USER)).toBeNull();
+  });
+
+  it("sign-out forgets it", async () => {
+    api.setAvatar.mockImplementation(echo);
+    await saveMyAvatar(USER, JADE);
+    forgetMyAvatar();
+    expect(myAvatarOverlay(USER)).toBeNull();
   });
 });
 
