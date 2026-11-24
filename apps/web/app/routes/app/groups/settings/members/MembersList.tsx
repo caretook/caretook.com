@@ -1,6 +1,7 @@
 import type { ContactValues } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/core/api";
 import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
+import type { MemberStatuses } from "./memberStatus";
 
 import { isManagerRole } from "@caretook/data/permissions";
 import { useState } from "react";
@@ -33,6 +34,7 @@ export function Members({
   online,
   initial,
   myContact,
+  statuses,
   recipientName,
 }: {
   groupId: string;
@@ -42,6 +44,8 @@ export function Members({
   initial: MemberDetailRow[];
   /** Your own contact details (online only): what the sharing choices offer. */
   myContact: ContactValues | null;
+  /** Owners and admins, online: each member's email confirmation and last sign-in. */
+  statuses: MemberStatuses;
   recipientName: string;
 }) {
   const [seed] = useState(initial);
@@ -79,6 +83,7 @@ export function Members({
               member={member}
               isSelf={isSelf}
               myContact={isSelf && online ? myContact : null}
+              status={online ? statuses[member.user_id] : undefined}
               recipientName={recipientName}
               access={online ? memberAccess({ actorRole: myRole, memberRole: member.role, isSelf }) : null}
               removing={mine && busy}
