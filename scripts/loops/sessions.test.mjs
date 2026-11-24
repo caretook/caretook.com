@@ -163,6 +163,8 @@ const STUB = `#!/usr/bin/env bash
 mkdir -p "$STUB_STATE"
 echo "$$" > "$STUB_STATE/pid"
 printf '%s\\n' "$@" > "$STUB_STATE/args"
+pwd -P > "$STUB_STATE/cwd"
+echo "\${CARETOOK_SESSION_NAME:-} \${CARETOOK_CONTEXT_HOOK:-}" > "$STUB_STATE/hook"
 [[ -z \${STUB_NAME:-} ]] || cat "$CARETOOK_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-start" 2>/dev/null || true
 case \${STUB_MODE:-exit} in
   exit) exit "\${STUB_EXIT:-0}" ;;
@@ -227,6 +229,7 @@ beforeAll(() => {
     "end-session.sh",
     "prompt.sh",
     "planner-model.mjs",
+    "inbox-settings.json",
   ])
     copyFileSync(join(HERE, f), scripts(f));
   mkdirSync(join(main, "scripts/backlog"));
@@ -332,7 +335,7 @@ describe("session.sh", () => {
     expect(r.stderr).toMatch(/--kind prd\|plan\|backlog\|hotfix\|recovery/);
     const bad = run("session.sh", ["other", "--kind", "nope", "--", "x"]);
     expect(bad.status).toBe(1);
-    expect(bad.stderr).toMatch(/--kind prd\|plan\|backlog\|hotfix\|recovery \(nope\)/);
+    expect(bad.stderr).toMatch(/--kind prd\|plan\|backlog\|hotfix\|recovery\|inbox \(nope\)/);
   });
 
   it.each([
@@ -535,5 +538,100 @@ describe("sessions start through the wrapper", () => {
     });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
     expect(args.slice(0, 4)).toEqual(["--model", "sonnet", "--remote-control", "hotfix-trim"]);
+  });
+});
+
+describe("the inbox session", () => {
+  const home = () => join(root, "home");
+  const inboxDir = () => join(home(), ".caretook/inbox");
+  const inbox = (args = [], extra = {}) =>
+    run("prd.sh", ["inbox", ...args], { CARETOOK_INBOX_DIR: inboxDir(), ...extra });
+  beforeEach(() => rmSync(home(), { recursive: true, force: true }));
+
+  it("starts in its own directory outside the repository, creating it, on Opus in fast mode", () => {
+    const r = inbox();
+    expect(r.status).toBe(0);
+    expect(r.stderr).toContain(`Made ${inboxDir()} for the inbox session.`);
+    expect(readFileSync(join(state, "cwd"), "utf8").trim()).toBe(inboxDir());
+    expect(record("inbox")).toMatchObject({
+      pid: stubPid(),
+      kind: "inbox",
+      model: "opus",
+      remote: "inbox",
+      exit: 0,
+    });
+    const args = readFileSync(join(state, "args"), "utf8").split("\n");
+    // One settings file, and it is the one holding both the context hook and fastMode.
+    expect(args.filter((a) => a === "--settings")).toHaveLength(1);
+    expect(args.slice(0, 6)).toEqual([
+      "--settings",
+      scripts("inbox-settings.json"),
+      "--model",
+      "opus",
+      "--remote-control",
+      "inbox",
+    ]);
+    expect(args.slice(6).join("\n")).toMatch(/^You are the inbox agent\./);
+    // A second start reuses the directory without the note.
+    expect(inbox().stderr).not.toContain("Made ");
+  });
+
+  it("--model overrides Opus; the fast settings stay", () => {
+    expect(inbox(["--model", "sonnet"]).status).toBe(0);
+    expect(record("inbox")).toMatchObject({ kind: "inbox", model: "sonnet" });
+    const args = readFileSync(join(state, "args"), "utf8").split("\n");
+    expect(args.slice(0, 4)).toEqual(["--settings", scripts("inbox-settings.json"), "--model", "sonnet"]);
+    expect(inbox(["--model=haiku"]).status).toBe(0);
+    expect(record("inbox").model).toBe("haiku");
+    expect(inbox(["--bogus"]).stderr).toContain(
+      "inbox: unknown argument --bogus (--model <m>, --dir <d>, --managed)",
+    );
+  });
+
+  it("records its directory, and takes --dir and --managed for a reopen", () => {
+    expect(inbox().status).toBe(0);
+    expect(record("inbox")).toMatchObject({ dir: inboxDir(), managed: false });
+    const other = join(home(), "other-inbox");
+    expect(inbox(["--dir", other, "--managed"], { CARETOOK_INBOX_DIR: "" }).status).toBe(0);
+    expect(readFileSync(join(state, "cwd"), "utf8").trim()).toBe(other);
+    expect(record("inbox")).toMatchObject({ kind: "inbox", dir: other, managed: true, model: "opus" });
+    expect(inbox(["--dir", join(main, "scripts")]).stderr).toContain("where AGENTS.md would load");
+  });
+
+  it("exports the context hook to the inbox session, as to a backlog session", () => {
+    expect(inbox().status).toBe(0);
+    expect(readFileSync(join(state, "hook"), "utf8").trim()).toBe(`inbox ${scripts("context.mjs")}`);
+  });
+
+  it("the settings file holds the context hook and fastMode, and nothing else", () => {
+    const fast = JSON.parse(readFileSync(join(HERE, "inbox-settings.json"), "utf8"));
+    const context = JSON.parse(readFileSync(join(HERE, "context-settings.json"), "utf8"));
+    expect(fast).toEqual({ ...context, fastMode: true });
+  });
+
+  it("refuses a directory inside a repository or under a CLAUDE.md or AGENTS.md", () => {
+    const inside = inbox([], { CARETOOK_INBOX_DIR: join(main, "inbox-here") });
+    expect(inside.status).not.toBe(0);
+    expect(inside.stderr).toContain(`is inside the git repository ${main}, where AGENTS.md would load`);
+    mkdirSync(home(), { recursive: true });
+    writeFileSync(join(home(), "AGENTS.md"), "# not for the inbox\n");
+    const under = inbox();
+    expect(under.status).not.toBe(0);
+    expect(under.stderr).toContain(`inbox: ${home()}/AGENTS.md would load into the inbox session`);
+    expect(existsSync(join(state, "args"))).toBe(false);
+  });
+
+  it("session.sh knows the inbox kind, and an unknown kind fails with every kind named", () => {
+    expect(run("session.sh", ["inbox", "--", "x"]).status).toBe(0);
+    expect(record("inbox").kind).toBe("inbox");
+    const r = run("session.sh", ["nobody", "--", "x"]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain(
+      "session.sh: --kind prd|plan|backlog|hotfix|recovery|inbox (none from the name nobody)",
+    );
+  });
+
+  it("pnpm prd help lists it", () => {
+    expect(run("prd.sh", ["help"]).stdout).toMatch(/^ {4}inbox \[--model <m>\] +the inbox agent/m);
   });
 });
