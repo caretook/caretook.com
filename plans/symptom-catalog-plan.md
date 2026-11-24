@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 boundary done (ingest: nothing new; sync: up to date). B-758 decided by the skeptic (s24, ask a193, the user may veto): new slice 7, the words-inside rule needs the shorter name to have 2+ words; B-758 claimed. **Slice 4 started** (worktree symptom-catalog-4, opus agent, told not to touch `similarSymptoms`' rules). **Slice 7 started** (worktree symptom-catalog-7, opus agent). B-756 (fixes-ui) stays with fixes-ui.
+**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 boundary done (ingest: nothing new; sync: up to date). B-758 decided by the skeptic (s24, ask a193, the user may veto): new slice 7, the words-inside rule needs the shorter name to have 2+ words; B-758 claimed. **Slice 4 started** (worktree symptom-catalog-4, opus agent, told not to touch `similarSymptoms`' rules). **Slice 7 handed off** (c9b1580b, quick check green; only symptomCatalog.ts and its unit test; merges after slice 4; note for docs: roundtrip.spec.mjs comment still names "Pain" as a similar-name example, stale). B-756 (fixes-ui) stays with fixes-ui.
 
 **Next:** on hand-offs, merge in plan order (4, then 7), `backlog done B-549` after slice 4, `done B-758` after slice 7; then the wave's CI run (`pnpm prd tier`), PR, review, land; this is the last wave, so after landing `pnpm prd rm symptom-catalog` and `pnpm prd end`.
 
@@ -24,7 +24,7 @@
 | 4     | 4    | started     |                                                  |
 | 5     | 3    | landed      | 27ad45f3 (d78e5483)                              |
 | 6     | 3    | landed      | 625e47ec (0202848a)                              |
-| 7     | 4    | started     |                                                  |
+| 7     | 4    | handed off  |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
