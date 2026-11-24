@@ -33,7 +33,7 @@ export const medicationUrls = {
   medicationPasses: (groupId: string) => `${medicationsBase(groupId)}/passes`,
   /** The add-pass sheet, over the Passes tab (writers, while the group has room for one). */
   newPass: (groupId: string) => `${medicationsBase(groupId)}/passes/new`,
-  /** The allergies sheet over a tab (writers), carrying the tab's search. */
+  /** The old allergies sheet over a tab: it redirects to the profile's (`profileAllergies`). */
   medicationAllergies: (groupId: string, tab: MedicationTab, search?: Search) =>
     `${medicationsBase(groupId)}/${tab}/allergies${searchString(search)}`,
   /** The weekly bedside sheet, starting on `start` ("YYYY-MM-DD"; none is this week). */
