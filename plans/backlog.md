@@ -185,10 +185,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
 | B-370 | chore | triaged | fixes-tooling |  | Quick check always runs the guards that read source by path (scripts/loops/sync-matrix.test.mjs, rolesSql.test.ts): vitest --changed can't select them |
-| B-371 | chore | triaged | test-health-2 |  | Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only) |
+| B-371 | chore | in-progress | test-health-2 | prd/test-health-2 | Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only) |
 | B-372 | chore | triaged | test-health-2 |  | A second time zone in tests: device, recipient and seed are all America/Los_Angeles in 106 of 113 component test files, while 29 production call sites read the device's zone |
-| B-373 | chore | triaged | test-health-2 |  | Role coverage gaps: a removed member writing or reading a care table, staff support on care tables, non-member writes through sync upload on 10 of 15 tables, and a real every-procedure unauthenticated sweep |
-| B-374 | chore | triaged | test-health-2 |  | A test for the device's uploadData: a 400 or 500 from sync.upload must not wedge the queue |
+| B-373 | chore | in-progress | test-health-2 | prd/test-health-2 | Role coverage gaps: a removed member writing or reading a care table, staff support on care tables, non-member writes through sync upload on 10 of 15 tables, and a real every-procedure unauthenticated sweep |
+| B-374 | chore | in-progress | test-health-2 | prd/test-health-2 | A test for the device's uploadData: a 400 or 500 from sync.upload must not wedge the queue |
 | B-375 | chore | triaged | fixes-tooling |  | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
 | B-377 | feature | triaged | calendars-3 |  | Push notifications for appointment reminders (B-61 shipped email only) |
 | B-378 | chore | triaged | i18n |  | File the translations PRD's promised follow-ups: Spanish quick entry, language-aware search, a human review of the Spanish; and note 48 hard-coded 'en-US' formatters and English messages in schemas and the errors catalogue |
@@ -278,7 +278,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-596 | chore | triaged | fixes-tooling |  | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
 | B-597 | chore | triaged | fixes-tooling |  | Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs |
 | B-598 | chore | triaged | fixes-tooling |  | Keep a plan's Status short by moving finished-wave history out of it |
-| B-600 | change | in-progress | fixes-tooling | prd/fixes-tooling | Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type |
+| B-600 | change | ready | fixes-tooling | prd/fixes-tooling | Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type |
 | B-606 | feature | triaged | fixes-ui |  | Highlight a double dose on a next-dose-due notification |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
@@ -376,6 +376,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-730 | bug | triaged | sync-safety-2 |  | A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't) |
 | B-731 | bug | triaged | fixes-tooling |  | Session requests: .seq is raised check-then-rename like notices' was, so two concurrent requests can lower it and reuse an id (session-requests.mjs) |
 | B-732 | bug | triaged | fixes-tooling |  | tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix |
+| B-733 | feature | triaged | inbox-agent |  | The main backlog session shows a random Enterprise captain's name: each new session (rotate or handoff too) draws one, different from the last, for its Remote Control name and tab title; the session record stays backlog |
 
 ## Items
 
@@ -1088,9 +1089,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-371 · chore · Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only)
 
-- status: triaged
+- status: in-progress
 - prd: test-health-2
-- owner:
+- owner: prd/test-health-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. scripts/browser-checks/roundtrip.spec.mjs:556, sync-matrix.mjs. Component tests have no connector (apps/web/test/device.tsx); queuedWrites is used in two files. Also: seed device fixtures in the JSON shape PowerSync really delivers, validated against the server's Zod schemas (test/database.ts:187, test/fixtures.ts:290,332).
@@ -1115,9 +1116,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-373 · chore · Role coverage gaps: a removed member writing or reading a care table, staff support on care tables, non-member writes through sync upload on 10 of 15 tables, and a real every-procedure unauthenticated sweep
 
-- status: triaged
+- status: in-progress
 - prd: test-health-2
-- owner:
+- owner: prd/test-health-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. router.int.test.ts:56 'rejects every procedure without a user' calls two. One parametrised sync test across HANDLERS covers most. Standing priority 2 (every role against every table) had no item. Overlaps B-283.
@@ -1128,9 +1129,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-374 · chore · A test for the device's uploadData: a 400 or 500 from sync.upload must not wedge the queue
 
-- status: triaged
+- status: in-progress
 - prd: test-health-2
-- owner:
+- owner: prd/test-health-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. apps/web/app/lib/sync/client.ts has no test. Goes with the sync-safety queue item.
@@ -2122,10 +2123,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-600 · change · Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 16f598e9
 
 - 2026-11-22 (Robert Bo Davis): The user: complex coding runs on Opus, so agents have a 1M window. Opus 5.5 is listed at 1M, and a recent session's cache read reached 235k, past any 200k cap. Today limitOf in scripts/loops/context.mjs gives every session and subagent one 160k limit, about 16% of the window, so slice agents hand off far too early (B-528 slice 6 needed three). Proposed start: 300k for slice agents, tuned from real runs. Update docs/agents/loop.md and machinery.md, which state 160k. Pairs with B-595 and B-596. Runs after test-gates with the rest of fixes-tooling. Exact number awaits the user's review.
 - 2026-11-22 (Robert Bo Davis): Replaces the single raised limit (user, 2026-11-22: soft and hard limits, the agent decides whether the work is worth continuing; numbers left to us). Slice agents: soft 175k, hard 300k. Orchestrators and backlog sessions: soft 160k, hard 225k. Soft: one reminder asking the agent to judge: continue if it is mid-change or holds understanding a fresh agent would pay to rebuild, hand off at a natural boundary, and say which in its hand-off. Repeat only every further 25k, not every 10 minutes. Hard: commit and hand off now; repeats on every tool call and --keep cannot silence it. Still never blocks a tool call, so uncommitted work is not stranded. The dispatcher's nudge, question and rotation start at the hard limit, not the soft one. --keep is refused on slice branches today, so a slice's decision needs no command. Touches context.mjs, dispatch-context.mjs, their tests, loop.md and machinery.md.
@@ -3074,3 +3075,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/inbox-agent): Recurrence of archived B-460 (Flaky under load: tidy-cli beforeAll timeout). Seen in inbox-agent slice 6's slice check, 2026-11-24, at 5-min load ~40; passed alone 3x and on rerun.
+
+### B-733 · feature · The main backlog session shows a random Enterprise captain's name: each new session (rotate or handoff too) draws one, different from the last, for its Remote Control name and tab title; the session record stays backlog
+
+- status: triaged
+- prd: inbox-agent
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): User asked 2026-11-24 for a quick slice in inbox-agent. Display name only: .loops/.sessions record, keep-alive, rotate and asks still use 'backlog'. Pool: Archer, April, Pike, Kirk, Decker, Harriman, Garrett, Picard, Shelby, Riker. Not for backlog-<name> request sessions or other roles.
