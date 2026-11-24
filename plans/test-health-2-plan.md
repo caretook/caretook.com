@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice                                       | Wave | State          | Merge |
-| ------------------------------------------- | ---- | -------------- | ----- |
-| 1. A rejected batch can't block the queue   | 1    | started (opus) |       |
-| 2. Every entry point refuses                | 1    | started (opus) |       |
-| 3. Fixtures in the shape devices receive    | 1    | started (opus) |       |
-| 4. Round trip compares columns              | 1    | started (opus) |       |
-| 5. Round trip through the app's own writers | 2    | not started    |       |
-| 6. A second time zone                       | 3    | not started    |       |
+| Slice                                       | Wave | State          | Merge    |
+| ------------------------------------------- | ---- | -------------- | -------- |
+| 1. A rejected batch can't block the queue   | 1    | merged (opus)  | 159df711 |
+| 2. Every entry point refuses                | 1    | started (opus) |          |
+| 3. Fixtures in the shape devices receive    | 1    | started (opus) |          |
+| 4. Round trip compares columns              | 1    | started (opus) |          |
+| 5. Round trip through the app's own writers | 2    | not started    |          |
+| 6. A second time zone                       | 3    | not started    |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
