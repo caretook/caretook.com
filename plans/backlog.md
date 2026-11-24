@@ -105,7 +105,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `timeline-jump` | done | `quick-entry-2` | `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `apps/web/app/lib/medications/medicationTimeline.sync.ts`, `apps/web/app/lib/care-periods/periodMarkers.ts`, `apps/web/app/routes/app/groups/timeline/useTimelineData.ts`, `apps/web/app/routes/app/groups/timeline/timelineRows.ts`, `apps/web/app/routes/app/groups/timeline/timelinePaging.ts`, `apps/web/app/routes/app/groups/timeline/daySummaryRows.ts`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/route.tsx`, `apps/web/app/components/quick-entry/`, `packages/data/src/db/schema/assistant/quickEntryTime` | Jump to a date on the timeline, by picker and quick entry (B-557) |
 | `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
-| `member-avatars` | — | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
+| `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `onboarding-2` | hold | — | — | — |
 
 ## Summary
@@ -274,7 +274,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | fixes-tooling |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-586 | bug | triaged | fixes-tooling |  | Phone notifications from the backlog session never arrive |
-| B-593 | feature | ready | member-avatars | prd/member-avatars | Choose your avatar: a color and icon instead of plain initials |
+| B-593 | feature | landed | member-avatars | prd/member-avatars | Choose your avatar: a color and icon instead of plain initials |
 | B-594 | change | triaged | fixes-ui |  | Manage allergies on the Profile page; Medications keeps a read-only summary |
 | B-595 | chore | triaged | fixes-tooling |  | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
 | B-596 | chore | triaged | fixes-tooling |  | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
@@ -2078,7 +2078,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-593 · feature · Choose your avatar: a color and icon instead of plain initials
 
-- status: ready
+- status: landed
 - prd: member-avatars
 - owner: prd/member-avatars
 - commit: 054bb015
