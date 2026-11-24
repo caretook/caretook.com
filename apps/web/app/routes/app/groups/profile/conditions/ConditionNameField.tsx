@@ -5,8 +5,9 @@ import { CONDITION_FIELD } from "./conditionActions";
 
 /**
  * The condition's name: a combo box whose text is the name, with plain-
- * language suggestions as you type (the group's own names first). Picking
- * one fills it in; any other text is kept as typed. Posts `name`.
+ * language suggestions once you type (the group's own names first; none on
+ * focus or for an empty field). Picking one fills it in; any other text is
+ * kept as typed. Posts `name`.
  */
 export function ConditionNameField({
   initial,
@@ -39,6 +40,7 @@ export function ConditionNameField({
           onInputChange={setName}
           onSelect={setName}
           emptyText="No suggestions: keep typing to use your own words"
+          opensOn="typing"
         />
       </div>
       <input type="hidden" name={CONDITION_FIELD.name} value={name} />

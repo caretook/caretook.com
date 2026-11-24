@@ -130,6 +130,49 @@ describe("TabNav", () => {
     expect(nav().element().getBoundingClientRect().width).toBeGreaterThan(380);
   });
 
+  test("a segmented bar: the tabs sit edge to edge, the current one filling its section top to bottom, the focus ring inside it", async () => {
+    await renderInRouter(
+      <TabNav
+        label="Medications tabs"
+        tabs={[
+          { label: "Schedule", to: "/m/schedule" },
+          { label: "List", to: "/m/list" },
+          { label: "Passes", to: "/m/passes" },
+        ]}
+      />,
+      { url: "/m/list", width: 420 },
+    );
+    const bar = nav().element();
+    const current = nav().getByRole("link", { name: "List" });
+    await expect.element(current).toHaveAttribute("aria-current", "page");
+    // Inside the bar's 1 px border: no inset padding, so the fill meets its edges.
+    const b = bar.getBoundingClientRect();
+    const border = parseFloat(getComputedStyle(bar).borderTopWidth);
+    const t = current.element().getBoundingClientRect();
+    expect(t.top - b.top).toBeLessThanOrEqual(border + 0.5);
+    expect(b.bottom - t.bottom).toBeLessThanOrEqual(border + 0.5);
+    expect(t.height).toBeGreaterThanOrEqual(44);
+    expect(getComputedStyle(current.element()).borderTopLeftRadius).toBe("0px");
+    expect(getComputedStyle(bar).overflowX).toBe("auto");
+    // No gap: each tab starts where the one before it ends.
+    const rects = nav()
+      .getByRole("link")
+      .elements()
+      .map((l) => l.getBoundingClientRect());
+    const lefts = rects.map((r) => r.left);
+    const rights = rects.map((r) => r.right);
+    expect(Math.abs(Math.min(...lefts) - b.left)).toBeLessThanOrEqual(border + 0.5);
+    const gaps = lefts.slice(1).map((left, i) => Math.abs(left - (rights[i] ?? left)));
+    expect(Math.max(...gaps)).toBeLessThan(1);
+    // Keyboard focus draws the ring inside the tab, where the bar's clip can't hide it.
+    (nav().getByRole("link", { name: "Schedule" }).element() as HTMLElement).focus();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(current.element());
+    const ring = getComputedStyle(current.element());
+    expect(ring.outlineStyle).toBe("solid");
+    expect(parseFloat(ring.outlineOffset)).toBeLessThan(0);
+  });
+
   test.each(["light", "dark"] as const)(
     "in %s the current pill's text clears 4.5:1 and the bar stands off the page at 3:1 or its edge shows",
     async (theme) => {

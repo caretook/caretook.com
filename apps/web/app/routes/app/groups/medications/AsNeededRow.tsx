@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { Button, ConfirmDialog, ListRow, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { doseWarnings } from "~/lib/medications/dueDoses";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { asNeededCountText, doseWarningText, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLogDose } from "./useLogDose";
 
@@ -26,6 +27,7 @@ export function AsNeededRow({
   canWrite: boolean;
 }) {
   const { log, busy, error } = useLogDose(groupId);
+  const linkState = useMedicationLinkState();
   const [warning, setWarning] = useState<string | null>(null);
   const { medication } = item;
   const title = medicationTitle(medication);
@@ -39,7 +41,11 @@ export function AsNeededRow({
   return (
     <ListRow className="flex flex-wrap items-center gap-x-3 gap-y-1" data-as-needed={medication.id}>
       <div className="min-w-0 flex-1">
-        <Link to={appUrls.medication(groupId, medication.id)} className="link-hover font-medium break-words">
+        <Link
+          to={appUrls.medication(groupId, medication.id)}
+          state={linkState}
+          className="link-hover font-medium break-words"
+        >
           {title}
         </Link>
         <p className="text-muted text-sm" data-as-needed-count>

@@ -96,7 +96,8 @@ function TodayPeriod({
  * zone (around midnight, Today can read a day ahead of the period's page); a
  * date before the start's shows the period with no number. No place: the line
  * stays short, and the period's page shows it. Nothing before the first
- * period. With `change`, writers get Change, which opens the add sheet.
+ * period. With `change`, writers get Change, which opens the add sheet: it
+ * comes first, [Change] [icon] [text], so the line's end doesn't move.
  */
 function DayPeriod({
   groupId,
@@ -125,14 +126,7 @@ function DayPeriod({
       className={`text-muted flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
       data-period-line={period.id}
     >
-      <Icon className={`${easy ? ICON_LG : ICON} shrink-0`} aria-hidden="true" />
-      <Link
-        to={appUrls.period(groupId, period.id)}
-        className="link-hover min-w-0 break-words"
-        data-period-current
-      >
-        {text}
-      </Link>
+      {/* Before the icon, so Today's text ends where the days' below do (B-618). */}
       {change && group.canWrite && (
         <Button
           to={appUrls.newPeriod(groupId)}
@@ -147,6 +141,14 @@ function DayPeriod({
           data-period-change=""
         />
       )}
+      <Icon className={`${easy ? ICON_LG : ICON} shrink-0`} aria-hidden="true" />
+      <Link
+        to={appUrls.period(groupId, period.id)}
+        className="link-hover min-w-0 break-words"
+        data-period-current
+      >
+        {text}
+      </Link>
     </p>
   );
 }
