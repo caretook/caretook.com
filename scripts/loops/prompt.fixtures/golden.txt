@@ -239,7 +239,7 @@ plan takes --auto and B-<n> ids, not nope
 You are the agent for slice 1 of the "T" PRD.
 
 - Your worktree is <root>/main/.loops/T-1, on branch slice/T/1 (from prd/T). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read plans/T-prd.md and slice 1 in plans/T-plan.md, then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/T-plan.md and plans/T-prd.md are at the end of this prompt: work from them, and open the whole plan or PRD only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: no
   - Reads: docs/loops.md
@@ -253,12 +253,21 @@ You are the agent for slice 1 of the "T" PRD.
 - **Your hand-off releases your stack:** run `pnpm prd stack down` before your final message (with no stack it does nothing), then wait: the orchestrator may send back a failure from the wave's CI run.
 - **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.
 - **A fix request is these steps and nothing else:** `pnpm prd stack up` if your slice uses a stack; `git merge --no-ff -m "chore(T): merge prd/T for a fix" prd/T` (the one merge you make); a new commit with the fix; `pnpm prd check --quick "slice fix"` on your own tests; `pnpm prd stack down`; a new hand-off line. Your orchestrator merges it again.
+
+Slice 1, from plans/T-plan.md and plans/T-prd.md:
+
+----- plans/T-plan.md: slice 1's section
+## Slice 1: Stackless
+
+Stack: no · Reads: docs/loops.md · Tests: unit
+
+----- end
 ----- stderr
 ===== slice T 1 --continue (exit 0)
 You are the agent for slice 1 of the "T" PRD.
 
 - Your worktree is <root>/main/.loops/T-1, on branch slice/T/1 (from prd/T). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read plans/T-prd.md and slice 1 in plans/T-plan.md, then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/T-plan.md and plans/T-prd.md are at the end of this prompt: work from them, and open the whole plan or PRD only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: no
   - Reads: docs/loops.md
@@ -277,12 +286,21 @@ You are the agent for slice 1 of the "T" PRD.
 - Read what it did: `pnpm log --oneline prd/T..HEAD`, `git status`, `git diff prd/T...HEAD` (what's committed) and `git diff` (what isn't). Uncommitted changes are its work too: keep them unless they're broken.
 - Check that against the slice's acceptance criteria and finish what's missing from there. Don't start over, and don't redo committed work.
 - If everything is committed and `pnpm prd check` (or `--quick`) passes, don't rebuild: run whatever the slice's checks still need, and write the hand-off from the branch (its commits are the record).
+
+Slice 1, from plans/T-plan.md and plans/T-prd.md:
+
+----- plans/T-plan.md: slice 1's section
+## Slice 1: Stackless
+
+Stack: no · Reads: docs/loops.md · Tests: unit
+
+----- end
 ----- stderr
 ===== slice T 2 (exit 0)
 You are the agent for slice 2 of the "T" PRD.
 
 - Your worktree is <root>/main/.loops/T-2, on branch slice/T/2 (from prd/T). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read plans/T-prd.md and slice 2 in plans/T-plan.md, then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/T-plan.md and plans/T-prd.md are at the end of this prompt: work from them, and open the whole plan or PRD only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: yes
   - Reads: none
@@ -296,12 +314,21 @@ You are the agent for slice 2 of the "T" PRD.
 - **Your hand-off releases your stack:** run `pnpm prd stack down` before your final message (with no stack it does nothing), then wait: the orchestrator may send back a failure from the wave's CI run.
 - **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.
 - **A fix request is these steps and nothing else:** `pnpm prd stack up` if your slice uses a stack; `git merge --no-ff -m "chore(T): merge prd/T for a fix" prd/T` (the one merge you make); a new commit with the fix; `pnpm prd check --quick "slice fix"` on your own tests; `pnpm prd stack down`; a new hand-off line. Your orchestrator merges it again.
+
+Slice 2, from plans/T-plan.md and plans/T-prd.md:
+
+----- plans/T-plan.md: slice 2's section
+## Slice 2: Needs a stack
+
+Stack: yes · Reads: none · Tests: e2e:invites
+
+----- end
 ----- stderr
 ===== slice T 3 (exit 0)
 You are the agent for slice 3 of the "T" PRD.
 
 - Your worktree is <root>/main/.loops/T-3, on branch slice/T/3 (from prd/T). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read plans/T-prd.md and slice 3 in plans/T-plan.md, then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/T-plan.md and plans/T-prd.md are at the end of this prompt: work from them, and open the whole plan or PRD only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: no
   - Reads: nothing besides AGENTS.md
@@ -316,12 +343,19 @@ You are the agent for slice 3 of the "T" PRD.
 - **Your hand-off releases your stack:** run `pnpm prd stack down` before your final message (with no stack it does nothing), then wait: the orchestrator may send back a failure from the wave's CI run.
 - **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.
 - **A fix request is these steps and nothing else:** `pnpm prd stack up` if your slice uses a stack; `git merge --no-ff -m "chore(T): merge prd/T for a fix" prd/T` (the one merge you make); a new commit with the fix; `pnpm prd check --quick "slice fix"` on your own tests; `pnpm prd stack down`; a new hand-off line. Your orchestrator merges it again.
+
+Slice 3, from plans/T-plan.md and plans/T-prd.md:
+
+----- plans/T-plan.md: slice 3's section
+## Slice 3: No fields
+
+----- end
 ----- stderr
 ===== slice W 2 (exit 0)
 You are the agent for slice 2 of the "W" PRD.
 
 - Your worktree is <root>/main/.loops/W-2, on branch slice/W/2 (from prd/W). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read slice 2 in plans/W-plan.md (there's no plans/W-prd.md: the plan is the whole spec), then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/W-plan.md (there's no plans/W-prd.md: the plan is the whole spec) are at the end of this prompt: work from them, and open the whole plan only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: yes
   - Reads: none
@@ -335,12 +369,21 @@ You are the agent for slice 2 of the "W" PRD.
 - **Your hand-off releases your stack:** run `pnpm prd stack down` before your final message (with no stack it does nothing), then wait: the orchestrator may send back a failure from the wave's CI run.
 - **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.
 - **A fix request is these steps and nothing else:** `pnpm prd stack up` if your slice uses a stack; `git merge --no-ff -m "chore(W): merge prd/W for a fix" prd/W` (the one merge you make); a new commit with the fix; `pnpm prd check --quick "slice fix"` on your own tests; `pnpm prd stack down`; a new hand-off line. Your orchestrator merges it again.
+
+Slice 2, from plans/W-plan.md:
+
+----- plans/W-plan.md: slice 2's section
+## Slice 2: Needs a stack
+
+Stack: yes · Reads: none · Tests: e2e:invites
+
+----- end
 ----- stderr
 ===== slice fixes-x 1 (exit 0)
 You are the agent for slice 1 of the "fixes-x" PRD.
 
 - Your worktree is <root>/main/.loops/fixes-x-1, on branch slice/fixes-x/1 (from prd/fixes-x). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read slice 1 in plans/fixes-x-plan.md (there's no plans/fixes-x-prd.md: the plan is the whole spec), then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/fixes-x-plan.md (there's no plans/fixes-x-prd.md: the plan is the whole spec) are at the end of this prompt: work from them, and open the whole plan only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: no
   - Reads: plans/fixes-rules.md
@@ -354,12 +397,21 @@ You are the agent for slice 1 of the "fixes-x" PRD.
 - **Your hand-off releases your stack:** run `pnpm prd stack down` before your final message (with no stack it does nothing), then wait: the orchestrator may send back a failure from the wave's CI run.
 - **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.
 - **A fix request is these steps and nothing else:** `pnpm prd stack up` if your slice uses a stack; `git merge --no-ff -m "chore(fixes-x): merge prd/fixes-x for a fix" prd/fixes-x` (the one merge you make); a new commit with the fix; `pnpm prd check --quick "slice fix"` on your own tests; `pnpm prd stack down`; a new hand-off line. Your orchestrator merges it again.
+
+Slice 1, from plans/fixes-x-plan.md:
+
+----- plans/fixes-x-plan.md: slice 1's section
+## Slice 1: A fix
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+----- end
 ----- stderr
 ===== slice fixes-x 1 --continue (exit 0)
 You are the agent for slice 1 of the "fixes-x" PRD.
 
 - Your worktree is <root>/main/.loops/fixes-x-1, on branch slice/fixes-x/1 (from prd/fixes-x). `cd` there in every shell and work only there; Read, Edit and Write use absolute paths inside it.
-- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Then read slice 1 in plans/fixes-x-plan.md (there's no plans/fixes-x-prd.md: the plan is the whole spec), then the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
+- AGENTS.md (the core) is already in your context (CLAUDE.md loads it); Read it only if it isn't. Your slice's section and what it needs from plans/fixes-x-plan.md (there's no plans/fixes-x-prd.md: the plan is the whole spec) are at the end of this prompt: work from them, and open the whole plan only for a question they leave. Then read the docs its Reads field names. AGENTS.md's _Area index_ finds any other rule you need.
 - This slice's fields, from the plan:
   - Stack: no
   - Reads: plans/fixes-rules.md
@@ -378,6 +430,15 @@ You are the agent for slice 1 of the "fixes-x" PRD.
 - Read what it did: `pnpm log --oneline prd/fixes-x..HEAD`, `git status`, `git diff prd/fixes-x...HEAD` (what's committed) and `git diff` (what isn't). Uncommitted changes are its work too: keep them unless they're broken.
 - Check that against the slice's acceptance criteria and finish what's missing from there. Don't start over, and don't redo committed work.
 - If everything is committed and `pnpm prd check` (or `--quick`) passes, don't rebuild: run whatever the slice's checks still need, and write the hand-off from the branch (its commits are the record).
+
+Slice 1, from plans/fixes-x-plan.md:
+
+----- plans/fixes-x-plan.md: slice 1's section
+## Slice 1: A fix
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+----- end
 ----- stderr
 ===== slice T 1 --bogus (exit 1)
 ----- stderr
