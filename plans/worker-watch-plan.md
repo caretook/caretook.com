@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State  | Merge into `prd/worker-watch` (slice commits) |
-| ----- | ---- | ------ | --------------------------------------------- |
-| 1     | 1    | merged | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
-| 2     | 2    | —      | —                                             |
-| 3     | 2    | —      | —                                             |
-| 4     | 3    | —      | —                                             |
-| 5     | 4    | —      | —                                             |
-| 6     | 4    | —      | —                                             |
+| Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------------- |
+| 1     | 1    | merged         | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
+| 2     | 2    | started (opus) | —                                             |
+| 3     | 2    | started (opus) | —                                             |
+| 4     | 3    | —              | —                                             |
+| 5     | 4    | —              | —                                             |
+| 6     | 4    | —              | —                                             |
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
 **Wave 1 landed** in dev as cd94065 through PR #163 (2026-11-24; tier `integration`, run 45477738470 green on a4550c9e; Codex out of credits, so `--no-review`; report a196; to-test `2026-11-24-1519-worker-watch.md`). Docs folded (machinery: the run log and `metrics`; orchestration: the `metrics` row; both trimmed under budget). Slice 1 worktree removed.
 
-**Next: wave 2** (slices 2 and 3, both opus; claim B-408 when slice 2 starts). At its boundary: `pnpm backlog ingest`, `list`, `pnpm prd sync`. Slice 1's notes for later slices: tests whose throwaway repo doesn't ignore `.loops/` must set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`.
+**Wave 2 running** (2026-11-24): boundary done (ingest, doctor, list: nothing new for worker-watch; sync: up to date). B-408 claimed. Worktrees worker-watch-2 and worker-watch-3 made; one opus agent each spawned (slice 2 told to measure the silent stretch from existing logs, no full check). Slice 1's notes for later slices: tests whose throwaway repo doesn't ignore `.loops/` must set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`.
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
