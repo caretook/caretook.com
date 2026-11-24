@@ -2,6 +2,7 @@ import type { ContactValues } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/core/api";
 import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 
+import { isManagerRole } from "@caretook/data/permissions";
 import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
@@ -19,6 +20,7 @@ import {
 import { memberDetailsQuery } from "~/lib/care-groups/members.sync";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { memberHistory } from "./invites";
+import { RoleHelp } from "./RoleHelp";
 import { RoleOptions } from "./RoleOptions";
 import { SharingForm } from "./SharingForm";
 
@@ -32,8 +34,9 @@ type RemoveTarget = { userId: string; name: string; isSelf: boolean };
 
 /**
  * Everyone in the group, from the local copy (live). Online, owners and
- * admins get a role menu and Remove on the members they may change, and
- * everyone gets Leave on their own row; offline it's a plain list.
+ * admins get a role menu and Remove on the members they may change (and
+ * "What can each role do?" above the list), and everyone gets Leave on
+ * their own row; offline it's a plain list.
  */
 export function Members({
   groupId,
@@ -72,6 +75,12 @@ export function Members({
 
   return (
     <>
+      {/* Owners and admins pick roles here, online: what each role does is a link away. */}
+      {online && isManagerRole(myRole) && (
+        <div className="mb-2 flex justify-end">
+          <RoleHelp />
+        </div>
+      )}
       <List>
         {members.map((member) => {
           const isSelf = member.user_id === userId;
