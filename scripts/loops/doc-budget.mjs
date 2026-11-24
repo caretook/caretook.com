@@ -14,8 +14,8 @@
 // A doc over budget that didn't grow (or shrank) never blocks anything.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import { parseRegistry } from "../backlog/registry.mjs";
 import { BUDGETS } from "./doc-budget.config.mjs";
 import { STATUS_WARN_BYTES, statusBytes } from "./status-trim.mjs";
 
@@ -102,6 +102,8 @@ export function docSizes(repo, ref = null) {
 export function longStatuses(repo, limit = STATUS_WARN_BYTES) {
   const backlog = join(repo, "plans", "backlog.md");
   if (!existsSync(backlog)) return [];
+  // Loaded here, not at the top, so land mode needs nothing outside scripts/loops/.
+  const { parseRegistry } = createRequire(import.meta.url)("../backlog/registry.mjs");
   const reg = parseRegistry(readFileSync(backlog, "utf8"));
   if (reg.format !== "new") return [];
   const out = [];
