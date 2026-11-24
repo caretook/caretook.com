@@ -4,55 +4,56 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 ## Status
 
-Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
+Landing mode: **run everything through** (started run-through, 2026-11-22; resumed run-through 2026-11-24). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9 (opus), **landed in dev as bb1133e0 through PR #78** (2026-11-22). Codex clean on 19a195c; full check passed on 887736df; report filed. No slice is in flight.
+Waves 1–3 landed (PR #78, #84, #86); details in the history file.
 
-Wave 2: slices 10–14, written 2026-11-22 after a clean sync (dev had only wave 1's landing and backlog commits). Running topics are test-gates and quick-entry-2; no slice touches their hot files. Slices 10, 11 and 12 started 2026-11-22 (worktrees made, agents spawned); 13 after 10 is merged; 14 after 13 is merged. Models: sonnet for 10 and 11 (edits spelled out), opus for 12, 13 and 14. `pnpm backlog doctor` reports two old inbox-tag findings (B-548, B-549), neither in this topic.
+**Wave 4** (2026-11-24, session 1): slices 18–33 written from the triaged items; base `prd/fixes-ui` = dev 91f30299. Running topic: symptom-catalog (its hot files excluded). Chains: 22→23, 25→26→27→28, 30→31. Models: sonnet for 20, 21, 28; opus for the rest.
 
-Left for later: B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
+Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-At wave 2 landing: fold the Event wording into `appointments.md`, `todos.md` and `timeline.md` (they still say a title-less item reads Appointment, and that `scopeQuestion` always says appointment). Slice 12 changes `calendarText`, so the landing report must say what that does to events already pushed to Google.
+**CI hold (2026-11-24, from the backlog session on the user's word):** start no CI run with the components tier (components, full, release) until the backlog session (caretook-com-a6) messages that the third components shard landed on dev; then `pnpm prd sync` and run.
 
-Slice 13 decisions: optional times (todo due, series Ends) stay empty by default; required ones default to the current hour at :00.
+Notes for every wave:
 
-Slice 14 gaps to file as follow-ups once the wave is green: a sync after the first touch can read as a change; Back after a failed save does not ask until the next touch; a record deleted elsewhere can prompt; Back with an unguarded sheet on top of a changed one does not ask; Discard under reduced motion has no test; `InviteSheet`, `InviteLinks`, provider import, `RepeatSheet` and `VisitPrepSheet` are unguarded. Wave gate: full check on the tip, then `pnpm prd browser --changed --base dev` (the user asks to be asked before any `--suite`).
-
-**Latest (wave 2):** full check passed on 3c76e5ec; after syncing dev's assistant-access migration, quick check and `roundtrip`, `first-sync`, `ui` passed on 01b907f4. PR #84 open. Codex round 1: one P2 (Back right after a failed save skips the prompt), verified and tracked as B-601. Slice 14's gaps are filed as B-601, B-602, B-603 and B-604. Docs folded. Codex clean on 21d4146b. **Wave 2 landed in dev as e41e558b through PR #84** (2026-11-22); B-552 marked done; report filed. No slice is in flight.
-
-**Wave 3 landed in dev through PR #86** (2026-11-22, dev 29d8132): slices 15 (B-585), 16 (B-592) and 17 (B-603), all opus. Codex clean on 7e0c5d7; report filed. **No item is ready for a new wave, so this session removes the worktree.** A later fixes-ui session starts from the items held below.
-
-Slices 15, 16 and 17 are merged, their worktrees removed, and no slice is in flight. Full check passed on 07c4c781; quick check passed on the synced tip 7e0c5d7f. `pnpm prd browser --changed --base dev`: `roundtrip`, `app-shell`, `invites`, `ui`, 4 of 4 passed on 07c4c781 (not rerun after the sync). Docs folded (`appointments.md`, `ui-kit.md`, `providers.md`). Follow-ups filed: B-605 (PageUp and PageDown on the hour still wrap inside AM/PM) and a note on B-602 (reduced-motion Discard on a sheet that stays mounted, read from the code and not reproduced). `PlannerTodoRow` keeps its 5.5rem column, so todo and event rows now align differently in one list (said in the landing report).
-
-Held from wave 3: B-594 (allergies on the Profile page) waits for ui-kit-4's medications and profile sweep, as its triage says (that sweep renames the profile parts); B-583 (connector wording) awaits the user's decision; B-325 (native safe area) waits for Capacitor.
-
-**Earlier hand-over (wave 2 gate):** all of slices 10–14 are merged and no slice is in flight. The user said to apply the B-552 print-test fix: done in df2ff0d5, 5 of 5 alone. The last full check (ff19deb0) failed on 4 tests; 3 were fixed by going through Discard and the fourth is B-552. The rerun was stopped for this fix, so **no full check has passed on the tip**. Resumed 2026-11-22: Status reconciled with git, synced with dev as 1b5dc09c (docs and plans only), full check started once the 5-minute load is under 16. Next: if no check is running, `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` in the background, then `pnpm prd wait check`; `pnpm prd serve --restart`; `pnpm prd browser --changed --base dev` (no `--suite` without asking the user); `pnpm prd pr fixes-ui`; `pnpm prd review fixes-ui --wait`; land; `pnpm backlog done B-552`. Fold docs at landing. File slice 14's gaps below as follow-ups. The landing report must say: existing Google events are rewritten once on their next sync ("Appointment for" becomes "Event for"); B-583 (connector wording) awaits the user; B-585 is the 11 AM hour-step wrap.
-
-Notes for the next wave:
-
-- Until B-576 (local lint runs out of memory) is fixed, run checks and landings with `NODE_OPTIONS=--max-old-space-size=6144`; lint passes Node's 4 GB default even on a quiet machine.
-- A print-menu test can fail in a full run and pass alone (B-552, the known race).
+- Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State           | Merge    |
-| ----- | ----- | --------------- | -------- |
-| 1     | B-256 | merged (opus)   | b5373bc9 |
-| 2     | B-416 | merged (opus)   | f6f40e4f |
-| 3     | B-538 | merged (opus)   | 439b6571 |
-| 4     | B-412 | merged (opus)   | 91aced06 |
-| 5     | B-519 | merged (opus)   | b2aa214a |
-| 6     | B-413 | merged (opus)   | 13ac9f5a |
-| 7     | B-422 | merged (opus)   | 8834115b |
-| 8     | B-421 | merged (opus)   | fc5dbe18 |
-| 9     | B-319 | merged (opus)   | 488e09bf |
-| 10    | B-536 | merged (sonnet) | c9c510cf |
-| 11    | B-575 | merged (sonnet) | 123f2b24 |
-| 12    | B-537 | merged (opus)   | 5566480a |
-| 13    | B-535 | merged (opus)   | 1dc972d8 |
-| 14    | B-316 | merged (opus)   | 3c7a6607 |
-| 15    | B-585 | merged (opus)   | 52d2e14b |
-| 16    | B-592 | merged (opus)   | 6af2f056 |
-| 17    | B-603 | merged (opus)   | 18180d36 |
+| Slice | Item  | State            | Merge    |
+| ----- | ----- | ---------------- | -------- |
+| 1     | B-256 | merged (opus)    | b5373bc9 |
+| 2     | B-416 | merged (opus)    | f6f40e4f |
+| 3     | B-538 | merged (opus)    | 439b6571 |
+| 4     | B-412 | merged (opus)    | 91aced06 |
+| 5     | B-519 | merged (opus)    | b2aa214a |
+| 6     | B-413 | merged (opus)    | 13ac9f5a |
+| 7     | B-422 | merged (opus)    | 8834115b |
+| 8     | B-421 | merged (opus)    | fc5dbe18 |
+| 9     | B-319 | merged (opus)    | 488e09bf |
+| 10    | B-536 | merged (sonnet)  | c9c510cf |
+| 11    | B-575 | merged (sonnet)  | 123f2b24 |
+| 12    | B-537 | merged (opus)    | 5566480a |
+| 13    | B-535 | merged (opus)    | 1dc972d8 |
+| 14    | B-316 | merged (opus)    | 3c7a6607 |
+| 15    | B-585 | merged (opus)    | 52d2e14b |
+| 16    | B-592 | merged (opus)    | 6af2f056 |
+| 17    | B-603 | merged (opus)    | 18180d36 |
+| 18    | B-618 | started (opus)   |          |
+| 19    | B-663 | started (opus)   |          |
+| 20    | B-702 | started (sonnet) |          |
+| 21    | B-682 | started (sonnet) |          |
+| 22    | B-683 | started (opus)   |          |
+| 23    | B-763 | waits (opus)     |          |
+| 24    | B-685 | started (opus)   |          |
+| 25    | B-686 | started (opus)   |          |
+| 26    | B-687 | waits (opus)     |          |
+| 27    | B-688 | waits (opus)     |          |
+| 28    | B-674 | waits (sonnet)   |          |
+| 29    | B-668 | started (opus)   |          |
+| 30    | B-677 | started (opus)   |          |
+| 31    | B-678 | waits (opus)     |          |
+| 32    | B-629 | started (opus)   |          |
+| 33    | B-699 | started (opus)   |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -302,3 +303,221 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/com
 - [ ] Component test, for each sheet wired: a changed form asks before closing, and Discard closes it.
 - [ ] Component test, for each sheet wired: an unchanged form closes without asking.
 - [ ] Component test: a successful invite and a successful import close without asking.
+
+## Wave 4 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency, and no edits to symptom-catalog's hot files (`pnpm backlog prd list`): the timeline's `FilterSheet.tsx`, `TimelineFilters.tsx`, `SymptomFields.tsx`, `FeelingFields.tsx`, `daySummary*`, `components/quick-entry/`, `lib/timeline/timelineFilters.ts`, `lib/timeline/timeline.sync.ts`, `lib/appointments/visitPrep*`. Loops don't edit `docs/`; the orchestrator folds wording and decisions in at landing. Each slice's backlog item (`pnpm backlog show B-<n>`) holds the user's notes: read them, and where a later note replaces an earlier one, the later wins. If a fix can't be done within this, stop and say so in the hand-off.
+
+## Slice 18: Change care period sits left of the period icon (B-618)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/care-periods.md · Tests: component
+
+**Problem.** On Today's day header, Change sits after the period text, so Today's period shifts left of the same period on the days below.
+
+**Build.** In `DayPeriod` (`routes/app/groups/timeline/DayHeader.tsx`) the order becomes [Change] [period icon] [text] [+]. Only a button move (the user's last note on B-618): keep the group right-aligned, add no column or fixed width. A long name at phone width and Easy mode still wrap cleanly.
+
+**Acceptance criteria.**
+
+- [ ] Component test: on Today, Change comes directly before the period icon, and + stays last.
+- [ ] Component test: a day without Change (a past day, a read-only viewer) renders icon, text and + in the same order.
+
+## Slice 19: Menu section headings get room above them (B-663)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component
+
+**Problem.** In a sectioned menu, a section heading sits so close to the item above that it reads as part of the previous group (Day summaries under Cards in the Timeline view menu).
+
+**Build.** Fix it once in the shared `components/ui/Menu.tsx` section heading: a clear gap above every heading but the first (a divider too if it reads better), so every sectioned menu gets it. `TimelineViewMenu.tsx` only if it overrides the spacing.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a heading after another section sits at least 8px below the last item above it; the first heading keeps its current spacing.
+
+## Slice 20: Medications Print menu text fits its box (B-702)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/medications.md · Tests: component
+
+**Problem.** The Print menu's item text ("Every medication, and who to call") crowds or overflows the 224px menu.
+
+**Build.** Widen `routes/app/groups/medications/PrintMenu.tsx` to `Menu`'s `width="lg"`. Check `GroupMenu` and `TimelineViewMenu`, which share the item layout, and widen only one whose text also crowds; say which in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component test at phone width: every Print menu item's text fits inside the menu (no item's scroll width exceeds its client width) and the menu stays inside the viewport.
+
+## Slice 21: Planner empty lists have no icons (B-682)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: component
+
+**Problem.** The icons in the Planner tabs' empty lists look goofy.
+
+**Build.** Stop passing `emptyMark` to `EmptyState` in `routes/app/groups/planner/UpcomingList.tsx` (Upcoming and Past) and `routes/app/groups/todos/TodoSections.tsx` (Todos), so all three show the quiet text line. Other screens keep their icons; keep the prop wherever something still uses it. Update tests that expect the icon.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the empty Upcoming, Past and Todos tabs show their text and no icon.
+
+## Slice 22: The current tab fills its whole section (B-683)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** The tab selector and the phone bottom menu show each entry as its own rounded button; the user wants the whole section to highlight.
+
+**Build.** `components/ui/TabNav.tsx`: a segmented bar with no inset padding, gap or per-link rounding, so the current and hover fills reach the section edges, clipped by the bar's outer shape. The phone `TabBar` in `routes/app/layout/SectionNav.tsx` likewise: each link an equal `flex-1` full-height section with no rounding, the bar `overflow-hidden`. Desktop `SectionNav` stays as it is. Keep section accents, count badges, sideways scrolling, touch targets of at least 44px, `aria-current`, labels, the safe-area position and spacer, and use an inset focus ring so clipping doesn't hide it. Update the components' comments.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the current TabNav link's box reaches the bar's top and bottom edges, and `TabNav.browser.test.tsx`'s dark contrast test still passes.
+- [ ] Component test: TabBar links share the bar's width equally, are at least 44px tall, and the current one is marked `aria-current`.
+
+## Slice 23: Installed iOS app: the bottom bar sits near the screen's bottom (B-763)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: component
+
+**Blocked by:** slice 22.
+
+**Problem.** In the installed PWA on iOS the phone bottom bar floats too high above the screen's bottom edge.
+
+**Build.** In `TabBar` (`routes/app/layout/SectionNav.tsx`), find where the bottom offset stacks a fixed gap on top of `env(safe-area-inset-bottom)` (and `viewport-fit` in `root.tsx` if relevant), and change it so the bar sits just above the home indicator: the safe area, plus at most a small gap, not both at full size. The page spacer follows the same value. Browsers without an inset keep today's position. Say in the hand-off what you could not check without an iPhone.
+
+**Acceptance criteria.**
+
+- [ ] Component test: with a simulated bottom inset (a CSS variable or style override), the bar's bottom offset is the inset plus at most 8px; with no inset it is unchanged.
+
+## Slice 24: Care period types in a two-column grid (B-685)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/care-periods.md · Tests: component
+
+**Problem.** Where is care now? shows ten options as a wrapping row of joined buttons, which looks cluttered.
+
+**Build.** Add a grid layout to `components/ui/ChoiceGroup.tsx` (a small option; other ChoiceGroups keep their joined row) and use it in `routes/app/groups/periods/PeriodForm.tsx`: ten plain text options in two equal columns, five rows, at phone and desktop widths, one clear selected state. Keep native radios (name, arrow keys, the radiogroup and its error), the URL prefill, the edit value and Other's Label field. The longest labels fit at phone width without truncating.
+
+**Acceptance criteria.**
+
+- [ ] Component test at phone width: the ten options lay out in two equal columns of five, and none is truncated.
+- [ ] Component test: picking Other still shows the Label field, and existing period tests that pick a type as a radio pass.
+
+## Slice 25: Provider phone type is a dropdown with Custom (B-686)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/providers.md · Tests: component
+
+**Problem.** A provider's phone type is a free-text box.
+
+**Build.** Give the shared `components/contact/PhoneFields.tsx` an option for a label select, used only by `ProviderForm` (add and edit); the recipient and user contact forms keep the text input. A native select: blank, Office, Mobile, Front desk, Nurse line, After hours, Refills, Fax, Custom. Custom reveals a text input (phoneLabel limit 40) and moves focus to it. Each row still posts one `phoneLabel`, in order, so `phonesFromForm` and row errors keep working. On edit, a stored label matching an option selects it; any other opens Custom with its text. Check the row at phone width.
+
+**Acceptance criteria.**
+
+- [ ] Component test: choosing Nurse line saves the label "Nurse line"; choosing Custom and typing "Billing" saves "Billing".
+- [ ] Component test: editing a provider whose phone is labelled "Billing" shows Custom with "Billing"; a blank label stays blank.
+- [ ] Component test: the recipient contact form still has a text label input.
+
+## Slice 26: Saving a new provider opens its page (B-687)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/providers.md, docs/domain/app-shell.md · Tests: component
+
+**Blocked by:** slice 25.
+
+**Problem.** After Add a provider, the sheet returns to the list instead of the new provider.
+
+**Build.** `routes/app/groups/providers/new/route.tsx`: return the id `createProvider` already gives (a route-local result type, or widen `ActionResult` additively), pass it to the new sheet's `onDone`, and navigate to `appUrls` provider page with `replace`. Cancel, Escape and a tap outside still close to where the user was. It stays local and offline. Edit is unchanged; `ProviderForm` stays navigation-free. Shape the id return so slice 27 can reuse it.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`providerSheets.browser.test.tsx`): saving a new provider lands on its page, and Back goes to the directory, not the form.
+- [ ] Component test: cancelling the new provider sheet returns to the list.
+
+## Slice 27: Saving a new medication opens its page (B-688)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/app-shell.md · Tests: component
+
+**Blocked by:** slice 26.
+
+**Problem.** After Add a medication, the sheet returns to the tab instead of the new medication.
+
+**Build.** Same as slice 26 for `routes/app/groups/medications/new/route.tsx`, reusing its id-return approach: navigate to `appUrls.medication` with `replace`, so Back goes to the tab the sheet opened over. Cancel, Escape and a tap outside still close to that tab. If the conditions step refuses after the medication is written, still land on the new medication's page with the error shown there or said in the hand-off, never inviting a duplicate save. `MedicationForm` stays navigation-free.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`medicationForm.browser.test.tsx`): saving a new medication lands on its page; Back returns to the tab it opened over.
+- [ ] Component test: cancelling returns to that tab.
+
+## Slice 28: A new medication starts on As needed (B-674)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: component
+
+**Blocked by:** slice 27.
+
+**Problem.** The full Add medication form starts on At set times; the user wants As needed by default.
+
+**Build.** In `components/medications/ScheduleFields.tsx`, a new medication starts on As needed; an existing one keeps its schedule. Switching to At set times still offers the same starting slots (`scheduleSlots.ts`). The choice stays visible. Update the form tests that assume the old default.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a new medication form shows As needed selected and saves as needed without touching the field.
+- [ ] Component test: switching to At set times shows the usual starting slots; editing a scheduled medication still shows At set times.
+
+## Slice 29: Condition names suggest from the first typed letter (B-668)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/profiles.md · Tests: component
+
+**Problem.** Add a condition opens an unfiltered list of names as soon as the field is focused.
+
+**Build.** Add an option to the shared `components/ui/ComboBox.tsx` (for example `menuTrigger="input"` with no list for an empty field), used only by `ConditionNameField`; the other pickers keep browsing on focus. Nothing on focus with an empty field; the first character opens the list filtered by the existing word-prefix match; clearing closes it. If the list also fails to open on the first character, fix that too. Name the option so the allergy and medication name fields (B-672, B-673) can reuse it.
+
+**Acceptance criteria.**
+
+- [ ] Component test: focusing the empty condition name opens no list; typing "d" opens a list of matching names only; clearing the field closes it.
+- [ ] Component test: a provider picker still opens its list on focus.
+
+## Slice 30: What can each role do? (B-677)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md · Tests: component
+
+**Problem.** The role pickers put each role's description only in an option `title`, which phones don't show.
+
+**Build.** The user's decision: a "What can each role do?" link beside the Role label, opening a native `<dialog>` (the kit's dialog if there is one) that lists every role with what it can see and change, in plain words. Use it in `InviteSheet.tsx`, `InviteLinks.tsx` and `MembersList.tsx` (one shared piece beside `RoleOptions.tsx`); the native selects stay. Keep the selected role's short help line in the invite forms and add it where missing. Rewrite the thin `GROUP_ROLES` wording (`packages/data/src/constants/roles.ts`) and check each line against docs/domain/care-groups.md; list the final wording in the hand-off. The dialog opens from inside the invite sheet: check focus return and stacking. Staff `/admin` pickers are out of scope.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the link beside Role opens a dialog naming every role with its description, and closing it returns focus to the link, inside the invite sheet too.
+- [ ] Component test: Manage members shows the same link.
+
+## Slice 31: Member cards show full names and details (B-678)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md · Tests: component
+
+**Blocked by:** slice 30.
+
+**Problem.** On the Members page, names and history lines are truncated ("Robert Bo ...", "Joined Nov...") because the role select and Leave/Remove squeeze them.
+
+**Build.** Redo `MemberItem` (`settings/members/MembersList.tsx`): identity (avatar, full name, relationship, history) on its own line, role and actions below it, or right-aligned only where there is room. Long names wrap rather than cut. Tidy the error line, and fold the nested What this group sees form on your own card behind a disclosure so it doesn't dominate. Keep badges, relationship, contact lines, the offline state and slice 30's link.
+
+**Acceptance criteria.**
+
+- [ ] Component test at phone and desktop widths: a long member name and its history line are not truncated (scroll width equals client width).
+- [ ] Component test: role change, Leave and Remove still work, and your own card's sharing form still opens and saves.
+
+## Slice 32: Dismissing the setup card keeps keyboard focus (B-629)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** Dismissing the Getting started card removes the focused button with it, so focus falls to the body.
+
+**Build.** In `routes/app/groups/timeline/GettingStartedCard.tsx` (and `route.tsx` if it owns the state), move focus on dismiss to a sensible next place: the quick entry box if present, else the Timeline heading (with `tabIndex={-1}`). Don't edit `components/quick-entry/`; focusing it from outside through an existing ref or id is fine.
+
+**Acceptance criteria.**
+
+- [ ] Component test: after dismissing the card with the keyboard, `document.activeElement` is the chosen target, not `body`.
+
+## Slice 33: Medication page Back returns to where you came from (B-699)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** The medication page's Back always goes to the Medications list.
+
+**Build.** Pass the origin (URL and label) in link state, as `todo/route.tsx` does with `listSearchFromState`, from the links that open a medication: Schedule, the list, the passes list, a provider, a todo, search, a condition, timeline entries (`MedicationEntryText`). Not a bare `navigate(-1)`: it must survive sheets opened over the page and keep the origin's filters. `medication/route.tsx`'s `BackLink` names the origin (Schedule, Timeline, Search…). A direct load or a link without state falls back to the Medications list. Deleting still goes to the list. Skip any link in a symptom-catalog hot file and say so.
+
+**Acceptance criteria.**
+
+- [ ] Component test: opening a medication from Schedule shows Back "Schedule" and returns there; from search, Back returns to the same search.
+- [ ] Component test: a direct load shows Back "Medications" to the list.
