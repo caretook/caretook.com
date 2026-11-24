@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/worker-watch` (slice commits) |
-| ----- | ---- | ------------- | --------------------------------------------- |
-| 1     | 1    | merged        | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
-| 2     | 2    | merged (opus) | 5310ab85 (893c22ff)                           |
-| 3     | 2    | merged (opus) | ac7b0b0c (d4819e33, b06de0b6)                 |
-| 4     | 3    | —             | —                                             |
-| 5     | 4    | —             | —                                             |
-| 6     | 4    | —             | —                                             |
+| Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------------- |
+| 1     | 1    | merged         | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
+| 2     | 2    | merged (opus)  | 5310ab85 (893c22ff)                           |
+| 3     | 2    | merged (opus)  | ac7b0b0c (d4819e33, b06de0b6)                 |
+| 4     | 3    | started (opus) | —                                             |
+| 5     | 4    | —              | —                                             |
+| 6     | 4    | —              | —                                             |
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -19,7 +19,7 @@
 
 **Wave 2 landed** in dev as a62226f5 through PR #165 (2026-11-24; tier none; gate `pnpm test:tooling` 85 files / 2051 tests and `eslint scripts` clean on 9b04ab45; Codex out of credits, `--no-review`; report a197; to-test `2026-11-24-1554-worker-watch.md`). Docs folded into machinery (check limits, 16 fields, the heartbeat, WORKERS), trimmed to 15,360 B, its budget exactly: the next fold must trim as much. Slice worktrees 2 and 3 removed. Follow-up filed: B-781 (count budget and silence stops apart in `--times` and `metrics`), `fixes-tooling`, triaged.
 
-**Next: wave 3** (slice 4, the watch; opus). At its boundary: `pnpm backlog ingest`, `doctor`, `list`, `pnpm prd sync`. Notes for slice 4: the reader is `workers.mjs` (`factsOf` pure, `workerFacts` gathers; `unknown` when no heartbeat names a slice worktree, which the watch never acts on); heartbeats live in `.loops/.heartbeat/<session>/<agent>.json` and exist only for sessions started after a62226f5; check breaches log a 16th field (`budget`/`silence`); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`; tests whose throwaway repo doesn't ignore `.loops/` set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); a throwaway-repo test that copies `context.mjs` must copy `heartbeat.mjs` too. Slice 3 was 13 files (the hook warns past 12): keep slice 4 tighter.
+**Wave 3 under way** (slice 4, the watch; opus): boundary done 2026-11-24 (ingest: nothing new; no new worker-watch items; sync: up to date); worktree worker-watch-4 made and agent spawned. Notes for slice 4: the reader is `workers.mjs` (`factsOf` pure, `workerFacts` gathers; `unknown` when no heartbeat names a slice worktree, which the watch never acts on); heartbeats live in `.loops/.heartbeat/<session>/<agent>.json` and exist only for sessions started after a62226f5; check breaches log a 16th field (`budget`/`silence`); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`; tests whose throwaway repo doesn't ignore `.loops/` set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); a throwaway-repo test that copies `context.mjs` must copy `heartbeat.mjs` too. Slice 3 was 13 files (the hook warns past 12): keep slice 4 tighter.
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
