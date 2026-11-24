@@ -4,7 +4,7 @@ export { MedicationStatusActions } from "./MedicationStatusActions";
 export { AllergiesRegion } from "./AllergiesRegion";
 export { PrintAllergies } from "./PrintAllergies";
 export { PrintConditions } from "./PrintConditions";
-export { PassCard } from "./PassCard";
+export { PassCard, PASS_TONE } from "./PassCard";
 export { ExtraDoseWarning } from "./ExtraDoseWarning";
 export { DoseSlotRow, SlotBadge } from "./DoseSlotRow";
 export type { MarkStatus } from "./DoseSlotRow";

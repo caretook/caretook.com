@@ -70,7 +70,7 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
   // Today's doses, for an as-needed Log's "Log anyway?" (read as Schedule does).
   const { due, ready: dueReady } = useDueDoses(params.groupId);
 
-  // The box filters as you type; the URL follows (see `MedicationSearch`).
+  // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
     () => medicationList(medications, { q: text, status: filters.status, type: filters.type }),

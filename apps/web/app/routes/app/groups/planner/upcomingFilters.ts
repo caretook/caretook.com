@@ -1,7 +1,13 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { TimelineFilters } from "../../../../lib/timeline/timelineFilters";
 
-import { AUTHOR_PARAM, KIND_PARAM, parseFilters } from "../../../../lib/timeline/timelineFilters";
+import { matchingText } from "../../../../lib/core/textFilter";
+import {
+  AUTHOR_PARAM,
+  KIND_PARAM,
+  parseFilters,
+  QUERY_PARAM,
+} from "../../../../lib/timeline/timelineFilters";
 
 // Upcoming's and Past's filters: the timeline's `?kind=event` and `?author=`
 // (read and changed through `lib/timeline/timelineFilters`) and, for todos
@@ -75,15 +81,32 @@ export const tabSearch = (search: string, tab: "planner" | "past") => {
   };
 };
 
-/** What an empty Upcoming list says, naming what is on. */
-export const emptyUpcomingText = (show: UpcomingShow, authorName?: string | null) => {
+/** What an empty Upcoming list says, naming what is on (the author, the search box's text). */
+export const emptyUpcomingText = (show: UpcomingShow, authorName?: string | null, q = "") => {
   const what = show === "event" ? "events" : show === "todos" ? "todos" : "events or todos";
-  return authorName ? `No upcoming ${what} by ${authorName}.` : `No upcoming ${what}.`;
+  return `No upcoming ${what}${authorName ? ` by ${authorName}` : ""}${matchingText(q)}.`;
 };
 
-/** What an empty Past tab says. */
-export const emptyPastText = (authorName?: string | null) =>
-  authorName ? `No past events by ${authorName}.` : "No past events yet.";
+/** What an empty Past tab says, naming what is on. */
+export const emptyPastText = (authorName?: string | null, q = "") =>
+  authorName || q.trim()
+    ? `No past events${authorName ? ` by ${authorName}` : ""}${matchingText(q)}.`
+    : "No past events yet.";
+
+/** The search box's text from the URL (`?q=`, the timeline's parameter), normalized. */
+export const plannerQueryOf = (search: string) => parseFilters(search).q;
 
 /** The Past tab's end, once there's nothing older. */
 export const PAST_END_TEXT = "That's the first event";
+
+/** Whether a navigation changed only the search box's text (the live queries follow it; the loader needn't run). */
+export const onlyQueryChanged = (current: URL, next: URL) => {
+  if (current.pathname !== next.pathname) return false;
+  const rest = (url: URL) => {
+    const params = new URLSearchParams(url.search);
+    params.delete(QUERY_PARAM);
+    params.sort();
+    return params.toString();
+  };
+  return rest(current) === rest(next);
+};

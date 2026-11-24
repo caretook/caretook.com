@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { clearWho, parseWho, setWho, showsTodo, TODO_WHO, todoSections, whoOf } from "./todoList";
+import {
+  clearWho,
+  emptyTodosText,
+  parseWho,
+  setTodoQuery,
+  setWho,
+  showsTodo,
+  TODO_WHO,
+  todoQueryOf,
+  todoSections,
+  whoOf,
+} from "./todoList";
 
 const LA = "America/Los_Angeles";
 // Friday 2026-11-20, 12:00 in Los Angeles.
@@ -78,5 +89,21 @@ describe("todoSections", () => {
 
   it("is empty with nothing open", () => {
     expect(todoSections([], NOW, LA)).toEqual([]);
+  });
+});
+
+describe("the quick text filter", () => {
+  it("reads and writes ?q=, trimmed, keeping the rest", () => {
+    expect(todoQueryOf("?who=mine&q=%20fax%20")).toBe("fax");
+    expect(todoQueryOf("")).toBe("");
+    expect(setTodoQuery("?who=mine", " fax ")).toBe("?who=mine&q=fax");
+    expect(setTodoQuery("?who=mine&q=fax", "")).toBe("?who=mine");
+    expect(setTodoQuery("?q=fax", " ")).toBe("");
+  });
+
+  it("an empty list names the filter and the text", () => {
+    expect(emptyTodosText("everyone")).toBe("No open todos.");
+    expect(emptyTodosText("mine", "fax")).toBe("Nothing assigned to you matching “fax”.");
+    expect(emptyTodosText("unassigned", "fax")).toBe("No unassigned todos matching “fax”.");
   });
 });
