@@ -10,8 +10,8 @@
 | 2     | 2    | merged (opus) | 5310ab85 (893c22ff)                           |
 | 3     | 2    | merged (opus) | ac7b0b0c (d4819e33, b06de0b6)                 |
 | 4     | 3    | merged (opus) | 1bcec0f4 (f817b808)                           |
-| 5     | 4    | —             | —                                             |
-| 6     | 4    | —             | —                                             |
+| 5     | 4    | merged (opus) | 5a173de3 (e2e1baab)                           |
+| 6     | 4    | merged (opus) | 1efcd79f (1355163d, fab12225)                 |
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -19,9 +19,11 @@
 
 **Wave 2 landed** in dev as a62226f5 through PR #165 (2026-11-24; tier none; gate `pnpm test:tooling` 85 files / 2051 tests and `eslint scripts` clean on 9b04ab45; Codex out of credits, `--no-review`; report a197; to-test `2026-11-24-1554-worker-watch.md`). Docs folded into machinery (check limits, 16 fields, the heartbeat, WORKERS), trimmed to 15,360 B, its budget exactly: the next fold must trim as much. Slice worktrees 2 and 3 removed. Follow-up filed: B-781 (count budget and silence stops apart in `--times` and `metrics`), `fixes-tooling`, triaged.
 
-**Wave 3 under way** (slice 4, the watch; opus): boundary done 2026-11-24 (ingest: nothing new; no new worker-watch items; sync: up to date); slice 4 merged 1bcec0f4; tier none, gate the slice check's `pnpm test:tooling` (86 files / 2069 tests) and lint on f817b808 (the merge adds only Markdown). Docs folded: the watch into machinery (15,356 B, budget 15,360: the next fold must trim as much), `pnpm prd watch` into orchestration.md's status-watch row. Next: PR, land (docs/tooling, Codex as usual), rm worker-watch-4, rotate. Notes for slice 5: the second-restart-becomes-skeptic case already holds (an earlier nudged/restarted mark); add its test and the unconfirmed-stop path. Slice 6 reads `.loops/.watch/<topic>/state.json` `actions[n].since`. Notes for slice 4: the reader is `workers.mjs` (`factsOf` pure, `workerFacts` gathers; `unknown` when no heartbeat names a slice worktree, which the watch never acts on); heartbeats live in `.loops/.heartbeat/<session>/<agent>.json` and exist only for sessions started after a62226f5; check breaches log a 16th field (`budget`/`silence`); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`; tests whose throwaway repo doesn't ignore `.loops/` set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); a throwaway-repo test that copies `context.mjs` must copy `heartbeat.mjs` too. Slice 3 was 13 files (the hook warns past 12): keep slice 4 tighter.
+**Wave 3 landed** in dev as cdafa3e7 through PR #166 (2026-11-24; tier none; gate the slice check's `pnpm test:tooling` 86 files / 2069 tests and lint on f817b808; Codex out of credits, `--no-review`; unsynced tip, typecheck ran; report a202; to-test `2026-11-24-1614-worker-watch.md`). Docs folded: the watch into machinery (15,356 B, budget 15,360: the next fold must trim as much); `pnpm prd watch` into orchestration.md's status-watch row. Worktree worker-watch-4 removed.
 
-**Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
+**Wave 4 merged** (2026-11-24): slices 5 (5a173de3) and 6 (1efcd79f) in plan order after `pnpm prd sync --force` (66d1bd89); B-408 done. Tier none: the gate is `pnpm test:tooling` + `eslint scripts` on 1efcd79f, running. Docs folded (slice 5's handbook steps: a **Stalls** bullet in orchestrator.md, the stall skeptic and restart rules in machinery.md; slice 6's stuck-orchestrator bullet in machinery's dispatcher section), trimmed: orchestrator.md 15,320 B, machinery.md 15,347 B (budget 15,360). Next: on green, `pnpm prd rm worker-watch-5`/`-6`, sync, `pnpm prd pr worker-watch`, land (docs+tooling, no review wait if Codex out of credits), report, then `pnpm prd rm worker-watch` and `pnpm prd end` (last wave). Notes: unverified whether TaskStop fires the heartbeat's stop record (if not, every restart goes to the skeptic: safe side); `--mark restarted` takes no `--skeptic`.
+
+**Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; B-434 landed; B-408 done at 1efcd79f.
 
 ## Architectural decisions
 
