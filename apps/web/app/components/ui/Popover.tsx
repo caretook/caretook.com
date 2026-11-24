@@ -12,7 +12,7 @@ type Content = ReactNode | ((close: () => void) => ReactNode);
  * A button that opens a small dialog beside it (React Aria: tap or
  * Enter/Space to open, focus moves in, Escape or a tap outside closes it,
  * focus returns to the button). `children` may be a function of `close`, for
- * a Done button. It fades in and out (`motion-overlay`, `--motion-fast`) and
+ * a Done button. Taller than the room on screen, it scrolls inside. It fades in and out (`motion-overlay`, `--motion-fast`) and
  * leaves the DOM after its exit.
  */
 export function Popover({
@@ -81,7 +81,8 @@ export function PopoverPanel({
   return (
     <AriaPopover
       placement={placement}
-      className={`${SURFACE} motion-overlay max-w-[calc(100vw-2rem)] p-3 ${width === "md" ? "w-72" : ""}`}
+      // React Aria caps its height at the room on screen; past that it scrolls inside (B-691).
+      className={`${SURFACE} motion-overlay max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-3 ${width === "md" ? "w-72" : ""}`}
     >
       <Dialog aria-label={label} className="space-y-2 outline-none">
         {({ close }) => (typeof children === "function" ? children(close) : children)}

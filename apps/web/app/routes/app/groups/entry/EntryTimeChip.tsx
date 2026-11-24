@@ -4,6 +4,7 @@ import { CalendarClock } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button, Popover } from "~/components/ui";
 import { ScheduleFields } from "~/components/schedule";
+import { InlineCalendars } from "~/components/ui/date";
 import { endError, scheduleToSave, startError } from "~/lib/appointments/entrySchedule";
 import { EntryTime } from "./EntryHeader";
 import { ENTRY_CHIP } from "./entryPage";
@@ -94,8 +95,9 @@ function SchedulePanel({
   const [schedule, setSchedule] = useState(initial);
   const error = endError(schedule) ?? startError(kind, schedule);
 
+  // The calendars open inline: the panel is already a popover.
   return (
-    <>
+    <InlineCalendars className="space-y-2">
       <ScheduleFields
         kind={kind}
         schedule={schedule}
@@ -116,6 +118,6 @@ function SchedulePanel({
           Done
         </Button>
       </div>
-    </>
+    </InlineCalendars>
   );
 }

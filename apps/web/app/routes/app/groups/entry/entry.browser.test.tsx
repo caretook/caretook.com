@@ -639,6 +639,96 @@ describe("appointments", () => {
     await waitUntil(() => /–/.test(HEADER_TIME()?.textContent ?? ""), "the range in the header");
   });
 
+  // B-691: the chip's panel is already a popover, so its calendars open inline in it.
+  const box = (el: Element) => el.getBoundingClientRect();
+  const grids = () => [...document.querySelectorAll<HTMLElement>("[role=grid]")];
+  const picks = () => [...document.querySelectorAll<HTMLElement>('[role=dialog] [aria-label="Pick a date"]')];
+  const settled = () => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined)));
+
+  test.each([360, 420])(
+    "at %i the chip's calendar opens inline: inside the panel's bounds, no second popover; a second tap closes it",
+    async (width) => {
+      const appt = fx.event({ title: "Dentist", occurredAt: at(ahead()), text: "" });
+      await open(entryPath(appt.id), { fixtures: [base(), appt], width });
+      await userEvent.click(await found(TIME_CHIP));
+      await userEvent.click(await found(PICK_DATE));
+      await waitUntil(() => !!GRID(), "the calendar");
+      await settled();
+      expect(document.querySelectorAll("[role=dialog]")).toHaveLength(1);
+      const panel = CHIP_DIALOG()!;
+      expect(panel.contains(GRID())).toBe(true);
+      const [p, g] = [box(panel), box(GRID()!)];
+      expect(g.left).toBeGreaterThanOrEqual(p.left);
+      expect(g.right).toBeLessThanOrEqual(p.right);
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+      // Day cells as square as the panel allows, never past 44 px.
+      const cell = box(GRID()!.querySelector("[role=gridcell] > *")!);
+      expect(cell.width).toBeGreaterThan(30);
+      expect(cell.width).toBeLessThanOrEqual(44.5);
+      expect(Math.abs(cell.height - cell.width)).toBeLessThan(1);
+
+      await userEvent.click(await found(PICK_DATE));
+      await waitUntil(() => !GRID(), "the calendar to close");
+      expect(CHIP_DIALOG()).toBeTruthy();
+    },
+  );
+
+  test("Escape closes the calendar first, then the panel; opening Ends' calendar closes Starts'", async () => {
+    const appt = fx.event({ title: "Cardiology", occurredAt: at(ahead()), text: "" });
+    await open(entryPath(appt.id), { fixtures: [base(), appt] });
+    await userEvent.click(await found(TIME_CHIP));
+    await userEvent.click(await found(() => button("Add an end time")));
+    await waitUntil(() => picks().length === 2, "Starts and Ends");
+
+    const [startsPick, endsPick] = [await found(() => picks()[0]), await found(() => picks()[1])];
+    await userEvent.click(startsPick);
+    await waitUntil(() => grids().length === 1, "Starts' calendar");
+    const starts = await found(GRID);
+    expect(startsPick.closest(".fieldset")?.contains(starts)).toBe(true);
+    await userEvent.click(endsPick);
+    await waitUntil(() => grids().length === 1 && GRID() !== starts, "Ends' calendar alone");
+    expect(endsPick.closest(".fieldset")?.contains(GRID())).toBe(true);
+
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => grids().length === 0, "the calendar to close");
+    expect(CHIP_DIALOG()).toBeTruthy();
+    // Focus is back on Ends' button, still in the panel.
+    expect(document.activeElement).toBe(endsPick);
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !CHIP_DIALOG(), "the panel to close");
+  });
+
+  test("?when=pick: focus starts in the arrival calendar; Escape closes it, then the panel", async () => {
+    await open(`/app/groups/${GROUP}/entries/new?kind=event&when=pick`);
+    await waitUntil(() => !!CHIP_DIALOG() && !!GRID(), "the calendar");
+    await waitUntil(() => !!GRID()?.contains(document.activeElement), "focus in the calendar");
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !GRID(), "the calendar to close");
+    expect(CHIP_DIALOG()).toBeTruthy();
+    expect(document.activeElement).toBe(PICK_DATE());
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !CHIP_DIALOG(), "the panel to close");
+  });
+
+  test("at a short phone height the taller panel stays on screen, scrolling inside, with Done reachable", async () => {
+    const appt = fx.event({ title: "Eye exam", occurredAt: at(ahead()), text: "" });
+    await open(entryPath(appt.id), { fixtures: [base(), appt], width: 360, height: 560 });
+    await userEvent.click(await found(TIME_CHIP));
+    await userEvent.click(await found(() => button("Add an end time")));
+    await userEvent.click(await found(() => picks()[1]));
+    await waitUntil(() => !!GRID(), "the calendar");
+    await settled();
+    const popover = CHIP_DIALOG()!.parentElement!;
+    await expect.poll(() => box(popover).top).toBeGreaterThanOrEqual(0);
+    expect(box(popover).bottom).toBeLessThanOrEqual(window.innerHeight + 0.5);
+    expect(popover.scrollHeight).toBeGreaterThan(popover.clientHeight);
+    const done = button("Done")!;
+    done.scrollIntoView({ block: "nearest" });
+    await expect.poll(() => box(done).bottom).toBeLessThanOrEqual(box(popover).bottom + 0.5);
+    await userEvent.click(done);
+    await waitUntil(() => !CHIP_DIALOG(), "the panel to close");
+  });
+
   test("place: empty with no provider; a linked provider's address greyed, 'from …', with a map; a viewer sees it with no field; a typed place replaces it", async () => {
     const appt = fx.event({ title: "Cardiology", occurredAt: at(ahead()), text: "" });
     const clinic = fx.provider({ name: "Harbor Heart Clinic", address: "12 Example Way, Springfield" });
