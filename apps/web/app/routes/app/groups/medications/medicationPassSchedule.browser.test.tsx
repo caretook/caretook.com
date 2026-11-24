@@ -75,7 +75,10 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await openAddMedication();
   await userEvent.fill(await found(() => field("name")), "Atenolol");
   await userEvent.fill(await found(() => field("dose")), "25 mg");
-  await userEvent.click(passBox(MORNING.id));
+  await userEvent.click(
+    await found(() => FORM()?.querySelector('input[name="scheduleType"][value="scheduled"]')),
+  );
+  await userEvent.click(await found(() => passBox(MORNING.id)));
   await expect.poll(() => passAmount(MORNING.id)).toBeTruthy();
   const placeholder = passAmount(MORNING.id)!.placeholder;
   await userEvent.fill(await found(() => passAmount(MORNING.id)), "50 mg");
