@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/sync-safety` (slice commits) |
-| ----- | ---- | ------------- | -------------------------------------------- |
-| 1     | 1    | landed (opus) | 5a140ed9 (8cc4d866, 2e34d947)                |
-| 2     | 1    | landed (opus) | 385a1ba8 (a67973a0)                          |
-| 3     | 2    | not started   |                                              |
-| 4     | 2    | not started   |                                              |
-| 5     | 2    | not started   |                                              |
-| 6     | 1    | landed (opus) | f4c6ad13 (a822dcba, 625bf09a)                |
+| Slice | Wave | State          | Merge into `prd/sync-safety` (slice commits) |
+| ----- | ---- | -------------- | -------------------------------------------- |
+| 1     | 1    | landed (opus)  | 5a140ed9 (8cc4d866, 2e34d947)                |
+| 2     | 1    | landed (opus)  | 385a1ba8 (a67973a0)                          |
+| 3     | 2    | started (opus) |                                              |
+| 4     | 2    | started (opus) |                                              |
+| 5     | 2    | started (opus) |                                              |
+| 6     | 1    | landed (opus)  | f4c6ad13 (a822dcba, 625bf09a)                |
 
 **Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
 
-**Held for test profiling after wave 1** (notice n7, 2026-11-22: the user holds every PRD after its current wave; the dispatcher restarts this topic later). Wave 1 (slices 1, 2, 6) landed through the PR into dev; the worktree is removed (`pnpm prd rm sync-safety`), so a restart begins with `pnpm prd start sync-safety` and then wave 2.
+**Wave 2 under way** (restarted 2026-11-24, run-through): worktrees `sync-safety-3`, `-4`, `-5` made from prd/sync-safety at 23666d2e (dev's tip), one opus agent each; items claimed. Slice 3 was told to wait for word that slice 5 is merged, then merge prd/sync-safety and recheck before its hand-off. Backlog ingest at the boundary: nothing new for this topic.
 
-**Next: wave 2, slices 3, 4 and 5** (all ready: slices 1 and 2 are in dev). Claim B-286 (slice 3), B-290 (slice 4), B-288 and B-289 (slice 5). Merge order: 5 before 3 (slice 3 syncs before its handoff). Notes from wave 1's hand-offs:
+**Wave 2: slices 3, 4 and 5.** Claimed B-286 (slice 3), B-290 (slice 4), B-288 and B-289 (slice 5). Merge order: 5 before 3 (slice 3 syncs before its handoff). Notes from wave 1's hand-offs:
 
 - **Slice 5:** the PUT branch is the `op.op === "PUT"` block of `softDelete` in `packages/api/src/syncRegistry.ts`; its follow-ups (`deleted_at` → `remove`, then `afterPut`, todo's tick) are where "only when created, in one transaction" goes; todo's twin is the spec's `put` hook. Roundtrip's `unsaved_change` held only the two forced refusals (device B's timeline PATCH, device C's todo title PATCH): no twins to cover.
 - **Slice 3:** the loop is the one `applyOp` line in `packages/api/src/sync.ts`; new errors go in `packages/data/src/errors/sync.ts`. Set-aside records go in `unsaved_change` with `outcome = 'set_aside'`; the page renders every line through `unsavedSentence` and ignores `outcome` so far. `useSyncState().uploadFailed` exists for "Can't sync, retrying".
