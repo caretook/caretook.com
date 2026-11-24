@@ -177,6 +177,9 @@ export type { PushResult, SyncRunSummary, SyncTarget } from "./calendarSyncServi
 import * as calendarPullService from "./calendarPullService";
 export { calendarPullService };
 export type { PullResult, PullSweepSummary } from "./calendarPullService";
+import * as symptomTypeService from "./symptomTypeService";
+export { symptomTypeService };
+export type { BackfillSummary as SymptomBackfillSummary } from "./symptomTypeService";
 
 export const services = {
   user: userService,
@@ -216,6 +219,7 @@ export const services = {
   calendarSetting: calendarSettingService,
   calendarFeed: calendarFeedService,
   reminderOverride: reminderOverrideService,
+  symptomType: symptomTypeService,
 };
 
 export type ServiceTypeMap = typeof services;

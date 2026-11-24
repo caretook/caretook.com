@@ -5,6 +5,7 @@ import {
   LOGGERS,
   OWN_ROW_LOGGERS,
   SYSTEM_ONLY,
+  SYSTEM_ONLY_ENTRY,
   SYSTEM_ONLY_SCHEMA,
   WRITERS,
   groupEntry,
@@ -38,4 +39,17 @@ export const TIMELINE_PERMISSIONS = {
   // Accepted duplicate uploads of a dose (B-627): written and read directly
   // by timelineEntryService.upsert, never through a model.
   doseDuplicateUploadSchema: SYSTEM_ONLY_SCHEMA,
+
+  // The group's symptom catalog (symptom-catalog): every member reads it;
+  // anyone who may log a symptom may add one (an Easy helper too: a refused
+  // log would lose a care observation). Rows are never changed or removed
+  // but by the system (and with their group).
+  symptomTypeSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: groupEntry(LOGGERS),
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
 } as const satisfies PartialPermissions;

@@ -1,5 +1,6 @@
 import { getDbConfig } from "../../config";
-import { newError } from "../../errors";
+import { isError, newError } from "../../errors";
+import { backfill as backfillSymptomTypes } from "../../services/symptomTypeService";
 import { dbMayFail } from "../client";
 import * as accessCodes from "./accessCodes";
 import * as accounts from "./accounts";
@@ -74,5 +75,9 @@ export const seed = async () => {
     // Last, once every seed has made its accounts.
     const { updated } = await accounts.rotateStagingPasswords();
     if (updated) console.log(`Set ${updated} seeded account(s) to the current SEED_USER_PASSWORD`);
+    // The symptom catalog (symptom-catalog): seeds insert groups and entries
+    // directly, after migrate's backfill ran, so it runs again here.
+    const symptoms = await backfillSymptomTypes();
+    if (isError(symptoms)) throw symptoms;
   }, "db:seed");
 };
