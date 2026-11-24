@@ -53,3 +53,20 @@ export const symptomTypeRow = (groupId: string, name: string) => ({
   name: symptomName(name),
   nameKey: symptomKey(name),
 });
+
+/**
+ * A device's new catalog row (its `symptom_type` upload): the group and the
+ * name; the id, when given, must be the one derived from them, so a device
+ * can't hold a row under an id the server would never write.
+ */
+export const symptomTypeAddZSchema = z
+  .strictObject({
+    id: z.uuid().optional(),
+    groupId: z.uuid(),
+    name: symptomTypeNameZSchema,
+  })
+  .refine((v) => !v.id || v.id.toLowerCase() === symptomTypeId(v.groupId, v.name), {
+    path: ["id"],
+    error: "The id must be the one derived from the group and the name",
+  });
+export type SymptomTypeAddInput = z.input<typeof symptomTypeAddZSchema>;
