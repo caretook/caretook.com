@@ -8,7 +8,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
 
-**Wave 3 (2026-11-24, this session; started run-through).** Test-gates is done, so the hold is over. Waves follow the user's order (see _Wave 3_). Slices 17 (B-468, open-session only), 18 (B-525), 19 (B-526), all opus. Inbox-agent-ec confirmed (2026-11-24) its slice 6 leaves `dispatch*.mjs`, `session-requests.mjs`, `context.mjs` alone and narrowed its hot list (keeps `session.sh`, `sessions.mjs`); it messages on landing. So also slices 20 (B-452, after 17), 21 (B-453), 22 (B-454), 23 (B-570), 24 (B-600), all opus. Docs to fold: machinery (`.dispatch.lock` is taken over under a `<lock>.takeover` guard; a session request notice that cannot post shows in `pnpm prd session requests`). B-586 (phone pushes) needs the user on the real phone: not sliced. B-477 is `scripts/backlog/` (inbox-agent): later.
+**Wave 3 (2026-11-24, this session; started run-through).** Test-gates is done, so the hold is over. Waves follow the user's order (see _Wave 3_). Slices 17 (B-468, open-session only), 18 (B-525), 19 (B-526), all opus. Inbox-agent-ec confirmed (2026-11-24) its slice 6 leaves `dispatch*.mjs`, `session-requests.mjs`, `context.mjs` alone and narrowed its hot list (keeps `session.sh`, `sessions.mjs`); it messages on landing. So also slices 20 (B-452, after 17), 21 (B-453), 22 (B-454), 23 (B-570), 24 (B-600), all opus. Docs to fold: machinery (an opener failure is not a death: reopen uncounted, a fresh start or plan worktree removed with `rm.sh`, keep-alive entry restored; the opener falls back to the first window, else a new one; `.dispatch.lock` is taken over under a `<lock>.takeover` guard; a session request notice that cannot post shows in `pnpm prd session requests`). B-586 (phone pushes) needs the user on the real phone: not sliced. B-477 is `scripts/backlog/` (inbox-agent): later.
 
 **Hand-off (2026-11-22, wave 2 landing).** Wave 2 (slices 9–16, all opus) merged; dev synced (brought the tedder family seed, switched to `seedPasswordHash` in 1399ff15). Full check passed on 1399ff15 (5722/5722, tooling 811/811). Docs folded (55b318af): machinery.md (`pnpm prd wait`, worker db names, load gate off in `tooling:unit`), data-layer.md (worker names, 10 s test connect, shared seed hash), orchestrator.md (tooling lint), runbook (`DATABASE_CONNECT_TIMEOUT_MS`); loop.md not touched (near budget; the prompts carry `pnpm prd wait check`). Browser: the lean set (the diff touches `package.json` and the pool config). Follow-ups filed: B-544 (fixes-nit, stale `vitest.config.ts:196` comment), B-545 (`rm.sh` reads prd list twice).
 
@@ -36,10 +36,10 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                       | e962e40d |
 | 15    | B-450 | merged (quick passed on slice)                                                                  | d0b0324b |
 | 16    | B-466 | merged (full passed on slice)                                                                   | 3f739326 |
-| 17    | B-468 | started (opus; worktree made, agent spawned)                                                    | —        |
+| 17    | B-468 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                  | 0e5c25aa |
 | 18    | B-525 | started (opus; worktree made, agent spawned)                                                    | —        |
 | 19    | B-526 | handed off 5cd1cc20 (opus; quick passed; merge after 17, 18; follow-up B-731)                   | —        |
-| 20    | B-452 | queued (opus)                                                                                   | —        |
+| 20    | B-452 | started (opus; worktree made, agent spawned)                                                    | —        |
 | 21    | B-453 | handed off 43174cc9 (opus; quick: only tidy-cli beforeAll timeout at load 30, B-461; alone 3/3) | —        |
 | 22    | B-454 | handed off 76240876 (opus; quick passed)                                                        | —        |
 | 23    | B-570 | handed off b2051308 (opus; quick passed; ~12 lines in dispatch.mjs request catch)               | —        |
@@ -243,7 +243,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: uni
 
 - Write the managed record (a setup state) before `new.sh`, or remove the partial worktree on failure; either way a failed setup frees its slot and is retried or reported, never counted as a hand-opened session.
 - Unit test (`dispatch.test.mjs`): a `new.sh` that fails after creating the worktree leaves no slot held at the next tick.
-- Blocked by slice 17 (both change the start path of `dispatch.mjs`); slices 21–22 edit other functions there.
+- Blocked by slice 17 (both change the start path of `dispatch.mjs`); slices 21–22 edit other functions there. Slice 17 already removes a worktree `new.sh` made this tick when the opener then fails (`rm.sh <name>`, the `fresh` flag): reuse that for a failed `new.sh`.
 
 ### Slice 21: a 'hold the topic' answer is consumed only once the hold is written (B-453)
 
