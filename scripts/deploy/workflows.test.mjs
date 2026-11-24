@@ -123,6 +123,7 @@ describe("the deploy workflows", () => {
       integration: "integration",
       "components-1": "components",
       "components-2": "components",
+      "components-3": "components",
       build: "full",
       browser: "candidate",
       "browser-2": "release",
@@ -133,8 +134,8 @@ describe("the deploy workflows", () => {
     };
     const tierJobs = Object.keys(tierOf);
     expect([...Object.keys(jobs)].sort()).toEqual(["plan", ...tierJobs, "verdict"].sort());
-    // A narrowed run has one components job, so the second shard has its own switch.
-    const switchOf = { ...tierOf, "components-2": "components2" };
+    // A narrowed run has one components job, so the other shards have their own switch.
+    const switchOf = { ...tierOf, "components-2": "components2", "components-3": "components2" };
     for (const name of tierJobs)
       expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${switchOf[name]} == 'true' }}`);
     expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
@@ -145,19 +146,19 @@ describe("the deploy workflows", () => {
     expect(jobs.integration.services.postgres.ports).toEqual(["5435:5432"]);
   });
 
-  it.each([1, 2])("runs CI's component shard %i in Chromium and reports it", (n) => {
+  it.each([1, 2, 3])("runs CI's component shard %i in Chromium and reports it", (n) => {
     const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`components-${n}`];
     const run = (id) => job.steps.find((s) => s.id === id).run;
     expect(run("chromium")).toBe("pnpm exec playwright install --with-deps chromium");
     // Both zones' component projects: the second zone every day for its screens (B-372).
-    expect(run("test")).toContain(`--project web:components --project web:components:ny --shard=${n}/2`);
+    expect(run("test")).toContain(`--project web:components --project web:components:ny --shard=${n}/3`);
     expect(run("test")).toContain(`--outputFile.json=ci-results/components-${n}.json`);
     expect(run("report")).toContain(`ci-results/components-${n}.json`);
   });
 
   it("reruns through the test job, with quarantine steps that can't fail the run", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    for (const name of ["unit", "integration", "components-1", "components-2"])
+    for (const name of ["unit", "integration", "components-1", "components-2", "components-3"])
       expect(jobs[name].steps.find((s) => s.id === "test").run).toMatch(/^node scripts\/ci\/test-job\.mjs /);
     for (const [name, id] of [
       ["unit", "quarantine"],
@@ -169,8 +170,9 @@ describe("the deploy workflows", () => {
       expect(step.run).toContain("test-job.mjs --quarantine");
       expect(step["continue-on-error"]).toBe("true");
     }
-    // One shard runs the quarantined component tests, not both.
-    expect(jobs["components-2"].steps.some((s) => s.id === "quarantine")).toBe(false);
+    // One shard runs the quarantined component tests, not all three.
+    for (const name of ["components-2", "components-3"])
+      expect(jobs[name].steps.some((s) => s.id === "quarantine")).toBe(false);
     for (const name of ["static", "build", "browser"])
       expect(jobs[name].outputs.started).toContain("steps.started");
   });

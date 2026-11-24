@@ -19,8 +19,8 @@ export const TIERS = /** @type {const} */ ([
 ]);
 
 /**
- * The jobs each tier adds. The component tests are two shards, since one job ran
- * past the 10-minute limit (13 minutes); `full` adds the build job and
+ * The jobs each tier adds. The component tests are three shards, since one job ran
+ * past the 10-minute limit (13 minutes) and two ran 12–15 with the second zone; `full` adds the build job and
  * `candidate` the browser suite on the Docker stack. `release` adds two more suite
  * runs and the second zone. Each suite run is its own job: one job's 35-minute limit
  * holds one suite (its caps total about 26 minutes).
@@ -29,7 +29,7 @@ export const TIER_JOBS = /** @type {const} */ ({
   static: ["static"],
   unit: ["unit"],
   integration: ["integration"],
-  components: ["components-1", "components-2"],
+  components: ["components-1", "components-2", "components-3"],
   full: ["build"],
   candidate: ["browser"],
   release: ["browser-2", "browser-3", "zone-components-1", "zone-components-2", "zone-browser"],
@@ -127,7 +127,7 @@ export function parseCiRef(ref) {
 
 /**
  * The plan job's outputs for a ref name, and a narrowed run's files if any.
- * `components2` is the second shard: a narrowed run has one components job.
+ * `components2` is the second and third shards: a narrowed run has one components job.
  * @param {string} ref
  * @param {string[] | null} [narrowed]
  */
