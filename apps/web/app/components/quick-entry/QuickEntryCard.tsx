@@ -1,10 +1,26 @@
 import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
+import type { QuickEntryKind } from "@caretook/data/schema";
+import type { LucideIcon } from "lucide-react";
+import type { KindChip } from "~/lib/timeline/entryDisplay";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
 
-import { ListTodo, X } from "lucide-react";
+import { ListTodo, PillBottle, Stethoscope, X } from "lucide-react";
 import { Badge, Button, ChipGroup, IconButton, IconChip } from "~/components/ui";
 import { KIND_META, TODO_CHIP } from "~/lib/timeline/entryDisplay";
 import { SymptomGate } from "~/routes/app/groups/timeline/SymptomGate";
+
+/**
+ * The chip of a card that isn't a timeline entry: a todo (the Todos
+ * section's icon), a new medication (the medication list's change chip) or
+ * a new provider (the Providers section's icon).
+ */
+const OTHER_CHIPS: Record<"todo" | "medication" | "provider", { Icon: LucideIcon } & KindChip> = {
+  todo: { Icon: ListTodo, ...TODO_CHIP },
+  medication: { Icon: PillBottle, accent: "teal", look: "soft" },
+  provider: { Icon: Stethoscope, accent: "indigo", look: "soft" },
+};
+const chipOf = (kind: QuickEntryKind) =>
+  kind === "todo" || kind === "medication" || kind === "provider" ? OTHER_CHIPS[kind] : KIND_META[kind];
 
 /**
  * One part of the line, as it will be saved: its kind, what it says and
@@ -44,8 +60,7 @@ export function QuickEntryCard({
   count: number;
 }) {
   const { kind, label } = card.reading;
-  // A todo isn't a timeline entry, so it has no KIND_META: the Todos section's icon.
-  const { Icon, accent, look } = kind === "todo" ? { Icon: ListTodo, ...TODO_CHIP } : KIND_META[kind];
+  const { Icon, accent, look } = chipOf(kind);
   const blocked = card.blocking.length > 0 || !!error;
   const headingId = `quick-card-${card.key.replace(/[^\w-]/g, "_")}`;
   const adds = `${label}: ${preview.title}`;
@@ -69,7 +84,7 @@ export function QuickEntryCard({
           <span className="block min-w-0 flex-1">
             <span id={headingId} className="block text-sm">
               <Badge data-quick-kind="">{label}</Badge>
-              <span className="text-muted"> · {preview.when}</span>
+              {preview.when && <span className="text-muted"> · {preview.when}</span>}
             </span>
             <span className="block font-medium break-words" data-quick-title>
               {preview.title}

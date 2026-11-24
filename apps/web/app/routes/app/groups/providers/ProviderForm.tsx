@@ -1,4 +1,4 @@
-import type { ProviderType } from "@caretook/data/schema";
+import type { NewProviderDraft, ProviderType } from "@caretook/data/schema";
 import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
@@ -50,12 +50,15 @@ export function ProviderForm({
   provider,
   initialType = "clinician",
   practices,
+  draft,
   onDone,
   onCancel,
   onDelete,
 }: {
   /** Editing this provider; omit to add one. */
   provider?: LocalProvider;
+  /** Adding: what the fields start with (quick entry's "add provider Dr Kim cardiology 555-0100"). */
+  draft?: Pick<NewProviderDraft, "name" | "specialty" | "practiceId" | "phone" | "address"> | null;
   initialType?: ProviderType;
   practices: LocalProvider[];
   /** After a save; adding one passes the new provider's id. The form itself never navigates. */
@@ -83,7 +86,7 @@ export function ProviderForm({
 
   const choices = practices.filter((p) => p.id !== provider?.id);
   // A practice that's gone (deleted since) still shows, so saving doesn't drop it unasked.
-  const currentPractice = provider?.practiceId ?? "";
+  const currentPractice = provider?.practiceId ?? draft?.practiceId ?? "";
   const missingPractice = !!currentPractice && !choices.some((p) => p.id === currentPractice);
   const meta = SPECIALTY[type];
   const general = result && !result.ok && issues.length === 0 ? result.error : undefined;
@@ -107,7 +110,7 @@ export function ProviderForm({
             {...control}
             name={FIELD.name}
             maxLength={PROVIDER_LIMITS.name}
-            defaultValue={provider?.name ?? ""}
+            defaultValue={provider?.name ?? draft?.name ?? ""}
             placeholder={NAME_PLACEHOLDER[type]}
             autoComplete="off"
           />
@@ -120,7 +123,7 @@ export function ProviderForm({
             {...control}
             name={FIELD.specialty}
             maxLength={PROVIDER_LIMITS.specialty}
-            defaultValue={provider?.specialty ?? ""}
+            defaultValue={provider?.specialty ?? draft?.specialty ?? ""}
             placeholder={meta.placeholder}
             autoComplete="off"
           />
@@ -144,7 +147,11 @@ export function ProviderForm({
         </Field>
       )}
 
-      <PhoneFields initial={provider?.phones} issues={issues} labelOptions={PHONE_LABELS} />
+      <PhoneFields
+        initial={provider?.phones ?? (draft?.phone ? [{ label: "", number: draft.phone }] : undefined)}
+        issues={issues}
+        labelOptions={PHONE_LABELS}
+      />
 
       <Field label="Email (optional)" kind="input" error={issueFor(issues, "email")}>
         {(control) => (
@@ -167,7 +174,7 @@ export function ProviderForm({
             name={FIELD.address}
             rows={2}
             maxLength={PROVIDER_LIMITS.address}
-            defaultValue={provider?.address ?? ""}
+            defaultValue={provider?.address ?? draft?.address ?? ""}
           />
         )}
       </Field>

@@ -2,10 +2,11 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CreateResult } from "~/lib/core/api";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { redirect, useLocation, useNavigate } from "react-router";
 import { isPracticeType } from "@caretook/data/schema";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { providerDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { createProvider } from "~/lib/providers/providers.sync";
@@ -53,7 +54,10 @@ export default function NewProviderSheet({ loaderData }: Route.ComponentProps) {
   const close = useCloseProviderSheet();
   const navigate = useNavigate();
   const { id: groupId } = useGroup();
-  const { search } = useLocation();
+  const location = useLocation();
+  const { search } = location;
+  // Opened from quick entry ("add provider Dr Kim cardiology 555-0100"): the form starts filled in.
+  const [draft] = useState(() => providerDraftFrom(location.state as unknown));
   const opened = useCallback(
     (id?: string) => (id ? void navigate(appUrls.provider(groupId, id), { replace: true }) : close()),
     [navigate, groupId, close],
@@ -64,7 +68,8 @@ export default function NewProviderSheet({ loaderData }: Route.ComponentProps) {
       <ProviderForm
         // A new URL is a new form.
         key={search}
-        initialType={loaderData.type}
+        initialType={draft?.type ?? loaderData.type}
+        draft={draft}
         practices={practices}
         onDone={opened}
         onCancel={close}

@@ -1,4 +1,4 @@
-import type { MedicationType } from "@caretook/data/schema";
+import type { MedicationType, NewMedicationDraft } from "@caretook/data/schema";
 import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medications.sync";
@@ -105,11 +105,14 @@ export function MedicationForm({
   conditions = [],
   conditionIds = [],
   zoneNote,
+  draft,
   onDone,
   onCancel,
 }: {
   /** Editing this medication; omit to add one. */
   medication?: LocalMedication;
+  /** Adding: what the fields start with (quick entry's "new med lisinopril 10 mg tablet"). */
+  draft?: Pick<NewMedicationDraft, "name" | "strength" | "form" | "directions"> | null;
   providers: readonly LocalProvider[];
   /** The group's passes, deleted ones too (`useSchedulePasses`). */
   passes: readonly LocalPass[];
@@ -191,7 +194,11 @@ export function MedicationForm({
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-medication-form>
       <input type="hidden" name="intent" value={medication ? "update" : "create"} />
 
-      <NameField defaultValue={medication?.name ?? ""} names={names} error={issueFor(issues, "name")} />
+      <NameField
+        defaultValue={medication?.name ?? draft?.name ?? ""}
+        names={names}
+        error={issueFor(issues, "name")}
+      />
 
       <ChoiceGroup
         name={FIELD.type}
@@ -206,14 +213,14 @@ export function MedicationForm({
         <TextField
           label="Strength (optional)"
           name={FIELD.strength}
-          defaultValue={medication?.strength}
+          defaultValue={medication?.strength ?? draft?.strength}
           max={MEDICATION_LIMITS.strength}
           issues={issues}
           placeholder="e.g. 10 mg"
         />
         <Field label="Form (optional)" error={issueFor(issues, "form")} kind="select">
           {(control) => (
-            <select {...control} name={FIELD.form} defaultValue={medication?.form ?? ""}>
+            <select {...control} name={FIELD.form} defaultValue={medication?.form ?? draft?.form ?? ""}>
               <option value="">Not set</option>
               {MEDICATION_FORMS.map((form) => (
                 <option key={form} value={form}>
@@ -251,7 +258,7 @@ export function MedicationForm({
             name={FIELD.directions}
             rows={2}
             maxLength={MEDICATION_LIMITS.directions}
-            defaultValue={medication?.directions ?? ""}
+            defaultValue={medication?.directions ?? draft?.directions ?? ""}
             placeholder="e.g. With food, in the morning"
           />
         )}

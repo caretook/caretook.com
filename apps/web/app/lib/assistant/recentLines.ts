@@ -57,10 +57,13 @@ type ParsedPart = { text: string; readings: readonly { kind: string }[] };
  */
 export const recentLineFor = (line: string, parsed: readonly ParsedPart[]): string => {
   const kinds = parsed.map((p) => p.readings[0]?.kind);
-  if (!kinds.some((k) => k === "vital" || k === "note" || k === "event")) return normalizeLine(line);
+  // A new medication or provider is added once: like a note, it isn't offered again.
+  const dropped = (k: string | undefined) =>
+    k === "note" || k === "event" || k === "medication" || k === "provider";
+  if (!kinds.some((k) => k === "vital" || dropped(k))) return normalizeLine(line);
   const pieces = parsed.flatMap((part, i) => {
     const kind = kinds[i];
-    if (kind === "note" || kind === "event") return [];
+    if (dropped(kind)) return [];
     if (kind === "vital") {
       const keys = vitalKeys(part.text);
       return keys ? [{ text: keys, vital: true }] : [];

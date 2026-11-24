@@ -128,6 +128,11 @@ describe("recentLineFor", () => {
     expect(reduced("n: slept well")).toBe("");
     expect(reduced("appt Dr Lee Friday 2pm")).toBe("");
   });
+  it("remembers nothing for a new medication or provider (B-762)", () => {
+    expect(reduced("new med lisinopril 10 mg tablet")).toBe("");
+    expect(reduced("add provider Dr Kim cardiology 555-0100")).toBe("");
+    expect(reduced("pain 4, new med lisinopril 10 mg")).toBe("pain 4");
+  });
   it("keeps a vital line's keys only, in order", () => {
     expect(reduced("bp 130/85 hr 72")).toBe("bp hr ");
   });
