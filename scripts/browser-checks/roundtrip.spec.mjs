@@ -43,8 +43,15 @@ import {
   localTimestamp,
   matrixContext,
   streamColumns,
-  writtenRow,
 } from "./sync-matrix.mjs";
+import {
+  SYNC_WRITERS,
+  matrixIds,
+  writerCall,
+  writerCleanupSql,
+  writerContext,
+  writtenId,
+} from "./sync-writers.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** An assertion that is its own reported step (one old PASS line). */
@@ -554,28 +561,63 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     seriesMs += Date.now() - tSeries;
     console.log(`  series: its steps added ${seriesMs} ms to the run`);
 
-    // 6b. The sync matrix: every synced table's row reaches the other device.
+    // 6b. The sync matrix: every synced table's row reaches the other device,
+    // each uploadable one written by the app's own writer (sync-writers.mjs).
     // care_recipient first (its one uploadable column), before the matrix's
-    // allergy clears "No known allergies" on the server.
+    // allergy clears "No known allergies".
     const recorded = recordedAt !== "";
-    await localWrite(A, [RECIPIENT_PATCH.write(matrix, recorded)]);
+    // The row as PowerSync stored it (`ps_data__<table>`'s JSON): every
+    // column the stream sent (or, for a local write, the device schema's).
+    const rowOn = async (page, table, id) => {
+      const [row] = await localRows(page, `SELECT data FROM "ps_data__${table}" WHERE id = ?`, [id]);
+      return row ? { id, ...JSON.parse(row.data) } : undefined;
+    };
+    const wctx = writerContext({ ...matrix, recorded });
+    const recipientWrite = await A.evaluate(writerCall("care_recipient", wctx));
     const patched = await until(async () => {
       const [row] = await localRows(B, RECIPIENT_PATCH.read(matrix).sql, RECIPIENT_PATCH.read(matrix).params);
       return row && !!row.recorded !== recorded;
     });
     await check(
-      "matrix: care_recipient (device patch) reaches the other member",
-      !!patched,
-      recorded ? "cleared No known allergies" : "recorded No known allergies",
+      `matrix: care_recipient (${SYNC_WRITERS.care_recipient.writer}) reaches the other member`,
+      !!recipientWrite.ok && !!patched,
+      `${recorded ? "cleared" : "recorded"} No known allergies: ${JSON.stringify(recipientWrite)}`,
     );
+    // The rest, with device A's uploads held (its web port's requests wait,
+    // PowerSync's stream stays up), so each row is read back as its writer
+    // left it before the server's copy replaces it.
+    await A.evaluate(() => window.caretookModules().then(() => true));
+    dA.proxy.hold(new URL(BASE).port);
     const t1 = Date.now();
-    await localWrite(
-      A,
-      SYNC_MATRIX.filter((r) => r.by === "device").map((r) => r.write(matrix)),
+    const writerRefusals = [];
+    const expectedRows = {};
+    let queuedAtRead = 0;
+    try {
+      for (const [table, w] of Object.entries(SYNC_WRITERS)) {
+        if (table === "care_recipient" || w.by) continue;
+        const result = await A.evaluate(writerCall(table, wctx));
+        if (!result?.ok) writerRefusals.push(`${table} (${w.writer}): ${JSON.stringify(result)}`);
+        wctx.ids[table] = writtenId(table, wctx.ids, result);
+      }
+      for (const [table, w] of Object.entries(SYNC_WRITERS))
+        if (w.by) wctx.ids[table] = writtenId(table, wctx.ids);
+      for (const table of Object.keys(SYNC_WRITERS))
+        if (table !== "care_recipient" && wctx.ids[table])
+          expectedRows[table] = await rowOn(A, table, wctx.ids[table]);
+      // Still queued: the rows read back are the writers', not the server's.
+      queuedAtRead = await queued(A);
+    } finally {
+      dA.proxy.release();
+    }
+    Object.assign(matrix.ids, matrixIds(wctx.ids));
+    await check(
+      "matrix: every uploadable table's app writer accepts its row, read back before it uploads",
+      writerRefusals.length === 0 && queuedAtRead > 0,
+      `${queuedAtRead} queued when read; ${writerRefusals.join("; ")}`.slice(0, 800),
     );
     const rows = SYNC_MATRIX.filter((r) => r.by !== "patch").map((r) => ({
       ...r,
-      rowId: r.by === "device" ? r.id(matrix) : psql(r.idSql(matrix)),
+      rowId: r.by === "device" ? wctx.ids[r.table] : psql(r.idSql(matrix)),
     }));
     const holds = async (page, r) =>
       !!r.rowId &&
@@ -591,7 +633,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const missingA = await missingOn(A);
     for (const r of rows)
       await check(
-        `matrix: ${r.table} (${r.by === "device" ? "written on a device" : "server-written"}) is on both devices`,
+        `matrix: ${r.table} (${r.by === "device" ? `written by ${SYNC_WRITERS[r.table].writer}` : "server-written"}) is on both devices`,
         !missingB.includes(r.table) && !missingA.includes(r.table),
         [
           missingB.includes(r.table) && "not on the other member's device",
@@ -606,19 +648,13 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     );
 
     // 6b'. Every column each table's stream sends matches on the other device
-    // (test-health-2, B-371): a device-written row as device A wrote it (but
+    // (test-health-2, B-371): a device-written row as its app writer left it on device A (but
     // the columns the server sets by design, SERVER_SET_COLUMNS), and a
     // server-written row, and care_recipient's patch, as device A holds it.
     const STREAMS = streamColumns(
       readFileSync(new URL("../../powersync/sync-config.yaml", import.meta.url), "utf8"),
     );
     const t1c = Date.now();
-    // The row as PowerSync stored it (`ps_data__<table>`'s JSON): every
-    // column the stream sent, including those the device schema leaves out.
-    const rowOn = async (page, table, id) => {
-      const [row] = await localRows(page, `SELECT data FROM "ps_data__${table}" WHERE id = ?`, [id]);
-      return row ? { id, ...JSON.parse(row.data) } : undefined;
-    };
     const compared = [
       ...rows.map((r) => ({ table: r.table, id: r.rowId, written: r.by === "device" ? r : null })),
       { table: "care_recipient", id: matrix.recipientId, written: null },
@@ -626,8 +662,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     for (const r of compared) {
       const columns = STREAMS.get(r.table) ?? [];
       const skip = r.written ? { ...SERVER_SET_COLUMNS["*"], ...SERVER_SET_COLUMNS[r.table] } : {};
-      const expected = async () =>
-        r.written ? writtenRow(r.written.write(matrix)) : await rowOn(A, r.table, r.id);
+      const expected = async () => (r.written ? expectedRows[r.table] : await rowOn(A, r.table, r.id));
       let mismatches = ["not compared"];
       await until(async () => {
         mismatches = columnMismatches((await expected()) ?? {}, await rowOn(B, r.table, r.id), columns, skip);
@@ -1003,6 +1038,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
       psql(`DELETE FROM "user" WHERE email = '${removedEmail}'`);
       psql(cleanupSql(matrix, recordedAt));
+      psql(writerCleanupSql({ timeline_entry: matrix.ids.entry }));
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,
       );
