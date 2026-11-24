@@ -30,7 +30,7 @@ Notes for every wave:
 | 38    | B-664 | handed off 0377bb95 |       |
 | 39    | B-636 | handed off 69ef1d98 |       |
 | 40    | B-621 | handed off 6559847d (other quick entry tests may now see the panel: watch CI) |       |
-| 41    | B-676 | in progress (opus) |       |
+| 41    | B-676 | handed off 34cc3bd3 |       |
 | 42    | B-762 | blocked            |       |
 | 43    | B-617 | in progress (opus) |       |
 | 44    | B-756 | handed off 97ae1c89 |       |
