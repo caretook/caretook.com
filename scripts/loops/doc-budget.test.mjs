@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { budgetFor, isLandExempt, measure, run } from "./doc-budget.mjs";
+import { budgetFor, isLandExempt, longStatuses, measure, run } from "./doc-budget.mjs";
 
 const KB = 1024;
 let repo;
@@ -108,5 +108,48 @@ describe("land exemptions", () => {
     const budgets = [{ pattern: "docs/x.md", bytes: 10, landExempt: true }];
     expect(isLandExempt("docs/x.md", budgets)).toBe(true);
     expect(budgetFor("docs/x.md", budgets)).toBe(10);
+  });
+});
+
+describe("plan status warnings", () => {
+  const write = (dir, p, text) => {
+    mkdirSync(dirname(join(dir, p)), { recursive: true });
+    writeFileSync(join(dir, p), text);
+  };
+  const status = (bytes) => `# Plan\n\n## Status\n\n${"x".repeat(bytes)}\n\n## Slice 1: a\n`;
+  it("warns for a running topic's long _Status_, not a done one's or a short one", () => {
+    const dir = mkdtempSync(join(tmpdir(), "doc-budget-status-"));
+    try {
+      write(
+        dir,
+        "plans/backlog.md",
+        [
+          "# Backlog",
+          "",
+          "## PRDs",
+          "",
+          "| PRD | Flags | After | Hot files | Doc and notes |",
+          "| --- | ----- | ----- | --------- | ------------- |",
+          "| `long` | standing | — | — | — |",
+          "| `short` | — | — | — | — |",
+          "| `old` | done | — | — | — |",
+          "| `noplan` | — | — | — | — |",
+          "",
+        ].join("\n"),
+      );
+      write(dir, "plans/long-plan.md", status(7 * KB));
+      write(dir, "plans/short-plan.md", status(5 * KB));
+      write(dir, "plans/old-plan.md", status(9 * KB));
+      expect(longStatuses(dir).map((r) => r.topic)).toEqual(["long"]);
+      const out = [];
+      expect(run(["warn", "--repo", dir], { out: (s) => out.push(s), err: () => {} })).toBe(0);
+      expect(out.join("\n")).toContain("plans/long-plan.md's _Status_ is 7.0 KB, over 6.0 KB");
+      expect(out.join("\n")).toContain("pnpm prd status-trim long");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  it("says nothing without a backlog", () => {
+    expect(longStatuses(tmpdir())).toEqual([]);
   });
 });

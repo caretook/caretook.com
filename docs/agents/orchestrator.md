@@ -1,6 +1,6 @@
 # Orchestrator handbook
 
-For a PRD orchestrator: a top-level session (spawned agents can't spawn more), one per PRD, opened by the user in the integration worktree `.loops/<topic>` on `prd/<topic>`, where the user steers that PRD. It reads `dev`, never works in the main checkout, and runs loops ([loop](loop.md)). **At most four PRDs run at once** (`prd dispatch --cap`). Also here: the [rules across PRDs](#rules-across-prds) every slice follows.
+For a PRD orchestrator: a top-level session (spawned agents can't spawn), one per PRD, in the integration worktree `.loops/<topic>` on `prd/<topic>`, steered by the user. It reads `dev`, never works in the main checkout, and runs loops ([loop](loop.md)). **At most four PRDs run at once** (`prd dispatch --cap`). Also here: the [rules across PRDs](#rules-across-prds) every slice follows.
 
 ## Branches and protection
 
@@ -22,8 +22,8 @@ For a PRD orchestrator: a top-level session (spawned agents can't spawn more), o
 - **One session per wave: drain, then rotate.** After a landing (not the last) and its docs, start no new slice; once the slices in flight are merged, commit _Status_ and `pnpm prd rotate` (at once with none in flight): a fresh session of that name opens from _Status_ and the old one ends. `--mid-wave` only on the user's word, or **past 225k** ([the watch](machinery.md#the-context-watch); at 160k, judge): rotate at the next safe point, unasked; a step that can't resume from _Status_ first runs `pnpm prd context --keep "<why>"` and says why there. After the last landing: `pnpm prd rm <topic>` (it sets the registry's `done`, except for a `standing` topic), then `cd` to the main checkout and `pnpm prd end`.
 - **Bye** (a message of just 'bye'): first _Status_ committed and current, no slice agent working, no CI run or review out; then `pnpm prd bye` ([machinery](machinery.md#recorded-sessions)).
 - **Run-through sessions never ask in the terminal:** `pnpm prd ask` (a question, or a report at each landing). A fresh Opus [skeptic](machinery.md#the-skeptic) reads each question first. A recommended one takes `--defaults` (the tool takes it after 30 minutes) or `--waits` ([never list](preferences.md#planning-and-slices)). Then a PushNotification with its line and `pnpm prd ask --wait <id>` in the background; carry on meanwhile. **Only a question's line is pushed.**
-- **Update _Status_ at every step:** a slice started (worktree made, agent spawned), handed off, merged (with the SHA), a wave landed; plus what's ready, open issues and the landing mode. Commit it with your merges and before `pnpm prd check`, so a fresh orchestrator loses nothing.
-- **Capacity:** every check is `pnpm prd check`, in one of two check leases. Checks and slice starts wait out [the load gate](machinery.md#the-load-gate).
+- **Update _Status_ at every step:** a slice started, handed off, merged (SHA), a wave landed; what's ready, issues, the landing mode. Commit it with merges and checks. After a landing, `pnpm prd status-trim` moves old hand-offs to `plans/<topic>-history.md` (_Status_ under 6 KB).
+- **Capacity:** every check is `pnpm prd check`, in one of two leases (confirm it's held; no lookup chained before). Checks and slice starts wait out [the load gate](machinery.md#the-load-gate).
 
 ## Models
 
