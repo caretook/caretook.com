@@ -3,13 +3,11 @@ import type { BadgeTone } from "~/components/ui";
 import type { DoseSlot, SlotState } from "~/lib/medications/dueDoses";
 
 import { Check, Ellipsis } from "lucide-react";
-import { Link } from "react-router";
-import { Badge, Button, ListRow, Menu, Message, STATUS_TONE } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
+import { Badge, Button, Menu, Message, STATUS_TONE } from "~/components/ui";
 import { isOpen } from "~/lib/medications/dueDoses";
-import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { extraDoseText, medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
 import { ExtraDoseWarning } from "./ExtraDoseWarning";
+import { MedicationCard } from "./MedicationCard";
 import { usePassLog } from "./usePassLog";
 
 const TONE: Record<SlotState, BadgeTone> = {
@@ -34,8 +32,9 @@ export function SlotBadge({ slot, timeZone }: { slot: DoseSlot; timeZone: string
 export type MarkStatus = Exclude<DoseStatus, "given">;
 
 /**
- * One medication at one of today's times (alone, or inside a pass): its name
- * (a link to its page), its amount, its state and who logged it. While it's
+ * One medication at one of today's times (alone, or inside a pass), as its
+ * `MedicationCard` (the whole card opens its page): its amount, its state
+ * and who logged it. While it's
  * still open, writers get a one-tap Given (logged now, for this slot, with
  * its amount, in `passLogId`'s round when it's in a pass) and a menu for
  * Skipped and Refused (`onMark`, which asks for a note). Given more than
@@ -61,66 +60,61 @@ export function DoseSlotRow({
   onMark: (slot: DoseSlot, status: MarkStatus) => void;
 }) {
   const { logSlot, busy, error } = usePassLog(groupId);
-  const linkState = useMedicationLinkState();
   const { medication } = slot;
   const title = medicationTitle(medication);
   const open = canWrite && isOpen(slot);
   const twice = extraDoseText(slot, timeZone);
 
   return (
-    <ListRow
-      className="flex flex-wrap items-center gap-x-3 gap-y-1"
+    <MedicationCard
+      medication={medication}
+      groupId={groupId}
       data-slot={`${medication.id}@${slot.time}`}
+      badge={<SlotBadge slot={slot} timeZone={timeZone} />}
+      actions={
+        open && (
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Check}
+              disabled={busy}
+              aria-label={`Given: ${title}, ${slot.time}`}
+              data-give=""
+              onClick={() => void logSlot(slot, "given", { passLogId })}
+            >
+              Given
+            </Button>
+            <Menu
+              label={`More for ${title}, ${slot.time}`}
+              variant="ghost"
+              size="sm"
+              shape="square"
+              items={[
+                { id: "skipped", label: "Skipped…", onAction: () => onMark(slot, "skipped") },
+                { id: "refused", label: "Refused…", onAction: () => onMark(slot, "refused") },
+              ]}
+            >
+              <Ellipsis className="size-4" aria-hidden="true" />
+            </Menu>
+          </>
+        )
+      }
+      notes={
+        (twice || error) && (
+          <>
+            {twice && <ExtraDoseWarning text={twice} />}
+            {error && <Message tone="error">{error}</Message>}
+          </>
+        )
+      }
     >
-      <div className="min-w-0 flex-1">
-        <Link
-          to={appUrls.medication(groupId, medication.id)}
-          state={linkState}
-          className="link-hover font-medium break-words"
-        >
-          {title}
-        </Link>
-        {slot.amount && <p className="text-muted text-sm">{slot.amount}</p>}
-      </div>
-      <SlotBadge slot={slot} timeZone={timeZone} />
+      {slot.amount && <p className="text-muted text-sm">{slot.amount}</p>}
       {loggedBy && slot.dose && (
-        <span className="text-muted text-sm" data-logged-by>
+        <p className="text-muted text-sm" data-logged-by>
           by {loggedBy}
-        </span>
+        </p>
       )}
-      {open && (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Check}
-            disabled={busy}
-            aria-label={`Given: ${title}, ${slot.time}`}
-            data-give=""
-            onClick={() => void logSlot(slot, "given", { passLogId })}
-          >
-            Given
-          </Button>
-          <Menu
-            label={`More for ${title}, ${slot.time}`}
-            variant="ghost"
-            size="sm"
-            shape="square"
-            items={[
-              { id: "skipped", label: "Skipped…", onAction: () => onMark(slot, "skipped") },
-              { id: "refused", label: "Refused…", onAction: () => onMark(slot, "refused") },
-            ]}
-          >
-            <Ellipsis className="size-4" aria-hidden="true" />
-          </Menu>
-        </div>
-      )}
-      {twice && <ExtraDoseWarning text={twice} className="w-full" />}
-      {error && (
-        <Message tone="error" className="w-full">
-          {error}
-        </Message>
-      )}
-    </ListRow>
+    </MedicationCard>
   );
 }

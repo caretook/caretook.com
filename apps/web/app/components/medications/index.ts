@@ -13,3 +13,4 @@ export type { Marking } from "./MarkDoseDialog";
 export { PassUndoStatus } from "./PassUndoStatus";
 export { usePassLog, undoPassLog } from "./usePassLog";
 export { NameField } from "./NameField";
+export { MedicationCard } from "./MedicationCard";
