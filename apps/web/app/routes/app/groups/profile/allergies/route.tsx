@@ -66,7 +66,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function AllergiesSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseProfileSheet(params.groupId);
   const { recipient } = useGroup();
-  const { state } = useAllergies(params.groupId, loaderData);
+  const { allergies, state } = useAllergies(params.groupId, loaderData);
   const [editing, setEditing] = useState<LocalAllergy | null>(null);
   // Each add starts a fresh form.
   const [added, setAdded] = useState(0);
@@ -88,9 +88,15 @@ export default function AllergiesSheet({ loaderData, params }: Route.ComponentPr
             {editing ? `Edit ${editing.substance}` : "Add an allergy"}
           </h3>
           {editing ? (
-            <AllergyForm key={editing.id} allergy={editing} onDone={stopEditing} onCancel={stopEditing} />
+            <AllergyForm
+              key={editing.id}
+              allergy={editing}
+              groupAllergies={allergies}
+              onDone={stopEditing}
+              onCancel={stopEditing}
+            />
           ) : (
-            <AllergyForm key={`new-${added}`} onDone={addDone} />
+            <AllergyForm key={`new-${added}`} groupAllergies={allergies} onDone={addDone} />
           )}
         </section>
         <div className="flex justify-end">
