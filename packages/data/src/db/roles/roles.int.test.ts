@@ -130,6 +130,10 @@ describe("applyRoles", () => {
     expect(
       await failsWith(replication, `SELECT id, group_id, condition_id, provider_id FROM condition_manager`),
     ).toBeNull();
+    // The symptom catalog (symptom-catalog slice 1).
+    expect(
+      await failsWith(replication, `SELECT id, group_id, name, name_key, created_by FROM symptom_type`),
+    ).toBeNull();
     expect(await failsWith(replication, `SELECT password FROM account`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM session`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM admin_audit_log`)).toBe(INSUFFICIENT_PRIVILEGE);

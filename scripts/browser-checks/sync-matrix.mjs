@@ -356,6 +356,11 @@ export const SYNC_MATRIX = [
     "care_recipient_details",
     (ctx) => `SELECT id FROM care_recipient_details WHERE group_id = '${ctx.groupId}' ORDER BY id LIMIT 1`,
   ),
+  // The group's symptom catalog: its defaults, written when the group was made.
+  server(
+    "symptom_type",
+    (ctx) => `SELECT id FROM symptom_type WHERE group_id = '${ctx.groupId}' ORDER BY id LIMIT 1`,
+  ),
 ];
 
 /**

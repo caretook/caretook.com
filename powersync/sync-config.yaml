@@ -144,6 +144,11 @@ streams:
         title, duration_minutes, place, provider_ids, topped_up_through,
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM appointment_series WHERE group_id IN my_groups
+      # The group's symptom catalog (symptom-catalog): every member, every role.
+      # Rows are added, never changed or removed (but with the group).
+      - >-
+        SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by
+        FROM symptom_type WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only (WRITER_ROLES in
