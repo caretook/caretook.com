@@ -27,7 +27,7 @@ Notes for every wave:
 | 35    | B-672 | blocked            |       |
 | 36    | B-673 | in progress (opus) |       |
 | 37    | B-679 | in progress (opus) |       |
-| 38    | B-664 | in progress (opus) |       |
+| 38    | B-664 | handed off 0377bb95 |       |
 | 39    | B-636 | handed off 69ef1d98 |       |
 | 40    | B-621 | in progress (opus) |       |
 | 41    | B-676 | in progress (opus) |       |
