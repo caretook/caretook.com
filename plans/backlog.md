@@ -311,16 +311,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-774 | chore | landed | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
-| B-777 | bug | in-progress | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
+| B-777 | bug | ready | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
 | B-779 | bug | triaged | fixes-bug |  | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
 | B-780 | change | triaged | fixes-tooling |  | CI warns when a branch's quarantine or brake list trails dev's (follow-up of B-771 sync brings dev's CI lists) |
 | B-781 | chore | triaged | fixes-tooling |  | Count check budget and silence stops apart in pnpm prd check --times and pnpm prd metrics |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
-| B-783 | bug | in-progress | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
-| B-784 | change | in-progress | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
+| B-783 | bug | ready | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
+| B-784 | change | ready | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
 | B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
 | B-786 | change | in-progress | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
+| B-787 | bug | triaged | fixes-bug |  | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
+| B-788 | change | triaged | fixes-ui |  | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
 
 ## Items
 
@@ -2318,10 +2320,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-777 · bug · When the internet connection drops, the browser and the installed PWA show only a blank screen.
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 1224a291
 
 - 2026-11-24 (Robert Bo Davis): Offline is a hard requirement: a dropped connection blanks the page in the browser and the installed PWA. Wrong behaviour, so fixes-bug; may grow into its own PRD if the app has no offline shell.
 - 2026-11-24 (Robert Bo Davis): User 2026-11-24: into the running fixes-ui PRD's next wave (it owns lib/app-shell/, where the service worker lives). Not a missing offline shell: the worker exists (serviceWorker*.ts, /sw.js), so find why an /app navigation offline renders blank (shell not cached, a route chunk missing from the cache, or the stale-CSP note in app-shell.md). Needs an offline browser check.
@@ -2373,19 +2375,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-783 · bug · Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 1224a291
 
 - 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 55 (B-698): the list's Log uses the timeline's Dose sheet route.
 
 ### B-784 · change · Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 1224a291
 
 - 2026-11-24 (prd/fixes-ui): Follow-up from fixes-ui slice 56 (B-700) and 54 (B-606): add ExtraDoseWarning to the Passes tab cards.
 
@@ -2407,3 +2409,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.
+
+### B-787 · bug · Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). Consider caching in batches or retrying failed entries.
+
+### B-788 · change · Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). In-app redirects to sign-in are client-side and fine; only a direct offline load of / or /sign-in is affected.
