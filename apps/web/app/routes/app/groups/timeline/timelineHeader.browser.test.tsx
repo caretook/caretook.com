@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import { TEST_NOW, fixClock, found, waitUntil } from "../../../../../test/found";
+import { deviceZone, SECOND_ZONE } from "../../../../../test/zone";
 import {
   chooseEasyMode,
   frames,
@@ -366,15 +367,17 @@ describe("the care period in the day headers", () => {
     });
   });
 
-  test("with the recipient in New York and a start at 00:30 there, the viewer's earlier date has no number and the start date is day 1", async () => {
-    // The browser is in Los Angeles: 00:30 on the 9th in New York is 21:30 on the 8th here.
+  test("with the recipient three hours ahead and a start at 00:30 there, the viewer's earlier date has no number and the start date is day 1", async () => {
+    // From Los Angeles the recipient is in New York; from New York (web:components:ny), on Cape
+    // Verde (UTC−1, no daylight saving): 00:30 on the 9th there is 21:30 on the 8th here.
+    const recipientZone = deviceZone() === SECOND_ZONE ? "Atlantic/Cape_Verde" : "America/New_York";
     const local = (day: number, hour: number, minute = 0) => new Date(2027, 5, day, hour, minute);
     fixClock(local(9, 10));
     await openTimeline({
       bareDevice: true,
       fixtures: [
         fx.group(),
-        fx.recipient({ timeZone: "America/New_York" }),
+        fx.recipient({ timeZone: recipientZone }),
         fx.member({ userId: TEST_USER.id, role: "owner" }),
         fx.note({ text: "Morning walk", occurredAt: at(local(9, 9)) }),
         fx.note({ text: "Late arrival", occurredAt: at(local(8, 22)) }),

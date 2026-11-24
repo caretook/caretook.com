@@ -7,6 +7,7 @@ import { page, userEvent } from "vitest/browser";
 import { fixClock, found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import { fx } from "../../../../../test/fixtures";
+import { deviceTime } from "../../../../../test/zone";
 import { cancelEvent, rescheduleEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
 import {
   BLOOD_DRAW,
@@ -201,7 +202,7 @@ describe("cancel and undo", () => {
       });
       await expect
         .poll(() => BANNER()?.querySelector("[data-cancelled-by]")?.textContent)
-        .toBe("Cancelled by Sam Okafor · Today, 9:30 AM");
+        .toBe(`Cancelled by Sam Okafor · Today, ${deviceTime(new Date(NOW.getTime() - 30 * MINUTE))}`);
       await expect
         .poll(() => BANNER()?.querySelector("[data-cancel-reason]")?.textContent)
         .toBe("Office called, doctor out sick");

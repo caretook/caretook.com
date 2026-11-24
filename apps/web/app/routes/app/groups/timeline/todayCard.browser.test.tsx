@@ -13,9 +13,11 @@ import { clockAt, clockMoment, CLOCK, DOSES_SQL } from "../medications/medicatio
 import * as newDose from "./new-dose/route";
 import * as timeline from "./route";
 import { TIMELINE_URL } from "./timelineWorld";
+import { deviceTime } from "../../../../../test/zone";
 
 // The Today card (timeline-ux slice 5, B-169) on a fixed clock: 10:00 on
-// Wed Jun 9 2027 in Los Angeles. Its rows (vitals, the next appointment,
+// Wed Jun 9 2027 in Los Angeles, the recipient's zone (passes read in hers,
+// events in the viewer's). Its rows (vitals, the next appointment,
 // the medications due and the todos) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
 // each ending in "See all ›" to its full view (vitals: Show all in place,
@@ -161,7 +163,10 @@ describe("the Today card's rows", () => {
     await expect.poll(shownRows).toHaveLength(4);
     expect(row("vitals")?.textContent).toMatch(/^Needs attention: Latest vitals: BP 130\/85 mmHg 2d ago/);
     const next = row("appointment")!.querySelector<HTMLAnchorElement>("a[data-next]")!;
-    expect(next.textContent).toBe("Next: Cardiology · Today 11:00 AM · +1 more");
+    // In the viewer's zone: 11:00 AM in Los Angeles, 2:00 PM in New York.
+    expect(next.textContent).toBe(
+      `Next: Cardiology · Today ${deviceTime(CLOCK.getTime() + 60 * 60_000)} · +1 more`,
+    );
     expect(next.getAttribute("href")).toBe(`/app/groups/${G}/entries/${CARDIOLOGY.id}`);
     expect(row("medications")?.textContent).toContain("Overdue: Late · 8:55 · 1 med · +1 more");
     expect(row("todos")?.textContent).toMatch(/^Today: Pick up the walker/);

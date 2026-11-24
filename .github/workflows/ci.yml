@@ -270,8 +270,8 @@ jobs:
       - id: test
         name: Component tests (shard 1 of 2)
         run: >-
-          node scripts/ci/test-job.mjs --project web:components --shard=1/2 --reporter=default
-          --reporter=json --outputFile.json=ci-results/components-1.json
+          node scripts/ci/test-job.mjs --project web:components --project web:components:ny --shard=1/2
+          --reporter=default --reporter=json --outputFile.json=ci-results/components-1.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
         if: ${{ !cancelled() }}
@@ -309,8 +309,8 @@ jobs:
       - id: test
         name: Component tests (shard 2 of 2)
         run: >-
-          node scripts/ci/test-job.mjs --project web:components --shard=2/2 --reporter=default
-          --reporter=json --outputFile.json=ci-results/components-2.json
+          node scripts/ci/test-job.mjs --project web:components --project web:components:ny --shard=2/2
+          --reporter=default --reporter=json --outputFile.json=ci-results/components-2.json
       - id: report
         name: Report the failures
         if: ${{ !cancelled() }}
