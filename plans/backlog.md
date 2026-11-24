@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `packages/api/src/connectors/`, `apps/web/app/components/ui/`, `apps/web/app/app.css`, `apps/web/app/routes/dev/ui/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/components/notes/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/lib/app-shell/`, `apps/web/app/routes/app/layout/`, `packages/data/src/db/schema/medications/`, `packages/data/src/models/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/components/medications/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/todos/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/lib/app-shell/`, `scripts/build/service-worker`, `scripts/browser-checks/`, `apps/web/app/entry.client.tsx`, `apps/web/app/root.tsx`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/components/medications/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/timeline/sheet`, `apps/web/app/routes/app/groups/timeline/new-dose/`, `apps/web/app/lib/timeline/timelineSheet.ts` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
 | `test-gates` | done | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
@@ -194,7 +194,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
 | B-432 | chore | triaged | fixes-tooling |  | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
-| B-433 | feature | ready | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
+| B-433 | feature | landed | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -204,8 +204,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
 | B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
 | B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
-| B-462 | bug | ready | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
-| B-463 | bug | ready | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
+| B-462 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
+| B-463 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
@@ -221,13 +221,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
-| B-583 | change | ready | fixes-ui | prd/fixes-ui | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
+| B-583 | change | landed | fixes-ui | prd/fixes-ui | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-594 | change | landed | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
-| B-606 | feature | ready | fixes-ui | prd/fixes-ui | Highlight a double dose on a next-dose-due notification |
+| B-606 | feature | landed | fixes-ui | prd/fixes-ui | Highlight a double dose on a next-dose-due notification |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
-| B-613 | change | ready | fixes-ui | prd/fixes-ui | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
+| B-613 | change | landed | fixes-ui | prd/fixes-ui | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
 | B-617 | bug | landed | fixes-ui | prd/fixes-ui | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
 | B-618 | change | landed | fixes-ui | prd/fixes-ui | Timeline day header: move Change care period to the left of the period text |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
@@ -258,7 +258,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-677 | change | landed | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
 | B-678 | bug | landed | fixes-ui | prd/fixes-ui | Manage members: cards truncate names and details on phone and desktop; redo the layout |
 | B-679 | feature | landed | fixes-ui | prd/fixes-ui | Manage members: show email confirmation status (last login only if easy) |
-| B-680 | change | ready | fixes-ui | prd/fixes-ui | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
+| B-680 | change | landed | fixes-ui | prd/fixes-ui | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
 | B-682 | change | landed | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
 | B-683 | change | landed | fixes-ui | prd/fixes-ui | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
@@ -273,20 +273,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-695 | change | triaged | fixes-ui |  | Rename "passes" to "Med times" everywhere users see it |
 | B-697 | change | triaged | fixes-ui |  | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
-| B-698 | change | ready | fixes-ui | prd/fixes-ui | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
+| B-698 | change | landed | fixes-ui | prd/fixes-ui | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
 | B-699 | bug | landed | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
-| B-700 | feature | ready | fixes-ui | prd/fixes-ui | Passes tab: quick log a pass, with cards matching the new medication card |
-| B-701 | change | ready | fixes-ui | prd/fixes-ui | Passes always sort by time: remove Move up and Move down |
+| B-700 | feature | landed | fixes-ui | prd/fixes-ui | Passes tab: quick log a pass, with cards matching the new medication card |
+| B-701 | change | landed | fixes-ui | prd/fixes-ui | Passes always sort by time: remove Move up and Move down |
 | B-702 | bug | landed | fixes-ui | prd/fixes-ui | Medications Print menu: text overflows or crowds the menu box |
 | B-720 | chore | triaged | fixes-tooling |  | Confirm dev syncs that share no files with a branch no longer trigger a second CI run |
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
 | B-730 | bug | triaged | sync-safety-2 |  | A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't) |
-| B-735 | bug | ready | fixes-ui | prd/fixes-ui | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
+| B-735 | bug | landed | fixes-ui | prd/fixes-ui | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
 | B-736 | bug | landed | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
 | B-737 | feature | landed | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
 | B-738 | bug | triaged | fixes-tooling |  | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
-| B-748 | change | ready | fixes-ui | prd/fixes-ui | Placeholder and search bar on timeline should read "Type to search". |
+| B-748 | change | landed | fixes-ui | prd/fixes-ui | Placeholder and search bar on timeline should read "Type to search". |
 | B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-bug |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-751 | chore | triaged | fixes-tooling |  | A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test |
@@ -302,7 +302,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-762 | feature | landed | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
 | B-763 | bug | landed | fixes-ui | prd/fixes-ui | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
 | B-764 | change | triaged | fixes-perf |  | App first load is way too long. |
-| B-765 | feature | ready | fixes-ui | prd/fixes-ui | Ability to open live notes full screen. |
+| B-765 | feature | landed | fixes-ui | prd/fixes-ui | Ability to open live notes full screen. |
 | B-766 | bug | triaged | fixes-tooling |  | pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands |
 | B-767 | bug | triaged | fixes-tooling |  | A backlog amend repeats the Backlog-Tool trailer in the commit message |
 | B-768 | bug | triaged | fixes-tooling |  | slice-fields.mjs warns on a slice fields line that carries Blocked by |
@@ -311,14 +311,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-774 | chore | landed | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
-| B-777 | bug | ready | fixes-ui |  | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
+| B-777 | bug | ready | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
 | B-779 | bug | triaged | fixes-bug |  | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
 | B-780 | change | triaged | fixes-tooling |  | CI warns when a branch's quarantine or brake list trails dev's (follow-up of B-771 sync brings dev's CI lists) |
 | B-781 | chore | triaged | fixes-tooling |  | Count check budget and silence stops apart in pnpm prd check --times and pnpm prd metrics |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
-| B-783 | bug | triaged | fixes-ui |  | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
-| B-784 | change | triaged | fixes-ui |  | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
+| B-783 | bug | ready | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
+| B-784 | change | ready | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
+| B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
+| B-786 | change | in-progress | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
+| B-787 | bug | triaged | fixes-bug |  | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
+| B-788 | change | triaged | fixes-ui |  | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
 
 ## Items
 
@@ -1135,7 +1139,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-433 · feature · A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one)
 
-- status: ready
+- status: landed
 - prd: self-recovery
 - owner: prd/self-recovery
 - commit: 2221f009
@@ -1239,7 +1243,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-462 · bug · pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure
 
-- status: ready
+- status: landed
 - prd: self-recovery
 - owner: prd/self-recovery
 - commit: 2221f009
@@ -1249,7 +1253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-463 · bug · pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept
 
-- status: ready
+- status: landed
 - prd: self-recovery
 - owner: prd/self-recovery
 - commit: 2221f009
@@ -1409,7 +1413,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-583 · change · Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: aef5557c
@@ -1442,7 +1446,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-606 · feature · Highlight a double dose on a next-dose-due notification
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: c312d03e
@@ -1472,7 +1476,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-613 · change · Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 0157d117
@@ -1809,7 +1813,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-680 · change · Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: e020375b
@@ -1956,7 +1960,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-698 · change · One medication card for Schedule and the Medications list: the whole card opens it, with a Log button
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 0419f380
@@ -1975,7 +1979,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-700 · feature · Passes tab: quick log a pass, with cards matching the new medication card
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: e0e5dbb3
@@ -1984,7 +1988,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-701 · change · Passes always sort by time: remove Move up and Move down
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: a30cf79a
@@ -2042,7 +2046,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-735 · bug · After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on…
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 12bcaa29
@@ -2084,7 +2088,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-748 · change · Placeholder and search bar on timeline should read "Type to search".
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 27823c3e
@@ -2232,7 +2236,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-765 · feature · Ability to open live notes full screen.
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 15167ea9
@@ -2318,8 +2322,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 1224a291
 
 - 2026-11-24 (Robert Bo Davis): Offline is a hard requirement: a dropped connection blanks the page in the browser and the installed PWA. Wrong behaviour, so fixes-bug; may grow into its own PRD if the app has no offline shell.
 - 2026-11-24 (Robert Bo Davis): User 2026-11-24: into the running fixes-ui PRD's next wave (it owns lib/app-shell/, where the service worker lives). Not a missing offline shell: the worker exists (serviceWorker*.ts, /sw.js), so find why an /app navigation offline renders blank (shell not cached, a route chunk missing from the cache, or the stale-CSP note in app-shell.md). Needs an offline browser check.
@@ -2371,18 +2375,55 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-783 · bug · Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 1224a291
 
 - 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 55 (B-698): the list's Log uses the timeline's Dose sheet route.
 
 ### B-784 · change · Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page
 
+- status: ready
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 1224a291
+
+- 2026-11-24 (prd/fixes-ui): Follow-up from fixes-ui slice 56 (B-700) and 54 (B-606): add ExtraDoseWarning to the Passes tab cards.
+
+### B-785 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back …
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): [ci-key 6f358488771f] Flaked (passed on its rerun); found by prd/fixes-ui.
+- 2026-11-24 (prd/fixes-ui): Flaked (passed on its rerun); found by prd/fixes-ui.
+
+### B-786 · change · The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree
+
+- status: in-progress
+- prd: self-recovery
+- owner: prd/self-recovery
+- commit:
+
+- 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.
+
+### B-787 · bug · Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). Consider caching in batches or retrying failed entries.
+
+### B-788 · change · Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker
+
 - status: triaged
 - prd: fixes-ui
 - owner:
 - commit:
 
-- 2026-11-24 (prd/fixes-ui): Follow-up from fixes-ui slice 56 (B-700) and 54 (B-606): add ExtraDoseWarning to the Passes tab cards.
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). In-app redirects to sign-in are client-side and fine; only a direct offline load of / or /sign-in is affected.
