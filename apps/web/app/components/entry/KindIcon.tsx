@@ -22,6 +22,20 @@ export function KindIcon({
   return <IconChip icon={Icon} accent={accent} look={look} size={size} title={title ?? label} />;
 }
 
+/** The filter links' focus ring, and their layer above the row's open target. */
+const FILTER_FOCUS =
+  "focus-visible:outline-primary relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2";
+
+/**
+ * The filter links' button feel (B-617), on a real link: a `base-300` ring
+ * on hover and press around the circle, or a `base-300` fill behind the name,
+ * fading on the kit's fast duration and sinking a little on press
+ * (`motion-press`; nothing moves under reduced motion). The accent stays the chip's.
+ */
+const CIRCLE_PRESS =
+  "motion-press rounded-full hover:ring-2 hover:ring-base-300 active:ring-2 active:ring-base-300";
+const NAME_PRESS = "motion-press -mx-1 rounded-sm px-1 hover:bg-base-300 active:bg-base-300";
+
 /**
  * An entry's kind icon as a filter: a link that shows only that kind, the
  * same as its chip. It sits above the row's open target (`relative z-10`),
@@ -37,15 +51,12 @@ export function KindFilterLink({ kind, size = "md" }: { kind: TimelineEntryKind;
       replace
       preventScrollReset
       aria-label={label}
-      className="focus-visible:outline-primary relative z-10 inline-flex shrink-0 rounded-full hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2"
+      className={`${FILTER_FOCUS} inline-flex shrink-0 ${CIRCLE_PRESS}`}
     >
       <KindIcon kind={kind} size={size} title={label} />
     </Link>
   );
 }
-
-const AUTHOR_FOCUS =
-  "focus-visible:outline-primary relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2";
 
 /**
  * An entry's author as a filter: a link that shows only that person's
@@ -78,7 +89,7 @@ export function AuthorFilterLink({
   };
   if (!circle) {
     return (
-      <Link {...link} className={`${AUTHOR_FOCUS} rounded-sm hover:underline`}>
+      <Link {...link} className={`${FILTER_FOCUS} ${NAME_PRESS}`}>
         {name}
       </Link>
     );
@@ -92,7 +103,7 @@ export function AuthorFilterLink({
         </span>
       }
     >
-      <Link {...link} className={`${AUTHOR_FOCUS} inline-flex shrink-0 rounded-full hover:brightness-95`}>
+      <Link {...link} className={`${FILTER_FOCUS} inline-flex shrink-0 ${CIRCLE_PRESS}`}>
         <MemberAvatar userId={userId} name={name} image={image} size="row" />
       </Link>
     </Tooltip>

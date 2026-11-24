@@ -4,14 +4,14 @@ import { ShieldAlert } from "lucide-react";
 import { allergyText, NO_KNOWN_ALLERGIES, ALLERGIES_NOT_RECORDED } from "~/lib/medications/allergies";
 import { Button, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
 
 /**
  * The recipient's allergies, at the top of the medication list and each
- * medication's page: "Allergies: Penicillin (hives, severe) · Sulfa", "No
- * known allergies", or "Allergies not recorded". Writers get "Add allergies"
- * (nothing recorded yet) or "Edit", which opens the allergies sheet; closing
- * it comes back here. Viewers get the text only.
+ * medication's page, read-only: "Allergies: Penicillin (hives, severe) ·
+ * Sulfa", a severe one in bold, "No known allergies", or "Allergies not
+ * recorded". They're managed on the profile (fixes-ui slice 34): writers get
+ * Manage, which opens the profile's allergies sheet (closing it lands on the
+ * profile). Viewers get the text only.
  *
  * `band`: on a banded page (a medication's) it is a `Section` of its own,
  * holding the same box; without it (the list) it looks as it always has.
@@ -43,9 +43,13 @@ export function AllergiesRegion({
           <>
             <span className="font-semibold">Allergies: </span>
             {state.allergies.map((a, i) => (
-              <span key={a.id} data-allergy={a.id}>
+              <span key={a.id} data-allergy={a.id} data-severe={a.severity === "severe" ? "" : undefined}>
                 {i > 0 && " · "}
-                {allergyText(a)}
+                {a.severity === "severe" ? (
+                  <strong className="text-error-ink font-semibold">{allergyText(a)}</strong>
+                ) : (
+                  allergyText(a)
+                )}
               </span>
             ))}
           </>
@@ -57,19 +61,16 @@ export function AllergiesRegion({
       </p>
       {canWrite && (
         <Button
-          to={appUrls.medicationAllergies(groupId, "list")}
-          // Closing the sheet comes back here.
-          state={MEDICATION_SHEET_STATE}
-          // Loaded ahead, so the sheet opens offline too.
+          to={appUrls.profileAllergies(groupId)}
+          // Loaded ahead, so the profile and its sheet open offline too.
           prefetch="render"
           preventScrollReset
           variant="ghost"
           size="xs"
           className="shrink-0"
-          data-edit-allergies=""
+          data-manage-allergies=""
         >
-          {state.kind === "notRecorded" ? "Add allergies" : "Edit"}
-          {state.kind !== "notRecorded" && <span className="sr-only"> allergies</span>}
+          Manage<span className="sr-only"> allergies on the profile</span>
         </Button>
       )}
     </>

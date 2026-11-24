@@ -2,6 +2,7 @@ import type { GroupRoleName } from "../constants";
 import type { CareGroupMemberInsert, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
+import { GROUP_MANAGER_ROLES } from "../constants";
 import { withTransaction } from "../db";
 import { isError, newError } from "../errors";
 import { careGroupMemberModel } from "../models";
@@ -137,4 +138,21 @@ export const leave = async (ctx: ServiceContext, groupId: string) => {
   if (isError(membership)) return membership;
   if (!membership) return newError({ code: "careGroupMemberService:notFound" });
   return remove(ctx, membership.id);
+};
+
+/**
+ * Whether each member of `groupId` has confirmed their email, and when they
+ * last signed in (their latest remaining session; null when none is left).
+ * Owners and admins only: a non-member gets `notFound`, any other member
+ * `managersOnly`. The model scopes the rows in SQL too. Never the email.
+ */
+export const accountStatuses = async (ctx: ServiceContext, groupId: string) => {
+  if (isSystemUser(ctx.authUser)) return careGroupMemberModel.accountStatuses(groupId, null);
+  if (!ctx.authUser) return newError({ code: "permissions:unauthenticated" });
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id);
+  if (isError(role)) return role;
+  if (!role) return newError({ code: "careGroupMemberService:notFound" });
+  if (!GROUP_MANAGER_ROLES.some((managerRole) => managerRole === role))
+    return newError({ code: "careGroupMemberService:managersOnly" });
+  return careGroupMemberModel.accountStatuses(groupId, ctx.authUser.id);
 };

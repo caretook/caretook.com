@@ -21,6 +21,7 @@ describe("the profile's bands", () => {
     expect(bandNames()).toEqual([
       "(header)",
       "Basics",
+      "Allergies",
       "Conditions",
       "Note for helpers",
       "Recent vital averages",
@@ -37,7 +38,14 @@ describe("the profile's bands", () => {
     async (theme) => {
       await openProfile({ role: "viewer", theme });
       await expect.poll(() => onPage() && bandNames().includes("Note for helpers")).toBe(true);
-      expect(bandNames()).toEqual(["(header)", "Basics", "Conditions", "Note for helpers", "(band)"]);
+      expect(bandNames()).toEqual([
+        "(header)",
+        "Basics",
+        "Allergies",
+        "Conditions",
+        "Note for helpers",
+        "(band)",
+      ]);
       await expect
         .element(getByCss("main [data-band]:last-child [data-viewer-more]"))
         .toHaveTextContent("More details are visible to caretakers.");

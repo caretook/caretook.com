@@ -1,7 +1,13 @@
-import type { QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
+import type { NewItemDraft, QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
 
 import { describe, expect, test } from "vitest";
-import { doseDraftFrom, entryDraftFrom, QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
+import {
+  doseDraftFrom,
+  entryDraftFrom,
+  medicationDraftFrom,
+  providerDraftFrom,
+  QUICK_ENTRY_DRAFT,
+} from "../../lib/assistant/quickEntryDraft";
 import {
   buildCards,
   canSaveCards,
@@ -12,7 +18,12 @@ import {
   editTarget,
   isDraftReading,
   markDraft,
+  newItemLine,
+  newItemPreview,
+  newItemTarget,
+  ONE_NEW_ITEM,
   openAfterSave,
+  partsForRole,
   partKey,
   pruneCardState,
   savedText,
@@ -444,5 +455,124 @@ describe("the event draft (quick-entry slice 3)", () => {
       "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25",
     );
     expect(draftSummary([], "Fri")).toBe("Opens to finish · Fri");
+  });
+});
+
+describe("new medications and providers (B-762)", () => {
+  const MED_DRAFT: NewItemDraft = {
+    kind: "medication",
+    name: "Lisinopril",
+    strength: "10 mg",
+    form: "tablet",
+    directions: "once daily",
+  };
+  const PROVIDER_DRAFT: NewItemDraft = {
+    kind: "provider",
+    type: "clinician",
+    name: "Dr Kim",
+    specialty: "Cardiology",
+    practiceId: null,
+    phone: "555-0100",
+    address: null,
+  };
+  const item = (draft: NewItemDraft): QuickEntryReading => ({
+    kind: draft.kind,
+    label: draft.kind === "medication" ? "New medication" : "New provider",
+    actions: [],
+    confidence: 0.97,
+    warnings: [],
+    newItem: draft,
+  });
+  const LEE = "44444444-4444-4444-8444-444444444444";
+  const providerEvent: QuickEntryReading = {
+    kind: "event",
+    label: "Event",
+    actions: [
+      {
+        type: "addEvent",
+        title: "Dr. Lee",
+        occurredAt: at,
+        allDay: true,
+        providerIds: [LEE],
+        timeZone: "UTC",
+      },
+    ],
+    confidence: 0.8,
+    warnings: [],
+  };
+  const cardsOf = (parts: QuickEntryPart[]) => markDraft(buildCards(parts, none, titleOf));
+
+  test("Save opens the Add sheet with the draft in history state, closing back to where it came from", () => {
+    const med = newItemTarget(MED_DRAFT, GROUP);
+    expect(med.to).toBe(`/app/groups/${GROUP}/medications/list/new`);
+    expect(medicationDraftFrom(med.state)).toEqual(MED_DRAFT);
+    expect(med.state).toMatchObject({ medicationSheet: true });
+    const provider = newItemTarget(PROVIDER_DRAFT, GROUP);
+    expect(provider.to).toBe(`/app/groups/${GROUP}/providers/new`);
+    expect(providerDraftFrom(provider.state)).toEqual(PROVIDER_DRAFT);
+    expect(provider.state).toMatchObject({ sheetOverProviders: true });
+    expect(newItemTarget({ ...PROVIDER_DRAFT, type: "pharmacy" }, GROUP).to).toBe(
+      `/app/groups/${GROUP}/providers/new?type=pharmacy`,
+    );
+    // Each sheet reads only its own draft; malformed fields are dropped.
+    expect(providerDraftFrom(med.state)).toBeNull();
+    expect(
+      medicationDraftFrom({ [QUICK_ENTRY_DRAFT]: { kind: "medication", name: 3, form: "goo" } }),
+    ).toEqual({
+      kind: "medication",
+      name: "",
+      strength: null,
+      form: null,
+      directions: null,
+    });
+  });
+
+  test("the first new item opens to finish, ahead of a provider event (written directly); a second is blocked", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "Dr. Lee friday", readings: [providerEvent] },
+      { text: "new med lisinopril", readings: [item(MED_DRAFT), note("new med lisinopril")] },
+      { text: "add provider Dr Kim", readings: [item(PROVIDER_DRAFT)] },
+    ];
+    const cards = cardsOf(parts);
+    expect(cards.map((c) => c.opensDraft)).toEqual([false, true, false]);
+    expect(cards[2]!.blocking).toEqual([ONE_NEW_ITEM]);
+    expect(canSaveCards(cards)).toBe(false);
+    const { draft, rest } = draftCardOf(cards.slice(0, 2));
+    expect(draft?.text).toBe("new med lisinopril");
+    expect(rest.map((c) => c.text)).toEqual(["Dr. Lee friday"]);
+    expect(cardActions([draft!])).toEqual([]);
+    // Switched to its note, it's an ordinary card.
+    const switched = markDraft(
+      buildCards(
+        parts.slice(1, 2),
+        { chosen: new Map([[partKey(0, parts[1]!), 1]]), removed: new Set() },
+        titleOf,
+      ),
+    );
+    expect(switched[0]!.opensDraft).toBe(false);
+  });
+
+  test("a viewer's parts lose their new items", () => {
+    const parts: QuickEntryPart[] = [{ text: "new med lisinopril", readings: [item(MED_DRAFT), note("x")] }];
+    expect(partsForRole(parts, true)[0]!.readings.map((r) => r.kind)).toEqual(["medication", "note"]);
+    expect(partsForRole(parts, false)[0]!.readings.map((r) => r.kind)).toEqual(["note"]);
+  });
+
+  test("the card's wording", () => {
+    expect(newItemPreview(MED_DRAFT)).toEqual({
+      title: "Lisinopril",
+      detail: "10 mg · Tablet · once daily",
+      when: "",
+    });
+    expect(newItemPreview({ ...MED_DRAFT, name: "", strength: null, form: null, directions: null })).toEqual({
+      title: "New medication",
+      detail: null,
+      when: "",
+    });
+    expect(newItemPreview({ ...PROVIDER_DRAFT, practiceId: "p1" }, () => "Riverside Dialysis").detail).toBe(
+      "Cardiology · Riverside Dialysis · 555-0100",
+    );
+    expect(newItemLine(MED_DRAFT)).toBe("Opens Add a medication to finish");
+    expect(newItemLine(PROVIDER_DRAFT)).toBe("Opens Add a provider to finish");
   });
 });

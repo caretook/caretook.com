@@ -1,8 +1,10 @@
 import type { CareGroupMember, Tx } from "../../db";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, exists, inArray, max, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { GROUP_MANAGER_ROLES } from "../../constants";
 import { dbMayFail, txOrDb } from "../../db";
-import { careGroupMemberSchema } from "../../db/schema";
+import { careGroupMemberSchema, sessionSchema, userSchema } from "../../db/schema";
 import { isError } from "../../errors";
 import * as baseModel from "../base";
 
@@ -96,3 +98,46 @@ export const listForUser = async (userId: string, tx: Tx) =>
     () => tx.select().from(careGroupMemberSchema).where(eq(careGroupMemberSchema.userId, userId)),
     "careGroupMemberModel:listForUser",
   );
+
+const manager = alias(careGroupMemberSchema, "status_manager");
+
+/**
+ * Each member of `groupId` with whether their account's email is confirmed
+ * and when their latest remaining session started (null when none is left).
+ * Scoped in SQL: only an owner or admin of the group (`actorId`) gets rows;
+ * `actorId` null is the system, which sees every group. Never the email.
+ */
+export const accountStatuses = async (groupId: string, actorId: string | null, opts: { tx?: Tx } = {}) => {
+  const m = careGroupMemberSchema;
+  const db = txOrDb(opts.tx);
+  const actorManages =
+    actorId === null
+      ? undefined
+      : exists(
+          db
+            .select({ one: sql`1` })
+            .from(manager)
+            .where(
+              and(
+                eq(manager.groupId, m.groupId),
+                eq(manager.userId, actorId),
+                inArray(manager.role, [...GROUP_MANAGER_ROLES]),
+              ),
+            ),
+        );
+  return dbMayFail(
+    () =>
+      db
+        .select({
+          userId: m.userId,
+          emailVerified: userSchema.emailVerified,
+          lastSignInAt: max(sessionSchema.createdAt),
+        })
+        .from(m)
+        .innerJoin(userSchema, eq(userSchema.id, m.userId))
+        .leftJoin(sessionSchema, eq(sessionSchema.userId, m.userId))
+        .where(and(eq(m.groupId, groupId), actorManages))
+        .groupBy(m.userId, userSchema.emailVerified),
+    "careGroupMemberModel:accountStatuses",
+  );
+};

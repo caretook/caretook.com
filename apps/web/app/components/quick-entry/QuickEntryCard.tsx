@@ -1,15 +1,33 @@
 import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
+import type { QuickEntryKind } from "@caretook/data/schema";
+import type { LucideIcon } from "lucide-react";
+import type { KindChip } from "~/lib/timeline/entryDisplay";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
 
-import { ListTodo, X } from "lucide-react";
+import { ListTodo, PillBottle, Stethoscope, X } from "lucide-react";
 import { Badge, Button, ChipGroup, IconButton, IconChip } from "~/components/ui";
 import { KIND_META, TODO_CHIP } from "~/lib/timeline/entryDisplay";
 import { SymptomGate } from "~/routes/app/groups/timeline/SymptomGate";
 
 /**
+ * The chip of a card that isn't a timeline entry: a todo (the Todos
+ * section's icon), a new medication (the medication list's change chip) or
+ * a new provider (the Providers section's icon).
+ */
+const OTHER_CHIPS: Record<"todo" | "medication" | "provider", { Icon: LucideIcon } & KindChip> = {
+  todo: { Icon: ListTodo, ...TODO_CHIP },
+  medication: { Icon: PillBottle, accent: "teal", look: "soft" },
+  provider: { Icon: Stethoscope, accent: "indigo", look: "soft" },
+};
+const chipOf = (kind: QuickEntryKind) =>
+  kind === "todo" || kind === "medication" || kind === "provider" ? OTHER_CHIPS[kind] : KIND_META[kind];
+
+/**
  * One part of the line, as it will be saved: its kind, what it says and
  * when, its warnings (red ones stop Save), the other ways to read it as
  * buttons ("Make it a note"), Edit (the usual sheet, filled in) and Remove.
+ * The reading itself is the primary button: it saves as Enter does (every
+ * card, "Save all" with several); the chips only switch the reading.
  */
 export function QuickEntryCard({
   card,
@@ -20,6 +38,9 @@ export function QuickEntryCard({
   onSymptomChoice,
   onEdit,
   onRemove,
+  onSave,
+  canSave,
+  count,
 }: {
   card: Card;
   preview: ActionPreview;
@@ -31,12 +52,19 @@ export function QuickEntryCard({
   onSymptomChoice?: (use: string | null) => void;
   onEdit: () => void;
   onRemove: () => void;
+  /** What Enter does: saves every card. */
+  onSave: () => void;
+  /** False while any card blocks or a save is busy. */
+  canSave: boolean;
+  /** How many cards the line has: with several, the button is "Save all". */
+  count: number;
 }) {
   const { kind, label } = card.reading;
-  // A todo isn't a timeline entry, so it has no KIND_META: the Todos section's icon.
-  const { Icon, accent, look } = kind === "todo" ? { Icon: ListTodo, ...TODO_CHIP } : KIND_META[kind];
+  const { Icon, accent, look } = chipOf(kind);
   const blocked = card.blocking.length > 0 || !!error;
   const headingId = `quick-card-${card.key.replace(/[^\w-]/g, "_")}`;
+  const adds = `${label}: ${preview.title}`;
+  const saveName = count === 1 ? `Add ${adds}` : `Add all ${count}, with ${adds}`;
   return (
     <li
       className={`rounded-box bg-base-100 border p-3 ${blocked ? "border-error" : "border-base-300"}`}
@@ -44,26 +72,35 @@ export function QuickEntryCard({
       aria-labelledby={headingId}
     >
       <div className="flex items-start gap-2">
-        <IconChip icon={Icon} accent={accent} look={look} shape="rounded" />
-        <div className="min-w-0 flex-1">
-          <p id={headingId} className="text-sm">
-            <Badge data-quick-kind="">{label}</Badge>
-            <span className="text-muted"> · {preview.when}</span>
-          </p>
-          <p className="font-medium break-words" data-quick-title>
-            {preview.title}
-          </p>
-          {preview.detail && (
-            <p className="text-muted text-sm break-words" data-quick-detail>
-              {preview.detail}
-            </p>
-          )}
-          {draftLine && (
-            <p className="text-muted text-sm break-words" data-quick-opens-draft>
-              {draftLine}
-            </p>
-          )}
-        </div>
+        <button
+          type="button"
+          className="rounded-field hover:bg-primary/10 active:bg-primary/15 -m-1 flex min-w-0 flex-1 cursor-pointer items-start gap-2 p-1 text-start disabled:cursor-default disabled:hover:bg-transparent"
+          onClick={onSave}
+          disabled={!canSave}
+          aria-label={saveName}
+          data-quick-save-card=""
+        >
+          <IconChip icon={Icon} accent={accent} look={look} shape="rounded" />
+          <span className="block min-w-0 flex-1">
+            <span id={headingId} className="block text-sm">
+              <Badge data-quick-kind="">{label}</Badge>
+              {preview.when && <span className="text-muted"> · {preview.when}</span>}
+            </span>
+            <span className="block font-medium break-words" data-quick-title>
+              {preview.title}
+            </span>
+            {preview.detail && (
+              <span className="text-muted block text-sm break-words" data-quick-detail>
+                {preview.detail}
+              </span>
+            )}
+            {draftLine && (
+              <span className="text-muted block text-sm break-words" data-quick-opens-draft>
+                {draftLine}
+              </span>
+            )}
+          </span>
+        </button>
         <IconButton label={`Remove "${card.text}"`} icon={X} onPress={onRemove} />
       </div>
 

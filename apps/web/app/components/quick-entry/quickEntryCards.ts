@@ -1,10 +1,12 @@
-import type { AssistantAction, QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
+import type { AssistantAction, NewItemDraft, QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
 
 import type { DoseDraft, EntryDraft } from "../../lib/assistant/quickEntryDraft";
 
-import { similarSymptoms, symptomKey, symptomName } from "@caretook/data/schema";
+import { FORM_LABELS, similarSymptoms, symptomKey, symptomName } from "@caretook/data/schema";
 import { appUrls } from "../../lib/app-shell/appUrls";
 import { QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
+import { MEDICATION_SHEET_STATE } from "../../lib/medications/medicationSheets";
+import { PROVIDER_SHEET_STATE } from "../../lib/providers/providerSheetLink";
 import { TODO_SHEET_STATE } from "../../lib/todos/todoSheetLink";
 import { SHEET_LINK_STATE } from "../../lib/timeline/timelineSheet";
 
@@ -44,6 +46,15 @@ export type SymptomGate = { name: string; similar: { id: string; name: string }[
  * null for "Add new". It answers only the name it was given for (`key`).
  */
 export type SymptomChoice = { key: string; use: string | null };
+
+/**
+ * The parts as a member may save them: a viewer's lose their new medication
+ * and provider readings (adding either is a writer's), so no such card shows.
+ */
+export const partsForRole = (parts: readonly QuickEntryPart[], canWrite: boolean): QuickEntryPart[] =>
+  canWrite
+    ? [...parts]
+    : parts.map((part) => ({ ...part, readings: part.readings.filter((r) => !r.newItem) }));
 
 /** The part's key: its place in the line and its text. */
 export const partKey = (index: number, part: QuickEntryPart) => `${index}:${part.text}`;
@@ -289,10 +300,26 @@ export const isDraftReading = (reading: QuickEntryReading) => {
   return !more.length && action?.type === "addEvent" && action.providerIds.length > 0;
 };
 
-/** Marks the card that opens as the draft (`buildCards` leaves it to this): the first whose chosen reading is an event with a provider. */
+/** What a second new medication or provider in one line says: only one Add sheet can open. */
+export const ONE_NEW_ITEM =
+  "Add one new medication or provider at a time: remove this one, or save it after.";
+
+/**
+ * Marks the card that opens to finish (`buildCards` leaves it to this): the
+ * first new medication or provider (its Add sheet), else the first event with
+ * a provider (the new-event page). Any later new item is blocked (`ONE_NEW_ITEM`).
+ */
 export const markDraft = (cards: QuickEntryCard[]): QuickEntryCard[] => {
-  const first = cards.findIndex((c) => isDraftReading(c.reading));
-  return first < 0 ? cards : cards.map((c, i) => (i === first ? { ...c, opensDraft: true } : c));
+  const newItem = cards.findIndex((c) => !!c.reading.newItem);
+  const first = newItem >= 0 ? newItem : cards.findIndex((c) => isDraftReading(c.reading));
+  if (first < 0) return cards;
+  return cards.map((c, i) =>
+    i === first
+      ? { ...c, opensDraft: true }
+      : c.reading.newItem
+        ? { ...c, blocking: [...c.blocking, ONE_NEW_ITEM] }
+        : c,
+  );
 };
 
 /**
@@ -304,6 +331,55 @@ export const draftCardOf = (cards: readonly QuickEntryCard[]) => {
   const draft = cards.find((c) => c.opensDraft) ?? null;
   return { draft, rest: cards.filter((c) => c !== draft) };
 };
+
+// ---------------------------------------------------------------------------
+// New medications and providers: Save opens the Add sheet filled in
+// ---------------------------------------------------------------------------
+
+/**
+ * Where a new medication or provider card opens: the Add sheet (over the
+ * medication list, or the directory) with the draft in history state, and
+ * the sheet's own state, so closing it comes back here. Nothing is written
+ * until the sheet saves. Pure.
+ */
+export const newItemTarget = (
+  draft: NewItemDraft,
+  groupId: string,
+): { to: string; state: Record<string, unknown> } =>
+  draft.kind === "medication"
+    ? {
+        to: appUrls.newMedication(groupId, "list"),
+        state: { ...MEDICATION_SHEET_STATE, [QUICK_ENTRY_DRAFT]: draft },
+      }
+    : {
+        to: appUrls.newProvider(groupId, draft.type === "clinician" ? {} : { type: draft.type }),
+        state: { ...PROVIDER_SHEET_STATE, [QUICK_ENTRY_DRAFT]: draft },
+      };
+
+/**
+ * A new item card's wording: its name ("Lisinopril", or "New medication"
+ * with none), and what else the sheet will start with ("10 mg · Tablet ·
+ * once daily"; "Cardiology · 555-0100"). `practiceName` names a practice it's at.
+ */
+export const newItemPreview = (
+  draft: NewItemDraft,
+  practiceName?: (id: string) => string | undefined,
+): { title: string; detail: string | null; when: string } => {
+  const parts =
+    draft.kind === "medication"
+      ? [draft.strength, draft.form && FORM_LABELS[draft.form], draft.directions]
+      : [draft.specialty, draft.practiceId && practiceName?.(draft.practiceId), draft.phone, draft.address];
+  const fallback = draft.kind === "medication" ? "New medication" : "New provider";
+  return {
+    title: draft.name || fallback,
+    detail: parts.filter(Boolean).join(" · ") || null,
+    when: "",
+  };
+};
+
+/** A new item card's line: "Opens Add a medication to finish". */
+export const newItemLine = (draft: NewItemDraft) =>
+  `Opens Add a ${draft.kind === "medication" ? "medication" : "provider"} to finish`;
 
 /** The draft card's line: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
 export const draftSummary = (providerNames: readonly string[], when: string) =>

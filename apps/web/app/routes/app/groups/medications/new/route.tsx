@@ -3,10 +3,11 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CreateResult } from "~/lib/core/api";
 import type { RecipientRow } from "~/lib/medications/medications.sync";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { redirect, useLocation, useNavigate } from "react-router";
 import { Sheet } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { medicationDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { getGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { medicationPageState } from "~/lib/medications/medicationOrigin";
@@ -72,8 +73,11 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function NewMedicationSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseMedicationSheet();
   const navigate = useNavigate();
-  const { pathname, search } = useLocation();
+  const location = useLocation();
+  const { pathname, search } = location;
   const { groupId } = params;
+  // Opened from quick entry ("new med lisinopril 10 mg"): the form starts filled in.
+  const [draft] = useState(() => medicationDraftFrom(location.state as unknown));
   // The page replaces the sheet's entry; its Back link names the tab underneath, with its search.
   const opened = useCallback(
     (id?: string) => {
@@ -101,6 +105,7 @@ export default function NewMedicationSheet({ loaderData, params }: Route.Compone
         names={names}
         conditions={conditions}
         zoneNote={zoneNote}
+        draft={draft}
         onDone={opened}
         onCancel={() => close()}
       />

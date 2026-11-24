@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+import type { FieldControl } from "./fieldIds";
+
+import { useEffect, useRef, useState } from "react";
 import {
   ComboBox as AriaComboBox,
   Header,
@@ -38,7 +40,12 @@ const ITEM =
  * `opensOn="typing"` is for a free-text name with suggestions (a condition,
  * later an allergy or a medication): focus opens nothing, the first typed
  * character opens the list, and an empty field shows none (clearing it
- * closes the list). The default, `"focus"`, opens it on focus to browse.
+ * closes the list); a pick closes it until the text changes again. The
+ * default, `"focus"`, opens it on focus to browse.
+ *
+ * `control` puts it inside a `Field`: the field's control props (its id,
+ * `aria-invalid`, `aria-describedby` and classes) go on the text input, with
+ * the input's own `name` (it then posts the text) and `maxLength`.
  */
 export function ComboBox({
   label,
@@ -54,6 +61,7 @@ export function ComboBox({
   onClose,
   focusOnMount,
   opensOn = "focus",
+  control,
 }: {
   /** The field's accessible name. */
   label: string;
@@ -74,6 +82,8 @@ export function ComboBox({
   focusOnMount?: boolean;
   /** When the list opens: on `focus` (browse every choice), or on `typing` (nothing for an empty field). */
   opensOn?: "focus" | "typing";
+  /** From a `Field`'s render prop, plus the input's `name` and `maxLength`. */
+  control?: FieldControl & { name?: string; maxLength?: number };
 }) {
   const open = useRef(false);
   const input = useRef<HTMLInputElement>(null);
@@ -84,19 +94,30 @@ export function ComboBox({
   const create = onCreate && typed ? { id: CREATE, label: createLabel ? createLabel(typed) : typed } : null;
   // Typing mode: an empty field has no list, so React Aria closes it (and
   // won't open it) once the collection is empty and empty ones aren't allowed.
-  const listed = opensOn === "focus" || typed !== "";
+  // Nor does the text a pick just put in (React Aria would reopen on it).
+  const [picked, setPicked] = useState<string | null>(null);
+  const listed = opensOn === "focus" || (typed !== "" && inputValue !== picked);
 
   return (
     <AriaComboBox
       aria-label={label}
       defaultFilter={SHOW_ALL}
       inputValue={inputValue}
-      onInputChange={onInputChange}
+      onInputChange={(text) => {
+        if (text !== picked) setPicked(null);
+        onInputChange(text);
+      }}
       selectedKey={null}
       onSelectionChange={(key) => {
         if (key === null) return;
         if (key === CREATE) onCreate?.(typed);
-        else onSelect(String(key));
+        else {
+          if (opensOn === "typing")
+            setPicked(
+              [...options, ...sections.flatMap((s) => s.options)].find((o) => o.id === key)?.label ?? null,
+            );
+          onSelect(String(key));
+        }
       }}
       onOpenChange={(isOpen) => {
         open.current = isOpen;
@@ -115,6 +136,7 @@ export function ComboBox({
           if (e.key === "Escape" && !open.current) onClose?.("escape");
         }}
         className="input input-sm w-full"
+        {...control}
       />
       <AriaPopover
         placement="bottom start"

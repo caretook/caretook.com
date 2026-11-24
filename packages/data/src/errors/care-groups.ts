@@ -11,6 +11,10 @@ export const CARE_GROUPS_ERRORS = {
     message: "Only an owner can add, change or remove owners",
     statusCode: 403,
   },
+  "careGroupMemberService:managersOnly": {
+    message: "Only the care group's owners and admins can see members' account status",
+    statusCode: 403,
+  },
   "careGroupMemberService:lastOwner": {
     message: "A care group needs at least one owner. Make someone else an owner first.",
     statusCode: 409,

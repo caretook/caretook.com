@@ -3,8 +3,8 @@ import type { MedicationsPageTab, MedicationTab } from "./urls";
 import { appUrls } from "../app-shell/appUrls";
 
 // The sheet routes over the Medications tabs (`medications/<tab>/new`,
-// `medications/<tab>/:medicationId/edit`, `medications/<tab>/allergies`, for
-// the Schedule and list tabs; `medications/passes/new` over Passes): which tab a URL is on, which sheet it opens or
+// `medications/<tab>/:medicationId/edit`, for the
+// Schedule and list tabs; `medications/passes/new` over Passes): which tab a URL is on, which sheet it opens or
 // where it goes instead, and the history state that lets a sheet go back to
 // where it was opened from (a tab, or a medication's page). Pure, so web:unit tests
 // it; the routes apply it. Like the directory's `providerSheetGuard`. It lives
@@ -57,9 +57,6 @@ export const newMedicationGuard = ({
   canWrite: boolean;
 }): MedicationSheetDecision<true> =>
   canWrite ? { sheet: true } : { redirect: appUrls.medicationTab(groupId, tab, search) };
-
-/** `medications/<tab>/allergies`: the allergies sheet, for writers; a viewer gets the tab. */
-export const allergiesSheetGuard = newMedicationGuard;
 
 /**
  * `medications/<tab>/:medicationId/edit`: a live medication in this group,

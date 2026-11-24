@@ -7,12 +7,16 @@ import { LANDING_GAP } from "./useJumpLanding";
 
 const NOTICE = "[data-jump-notice]";
 
-/** What to hold still: the first row on screen, else the jump's notice. */
+/**
+ * What to hold still: the first row on screen, else the jump's notice, with
+ * where it is on screen (`top`) and the scroll then (`y`), so scrolling on
+ * while the rows load is the reader's, not undone when they're in.
+ */
 const anchorIn = (list: HTMLElement | null) => {
   if (!list) return null;
   const rows = [...list.querySelectorAll("ol > li")];
   const el = rows.find((row) => row.getBoundingClientRect().bottom > 0) ?? list.querySelector(NOTICE);
-  return el ? { el, top: el.getBoundingClientRect().top } : null;
+  return el ? { el, top: el.getBoundingClientRect().top, y: window.scrollY } : null;
 };
 
 /**
@@ -20,7 +24,8 @@ const anchorIn = (list: HTMLElement | null) => {
  * button, where the page is too short to scroll), and on its own when nothing
  * is on or before the day. `armed` waits for the landing scroll. The page is
  * held by measurement, since iOS Safari has no reliable scroll anchoring: the
- * row on screen is measured before a load and put back after it.
+ * row on screen is measured before a load and moved back by what the new
+ * rows pushed it, keeping any scrolling done while they loaded.
  */
 export function NewerEntries({
   newer,
@@ -40,7 +45,8 @@ export function NewerEntries({
   useEffect(() => {
     load.current = () => {
       if (newer.loading || !newer.has) return;
-      hold.current = anchorIn(list.current);
+      // A scroll before the first load's render calls again: the first measure stands.
+      hold.current ??= anchorIn(list.current);
       newer.load();
     };
   });
@@ -67,14 +73,14 @@ export function NewerEntries({
     return () => window.removeEventListener("scroll", onScroll);
   }, [armed, newer.has]);
 
-  // Once the new rows are in, before paint: put the row back where it was.
+  // Once the new rows are in, before paint: put the row back where it was, less the scrolling since.
   useLayoutEffect(() => {
     if (newer.loading || !hold.current) return;
-    const { el, top: was } = hold.current;
+    const { el, top: was, y } = hold.current;
     hold.current = null;
     const target = el.isConnected ? el : list.current?.querySelector(NOTICE);
     if (!target) return;
-    const moved = target.getBoundingClientRect().top - was;
+    const moved = target.getBoundingClientRect().top - (was - (window.scrollY - y));
     if (moved) window.scrollBy({ top: moved, behavior: "instant" });
   });
 

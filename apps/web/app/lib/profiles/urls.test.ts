@@ -10,6 +10,10 @@ describe("appUrls: profile", () => {
     expect(appUrls.profile(G, "bogus")).toBe(`/app/groups/${G}/profile`);
   });
 
+  it("has the allergies sheet over the profile", () => {
+    expect(appUrls.profileAllergies(G)).toBe(`/app/groups/${G}/profile/allergies`);
+  });
+
   it("encodes a condition's id", () => {
     expect(appUrls.condition(G, "c 1")).toBe(`/app/groups/${G}/profile/conditions/c%201`);
   });
