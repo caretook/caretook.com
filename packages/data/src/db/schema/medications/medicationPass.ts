@@ -135,11 +135,13 @@ export type PassLike = {
 
 const isLive = (pass: PassLike) => !pass.deletedAt;
 
-/** Passes in the day's order: by sort order, then time, then name. */
+/**
+ * Passes in the day's order: by time, then name. The `sort_order` column is
+ * still written but no longer orders anything (B-701).
+ */
 export const sortPasses = <P extends PassLike>(passes: readonly P[]): P[] =>
   [...passes].sort(
     (a, b) =>
-      a.sortOrder - b.sortOrder ||
       a.time.localeCompare(b.time) ||
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) ||
       a.id.localeCompare(b.id),
@@ -167,25 +169,6 @@ export const nextSortOrder = (passes: readonly PassLike[]) =>
     MEDICATION_PASS_LIMITS.sortOrder,
     passes.filter(isLive).reduce((max, p) => Math.max(max, p.sortOrder + 1), 0),
   );
-
-/**
- * Moving one live pass up or down the list: the sort orders that change,
- * renumbering the live passes 0, 1, 2… in their new order. Nothing when it's
- * already first (up) or last (down), or isn't a live pass.
- */
-export const reorderPasses = (
-  passes: readonly PassLike[],
-  id: string,
-  direction: "up" | "down",
-): { id: string; sortOrder: number }[] => {
-  const order = sortPasses(passes.filter(isLive));
-  const from = order.findIndex((p) => p.id === id);
-  const to = direction === "up" ? from - 1 : from + 1;
-  if (from < 0 || to < 0 || to >= order.length) return [];
-  const moved = [...order];
-  [moved[from], moved[to]] = [moved[to]!, moved[from]!];
-  return moved.flatMap((p, sortOrder) => (p.sortOrder === sortOrder ? [] : [{ id: p.id, sortOrder }]));
-};
 
 /** Whether a schedule has a slot in this pass. */
 export const scheduleHasPass = (schedule: MedicationSchedule, passId: string) =>

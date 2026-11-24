@@ -2,7 +2,7 @@ import type { MenuEntry } from "~/components/ui";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
-import { ArrowDown, ArrowUp, Clock, Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Clock, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { ConfirmDialog, EmptyState, LINK, Menu, SEPARATOR } from "~/components/ui";
@@ -16,9 +16,9 @@ import { PASS_FIELD } from "./passActions";
 export type PassWithMedications = { pass: LocalPass; medications: LocalMedication[] };
 
 /**
- * The passes in the day's order: each one's name and time and the current
- * medications in it (links to their pages). Writers get a ⋯ menu on each:
- * Edit, Move up, Move down and Delete (after a confirm that says the
+ * The passes in the day's order (by time, then name): each one's name and
+ * time and the current medications in it (links to their pages). Writers get
+ * a ⋯ menu on each: Edit and Delete (after a confirm that says the
  * medications keep the time). The writes are local, so they work offline.
  */
 export function PassList({
@@ -45,22 +45,8 @@ export function PassList({
       </EmptyState>
     );
 
-  const actions = (pass: LocalPass, index: number): MenuEntry[] => [
+  const actions = (pass: LocalPass): MenuEntry[] => [
     { id: "edit", label: "Edit", icon: Pencil, onAction: () => onEdit(pass) },
-    {
-      id: "up",
-      label: "Move up",
-      icon: ArrowUp,
-      isDisabled: index === 0,
-      onAction: () => post({ [PASS_FIELD.intent]: "move", [PASS_FIELD.passId]: pass.id, direction: "up" }),
-    },
-    {
-      id: "down",
-      label: "Move down",
-      icon: ArrowDown,
-      isDisabled: index === passes.length - 1,
-      onAction: () => post({ [PASS_FIELD.intent]: "move", [PASS_FIELD.passId]: pass.id, direction: "down" }),
-    },
     SEPARATOR,
     { id: "delete", label: "Delete", icon: Trash2, tone: "danger", onAction: () => setDeleting(pass) },
   ];
@@ -68,7 +54,7 @@ export function PassList({
   return (
     <>
       <ol className="divide-base-300 border-base-300 rounded-box divide-y border" data-passes>
-        {passes.map(({ pass, medications }, index) => (
+        {passes.map(({ pass, medications }) => (
           <li key={pass.id} className="flex items-start gap-3 px-3 py-2.5" data-pass={pass.id}>
             <span
               aria-hidden="true"
@@ -110,7 +96,7 @@ export function PassList({
             {canWrite && (
               <Menu
                 label={`Actions for ${pass.name}`}
-                items={actions(pass, index)}
+                items={actions(pass)}
                 variant="ghost"
                 size="sm"
                 shape="square"
