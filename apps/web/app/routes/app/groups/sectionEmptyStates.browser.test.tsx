@@ -84,7 +84,9 @@ describe("what stays quiet", () => {
     await renderWithDevice({ route: PLANNER_ROUTES, url, fixtures: [] });
     await expect.element(page.getByText(words)).toBeVisible();
     expect(chip()).toBeNull();
-    expect(document.querySelector("main [data-icon-chip]")).toBeNull();
+    const empty = document.querySelector("[data-empty], [data-todos-empty]");
+    expect(empty).not.toBeNull();
+    expect(empty!.querySelector("[data-icon-chip]")).toBeNull();
   });
 
   test("a filtered timeline shows its line and no circle", async () => {
