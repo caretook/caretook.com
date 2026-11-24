@@ -177,7 +177,7 @@ chore(app-shell): merge dev into prd/app-shell
 - **Types:** `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `build`, `ci`, `chore`, `revert`.
 - **Scope** (optional): the PRD topic, or the area. Backlog ids go at the end, in parentheses.
 - **Breaking change:** `feat(api)!: …`, with a `BREAKING CHANGE:` footer.
-- The tools write their own: `pnpm backlog` commits as `chore(backlog): …`, `pnpm prd sync` as `chore(<topic>): merge dev …`, and `pnpm prd land` takes `-m "feat(<topic>): …"` (or writes a default).
+- `pnpm backlog`, `pnpm prd sync` and `pnpm prd land` (`-m`, else a default) write their own.
 
 ## Commands at a glance
 
@@ -185,6 +185,7 @@ chore(app-shell): merge dev into prd/app-shell
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `pnpm prd status`                 | every worktree and session: kind, context size (`pnpm prd context`), server link   |
 | `pnpm prd status-watch [seconds]` | the same, redrawn every few seconds (default 5) until Ctrl-C                       |
+| `pnpm prd metrics [--json]`       | slice and landing times, check times, flake rate, Codex's find rate (`--since`)    |
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
 | `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
