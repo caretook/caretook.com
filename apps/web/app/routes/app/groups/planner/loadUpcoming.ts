@@ -2,17 +2,23 @@ import type { SyncDb } from "~/lib/sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow } from "./upcomingContact";
-import type { RescheduledTargetRow } from "./upcomingQueries";
+import type { PastTextRow, RescheduledTargetRow } from "./upcomingQueries";
 import type { TodoRow } from "~/lib/todos/todos.sync";
 
 import { PAGE_SIZE } from "~/lib/core/paging";
 import { recipientQuery } from "~/lib/medications/medications.sync";
 import type { RecipientRow } from "~/lib/medications/medications.sync";
-import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
+import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
 import { dueTodosQuery, dueTodosThrough } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows, UPCOMING_HORIZON_DAYS } from "~/lib/timeline/timeline.sync";
 import { historyCutoff } from "~/lib/appointments/upcoming";
-import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
+import {
+  pastQueries,
+  pastTextCondition,
+  pastTextQuery,
+  rescheduledTargetsQuery,
+  upcomingQueries,
+} from "./upcomingQueries";
 
 // The first render's rows for Upcoming and its Past tab, read from the
 // device's local copy by the routes' loaders; the hooks (`useUpcomingData`,
@@ -46,17 +52,28 @@ export type UpcomingRows = Awaited<ReturnType<typeof loadUpcoming>>;
 /**
  * The Past tab's first page. Its `cutoff` (where the past ends) is fixed
  * for the visit, so a growing page never waits on a moving query; an event
- * that starts while you look shows on the next visit.
+ * that starts while you look shows on the next visit. With the search box's
+ * text `q`, only the matching events (`pastTextCondition`).
  */
-export const loadPast = async (db: SyncDb, groupId: string, filters: EntryFilters, now = new Date()) => {
+export const loadPast = async (
+  db: SyncDb,
+  groupId: string,
+  filters: EntryFilters,
+  q = "",
+  now = new Date(),
+) => {
   const cutoff = historyCutoff(now);
-  const queries = pastQueries(groupId, filters, PAGE_SIZE, cutoff);
-  const [entryRows, contactRows, [memberRows, documentRows, targetRows]] = await Promise.all([
-    readRows<EntryRow>(db, queries.entries),
-    readRows<ContactRow>(db, queries.contacts),
+  const [textRows, [memberRows, documentRows, targetRows]] = await Promise.all([
+    readRows<PastTextRow>(db, pastTextQuery(groupId, filters, cutoff)),
     shared(db, groupId),
   ]);
-  return { cutoff, entryRows, contactRows, memberRows, documentRows, targetRows };
+  const match = pastTextCondition(textRows, toPreviews(documentRows), q);
+  const queries = pastQueries(groupId, { ...filters, match }, PAGE_SIZE, cutoff);
+  const [entryRows, contactRows] = await Promise.all([
+    readRows<EntryRow>(db, queries.entries),
+    readRows<ContactRow>(db, queries.contacts),
+  ]);
+  return { cutoff, textRows, entryRows, contactRows, memberRows, documentRows, targetRows };
 };
 
 export type PastRows = Awaited<ReturnType<typeof loadPast>>;

@@ -178,11 +178,19 @@ describe("medicationPassService", () => {
     expect(new Date(entries[0]!.occurredAt).toISOString()).toBe("2026-11-18T09:00:00.000Z");
   });
 
-  it("reorders passes", async () => {
-    const { u, morning, evening, passes } = await setup();
+  it("lists passes by time, then name, whatever their sort orders say", async () => {
+    const { u, group, morning, evening, passes } = await setup();
     ok(await medicationPassService.update(u.caretaker.ctx, evening.id, { sortOrder: 0 }));
-    ok(await medicationPassService.update(u.caretaker.ctx, morning.id, { sortOrder: 1 }));
-    expect((await passes()).map((p) => p.name)).toEqual(["Evening", "Morning"]);
+    ok(await medicationPassService.update(u.caretaker.ctx, morning.id, { sortOrder: 5 }));
+    ok(
+      await medicationPassService.create(u.caretaker.ctx, {
+        groupId: group.id,
+        name: "Breakfast",
+        time: "08:00",
+        sortOrder: 9,
+      }),
+    );
+    expect((await passes()).map((p) => p.name)).toEqual(["Breakfast", "Morning", "Evening"]);
   });
 
   it("deletes a pass, turning it into a time in every schedule (amounts kept), with no change entries", async () => {

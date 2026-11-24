@@ -7,9 +7,10 @@ import type { RecipientRow } from "~/lib/medications/medications.sync";
 import type { WithTodos } from "~/lib/todos/plannerTodos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
-import type { RescheduledTargetRow } from "./upcomingQueries";
+import type { PastTextRow, RescheduledTargetRow } from "./upcomingQueries";
 
 import { useMemo, useState } from "react";
+import { matchesText, textTokens } from "~/lib/core/textFilter";
 import { localTimeZone } from "~/lib/core/format";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
@@ -29,7 +30,13 @@ import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
 import { showsTodos, plannerTodos, withDueTodos } from "~/lib/todos/plannerTodos";
-import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
+import {
+  pastQueries,
+  pastTextCondition,
+  pastTextQuery,
+  rescheduledTargetsQuery,
+  upcomingQueries,
+} from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first
 // render's rows (`loadUpcoming`, `loadPast`), and live queries here take
@@ -50,6 +57,8 @@ export type UpcomingListData = {
   now: Date;
   nameOf: (userId: string) => string;
   imageOf: (userId: string) => string | null;
+  /** The group's members, for the author filter. */
+  members: { userId: string; name: string }[];
   /** An entry's linked providers, in link order, with how to reach them. */
   contactsOf: (entryId: string) => LinkedContact[] | undefined;
   /** The recipient's zone, which todos' due days and times are in (Upcoming only). */
@@ -58,17 +67,22 @@ export type UpcomingListData = {
 
 /** Where a cancelled event was rescheduled to. */
 export type RescheduledTarget = { id: string; occurredAt: string };
+/** The group's documents' text, live, by id (a note's or event's document has its entry's id). */
+function useDocumentPreviews(groupId: string, initial: NoteDocRow[]) {
+  const documentsSql = groupDocumentsQuery(groupId);
+  const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial);
+  return useMemo(() => toPreviews(documentRows), [documentRows]);
+}
+
 /** Members, previews, contacts and reschedules: what both lists need besides their entries. */
 function useListSupport(
   groupId: string,
-  initial: { memberRows: MemberRow[]; documentRows: NoteDocRow[]; targetRows: RescheduledTargetRow[] },
+  initial: { memberRows: MemberRow[]; targetRows: RescheduledTargetRow[] },
   contactRows: ContactRow[],
+  previews: ReadonlyMap<string, string>,
 ) {
   const membersSql = membersQuery(groupId);
   const memberRows = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, initial.memberRows);
-  const documentsSql = groupDocumentsQuery(groupId);
-  const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
-  const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   const contacts = useMemo(() => contactsByEntry(contactRows, fromLocalTimestamp), [contactRows]);
   const members = memberRows.map(toMember);
   const targetsSql = rescheduledTargetsQuery(groupId);
@@ -94,6 +108,7 @@ function useListSupport(
       entries.map((entry) =>
         isLiveEntryKind(entry.kind) ? { ...entry, body: previews.get(entry.id) || null } : entry,
       ),
+    members: members.map((m) => ({ userId: m.userId, name: m.name ?? "Former member" })),
     nameOf: (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member",
     imageOf: (id: string) => members.find((m) => m.userId === id)?.image ?? null,
     contactsOf: (id: string) => contacts.get(id),
@@ -102,17 +117,23 @@ function useListSupport(
   };
 }
 
-/** Everything Upcoming shows, live. */
+/**
+ * Everything Upcoming shows, live. `q` (the search box) keeps the entries
+ * whose title, place or text and the todos whose title or assignee has every
+ * word typed; Upcoming isn't paged, so it filters what it has.
+ */
 export function useUpcomingData({
   groupId,
   filters,
   todosOnly = false,
+  q = "",
   initial,
 }: {
   groupId: string;
   filters: EntryFilters;
   /** Todos only (`?show=todos`): no entries. */
   todosOnly?: boolean;
+  q?: string;
   initial: UpcomingRows;
 }): UpcomingListData {
   const now = useNow(UPCOMING_TICK_MS);
@@ -123,27 +144,37 @@ export function useUpcomingData({
     queries.contacts.params,
     initial.contactRows,
   );
-  const support = useListSupport(groupId, initial, contactRows);
+  const previews = useDocumentPreviews(groupId, initial.documentRows);
+  const support = useListSupport(groupId, initial, contactRows, previews);
+  const tokens = textTokens(q);
   // The recipient's zone, which todos' due days and times are in.
   const recipientSql = recipientQuery(groupId);
   const recipient = useLiveQuery<RecipientRow>(recipientSql.sql, recipientSql.params, initial.recipientRows);
   const todoZone = recipient[0]?.time_zone || "UTC";
   const at = new Date(now);
   const zone = localTimeZone();
-  const shown = todosOnly ? [] : support.withPreview(toTimelineEntries(entryRows));
+  const shown = todosOnly
+    ? []
+    : support
+        .withPreview(toTimelineEntries(entryRows))
+        .filter((e) => matchesText(tokens, e.title, e.place, e.body));
   const sections = upcomingSections(shown, at, zone);
   // Open dated todos through Upcoming's last day, live: completing one drops it out.
   const dueTodos = useDueTodos(groupId, todoZone, {
     days: UPCOMING_HORIZON_DAYS,
     initial: initial.todoRows,
   });
-  const todos = showsTodos(filters) ? plannerTodos(dueTodos.todos, at, todoZone) : [];
+  const matching = dueTodos.todos.filter((t) =>
+    matchesText(tokens, t.title, t.assigneeName, t.assigneeId ? support.nameOf(t.assigneeId) : null),
+  );
+  const todos = showsTodos(filters) ? plannerTodos(matching, at, todoZone) : [];
   return {
     sections: withDueTodos(sections, todos, at, zone, todoZone),
     rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
+    members: support.members,
     contactsOf: support.contactsOf,
     todoZone,
   };
@@ -157,30 +188,41 @@ export type PastData = UpcomingListData & {
 
 /**
  * The Past tab's events, live, paged like the timeline: scrolling near the
- * end grows the window by a page, and a new author filter starts from one page.
+ * end grows the window by a page, and a new author filter or text starts
+ * from one page. `q` (the search box) is matched over every past event's
+ * text (`pastTextCondition`), and the matching ids go into the paged local
+ * query, so an event older than the loaded page is found too.
  */
 export function usePastEvents({
   groupId,
   filters,
+  q = "",
   initial,
 }: {
   groupId: string;
   filters: EntryFilters;
+  q?: string;
   initial: PastRows;
 }): PastData {
   const now = useNow(UPCOMING_TICK_MS);
   const { author } = filters;
-  const [paging, setPaging] = useState({ author, limit: PAGE_SIZE });
-  const requested = paging.author === author ? paging.limit : PAGE_SIZE;
+  const filterKey = `${author ?? ""}\n${q.trim()}`;
+  const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
+  const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
-  const queries = pastQueries(groupId, filters, requested, initial.cutoff);
+  const previews = useDocumentPreviews(groupId, initial.documentRows);
+  const textSql = pastTextQuery(groupId, filters, initial.cutoff);
+  const textRows = useLiveQuery<PastTextRow>(textSql.sql, textSql.params, initial.textRows);
+  const match = useMemo(() => pastTextCondition(textRows, previews, q), [textRows, previews, q]);
+
+  const queries = pastQueries(groupId, { ...filters, match }, requested, initial.cutoff);
   const entries = useLiveRows<EntryRow>(queries.entries.sql, queries.entries.params, initial.entryRows);
   const contacts = useLiveRows<ContactRow>(
     queries.contacts.sql,
     queries.contacts.params,
     initial.contactRows,
   );
-  const support = useListSupport(groupId, initial, contacts.rows);
+  const support = useListSupport(groupId, initial, contacts.rows, previews);
   const page = pageWindow({
     rowCount: entries.rows.length,
     requested,
@@ -195,12 +237,13 @@ export function usePastEvents({
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
+    members: support.members,
     contactsOf: support.contactsOf,
     hasOlder: page.hasOlder,
     loadingOlder: page.loading,
     loadOlder: () => {
       if (page.loading || !page.hasOlder) return;
-      setPaging({ author, limit: nextLimit(page.limit) });
+      setPaging({ filterKey, limit: nextLimit(page.limit) });
     },
   };
 }

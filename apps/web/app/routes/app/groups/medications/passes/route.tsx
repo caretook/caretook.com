@@ -8,19 +8,21 @@ import { Outlet } from "react-router";
 import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
+import { useMemberNames } from "~/lib/care-groups/memberNames.sync";
+import { loadDueDoses } from "~/lib/medications/dueDoses.sync";
 import { onlyMedicationSheetChanged } from "~/lib/medications/medicationSheets";
-import { createPass, movePass, removePass, updatePass } from "~/lib/medications/medicationPasses.sync";
+import { createPass, removePass, updatePass } from "~/lib/medications/medicationPasses.sync";
 import { passActionFromForm } from "./passActions";
 import { PassForm } from "./PassForm";
 import { PassList } from "./PassList";
-import { loadPasses, usePasses, usePassZoneNote } from "./usePasses";
+import { loadPasses, usePasses, usePassZoneNote, useTodayPasses } from "./usePasses";
 
 // Shared by web + native. `medications/passes`, the Medications page's
 // Passes tab (the header above it is the layout's): the group's medication
 // passes (Morning, Evening…) in the day's order, with the medications in
-// each, read from the device's local copy (live, so it works offline and
-// follows other members' changes). Writers rename, retime, reorder and
-// delete them here (local writes; see lib/medications/medicationPasses.sync.ts)
+// each and today's state of each, read from the device's local copy (live,
+// so it works offline and follows other members' changes). Writers log a
+// pass (Given all, as on Schedule), rename, retime and delete them here (local writes; see lib/medications/medicationPasses.sync.ts)
 // and add one in the add-pass sheet (`new`, a child route, opened from the
 // header's `+`). Viewers read only.
 
@@ -29,7 +31,8 @@ export const meta = () => [{ title: "Passes · Medications · Caretook" }];
 export async function clientLoader({ params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
   const { db } = context.get(sessionContext);
-  return loadPasses(db, params.groupId);
+  const [passes, due] = await Promise.all([loadPasses(db, params.groupId), loadDueDoses(db, params.groupId)]);
+  return { ...passes, due };
 }
 
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
@@ -42,8 +45,6 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
       return createPass(db, group.id, { name: action.name, time: action.time });
     case "update":
       return updatePass(db, action.passId, { name: action.name, time: action.time });
-    case "move":
-      return movePass(db, action.passId, action.direction);
     case "remove":
       return removePass(db, action.passId);
   }
@@ -66,6 +67,8 @@ export function shouldRevalidate({
 export default function MedicationPasses({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const passes = usePasses(params.groupId, loaderData);
+  const today = useTodayPasses(params.groupId, loaderData.due);
+  const nameOf = useMemberNames(params.groupId, group.userId);
   // The edit sheet's pass (adding is the `new` route's sheet).
   const [editing, setEditing] = useState<LocalPass | null>(null);
   const zoneNote = usePassZoneNote();
@@ -79,7 +82,14 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
         {!group.canWrite && " You can view the passes."}
       </p>
 
-      <PassList groupId={params.groupId} passes={passes} canWrite={group.canWrite} onEdit={setEditing} />
+      <PassList
+        groupId={params.groupId}
+        passes={passes}
+        today={today}
+        canWrite={group.canWrite}
+        nameOf={nameOf}
+        onEdit={setEditing}
+      />
 
       {editing && (
         <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title={`Edit ${editing.name}`}>

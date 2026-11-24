@@ -87,3 +87,6 @@ export { CHOICE_BUTTON, CHOICE_TILE } from "./styles";
 export { navLinkClass } from "./styles";
 // member-avatars (slice 1): the chosen colors' classes and the icons' glyphs.
 export { avatarColorClass, avatarIconGlyph } from "./avatarLook";
+// fixes-ui (slice 57): every list page's search and filter bar.
+export { SEARCH_PLACEHOLDER, SearchFilterBar } from "./SearchFilterBar";
+export type { SearchFilterBarProps } from "./SearchFilterBar";

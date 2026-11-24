@@ -1,4 +1,4 @@
-import type { TodoRow } from "~/lib/todos/todos.sync";
+import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -7,6 +7,7 @@ import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
 import { doneCountQuery, todosQuery, toTodos } from "~/lib/todos/todos.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
+import { matchesText, textTokens } from "~/lib/core/textFilter";
 import { showsTodo, todoSections, whoOf } from "~/lib/todos/todoList";
 
 /** How many done todos a page of the Done list shows. */
@@ -30,9 +31,11 @@ const NO_COUNT: { count: number }[] = [];
 /**
  * The todo list's data, live: the open todos the filter shows, in sections
  * (in the recipient's zone), the Done page, and members' names. The filter
- * comes from `?who=`; with none it's Everyone.
+ * comes from `?who=`; with none it's Everyone. `text` (the search box) keeps
+ * the todos whose title or assignee has every word typed; with text, Done
+ * reads every done todo and pages the matches, so older ones are found too.
  */
-export function useTodoList(groupId: string, initial: TodoListRows) {
+export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const group = useGroup();
   const { search } = useLocation();
   const timeZone = group.recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -44,16 +47,6 @@ export function useTodoList(groupId: string, initial: TodoListRows) {
 
   const who = whoOf(search);
 
-  const [doneLimit, setDoneLimit] = useState(DONE_PAGE);
-  const doneQuery = todosQuery(groupId, { done: true, who, userId: group.userId, limit: doneLimit });
-  const doneRows = useLiveQuery<TodoRow>(doneQuery.sql, doneQuery.params, initial.doneRows);
-  const done = useMemo(() => toTodos(doneRows), [doneRows]);
-  const countQuery = doneCountQuery(groupId, { who, userId: group.userId });
-  const [count] = useLiveQuery<{ count: number }>(countQuery.sql, countQuery.params, NO_COUNT);
-  const moreDone = (count?.count ?? 0) > done.length;
-  // The React Compiler memoizes it.
-  const showMoreDone = () => setDoneLimit((n) => n + DONE_PAGE);
-
   const memberQuery = membersQuery(groupId);
   const members = useLiveQuery<MemberRow>(memberQuery.sql, memberQuery.params, initial.memberRows);
   const nameOf = useCallback(
@@ -61,15 +54,48 @@ export function useTodoList(groupId: string, initial: TodoListRows) {
       userId === group.userId ? "you" : (members.find((m) => m.user_id === userId)?.name ?? "Former member"),
     [members, group.userId],
   );
+  const tokens = useMemo(() => textTokens(text), [text]);
+  const matches = useCallback(
+    (todo: LocalTodo) =>
+      matchesText(
+        tokens,
+        todo.title,
+        todo.assigneeName,
+        todo.assigneeId ? members.find((m) => m.user_id === todo.assigneeId)?.name : null,
+      ),
+    [tokens, members],
+  );
+  const filtering = tokens.length > 0;
+
+  const [doneLimit, setDoneLimit] = useState(DONE_PAGE);
+  // With text, every done todo is read and the matches paged here (a page of the table would miss older ones).
+  const doneQuery = todosQuery(groupId, {
+    done: true,
+    who,
+    userId: group.userId,
+    ...(filtering ? {} : { limit: doneLimit }),
+  });
+  const doneRows = useLiveQuery<TodoRow>(doneQuery.sql, doneQuery.params, initial.doneRows);
+  const doneAll = useMemo(() => toTodos(doneRows), [doneRows]);
+  const doneMatching = useMemo(
+    () => (filtering ? doneAll.filter(matches) : doneAll),
+    [doneAll, filtering, matches],
+  );
+  const done = filtering ? doneMatching.slice(0, doneLimit) : doneMatching;
+  const countQuery = doneCountQuery(groupId, { who, userId: group.userId });
+  const [count] = useLiveQuery<{ count: number }>(countQuery.sql, countQuery.params, NO_COUNT);
+  const moreDone = (filtering ? doneMatching.length : (count?.count ?? 0)) > done.length;
+  // The React Compiler memoizes it.
+  const showMoreDone = () => setDoneLimit((n) => n + DONE_PAGE);
 
   const sections = useMemo(
     () =>
       todoSections(
-        open.filter((t) => showsTodo(who, t, group.userId)),
+        open.filter((t) => showsTodo(who, t, group.userId) && matches(t)),
         now,
         timeZone,
       ),
-    [open, who, group.userId, now, timeZone],
+    [open, who, group.userId, now, timeZone, matches],
   );
 
   return { who, sections, done, moreDone, showMoreDone, nameOf, now, timeZone, total: open.length };

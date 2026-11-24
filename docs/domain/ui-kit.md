@@ -8,8 +8,8 @@ The `ui/` contracts; layout, rules, tests: [components](components.md).
 - `ui/tooltip/` and `ui/date/` have their own indexes. `DateTimeField`: hour arrows cross AM/PM; in `InlineCalendars` the calendar opens inline, one at once; `onCalendarPick` fires on a calendar pick only.
 - **`ui/plain`**, the light entry: everything without React Aria. Light pages (sign-in, account forms, `/connect`, marketing) import it, never `ui` (React Aria's chunk).
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry.
-- **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts`. A new primitive (**only for a repeated pattern**) adds its section.
-- **Contrast:** component tests, `apps/web/test/contrast.ts`.
+- **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes, one `sections/` file each, listed in `registry.ts`. A new primitive (**only for a repeated pattern**) adds its section.
+- **Contrast:** `apps/web/test/contrast.ts`.
 
 ## Which to use
 
@@ -42,13 +42,13 @@ The `ui/` contracts; layout, rules, tests: [components](components.md).
 - `EmptyState`: one quiet line and an optional action; `icon`, `accent` add a soft circle above it (main lists only). `Toast` (`open`) stays, inert, through its fade.
 - `Loading` (`{ label, lines? }`): a status named by `label`, a spinner and the label, or with `lines` a `Skeleton` and a screen-reader label. `Skeleton` (`{ lines }`): `aria-hidden` bars, `data-skeleton`.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`, pure); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current and now `primary`; past and stopped `neutral`; overdue `danger`; due soon `warning`; done `success`. `ViaTag` stays its own.
-- `Highlight` marks search matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).
+- `SearchFilterBar`: search (`?q=`, `lib/core/textFilter.ts`), `FilterMenu`, chips. `Highlight` marks matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).
 
 ## Page, headings and tokens (`/app` only; marketing, print and `/admin` keep theirs)
 
 - `Page` is a page's one `main` (`max-w-2xl`; `width="wide"` `max-w-4xl`), passes `data-*`, `id`, `className`. Every `/app` page but print sheets, the error screen and first sync.
-- **Every section page starts with a `PageHeader`** (its `h1` and actions; `description` for one quiet line under the title).
-- **Heading scale** (`ui/styles.ts`): `TITLE_PAGE` `text-xl font-semibold` (`PageHeader` uses it), `TITLE_SECTION` `text-base font-semibold` (sections and cards), `TITLE_SUB` `text-sm font-semibold`.
+- **Every section page starts with a `PageHeader`** (its `h1` and actions; `description`: one quiet line).
+- **Heading scale** (`ui/styles.ts`): `TITLE_PAGE` `text-xl font-semibold`, `TITLE_SECTION` `text-base font-semibold` (sections and cards), `TITLE_SUB` `text-sm font-semibold`.
 - **Tokens:** `text-muted` (70%) and `text-faint` (62%, 4.5:1 on light) in `app.css`. `LINK` (`link text-primary-ink`); `text-<tone>-ink` lifts a tone's text to 4.5:1 on every surface. `ui/styles.ts`: `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`), `COUNT_BADGE`, `CHOICE_BUTTON`, `CHOICE_TILE`.
 
 ## Bands

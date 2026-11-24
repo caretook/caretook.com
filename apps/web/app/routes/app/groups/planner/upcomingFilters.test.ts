@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   emptyPastText,
   emptyUpcomingText,
+  onlyQueryChanged,
   parsePastFilters,
   parseUpcomingFilters,
   setShow,
@@ -78,5 +79,24 @@ describe("empty states", () => {
     expect(emptyUpcomingText("todos", "Alex Rivera")).toBe("No upcoming todos by Alex Rivera.");
     expect(emptyPastText()).toBe("No past events yet.");
     expect(emptyPastText("Alex Rivera")).toBe("No past events by Alex Rivera.");
+  });
+
+  it("names the search box's text", () => {
+    expect(emptyUpcomingText("all", null, " eye ")).toBe("No upcoming events or todos matching “eye”.");
+    expect(emptyUpcomingText("event", "Alex Rivera", "eye")).toBe(
+      "No upcoming events by Alex Rivera matching “eye”.",
+    );
+    expect(emptyPastText(null, "eye")).toBe("No past events matching “eye”.");
+    expect(emptyPastText("Alex Rivera", "eye")).toBe("No past events by Alex Rivera matching “eye”.");
+  });
+});
+
+describe("onlyQueryChanged", () => {
+  const url = (path: string) => new URL(path, "https://caretook.test");
+  it("is true when only ?q= changed on the same path", () => {
+    expect(onlyQueryChanged(url("/p?author=a"), url("/p?author=a&q=eye"))).toBe(true);
+    expect(onlyQueryChanged(url("/p?q=ey"), url("/p?q=eye"))).toBe(true);
+    expect(onlyQueryChanged(url("/p?q=eye"), url("/p?author=a&q=eye"))).toBe(false);
+    expect(onlyQueryChanged(url("/p?q=eye"), url("/p/past?q=eye"))).toBe(false);
   });
 });

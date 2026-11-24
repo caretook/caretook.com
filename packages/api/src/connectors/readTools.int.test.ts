@@ -502,7 +502,7 @@ describe("read tools", { timeout: 60_000 }, () => {
     await agreesWithTheCore(new Date("2030-06-12T07:05:00.000Z"));
   });
 
-  it("upcoming: appointments soonest first, in the offset, 30 days by default and 90 at most", async () => {
+  it("upcoming: events soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
     ok(
@@ -558,7 +558,7 @@ describe("read tools", { timeout: 60_000 }, () => {
       place: string | null;
     }[];
     expect(items.map((i) => i.title)).toEqual(["Dentist", "Cardiology"]);
-    expect(items.map((i) => i.kind)).toEqual(["appointment", "appointment"]);
+    expect(items.map((i) => i.kind)).toEqual(["event", "event"]);
     expect(items[1]?.place).toBe("Heart Clinic");
     for (const i of items) expect(i.startsAt).toMatch(OFFSET);
 
@@ -625,13 +625,13 @@ describe("read tools", { timeout: 60_000 }, () => {
       assignee?: { id: string | null; name: string | null } | null;
     }[];
     expect(items.map((i) => i.title)).toEqual(["Late call", "Dentist", "Weekly bins", "Order supplies"]);
-    expect(items.map((i) => i.kind)).toEqual(["todo", "appointment", "todo", "todo"]);
+    expect(items.map((i) => i.kind)).toEqual(["todo", "event", "todo", "todo"]);
     expect(items[0]).toMatchObject({ overdue: true, dueOn: day(-3) });
     expect(items[2]?.repeats).toMatch(/^Every Mon/);
     expect(items[3]).toMatchObject({ overdue: false, repeats: null, assignee: { id: w.viewer.user.id } });
     const text = res.content.map((c) => c.text).join("\n");
     expect(text).toMatch(/- overdue .* todo: Late call/);
-    expect(text).toMatch(/ appointment: Dentist/);
+    expect(text).toMatch(/ event: Dentist/);
     expect(text).toMatch(/ todo: Weekly bins \(repeats: Every Mon/);
     for (const hidden of ["Too far", "No day", "Done already", "Old reminder"])
       expect(JSON.stringify(res)).not.toContain(hidden);

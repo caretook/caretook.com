@@ -173,6 +173,11 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
               onImport={mentions.onImport}
               // The easy roles can't open a provider's page.
               linkMentions={!easyRole}
+              // B-765: the same editor full screen, for a long note; readers too.
+              fullScreen={{
+                title: heading,
+                aside: <EditorAvatars documentId={entry.id} groupId={groupId} viewerId={db.userId} />,
+              }}
             />
             {entry.kind === "event" && live.stored && <LinkedTodos link={{ eventId: entry.id }} />}
           </>

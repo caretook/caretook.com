@@ -64,6 +64,12 @@ export type DoseSlot = {
   state: SlotState;
   /** The dose that answers it, when one does. */
   dose: DueDose | null;
+  /**
+   * Extra doses: given ones that would have answered it but found it already
+   * given (each answers nothing, `doseWarnings`'s `alreadyGiven`), in time
+   * order. Empty unless `dose` was given too.
+   */
+  extra: DueDose[];
 };
 
 export type AsNeededToday = {
@@ -73,6 +79,10 @@ export type AsNeededToday = {
   max: number | null;
   /** How many more today, or null without a maximum. */
   left: number | null;
+  /** Today's given doses past the maximum (the extra ones), in time order; none without a maximum. */
+  extra: DueDose[];
+  /** When today's given doses were given (ISO 8601), in time order. */
+  givenAt: string[];
 };
 
 export type DueDoses = {
@@ -116,6 +126,9 @@ export type DueDosesInput = {
 
 const MINUTE = 60_000;
 
+const byTime = (a: DueDose, b: DueDose) =>
+  a.occurredAt.localeCompare(b.occurredAt) || a.id.localeCompare(b.id);
+
 const isActive = (m: DueMedication) => m.status === "current" && !m.deletedAt;
 
 const byName = (a: DueMedication, b: DueMedication) =>
@@ -131,7 +144,12 @@ const scheduledOn = (m: DueMedication, day: string, timeZone: string) => {
   return true;
 };
 
-type Working = { slot: Omit<DoseSlot, "state" | "dose">; ms: number; dose: DueDose | null };
+type Working = {
+  slot: Omit<DoseSlot, "state" | "dose" | "extra">;
+  ms: number;
+  dose: DueDose | null;
+  extra?: DueDose[];
+};
 
 /** One slot per time: a pass's, the first, ahead of a time of its own. */
 const onePerTime = (all: readonly TimedSlot[]) =>
@@ -192,6 +210,28 @@ const namedSlots = (own: readonly Working[], { passId, scheduledFor }: DoseSlotN
 const slotAt = (named: readonly Working[], ms: number, windowMinutes: number, timeZone: string) => {
   const day = dayInZone(new Date(ms), timeZone);
   return nearest(inWindow(named, ms, windowMinutes), ms) ?? named.find((w) => w.slot.day === day) ?? null;
+};
+
+/**
+ * The given slot a surplus dose would have answered (an extra dose), or null:
+ * the slot its name points to, else the nearest given one in the window, as
+ * `doseWarnings` finds it.
+ */
+const slotGivenTwice = (
+  own: readonly Working[],
+  name: DoseSlotName,
+  ms: number,
+  windowMinutes: number,
+  timeZone: string,
+) => {
+  const named = namedSlots(own, name);
+  const slot = named
+    ? slotAt(named, ms, windowMinutes, timeZone)
+    : nearest(
+        inWindow(own, ms, windowMinutes).filter((w) => w.dose?.details.status === "given"),
+        ms,
+      );
+  return slot?.dose?.details.status === "given" ? slot : null;
 };
 
 /** The open slot a dose would answer, or null (a surplus dose). */
@@ -264,7 +304,13 @@ const answerSlots = (
     if (Number.isNaN(ms)) continue;
     const own = working.filter((w) => w.slot.medication.id === dose.details.medicationId);
     const match = slotToAnswer(own, nameFor(dose), ms, windowMinutes, timeZone);
-    if (match) match.dose = dose;
+    if (match) {
+      match.dose = dose;
+      continue;
+    }
+    if (dose.details.status !== "given") continue;
+    const twice = slotGivenTwice(own, nameFor(dose), ms, windowMinutes, timeZone);
+    if (twice) twice.extra = [...(twice.extra ?? []), dose];
   }
 };
 
@@ -281,7 +327,12 @@ const settle = (
     return nowMs - w.ms >= overdueAfterMinutes * MINUTE ? "overdue" : "due";
   };
   return working
-    .map((w): DoseSlot => ({ ...w.slot, state: stateOf(w), dose: w.dose }))
+    .map((w): DoseSlot => ({
+      ...w.slot,
+      state: stateOf(w),
+      dose: w.dose,
+      extra: [...(w.extra ?? [])].sort(byTime),
+    }))
     .sort((a, b) => a.at.localeCompare(b.at) || byName(a.medication, b.medication));
 };
 
@@ -333,14 +384,24 @@ export function dueDoses({
   const asNeeded = active
     .filter((m) => m.schedule.type === "asNeeded")
     .map((medication): AsNeededToday => {
-      const count = doses.filter(
-        (d) =>
-          d.details.medicationId === medication.id &&
-          d.details.status === "given" &&
-          dayInZone(new Date(d.occurredAt), timeZone) === day,
-      ).length;
+      const given = doses
+        .filter(
+          (d) =>
+            d.details.medicationId === medication.id &&
+            d.details.status === "given" &&
+            dayInZone(new Date(d.occurredAt), timeZone) === day,
+        )
+        .sort(byTime);
+      const count = given.length;
       const max = medication.schedule.type === "asNeeded" ? (medication.schedule.maxPerDay ?? null) : null;
-      return { medication, count, max, left: max === null ? null : Math.max(0, max - count) };
+      return {
+        medication,
+        count,
+        max,
+        left: max === null ? null : Math.max(0, max - count),
+        extra: max === null ? [] : given.slice(max),
+        givenAt: given.map((d) => d.occurredAt),
+      };
     });
 
   const yesterday = slots.filter((s) => s.day === yesterdayDay);

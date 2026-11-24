@@ -145,6 +145,27 @@ describe("dueDoses", () => {
     expect(states(result)).toEqual(["08:00 given", "09:00 due"]);
   });
 
+  it("keeps a second given dose for an answered slot as its extra dose", () => {
+    const first = dose("a", plus(AM, 5).toISOString(), "given", "08:00");
+    const second = dose("a", plus(AM, 20).toISOString(), "given", "08:00");
+    const result = run([med({ id: "a" })], [second, first], plus(AM, 30));
+    const [am, pm] = result.slots;
+    expect(am?.dose).toBe(first);
+    expect(am?.extra).toEqual([second]);
+    expect(pm?.extra).toEqual([]);
+  });
+
+  it("an unnamed extra dose lands on the nearest given slot; a refused one isn't extra", () => {
+    const first = dose("a", plus(AM, 5).toISOString());
+    const second = dose("a", plus(AM, 25).toISOString());
+    const refused = dose("a", plus(AM, 40).toISOString(), "refused");
+    const result = run([med({ id: "a" })], [first, second, refused], plus(AM, 50));
+    expect(result.slots[0]?.dose).toBe(first);
+    expect(result.slots[0]?.extra).toEqual([second]);
+    // One dose: nothing extra.
+    expect(run([med({ id: "a" })], [first], plus(AM, 50)).slots[0]?.extra).toEqual([]);
+  });
+
   it("matches a dose named for a time the schedule no longer has like an unnamed one", () => {
     const result = run(
       [med({ id: "a" })],
@@ -219,6 +240,21 @@ describe("dueDoses", () => {
       ["p", 2, 3, 1],
       ["q", 0, null, null],
     ]);
+  });
+
+  it("past an as-needed maximum, the doses over it are extra; without one, none are", () => {
+    const prn = med({ id: "p", schedule: { type: "asNeeded", maxPerDay: 1 } });
+    const open = med({ id: "q", schedule: { type: "asNeeded" } });
+    const doses = [dose("p", plus(AM, 60).toISOString()), dose("p", plus(AM, -60).toISOString())];
+    const result = run(
+      [prn, open],
+      [...doses, dose("q", AM), dose("q", plus(AM, 5).toISOString())],
+      plus(AM, 90),
+    );
+    const [p, q] = result.asNeeded;
+    expect(p?.extra).toEqual([doses[0]]);
+    expect(p?.givenAt).toEqual([plus(AM, -60).toISOString(), plus(AM, 60).toISOString()]);
+    expect(q?.extra).toEqual([]);
   });
 });
 
