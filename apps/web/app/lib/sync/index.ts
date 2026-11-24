@@ -106,8 +106,10 @@ export const syncUserId = (): string | null => ready?.userId ?? null;
 /**
  * Sign-out: stop syncing and wipe the device's copy, and forget the tiles'
  * remembered answers (`remembered.ts`). Safe to call when nothing is open.
+ * With `keep` (a session the server ended with changes waiting, B-290) the
+ * database is closed but not cleared, kept for its owner's next sign-in.
  */
-export const closeSync = async () => {
+export const closeSync = async ({ keep = false }: { keep?: boolean } = {}) => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
@@ -117,7 +119,15 @@ export const closeSync = async () => {
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
   const m = await import("./client");
-  await m.clear(db);
+  if (keep) await m.closeKept(db);
+  else await m.clear(db);
+};
+
+/** How many changes wait to upload: on the open database, else on the device's file (opened to count). */
+export const countWaiting = async (): Promise<number> => {
+  const db = ready ?? (current ? await current.catch(() => null) : null);
+  const m = await import("./client");
+  return m.countWaiting(db);
 };
 
 /**
