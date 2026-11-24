@@ -15,11 +15,9 @@
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Now (2026-11-24):** wave 1 boundary done (ingest, doctor, list: nothing new for this topic). B-434 claimed. Slice 1 worktree `.loops/worker-watch-1` made, agent spawned on opus. At wave 1's boundary, `pnpm prd sync` to bring in hotfixes B-773 and B-774 (dev e19c42ab+; the backlog session asked); this one sync may rerun the tier once, and a second unexpected run goes to the backlog session (B-720).
+**Wave 1 landed** in dev as cd94065 through PR #163 (2026-11-24; tier `integration`, run 45477738470 green on a4550c9e; Codex out of credits, so `--no-review`; report a196; to-test `2026-11-24-1519-worker-watch.md`). Docs folded (machinery: the run log and `metrics`; orchestration: the `metrics` row; both trimmed under budget). Slice 1 worktree removed.
 
-Slice 1 handed off (quick check passed on e397e1d5); review sent one fix back: the unsynced landing path clears land.sh's EXIT trap, dropping `land-end`.
-
-**Wave 1:** slice 1 merged as 0d93242f (fix e90ae361), B-434 done; synced (ed428dc2, B-773/B-774). CI `integration` green on a4550c9e (run 45477738470; the first run braked on my own plan formatting). Worktree removed. PR #163; Codex out of credits, so landing `--no-review`. Docs folded: machinery (the run log, `metrics`; trimmed to stay under dev's size), orchestration (the `metrics` row). Landing now.
+**Next: wave 2** (slices 2 and 3, both opus; claim B-408 when slice 2 starts). At its boundary: `pnpm backlog ingest`, `list`, `pnpm prd sync`. Slice 1's notes for later slices: tests whose throwaway repo doesn't ignore `.loops/` must set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`.
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
