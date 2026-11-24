@@ -863,7 +863,7 @@ describe("the card's reading is a button that saves (B-676)", () => {
     // Remove drops the blocked card; the other's button now saves.
     await userEvent.click(page.getByRole("button", { name: 'Remove "bp 1300/85"' }));
     await waitUntil(() => cardKinds().join() === "note");
-    expect(cardButton(cards()[0]!).disabled).toBe(false);
+    await expect.poll(() => cards().map((c) => cardButton(c).disabled)).toEqual([false]);
 
     // Edit is its own button: a note's Edit saves it and opens its page.
     await userEvent.click(page.getByRole("button", { name: 'Edit "dizzy"' }));
