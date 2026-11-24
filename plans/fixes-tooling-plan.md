@@ -285,3 +285,63 @@ Slice agents already have soft 175k / hard 300k (`context.mjs`, hotfix 86447987)
 - Keep `pnpm prd context` and `liveSizes` output right for both limits.
 - Unit tests (`context.test.mjs`, `dispatch-context.test.mjs`): the orchestrator's soft and hard thresholds; the backlog session's reminder never says to hand off unasked; the dispatcher's backlog question defaults to keep going.
 - Hand-off: the lines loop.md, machinery.md and orchestrator.md should change (they state 160k).
+
+## Wave 4
+
+The user's order: known flakes by cause. Same rules as waves 1–3: **first show the cause** (a deterministic failure, or a reasoned reading of the race from the code), then fix that cause; a longer timeout alone only when the work is genuinely large and the hand-off says so. Never touch a running topic's hot files (`pnpm backlog prd list`: inbox-agent's `scripts/backlog/`, `lib.sh`, `prd.sh`, `prompt.sh`, `tidy*`, `queue*`, `session*`, `rotate*`, `bye*`, `dispatch*`, `keep-alive*`, `open-session*`; test-health-2's `vitest.config.ts`, `apps/web/test/`, sync paths, `sync-matrix*`; symptom-catalog's timeline paths). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain. Not in this wave: B-461/B-732 (`tidy-cli.test.mjs`, inbox-agent's hot `tidy`), B-619 (search speed: not reproduced in 24 runs; waits for CI failure messages, B-660).
+
+### Slice 25: recover's '--at a time that has passed' test doesn't depend on the machine (B-418)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/recovery.md · Tests: unit
+
+`scripts/loops/recover.test.mjs` (~597) '--at a time that has passed waits until tomorrow' fails in a full `pnpm test:tooling` run under load and passes alone; the assertion output was never captured.
+
+- Find the cause from the code (`recover.sh`/`recover-lib.mjs`'s clock: the fake `CARETOOK_CLOCK_FILE`, any real `date` read, the local time zone the `--at` time is read in, the fake `sleep` and the test's timeout) and show it; fix that cause so the test passes at any load, time zone and time of day.
+- Unit test: the same assertions, plus a case that pins the cause (e.g. a non-UTC `TZ`, or a real-clock read that must not happen).
+
+### Slice 26: the browser harness tests don't count load-wait lines, and leave no process group behind (B-573, B-446, B-704)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/browser.test.mjs`: 'passes a clean spec' (~182) gets a third output line under load where it expects two (likely `browser.sh`'s `load_gate_wait` line, not confirmed); 'kills a spec at its cap, worker and all, and retries it once' failed at load 47 ("expected false to be true" after 9.7 s, real-time sleeps); and an interrupted run left its silent fixture's process group alive for days (B-704).
+
+- Confirm what the extra line is (run the test's harness with the load gate busy) and fix the cause: the tests run `browser.sh` with the load gate off (`CARETOOK_LOAD_GATE=off`, the shared test env from B-534) or assert on the lines that matter, not a count.
+- The kill test waits on the event (the process gone, the retry's marker), not on a fixed sleep; keep its deadline generous and say why.
+- The fixtures' process groups are killed when a test fails, times out or the run is interrupted (an `afterEach`/`afterAll` that kills every group it started, and a fixture that can't outlive its parent, e.g. a parent-death check); show how B-704's group outlived its run.
+- Unit tests: a busy load gate doesn't change the clean spec's output; the kill test passes with the machine's clock slowed (or the waits driven by events); a test that throws mid-run leaves no fixture group alive.
+
+### Slice 27: the MCP rate-limit test survives load (B-582)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md · Tests: integration
+
+`packages/api/src/connectors/mcp.int.test.ts` (~392) 'allows 60 calls a minute per connection, then 429 with Retry-After' times out at 5 s under load (passes alone).
+
+- Find where the time goes (61 sequential calls through the full MCP stack, each with its database work) and cut it as B-394 did for list_timeline: a cheaper call, a cheaper world, or the limiter tested with an injected clock and count; the limiter's behaviour (60 a minute, then 429 with `Retry-After`) is still asserted end to end at least once. An explicit timeout only if the work still needs it, with a comment saying why.
+- Integration test: the same assertions, with before/after times in the hand-off.
+
+### Slice 28: the todays_doses connector test holds at any time of day (B-642)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`packages/api/src/connectors/readTools.int.test.ts` (~372, ~385) places a given dose 10 (and 5) minutes before now, so from 00:00 to 00:10 Los Angeles it lands on yesterday and the assertion (~438) finds no given slot today.
+
+- Run the test on a fixed clock (a fixed `now` for the handler, `handlerAt` or its equivalent, and for the entries it writes), chosen mid-day in the recipient's zone; no other test in the file changes behaviour.
+- Integration test: the same assertions on the fixed clock, plus a case at 00:05 in the recipient's zone that passed only by luck before (show it failing on the old code in the hand-off).
+
+### Slice 29: context.test.mjs '--all --json lists live sessions only' is not load-sensitive (B-723)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/context.test.mjs` '--all --json lists live sessions only' failed its first-row size assertion (~388) in a quick check at load about 25; passed 3/3 alone; the value wasn't captured.
+
+- Read the test and `context.mjs`'s `--all --json` path for what can change the first row's size or order under load (a real clock, mtime ordering, a transcript still being written, a real session record leaking in from the machine) and show the cause; fix it so the row and its size are deterministic.
+- Unit test: the same assertion, plus one that pins the cause (e.g. equal mtimes, or a live machine record that must not appear).
+
+### Slice 30: lease.test.mjs's 'beyond the default limit of two' doesn't race (B-654)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/lease.test.mjs` (~263) 'makes the runs beyond the default limit of two wait, and holders shows who holds what' flaked in CI (passed on its rerun; ci-key ab40db666b8d).
+
+- Find the race from the code (holders started in parallel and checked before they hold, a real-time wait, the load gate, `lease.sh`'s poll interval) and show it; the test waits on each holder's state (a marker or `holders` output), never on a fixed sleep.
+- Unit test: the same assertions, deterministic under a slowed holder (e.g. a holder delayed before it takes the lease).
