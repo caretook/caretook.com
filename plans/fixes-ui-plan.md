@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 7 started 2026-11-24 (wave 6 landed as dev ff77d60, PR #170, report a206). Slices 59 (B-777 offline blank screen, stack, opus), 60 (B-783 list Log returns to list, opus), 61 (B-784 Passes double-dose warning, opus), all at once. Hot files set. Held, with why: B-684 and B-695 (app-wide sweeps, a wave each); B-693, B-697 (toast system B-669); B-694 (user approves each form live); B-325 (Capacitor).
+**Next step (hand-over):** wave 7 slices 59–61 all merged (opus each); full CI run requested (tier full: scripts/build/manifest.mjs has no rule). Then green → sync, PR, land `--no-review` if Codex is out of credits. Slice worktrees 59–61 stay until green. Follow-ups filed: B-787 (SW install all-or-nothing, fixes-bug), B-788 (offline / and /sign-in fallback page, fixes-ui). For the docs at landing: app-shell.md service worker bullet takes slice 59's text (precache lists every assets/ JS/CSS/woff2 and the async SQLite WASM; `keep` route for other /assets/; phones evict the HTTP cache). Hand test: installed PWA, airplane mode, cold start. Held: B-684, B-695 (sweeps); B-693, B-697 (toasts B-669); B-694 (user live); B-325 (Capacitor).
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,11 +19,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                             | Merge |
-| ----- | ----- | --------------------------------- | ----- |
-| 59    | B-777 | agent spawned (opus)              |       |
-| 60    | B-783 | handed off e295087d, check passed |       |
-| 61    | B-784 | handed off 731378ec, check passed |       |
+| Slice | Item  | State             | Merge    |
+| ----- | ----- | ----------------- | -------- |
+| 59    | B-777 | merged (d24db96d) | 8367a100 |
+| 60    | B-783 | merged (e295087d) | 20b588eb |
+| 61    | B-784 | merged (731378ec) | 1224a291 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
