@@ -35,7 +35,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 1. A slice is **ready** when every slice it's blocked by is merged into `prd/<topic>`. Start only what the user (or the landing mode) allows, and `claim` its items.
 2. `pnpm prd slice <topic> <n>` for each.
-3. Spawn one background agent per slice (not `isolation: worktree`: it already is one) with `pnpm prd prompt slice <topic> <n>`, plus anything it needs that the plan doesn't say.
+3. Spawn one background agent per slice (not `isolation: worktree`: it is one) with `pnpm prd prompt slice <topic> <n>`, plus anything it needs that the plan doesn't say.
 4. On each hand-off, mark it, then review: `git diff prd/<topic>...slice/<topic>/<n>`, the hand-off, the acceptance criteria.
 5. Merge **in plan order** in your worktree: `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve shared-file conflicts yourself. No local quick check: the wave's run is the gate.
 6. Record the merge SHA, `pnpm backlog done B-<n>`; start what it unblocked. **The slice keeps its worktree and branch** until the wave's verdict is green; `pnpm prd rm <topic>-<n>` then.
@@ -77,7 +77,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 `pnpm prd down` before a planned restart, `pnpm prd recover` after a restart, crash or usage limit: [recovery](recovery.md).
 
-- **Resuming as orchestrator:** follow the `--resume` prompt; **git wins** over _Status_.
+- **Resuming as orchestrator:** its `--resume` prompt first runs `pnpm prd land --resume prd/<topic>`; **git wins** over _Status_.
 
 ## Rules across PRDs
 
