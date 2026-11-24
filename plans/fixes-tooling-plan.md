@@ -77,7 +77,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 37    | B-731     | merged (opus; quick red only ask.test B-741, tidy-cli B-461)                                                                                                                | 76d4c293 |
 | 38    | B-638     | merged (opus; quick passed; test only)                                                                                                                                      | 29736cac |
 | 39    | B-739     | merged (opus; quick passed; Sonnet low, `inbox edit/remove`; its inbox.md/backlog.md edits are the B-739 doc fold)                                                          | 245e2e87 |
-| 40    | B-500     | started (opus; from slice 31's re-measure)                                                                                                                                  |          |
+| 40    | B-500     | merged (opus; quick passed; one world per describe, afterEach cleanup, 15 s timeout kept for 37-39-visit tests; perf follow-up filed)                                       | 31738047 |
 
 ## Wave 1
 
