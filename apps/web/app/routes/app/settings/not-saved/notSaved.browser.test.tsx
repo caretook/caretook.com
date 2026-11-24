@@ -5,6 +5,8 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as settingsLayout from "../layout/route";
 import * as notSaved from "./route";
+import { apiCalls } from "../../../../../test/api";
+import { setUploadFailed } from "../../../../../test/database";
 import { renderWithDevice } from "../../../../../test/device";
 import { TEST_GROUP, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
@@ -13,8 +15,9 @@ import { PROBE } from "../../../../../test/probe";
 // Settings → Changes not saved (sync-safety slice 2, B-285): the records the
 // uploader keeps for refused changes (`unsaved_change`), one line per row,
 // newest first, Dismiss and Dismiss all. Then the header's indicator: "N not
-// saved" linking here, and "Offline · N waiting". The uploader writing the
-// records is lib/sync/uploader.browser.test.tsx's.
+// saved" linking here, "Offline · N waiting" and "Can't sync, retrying · N
+// waiting" (slice 3, B-286), and a set-aside change's Try again. The
+// uploader writing the records is lib/sync/uploader.browser.test.tsx's.
 
 const URL = "/app/settings/not-saved";
 
@@ -35,6 +38,7 @@ type Record = {
   issues?: object[] | null;
   label?: string | null;
   lineKey?: string;
+  outcome?: "refused" | "set_aside";
   at: string;
 };
 
@@ -44,7 +48,7 @@ const record = async (db: SyncDb, r: Record) => {
   const rowId = r.rowId ?? "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0a01";
   await db.powersync.execute(
     `INSERT INTO unsaved_change (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key)
-     VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?, 'refused', ?, ?)`,
+     VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       r.at,
       table,
@@ -53,6 +57,7 @@ const record = async (db: SyncDb, r: Record) => {
       r.data === undefined ? null : JSON.stringify(r.data),
       r.code ?? "permissions:unauthorized",
       r.issues ? JSON.stringify(r.issues) : null,
+      r.outcome ?? "refused",
       r.label ?? null,
       r.lineKey ?? `${table}:${rowId}`,
     ],
@@ -140,6 +145,91 @@ describe("Changes not saved", () => {
   });
 });
 
+describe("a set-aside change (B-286)", () => {
+  const MEDICATION = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0a01";
+  const setAside = (db: SyncDb) =>
+    record(db, {
+      at: "2027-06-09T09:00:00.000Z",
+      rowId: MEDICATION,
+      data: { dose: "20 mg" },
+      code: "sync:failed",
+      outcome: "set_aside",
+      label: "Lisinopril",
+    });
+  const SET_ASIDE = "Your change to the medication “Lisinopril” wasn't saved: the server couldn't save this";
+
+  /** The page, with `sync.upload` answering `answer`. */
+  const openPage = async (answer: (input: unknown) => unknown) => {
+    const calls = apiCalls();
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: URL,
+      connected: true,
+      api: calls.record({ "sync.upload": answer }),
+    });
+    await setAside(device.db);
+    await record(device.db, { at: "2027-06-09T08:00:00.000Z", table: "provider", label: "Dr. Example" });
+    await device.settle();
+    return { device, calls };
+  };
+
+  test("reads that the server couldn't save it, with Try again; a refused line has none", async () => {
+    await openPage(() => ({ results: [] }));
+    await expect
+      .poll(texts)
+      .toEqual([
+        SET_ASIDE,
+        "Your change to the provider “Dr. Example” wasn't saved: you can't edit in this group any more",
+      ]);
+    const tryAgain = page.getByRole("button", { name: "Try again" });
+    expect(tryAgain.elements()).toHaveLength(1);
+    const line = page.getByRole("listitem").filter({ hasText: "Lisinopril" });
+    await expect.element(line.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+
+  test("Try again sends the kept op; applied removes the line", async () => {
+    const { device, calls } = await openPage(() => ({
+      results: [{ id: MEDICATION, status: "applied" }],
+    }));
+    await userEvent.click(page.getByRole("button", { name: "Try again" }));
+    await expect.poll(() => lines().length).toBe(1);
+    expect(texts()[0]).toContain("Dr. Example");
+    expect(calls.of("sync.upload")).toEqual([
+      { ops: [{ op: "PATCH", table: "medication", id: MEDICATION, data: { dose: "20 mg" } }] },
+    ]);
+    expect(await device.query("SELECT id FROM unsaved_change WHERE table_name = 'medication'")).toEqual([]);
+  });
+
+  test("Try again keeps the line, with the new reason, when the server refuses it", async () => {
+    await openPage(() => ({
+      results: [{ id: MEDICATION, status: "rejected", code: "medicationService:notFound" }],
+    }));
+    await userEvent.click(page.getByRole("button", { name: "Try again" }));
+    await expect
+      .poll(texts)
+      .toContain("Your change to the medication “Lisinopril” wasn't saved: it isn't there any more");
+    expect(page.getByRole("button", { name: "Try again" }).elements()).toHaveLength(0);
+  });
+
+  test("Try again keeps the line set aside when the server fails again", async () => {
+    const { device, calls } = await openPage(() => ({
+      results: [{ id: MEDICATION, status: "failed", code: "sync:failed" }],
+    }));
+    await userEvent.click(page.getByRole("button", { name: "Try again" }));
+    await expect.poll(() => calls.of("sync.upload").length).toBe(1);
+    // Kept, set aside, at the new try's time.
+    await expect
+      .poll(() =>
+        device.query("SELECT outcome, recorded_at FROM unsaved_change WHERE table_name = 'medication'"),
+      )
+      .toEqual([
+        { outcome: "set_aside", recorded_at: expect.not.stringMatching(/^2027-06-09T09:00/) as string },
+      ]);
+    await expect.element(page.getByRole("button", { name: "Try again" })).toBeEnabled();
+    expect(texts()).toContain(SET_ASIDE);
+  });
+});
+
 describe("the header's sync indicator", () => {
   const timeline = `/app/groups/${TEST_GROUP.id}/timeline`;
   const openFrame = (connected: boolean) =>
@@ -170,6 +260,24 @@ describe("the header's sync indicator", () => {
     await userEvent.click(link);
     await expect.poll(() => device.location()).toBe(URL);
     await expect.element(page.getByRole("heading", { name: "Changes not saved", level: 1 })).toBeVisible();
+  });
+
+  test("“Can't sync, retrying · 2 waiting” when the last upload failed", async () => {
+    const device = await openFrame(true);
+    for (const title of ["One", "Two"])
+      await device.db.powersync.execute(
+        `INSERT INTO timeline_entry (id, group_id, recipient_id, kind, occurred_at, title)
+         VALUES (uuid(), ?, ?, 'note', ?, ?)`,
+        [TEST_GROUP.id, TEST_RECIPIENT.id, "2027-06-09T12:00:00.000000Z", title],
+      );
+    setUploadFailed(device.db, true);
+    await device.settle();
+    await expect.poll(() => status()?.textContent?.trim()).toBe("Can't sync, retrying · 2 waiting");
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    setUploadFailed(device.db, false);
+    await expect
+      .poll(() => status()?.querySelector('[role="status"]')?.textContent)
+      .toBe("All changes synced");
   });
 
   test("“Offline · 3 waiting” when offline with changes queued", async () => {
