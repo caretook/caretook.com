@@ -184,7 +184,7 @@ chore(app-shell): merge dev into prd/app-shell
 | Command                           | What it's for                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `pnpm prd status`                 | every worktree and session: kind, context size (`pnpm prd context`), server link   |
-| `pnpm prd status-watch [seconds]` | the same, redrawn every few seconds (default 5) until Ctrl-C                       |
+| `pnpm prd status-watch [seconds]` | the same, redrawn every 5 s; `pnpm prd watch`: each slice agent's next action      |
 | `pnpm prd metrics [--json]`       | slice and landing times, check times, flake rate, Codex's find rate (`--since`)    |
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
