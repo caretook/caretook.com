@@ -106,6 +106,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 60    | B-713 | landed                                     | 417c0719 |
 | 61    | B-714 | landed                                     | e1fb3268 |
 | 62    | B-729 | landed (test only)                         | 7c92d280 |
+| 63    | B-726 | started (opus)                             |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
@@ -123,6 +124,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 **Wave 12 landed in dev through PR #135 as bcf6ffff** (2026-11-24): `components` CI green on 3f0707eb (run 45358073493), `browser --changed --base dev` 11/11 (lean set included). **Codex did not review it** (out of credits, `--no-review`). Report: ask a166. To-test: `to-test/2026-11-24-0353-fixes-bug.md`. Docs folded (medications, connectors, assistant, calendars; all within a few bytes of 10 KB: trim when adding). Slice worktrees removed. B-729 (the dev brake) was a test reading due slots at the real clock; inbox-agent-37 was told it's in dev.
 
 **Next session (wave 13):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 13 from the triaged items: B-726 (a retried dose upload after a time edit), and B-689, B-690, B-715 once member-avatars no longer holds `routes/app/groups/planner/`. B-728 (repeat preview pairs the recipient's day with the viewer's time) needs a product choice first: ask through `pnpm prd ask` before planning it.
+
+**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); a skeptic reads it first, then `pnpm prd ask --defaults`; on an answer it becomes slice 64 in this wave (`components/repeat/RepeatField.tsx`, not hot for a running topic). **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`).
 
 ## Wave 1
 
@@ -749,3 +752,17 @@ A brake on `dev` (54a43bf1) and on this branch: `packages/api/src/syncMedication
 - If the app is wrong, fix it so two members' doses for one slot keep both rows and the earlier reads the slot, without undoing B-719's retry rule or B-614/B-616's "an upload leaves another member's dose alone".
 - If the test is stale, correct its expectation without weakening what it asserts.
 - The test passes, and `timelineEntry.int.test.ts` still passes.
+
+## Wave 13
+
+As before: **first confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it and change no app code. Stay out of `routes/app/groups/planner/` and member-avatars' other hot files (`pnpm backlog prd list`), and out of `vitest.config.ts` and `scripts/ci/`.
+
+### Slice 63: a retried dose upload after a time edit can't bring back an undone dose (B-726)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+Slice 52 (B-719) records a restore's displaced author and restoring upload in `dose_duplicate_upload`, but two gaps remain (read from the code, no test yet): (1) another member edits the dose's time before the restore, so the displaced row's `occurred_at` no longer matches A's original upload and A's retry isn't recognised; (2) with no restore at all, A's upload loses its response, the time is edited, someone deletes the dose, and A's retry reads as a new tap and brings it back.
+
+- A retry of an accepted dose upload is recognised whatever happened to the row since (a time edit, a restore, a delete), and leaves an undone dose undone. Recording every accepted dose upload is the likely shape; if so, keep any migration additive.
+- A genuine new log of that dose still works as it does today, and B-719's, B-614's and B-616's rules still hold (an upload leaves another member's dose alone; two members' doses for one slot stay two rows).
+- Integration tests in `packages/api/src/syncMedications.int.test.ts` (or beside it): both scenarios above end with the dose still deleted; a fresh log after a delete still records.
