@@ -8,14 +8,14 @@
 | ----- | ---- | ---------------------------------------- | -------------------------------------------- |
 | 1     | 1    | landed (opus) in dev `24440550`, PR #134 | `0c37dc6d` (`ced2c458`)                      |
 | 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
-| 3     | 2    | —                                        | —                                            |
+| 3     | 2    | started (opus), worktree inbox-agent-3   | —                                            |
 | 4     | 3    | —                                        | —                                            |
 | 5     | 4    | —                                        | —                                            |
 | 6     | 5    | —                                        | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Hand-over (2026-11-24): wave 1 landed; start wave 2 (slice 3) next.** Wave 1 landed in dev as `24440550` through PR #134 with `--no-review` (Codex out of credits), at CI integration green on `9148f569` (run 45360165037). The landing report is ask a167; the to-test file is `to-test/2026-11-24-0358-inbox-agent.md`. Docs folded: machinery (dev-sync, tidy archiving) and backlog (look-alikes, archive ids, tidy owning cleanup). Slice worktrees removed; no slice in flight. B-425, B-474 and B-435 stay claimed (in-progress); `done` B-474 and B-435 when slice 3 merges, B-425 when slice 4 merges. Models: every slice on opus.
+**Wave 2 (2026-11-24): slice 3 started** in `.loops/inbox-agent-3` (from `fc8bc0ae`; sync was a no-op), agent on opus, told the slice 1 and 2 notes below. Wave 1 landed in dev as `24440550` (PR #134, `--no-review`, Codex out of credits); its report is ask a167. B-425, B-474 and B-435 stay claimed; `done` B-474 and B-435 when slice 3 merges, B-425 when slice 4 merges. Wave-boundary ingest found nothing new for this topic.
 
 **Gate, corrected:** `scripts/loops/lib.sh` counts as the browser harness, so a wave that touches it lands at the **integration** tier (land requests the CI run itself). `pnpm test:tooling` and `pnpm exec eslint scripts` remain the local pre-check. The B-729 dev brake that held wave 1 about 12 hours is fixed in dev (`bcf6ffff`, fixes-bug). Skeptic s19 / ask a165 (wait for fixes-bug) is settled. Open issues: none. `pnpm backlog doctor` still reports two old inbox-line mismatches (B-548, B-549), not this topic's.
 
