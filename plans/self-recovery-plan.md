@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                                                     | Merge into `prd/self-recovery` (slice commits) |
-| ----- | ---- | --------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | working (opus)                                            | —                                              |
-| 2     | 1    | working (opus)                                            | —                                              |
-| 3     | 1    | handed off 67595728 (opus), waits for 1, 2 to merge first | —                                              |
-| 4     | 2    | —                                                         | —                                              |
-| 5     | 2    | —                                                         | —                                              |
-| 6     | 3    | —                                                         | —                                              |
+| Slice | Wave | State         | Merge into `prd/self-recovery` (slice commits)                                              |
+| ----- | ---- | ------------- | ------------------------------------------------------------------------------------------- |
+| 1     | 1    | merged (opus) | 160c54d7 (c1fe984d)                                                                         |
+| 2     | 1    | merged (opus) | 997e1b2e (24ec786e); conflicts in inventory.mjs, its test, recover.sh resolved keeping both |
+| 3     | 1    | merged (opus) | 2221f009 (67595728)                                                                         |
+| 4     | 2    | —             | —                                                                                           |
+| 5     | 2    | —             | —                                                                                           |
+| 6     | 3    | —             | —                                                                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-24): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Now (2026-11-24):** wave 1 started on dev 5d2ede1c: worktrees `.loops/self-recovery-{1,2,3}` made, one opus agent each; B-407, B-433, B-462, B-463 claimed. Watch running.
+**Now (2026-11-24):** wave 1 merged at 2221f009; B-462, B-463, B-433 done. Tier `none` (tooling only): the wave gate is `pnpm test:tooling` + `pnpm exec eslint scripts`, running. Slice worktrees kept until green. Next: sync, PR, Codex review, land.
 
 **Hand-offs to fold at landing:** slice 3 (usage.mjs, `.loops/.usage/<session>.json`): machinery.md gets _The usage reading_ (files, merge rules, `CARETOOK_USAGE_STALE_MIN` default 15, `pnpm prd usage [--json]`, status's `USAGE:` line; both settings files carry `statusLine` and a `StopFailure` hook). Slice 2 (recover lock `.loops/.recover.lock`, exit 75 when busy; dispatcher reopens only when every earlier step passed; intent `.loops/.dispatch-intent.json` written before clear-lock, dropped once the new dispatcher holds its lock, `CARETOOK_RECOVER_DISPATCH_SECS` 60; migrate marker `.loops/.migrate/<name>` reported and rerun; `--unattended`: agent in a background tab, one report topic recover on failure): recovery.md's _After a restart_ and inventory bullets (add `migrating`, `dispatcher.intent`, `recover`); optional machinery Files entry. For slice 4: read `recover.running/pid` from inventory facts, call `recover --unattended`, 75 = already running, back-off so failed runs don't each file a report. For slice 5: no subscriber overage flag, `overage` = a plan window at 100%; end a session with `markStalled(dir, name, {error: "limited", pid})`. For slice 6: `clearStalled` on resume.
 
