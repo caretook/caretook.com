@@ -66,7 +66,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 34    | B-742     | started (opus)                                                                                                                             |          |
 | 35    | B-744     | started (opus; with B-745, B-746, B-747)                                                                                                   |          |
 | 36    | B-461     | started (opus; with B-732)                                                                                                                 |          |
-| 37    | B-731     | started (opus)                                                                                                                             |          |
+| 37    | B-731     | handed off c384b269 (opus; quick red only ask.test B-741 and tidy-cli B-461, fixed by 33/36; passed alone)                                 |          |
 | 38    | B-638     | started (opus)                                                                                                                             |          |
 | 39    | B-739     | started (opus; added on the user's word via the backlog session)                                                                           |          |
 
