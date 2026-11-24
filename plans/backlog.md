@@ -316,7 +316,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-687 | change | landed | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
 | B-688 | change | landed | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
 | B-691 | bug | ready | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
-| B-692 | change | in-progress | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
+| B-692 | change | ready | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
 | B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-695 | change | triaged | fixes-ui |  | Rename "passes" to "Med times" everywhere users see it |
@@ -341,7 +341,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-734 | feature | landed | fixes-tooling | hotfix/lane-cap | Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word |
 | B-735 | bug | triaged | fixes-ui |  | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
 | B-736 | bug | ready | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
-| B-737 | feature | in-progress | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
+| B-737 | feature | ready | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
 | B-738 | bug | triaged | fixes-tooling |  | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-739 | change | landed | fixes-tooling | prd/fixes-tooling | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
 | B-740 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3 |
@@ -366,7 +366,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-759 | feature | triaged | onboarding-2 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-760 | feature | triaged | connectors-3 |  | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
 | B-761 | feature | triaged | connectors-3 |  | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
-| B-762 | feature | in-progress | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
+| B-762 | feature | ready | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
 | B-763 | bug | landed | fixes-ui | prd/fixes-ui | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
 | B-764 | change | triaged | fixes-perf |  | App first load is way too long. |
 | B-765 | feature | triaged | fixes-ui |  | Ability to open live notes full screen. |
@@ -2546,10 +2546,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-692 · change · New event: after picking the date, focus moves to the title, which prompts Enter a title to save
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: a2a3ebd2
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the new event flow is confusing. After the date is selected, focus should move to the title, and the title field should be a prompt like 'Enter a title to save', because it isn't clear that it saves on entry. Code read: Add event opens a draft with the time popover and calendar open (pickDay). Picking a day alone never saves a draft (changeSchedule in useLiveEntry.ts). The first save comes from a title (EntryTitle commits on blur or Enter), a suggested title chip, typed notes, a place, or a linked provider. The placeholder is currently just 'Title'. Fix: (1) only on the first day pick of a pickDay draft, close the calendar and time popover, commit the schedule, and focus the title input, overriding the popover's usual focus return to its trigger. Later openings of the time chip behave as usual, and so does typing in the date field, which shouldn't jump focus mid-edit. (2) On an unsaved new event, the placeholder reads 'Enter a title to save'; the accessible name stays Title, and saved unnamed events keep their current placeholder. Keep the suggested title chips, which save when tapped. Trade-off to check: closing the popover skips the time, which stays at the default hour; the time chip remains visible to change it. Check phones: iOS may not open the keyboard for focus set after an async close, so focus within the tap's gesture if possible. Coordinate with B-691 (calendar inside its overlay), which changes the same popover. Update the entry draft browser tests.
 
@@ -2795,10 +2795,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-737 · feature · A link icon on each timeline day header and item so users can easily send links to other people.…
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: a2a3ebd2
 
 - 2026-11-24 (prd/test-health-2): From the inbox: A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later
 - 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
@@ -3029,10 +3029,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-762 · feature · Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: a2a3ebd2
 
 - 2026-11-24 (Robert Bo Davis): From the user (2026-11-24), option A over saving directly. Vocabulary rows (e.g. 'new med', 'started', 'add medication', 'new provider', 'add provider') plus test rows make a medication or provider card; its Save opens the existing Add sheet prefilled (name, strength, form, directions; provider name, specialty or practice, phone, address) and the sheet saves as today. No new assistant action, no server or connector change. The new-item words must win over the loose match to an existing medication ('new med lisinopril' isn't the current Lisinopril 5 mg). Writer roles only. Docs: docs/domain/assistant.md. Connector side: B-760, B-761.
 
