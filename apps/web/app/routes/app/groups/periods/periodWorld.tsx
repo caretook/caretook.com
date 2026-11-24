@@ -4,6 +4,7 @@ import { userEvent } from "vitest/browser";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
+import { recipientTime } from "../../../../../test/zone";
 import * as period from "../period/route";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -12,16 +13,11 @@ import * as periods from "./route";
 // The care periods' component tests share one fictional track, like the
 // seeds' (care-periods.mjs used them): Home → Emergency room → Hospital at
 // Riverside General with a room → Rehab → Home, over eight weeks, in the
-// recipient's zone (America/Los_Angeles, the test browser's too). Only
+// recipient's zone (America/Los_Angeles; the device's too, but in web:components:ny). Only
 // `*.browser.test.tsx` files import it.
 
-/** `hour`:`minute` local time, `d` days back (midnight with no hour). */
-export const daysAgo = (d: number, hour = 0, minute = 0) => {
-  const t = new Date();
-  t.setDate(t.getDate() - d);
-  t.setHours(hour, minute, 0, 0);
-  return t;
-};
+/** `hour`:`minute` in the recipient's zone, `d` days back (midnight with no hour). */
+export const daysAgo = (d: number, hour = 0, minute = 0) => recipientTime(d, hour, minute);
 
 export const RIVERSIDE = fx.provider({
   name: "Riverside General Hospital",
