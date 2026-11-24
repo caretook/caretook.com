@@ -320,7 +320,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-783 | bug | in-progress | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
 | B-784 | change | in-progress | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
 | B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
-| B-786 | change | triaged | self-recovery |  | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
+| B-786 | change | in-progress | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
 
 ## Items
 
@@ -2401,9 +2401,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-786 · change · The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree
 
-- status: triaged
+- status: in-progress
 - prd: self-recovery
-- owner:
+- owner: prd/self-recovery
 - commit:
 
 - 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.
