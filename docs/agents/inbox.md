@@ -13,6 +13,7 @@ A session that helps the dev keeper add to and edit the inbox (`plans/inbox.md`)
 - **A bare directory.** It runs in `$CARETOOK_INBOX_DIR` (default `~/.caretook/inbox`), created when missing, so AGENTS.md and the project's memory don't load. It refuses a directory inside a git repository or under a `CLAUDE.md`, `CLAUDE.local.md` or `AGENTS.md`. A real session there loads no instruction or memory file (checked 2026-11-24).
 - **Trust once.** The first time, Claude Code asks whether to trust the folder ("No, exit" is the default): choose Yes. Until then the dispatcher doesn't keep it open.
 - **Always on:** the [dispatcher](machinery.md#the-dispatcher) reopens a dead one and the context watch rotates it; its hand-off is `pnpm prd rotate --self`, keeping the model, fast mode and folder.
+- **Bye:** a message of just 'bye' runs `pnpm prd bye`; its own check (every idea added) is in its prompt.
 - **Fast mode** comes from `scripts/loops/inbox-settings.json`: the context hook settings (`context-settings.json`, kept in step by a test) plus `fastMode`. Without usage credits the API refuses fast mode, and Claude Code says so and carries on on normal Opus.
 
 ## What it runs
