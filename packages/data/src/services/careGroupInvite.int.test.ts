@@ -423,7 +423,7 @@ describe("asking again with a link (B-638)", () => {
     );
     const asker = await createUser("inv-asker");
     const first = ok(await careGroupInviteService.accept(asker.ctx, { token, consent: true, legal: true }));
-    expect(first).toMatchObject({ status: "requested" });
+    if (first.status !== "requested") throw new Error("expected a join request");
 
     // The legal texts move on: the acceptance recorded with the request is no longer current.
     await getDb()
@@ -438,7 +438,7 @@ describe("asking again with a link (B-638)", () => {
       status: "requested",
       groupId: s.groupId,
       role: "viewer",
-      requestId: ok(first).requestId,
+      requestId: first.requestId,
     });
 
     const requests = await getDb()
