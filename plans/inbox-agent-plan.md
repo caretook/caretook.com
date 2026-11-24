@@ -9,13 +9,15 @@
 | 1     | 1    | landed (opus) in dev `24440550`, PR #134 | `0c37dc6d` (`ced2c458`)                      |
 | 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
 | 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
-| 4     | 3    | started (opus), worktree inbox-agent-4   | —                                            |
+| 4     | 3    | merged (opus)                            | `b57c2f99` (`336f9121`)                      |
 | 5     | 4    | —                                        | —                                            |
 | 6     | 5    | —                                        | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-24): wave 3 under way.** Slice 4's worktree is made and its agent (opus) spawned; told to verify the two real-session checks non-interactively if it can, else report and the orchestrator asks. Ingest at the wave boundary: nothing new.
+**Now (2026-11-24): wave 3, slice 4 merged as `b57c2f99`; B-425 done.** Next: the integration-tier CI run (slice 4 touched `session.sh`/`prd.sh`; the integration gate rule stands), then PR, land, `pnpm prd rm inbox-agent-4`, rotate. Wave 3 docs folded before the gate: new `docs/agents/inbox.md`, its _Area index_ entry, an orchestration row (and the handbook list in its opening trimmed for the budget), the inbox file's opening lines.
+
+**Slice 4 hand-off:** both real-session checks passed (debug logs: no CLAUDE.md/AGENTS.md/memory loaded in the bare directory; `fastMode` through `--settings` is requested). But the API refuses fast mode without usage credits, so the session falls back to normal Opus with Claude Code's own notice (the PRD's fallback). Not asked: the fallback is the PRD's answer; the report says it. For slice 5 (noted on B-515): a new directory's "trust this folder?" prompt defaults to "No, exit", so a keep-alive would hang until the user accepts it once by hand; `session.sh` doesn't export `CARETOOK_CONTEXT_HOOK` for kind inbox, so export it and give `context.mjs` an inbox reminder.
 
 **Hand-over (2026-11-24): wave 2 landed; start wave 3 (slice 4) next.** Wave 2 landed in dev as `fb6688e6` through PR #137 with `--no-review` (Codex out of credits), at CI integration green on `295fc0c6` (run 45364603017). The landing report is ask a169; the to-test file is `to-test/2026-11-24-0429-inbox-agent.md`. Docs folded: backlog (the origin path, who may change the inbox) and AGENTS.md (`pnpm prd dev-sync`). B-474 and B-435 done; B-425 stays claimed until slice 4 merges. No slice in flight. Accepted gap (noted on B-425): `ingest` with the main checkout mid-merge prints that the pickup skipped, then refuses as before. Models: every slice on opus.
 

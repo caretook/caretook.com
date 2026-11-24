@@ -2,7 +2,7 @@
 
 A guide for the **dev keeper** (you): how ideas become shipped work, and how several pieces of work run in parallel without stepping on each other. Agents follow the detailed rules in [AGENTS.md](../AGENTS.md) and the role docs in [`agents/`](agents/); this page is the human view of the same system.
 
-**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [`agents/`](agents/) has a handbook per role ([loop](agents/loop.md), [orchestrator](agents/orchestrator.md), [planner](agents/planner.md), [backlog](agents/backlog.md), [hotfix](agents/hotfix.md)), which each agent's prompt names, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
+**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [`agents/`](agents/) has a handbook per role (the _Area index_ lists them), which each agent's prompt names, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
 
 ## The short version
 
@@ -189,6 +189,7 @@ chore(app-shell): merge dev into prd/app-shell
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
 | `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
 | `pnpm prd plan`                   | a backlog and inbox session in the main checkout; say "hand off" for a fresh one   |
+| `pnpm prd inbox`                  | a bare session outside the repo that only adds and edits inbox lines               |
 | `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
 | `pnpm prd ready [topic]`          | the ready-to-land report                                                           |
 | `pnpm prd land <topic>`           | merge the PRD's branch into `dev`                                                  |
