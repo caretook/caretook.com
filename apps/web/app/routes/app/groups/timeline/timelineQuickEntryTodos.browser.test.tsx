@@ -47,6 +47,9 @@ const tomorrow = addDays(localDate(new Date(), TEST_TIME_ZONE), 1);
 const box = () => page.getByRole("textbox", { name: "What happened?" });
 const cards = () => [...document.querySelectorAll<HTMLElement>("[data-quick-card]")];
 const cardKinds = () => cards().map((c) => c.dataset.quickCard);
+/** A card's heading: its kind and when ("Todo · Due tomorrow 17:00"). */
+const headingOf = (card: HTMLElement | undefined) =>
+  card ? document.getElementById(card.getAttribute("aria-labelledby") ?? "") : null;
 const saveButton = () => document.querySelector<HTMLButtonElement>("[data-quick-entry] button[type=submit]");
 const status = () =>
   document.querySelector("[data-quick-entry] [data-pass-undo-label]")?.textContent ||
@@ -80,7 +83,7 @@ describe("quick entry adds todos", () => {
     await expect.element(box()).toBeVisible();
     await type("todo: call pharmacy tomorrow 5pm for Sam", ["todo"], samNamed);
     const card = cards()[0]!;
-    expect(card.querySelector("p")?.textContent).toBe("Todo · Due tomorrow 17:00");
+    expect(headingOf(card)?.textContent).toBe("Todo · Due tomorrow 17:00");
     expect(card.querySelector("[data-quick-title]")?.textContent).toBe("Call pharmacy");
     expect(card.querySelector("[data-quick-detail]")?.textContent).toBe("Sam Okafor");
     expect(
@@ -120,7 +123,7 @@ describe("quick entry adds todos", () => {
   test("a todo beside other parts: one Save writes them all", async () => {
     const device = await open();
     await type("bp 120/80, todo: fax the insurance form, n: called the office", ["vital", "todo", "note"]);
-    expect(cards()[1]?.querySelector("p")?.textContent).toBe("Todo · No due date");
+    expect(headingOf(cards()[1])?.textContent).toBe("Todo · No due date");
     await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 2 entries and 1 todo");
     const todos = await device.query<TodoDbRow>("SELECT * FROM todo");
@@ -159,7 +162,7 @@ describe("quick entry adds todos", () => {
     const device = await open();
     await type("call the pharmacy tomorrow 3pm", ["todo"]);
     const card = cards()[0]!;
-    expect(card.querySelector("p")?.textContent).toBe("Todo · Due tomorrow 15:00");
+    expect(headingOf(card)?.textContent).toBe("Todo · Due tomorrow 15:00");
     expect(card.querySelector("[data-quick-title]")?.textContent).toBe("Call the pharmacy");
     expect(
       page
