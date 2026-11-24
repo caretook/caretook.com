@@ -78,14 +78,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 38    | B-638     | merged (opus; quick passed; test only)                                                                                                                                      | 29736cac |
 | 39    | B-739     | merged (opus; quick passed; Sonnet low, `inbox edit/remove`; its inbox.md/backlog.md edits are the B-739 doc fold)                                                          | 245e2e87 |
 | 40    | B-500     | merged (opus; quick passed; one world per describe, afterEach cleanup, 15 s timeout kept for 37-39-visit tests; perf follow-up filed)                                       | 31738047 |
-| 41    | B-597     | started (opus)                                                                                                                                                              | —        |
-| 42    | B-595     | waiting on 41                                                                                                                                                               | —        |
-| 43    | B-596     | waiting on 41                                                                                                                                                               | —        |
-| 44    | B-598     | waiting on 41                                                                                                                                                               | —        |
-| 45    | B-696     | waiting on 41                                                                                                                                                               | —        |
-| 46    | B-464     | waiting on 41 (+B-650)                                                                                                                                                      | —        |
-| 47    | B-576     | handed off (opus; 0a196c64; root lint scripts still at 4 GB, now 6 GB + lint-heap.test; quick passed; propose close both)                                                   | —        |
-| 48    | B-705     | handed off (sonnet; 92adb693; quick exit 0 in check-times 15:20Z; merge after 41)                                                                                           | —        |
+| 41    | B-597     | merged (opus; golden prompt test, prompts/<kind>.sh, ci-*.mjs; quick passed; machinery.md lines in hand-off)                                                                | 348d5717 |
+| 42    | B-595     | started (opus)                                                                                                                                                              | —        |
+| 43    | B-596     | started (opus)                                                                                                                                                              | —        |
+| 44    | B-598     | started (opus)                                                                                                                                                              | —        |
+| 45    | B-696     | started (opus)                                                                                                                                                              | —        |
+| 46    | B-464     | started (opus; +B-650)                                                                                                                                                      | —        |
+| 47    | B-576     | merged (opus; root lint scripts at 6 GB + lint-heap.test; quick passed; 4.8 of 6 GB used, headroom note)                                                                    | f96a6f48 |
+| 48    | B-705     | merged (sonnet; quick exit 0)                                                                                                                                               | c3eb9ee2 |
 | 49    | B-586     | done (no commits; the user: phone notifications were off, B-586 resolved, a187)                                                                                             | —        |
 
 ## Wave 1
