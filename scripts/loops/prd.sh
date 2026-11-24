@@ -22,6 +22,11 @@ pnpm prd <command>
                               the dispatcher (running, paused and why, stopped; its last line); lease holders; the load;
                               the workers (each lease, pnpm prd command and slice agent: age, usual time, state)
     status-watch [seconds]    status, redrawn every few seconds (default 5) until Ctrl-C
+    watch [topic] [--json] [--wait [--timeout <s>]]   each slice agent's state (ok, slow, quiet, no-progress,
+                              stopped, unknown) and the next action (none, nudge, restart, skeptic); --wait
+                              blocks until there is one and exits with it (75 at the timeout), run in the background
+    watch [topic] --mark <slice> nudged|replied|restarted|left|asked [--until <ISO|+30m>] [--ask <id>]
+                              record what was done (.loops/.watch/<topic>/; left: its recheck time)
     ready [topic]             the ready-to-land report: link, what it addresses, blockers
 
   Start and stop work
@@ -110,11 +115,13 @@ pnpm prd <command>
                               refused once defaulted)
 
   Skeptic (a fresh subagent's verdict before an ask or a risky landing, in the main checkout's .loops/.skeptic)
-    prompt skeptic ask|land|plan --evidence <file>   print its brief: the rules and the evidence
-    skeptic record --kind ask|land|plan --verdict <v> --why "<one line>" [--option <a>]
+    prompt skeptic ask|land|plan|stall --evidence <file>   print its brief: the rules and the evidence
+    skeptic record --kind ask|land|plan|stall --verdict <v> --why "<one line>" [--option <a>]
                               [--question <text> [--offer <a>]… --defaults|--waits]
                               [--tip <full sha> --action force|no-review|"decline <thread>"]
-                              record its answer (ask: decide, ask; land: go, no; plan: go, send-back);
+                              [--slice <n> --defaults|--waits]   (stall; --waits: a never-list step)
+                              record its answer (ask: decide, ask; land: go, no; plan: go, send-back;
+                              stall: restart, leave, ask);
                               prints the id; counts for \$CARETOOK_SKEPTIC_MAX_MIN (60) min
     skeptic [list] [--topic <t>] [--json]   the verdicts, oldest first
 
@@ -193,7 +200,7 @@ pnpm prd <command>
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
                      tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
-                     skeptic ask|land|plan --evidence <file>: the brief for a fresh skeptic
+                     skeptic ask|land|plan|stall --evidence <file>: the brief for a fresh skeptic
                      orchestrator <topic> --resume [--auto]: take over after an interruption
                      slice <topic> <n> --continue: pick up an interrupted slice
 USAGE
@@ -218,7 +225,7 @@ case $cmd in
 esac
 case $cmd in
   status | ls) exec "$bin/ls.sh" "$@" ;;
-  status-watch | watch)
+  status-watch)
     every=${1:-5}
     [[ $every =~ ^[0-9]+$ ]] && ((every > 0)) || die "status-watch takes a whole number of seconds (default 5)"
     trap 'echo; exit 0' INT TERM
@@ -232,6 +239,12 @@ case $cmd in
     done
     ;;
   ready) exec "$bin/ready.sh" "$@" ;;
+  watch)
+    t=""
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
+    if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "watch: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
+    CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks} \
+      exec node "$bin/watch.mjs" "$t" "$@" ;;
   metrics)
     exec node "$bin/metrics.mjs" --run-log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
       --check-log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" \

@@ -9,6 +9,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { DISPATCHER_SESSIONS } from "./asks.mjs";
 import { CONTEXT_SESSION } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, KEEP_SESSION } from "./dispatch-pick.mjs";
+import { STUCK_SESSION } from "./dispatch-stuck.mjs";
 import { recordVerdict } from "./skeptics.mjs";
 
 const PRD_SH = new URL("./prd.sh", import.meta.url).pathname;
@@ -382,7 +383,7 @@ describe("a skeptic before every ask", () => {
   });
 
   it("only the dispatcher's sessions are exempt, and only by an explicit --session", () => {
-    expect(DISPATCHER_SESSIONS).toEqual([DISPATCH_SESSION, CONTEXT_SESSION, KEEP_SESSION]);
+    expect(DISPATCHER_SESSIONS).toEqual([DISPATCH_SESSION, CONTEXT_SESSION, KEEP_SESSION, STUCK_SESSION]);
     for (const s of DISPATCHER_SESSIONS) expect(raw(question("--session", s, "--waits")).status).toBe(0);
     expect(raw(question("--session", "prd-demo", "--waits")).status).toBe(1);
     expect(raw(question("--waits"), { CARETOOK_SESSION: "dispatch" }).status).toBe(1);
@@ -460,6 +461,43 @@ describe("a skeptic before every ask", () => {
     expect(raw(question("--waits", "--skeptic", plan)).status).toBe(0);
     expect(stored("a1").skeptic).toMatchObject({ verdict: "no" });
     expect(stored("a2").skeptic).toMatchObject({ verdict: "send-back" });
+  });
+
+  it("a stall ask verdict files a question naming its slice; restart and leave don't", () => {
+    const stall = (fields = {}) =>
+      recordVerdict(skepticDir, {
+        kind: "stall",
+        verdict: "ask",
+        why: "two agents might share the worktree",
+        topic: "demo",
+        slice: "4",
+        askerClass: "defaults",
+        ...fields,
+      }).id;
+    const stalled = (...more) => [
+      "ask",
+      "--topic",
+      "demo",
+      "--question",
+      "Slice 4 stalled after its restart: what now?",
+      "--option",
+      "leave it",
+      "--option",
+      "stop the slice",
+      ...more,
+    ];
+    const ok = raw(stalled("--recommend", "leave it", "--defaults", "--skeptic", stall()));
+    expect(ok.status).toBe(0);
+    expect(ok.stdout).toContain("Now send a PushNotification");
+    expect(stored("a1").skeptic).toMatchObject({ verdict: "ask" });
+    const restart = raw(stalled("--waits", "--skeptic", stall({ verdict: "restart" })));
+    expect(restart.status).toBe(1);
+    expect(restart.stderr).toMatch(/stall restart: act on it/);
+    const never = stall({ askerClass: "waits" });
+    expect(raw(stalled("--recommend", "leave it", "--defaults", "--skeptic", never)).stderr).toMatch(
+      /takes --waits/,
+    );
+    expect(raw(stalled("--recommend", "leave it", "--waits", "--skeptic", never)).status).toBe(0);
   });
 
   describe("--decided", () => {

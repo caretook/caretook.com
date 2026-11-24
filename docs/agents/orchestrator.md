@@ -18,7 +18,7 @@ For a PRD orchestrator: a top-level session (spawned agents can't spawn), one pe
 - **The landing mode:** unless _Status_ records one, ask first: before each landing, run everything through (start every ready slice, land each green wave, ask only real questions), or land chosen waves or slices automatically. Record it in _Status_.
 - **The dispatcher** ([machinery](machinery.md#the-dispatcher)), when the user runs it, plans and starts topics in the registry's row order as managed run-through sessions; `pnpm prd queue <topic>` moves a row first. Being started run-through is the go-ahead for every landing of that PRD.
 - **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check on `pnpm log dev` or `pnpm backlog list`; then `pnpm prd sync --force`. **Unsure, or a choice past your topic:** ask the backlog session (SendMessage); it advises.
-- **Keep your context small:** work from _Status_, the backlog, hand-offs, `git diff --stat` and check output; send a problem back to its agent (SendMessage), never debug inside a loop.
+- **Keep your context small:** work from _Status_, the backlog, hand-offs, `git diff --stat` and check output; send a problem back to its agent, never debug inside a loop.
 - **One session per wave: drain, then rotate.** After a landing (not the last) and its docs, start no new slice; once the slices in flight are merged, commit _Status_ and `pnpm prd rotate` (at once with none in flight): a fresh session of that name opens from _Status_ and the old one ends. `--mid-wave` only on the user's word, or **past 225k** ([the watch](machinery.md#the-context-watch); at 160k, judge): rotate at the next safe point, unasked; a step that can't resume from _Status_ first runs `pnpm prd context --keep "<why>"` and says why there. After the last landing: `pnpm prd rm <topic>` (it sets the registry's `done`, except for a `standing` topic), then `cd` to the main checkout and `pnpm prd end`.
 - **Bye** (a message of just 'bye'): first _Status_ committed and current, no slice agent working, no CI run or review out; then `pnpm prd bye` ([machinery](machinery.md#recorded-sessions)).
 - **Run-through sessions never ask in the terminal:** `pnpm prd ask` (a question, or a report at each landing). A fresh Opus [skeptic](machinery.md#the-skeptic) reads each question first. A recommended one takes `--defaults` (the tool takes it after 30 minutes) or `--waits` ([never list](preferences.md#planning-and-slices)). Then a PushNotification with its line and `pnpm prd ask --wait <id>` in the background; carry on meanwhile. **Only a question's line is pushed.**
@@ -39,8 +39,10 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 4. On each hand-off, mark it, then review: `git diff prd/<topic>...slice/<topic>/<n>`, the hand-off, the acceptance criteria.
 5. Merge **in plan order** in your worktree: `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve shared-file conflicts yourself. No local quick check: the wave's run is the gate.
 6. Record the merge SHA, `pnpm backlog done B-<n>`; start what it unblocked. **The slice keeps its worktree and branch** until the wave's verdict is green; `pnpm prd rm <topic>-<n>` then.
-7. **The wave's run:** `pnpm prd ci run <tier> --wait` in the background, at the [proposed tier](#the-check-gate) unless you have a reason. On `file` or `brake`, `pnpm prd ci blame` (0 all dev's, 2 some the branch's, 5 unknown), then SendMessage each of the branch's failures to its slice's agent, with the tests and the run link. A failure no one slice explains, or an agent idle past an hour, gets a fresh fix agent in that slice's worktree. After [its fix](loop.md#loop-rules), merge it again.
+7. **The wave's run:** `pnpm prd ci run <tier> --wait` in the background, at the [proposed tier](#the-check-gate) unless you have a reason. On `file` or `brake`, `pnpm prd ci blame` (0 all dev's, 2 some the branch's, 5 unknown), then SendMessage each of the branch's failures to its slice's agent, with the tests and the run link. A failure no one slice explains gets a fresh fix agent in that slice's worktree. After [its fix](loop.md#loop-rules), merge it again.
 8. **No rotation while a run is out or a fix is in flight** (`rotate` refuses only the run; the fix is on you). **Land the wave** when it's green; don't wait for the whole PRD.
+
+- **Stalls:** `pnpm prd watch <topic> --wait` runs in the background through a wave (rerun on exit); `--mark <n>` before acting. `nudge`: SendMessage (`replied` on an answer). `restart` (once): TaskStop, wait for `stopped`, then a `--continue` agent in that worktree. `skeptic`: a fresh Opus on `prompt skeptic stall`, recorded `--kind stall --slice <n>` (`--waits`, never list: only ask); then restart, `left` or `asked`.
 
 ## Landing a wave
 
@@ -54,7 +56,6 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 - A go-ahead covers one landing, unless the landing mode covers more. Never land on your own judgement, never another PRD.
 - **`--force` and `--no-review`** need a fresh Fable land skeptic's `go` for this tip and action (`--skeptic <id>`, in the report for a veto) or the user's word (`--by-user`). A `no`: fix it or ask. On a brake or an unsynced tip, `--force` needs `--by-user`.
-- **Run each browser check once:** never rerun one that passed.
 - **Staging takes a candidate:** `pnpm prd ci candidate cut`, then `pnpm prd ci promote` (refuses a failing tip). Agents merge one no other way; the user's hand merge is the override. **Main:** only `pnpm prd ci release` writes `release-gate`.
 
 ### The check gate
@@ -76,7 +77,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 `pnpm prd down` before a planned restart, `pnpm prd recover` after a restart, crash or usage limit: [recovery](recovery.md).
 
-- **Resuming as orchestrator:** reconcile _Status_ with git first, and **git wins**: the slice worktrees (dirty or clean), `slice/` branches ahead of `prd/<topic>`, the merges already in. Respawn each in-flight slice with no live agent (`pnpm prd prompt slice <topic> <n> --continue`). Review a slice handed off but not merged from its branch, spawning a `--continue` agent if you need its hand-off. Follow the recorded landing mode.
+- **Resuming as orchestrator:** follow the `--resume` prompt; **git wins** over _Status_.
 
 ## Rules across PRDs
 
