@@ -8,6 +8,8 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
 
+**Wave 5 (2026-11-24, this session, fixes-tooling-9d; run-through).** Reconciled: wave 4 landed (e2771ad), no slices in flight, prd/fixes-tooling up to date with dev. Inbox-agent is done, so `tidy*`/`session*` are free. Slices 31 (re-measure 25 under-load flakes after B-607; proposals, no code), 32 (B-740), 33 (B-741), 34 (B-742), 35 (B-744–B-747), 36 (B-461, B-732), 37 (B-731), 38 (B-638), all opus; items claimed; hot set to stack, ask.test, lease, load-gate.test, tidy-cli.test, session-requests, notices, careGroupInvite.int.test. Not in this wave: B-375 (`vitest.config.ts`, test-health-2's), B-667 (fixture). Second half: a fix slice per item slice 31 finds still failing. Tier: integration (slice 38 is `packages/`), else none.
+
 **Hand-off (2026-11-24, after the wave 4 landing; no slices in flight).** Wave 4 (slices 25–30, all opus) landed in dev as e2771ad through PR #150, tier integration; Codex out of credits, landed `--no-review` (said in the report). Gate: integration green on 3798b561 (run 45403247910) and synced b7a3373f (45404279183); dev then moved (symptom-catalog, migration 0043), resynced 20eed0bf: flake only in `load-gate.test.mjs` (dev's lane-cap file), land filed B-744–B-747; B-654's test left the quarantine. Report filed (asks); to-test `to-test/2026-11-24-0843-fixes-tooling.md`. Docs folded: loop.md (tests wait on state, few fake-clock steps, fake pid 99_999_999). Slice worktrees 25–30 removed. Filed in the wave: B-740 (stack.test gc timeout under load), B-741 (ask countdown test races the clock), B-742 (lease.sh TERM race). **Next: wave 5** (re-measure test flakes; items carry `This item: wave 5`); the deferred wave-4 kind (B-461/B-732 tidy-cli, B-731) waits while inbox-agent holds `tidy*`/`session*`; B-740–B-742 can join wave 5. Check hot files first (`pnpm backlog prd list`).
 
 **Wave 4 (2026-11-24, this session, fixes-tooling-9c; run-through).** Reconciled: no slices in flight, prd/fixes-tooling up to date with dev. Slices 25 (B-418), 26 (B-573, B-446, B-704), 27 (B-582), 28 (B-642), 29 (B-723), 30 (B-654), all opus, all started (worktrees made, agents spawned). Hot set to recover, browser, mcp/readTools int tests, context, lease. Wave notes filed for the unassigned items (B-633…B-732: waves 5–8). Deferred: B-461/B-732 (inbox-agent's `tidy`), B-619 (waits for B-660), B-731 (inbox-agent's `session*`). Filed B-740 (stack.test gc timeout under load, seen in slices 25 and 29 checks). Doc to fold: a fake-clock wait loop keeps its step count small (each step costs process starts). All six merged (tip 6e8ba3f8); items marked done. Gate: CI integration green on 3798b561 (run 45403247910). Slice worktrees 25–30 removed. Dev synced as bdc7a4ef (no conflicts); integration CI green on synced b7a3373f (run 45404279183); dev moved (symptom-catalog, migration 0043), resynced as db3d2c3f; integration CI on 20eed0bf: flake (run 45405266792; only load-gate.test.mjs, dev's lane-cap file, not this branch). PR #150 opened; Codex review waiting. Docs folded: loop.md (tests wait on state, few fake-clock steps, fake pid 99_999_999; trimmed slots/env lines to stay in budget). Context past 160k: rotate after this landing, as planned.
@@ -24,38 +26,46 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                                                                      | Merge    |
-| ----- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                                                                             | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                                                                         | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                                                                       | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                                                                   | 1a7ad440 |
-| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)                                              | d971f6fa |
-| 6     | B-458 | merged (tooling)                                                                                                                           | a8ab24cc |
-| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                                                               | cd8cc1f5 |
-| 8     | B-484 | merged (quick passed on slice)                                                                                                             | af134b65 |
-| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                                                                     | 4adeb2da |
-| 10    | B-445 | merged (quick passed on slice)                                                                                                             | da329245 |
-| 11    | B-534 | merged (full passed on slice)                                                                                                              | 0d7e9205 |
-| 12    | B-444 | merged (quick passed on slice)                                                                                                             | 9a1479e9 |
-| 13    | B-405 | merged (quick passed on slice)                                                                                                             | 6f8d07be |
-| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                                                                  | e962e40d |
-| 15    | B-450 | merged (quick passed on slice)                                                                                                             | d0b0324b |
-| 16    | B-466 | merged (full passed on slice)                                                                                                              | 3f739326 |
-| 17    | B-468 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                                                             | 0e5c25aa |
-| 18    | B-525 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                                                             | 8a805d94 |
-| 19    | B-526 | merged (opus; quick passed; follow-up B-731)                                                                                               | cfa4e90f |
-| 20    | B-452 | merged (opus; quick passed; adds `rm.sh --no-registry` for undo)                                                                           | 5c94e59e |
-| 21    | B-453 | merged (opus; quick: only tidy-cli beforeAll at load 30, B-461; alone 3/3)                                                                 | 5f319e68 |
-| 22    | B-454 | merged (opus; quick passed)                                                                                                                | e8bf7ebb |
-| 23    | B-570 | merged (opus; quick passed)                                                                                                                | fd7c1cb4 |
-| 24    | B-600 | merged (opus; quick passed; doc lines for orchestrator/machinery/backlog in hand-off)                                                      | 16f598e9 |
-| 25    | B-418 | merged (opus; cause: 258 fake-clock 300 s steps; step now `CARETOOK_RECOVER_STEP_SECS`; quick red only in stack.test (B-740) and tidy-cli) | cd0e8eae |
-| 26    | B-573 | merged (opus; quick passed; groups killed per test, cleanup kills children, kill cap 15 s; B-742 lease.sh TERM race filed)                 | fdac12d8 |
-| 27    | B-582 | merged (opus; quick passed; ~2.5 s to ~0.8 s)                                                                                              | b213f458 |
-| 28    | B-642 | merged (opus; quick passed; fixed 2030 clock, 00:05 case)                                                                                  | dd3e33f6 |
-| 29    | B-723 | merged (opus; fixed pid 99999999; quick red only stack/backlog/tidy-cli under load)                                                        | 0ca671b6 |
-| 30    | B-654 | merged (opus; holders wait on a go file; B-741 ask.test filed)                                                                             | 6e8ba3f8 |
+| Slice | Item      | State                                                                                                                                      | Merge    |
+| ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| 1     | B-381     | merged (quick passed on slice)                                                                                                             | 3df76253 |
+| 2     | B-394     | merged (quick passed; 20 s timeout kept, see note)                                                                                         | 26e83fa4 |
+| 3     | B-411     | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                                                                       | 7ccc8ff8 |
+| 4     | B-440     | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                                                                   | 1a7ad440 |
+| 5     | B-441     | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)                                              | d971f6fa |
+| 6     | B-458     | merged (tooling)                                                                                                                           | a8ab24cc |
+| 7     | B-475     | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                                                               | cd8cc1f5 |
+| 8     | B-484     | merged (quick passed on slice)                                                                                                             | af134b65 |
+| 9     | B-451     | merged (full passed on slice: package.json; browser not run, no stack)                                                                     | 4adeb2da |
+| 10    | B-445     | merged (quick passed on slice)                                                                                                             | da329245 |
+| 11    | B-534     | merged (full passed on slice)                                                                                                              | 0d7e9205 |
+| 12    | B-444     | merged (quick passed on slice)                                                                                                             | 9a1479e9 |
+| 13    | B-405     | merged (quick passed on slice)                                                                                                             | 6f8d07be |
+| 14    | B-388     | merged (quick: only resetStaging timed out (fixed by 16))                                                                                  | e962e40d |
+| 15    | B-450     | merged (quick passed on slice)                                                                                                             | d0b0324b |
+| 16    | B-466     | merged (full passed on slice)                                                                                                              | 3f739326 |
+| 17    | B-468     | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                                                             | 0e5c25aa |
+| 18    | B-525     | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                                                             | 8a805d94 |
+| 19    | B-526     | merged (opus; quick passed; follow-up B-731)                                                                                               | cfa4e90f |
+| 20    | B-452     | merged (opus; quick passed; adds `rm.sh --no-registry` for undo)                                                                           | 5c94e59e |
+| 21    | B-453     | merged (opus; quick: only tidy-cli beforeAll at load 30, B-461; alone 3/3)                                                                 | 5f319e68 |
+| 22    | B-454     | merged (opus; quick passed)                                                                                                                | e8bf7ebb |
+| 23    | B-570     | merged (opus; quick passed)                                                                                                                | fd7c1cb4 |
+| 24    | B-600     | merged (opus; quick passed; doc lines for orchestrator/machinery/backlog in hand-off)                                                      | 16f598e9 |
+| 25    | B-418     | merged (opus; cause: 258 fake-clock 300 s steps; step now `CARETOOK_RECOVER_STEP_SECS`; quick red only in stack.test (B-740) and tidy-cli) | cd0e8eae |
+| 26    | B-573     | merged (opus; quick passed; groups killed per test, cleanup kills children, kill cap 15 s; B-742 lease.sh TERM race filed)                 | fdac12d8 |
+| 27    | B-582     | merged (opus; quick passed; ~2.5 s to ~0.8 s)                                                                                              | b213f458 |
+| 28    | B-642     | merged (opus; quick passed; fixed 2030 clock, 00:05 case)                                                                                  | dd3e33f6 |
+| 29    | B-723     | merged (opus; fixed pid 99999999; quick red only stack/backlog/tidy-cli under load)                                                        | 0ca671b6 |
+| 30    | B-654     | merged (opus; holders wait on a go file; B-741 ask.test filed)                                                                             | 6e8ba3f8 |
+| 31    | B-479 +24 | started (opus; re-measure only)                                                                                                            |          |
+| 32    | B-740     | started (opus)                                                                                                                             |          |
+| 33    | B-741     | started (opus)                                                                                                                             |          |
+| 34    | B-742     | started (opus)                                                                                                                             |          |
+| 35    | B-744     | started (opus; with B-745, B-746, B-747)                                                                                                   |          |
+| 36    | B-461     | started (opus; with B-732)                                                                                                                 |          |
+| 37    | B-731     | started (opus)                                                                                                                             |          |
+| 38    | B-638     | started (opus)                                                                                                                             |          |
 
 ## Wave 1
 
@@ -355,3 +365,80 @@ Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: uni
 
 - Find the race from the code (holders started in parallel and checked before they hold, a real-time wait, the load gate, `lease.sh`'s poll interval) and show it; the test waits on each holder's state (a marker or `holders` output), never on a fixed sleep.
 - Unit test: the same assertions, deterministic under a slowed holder (e.g. a holder delayed before it takes the lease).
+
+## Wave 5
+
+The user's order: re-measure test flakes. Slice 31 re-measures the old under-load flakes after the harness fix B-607 (settle can return before the page mounts, landed by test-gates as fe82288c) and proposes closing what no longer fails; only what still fails gets a fix slice, in this wave's second half. Slices 32–38 fix flakes and races whose cause is already known or readable from the code, in files that inbox-agent no longer holds. Same rules as wave 4: **first show the cause**, then fix it; a longer timeout alone only when the work is genuinely large and the hand-off says so. Never touch a running topic's hot files (`pnpm backlog prd list`: test-health-2's `vitest.config.ts`, `apps/web/test/`, sync paths, `router.int.test.ts`, `roundtrip.spec.mjs`, `sync-matrix*`; symptom-catalog's timeline paths and `components/quick-entry/`). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain. Not in this wave: B-375 (touches `vitest.config.ts`, test-health-2's), B-667 (a seeded onboarding user: a fixture, not a flake; a later wave).
+
+### Slice 31: re-measure the under-load flakes after B-607 (B-479, B-480, B-485, B-488, B-489, B-490, B-491, B-493, B-494, B-495, B-496, B-497, B-498, B-499, B-500, B-501, B-502, B-568, B-633, B-645, B-653, B-658, B-716, B-727, B-743)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md, docs/agents/machinery.md · Tests: none (measurement only)
+
+Each item is a component, integration or browser-check test that failed under load and passed alone. Many may be gone since B-607 (the component harness's settle) and the tooling load fixes of waves 1–4.
+
+- **Change no code or test.** For each item, run the test's file at check-like load: the named files together, at the Vitest project's usual workers, **at least 10 times**, while a second process keeps the machine busy (e.g. a concurrent `pnpm test:tooling` or the other files of the same project; no new dependencies). Quarantined tests (`scripts/ci/quarantine.txt`: B-568, B-633, B-645, B-653, B-658, B-743) run with `CARETOOK_QUARANTINE=run`. Record the load (`uptime`) for each round.
+- B-716 (phase2) and B-727 (ui.spec) are browser checks: run `pnpm prd browser` for that one check 5 times under the same load, if the slice can take a browser lease; else say so and leave them unmeasured.
+- B-479 and B-743 are the same test (calendarCron): measure once, report both.
+- Hand-off: a table with Item | Test | Runs | Failures | Load | Failure message (first line) | Proposal (`close`: no failure in all runs; `fix`: failed, with the cause if the message shows it). Nothing is closed by the slice; the orchestrator files the proposals.
+
+### Slice 32: stack.test.mjs's 'gc removes it only after a yes' holds under load (B-740)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/stack.test.mjs` 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s at load ~60, passes alone 3/3 at load 18.
+
+- Find where its time goes (git repos and worktrees made per test, node starts, `prd list` calls, the load gate, real sleeps) and show it; cut that cost (a shared fixture repo made once, fewer process starts, the load gate off in the test env) so it passes well inside its timeout at any load. Keep the assertions.
+- Unit test: the same assertions, with before/after times in the hand-off.
+
+### Slice 33: ask.test.mjs's countdown is read from a fixed now (B-741)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/ask.test.mjs` 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for an ask 1 s old: the countdown rounds the real clock.
+
+- Show the rounding race from the code (`asks` reads the real `Date.now()` after the ask is written); drive the listing from a fixed now (the clock override the ask tools already use, or one added the same way) so the countdown is exact; check the rounding the user sees (minutes up or down) is what the doc says.
+- Unit test: the same assertion on a fixed clock, plus a case 1 s and 59 s past a minute boundary.
+
+### Slice 34: lease.sh leaves no lease behind after a TERM mid-take (B-742)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/lease.sh`: a TERM between a lease's `mkdir` and the `lease_path=` assignment leaves the lease directory behind, since the trap only removes `$lease_path`.
+
+- Close the window: set the path before the `mkdir` (the trap removes it only if this process made it, e.g. an owner file with its pid), or take the lease into a temporary name and rename; show the old order and the new in the hand-off.
+- Unit test: a TERM delivered in that window (a test hook that pauses between the two steps, waited on by a marker, never a sleep) leaves no lease; the existing 'TERMed mid-check' test still passes.
+
+### Slice 35: load-gate.test.mjs's 'the scripts that wait or warn' tests don't race (B-744, B-745, B-746, B-747)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+All four tests of `scripts/loops/load-gate.test.mjs`'s 'the scripts that wait or warn' block flaked together in one CI run (passed on the rerun); they're quarantined (`scripts/ci/quarantine.txt`).
+
+- Find the shared cause from the code (a real load read, a real-time poll or sleep, the fake load file written while a script reads it, a shared temp dir across the block, the CI runner's own load) and show it; the tests wait on each script's state, never on a fixed sleep, and read only a fake load.
+- Unit test: the four tests pass with `CARETOOK_QUARANTINE=run` 20 times in a row at load; the hand-off says whether their quarantine lines can go (the orchestrator removes them through `pnpm prd ci` when the items are done).
+
+### Slice 36: tidy-cli.test.mjs's beforeAll holds under load (B-461, B-732)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+`scripts/loops/tidy-cli.test.mjs` 'tidy archives finished items' beforeAll times out at 10 s at load 30–40 (passes alone 12/12), after B-460 turned the load gate off in its setup.
+
+- Measure where the beforeAll's time goes (repos, worktrees, `new.sh` runs, backlog writes, node starts) and show it; cut it (one fixture built once and copied, fewer process starts) so it stays well inside 10 s at load 40, or say why the work is genuinely large and set a timeout with a comment.
+- Unit test: the same assertions, with before/after times in the hand-off.
+
+### Slice 37: session requests raise their .seq only upward (B-731)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/session-requests.mjs` raises `.seq` check-then-rename, as `notices.mjs` did before B-526, so two concurrent requests can lower it and reuse an id.
+
+- Apply B-526's fix (`notices.mjs`'s high-water mark as `.seq.d/` files that only move up), sharing its helper rather than copying it where that's simple; old `.seq` files still read.
+- Unit test: concurrent requests never reuse an id or lower the mark (driven by a barrier, not sleeps), and an existing `.seq` is carried over.
+
+### Slice 38: a waiting join request from an account with no current legal acceptance isn't asked again (B-638)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-groups.md · Tests: integration
+
+`careGroupInviteService`'s `askWithLink` returns a waiting request before the legal check, but the test 'a waiting request isn't asked again' sends `legal: true` with a current row, so nothing pins that order.
+
+- No code change unless the test shows a bug. Integration test in `packages/data/src/services/careGroupInvite.int.test.ts`: an account with a waiting request and no current legal acceptance asks again with the link and gets its waiting request back (no new row, no legal refusal); all data fictional.
