@@ -6,6 +6,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page.
+
 ## Change requests
 
 ## Feature requests
