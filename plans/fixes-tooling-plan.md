@@ -8,7 +8,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
 
-**Wave 4 (2026-11-24, this session, fixes-tooling-9c; run-through).** Reconciled: no slices in flight, prd/fixes-tooling up to date with dev. Slices 25 (B-418), 26 (B-573, B-446, B-704), 27 (B-582), 28 (B-642), 29 (B-723), 30 (B-654), all opus, all started (worktrees made, agents spawned). Hot set to recover, browser, mcp/readTools int tests, context, lease. Wave notes filed for the unassigned items (B-633…B-732: waves 5–8). Deferred: B-461/B-732 (inbox-agent's `tidy`), B-619 (waits for B-660), B-731 (inbox-agent's `session*`). Gate: a tier the check plan proposes (27/28 touch `packages/`: integration).
+**Wave 4 (2026-11-24, this session, fixes-tooling-9c; run-through).** Reconciled: no slices in flight, prd/fixes-tooling up to date with dev. Slices 25 (B-418), 26 (B-573, B-446, B-704), 27 (B-582), 28 (B-642), 29 (B-723), 30 (B-654), all opus, all started (worktrees made, agents spawned). Hot set to recover, browser, mcp/readTools int tests, context, lease. Wave notes filed for the unassigned items (B-633…B-732: waves 5–8). Deferred: B-461/B-732 (inbox-agent's `tidy`), B-619 (waits for B-660), B-731 (inbox-agent's `session*`). Filed B-740 (stack.test gc timeout under load, seen in slices 25 and 29 checks). Doc to fold: a fake-clock wait loop keeps its step count small (each step costs process starts). Gate: a tier the check plan proposes (27/28 touch `packages/`: integration).
 
 **Hand-off (2026-11-24, after the wave 3 landing; no slices in flight).** Wave 3 (slices 17–24, all opus) landed in dev as 00894439 through PR #145, tier none (tooling and docs only); Codex out of credits, landed `--no-review` (said in the report). Gate: `pnpm test:tooling` passed on 5f8c6853 (1783) and on the synced tip 11de7bd2 (1830). Dev sync 9fd91277 conflicted with inbox-agent B-515 (an `inbox` session kind) in `context.mjs`/`dispatch-context.mjs`: inbox keeps one limit, hard = soft 160k, rotate unasked (`hardLimitFor("inbox")`, `inboxLimit` in `contextDecision`), said in the report. Report: ask a178; to-test `to-test/2026-11-24-0705-fixes-tooling.md`. Docs folded on dev's text (machinery, orchestrator, backlog; all within budget). Slice worktrees 17–24 removed. inbox-agent-67 told of the landing (its B-733 waited on it). **Next: wave 4** (the user's order: known flakes by cause), from the 74 triaged fixes-tooling items; check hot files first (`pnpm backlog prd list`: inbox-agent keeps `scripts/backlog/`, `lib.sh`, `prd.sh`, `prompt.sh`, `tidy`, `queue`, `session*`, `rotate`, `bye`; asks-relay and staging-ship are not running).
 
@@ -22,38 +22,38 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                              | Merge    |
-| ----- | ----- | -------------------------------------------------------------------------------------------------- | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                                     | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                                 | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                               | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                           | 1a7ad440 |
-| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)      | d971f6fa |
-| 6     | B-458 | merged (tooling)                                                                                   | a8ab24cc |
-| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                       | cd8cc1f5 |
-| 8     | B-484 | merged (quick passed on slice)                                                                     | af134b65 |
-| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                             | 4adeb2da |
-| 10    | B-445 | merged (quick passed on slice)                                                                     | da329245 |
-| 11    | B-534 | merged (full passed on slice)                                                                      | 0d7e9205 |
-| 12    | B-444 | merged (quick passed on slice)                                                                     | 9a1479e9 |
-| 13    | B-405 | merged (quick passed on slice)                                                                     | 6f8d07be |
-| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                          | e962e40d |
-| 15    | B-450 | merged (quick passed on slice)                                                                     | d0b0324b |
-| 16    | B-466 | merged (full passed on slice)                                                                      | 3f739326 |
-| 17    | B-468 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                     | 0e5c25aa |
-| 18    | B-525 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                     | 8a805d94 |
-| 19    | B-526 | merged (opus; quick passed; follow-up B-731)                                                       | cfa4e90f |
-| 20    | B-452 | merged (opus; quick passed; adds `rm.sh --no-registry` for undo)                                   | 5c94e59e |
-| 21    | B-453 | merged (opus; quick: only tidy-cli beforeAll at load 30, B-461; alone 3/3)                         | 5f319e68 |
-| 22    | B-454 | merged (opus; quick passed)                                                                        | e8bf7ebb |
-| 23    | B-570 | merged (opus; quick passed)                                                                        | fd7c1cb4 |
-| 24    | B-600 | merged (opus; quick passed; doc lines for orchestrator/machinery/backlog in hand-off)              | 16f598e9 |
-| 25    | B-418 | started (opus)                                                                                     |          |
-| 26    | B-573 | started (opus; also B-446, B-704)                                                                  |          |
-| 27    | B-582 | started (opus)                                                                                     |          |
-| 28    | B-642 | started (opus)                                                                                     |          |
-| 29    | B-723 | handed off 4e1f251d (opus; quick red only in untouched files under load: stack, backlog, tidy-cli) |          |
-| 30    | B-654 | started (opus)                                                                                     |          |
+| Slice | Item  | State                                                                                                                                      | Merge    |
+| ----- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| 1     | B-381 | merged (quick passed on slice)                                                                                                             | 3df76253 |
+| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                                                                         | 26e83fa4 |
+| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                                                                       | 7ccc8ff8 |
+| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                                                                   | 1a7ad440 |
+| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)                                              | d971f6fa |
+| 6     | B-458 | merged (tooling)                                                                                                                           | a8ab24cc |
+| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                                                               | cd8cc1f5 |
+| 8     | B-484 | merged (quick passed on slice)                                                                                                             | af134b65 |
+| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                                                                     | 4adeb2da |
+| 10    | B-445 | merged (quick passed on slice)                                                                                                             | da329245 |
+| 11    | B-534 | merged (full passed on slice)                                                                                                              | 0d7e9205 |
+| 12    | B-444 | merged (quick passed on slice)                                                                                                             | 9a1479e9 |
+| 13    | B-405 | merged (quick passed on slice)                                                                                                             | 6f8d07be |
+| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                                                                  | e962e40d |
+| 15    | B-450 | merged (quick passed on slice)                                                                                                             | d0b0324b |
+| 16    | B-466 | merged (full passed on slice)                                                                                                              | 3f739326 |
+| 17    | B-468 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                                                             | 0e5c25aa |
+| 18    | B-525 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                                                             | 8a805d94 |
+| 19    | B-526 | merged (opus; quick passed; follow-up B-731)                                                                                               | cfa4e90f |
+| 20    | B-452 | merged (opus; quick passed; adds `rm.sh --no-registry` for undo)                                                                           | 5c94e59e |
+| 21    | B-453 | merged (opus; quick: only tidy-cli beforeAll at load 30, B-461; alone 3/3)                                                                 | 5f319e68 |
+| 22    | B-454 | merged (opus; quick passed)                                                                                                                | e8bf7ebb |
+| 23    | B-570 | merged (opus; quick passed)                                                                                                                | fd7c1cb4 |
+| 24    | B-600 | merged (opus; quick passed; doc lines for orchestrator/machinery/backlog in hand-off)                                                      | 16f598e9 |
+| 25    | B-418 | merged (opus; cause: 258 fake-clock 300 s steps; step now `CARETOOK_RECOVER_STEP_SECS`; quick red only in stack.test (B-740) and tidy-cli) | cd0e8eae |
+| 26    | B-573 | started (opus; also B-446, B-704)                                                                                                          |          |
+| 27    | B-582 | started (opus)                                                                                                                             |          |
+| 28    | B-642 | started (opus)                                                                                                                             |          |
+| 29    | B-723 | handed off 4e1f251d (opus; quick red only in untouched files under load: stack, backlog, tidy-cli)                                         |          |
+| 30    | B-654 | started (opus)                                                                                                                             |          |
 
 ## Wave 1
 
