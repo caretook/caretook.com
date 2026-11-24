@@ -80,7 +80,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 40    | B-500     | merged (opus; quick passed; one world per describe, afterEach cleanup, 15 s timeout kept for 37-39-visit tests; perf follow-up filed)                                       | 31738047 |
 | 41    | B-597     | merged (opus; golden prompt test, prompts/<kind>.sh, ci-*.mjs; quick passed; machinery.md lines in hand-off)                                                                | 348d5717 |
 | 42    | B-595     | started (opus)                                                                                                                                                              | —        |
-| 43    | B-596     | started (opus)                                                                                                                                                              | —        |
+| 43    | B-596     | handed off (opus; 214bdcfa; planner + plan-skeptic rule, pre-merge-commit warns past 12 files; quick passed; planner.md lines in hand-off)                                  | —        |
 | 44    | B-598     | started (opus)                                                                                                                                                              | —        |
 | 45    | B-696     | handed off (opus; 63ec16a2; parseArgs first, --base computes the diff, `pnpm prd tier`; quick passed)                                                                       | —        |
 | 46    | B-464     | started (opus; +B-650)                                                                                                                                                      | —        |
