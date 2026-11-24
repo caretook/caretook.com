@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-24, wave 3 running):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (ingest: nothing new; doctor: two title-rewrite notes only; no new items for this topic); `pnpm prd sync`: already up to date. **Wave 3 started:** worktrees `symptom-catalog-3` (stack slot 1), `-5`, `-6` made from 18a18117; one opus agent spawned for each. Slice 3's first stack start failed (container unhealthy under load); `pnpm prd stack up` again worked.
+**Where it stands (2026-11-24, wave 3 running):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (ingest: nothing new; doctor: two title-rewrite notes only; no new items for this topic); `pnpm prd sync`: already up to date. **Wave 3 started:** worktrees `symptom-catalog-3` (stack slot 1), `-5`, `-6` made from 18a18117; one opus agent spawned for each. **Slice 6 handed off** (0202848a, slice check green, 6 files: daySummary, visitPrep, quickEntryPredictions group by `symptomKey` per the PRD's _Null pointers_); reviewed, waits to merge after 3 and 5. Slice 3's first stack start failed (container unhealthy under load); `pnpm prd stack up` again worked.
 
 **Next:** merge 3, 5, 6 in plan order (3 then 5 then 6) as they hand off; then the wave's CI run (tier the check plan proposes: likely `full`, slice 3 may add a migration or sync-config change); then sync, PR, land. Wave 4 (slice 4) after.
 
@@ -25,7 +25,7 @@
 | 3     | 3    | started     |                                                  |
 | 4     | 4    | not started |                                                  |
 | 5     | 3    | started     |                                                  |
-| 6     | 3    | started     |                                                  |
+| 6     | 3    | handed off  |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
