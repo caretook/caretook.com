@@ -126,7 +126,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Next session (wave 13):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 13 from the triaged items: B-726 (a retried dose upload after a time edit), and B-689, B-690, B-715 once member-avatars no longer holds `routes/app/groups/planner/`. B-728 (repeat preview pairs the recipient's day with the viewer's time) needs a product choice first: ask through `pnpm prd ask` before planning it.
 
-**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); skeptic s20 decided A (ask a168, filed for veto under "decided for you"); slice 64 (B-728) on opus. **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`).
+**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); skeptic s20 decided A (ask a168, filed for veto under "decided for you"); slice 64 (B-728) on opus. **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`); a background watch exits when its row leaves `running`, and they become a later wave (this one only if 63 and 64 are still in flight). **In flight:** 63 and 64, agents spawned, not handed off.
 
 ## Wave 1
 
