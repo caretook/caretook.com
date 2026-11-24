@@ -25,11 +25,11 @@ import { UpcomingRowActions, UpcomingRowAuthor } from "./UpcomingRowParts";
  * one line ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM") with the
  * repeat mark, the entry's body with its "with …" line, its place, and
  * "Cancelled" (struck through). A footer holds labelled Call and Directions on
- * the left and the author's initials (a filter) on the right; a card with no
- * actions has no footer, and its initials end the last line, under the menu.
+ * the left and the author's avatar (a filter) on the right; a card with no
+ * actions has no footer, and its avatar ends the last line, under the menu.
  * The whole row opens the entry's page. `readOnly` (the easy roles' Planner)
- * shows the kind and initials without their filter links, so a tap on the
- * initials opens the row.
+ * shows the kind and avatar without their filter links, so a tap on the
+ * avatar opens the row.
  */
 export function UpcomingRow({
   entry,
