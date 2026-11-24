@@ -75,27 +75,27 @@ export const catchMeUp = definePrompt({
     [
       `Catch me up on the care group since ${since ? `"${since}"` : "the start of today"}, in the care recipient's time zone.`,
       START,
-      "Then use list_timeline with `from` set to that time for what was logged and by whom, todays_doses for the doses given, missed or still due today, and upcoming for the appointments and todos coming in the next few days.",
+      "Then use list_timeline with `from` set to that time for what was logged and by whom, todays_doses for the doses given, missed or still due today, and upcoming for the events and todos coming in the next few days.",
       "Answer in a few short sections, most important first. If nothing was logged, say so plainly.",
     ].join("\n\n"),
 });
 
-export const prepareForAppointment = definePrompt({
-  name: "prepare_for_appointment",
-  title: "Prepare for an appointment",
+export const prepareForEvent = definePrompt({
+  name: "prepare_for_event",
+  title: "Prepare for an event",
   description:
-    "Recent symptoms, vitals and medication changes for an upcoming appointment, and questions to ask.",
+    "Recent symptoms, vitals and medication changes for an upcoming event (an appointment), and questions to ask.",
   scope: "read",
   args: z.object({
-    appointment: text(200)
+    event: text(200)
       .optional()
-      .describe("Which appointment: its title or date. Default: the next one."),
+      .describe("Which event (appointment): its title or date. Default: the next one."),
   }),
-  render: ({ appointment }) =>
+  render: ({ event }) =>
     [
-      `Help me prepare for ${appointment ? `the appointment "${appointment}"` : "the next appointment"}.`,
+      `Help me prepare for ${event ? `the event "${event}"` : "the next event"}, such as an appointment.`,
       START,
-      `Find it with upcoming${appointment ? " (or search, if it isn't in the next few weeks)" : ""}, and note who it's with.`,
+      `Find it with upcoming${event ? " (or search, if it isn't in the next few weeks)" : ""}, and note who it's with.`,
       "Then gather what has happened since the last visit with that provider, or the last 30 days: list_timeline with kinds symptom, vital, medicationChange and conditionChange, latest_vitals, list_medications, and recipient_profile for the conditions and allergies.",
       "Summarize it briefly for the visit, then draft a short list of questions to ask. Don't give medical advice; leave that to the clinician.",
     ].join("\n\n"),
@@ -111,7 +111,7 @@ export const weeklySummary = definePrompt({
     [
       "Write a plain-language summary of the last 7 days of care, to share with family.",
       START,
-      "Then use list_timeline from 7 days ago (pass nextCursor back until there are no more), latest_vitals, list_medications for anything that changed, and upcoming for the week's appointments and todos.",
+      "Then use list_timeline from 7 days ago (pass nextCursor back until there are no more), latest_vitals, list_medications for anything that changed, and upcoming for the week's events and todos.",
       "Keep it short and warm, with no medical jargon. Leave out phone numbers, addresses and anything the family wouldn't need.",
     ].join("\n\n"),
 });
@@ -133,7 +133,7 @@ export const logWhatHappened = definePrompt({
     [
       "Log what happened in the care group from my account below.",
       START,
-      "Turn it into entries: log_vitals for measurements, log_dose for medications given (check todays_doses or list_medications for the exact medication), log_symptom for symptoms, add_event for appointments, add_todo for things to do, and add_note for anything else.",
+      "Turn it into entries: log_vitals for measurements, log_dose for medications given (check todays_doses or list_medications for the exact medication), log_symptom for symptoms, add_event for events and appointments, add_todo for things to do, and add_note for anything else.",
       "List the entries you'll make first, then make each with its own tool call so I can confirm each one. Use the times I give, in the care recipient's time zone; if a time or a medication isn't clear, ask instead of guessing.",
       `My account:\n\n${account}`,
     ].join("\n\n"),
@@ -142,7 +142,7 @@ export const logWhatHappened = definePrompt({
 /** Every connector prompt, in the order prompts/list shows them; a new one adds a line at the end. */
 export const CONNECTOR_PROMPTS: readonly Prompt[] = [
   catchMeUp,
-  prepareForAppointment,
+  prepareForEvent,
   weeklySummary,
   logWhatHappened,
 ];

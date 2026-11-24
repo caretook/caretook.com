@@ -30,14 +30,14 @@ const input = z.object({
 });
 
 /**
- * Appointments (events) and open todos from now on. Overdue todos come
+ * Events (appointments) and open todos from now on. Overdue todos come
  * first, then everything by day, an all-day or untimed item before a timed
  * one. Notes are past-only, so a note is never listed.
  */
 export const upcoming = defineTool({
   name: "upcoming",
-  title: "Upcoming appointments and todos",
-  description: `Upcoming appointments (events) and open todos with a due day, overdue todos first, then by day and time; each item says whether it is an appointment or a todo. An appointment has place, end time, text and whether it is cancelled; a todo has its due day and time, assignee and, if it repeats, how. Includes what is happening now and today's all-day items. The next ${UPCOMING_DEFAULT_DAYS} days by default, at most ${UPCOMING_MAX_DAYS}; at most ${LIST_PAGE_MAX} items. Doses are not here: use todays_doses.`,
+  title: "Upcoming events and todos",
+  description: `Upcoming events (appointments) and open todos with a due day, overdue todos first, then by day and time; each item says whether it is an event or a todo. An event has place, end time, text and whether it is cancelled; a todo has its due day and time, assignee and, if it repeats, how. Includes what is happening now and today's all-day items. The next ${UPCOMING_DEFAULT_DAYS} days by default, at most ${UPCOMING_MAX_DAYS}; at most ${LIST_PAGE_MAX} items. Doses are not here: use todays_doses.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -69,7 +69,7 @@ export const upcoming = defineTool({
 
     type Item =
       | {
-          kind: "appointment";
+          kind: "event";
           id: string;
           title: string | null;
           text: string | null;
@@ -92,9 +92,9 @@ export const upcoming = defineTool({
           repeats: string | null;
         };
 
-    const appointments: Item[] = live.map((e) => ({
+    const events: Item[] = live.map((e) => ({
       id: e.id,
-      kind: "appointment",
+      kind: "event",
       title: e.title,
       text: e.body,
       startsAt: zonedIso(e.occurredAt, timeZone),
@@ -130,7 +130,7 @@ export const upcoming = defineTool({
     const day = (i: Item) => (i.kind === "todo" ? i.dueOn : i.startsAt.slice(0, 10));
     const clock = (i: Item) =>
       i.kind === "todo" ? (i.dueTime ?? "") : i.allDay ? "" : i.startsAt.slice(11, 16);
-    const sorted = [...appointments, ...todoItems].sort(
+    const sorted = [...events, ...todoItems].sort(
       (a, b) =>
         Number(b.kind === "todo" && b.overdue) - Number(a.kind === "todo" && a.overdue) ||
         day(a).localeCompare(day(b)) ||
