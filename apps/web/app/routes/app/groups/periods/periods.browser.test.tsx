@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 import type { DeviceRoute } from "../../../../../test/device";
 
+import { dayInZone, startOfDay, timeInZone } from "@caretook/data/schema";
 import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
@@ -8,7 +9,7 @@ import { page, userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx } from "../../../../../test/fixtures";
+import { at, fx, TEST_TIME_ZONE } from "../../../../../test/fixtures";
 import * as periods from "./route";
 import {
   daysAgo,
@@ -72,9 +73,10 @@ const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
 
 const ADD = () => document.querySelector<HTMLAnchorElement>("main a[data-add-period]");
 const listed = (text: string) => listRows().find((r) => r.title?.includes(text));
-const LA = "America/Los_Angeles";
+// The page shows times and days in the recipient's zone; the world's `daysAgo`
+// is the device's, which can be another zone.
 const dayOf = (d: Date) =>
-  new Intl.DateTimeFormat("en-US", { timeZone: LA, month: "short", day: "numeric" }).format(d);
+  new Intl.DateTimeFormat("en-US", { timeZone: TEST_TIME_ZONE, month: "short", day: "numeric" }).format(d);
 
 describe("the periods page", () => {
   test("lists the track newest first: only the latest is Now; the hospital shows its place and room, until its end; a date-only start has no time", async () => {
@@ -92,7 +94,8 @@ describe("the periods page", () => {
     expect(rows[0]?.dates).toMatch(/– now · day \d+$/);
     const hospital = rows.find((r) => r.id === HOSPITAL.id)!;
     expect(hospital.place).toBe("Riverside General Hospital, Room 412, bed B");
-    expect(hospital.dates).toMatch(/^\w{3} \d+, 03:15 – until \w{3} \d+ · 7 days$/);
+    const hospitalTime = timeInZone(new Date(HOSPITAL.row.started_at as string), TEST_TIME_ZONE);
+    expect(hospital.dates).toMatch(new RegExp(`^\\w{3} \\d+, ${hospitalTime} – until \\w{3} \\d+ · 7 days$`));
     const first = rows.at(-1)!;
     expect(first.id).toBe(HOME_FIRST.id);
     expect(first.dates).toMatch(/^\w{3} \d+(, \d{4})? – until/);
@@ -198,9 +201,11 @@ describe("adding a period", () => {
 
   test("the URL's type and date-only prefills fill the sheet; an earlier date-only period slots into the track by its start, with no time, and the period before it ends that day; a deep link closes to the list", async () => {
     // A week back: between the rehab stay (12 days back) and the current Home (5 days back).
-    const start = daysAgo(7);
+    const prefill = daysAgo(7);
+    // A date-only start is the first moment of that instant's day in the recipient's zone.
+    const start = startOfDay(dayInZone(prefill, TEST_TIME_ZONE), TEST_TIME_ZONE);
     const device = await open({
-      url: `${PERIODS_URL}/new?type=rehab&startedAt=${encodeURIComponent(start.toISOString())}&dateOnly=1`,
+      url: `${PERIODS_URL}/new?type=rehab&startedAt=${encodeURIComponent(prefill.toISOString())}&dateOnly=1`,
     });
     await waitUntil(() => !!FORM(), "the add sheet");
     expect(typeRadio("Rehab or skilled nursing")?.checked).toBe(true);
@@ -227,8 +232,9 @@ describe("adding a period", () => {
   });
 
   test("an earlier dated period between two others: the one before it now ends at its start", async () => {
+    const start = daysAgo(15, 9);
     const device = await open({
-      url: `${PERIODS_URL}/new?type=other&startedAt=${encodeURIComponent(daysAgo(15, 9).toISOString())}`,
+      url: `${PERIODS_URL}/new?type=other&startedAt=${encodeURIComponent(start.toISOString())}`,
     });
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("label")), "Daughter's house");
@@ -240,7 +246,7 @@ describe("adding a period", () => {
     // Between the rehab stay (12 days back) and the hospital (19 days back).
     expect(ids.indexOf(mine.id)).toBe(ids.indexOf(REHAB.id) + 1);
     expect(ids.indexOf(HOSPITAL.id)).toBe(ids.indexOf(mine.id) + 1);
-    expect(listRows().find((r) => r.id === HOSPITAL.id)?.dates).toContain(`until ${dayOf(daysAgo(15))}`);
+    expect(listRows().find((r) => r.id === HOSPITAL.id)?.dates).toContain(`until ${dayOf(start)}`);
   });
 
   test("two periods with one start (one from another device) both stay, in (started_at, created_at, id) order", async () => {
