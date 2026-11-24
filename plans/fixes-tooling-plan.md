@@ -70,8 +70,8 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 30    | B-654     | merged (opus; holders wait on a go file; B-741 ask.test filed)                                                                             | 6e8ba3f8 |
 | 31    | B-479 +24 | handed off (opus; measurement, no commits): 24 no failure, proposed close (notes filed); B-500 still fails, slice 40                       | —        |
 | 32    | B-740     | merged (opus; quick red only ask.test B-741, tidy-cli B-461, backlog.test B-754)                                                           | 6570ad88 |
-| 33    | B-741     | started (opus)                                                                                                                             |          |
-| 34    | B-742     | handed off 27c916c9 (opus; quick passed; signals deferred across mkdir)                                                                    |          |
+| 33    | B-741     | merged (opus; fixed now via CARETOOK_CLOCK_FILE; quick red only stack B-740, tidy-cli B-461, backlog.test B-754; alone 3/3)                | 4fde3463 |
+| 34    | B-742     | merged (opus; quick passed; signals deferred across mkdir)                                                                                 | 8e04cb51 |
 | 35    | B-744     | respawned (opus; 717aaa9c; with B-745–747)                                                                                                 |          |
 | 36    | B-461     | handed off a53e3167 (opus; quick passed; beforeAll 6.6-7.7 s to ~150 ms at load 44-88: fixture written directly)                           |          |
 | 37    | B-731     | handed off c384b269 (opus; quick red only ask.test B-741 and tidy-cli B-461, fixed by 33/36; passed alone)                                 |          |
