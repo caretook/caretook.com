@@ -21,18 +21,18 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State          | Merge    |
-| ----- | ----- | -------------- | -------- |
-| 49    | B-583 | merged (opus)  | aef5557c |
-| 50    | B-613 | running (opus) |          |
-| 51    | B-765 | running (opus) |          |
-| 52    | B-735 | running (opus) |          |
-| 53    | B-701 | running (opus) |          |
-| 54    | B-606 | running (opus) |          |
-| 55    | B-698 | written        |          |
-| 56    | B-700 | written        |          |
-| 57    | B-680 | running (opus) |          |
-| 58    | B-748 | written        |          |
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 49    | B-583 | merged (opus)   | aef5557c |
+| 50    | B-613 | running (opus)  |          |
+| 51    | B-765 | running (opus)  |          |
+| 52    | B-735 | running (opus)  |          |
+| 53    | B-701 | running (opus)  |          |
+| 54    | B-606 | running (opus)  |          |
+| 55    | B-698 | written         |          |
+| 56    | B-700 | running (opus)  |          |
+| 57    | B-680 | running (opus)  |          |
+| 58    | B-748 | merged (sonnet) | 27823c3e |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
