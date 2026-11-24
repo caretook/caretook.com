@@ -105,6 +105,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 59    | B-712 | merged (opus)                              | 57459518 |
 | 60    | B-713 | merged (opus)                              | 417c0719 |
 | 61    | B-714 | merged (opus)                              | e1fb3268 |
+| 62    | B-729 | started (opus)                             |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
@@ -733,3 +734,14 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-periods.md · Tests: component
 
 `apps/web/app/routes/app/groups/periods/periods.browser.test.tsx`, 3 failures: displayed times, a date-only prefill's instant, and an "until" day. Follow _The zone slices_, and establish first whether the date-only prefill and the "until" day are really wrong for this viewer.
+
+### Slice 62: two members' doses for one slot stay two rows again (B-729)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+A brake on `dev` (54a43bf1) and on this branch: `packages/api/src/syncMedications.int.test.ts`, "sync.upload: two members' doses for one slot keeps Given and Skipped as two rows, and the earlier reads the slot", fails with `expected undefined to be '<uuid>'` (dev's narrowed run 45259937817; this branch's `components` run 45258699609). The test last changed in 46aa519c (dose-accuracy, B-614, B-616); since then `dev` took fixes-bug wave 11 and member-avatars slice 3, and this branch adds slice 52 (B-719, `timelineEntryService.ts`).
+
+- Find which change broke it first (`git log` on the test and on `timelineEntryService.ts`, and run the test on each candidate): the app or the test.
+- If the app is wrong, fix it so two members' doses for one slot keep both rows and the earlier reads the slot, without undoing B-719's retry rule or B-614/B-616's "an upload leaves another member's dose alone".
+- If the test is stale, correct its expectation without weakening what it asserts.
+- The test passes, and `timelineEntry.int.test.ts` still passes.
