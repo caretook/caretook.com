@@ -6,6 +6,7 @@ import type { ApiOutputs } from "../core/rpc";
 import { OWN_DOSE_COPY_METADATA } from "@caretook/data/schema";
 import { getTableName } from "drizzle-orm";
 import { drizzleSchema } from "./schema";
+import { localTryStore, tryCounter, tryKey } from "./uploadTries";
 
 // The device's upload (PowerSync's `uploadData`), apart from the client so a
 // device test can drive it with a stubbed server: it takes the database and
@@ -14,6 +15,13 @@ import { drizzleSchema } from "./schema";
 // server's code and issues, and a label of what the row was, before the batch
 // is acknowledged: the next sync then puts the server's copy back, and the
 // "Changes not saved" page (Settings) still lists what was lost (B-285).
+//
+// An op the server couldn't process (`failed`, B-286) holds the queue only
+// for a while: the ops before it are acknowledged, the try is counted
+// (./uploadTries) and the upload throws, so PowerSync reports the error and
+// retries. After enough tries over long enough the op is set aside: recorded
+// in `unsaved_change` with its data (`set_aside`, where "Try again" can send
+// it), acknowledged, and the rest of the queue carries on.
 
 /** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
 export const UPLOAD_BATCH = 100;
@@ -26,6 +34,9 @@ export type UploadOp = UploadInput["ops"][number];
 export type UploadCall = (input: UploadInput) => Promise<UploadOutput>;
 
 type Refusal = Extract<UploadResult, { status: "rejected" }>;
+type Failure = Extract<UploadResult, { status: "failed" }>;
+/** What `unsaved_change` keeps of a result: a refusal, or a failure set aside. */
+type Unsaved = [CrudEntry, Refusal | Failure];
 
 /** The op the server gets for one queued entry. */
 const toOp = (entry: CrudEntry, ownDoses: ReadonlySet<CrudEntry>): UploadOp => {
@@ -123,10 +134,10 @@ const labelFor = async (db: AbstractPowerSyncDatabase, entry: CrudEntry): Promis
   return pickLabel(await localRow(db, entry.table, entry.id));
 };
 
-/** Record refused ops in `unsaved_change`, one row each, in one transaction. */
-const recordRefusals = async (db: AbstractPowerSyncDatabase, refused: [CrudEntry, Refusal][]) => {
+/** Record refused and set-aside ops in `unsaved_change`, one row each, in one transaction. */
+const recordUnsaved = async (db: AbstractPowerSyncDatabase, unsaved: Unsaved[]) => {
   const rows = await Promise.all(
-    refused.map(async ([entry, result]) => [
+    unsaved.map(async ([entry, result]) => [
       crypto.randomUUID(),
       new Date().toISOString(),
       entry.table,
@@ -134,8 +145,8 @@ const recordRefusals = async (db: AbstractPowerSyncDatabase, refused: [CrudEntry
       entry.op,
       entry.opData ? JSON.stringify(entry.opData) : null,
       result.code,
-      result.issues?.length ? JSON.stringify(result.issues) : null,
-      "refused",
+      result.status === "rejected" && result.issues?.length ? JSON.stringify(result.issues) : null,
+      result.status === "rejected" ? "refused" : "set_aside",
       await labelFor(db, entry),
       lineKey(entry.table, entry.id, entry.opData),
     ]),
@@ -152,25 +163,101 @@ const recordRefusals = async (db: AbstractPowerSyncDatabase, refused: [CrudEntry
 };
 
 /** The result for each entry: the server answers in order, one per op. */
-const refusalsOf = (entries: CrudEntry[], results: UploadResult[]): [CrudEntry, Refusal][] =>
+const resultOf = (entries: CrudEntry[], results: UploadResult[], i: number) => {
+  const id = entries[i]?.id;
+  return results[i]?.id === id ? results[i] : results.find((r) => r.id === id);
+};
+
+const refusalsOf = (entries: CrudEntry[], results: UploadResult[]): Unsaved[] =>
   entries.flatMap((entry, i) => {
-    const result = results[i]?.id === entry.id ? results[i] : results.find((r) => r.id === entry.id);
+    const result = resultOf(entries, results, i);
     return result?.status === "rejected" ? [[entry, result]] : [];
   });
 
+/** The first op the server couldn't process, and its result; none when every op was answered. */
+const failureOf = (entries: CrudEntry[], results: UploadResult[]) => {
+  for (const index of entries.keys()) {
+    const result = resultOf(entries, results, index);
+    if (result?.status === "failed") return { index, result };
+  }
+  return null;
+};
+
+/**
+ * Acknowledge the first `count` ops of the queue: a batch of exactly that
+ * many, read again and completed on its own (completing a batch removes
+ * everything up to its last op). Nothing when `count` is 0.
+ */
+const acknowledgeFirst = async (
+  db: AbstractPowerSyncDatabase,
+  count: number,
+  last: CrudEntry | undefined,
+) => {
+  if (count === 0) return;
+  const head = await db.getCrudBatch(count);
+  if (head?.crud.at(-1)?.clientId !== last?.clientId)
+    throw new Error("Sync: the upload queue changed while uploading");
+  await head?.complete();
+};
+
+/** Thrown after a `failed` op, so PowerSync reports the upload error and retries later. */
+export class UploadFailedError extends Error {
+  constructor() {
+    super("Sync: the server couldn't save a change; retrying");
+    this.name = "UploadFailedError";
+  }
+}
+
+export type UploadOptions = {
+  /** The failing op's try counter (default: kept in localStorage). */
+  tries?: ReturnType<typeof tryCounter>;
+  /** The clock, in epoch ms. */
+  now?: () => number;
+};
+
+let deviceTries: ReturnType<typeof tryCounter> | null = null;
+
 /**
  * Upload the next batch of queued writes through `upload`. Refused ops are
- * recorded, then the whole batch is acknowledged. A request that fails as a
- * whole (offline, a 5xx, a 401) throws: nothing is acknowledged and
- * PowerSync retries the batch later.
+ * recorded, then the whole batch is acknowledged. After a `failed` op only
+ * the ops before it are acknowledged and this throws, until the op has
+ * failed often enough to be set aside (recorded, acknowledged; the queue
+ * carries on). A request that fails as a whole (offline, a 5xx, a 401)
+ * throws: nothing is acknowledged or counted, and PowerSync retries later.
  */
-export const uploadQueued = async (db: AbstractPowerSyncDatabase, upload: UploadCall) => {
+export const uploadQueued = async (
+  db: AbstractPowerSyncDatabase,
+  upload: UploadCall,
+  { tries = (deviceTries ??= tryCounter(localTryStore())), now = Date.now }: UploadOptions = {},
+) => {
   const batch = await db.getCrudBatch(UPLOAD_BATCH);
   if (!batch) return;
-  const ownDoses = await ownDosePatches(db, batch.crud);
-  const { results } = await upload({ ops: batch.crud.map((entry) => toOp(entry, ownDoses)) });
-  const refused = refusalsOf(batch.crud, results);
-  for (const [, result] of refused) console.warn("Sync: the server refused a change", result);
-  if (refused.length) await recordRefusals(db, refused);
-  await batch.complete();
+  const entries = batch.crud;
+  const ownDoses = await ownDosePatches(db, entries);
+  const { results } = await upload({ ops: entries.map((entry) => toOp(entry, ownDoses)) });
+
+  const failure = failureOf(entries, results);
+  const failedAt = failure ? failure.index : -1;
+  const answered = failedAt < 0 ? entries : entries.slice(0, failedAt);
+  const unsaved = refusalsOf(answered, results);
+  for (const [, result] of unsaved) console.warn("Sync: the server refused a change", result);
+
+  if (!failure) {
+    if (unsaved.length) await recordUnsaved(db, unsaved);
+    await batch.complete();
+    tries.acknowledged(entries.map(tryKey));
+    return;
+  }
+
+  const failing = entries[failedAt]!;
+  const setAside = tries.fail(tryKey(failing), now());
+  if (setAside) {
+    console.warn("Sync: setting aside a change the server couldn't save", { table: failing.table });
+    unsaved.push([failing, failure.result]);
+  }
+  if (unsaved.length) await recordUnsaved(db, unsaved);
+  const done = setAside ? failedAt + 1 : failedAt;
+  await acknowledgeFirst(db, done, entries[done - 1]);
+  tries.acknowledged(entries.slice(0, done).map(tryKey));
+  if (!setAside) throw new UploadFailedError();
 };

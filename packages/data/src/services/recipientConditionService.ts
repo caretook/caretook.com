@@ -39,6 +39,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import { resolveRecipient } from "./medicationService";
 
 // The care recipient's conditions (conditions PRD). Write through here, not
@@ -324,10 +325,12 @@ export const reactivate = (ctx: ServiceContext, id: string, opts: ConditionWrite
   setStatus(ctx, id, "active", opts);
 
 /**
- * Create the condition with this id, or bring the existing one up to date
- * (PowerSync's upload queue). Safe to replay; the group and recipient never
- * change, and a deleted condition stays deleted. A replay records no second
- * change entry.
+ * Create the condition with this id if there is none: what PowerSync's
+ * upload queue sends for a row a device created. A replay changes nothing
+ * (only a PATCH edits), whatever the actor's role now, so it never reverts a
+ * newer edit. A replay records no change entry. The group and recipient
+ * never change, and an id the actor can't see is refused without saying
+ * whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (
   ctx: ServiceContext,
@@ -337,7 +340,7 @@ export const upsert = (
   withTransaction(async (tx) => {
     const parsed = recipientConditionUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, ...content } = parsed.data;
+    const { id, groupId, recipientId } = parsed.data;
 
     const existing = await recipientConditionModel.getById(id, {
       authUser: SYSTEM_USER,
@@ -345,16 +348,14 @@ export const upsert = (
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input, opts);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input, opts));
 
     const visible = await recipientConditionModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
       return newError({ code: "recipientConditionService:immutable" });
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content, opts);
+    return unchanged(visible);
   }, ctx);
 
 /** Soft delete (writers), for a condition entered by mistake. It leaves every list; no change entry. */

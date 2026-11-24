@@ -650,7 +650,7 @@ describe("medicationService: change entries", () => {
         details: { medicationId: medication.id, change: "resumed" },
       }),
     );
-    expect(uploaded).toMatchObject({
+    expect(uploaded.row).toMatchObject({
       id: started!.id,
       details: { change: "started" },
       timeZone: "America/Los_Angeles",
@@ -751,7 +751,7 @@ describe("timelineEntryService: doses", () => {
 
     expect(ok(await timelineEntryService.getById(u.viewer.ctx, dose.id))).toMatchObject({ id: dose.id });
     expect((await changesOf(medication.id)).every((c) => c.deletedAt === null)).toBe(true);
-    // A replayed upload of a dose logged before the delete still lands.
+    // A replayed upload of a dose logged before the delete is still accepted, and changes nothing.
     expect(
       ok(
         await timelineEntryService.upsert(u.caretaker.ctx, {
@@ -763,7 +763,7 @@ describe("timelineEntryService: doses", () => {
           details: { medicationId: medication.id, status: "skipped" },
         }),
       ),
-    ).toMatchObject({ details: { status: "skipped" } });
+    ).toMatchObject({ created: false, row: { details: { status: "given" } } });
   });
 });
 

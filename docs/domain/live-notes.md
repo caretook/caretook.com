@@ -12,7 +12,7 @@ PRD: [`plans/live-notes-ux-prd.md`](../../plans/live-notes-ux-prd.md).
   - Composite FKs cascade from the entry. `timeline_entry` has a unique `(group_id, id)` for this.
 - **Helpers** (`db/schema/live-notes/noteYjs.ts`, client-safe): base64, `isYjsUpdate`, `buildNoteDoc`, `encodeNoteDoc`, `noteText` and its inverse `noteDocFromText(text, mentions?)` (one paragraph per line, `• ` lines as a bullet list; each `NoteMention { id, label }` becomes a mention node at `@<label>`, longest first, else at the end; none leaves the output unchanged). The fragment is `NOTE_FRAGMENT = "default"`.
 - **`noteDocumentService`** (write through it):
-  - `create` is idempotent and requires a live note or event.
+  - `create` is idempotent and requires a live note or event; an id another group's document holds is a 403 (checked as the system).
   - `appendUpdate` is idempotent on the update id.
   - `currentText` includes pending updates (for AI and workers); so do the timeline service's reads (`withDocumentText`, read-only), and search first compacts the group's pending updates (`compactPending`).
   - `compact` (system, row locked `FOR UPDATE`) folds pending updates into the snapshot and text, merges their authors into `editors` (`mergeEditors`, latest time per user), and deletes them.

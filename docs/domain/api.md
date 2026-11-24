@@ -26,7 +26,7 @@ The api area's rules and decisions, moved out of AGENTS.md (whose core rules sti
   - `timeline.list`, `create`, `update`, `remove` and `latestVitals`;
   - `calendars.settings.get|update`, `group.setDetailsAllowed`, `feed.create|rotate|revoke`, `google.status|disconnect` and `overrides.get|set` (`packages/api/src/calendars/`, over the calendar services; none returns a token or feed secret beyond `feed`'s one-time URL; [calendars](calendars.md)); web-only routes `GET /api/calendar/:token.ics`, `/api/google/connect` and `/api/google/callback` (`feed.ts`, `googleRoutes.ts`; behind `.server/` doors) and `/api/reminders/unsubscribe/:token`;
   - `search.query` (`packages/api/src/search/search.ts`, over `searchService`; see _Search_);
-  - `sync.upload`;
+  - `sync.upload` (per op `applied`, `rejected` or `failed`: [sync](sync.md));
   - `admin.suppressions.list` (`users.read`) and `admin.suppressions.clear` (`users.help`; see [admin](admin.md)).
 
   No screen calls the timeline or careGroup reads now (screens read local data); they stay for API, AI and worker use.

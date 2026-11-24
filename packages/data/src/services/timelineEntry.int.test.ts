@@ -556,21 +556,31 @@ describe("upsert (the PowerSync upload path)", () => {
     const input = upsertInput(s);
 
     const first = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
-    expect(first).toMatchObject({ id: input.id, title: "Ate lunch", createdBy: s.u.caretaker.user.id });
+    expect(first).toMatchObject({
+      created: true,
+      row: { id: input.id, title: "Ate lunch", createdBy: s.u.caretaker.user.id },
+    });
 
     const again = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
-    expect(again).toMatchObject({ id: input.id, title: "Ate lunch" });
+    expect(again).toMatchObject({ created: false, row: { id: input.id, title: "Ate lunch" } });
     const page = ok(await timelineEntryService.list(s.u.owner.ctx, { groupId: s.group.id }));
     expect(page.data.map((e) => e.id)).toEqual([input.id]);
   });
 
-  it("updates the content of an existing entry, validated as usual", async () => {
+  it("leaves an existing entry as it is on a replay (B-288), validated as usual", async () => {
     const s = await setup();
     const input = upsertInput(s);
     ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
 
-    const edited = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Ate half" }));
-    expect(edited).toMatchObject({ title: "Ate half", updatedBy: s.u.admin.user.id });
+    const other = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Ate half" }));
+    expect(other).toMatchObject({ created: false, row: { title: "Ate lunch" } });
+    // A co-member's edit since, then the create replayed: the edit stays.
+    ok(await timelineEntryService.update(s.u.admin.ctx, input.id, { title: "Ate a little" }));
+    ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
+    expect(ok(await timelineEntryService.getById(s.u.owner.ctx, input.id))).toMatchObject({
+      title: "Ate a little",
+      updatedBy: s.u.admin.user.id,
+    });
 
     expect(codeOf(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, body: "" } as never))).toBe(
       "timelineEntryService:invalid",
@@ -604,8 +614,8 @@ describe("upsert (the PowerSync upload path)", () => {
     ok(await timelineEntryService.remove(s.u.caretaker.ctx, input.id));
 
     const late = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, { ...input, title: "Late edit" }));
-    expect(late).toMatchObject({ title: "Ate lunch" });
-    expect(late?.deletedAt).not.toBeNull();
+    expect(late.row).toMatchObject({ title: "Ate lunch" });
+    expect(late.row?.deletedAt).not.toBeNull();
   });
 
   it("refuses viewers and outsiders, and doesn't reveal another group's ids", async () => {
@@ -667,18 +677,21 @@ describe("upsert: a dose's shared slot id", () => {
 
     const second = ok(await timelineEntryService.upsert(u.admin.ctx, dose("second", id, LATER)));
 
-    expect(second).toMatchObject({ id, createdBy: u.caretaker.user.id, updatedBy: u.caretaker.user.id });
+    expect(second).toMatchObject({
+      created: false,
+      row: { id, createdBy: u.caretaker.user.id, updatedBy: u.caretaker.user.id },
+    });
     const row = await stored(id);
     expect(row).toMatchObject({ createdBy: u.caretaker.user.id, details: { note: "first" } });
     expect(new Date(row.occurredAt).toISOString()).toBe(AT);
   });
 
-  it("still updates a member's own live dose on a replay", async () => {
+  it("leaves a member's own live dose as it is on a replay (B-288)", async () => {
     const { u, dose, stored } = await doseSetup();
     const id = randomUUID();
     ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("first", id)));
-    ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("edited", id)));
-    expect((await stored(id)).details).toMatchObject({ note: "edited" });
+    ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("their other device", id)));
+    expect((await stored(id)).details).toMatchObject({ note: "first" });
   });
 
   it("restores a dose another member deleted, as the uploader's", async () => {
@@ -936,7 +949,13 @@ describe("upsert: a dose's shared slot id", () => {
       createdBy: u.easy_helper.user.id,
       details: { note: "helper" },
     });
-    ok(await timelineEntryService.upsert(u.easy_helper.ctx, dose("helper edit", id, LATER)));
+    // Theirs now: an edit is a PATCH, and a replay of the upload changes nothing.
+    ok(
+      await timelineEntryService.update(u.easy_helper.ctx, id, {
+        details: dose("helper edit", id).details as never,
+      }),
+    );
+    ok(await timelineEntryService.upsert(u.easy_helper.ctx, dose("helper", id, LATER)));
     expect((await stored(id)).details).toMatchObject({ note: "helper edit" });
   });
 
@@ -966,13 +985,13 @@ describe("upsert: a dose's shared slot id", () => {
     expect(ok(await timelineEntryService.anotherMembersDose(u.viewer.ctx, id))).toBeNull();
   });
 
-  it("refuses a viewer on a live dose and restores nothing for one", async () => {
+  it("changes nothing for a viewer on a live dose and restores nothing for one", async () => {
     const { u, dose, stored } = await doseSetup();
     const id = randomUUID();
     ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("first", id)));
-    expect(codeOf(await timelineEntryService.upsert(u.viewer.ctx, dose("viewer", id)))).toBe(
-      "permissions:unauthorized",
-    );
+    // A replay of a create, whatever the role now: nothing changes.
+    expect(ok(await timelineEntryService.upsert(u.viewer.ctx, dose("viewer", id))).created).toBe(false);
+    expect((await stored(id)).details).toMatchObject({ note: "first" });
 
     ok(await timelineEntryService.remove(u.caretaker.ctx, id));
     await timelineEntryService.upsert(u.viewer.ctx, dose("viewer", id));
@@ -998,18 +1017,18 @@ describe("upsert: a dose's shared slot id", () => {
     expect((await stored(id)).deletedAt).not.toBeNull();
   });
 
-  it("leaves other kinds as they were: a deleted one stays, a live one is updated", async () => {
+  it("leaves other kinds as they were: a deleted one stays, a live one is unchanged", async () => {
     const s = await setup();
     const id = randomUUID();
     const input = { ...s.note(), id } as Parameters<typeof timelineEntryService.upsert>[1];
     ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
 
-    const edited = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Ate half" }));
-    expect(edited).toMatchObject({ title: "Ate half", createdBy: s.u.caretaker.user.id });
+    const again = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Ate half" }));
+    expect(again.row).toMatchObject({ title: "Ate lunch", createdBy: s.u.caretaker.user.id });
 
     ok(await timelineEntryService.remove(s.u.caretaker.ctx, id));
     const late = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Late" }));
-    expect(late).toMatchObject({ title: "Ate half" });
-    expect(late?.deletedAt).not.toBeNull();
+    expect(late.row).toMatchObject({ title: "Ate lunch" });
+    expect(late.row?.deletedAt).not.toBeNull();
   });
 });
