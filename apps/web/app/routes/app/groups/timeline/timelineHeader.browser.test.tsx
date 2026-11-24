@@ -327,6 +327,56 @@ describe("the care period in the day headers", () => {
     expect(document.querySelector('[data-period-line="empty"]')).toBeNull();
   });
 
+  /** A header's actions in DOM order: Change, the period's icon, its text, the +. */
+  const actionOrder = (h: Element) =>
+    [
+      ...h.querySelectorAll<HTMLElement>(
+        '[data-day-actions] :is([data-period-change], [data-period-line] > svg, [data-period-current], button[aria-label^="Add to "])',
+      ),
+    ].map((el) =>
+      el.matches("[data-period-change]")
+        ? "change"
+        : el.matches("svg")
+          ? "icon"
+          : el.matches("[data-period-current]")
+            ? "text"
+            : "plus",
+    );
+
+  test("Today's Change sits directly left of the period's icon, and the + stays last (B-618)", async () => {
+    await openTimeline({ fixtures: [...world(), hospital] });
+    await ready();
+    const today = await found(() =>
+      header(daysAgo(0, 12))?.querySelector("[data-period-change]") ? header(daysAgo(0, 12)) : null,
+    );
+    expect(actionOrder(today)).toEqual(["change", "icon", "text", "plus"]);
+    const change = today.querySelector<HTMLElement>("[data-period-change]")!;
+    const icon = today.querySelector<SVGElement>("[data-period-line] > svg")!;
+    expect(change.nextElementSibling).toBe(icon);
+    expect(change.getBoundingClientRect().right).toBeLessThanOrEqual(icon.getBoundingClientRect().left);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  });
+
+  test("a past day, with no Change, keeps icon, text, + in that order", async () => {
+    await openTimeline({ fixtures: [...world(), hospital] });
+    await ready();
+    const yesterday = await found(() =>
+      header(daysAgo(1, 12))?.querySelector("[data-period-line]") ? header(daysAgo(1, 12)) : null,
+    );
+    expect(actionOrder(yesterday)).toEqual(["icon", "text", "plus"]);
+  });
+
+  test("a viewer's day headers show icon then text, with no Change and no +", async () => {
+    await openTimeline({ role: "viewer", fixtures: [...world(), hospital] });
+    await ready();
+    for (const d of [0, 1]) {
+      const h = await found(() =>
+        header(daysAgo(d, 12))?.querySelector("[data-period-line]") ? header(daysAgo(d, 12)) : null,
+      );
+      expect(actionOrder(h), `${d} days ago`).toEqual(["icon", "text"]);
+    }
+  });
+
   describe("with the recipient three hours behind the viewer, just after the viewer's midnight", () => {
     // The browser is in Los Angeles; in June, Honolulu is three hours behind. At 00:34 on the 9th here it
     // is still 21:34 on the 8th there, so both headers' moments fall on one recipient date.
