@@ -135,8 +135,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
 | B-286 | bug | in-progress | sync-safety | prd/sync-safety | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
-| B-288 | bug | in-progress | sync-safety | prd/sync-safety | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
-| B-289 | bug | in-progress | sync-safety | prd/sync-safety | Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days |
+| B-288 | bug | ready | sync-safety | prd/sync-safety | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
+| B-289 | bug | ready | sync-safety | prd/sync-safety | Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days |
 | B-290 | bug | ready | sync-safety | prd/sync-safety | Sign-out and a lapsed session wipe the device without checking the upload queue: unsent changes are destroyed with no warning |
 | B-294 | bug | triaged | sync-safety-2 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
@@ -610,20 +610,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-288 · bug · A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry)
 
-- status: in-progress
+- status: ready
 - prd: sync-safety
 - owner: prd/sync-safety
-- commit:
+- commit: b005e91a
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Every service upsert turns a PUT on an existing id into an update. Plausible, not traced end to end: a lost ack or a 5xx later in the batch replays the PUT. Fix idea: a PUT on an existing live row is a no-op. medicationService.ts:178-181.
 - 2026-11-21 (plan/sync-safety): Planned in plans/sync-safety-plan.md (2026-11-21). Slices: 1 = B-291, B-292, B-293; 2 = B-285; 3 = B-286; 4 = B-290; 5 = B-288, B-289; 6 = B-287.
 
 ### B-289 · bug · Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days
 
-- status: in-progress
+- status: ready
 - prd: sync-safety
 - owner: prd/sync-safety
-- commit:
+- commit: b005e91a
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. noteDocumentService.ts:197-201 checks existence only in the actor's scope, so the victim's create hits the primary key and returns a 500; appointmentSeriesService.ts:117-131 visitExists accepts any row with the computed id without checking its group. Fix idea: check existence as the system and return 4xx; compare group and series.
 - 2026-11-21 (plan/sync-safety): Planned in plans/sync-safety-plan.md (2026-11-21). Slices: 1 = B-291, B-292, B-293; 2 = B-285; 3 = B-286; 4 = B-290; 5 = B-288, B-289; 6 = B-287.
