@@ -2,6 +2,7 @@ import type { ContactValues } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/core/api";
 import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 import type { memberAccess } from "../groupSettings";
+import type { MemberStatus } from "./memberStatus";
 
 import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { memberContactLines, memberShare, sharedSummary } from "~/lib/profiles/memberContact";
 import { memberName, roleLabel } from "../groupSettings";
 import { memberHistory } from "./invites";
+import { memberStatusLine } from "./memberStatus";
 import { RoleOptions } from "./RoleOptions";
 import { YourSharing } from "./YourSharing";
 
@@ -27,6 +29,7 @@ export function MemberItem({
   member,
   isSelf,
   myContact,
+  status,
   recipientName,
   access,
   removing,
@@ -37,6 +40,8 @@ export function MemberItem({
   isSelf: boolean;
   /** Your contact details, on your own row while online; else null (no sharing form). */
   myContact: ContactValues | null;
+  /** Their email confirmation and last sign-in: owners and admins, online only; else none. */
+  status: MemberStatus | undefined;
   recipientName: string;
   /** What you may do to this member; null offline (nothing). */
   access: ReturnType<typeof memberAccess> | null;
@@ -97,6 +102,14 @@ export function MemberItem({
               {history && (
                 <p data-member-history="" className="text-base-content/70 text-sm">
                   {history}
+                </p>
+              )}
+              {status && (
+                <p
+                  data-member-status={status.emailVerified ? "confirmed" : "unconfirmed"}
+                  className="text-sm"
+                >
+                  {memberStatusLine(status)}
                 </p>
               )}
             </div>

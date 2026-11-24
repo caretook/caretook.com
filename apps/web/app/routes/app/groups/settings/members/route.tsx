@@ -24,6 +24,7 @@ import { InviteButton } from "./InviteSheet";
 import { CreateLinkButton, InviteLinks } from "./InviteLinks";
 import { JoinRequests } from "./JoinRequests";
 import { isLinkIntent, linkAction, loadLinksAndRequests } from "./linkApi";
+import { loadMemberStatuses } from "./memberStatus";
 import { Members } from "./MembersList";
 import { PendingInvites } from "./PendingInvites";
 
@@ -52,12 +53,24 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const { db } = context.get(sessionContext);
   const members = await readRows<MemberDetailRow>(db, memberDetailsQuery(groupId));
   const { online } = await loadRecipientProfile(request, groupId);
-  const [invites, { links, requests, inviteOptions }, myContact] = await Promise.all([
+  const [invites, { links, requests, inviteOptions }, myContact, statuses] = await Promise.all([
     loadInvites(groupId, group.role, online),
     loadLinksAndRequests(groupId, group.role, online),
     online ? load(request, rpc.me.contact()).catch(offlineIsNull) : null,
+    loadMemberStatuses(groupId, group.role, online),
   ]);
-  return { userId: db.userId, groupId, members, online, invites, links, requests, inviteOptions, myContact };
+  return {
+    userId: db.userId,
+    groupId,
+    members,
+    online,
+    invites,
+    links,
+    requests,
+    inviteOptions,
+    myContact,
+    statuses,
+  };
 }
 
 /** A read that lost the connection after the page's first one: nothing, as offline. */
@@ -134,6 +147,7 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
           online={online}
           initial={loaderData.members}
           myContact={loaderData.myContact}
+          statuses={online ? loaderData.statuses : {}}
           recipientName={group.recipient?.displayName || "them"}
         />
       </SettingsCard>

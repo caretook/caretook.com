@@ -125,6 +125,9 @@ export const MODEL_ERRORS = {
   "careGroupMemberModel:lockGroupMembers": {
     message: "Failed to lock group members",
   },
+  "careGroupMemberModel:accountStatuses": {
+    message: "Failed to read members' account status",
+  },
   "careGroupMemberModel:listForUser": {
     message: "Failed to list the user's memberships",
   },
