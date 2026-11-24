@@ -7,7 +7,7 @@
 | Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
 | ----- | ---- | -------------- | --------------------------------------------- |
 | 1     | 1    | merged         | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
-| 2     | 2    | started (opus) | —                                             |
+| 2     | 2    | merged (opus)  | 5310ab85 (893c22ff)                           |
 | 3     | 2    | started (opus) | —                                             |
 | 4     | 3    | —              | —                                             |
 | 5     | 4    | —              | —                                             |
@@ -17,7 +17,7 @@
 
 **Wave 1 landed** in dev as cd94065 through PR #163 (2026-11-24; tier `integration`, run 45477738470 green on a4550c9e; Codex out of credits, so `--no-review`; report a196; to-test `2026-11-24-1519-worker-watch.md`). Docs folded (machinery: the run log and `metrics`; orchestration: the `metrics` row; both trimmed under budget). Slice 1 worktree removed.
 
-**Wave 2 running** (2026-11-24): boundary done (ingest, doctor, list: nothing new for worker-watch; sync: up to date). B-408 claimed. Worktrees worker-watch-2 and worker-watch-3 made; one opus agent each spawned (slice 2 told to measure the silent stretch from existing logs, no full check). Slice 1's notes for later slices: tests whose throwaway repo doesn't ignore `.loops/` must set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`.
+**Wave 2 running** (2026-11-24): boundary done (ingest, doctor, list: nothing new for worker-watch; sync: up to date). B-408 claimed. Worktrees worker-watch-2 and worker-watch-3 made; one opus agent each spawned (slice 2 told to measure the silent stretch from existing logs, no full check). Slice 2 merged as 5310ab85: budget = max(2×median, slowest+20%) of the last 20 passing runs (same mode and branch kind), load-scaled ×1–3, floor 600 s, hard limit as before; silence limit `CARETOOK_CHECK_SILENCE` 480 s (measured worst silent stretch 261 s, from existing logs), same scaling; sleep gap `CARETOOK_CHECK_SLEEP_GAP` 30 s; breach exits 124 with the step and last 30 lines, logged in a new 16th field (`budget`/`silence`). Fold at landing into machinery's _The check runner_ (16 fields, the formula, the three new settings). Not done: `--times` and `metrics` don't count breaches yet. Slice 1's notes for later slices: tests whose throwaway repo doesn't ignore `.loops/` must set `CARETOOK_RUN_LOG`; `pnpm prd watch` is still the old `status-watch` alias (slice 4 replaces it); `usualTime(data, {kind, mode, branchKind, last})` in `metrics.mjs`.
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
