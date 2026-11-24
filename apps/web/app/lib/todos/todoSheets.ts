@@ -7,7 +7,7 @@ import { appUrls } from "../app-shell/appUrls";
 // `lib/medications/medicationSheets.ts`; it lives in lib/ because the todo page opens the
 // edit sheet too.
 
-export { openedFromApp, TODO_SHEET_STATE } from "./todoSheetLink";
+export { openedFromApp, PLANNER_TODO_STATE, savesToTodos, TODO_SHEET_STATE } from "./todoSheetLink";
 
 export type TodoSheetDecision<Sheet> = { sheet: Sheet } | { redirect: string };
 
