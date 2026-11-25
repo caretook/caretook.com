@@ -19,9 +19,9 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                        | Merge |
-| ----- | ----- | -------------------------------------------- | ----- |
-| 69    | B-793 | wave 10, not started (staging blocked; opus) |       |
+| Slice | Item  | State                                                                  | Merge |
+| ----- | ----- | ---------------------------------------------------------------------- | ----- |
+| 69    | B-793 | wave 10, started 2026-11-24 (worktree fixes-ui-69, opus agent spawned) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -998,7 +998,7 @@ Every slice: no migration, no new dependency. **Staging promotion is blocked unt
 
 ## Slice 69: Roundtrip's "add: shows on this device at once" fits its 2 s budget again (B-793)
 
-Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser · Model: opus
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser
 
 **Problem.** Staging candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): `scripts/browser-checks/roundtrip.spec.mjs:249` (`localMs < 2000`) took 2007 ms, then 2069 ms on rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed. Suspect: B-613 (87a6235c: overlays fade at 240 ms, not 120, and `useSheetExit` waits for the overlay too). Against it: `new/route.tsx`'s clientAction writes locally before `onDone` closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. Wave 9's toast region (slice 66) and the saved toast (slice 67) are also new in the /app layout.
 
