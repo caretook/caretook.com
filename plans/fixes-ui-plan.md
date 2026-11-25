@@ -23,6 +23,9 @@ Notes for every wave:
 
 No slice in flight.
 
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
+
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
 Every slice: no migration, no dependency, and no edits under `components/ui/`, `app.css`, `lib/app-shell/`, `lib/timeline/entryDisplay.ts` or `routes/dev/ui/` (ui-kit-3 is running). If a fix can't be done without one, stop and say so in the hand-off.
