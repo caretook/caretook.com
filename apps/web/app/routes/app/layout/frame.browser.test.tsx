@@ -598,9 +598,12 @@ describe("the floating tab bar", () => {
     await expect.element(page.getByText("Slept well")).toBeVisible();
     expect(luminance(surfaceOf(bar()))).toBeGreaterThan(0.85);
     expect(textContrast(bar())).toBeGreaterThanOrEqual(4.5);
-    for (const a of barLinks().filter((link) => !link.hasAttribute("aria-current"))) {
-      expect(textContrast(a.querySelector("svg")!)).toBeGreaterThanOrEqual(4.5);
-    }
+    const icons = barLinks()
+      .filter((link) => !link.hasAttribute("aria-current"))
+      .map((link) => link.querySelector("svg"))
+      .filter((svg) => svg !== null);
+    expect(icons.length).toBe(3);
+    for (const svg of icons) expect(textContrast(svg)).toBeGreaterThanOrEqual(4.5);
   });
 
   test("in dark: the bar's glass is more translucent than before (alpha below 0.85 over the blur), its labels still 4.5:1", async () => {
