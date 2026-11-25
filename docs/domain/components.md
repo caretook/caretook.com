@@ -1,13 +1,11 @@
 # Components (`apps/web/app/components/`)
 
-The components area's rules and decisions.
-
 ## Layout
 
 - **`ui/`** holds the primitives, the only importers of `react-aria-components`; what's there, which to use and their contracts are in [ui-kit](ui-kit.md). **The guard** (`caretook/no-kit-classes` and a restricted import; lists in `scripts/eslint/kit-guard.mjs`) fails lint on React Aria or a raw `btn`, `card`, `badge` or `alert` class outside `ui/`, marketing, printed sheets and `/dev/ui`. `KIT_CLASSES_NOT_SWEPT` holds only `ui-kit-5`'s group.
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and the Planner: `RepeatMark`, `SeriesScopeDialog`, `RemindMeSheet`), `groups/`, `medications/`, `notes/` (the Tiptap editor), `providers/` (contact pieces and the provider pickers, [providers](providers.md)), `quick-entry/`, `repeat/` (`RepeatField`, `RepeatSheet`, `SeriesEditSheet`), `schedule/`, `settings/`, `shell/`, `todos/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it; a route never imports another route's folder. An index brings its whole chunk: keep heavy pieces out of indexes light routes use.
-- **A component lives beside its route** until a second route needs it, then moves to its feature folder (or `ui/`).
+- **A component lives beside its route** until a second route needs it (then its feature folder or `ui/`).
 - `components/todos/`: what the todo list and the todo page share (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`).
 
 ## Rules
@@ -16,14 +14,14 @@ The components area's rules and decisions.
 - **Every menu is `ui/Menu`**: callers pass `label`, `menuLabel` (the menu's own name), `items` (`menuModel.ts`, pure); the trigger takes `title` and `data-*`. An item has a label, description, icon, danger tone, disabled, and `onAction` or `href` (a link's `state` goes through `linkOptions`). Sections can have a title, a non-interactive `header`, and `selection` (`menuitemradio`). A group (`MenuGroup`) expands its items in place, indented: `aria-expanded`, keeps the menu open, closed on each open; no flyouts.
 - **Every list's filters are `FilterMenu`** (a `TOOL_CIRCLE` button with a count, a `Menu` of single-choice sections, Clear filters) **and `FilterMenuChips`**, in `ui/SearchFilterBar` on lists (one ✕ chip per filter on, then extra chips), both `{ label, sections, clear, chips? }`. The caller builds every search; a section on its `defaultId` counts for nothing (`filterModel.ts`); `?q=` is never a filter.
 - **Use the kit** ([ui-kit](ui-kit.md#which-to-use)): a control is a `Field`, `CheckField` or `ToggleField`, a button a `Button` or `IconButton`, a message a `Message` or `Notice`, a card a `Card`, a list box a `List`.
-- **Toasts** (`toast()`): finished actions, Undo, background news, one-time nudges; never errors to fix, medical information, an action's only path or unsynced changes' only sign.
+- **Toasts** (`toast()`): done actions, Undo, background news, one-time nudges; never errors to fix, medical facts, an action's only path or the only sign of unsynced changes.
 - **One entry actions menu** (`entry/EntryActions`, pure `entryActionItems(kind, { canEdit })`): Edit then Delete for symptoms and vitals, Delete only for notes and events, everywhere.
-- **Hooks own state (data and callbacks, never JSX); components own markup.** Live data comes through hooks over `useLiveQuery`; components don't call `getSync()` while rendering. Pure logic goes in plain modules with `web:unit` tests.
-- **A main page's add control is the header's `+`** (`PageHeader` `add`, writers only); other actions sit to its left.
-- **Motion:** `--motion-fast` (120 ms), `--motion` (240 ms) and one ease-out curve, at the end of `app.css`. Every animating rule is under `prefers-reduced-motion: no-preference` (reduce also drops `.btn`'s transition); buttons fade on hover and press to 0.97, link rows fade their fill; no bounce, no scale above 1. Overlays fade: menus and popovers (`motion-overlay`, `--motion`, a transition, never keyframes: React Aria waits for it on exit), `.modal`s and backdrops, toasts, `Sheet` (fade only), `Collapse`, `Chevron` on `--motion`; tooltips don't. Tests emulate reduced motion from their own file (`cdp()` `Emulation.setEmulatedMedia`, reset after).
-- **Size:** a route ~100 lines, a component 150 (split out `load<Thing>.ts`, a hook, regions).
+- **Hooks own state (data and callbacks, never JSX); components own markup.** Live data comes from hooks over `useLiveQuery`, never `getSync()` while rendering. Pure logic: plain modules with `web:unit` tests.
+- **A main page's add control is the header's `+`** (`PageHeader` `add`, writers only); other actions go left of it.
+- **Motion:** `--motion-fast` (120 ms), `--motion` (240 ms) and one ease-out curve, at the end of `app.css`. Every animating rule is under `prefers-reduced-motion: no-preference` (reduce also drops `.btn`'s transition); buttons fade on hover and press to 0.97, link rows fade their fill; no bounce, no scale above 1. Overlays fade on `--motion`: menus and popovers (`motion-overlay`, a transition, never keyframes: React Aria waits for it on exit), `.modal`s, backdrops, toasts, `Sheet`, `Collapse`, `Chevron`; tooltips don't. Tests emulate reduced motion per file (`cdp()`, reset after).
+- **Size:** a route ~100 lines, a component 150 (split out a loader, a hook, regions).
 - **Settings pages:** `SettingsPage` (heading; `offlineNotice`, a `Notice`), `SettingsCard` (a `Card`, `data-section`), `SettingsFrame` (`Page width="wide"`), `SaveRow` (`FormFooter align="start"` with `Message`s).
-- **Light pages** (sign-in, the account forms, `/connect`, marketing) import from `~/components/ui/plain`, never `~/components/ui` ([ui-kit](ui-kit.md)).
+- **Light pages** (sign-in, account forms, `/connect`, marketing) import `~/components/ui/plain`, never `~/components/ui` ([ui-kit](ui-kit.md)).
 
 ## Component tests
 
