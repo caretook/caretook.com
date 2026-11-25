@@ -774,7 +774,7 @@ describe("assistantActionService.run: addTodo (planner-3)", () => {
           title: kind === "event" ? "Follow-up visit" : "Call notes",
           occurredAt: minutesAgo(60),
           timeZone: "America/Los_Angeles",
-        } as never),
+        }),
       )!;
     const visit = await addEntry(u.caretaker.ctx, group.id, "event");
     const res = ok(await run("caretaker", [{ type: "addTodo", title: "Book a ride", eventId: visit.id }]));
