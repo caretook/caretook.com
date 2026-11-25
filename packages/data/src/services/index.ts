@@ -181,6 +181,9 @@ import * as symptomTypeService from "./symptomTypeService";
 export { symptomTypeService };
 export type { BackfillSummary as SymptomBackfillSummary } from "./symptomTypeService";
 
+import * as entryTodoService from "./entryTodoService";
+export { entryTodoService };
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -220,6 +223,7 @@ export const services = {
   calendarFeed: calendarFeedService,
   reminderOverride: reminderOverrideService,
   symptomType: symptomTypeService,
+  entryTodo: entryTodoService,
 };
 
 export type ServiceTypeMap = typeof services;

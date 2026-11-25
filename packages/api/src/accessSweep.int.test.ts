@@ -6,6 +6,7 @@ import {
   careGroupMemberService,
   conditionManagerId,
   entryProviderId,
+  entryTodoId,
   getDb,
   medicationConditionId,
   symptomTypeId,
@@ -252,6 +253,15 @@ const UPLOAD_CASES: Record<string, (ids: Ids) => CrudOp[]> = {
       updated_at: LATER,
     }),
   ],
+  // Which todos an entry links (planner-3): links are added and removed.
+  timeline_entry_todo: (ids) => [
+    putOp("timeline_entry_todo", entryTodoId(ids.bareEntry, ids.rows.todo!), {
+      group_id: ids.groupId,
+      entry_id: ids.bareEntry,
+      todo_id: ids.rows.todo,
+    }),
+    deleteOp("timeline_entry_todo", entryTodoId(ids.entry, ids.rows.todo!)),
+  ],
 };
 
 const BARE_GROUP = new Set(["care_recipient"]);
@@ -319,6 +329,11 @@ const groupWithRows = async ({ bare = false } = {}) => {
       condition_id: ids.condition,
       provider_id: ids.provider,
       ...audits,
+    }),
+    putOp("timeline_entry_todo", entryTodoId(ids.entry, ids.rows.todo!), {
+      group_id: ids.groupId,
+      entry_id: ids.entry,
+      todo_id: ids.rows.todo,
     }),
   ];
   const seeded = bare ? [] : await upload(owner, seed);

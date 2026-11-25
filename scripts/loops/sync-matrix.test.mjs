@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONDITION_MANAGER_NAMESPACE,
   ENTRY_PROVIDER_NAMESPACE,
+  ENTRY_TODO_NAMESPACE,
   MEDICATION_CONDITION_NAMESPACE,
   SERVER_SET_COLUMNS,
   SYMPTOM_TYPE_NAMESPACE,
@@ -12,6 +13,7 @@ import {
   columnMismatches,
   conditionManagerId,
   entryProviderId,
+  entryTodoId,
   exceptionProblems,
   matrixSymptomName,
   medicationConditionId,
@@ -81,6 +83,13 @@ describe("the sync matrix", () => {
       "2f4e1d7a-0c3b-4a5e-9d8f-1a2b3c4d5e6f",
     ];
     expect(entryProviderId(entry, provider)).toBe(data.entryProviderId(entry, provider));
+  });
+
+  it("derives an entry's todo link id as packages/data does", async () => {
+    const data = await import("../../packages/data/src/db/schema/todos/entryTodo.ts");
+    expect(ENTRY_TODO_NAMESPACE).toBe(data.ENTRY_TODO_NAMESPACE);
+    const [entry, todo] = ["0B6F3C1E-5D1A-4C2E-9A77-3F1D2B8C0003", "2f4e1d7a-0c3b-4a5e-9d8f-1a2b3c4d5e72"];
+    expect(entryTodoId(entry, todo)).toBe(data.entryTodoId(entry, todo));
   });
 
   it("derives a medication's condition link id as packages/data does", async () => {
@@ -236,6 +245,7 @@ describe("the matrix's app writers (sync-writers.mjs)", async () => {
     expect(writtenId("condition_manager", ids)).toBe(conditionManagerId("c1", "p1"));
     expect(writtenId("timeline_entry_provider", ids)).toBe(entryProviderId("e1", "p1"));
     expect(writtenId("medication_condition", ids)).toBe(medicationConditionId("m1", "c1"));
+    expect(writtenId("timeline_entry_todo", { ...ids, todo: "t1" })).toBe(entryTodoId("e1", "t1"));
     expect(writtenId("todo", ids, { ok: true, id: "t1" })).toBe("t1");
     expect(matrixIds({ ...ids, todo: "t1" })).toMatchObject({ entry: "e1", condition: "c1", todo: "t1" });
   });

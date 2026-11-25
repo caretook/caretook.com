@@ -45,6 +45,11 @@ export const CONDITION_MANAGER_NAMESPACE = "8a2e4c71-5b9d-4f06-a3c8-1e7d9b4f2a65
 export const conditionManagerId = (conditionId, providerId) =>
   uuidV5(`${conditionId.toLowerCase()}:${providerId.toLowerCase()}`, CONDITION_MANAGER_NAMESPACE);
 
+/** packages/data's ENTRY_TODO_NAMESPACE: a link's id comes from its entry and todo. */
+export const ENTRY_TODO_NAMESPACE = "2fa00756-8b6f-4ca0-b198-c34baab5a7ce";
+export const entryTodoId = (entryId, todoId) =>
+  uuidV5(`${entryId.toLowerCase()}:${todoId.toLowerCase()}`, ENTRY_TODO_NAMESPACE);
+
 /** packages/data's SYMPTOM_TYPE_NAMESPACE: a catalog row's id comes from its group and folded name. */
 export const SYMPTOM_TYPE_NAMESPACE = "b4e7c2d9-6a13-4f58-9c0e-2d8a5f1b7e36";
 /** packages/data's `symptomKey`: case and spaces folded. */
@@ -67,6 +72,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
   const provider = randomUUID();
   const medication = randomUUID();
   const condition = randomUUID();
+  const todo = randomUUID();
   return {
     tag,
     groupId,
@@ -82,12 +88,13 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       allergy: randomUUID(),
       period: randomUUID(),
       update: randomUUID(),
-      todo: randomUUID(),
+      todo,
       condition,
       medicationCondition: medicationConditionId(medication, condition),
       conditionManager: conditionManagerId(condition, provider),
       series: randomUUID(),
       symptomType: symptomTypeId(groupId, matrixSymptomName(tag)),
+      entryTodo: entryTodoId(entry, todo),
     },
   };
 };
@@ -379,6 +386,19 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // The matrix note links the matrix todo (both written above).
+  device(
+    "timeline_entry_todo",
+    (ctx) => ctx.ids.entryTodo,
+    (ctx) =>
+      insert("timeline_entry_todo", {
+        id: ctx.ids.entryTodo,
+        group_id: ctx.groupId,
+        entry_id: ctx.ids.entry,
+        todo_id: ctx.ids.todo,
+        ...audit(ctx),
+      }),
+  ),
 ];
 
 /**
@@ -403,6 +423,7 @@ export const RECIPIENT_PATCH = {
 export const cleanupSql = (ctx, recordedAt) =>
   [
     `DELETE FROM timeline_entry_provider WHERE id = '${ctx.ids.link}'`,
+    `DELETE FROM timeline_entry_todo WHERE id = '${ctx.ids.entryTodo}'`,
     `DELETE FROM medication_condition WHERE id = '${ctx.ids.medicationCondition}'`,
     `DELETE FROM condition_manager WHERE id = '${ctx.ids.conditionManager}'`,
     `DELETE FROM note_update WHERE document_id = '${ctx.ids.provider}'`,

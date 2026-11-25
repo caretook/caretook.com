@@ -130,6 +130,13 @@ describe("applyRoles", () => {
     expect(
       await failsWith(replication, `SELECT id, group_id, condition_id, provider_id FROM condition_manager`),
     ).toBeNull();
+    // Which todos an entry links (planner-3 slice 1).
+    expect(
+      await failsWith(
+        replication,
+        `SELECT id, group_id, entry_id, todo_id, created_by FROM timeline_entry_todo`,
+      ),
+    ).toBeNull();
     // The symptom catalog (symptom-catalog slice 1).
     expect(
       await failsWith(replication, `SELECT id, group_id, name, name_key, created_by FROM symptom_type`),
