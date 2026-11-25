@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `scripts/browser-checks/roundtrip.spec.mjs`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/components/ui/`, `apps/web/app/routes/app/layout/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/components/medications/`, `apps/web/app/components/providers/`, `apps/web/app/components/entry/`, `apps/web/app/components/repeat/`, `apps/web/app/components/groups/`, `apps/web/app/routes/admin/`, `apps/web/app/routes/marketing/`, `apps/web/app/routes/account/`, `apps/web/app/routes/sign-in` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
@@ -261,7 +261,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
 | B-682 | change | staging | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
 | B-683 | change | staging | fixes-ui | prd/fixes-ui | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
-| B-684 | change | triaged | fixes-ui |  | Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go |
+| B-684 | change | in-progress | fixes-ui | prd/fixes-ui | Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go |
 | B-685 | change | staging | fixes-ui | prd/fixes-ui | Care period form: show the Where is care now? options in a simple two-column grid |
 | B-686 | change | staging | fixes-ui | prd/fixes-ui | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
 | B-687 | change | staging | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
@@ -323,11 +323,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
 | B-792 | bug | triaged | fixes-bug |  | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
-| B-793 | bug | ready | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
+| B-793 | bug | landed | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
 | B-794 | plan | triaged | risa-next |  | Risa: a central agent that gathers from several repos and prioritises across them |
 | B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
 | B-797 | plan | triaged | risa-next |  | Risa: prove it on a second repo with tests, then make it usable by others |
+| B-798 | change | triaged | fixes-perf |  | Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline |
+| B-799 | change | inbox |  |  | Include captain name and backlog agent name so other agents can find it. |
+| B-800 | change | in-progress | fixes-ui | prd/fixes-ui | Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels |
+| B-801 | change | in-progress | fixes-ui | prd/fixes-ui | Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels |
 
 ## Items
 
@@ -1819,13 +1823,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-684 · change · Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: use colored stars on required fields instead of optional labels on optional fields, everywhere. Code read: Field (apps/web/app/components/ui/Field.tsx) has no required prop and no field uses a required attribute today, while about 57 lines contain Optional text: mostly labels like 'Note (optional)', plus help text like 'Optional: Grandma, Dad, a nickname.' and picker labels passed in by callers (ProviderPickerField, ProvidersPickerField, ConditionsField). Some hits are code comments or TimeSelect's optional prop, not labels. Plan: add one required prop to Field and to the group controls that render their own label or legend (ChoiceGroup, pickers, date and time fields), so the star lives in one place. Derive each form's required fields from its Zod schema and service rules rather than guessing, including conditional ones (Other care period needs a label). Remove '(optional)' from labels and reword help text that only says Optional, keeping any useful hint. Accessibility: the star is aria-hidden, the control gets aria-required so screen readers still hear it, and the star's color must meet contrast in light and dark. Use aria-required, not the native required attribute, unless the form sets noValidate, so browser popups don't replace our inline errors. Default color, stated to the user: the theme's error color. Update tests that find fields by '(optional)' names (6 test files) and docs/domain/ui-kit.md. Covers app, sign-in and admin forms. New onboarding forms (B-670) follow the same rule.
 - 2026-11-23 (Robert Bo Davis): User, 2026-11-23: 'stars' means an asterisk. Use the * character after the label, not a star icon. Wherever the earlier note says star, read asterisk.
+- 2026-11-24 (prd/fixes-ui): fixes-ui orchestrator 2026-11-24: split for wave 11. B-684 is slice 70 (the shared required prop and asterisk in ui/, the docs); the form sweeps are B-801 (part 2) and B-800 (part 3).
 
 ### B-685 · change · Care period form: show the Where is care now? options in a simple two-column grid
 
@@ -2403,7 +2408,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-793 · bug · Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4bc3c614
@@ -2448,3 +2453,39 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (plan/orchestration-split): Filed 2026-11-24 from the orchestration-split planning: after the move (plans/orchestration-split-move.md). Second project first (Stencil is a poor fit); then release: install, docs, versioning, other hosts than macOS and iTerm2.
+
+### B-798 · change · Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): From fixes-ui slice 69 (B-793): both still build a formatter per call; minor in the profile, same pattern.
+
+### B-799 · change · Include captain name and backlog agent name so other agents can find it.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): From the inbox: The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
+
+### B-800 · change · Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels
+
+- status: in-progress
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): Split from B-684 (over 12 files) by the fixes-ui orchestrator, 2026-11-24; uses the required prop slice 70 adds.
+
+### B-801 · change · Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels
+
+- status: in-progress
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): Split from B-684 (over 12 files) by the fixes-ui orchestrator, 2026-11-24; uses the required prop slice 70 adds.

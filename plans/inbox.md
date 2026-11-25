@@ -17,7 +17,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Placeholder and search bar on timeline should read "Type to search". (B-748)
 - App first load is way too long. (B-764)
   We need to either speed it up or make the loading message more friendly with a progress bar.
-- Include captain name and backlog agent name so other agents can find it.
+- Include captain name and backlog agent name so other agents can find it. (B-799)
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
 
 ## Feature requests
