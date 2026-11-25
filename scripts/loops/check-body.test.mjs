@@ -96,9 +96,10 @@ const TSC = "--filter ./apps/* --filter ./packages/* exec tsc";
 const ESLINT = "exec eslint .";
 const PRETTIER = "exec prettier --check .";
 const UNIT =
-  "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit";
-const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser";
-const TOOLING = "exec vitest run --project tooling:unit --project scripts:unit";
+  "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit";
+const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser --project !project:tooling";
+const TOOLING =
+  "exec vitest run --project tooling:unit --project core:unit --project project:unit --project project:tooling";
 const runs = (r) => r.ran.filter((c) => !c.startsWith("exec vitest list"));
 // The three static tools run side by side, so their order is free.
 const afterStatic = (r) => {
@@ -145,7 +146,9 @@ describe("check-body.sh", () => {
     expect(pkg.scripts.check).toBe(
       "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:budget",
     );
-    expect(pkg.scripts.test).toBe("vitest run --project '!tooling:unit' --project '!tooling:browser'");
+    expect(pkg.scripts.test).toBe(
+      "vitest run --project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling'",
+    );
   });
 
   it("fails a full check at a failing tooling test and names the step", () => {
@@ -191,7 +194,7 @@ describe("check-body.sh", () => {
 
 describe("check-body.sh reruns a failed test file", () => {
   const rerun = (...files) =>
-    `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit ${files.join(" ")}`;
+    `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit ${files.join(" ")}`;
 
   it("a file that passes alone passes the check and is reported as a flake", () => {
     const r = body(["slice", "base", "0"], "", { STUB_TESTS: "a.test.ts:1,ok.test.ts:0" });

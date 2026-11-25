@@ -24,7 +24,7 @@
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mode=$1 base=$2 tooling=$3; shift 3
-unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit)
+unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit)
 state=${CARETOOK_CHECK_STATE:-}
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -94,7 +94,7 @@ tests() {
 selection=() targets=()
 static
 if [[ $mode == full ]]; then
-  projects=(--project '!tooling:unit' --project '!tooling:browser')
+  projects=(--project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling')
   tests tests
   step docs; pnpm docs:budget
   step build; pnpm build:budget
@@ -105,7 +105,7 @@ else
     if [[ $f == *.browser.test.tsx ]]; then own_browser+=("$f"); else own_int+=("$f"); fi
   done
   files() { pnpm exec vitest list --filesOnly "$@" | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u; }
-  all=$(files --project '!tooling:unit' --project '!tooling:browser' | grep -c . || true)
+  all=$(files --project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling' | grep -c . || true)
   run=$( { files "${unit[@]}"
            if [[ $mode == quick ]]; then files --project integration --changed "$base"; fi
            printf '%s\n' ${own_int[@]+"${own_int[@]}"} ${own_browser[@]+"${own_browser[@]}"}; } | sort -u | grep -c . || true)
@@ -136,7 +136,7 @@ fi
 if [[ $tooling != 0 ]]; then
   # The static steps linted and formatted every file, so this skips the lint of
   # the changed tooling files that `pnpm test:tooling` runs first.
-  projects=(--project tooling:unit --project scripts:unit)
+  projects=(--project tooling:unit --project core:unit --project project:unit --project project:tooling)
   [[ $tooling != 2 ]] || projects+=(--project tooling:browser)
   tests tooling
 fi
