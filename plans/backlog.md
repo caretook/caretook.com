@@ -295,9 +295,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-818 | bug | triaged | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
 | B-819 | change | triaged | fixes-ui |  | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
 | B-820 | feature | triaged | risa-next |  | Risa: cross-repo topics: a Risa topic can change a configured subproject's code (Caretook), each side passing its own repo's checks |
-| B-821 | change | in-progress | orchestration-split | prd/orchestration-split | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
-| B-822 | chore | in-progress | orchestration-split | prd/orchestration-split | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
-| B-823 | chore | in-progress | orchestration-split | prd/orchestration-split | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
+| B-821 | change | ready | orchestration-split | prd/orchestration-split | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
+| B-822 | chore | ready | orchestration-split | prd/orchestration-split | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
+| B-823 | chore | ready | orchestration-split | prd/orchestration-split | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
 | B-824 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-825 | chore | triaged | orchestration-split |  | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
 | B-826 | chore | triaged | orchestration-split |  | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
@@ -312,6 +312,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-835 | chore | triaged | orchestration-split |  | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | inbox |  |  | Time limit gate for component tests to keep them from growing too long |
+| B-838 | chore | triaged | orchestration-split |  | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
+| B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 
 ## Items
 
@@ -2095,28 +2097,28 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-821 · change · Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 62d096d3
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: normalize('B-772') under prefix RISA says no item; backlog.test.mjs asserts B-2 is note text under RISA. Additive; needs an owner before the move (runbook step 3).
 
 ### B-822 · chore · Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 62d096d3
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: format.mjs:486 Number(a.id.slice(2)) is NaN for RISA- (use IDS.num); config.mjs:62 item type [A-Z]+-\d+ rejects a digit prefix idPrefix allows and isn't checked against idPrefix; format.mjs:19 throws a Node stack at import, not a backlog: line. None change B- today.
 
 ### B-823 · chore · Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 62d096d3
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: a changed prefix would split behaviour, so slice 4's sample project can't vary it. Slice 3 owns ready.sh; rm.sh and the rest have no slice yet.
 - 2026-11-25 (prd/orchestration-split): Wave 3: slice 3 takes the prefixes in the six files it owns (lib.sh, prd.sh, unsynced.sh, land.sh, new.sh, ready.sh); rm.sh and the rest stay open.
@@ -2250,3 +2252,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): From the inbox: 5 minute goal, 6 minute hard cutoff.
+
+### B-838 · chore · Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers
+
+- status: triaged
+- prd: orchestration-split
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 7 (2026-11-25, go, no blocker); none changes Caretook's behaviour today. (1) scripts/ci/verdict.fixtures/*.json: nothing ties the ten fixtures to verdict.mjs's buildVerdict (they match today), and VERDICT_VERSION lives in ci-runs.mjs:48 and verdict.mjs:29. (2) Former id prefix, when set (Risa only): format.mjs:307, inbox-merge.mjs:25, inbox-edit.mjs:20 (inbox tags), land.sh:115 (--fixes), prd.sh:351, prompts/plan.sh:9, ci-args.mjs:10, ci-lists.mjs:17, blame.mjs:18 still match the current prefix only; an ingest of a line tagged (B-772) under RISA is untested. (3) tidy-cli.mjs:219 w.branch.split('/')[1] beside sliceOf. (4) pr.sh:50 strips the prd and hotfix prefixes in turn. (5) ls.sh:83 puts the prefix in a grep -E pattern unescaped. (6) format.mjs:20 and registry.mjs:21 run loadConfigOrExit('backlog') at import, and planner-model.mjs:8 imports registry.mjs: open-session.mjs prints a backlog: line and exits 2 on a broken config. (7) outstanding.mjs:66 isTopicRun assumes prd-<topic> and slice-<topic>-<n> ref names; prd.sh's help text names prd/ and the rest. Also: Risa's counter starting above Caretook's highest id is not built (runbook step 3).
+
+### B-839 · bug · Search rebuild timing test flaked on CI (2,000 entries under 2 s)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): search.sync.browser.test.tsx's timing case failed once in components-2 on candidate run 45672578898 (77d9d75a) and passed on rerun; on the brake list (*.sync.browser.test.tsx), so it refused promote. A rerun on the same tip was green (45675167795). Triage: fixes-tooling (a CI-load timing bound, not a sync bug); loosen or move the bound off the brake path.
