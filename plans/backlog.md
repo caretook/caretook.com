@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `apps/web/app/lib/app-shell/`, `scripts/build/service-worker`, `scripts/browser-checks/`, `apps/web/app/entry.client.tsx`, `apps/web/app/root.tsx`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/components/medications/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/timeline/sheet`, `apps/web/app/routes/app/groups/timeline/new-dose/`, `apps/web/app/lib/timeline/timelineSheet.ts` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/lib/app-shell/`, `scripts/build/service-worker`, `scripts/browser-checks/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/components/medications/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/lib/timeline/timelineNewer.ts`, `apps/web/app/routes/app/groups/search/`, `apps/web/app/components/quick-entry/`, `apps/web/app/lib/assistant/`, `packages/api/src/connectors/`, `docs/domain/medications.md` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
 | `test-gates` | done | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
@@ -223,68 +223,68 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
 | B-583 | change | landed | fixes-ui | prd/fixes-ui | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
-| B-594 | change | landed | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
+| B-594 | change | staging | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
 | B-606 | feature | landed | fixes-ui | prd/fixes-ui | Highlight a double dose on a next-dose-due notification |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-613 | change | landed | fixes-ui | prd/fixes-ui | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
-| B-617 | bug | landed | fixes-ui | prd/fixes-ui | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
-| B-618 | change | landed | fixes-ui | prd/fixes-ui | Timeline day header: move Change care period to the left of the period text |
+| B-617 | bug | staging | fixes-ui | prd/fixes-ui | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
+| B-618 | change | staging | fixes-ui | prd/fixes-ui | Timeline day header: move Change care period to the left of the period text |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
-| B-621 | feature | landed | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
+| B-621 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-623 | bug | triaged | fixes-tooling |  | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-626 | feature | triaged | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
-| B-629 | bug | landed | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
+| B-629 | bug | staging | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-633 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
-| B-636 | change | landed | fixes-ui | prd/fixes-ui | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
+| B-636 | change | staging | fixes-ui | prd/fixes-ui | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
 | B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
 | B-639 | bug | triaged | fixes-tooling |  | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
 | B-649 | bug | triaged | fixes-tooling |  | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
 | B-653 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
-| B-663 | bug | landed | fixes-ui | prd/fixes-ui | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
-| B-664 | bug | landed | fixes-ui | prd/fixes-ui | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
+| B-663 | bug | staging | fixes-ui | prd/fixes-ui | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
+| B-664 | bug | staging | fixes-ui | prd/fixes-ui | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
-| B-668 | change | landed | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
+| B-668 | change | staging | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
-| B-672 | feature | landed | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
-| B-673 | feature | landed | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
-| B-674 | change | landed | fixes-ui | prd/fixes-ui | Add a medication: the schedule starts on As needed |
-| B-676 | change | landed | fixes-ui | prd/fixes-ui | Quick entry: the suggested result card can be clicked to add it, as Enter does |
-| B-677 | change | landed | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
-| B-678 | bug | landed | fixes-ui | prd/fixes-ui | Manage members: cards truncate names and details on phone and desktop; redo the layout |
-| B-679 | feature | landed | fixes-ui | prd/fixes-ui | Manage members: show email confirmation status (last login only if easy) |
+| B-672 | feature | staging | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
+| B-673 | feature | staging | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
+| B-674 | change | staging | fixes-ui | prd/fixes-ui | Add a medication: the schedule starts on As needed |
+| B-676 | change | staging | fixes-ui | prd/fixes-ui | Quick entry: the suggested result card can be clicked to add it, as Enter does |
+| B-677 | change | staging | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
+| B-678 | bug | staging | fixes-ui | prd/fixes-ui | Manage members: cards truncate names and details on phone and desktop; redo the layout |
+| B-679 | feature | staging | fixes-ui | prd/fixes-ui | Manage members: show email confirmation status (last login only if easy) |
 | B-680 | change | landed | fixes-ui | prd/fixes-ui | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
-| B-682 | change | landed | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
-| B-683 | change | landed | fixes-ui | prd/fixes-ui | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
+| B-682 | change | staging | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
+| B-683 | change | staging | fixes-ui | prd/fixes-ui | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
 | B-684 | change | triaged | fixes-ui |  | Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go |
-| B-685 | change | landed | fixes-ui | prd/fixes-ui | Care period form: show the Where is care now? options in a simple two-column grid |
-| B-686 | change | landed | fixes-ui | prd/fixes-ui | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
-| B-687 | change | landed | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
-| B-688 | change | landed | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
-| B-691 | bug | landed | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
-| B-692 | change | landed | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
+| B-685 | change | staging | fixes-ui | prd/fixes-ui | Care period form: show the Where is care now? options in a simple two-column grid |
+| B-686 | change | staging | fixes-ui | prd/fixes-ui | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
+| B-687 | change | staging | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
+| B-688 | change | staging | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
+| B-691 | bug | staging | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
+| B-692 | change | staging | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
 | B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
-| B-695 | change | triaged | fixes-ui |  | Rename "passes" to "Med times" everywhere users see it |
+| B-695 | change | in-progress | fixes-ui | prd/fixes-ui | Rename "passes" to "Med times" everywhere users see it |
 | B-697 | change | triaged | fixes-ui |  | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
 | B-698 | change | landed | fixes-ui | prd/fixes-ui | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
-| B-699 | bug | landed | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
+| B-699 | bug | staging | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
 | B-700 | feature | landed | fixes-ui | prd/fixes-ui | Passes tab: quick log a pass, with cards matching the new medication card |
 | B-701 | change | landed | fixes-ui | prd/fixes-ui | Passes always sort by time: remove Move up and Move down |
-| B-702 | bug | landed | fixes-ui | prd/fixes-ui | Medications Print menu: text overflows or crowds the menu box |
+| B-702 | bug | staging | fixes-ui | prd/fixes-ui | Medications Print menu: text overflows or crowds the menu box |
 | B-720 | chore | triaged | fixes-tooling |  | Confirm dev syncs that share no files with a branch no longer trigger a second CI run |
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
 | B-730 | bug | triaged | sync-safety-2 |  | A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't) |
 | B-735 | bug | landed | fixes-ui | prd/fixes-ui | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
-| B-736 | bug | landed | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
-| B-737 | feature | landed | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
+| B-736 | bug | staging | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
+| B-737 | feature | staging | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
 | B-738 | bug | triaged | fixes-tooling |  | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-748 | change | landed | fixes-ui | prd/fixes-ui | Placeholder and search bar on timeline should read "Type to search". |
 | B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
@@ -294,22 +294,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-753 | bug | triaged | fixes-tooling |  | CI doesn't name the file a hung shard is stuck on |
 | B-754 | bug | triaged | fixes-tooling |  | backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44) |
 | B-755 | change | triaged | fixes-perf |  | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
-| B-756 | change | landed | fixes-ui | prd/fixes-ui | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
+| B-756 | change | staging | fixes-ui | prd/fixes-ui | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-2 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-760 | feature | triaged | connectors-3 |  | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
 | B-761 | feature | triaged | connectors-3 |  | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
-| B-762 | feature | landed | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
-| B-763 | bug | landed | fixes-ui | prd/fixes-ui | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
+| B-762 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
+| B-763 | bug | staging | fixes-ui | prd/fixes-ui | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
 | B-764 | change | triaged | fixes-perf |  | App first load is way too long. |
 | B-765 | feature | landed | fixes-ui | prd/fixes-ui | Ability to open live notes full screen. |
 | B-766 | bug | triaged | fixes-tooling |  | pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands |
 | B-767 | bug | triaged | fixes-tooling |  | A backlog amend repeats the Backlog-Tool trailer in the commit message |
 | B-768 | bug | triaged | fixes-tooling |  | slice-fields.mjs warns on a slice fields line that carries Blocked by |
 | B-769 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx: the New care group sheet the group menu's New c… |
-| B-771 | bug | landed | fixes-tooling | hotfix/sync-shared | prd sync skips dev's CI list updates (quarantine, brake list) |
+| B-771 | bug | staging | fixes-tooling | hotfix/sync-shared | prd sync skips dev's CI list updates (quarantine, brake list) |
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
-| B-774 | chore | landed | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
+| B-774 | chore | staging | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-777 | bug | landed | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
@@ -322,7 +322,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
 | B-786 | change | landed | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
 | B-787 | bug | triaged | fixes-bug |  | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
-| B-788 | change | triaged | fixes-ui |  | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
+| B-788 | change | in-progress | fixes-ui | prd/fixes-ui | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
 | B-789 | change | triaged | self-recovery-2 |  | A landing journal (even one whose pid is dead) holds a session's resume after a usage limit with only a waits line each tick; file one report so the user runs pnpm prd land --resume |
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 
@@ -1438,7 +1438,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-594 · change · Manage allergies on the Profile page; Medications keeps a read-only summary
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1488,7 +1488,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-617 · bug · List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1498,7 +1498,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-618 · change · Timeline day header: move Change care period to the left of the period text
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4ecaa3f5
@@ -1526,7 +1526,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-621 · feature · Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1567,7 +1567,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-629 · bug · Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 98a3381c
@@ -1603,7 +1603,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-636 · change · Planner todo rows keep the old time column, so they align differently from event cards in the same list
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1667,7 +1667,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-663 · bug · Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 28e7247b
@@ -1676,7 +1676,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-664 · bug · Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1710,7 +1710,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-668 · change · Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 760dca52
@@ -1746,7 +1746,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-672 · feature · Add an allergy: suggest substances and reactions as you type, like conditions
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: d1cdca07
@@ -1756,7 +1756,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-673 · feature · Add a medication: suggest common medication names as you type, like conditions
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1765,7 +1765,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-674 · change · Add a medication: the schedule starts on As needed
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: e6739d85
@@ -1774,7 +1774,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-676 · change · Quick entry: the suggested result card can be clicked to add it, as Enter does
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1785,7 +1785,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-677 · change · Role pickers: explain what each role can do, when inviting and managing members
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 98a3381c
@@ -1796,7 +1796,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-678 · bug · Manage members: cards truncate names and details on phone and desktop; redo the layout
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: dad4b7b0
@@ -1805,7 +1805,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-679 · feature · Manage members: show email confirmation status (last login only if easy)
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1838,7 +1838,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-682 · change · Planner: remove the icons from the empty lists on all tabs
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4fee8d5d
@@ -1847,7 +1847,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-683 · change · Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: d832219e
@@ -1867,7 +1867,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-685 · change · Care period form: show the Where is care now? options in a simple two-column grid
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4fee8d5d
@@ -1877,7 +1877,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-686 · change · Add a provider: phone type is a dropdown of common types, with Custom for typing your own
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 948eebc8
@@ -1886,7 +1886,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-687 · change · Add a provider: saving opens the new provider's page instead of returning to the list
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 760dca52
@@ -1895,7 +1895,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-688 · change · Add a medication: saving opens the new medication's page instead of returning to the list
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: a7d65e3c
@@ -1904,7 +1904,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-691 · bug · Event time picker: the calendar spills outside its overlay instead of sitting inside it
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -1913,7 +1913,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-692 · change · New event: after picking the date, focus moves to the title, which prompts Enter a title to save
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: a2a3ebd2
@@ -1944,9 +1944,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-695 · change · Rename "passes" to "Med times" everywhere users see it
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User chose Med times (2026-11-23): 'pass' is nursing jargon, and family caretakers can read it as skipping a dose. A single one goes by its name (Morning, Evening); generic singular is 'med time'. Change visible text only: the Medications tab and its page, the + menu (Add a med time), PassForm and PassList, ScheduleFields, Today and PassCard, TodayMedicationsRow, EasyNow, quick entry (for example 'Suggestions, a pass is due', 'That pass is gone'), the weekly print sheet, refusal messages in medicationPasses.sync.ts and medications.sync.ts, aria labels, and connector tool descriptions. Keep the code names, medication_pass table, stored data, the /passes URL and the give_pass connector tool name, so no migration or connector break. Any words quick entry already accepts keep working. About 670 code matches for the word, most of them identifiers: sweep strings by hand, don't find-and-replace. Update browser tests and docs/domain/medications.md to say the visible name is Med times. Overlaps dose-accuracy (running) in dueDoses and connector files: take it after that lands or merge carefully.
@@ -1972,7 +1972,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-699 · bug · Medication page: Back returns to where you came from, not always the Medications list
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 98a3381c
@@ -1999,7 +1999,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-702 · bug · Medications Print menu: text overflows or crowds the menu box
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 948eebc8
@@ -2061,7 +2061,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-736 · bug · On the timeline, after jumping to a day, trying to scroll always takes you back to that day.
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -2071,7 +2071,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-737 · feature · A link icon on each timeline day header and item so users can easily send links to other people.…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: a2a3ebd2
@@ -2164,7 +2164,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-756 · change · Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: da9de73f
@@ -2209,7 +2209,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-762 · feature · Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: a2a3ebd2
@@ -2218,7 +2218,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-763 · bug · On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 633ba99c
@@ -2283,7 +2283,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-771 · bug · prd sync skips dev's CI list updates (quarantine, brake list)
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: hotfix/sync-shared
 - commit: e19c42ab
@@ -2303,7 +2303,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-774 · chore · A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b)
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: hotfix/sync-shared
 - commit: e19c42ab
@@ -2423,9 +2423,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-788 · change · Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). In-app redirects to sign-in are client-side and fine; only a direct offline load of / or /sign-in is affected.
