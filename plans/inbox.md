@@ -19,7 +19,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   We need to either speed it up or make the loading message more friendly with a progress bar.
 - Include captain name and backlog agent name so other agents can find it. (B-799)
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
-- Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay.
+- Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. (B-803)
   The selected item should be a horizontal oval with the same radius as the nav bar, filling the entire space, with some motion when the selection changes.
 
 ## Feature requests
@@ -34,7 +34,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - nested todos (B-550)
 - A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later (B-737)
 - Ability to open live notes full screen. (B-765)
-- Need a banner (or permanent toast) while in offline mode.
+- Need a banner (or permanent toast) while in offline mode. (B-804)
 
 ## Big plans
 
@@ -42,6 +42,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 - Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for up to 3 days offline. (B-145)
   Decide for Capacitor (SQLCipher, secure storage) against the "encryption at rest" commitment.
-- Can the PWA sync in the background after offline work, or does the user have to open it to sync?
+- Can the PWA sync in the background after offline work, or does the user have to open it to sync? (B-805)
 
 ## Chores

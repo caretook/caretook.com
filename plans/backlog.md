@@ -330,9 +330,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-797 | plan | triaged | risa-next |  | Risa: prove it on a second repo with tests, then make it usable by others |
 | B-798 | change | triaged | fixes-perf |  | Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline |
 | B-799 | change | inbox |  |  | Include captain name and backlog agent name so other agents can find it. |
-| B-800 | change | in-progress | fixes-ui | prd/fixes-ui | Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels |
-| B-801 | change | in-progress | fixes-ui | prd/fixes-ui | Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels |
+| B-800 | change | ready | fixes-ui | prd/fixes-ui | Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels |
+| B-801 | change | ready | fixes-ui | prd/fixes-ui | Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels |
 | B-802 | bug | triaged | fixes-tooling |  | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
+| B-803 | change | triaged | fixes-ui |  | Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. |
+| B-804 | feature | triaged | fixes-ui |  | Need a banner (or permanent toast) while in offline mode. |
+| B-805 | question | triaged | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
 
 ## Items
 
@@ -2475,19 +2478,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-800 · change · Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 14363355
 
 - 2026-11-24 (prd/fixes-ui): Split from B-684 (over 12 files) by the fixes-ui orchestrator, 2026-11-24; uses the required prop slice 70 adds.
 
 ### B-801 · change · Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 7429a2be
 
 - 2026-11-24 (prd/fixes-ui): Split from B-684 (over 12 files) by the fixes-ui orchestrator, 2026-11-24; uses the required prop slice 70 adds.
 
@@ -2499,3 +2502,31 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): Filed 2026-11-24 by the backlog session on the user's word. Candidate rc/20261125-0251 (abb7965d, from dev e7798575), CI run 45535937950 (PR #178): browser verdict flake; invites.spec.mjs:477 expect(...).toBe(...) failed, then passed on the job's one rerun. The candidate was promoted (staging 534f96af). Not reproduced; check whether it's a read-before-render race (fix it, don't rerun).
+
+### B-803 · change · Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay.
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): From the inbox: The selected item should be a horizontal oval with the same radius as the nav bar, filling the entire space, with some motion when the selection changes.
+- 2026-11-24 (Robert Bo Davis): Bottom tab bar look: thinner, translucent with a backdrop blur. Same bar as B-664/B-763 (fixes-ui).
+
+### B-804 · feature · Need a banner (or permanent toast) while in offline mode.
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): The header already shows a sync status; this asks for a clearer, persistent offline cue (banner or sticky toast) while offline. Keep it clear of the bottom nav (B-803).
+
+### B-805 · question · Can the PWA sync in the background after offline work, or does the user have to open it to sync?
+
+- status: triaged
+- prd: sync-safety-2
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): Likely answer: iOS installed PWAs have no Background Sync (WebKit), so pending uploads wait until the app is opened. Chrome/Android has the Background Sync API, but PowerSync's upload queue runs in the page, so today it waits too. Options: sync on open/focus (now), a service-worker sync on Android only, or native (Capacitor) background tasks later.
