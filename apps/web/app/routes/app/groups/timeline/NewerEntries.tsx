@@ -3,7 +3,7 @@ import type { TimelineData } from "./useTimelineData";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Button } from "~/components/ui";
-import { LANDING_GAP } from "./useJumpLanding";
+import { LANDING_GAP, landingHeld } from "./useJumpLanding";
 
 const NOTICE = "[data-jump-notice]";
 
@@ -66,6 +66,8 @@ export function NewerEntries({
       const y = window.scrollY;
       const up = y < last;
       last = y;
+      // The landing's hold moving the page as the cards above it settle: not the reader scrolling up.
+      if (landingHeld()) return;
       const edge = top.current?.getBoundingClientRect().top;
       if (up && edge !== undefined && edge > -window.innerHeight) load.current();
     };
