@@ -1,0 +1,43 @@
+{
+  "ownTests": "\\.(int\\.test\\.ts|browser\\.test\\.tsx)$",
+  "suite": {
+    "tier": "full",
+    "rules": [
+      { "match": "^packages/data/src/db/migrations/", "why": "a migration" },
+      { "match": "^packages/data/(scripts|src)/.*seed", "flags": "i", "why": "seeds" },
+      { "match": "^powersync/sync-config\\.yaml$", "why": "the sync config" },
+      { "match": "^pnpm-lock\\.yaml$", "why": "the lockfile" },
+      { "match": "(^|/)package\\.json$", "why": "a package.json" },
+      { "match": "^vitest\\.config\\.ts$", "why": "the Vitest config" },
+      { "match": "^\\.github/(workflows|actions)/", "why": "the CI workflow" },
+      { "match": "^scripts/ci/", "why": "scripts/ci" }
+    ]
+  },
+  "byPath": [
+    { "match": "^apps/", "tier": "components", "why": "app code" },
+    { "match": "^packages/", "tier": "integration", "why": "server code" }
+  ],
+  "browserHarness": {
+    "tier": "integration",
+    "paths": [
+      "scripts/loops/serve.sh",
+      "scripts/loops/checks",
+      "scripts/loops/check-areas.d",
+      "scripts/project/check-areas.mjs",
+      "scripts/browser-checks"
+    ]
+  },
+  "tooling": ["scripts/hooks.test.mjs"],
+  "reachesCode": [
+    { "match": "^(packages/[^/]+|apps/web)/test/", "why": "test setup" },
+    { "match": "(^|/)vite\\.config\\.[^/]+$", "why": "a Vite config" },
+    { "match": "(^|/)tsconfig[^/]*\\.json$", "why": "a TypeScript config" },
+    { "match": "^pnpm-workspace\\.yaml$", "why": "the pnpm workspace" },
+    { "match": "(^|/)eslint\\.config\\.[^/]+$", "why": "the ESLint config" },
+    { "match": "^scripts/eslint/", "why": "the ESLint rules" },
+    {
+      "match": "(^|/)(\\.prettierrc(\\.[^/]+)?|prettier\\.config\\.[^/]+|\\.prettierignore)$",
+      "why": "the Prettier config"
+    }
+  ]
+}

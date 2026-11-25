@@ -50,6 +50,7 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 const PROJECT_UNIT = [
   "sync-matrix",
   "check-areas",
+  "check-plan-rules",
   "checks",
   "browser-job",
   "env",

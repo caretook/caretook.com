@@ -81,6 +81,53 @@ describe("tiers.mjs", () => {
   });
 });
 
+describe("the plan job's outputs", () => {
+  const { planOutputs } = tiers;
+
+  it("give the plan job no integration on a unit run", () => {
+    expect(planOutputs("ci/unit/x")).toEqual([
+      "tier=unit",
+      "static=true",
+      "unit=true",
+      "integration=false",
+      "components=false",
+      "full=false",
+      "candidate=false",
+      "release=false",
+      "components2=false",
+      "narrowed=false",
+    ]);
+    expect(planOutputs("ci/components/x")).toContain("components=true");
+    expect(planOutputs("ci/components/x")).toContain("full=false");
+    expect(planOutputs("ci/full/x")).toContain("full=true");
+    expect(() => planOutputs("dev")).toThrow(/not a ci/);
+  });
+
+  it("start the browser job only on a candidate run, and the release jobs only on a release run", () => {
+    expect(planOutputs("ci/full/x")).toContain("candidate=false");
+    expect(planOutputs("ci/candidate/x")).toContain("candidate=true");
+    expect(planOutputs("ci/candidate/x", ["scripts/ci/tiers.test.mjs"])).toContain("candidate=false");
+    expect(planOutputs("ci/candidate/x")).toContain("release=false");
+    expect(planOutputs("ci/release/x")).toContain("release=true");
+    expect(planOutputs("ci/release/x", ["scripts/ci/tiers.test.mjs"])).toContain("release=false");
+  });
+
+  it("start only a narrowed run's files' jobs, the components in one", () => {
+    expect(planOutputs("ci/full/x", ["a.int.test.ts"])).toEqual([
+      "tier=full",
+      "static=false",
+      "unit=false",
+      "integration=true",
+      "components=false",
+      "full=false",
+      "candidate=false",
+      "release=false",
+      "components2=false",
+      "narrowed=true",
+    ]);
+  });
+});
+
 // The core reads the same file through its own reader: the two must agree on
 // every symbol the core takes from tiers.mjs.
 describe("the two tier readers", () => {
