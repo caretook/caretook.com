@@ -24,7 +24,8 @@
 // still opens the app: the shell, the route chunks, and the files PowerSync's
 // database worker loads (its own chunks and SQLite's WASM) all come from the
 // worker's cache. Without them the database couldn't open and the page stayed
-// empty.
+// empty. There, / and /sign-in (never cached) get the worker's offline page,
+// with its link to /app (B-788).
 import { assetsSettled, DEV_FAMILY, expect, psql, signIn, signOut, test, waitFor } from "./fixtures.mjs";
 
 const EMAIL = "member@example.com";
@@ -304,6 +305,15 @@ test("offline with an empty HTTP cache: the app still opens from the worker's ca
       await expect(page.locator("main h1")).toContainText("Providers", { timeout: 30_000 });
       await expect(page.locator("main a[href*='/providers/']").first()).toBeVisible({ timeout: 30_000 });
     });
+    // B-788: a page outside /app isn't cached; offline it gets the worker's
+    // offline page, with a way back into the app, not the browser's own.
+    for (const path of ["/", "/sign-in"])
+      await test.step(`offline: ${path} shows the offline page with its /app link`, async () => {
+        await page.goto(path);
+        await expect(page.locator("h1")).toHaveText("You're offline", { timeout: 30_000 });
+        expect(new URL(page.url()).pathname).toBe(path);
+        await expect(page.getByRole("link", { name: "Open Caretook" })).toHaveAttribute("href", "/app");
+      });
   } finally {
     await context.setOffline(false);
     d.offline(false);

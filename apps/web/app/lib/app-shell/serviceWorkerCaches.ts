@@ -1,5 +1,5 @@
 // The worker's cache work, against a `CacheStorage` passed in (tests pass a fake).
-import { cacheName, SHELL_PATH, staleCaches } from "./serviceWorkerRoutes";
+import { cacheName, OFFLINE_PATH, SHELL_PATH, staleCaches } from "./serviceWorkerRoutes";
 
 /** The parts of `CacheStorage` the worker uses. */
 export type Caches = Pick<CacheStorage, "open" | "keys" | "delete">;
@@ -53,4 +53,25 @@ export async function fetchAndKeep(
   const cache = await caches.open(cacheName(version));
   await cache.put(key, response.clone());
   return response;
+}
+
+/**
+ * A page load outside /app (`offline` in `routeRequest`, B-788): the network's
+ * answer whatever it is (an error page too), and the precached offline page
+ * only when the fetch itself fails. Nothing is stored. With no offline page in
+ * the cache, it rejects as the network did.
+ */
+export async function networkOrOffline(
+  caches: Caches,
+  version: string,
+  request: Request,
+  fetchFn: (request: Request) => Promise<Response> = fetch,
+) {
+  try {
+    return await fetchFn(request);
+  } catch (error) {
+    const page = await fromCache(caches, version, OFFLINE_PATH);
+    if (page) return page;
+    throw error;
+  }
 }

@@ -8,7 +8,7 @@
 // Groups: `entry` (the client entry), `root` (entry + the root route) and `app`
 // (root + the /app layout and its ancestors): what a first visit to /app loads.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 
@@ -70,9 +70,13 @@ export function readListing(clientDir) {
  */
 export const SQLITE_WASM = /^wa-sqlite-async-[\w-]+\.wasm$/;
 
+/** The offline page, copied from apps/web/public/ (OFFLINE_PATH in serviceWorkerRoutes.ts). */
+export const OFFLINE_PAGE = "/offline.html";
+
 /**
  * The service worker's precache list (scripts/build/service-worker.mjs): the
- * shell first, then every JS, CSS and font (woff2) file the build wrote to
+ * shell first, the offline page (public/offline.html, B-788: what a failed
+ * page load outside /app gets), then every JS, CSS and font (woff2) file the build wrote to
  * `assets/` (`files`, their names), and the SQLite WASM the device loads
  * (`SQLITE_WASM`, 2.2 MB). The fonts (app/fonts/, B-415) are in so the
  * offline shell keeps its typeface, and their hashes version the worker.
@@ -85,10 +89,10 @@ export const SQLITE_WASM = /^wa-sqlite-async-[\w-]+\.wasm$/;
  * other three SQLite builds (5 MB) stay out; the worker keeps any other
  * `/assets/` file on first use (`keep` in serviceWorkerRoutes.ts).
  */
-export function precacheList({ files, shell = "/app" }) {
+export function precacheList({ files, shell = "/app", offline = OFFLINE_PAGE }) {
   const precached = (f) => /\.(js|css|woff2)$/.test(f) || SQLITE_WASM.test(f);
   const assets = files.filter(precached).map((f) => `/assets/${f}`);
-  return [shell, ...[...new Set(assets)].sort()];
+  return [shell, offline, ...[...new Set(assets)].sort()];
 }
 
 /** The precache list of a build's client directory. */
@@ -99,5 +103,7 @@ export function readPrecacheList(clientDir) {
   // A renamed SQLite build would quietly bring the blank offline start back.
   if (!files.some((f) => SQLITE_WASM.test(f)))
     throw new Error(`no SQLite WASM matching ${SQLITE_WASM} in ${clientDir}/assets: update SQLITE_WASM`);
+  // Without it the install's precache would fail on every device.
+  if (!existsSync(join(clientDir, OFFLINE_PAGE))) throw new Error(`no ${OFFLINE_PAGE} in ${clientDir}`);
   return precacheList({ files });
 }
