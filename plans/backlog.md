@@ -338,6 +338,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-805 | question | triaged | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
 | B-806 | change | landed | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
 | B-807 | bug | triaged | fixes-bug |  | CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev |
+| B-808 | bug | triaged | fixes-tooling |  | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
 
 ## Items
 
@@ -2552,3 +2553,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (prd/planner-3): [ci-key 8f5760aaa54d] Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45553217886.
+
+### B-808 · bug · Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-25 (prd/planner-3): planner-3's lean browser suite (2026-11-25, load ~10 on 10 cores): ui.spec.mjs:83, '420 dark › add sheet: the full screen', the Symptom add sheet's surface measured width 0, height 0. Passed alone on a rerun (6s), same tip. Looks like a read-before-render race: the evaluate walks up to the first element with a background and measures it once its animations finish, without waiting for a non-zero box. Fix the wait (e.g. expect.poll on the box), not a retry. No planner-3 file touches the add sheet or ui.spec.
