@@ -136,7 +136,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-245 | plan | in-progress | planner-3 | prd/planner-3 | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
-| B-254 | feature | in-progress | planner-3 | prd/planner-3 | Quick entry: 'bins out every monday' makes a repeating todo |
+| B-254 | feature | ready | planner-3 | prd/planner-3 | Quick entry: 'bins out every monday' makes a repeating todo |
 | B-294 | bug | triaged | sync-safety-2 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
@@ -233,7 +233,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-621 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-623 | bug | triaged | fixes-tooling |  | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
-| B-626 | feature | triaged | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
+| B-626 | feature | ready | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
 | B-629 | bug | staging | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-633 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
@@ -555,10 +555,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-254 · feature · Quick entry: 'bins out every monday' makes a repeating todo
 
-- status: in-progress
+- status: ready
 - prd: planner-3
 - owner: prd/planner-3
-- commit:
+- commit: 84dd0a7d
 
 - 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21: repeating todos are created from the todo form only in planner-2; reading a repeat in quick entry is this follow-up, after planner-2 (B-248 remove reminders) is in dev. Proposed alongside B-245 (attach a todo to a note) in planner-3; for the user to check.
 - 2026-11-21 (plan/planner-3): Planned 2026-11-21 (plans/planner-3-prd.md, slices 5-6): a repeat phrase makes the line a repeating todo; addTodo gains repeatRule; the connector's add_todo leaves it out until B-253.
@@ -1529,10 +1529,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-626 · feature · Decide whether a rescheduled event's todos follow it to the new event
 
-- status: triaged
+- status: ready
 - prd: planner-3
 - owner:
-- commit:
+- commit: 59723f9e
 
 - 2026-11-23 (Robert Bo Davis): From planner-3 (B-245): today they stay on the old cancelled event while notes and providers are copied. planner-3 keeps that and pins it with a test. Needs the user's call before building.
 - 2026-11-23 (Robert Bo Davis): The user, 2026-11-23: todos follow the rescheduled event. Planned in planner-3 slice 2: links move to the new event.
