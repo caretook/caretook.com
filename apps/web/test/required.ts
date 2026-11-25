@@ -12,3 +12,10 @@ export const saysOptional = (scope: ParentNode | null | undefined) => {
   const text = scope?.textContent ?? "";
   return /\(optional\)/i.test(text) || /Optional/.test(text);
 };
+
+/**
+ * A label lookup for `getByLabelText` that matches `text` with or without the
+ * required `*` (the label's text content keeps the aria-hidden mark, and the
+ * lookup is exact).
+ */
+export const labelled = (text: string) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\*?$`);
