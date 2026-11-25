@@ -52,6 +52,7 @@ describe("the offline banner", () => {
   test("at 420: under the header, above the tab bar, in the page's flow", async () => {
     await open();
     const banner = await found(strip);
+    const region = await found(live);
     const header = document.querySelector("body header")!.getBoundingClientRect();
     const bar = await found(() => document.querySelector<HTMLElement>("nav[data-tab-bar]"));
     const box = banner.getBoundingClientRect();
@@ -60,7 +61,7 @@ describe("the offline banner", () => {
     expect(box.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().top);
     expect(box.height).toBeGreaterThan(0);
     // In flow, with no layer of its own: sheets (z-50) and the bar (z-40) stay above it.
-    expect(getComputedStyle(live()!).position).toBe("static");
+    expect(getComputedStyle(region).position).toBe("static");
     expect(getComputedStyle(banner).position).toBe("static");
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
   });
