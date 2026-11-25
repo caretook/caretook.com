@@ -1,0 +1,47 @@
+{
+  "name": "caretook",
+  "tool": {
+    "prd": "pnpm prd",
+    "backlog": "pnpm backlog"
+  },
+  "paths": {
+    "backlog": "plans/backlog.md",
+    "inbox": "plans/inbox.md",
+    "archive": "plans/backlog-archive.md",
+    "plans": "plans",
+    "docs": "docs",
+    "agentsDoc": "AGENTS.md",
+    "preferences": "docs/agents/preferences.md",
+    "browserChecks": "scripts/browser-checks",
+    "checksManifest": "scripts/loops/checks",
+    "checkAreas": "scripts/loops/check-areas.d",
+    "brakeList": "scripts/ci/brake-list.txt",
+    "quarantine": "scripts/ci/quarantine.txt"
+  },
+  "branches": {
+    "trunk": "dev",
+    "protected": ["main", "staging"],
+    "prefixes": {
+      "prd": "prd/",
+      "slice": "slice/",
+      "plan": "plan/",
+      "hotfix": "hotfix/"
+    }
+  },
+  "backlog": {
+    "prdsHeading": "## PRDs",
+    "zoneOverflowItem": "B-750"
+  },
+  "commands": {
+    "install": "pnpm install --frozen-lockfile",
+    "check": "pnpm check",
+    "typecheck": "pnpm typecheck",
+    "typegen": "pnpm typegen",
+    "datastoreStart": "pnpm datastore:start",
+    "datastoreReset": "pnpm datastore:reset",
+    "datastoreSeed": "pnpm datastore:seed"
+  },
+  "boundary": {
+    "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
+  }
+}
