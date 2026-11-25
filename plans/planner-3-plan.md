@@ -10,14 +10,14 @@
 
 **Models:** slice 1 opus, slice 5 opus.
 
-| Slice | Wave | State                                    | Merge into `prd/planner-3` (slice commits) |
-| ----- | ---- | ---------------------------------------- | ------------------------------------------ |
-| 1     | 1    | working (worktree planner-3-1, slot 2)   |                                            |
-| 2     | 2    | not started                              |                                            |
-| 3     | 3    | not started                              |                                            |
-| 4     | 3    | not started                              |                                            |
-| 5     | 1    | working (worktree planner-3-5, no stack) |                                            |
-| 6     | 2    | not started                              |                                            |
+| Slice | Wave | State                                                  | Merge into `prd/planner-3` (slice commits) |
+| ----- | ---- | ------------------------------------------------------ | ------------------------------------------ |
+| 1     | 1    | working (worktree planner-3-1, slot 2)                 |                                            |
+| 2     | 2    | not started                                            |                                            |
+| 3     | 3    | not started                                            |                                            |
+| 4     | 3    | not started                                            |                                            |
+| 5     | 1    | handed off 03217f19, quick check green; merges after 1 |                                            |
+| 6     | 2    | not started                                            |                                            |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
