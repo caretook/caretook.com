@@ -34,6 +34,7 @@
 
 - 2026-11-25: the backlog id prefix decision recorded (82234d46, from the backlog session on the user's word): slice 2 does `scripts/backlog/`'s sites; the other `B-` sites go to slices 3, 4, 8 and 13, which own those files.
 - 2026-11-25: dev sync was a skip (up to date). Slices 2 and 6 started: worktrees `.loops/orchestration-split-2` and `-6` (from 82234d46), one background **opus** agent each (the user's choice), told to unset `CARETOOK_USAGE_WATCH` for the slice check. The stall watch runs beside them.
+- 2026-11-25: **handing over to a Fable session** (split-ops' word: this one rotated onto Opus by mistake). Slices 2 and 6 were still working, with no hand-off yet; the stall watch was out. The fresh session: check ListAgents; if a slice's agent is gone, respawn it with `pnpm prd prompt slice orchestration-split <n> --continue` (the brief must keep the `CARETOOK_USAGE_WATCH` note), then start the watch again. Answered split-ops on B-820 (cross-repo topics): stage 1 doesn't block it, no plan change.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
