@@ -5,9 +5,20 @@ import { dayLabel } from "../../../../lib/core/format";
 /** One day's section: its key (`day-<key>` ids), heading and entries, in list order. */
 export type TimelineDay<T> = { key: string; label: string; entries: T[] };
 
+// One formatter per zone: `toLocaleDateString` with options builds a new one on
+// every call, and the timeline keys every row on each render (B-793: on a slow
+// device that was a second of the first add after sign-in).
+const dayKeyFormats = new Map<string, Intl.DateTimeFormat>();
+
 /** A stable key for an instant's calendar day in `timeZone`: "2026-11-17". */
-export const dayKeyIn = (iso: string, timeZone: string) =>
-  new Date(iso).toLocaleDateString("en-CA", { timeZone });
+export const dayKeyIn = (iso: string, timeZone: string) => {
+  let format = dayKeyFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-CA", { timeZone });
+    dayKeyFormats.set(timeZone, format);
+  }
+  return format.format(new Date(iso));
+};
 
 /** The hour a past day's adds start at (the + on its heading): midday. */
 const DAY_START_HOUR = 12;
