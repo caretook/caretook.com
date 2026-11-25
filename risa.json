@@ -65,6 +65,10 @@
     "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
     "browserHarness": "tooling:browser"
   },
+  "hooks": {
+    "checkAreas": "node scripts/project/check-areas.mjs",
+    "docBudget": "node scripts/project/doc-budget.mjs"
+  },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
   }
