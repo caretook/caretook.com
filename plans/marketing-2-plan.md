@@ -7,8 +7,8 @@
 | Slice | Wave | State                   | Merge into `prd/marketing-2` (slice commits) |
 | ----- | ---- | ----------------------- | -------------------------------------------- |
 | 1     | 1    | merged                  | a99f66c0 (c75b6d15)                          |
-| 2     | 1    | running (Fable)         |                                              |
-| 3     | 1    | planned                 |                                              |
+| 2     | 1    | merged                  | 0d19a248 (523a2cd5)                          |
+| 3     | 1    | running (Fable)         |                                              |
 | 4     | 1    | planned (text approved) |                                              |
 
 **Landing mode (the user, 2026-11-25): "listen to backlog - split-ops"; run every ready slice.** The contact until the weekly reset (Sat 2026-11-28 12:00) is the backlog session split-ops (`caretook-com-d6`): rotate-go, landing and other questions go to it, not to the user directly. Its rules:
@@ -26,6 +26,7 @@ The tests' setup changed 2026-11-25 (test DB, lease and stack through `risa.json
 
 - 2026-11-25: session started; backlog ingested (nothing new for this topic). B-417 claimed. Slice 1 started: worktree `.loops/marketing-2-1` (slot 1), agent spawned on Fable; the watch runs in the background. Slices 2 to 4 start as the one before merges.
 - Slice 1 handed off (slice check and the `marketing` check green) and merged as a99f66c0; its worktree stays until the wave is green. Slice 2 started: `.loops/marketing-2-2`, agent on Fable. For slice 4: the founder clause changes in four places together (`hero.lockup.descriptor`, `DEFAULT_OG_IMAGE.alt`, the third `<text>` of `og-default.svg`, the re-rendered PNG), and the longer descriptor needs a second line or a smaller size in the image. Docs to fold at landing: the lockup field; the share image rendered from `og-default.svg` by `scripts/build/share-image.mjs`. For the next plan: slice 1 changed 14 files (the hook warns past 12).
+- Slice 2 handed off (slice check green; it didn't run the `marketing` browser check, slice 3 runs it) and merged as 0d19a248. Slice 3 started: `.loops/marketing-2-3`, agent on Fable. The price promise lives in `site/price.ts`, word for word from the marketing PRD's _Messaging update_. **For the user at landing (slice 2's judgement calls):** the hero says "free" twice in a row (eyebrow "Free for families" above the descriptor); "security" stays as a topic word (the FAQ group "Privacy and security"), only "secure" forms are banned; the home band no longer says "invitation-only"; the old cost answer's "take your information with you" is gone (B-52, download all your data); the AI lines now say Caretook doesn't use AI on your information today. Docs to fold: `docs/domain/marketing.md`'s legal-pages line ("deletion by request during early access") is now true only of the legal pages.
 
 ## Architectural decisions
 
