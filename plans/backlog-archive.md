@@ -340,6 +340,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-403 | feature | live | orchestration-2 | prd/orchestration-2 | A cleanup agent every few hours (pnpm prd tidy): finds finished sessions still open, finished worktrees and branches, and other leftovers; removes the safe ones and reports the rest |
 | B-405 | bug | landed | fixes-tooling | prd/fixes-tooling | Worker database names cut the base to 59 characters, so two worktrees of a long topic (~46+ chars) share their _w<n> copies: concurrent checks DROP each other's databases and rm drops both; keep a short hash of the full base when shortening, and match it in isOwnDatabase and test-db.sh |
 | B-406 | feature | dropped | inbox-agent |  | Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks |
+| B-407 | feature | landed | self-recovery | prd/self-recovery | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-408 | feature | landed | worker-watch | prd/worker-watch | Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it |
 | B-409 | change | live | orchestration-2 | prd/orchestration-2 | Docs-only changes don't wait on Codex: when everything a PR changes is Markdown (plans/, docs/, AGENTS.md), pnpm prd land merges without a verdict and the orchestrator doesn't run or wait for pnpm prd review |
 | B-410 | feature | live | orchestration-2 | prd/orchestration-2 | A to-test folder of landing reports: every landing writes one file to to-test/ in the main checkout (gitignored) saying what landed and what to try; the user reads and deletes them by hand to catch up on what happened while away |
@@ -360,6 +361,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-426 | feature | live | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
 | B-427 | change | live | orchestration-3 | prd/orchestration-3 | A landing agents can run when the last check is stale: pnpm prd land --force is blocked by the permission classifier, so give land a sanctioned path (a --quick recheck or a recorded reason) and document it |
 | B-428 | change | live | orchestration-3 | prd/orchestration-3 | Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing |
+| B-433 | feature | landed | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
 | B-434 | feature | landed | worker-watch | prd/worker-watch | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
 | B-435 | feature | staging | inbox-agent | prd/inbox-agent | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
 | B-437 | change | landed | agent-autonomy-2 | prd/agent-autonomy-2 | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
@@ -379,6 +381,8 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-458 | chore | staging | fixes-tooling | prd/fixes-tooling | Backlog: let set and note change archived items (a fix to an archived item's topic, title, commit or note is refused, so the hygiene fixes for B-206, B-208, B-88, B-222 can't be made) |
 | B-460 | bug | staging | fixes-tooling |  | Flaky under load: tidy-cli.test.mjs beforeAll/hook times out at 10s in pnpm test:tooling at load ~20 (4 tests); passes alone 3x |
 | B-461 | bug | landed | fixes-tooling | prd/fixes-tooling | tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x |
+| B-462 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
+| B-463 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-464 | bug | landed | fixes-tooling | prd/fixes-tooling | The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone |
 | B-466 | bug | landed | fixes-tooling | prd/fixes-tooling | resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s) |
 | B-468 | bug | staging | fixes-tooling | prd/fixes-tooling | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
@@ -585,8 +589,11 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-747 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn is off in the tooling tests' shared env (vite… |
 | B-758 | change | landed | symptom-catalog | prd/symptom-catalog | Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain') |
 | B-770 | bug | dropped | fixes-tooling |  | pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy |
+| B-771 | bug | staging | fixes-tooling | hotfix/sync-shared | prd sync skips dev's CI list updates (quarantine, brake list) |
 | B-773 | chore | landed | fixes-tooling | hotfix/recheck-tier | After a dev sync, the CI recheck runs only the tier dev's changes propose, not the wave's tier; a tooling-only sync needs no CI rerun (fixes-bug 82a3cf1b reran components 9m after a scripts-only sync) |
+| B-774 | chore | staging | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-775 | chore | dropped | fixes-tooling |  | Sync dev before a wave's CI run, not after, so a wave that needs a sync runs its tier once (2026-11-24: test-health-2, sync-safety, symptom-catalog, fixes-bug each ran twice, test-health-2 slice 5 three times) |
+| B-786 | change | landed | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
 
 ## Items
 
@@ -4294,6 +4301,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (plan/inbox-agent): Planned (2026-11-21): plans/inbox-agent-prd.md and plans/inbox-agent-plan.md, six slices in five waves. B-425: slices 1, 3 and 5 (a pickup that never stops on the inbox, inbox lines written to origin/dev, the inbox session). B-435: slices 2 and 3 (look-alikes before filing, archiving by the cleanup run). B-406: slices 4, 5 and 6 (the Next up list, its edit commands and queue, the dispatcher following it).
 - 2026-11-23 (plan/inbox-agent): 2026-11-23, the user: dropped. No Next up list in the inbox; prioritization stays with the backlog agent, which knows the dependencies and hot files. The inbox agent points priority requests to the backlog session.
 
+### B-407 · feature · Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it
+
+- status: landed
+- prd: self-recovery
+- owner: prd/self-recovery
+- commit: dc99f625
+
+- 2026-11-21 (Robert Bo Davis): Asked for by the user 2026-11-21 (crash and usage-limit recovery felt risky). Triaged to orchestration-3: the dispatcher owns recovery ('recovery restarts the dispatcher') and the hot file scripts/loops/recover.sh. No new dependency. Open for the PRD: how the dispatcher learns it is near a usage limit (no known signal today; a probe like recover --wait's claude -p ok only sees the limit once hit), which landing steps need a marker (the merge, the push, backlog done, rm), and that launchd must not start a second recover or dispatcher. Not picked by the user, so not filed: a script-level phone alert with a heartbeat (needs a push service), pushing prd/ and slice/ branches to origin as they go, a recovery drill.
+- 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
+- 2026-11-21 (plan/orchestration-3): From the orchestration-3 planner: the dispatcher there does nothing about a usage limit (the user pauses and resumes it). Detecting one, pausing, and replacing stalled managed sessions when it lifts are this topic's; rotate --mid-wave is the user's word only and refuses an uncommitted Status, so it needs its own path.
+- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md (slices 1, 2, 4, 5, 6). B-462 and B-463 moved from fixes-tooling because an unattended recover runs that path.
+
 ### B-408 · feature · Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it
 
 - status: landed
@@ -4511,6 +4530,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
 - 2026-11-21 (plan/orchestration-3): After the skeptic pass: B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (the dispatcher); B-392 with slice 6. Usage-limit handling moved to self-recovery (B-407, B-433).
 
+### B-433 · feature · A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one)
+
+- status: landed
+- prd: self-recovery
+- owner: prd/self-recovery
+- commit: 2221f009
+
+- 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Nothing detects a limit or records cost today; orchestrator.md only documents the model per role.
+- 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
+- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md: the usage signal is slice 3. Its cost record is split into its own item under self-recovery-2.
+- 2026-11-23 (Robert Bo Davis): Title narrowed 2026-11-23: the cost record is B-560.
+
 ### B-434 · feature · Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command
 
 - status: landed
@@ -4716,6 +4747,26 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
 - 2026-11-24 (prd/fixes-tooling): 2026-11-24, fixes-tooling slice 21 quick check at load ~30: tidy-cli.test.mjs 'tidy archives finished items' beforeAll 'Hook timed out in 10000ms'; alone 12/12 three times.
+
+### B-462 · bug · pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure
+
+- status: landed
+- prd: self-recovery
+- owner: prd/self-recovery
+- commit: 2221f009
+
+- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #41 (recover.sh:220), verified: the dispatch action ignores failed[]; gate it like after_infrastructure and keep the intent for the next run
+- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md (slices 1, 2, 4, 5, 6). B-462 and B-463 moved from fixes-tooling because an unattended recover runs that path.
+
+### B-463 · bug · pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept
+
+- status: landed
+- prd: self-recovery
+- owner: prd/self-recovery
+- commit: 2221f009
+
+- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #41 (recover.sh:220), verified: persist the intent before clearing the lock, drop it after a good start
+- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md (slices 1, 2, 4, 5, 6). B-462 and B-463 moved from fixes-tooling because an unattended recover runs that path.
 
 ### B-464 · bug · The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone
 
@@ -6872,12 +6923,33 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling wave 6: dev restored the quarantine at 3aa912d3; unsynced.sh unsynced_commits counts the CI lists as no drift, so sync said up to date and the branch kept the emptied list (merged by hand, e6247bcf). Sync should merge when dev changed the CI lists; reported by the backlog session.
 - 2026-11-24 (prd/fixes-tooling): Duplicate of B-771 (prd sync skips dev's CI list updates), filed by the backlog session on the user's word.
 
+### B-771 · bug · prd sync skips dev's CI list updates (quarantine, brake list)
+
+- status: staging
+- prd: fixes-tooling
+- owner: hotfix/sync-shared
+- commit: e19c42ab
+
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: trunk_drift (scripts/loops/lib.sh:262) and unsynced_commits (unsynced.sh:117) drop scripts/ci/quarantine.txt and brake-list.txt, so prd sync / dev-sync --force call a branch current while it holds a stale list; CI reads the branch's own copy (scripts/ci/lists.mjs). Hit when 326c611d emptied the quarantine and 3aa912d3 restored it: fixes-tooling merged origin/dev by hand (e6247bcf). Want: sync pulls list-only drift (a merge that keeps the recorded pass, as keeps_check already allows) and a CI run warns or pulls when its lists trail dev. Lists still shouldn't count as code drift for land/recheck.
+- 2026-11-24 (prd/fixes-tooling): Same as dropped B-770. Seen in fixes-tooling wave 6: sync --force skipped 3aa912d3's quarantine restore; merged by hand as e6247bcf. Next fixes-tooling wave (after the post-wave-6 pause).
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
+
 ### B-773 · chore · After a dev sync, the CI recheck runs only the tier dev's changes propose, not the wave's tier; a tooling-only sync needs no CI rerun (fixes-bug 82a3cf1b reran components 9m after a scripts-only sync)
 
 - status: landed
 - prd: fixes-tooling
 - owner: hotfix/recheck-tier
 - commit: 359af543
+
+- 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
+
+### B-774 · chore · A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b)
+
+- status: staging
+- prd: fixes-tooling
+- owner: hotfix/sync-shared
+- commit: e19c42ab
 
 - 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
 - 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
@@ -6891,3 +6963,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
 - 2026-11-24 (Robert Bo Davis): Dropped 2026-11-24 (the user): orchestrator.md already syncs before the wave's run; the second run comes from dev moving during the run, covered by B-773 and B-774 (hotfixes sync-shared and recheck-tier).
+
+### B-786 · change · The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree
+
+- status: landed
+- prd: self-recovery
+- owner: prd/self-recovery
+- commit: dc99f625
+
+- 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.

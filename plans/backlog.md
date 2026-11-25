@@ -188,13 +188,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-387 | bug | triaged | sync-safety-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-404 | feature | triaged | staging-ship |  | One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is |
-| B-407 | feature | landed | self-recovery | prd/self-recovery | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
 | B-432 | chore | triaged | fixes-tooling |  | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
-| B-433 | feature | landed | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -204,8 +202,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
 | B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
 | B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
-| B-462 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
-| B-463 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
@@ -249,7 +245,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | staging | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
-| B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
+| B-669 | feature | triaged | fixes-ui |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-672 | feature | staging | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | staging | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
@@ -307,9 +303,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-767 | bug | triaged | fixes-tooling |  | A backlog amend repeats the Backlog-Tool trailer in the commit message |
 | B-768 | bug | triaged | fixes-tooling |  | slice-fields.mjs warns on a slice fields line that carries Blocked by |
 | B-769 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx: the New care group sheet the group menu's New c… |
-| B-771 | bug | staging | fixes-tooling | hotfix/sync-shared | prd sync skips dev's CI list updates (quarantine, brake list) |
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
-| B-774 | chore | staging | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-777 | bug | landed | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
@@ -320,12 +314,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-783 | bug | landed | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
 | B-784 | change | landed | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
 | B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
-| B-786 | change | landed | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
 | B-787 | bug | triaged | fixes-bug |  | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
 | B-788 | change | in-progress | fixes-ui | prd/fixes-ui | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
 | B-789 | change | triaged | self-recovery-2 |  | A landing journal (even one whose pid is dead) holds a session's resume after a usage limit with only a waits line each tick; file one report so the user runs pnpm prd land --resume |
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
+| B-792 | bug | triaged | fixes-bug |  | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
 
 ## Items
 
@@ -1075,18 +1069,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
 - 2026-11-24 (plan/staging-ship): plan/staging-ship (2026-11-24): planned in plans/staging-ship-plan.md (7 slices, held until the user lifts it, a160). B-584 and B-241 moved in from fixes-tooling: B-584 is this feature's trigger and stays open after slice 7 until a real push reaches the phone (B-586); B-241 could make a release PR read as clean.
 
-### B-407 · feature · Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it
-
-- status: landed
-- prd: self-recovery
-- owner: prd/self-recovery
-- commit: dc99f625
-
-- 2026-11-21 (Robert Bo Davis): Asked for by the user 2026-11-21 (crash and usage-limit recovery felt risky). Triaged to orchestration-3: the dispatcher owns recovery ('recovery restarts the dispatcher') and the hot file scripts/loops/recover.sh. No new dependency. Open for the PRD: how the dispatcher learns it is near a usage limit (no known signal today; a probe like recover --wait's claude -p ok only sees the limit once hit), which landing steps need a marker (the merge, the push, backlog done, rm), and that launchd must not start a second recover or dispatcher. Not picked by the user, so not filed: a script-level phone alert with a heartbeat (needs a push service), pushing prd/ and slice/ branches to origin as they go, a recovery drill.
-- 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
-- 2026-11-21 (plan/orchestration-3): From the orchestration-3 planner: the dispatcher there does nothing about a usage limit (the user pauses and resumes it). Detecting one, pausing, and replacing stalled managed sessions when it lifts are this topic's; rotate --mid-wave is the user's word only and refuses an uncommitted Status, so it needs its own path.
-- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md (slices 1, 2, 4, 5, 6). B-462 and B-463 moved from fixes-tooling because an unattended recover runs that path.
-
 ### B-417 · feature · We are getting close to feature complete. We need another marketing content pass that updates copy…
 
 - status: triaged
@@ -1139,18 +1121,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. land.sh and ready.sh print the reminder; an unattended landing leaves the main checkout stale. Needs care: the main checkout is the user's. Small tooling fix.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
-
-### B-433 · feature · A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one)
-
-- status: landed
-- prd: self-recovery
-- owner: prd/self-recovery
-- commit: 2221f009
-
-- 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Nothing detects a limit or records cost today; orchestrator.md only documents the model per role.
-- 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
-- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md: the usage signal is slice 3. Its cost record is split into its own item under self-recovery-2.
-- 2026-11-23 (Robert Bo Davis): Title narrowed 2026-11-23: the cost record is B-560.
 
 ### B-436 · feature · A to-test report for a staging ship, like the landing reports of B-410
 
@@ -1243,26 +1213,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (slice/fixes-nit/3): From B-380 (fixes-nit slice 3), 2026-11-21: status is derived (scripts/backlog/format.mjs derive: containing origin/main means live) and recomputed on every write, so a hand or bulk set of live items back to staging would be undone, and archived items can't be set at all. Not changed here. Option: derive live from a production tag or deploy record instead of origin/main; the status words in docs/agents/backlog.md follow.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
-
-### B-462 · bug · pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure
-
-- status: landed
-- prd: self-recovery
-- owner: prd/self-recovery
-- commit: 2221f009
-
-- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #41 (recover.sh:220), verified: the dispatch action ignores failed[]; gate it like after_infrastructure and keep the intent for the next run
-- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md (slices 1, 2, 4, 5, 6). B-462 and B-463 moved from fixes-tooling because an unattended recover runs that path.
-
-### B-463 · bug · pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept
-
-- status: landed
-- prd: self-recovery
-- owner: prd/self-recovery
-- commit: 2221f009
-
-- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #41 (recover.sh:220), verified: persist the intent before clearing the lock, drop it after a good start
-- 2026-11-22 (plan/self-recovery): Planned in plans/self-recovery-prd.md (slices 1, 2, 4, 5, 6). B-462 and B-463 moved from fixes-tooling because an unattended recover runs that path.
 
 ### B-465 · bug · pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown
 
@@ -1721,11 +1671,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-669 · feature · Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast
 
 - status: triaged
-- prd: onboarding-2
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: wants to make heavy use of toasts; agreed no new dependency. First slice of onboarding-2; B-665 (Invite someone toast) builds on it. Use react-aria-components 1.22.1's toast (UNSTABLE_ToastRegion, UNSTABLE_ToastList, UNSTABLE_Toast, UNSTABLE_ToastQueue) only inside ui/, wrapped by the existing ui/Toast, with daisyUI styling. The UNSTABLE_ exports may change on upgrade, so screens must never import them. Needs: a queue so toasts don't overlap, optional action, dismiss, Undo, caller-set timing, reduced motion. Migrate UpdateNotice and AddedMedicationToast. Prove it first on a real phone, above the tab bar and with the keyboard open (see B-664); if it falls short, extend our own component rather than add a library. Usage rules for components.md: toasts for finished actions, Undo, background news and one-time nudges. Not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes. Don't sweep the inline Message uses; move one only where a toast is clearly better.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24, the user: moved from onboarding-2 into fixes-ui so B-693 (saved toast on new events and notes) and B-697 (dose-logged toast) can run; build it first in its own slice, then B-693 and B-697. onboarding-2's B-665 (Invite someone toast) builds on the landed system.
 
 ### B-670 · feature · Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast
 
@@ -1930,6 +1881,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the first save should probably generate a toast once toasts are in place. Filed apart from B-692 (focus moves to the title) so that fix doesn't wait. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until B-669 has landed. Code read: the first save is the save() path in routes/app/groups/entry/useLiveEntry.ts, one-off and repeating (lines 196 and 220), each followed by a replace navigation from entries/new to entries/:id, so the toast must live in the shared queue and survive that navigation. Show it once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider), and never on later autosaves or a failed save. Default wording 'Event saved'. It's a local write, so it works offline and must not imply it has synced. Scope is new events; the same path saves new notes, which stay silent unless the user asks.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: new notes get the toast too. This replaces 'new notes stay silent'. Wording by kind: 'Event saved' or 'Note saved'. The same rules apply: once, on a draft's first successful save, whatever triggered it, and never on later autosaves. For notes, the trigger is usually the first typed text, so the toast must not take focus or interrupt typing.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24, the user: wants it in UI fixes; B-669 (shared toast system) moved into fixes-ui too, so it's no longer held: next wave after B-669's slice.
 
 ### B-694 · change · Long create forms: core fields on the first tab, the rest on other tabs
 
@@ -1960,6 +1912,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: logging from the medications schedule should generate a toast once toasts are in place. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until it lands. Same waiting pattern as B-693 (saved toast for events and notes). Today a one-tap Given (DoseSlotRow via usePassLog.logSlot) only changes the row. Skipped and Refused go through MarkDoseDialog, as-needed Log through the Schedule route's clientAction/TodaySection. Cover each path that logs from this tab. Given all already shows 'Morning logged · Undo' in PassUndoStatus (lib/medications/passUndo.ts, about 10 s): move that into the toast rather than showing both. Toast only after the local write succeeds; errors stay inline. Wording and whether single doses get Undo are not decided: ask the user when this is built. Mind dose-accuracy's Undo fixes (B-614, B-627) if adding Undo.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: B-669 (shared toast system) moved into fixes-ui, so this is no longer held; after B-669's slice.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: B-669 (shared toast system) moved into fixes-ui, so this is no longer held; after B-669's slice.
 
 ### B-698 · change · One medication card for Schedule and the Medications list: the whole card opens it, with a Log button
 
@@ -2282,17 +2236,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 02b5c8552f3e] Flaked (passed on its rerun); found by prd/symptom-catalog.
 
-### B-771 · bug · prd sync skips dev's CI list updates (quarantine, brake list)
-
-- status: staging
-- prd: fixes-tooling
-- owner: hotfix/sync-shared
-- commit: e19c42ab
-
-- 2026-11-24 (Robert Bo Davis): 2026-11-24: trunk_drift (scripts/loops/lib.sh:262) and unsynced_commits (unsynced.sh:117) drop scripts/ci/quarantine.txt and brake-list.txt, so prd sync / dev-sync --force call a branch current while it holds a stale list; CI reads the branch's own copy (scripts/ci/lists.mjs). Hit when 326c611d emptied the quarantine and 3aa912d3 restored it: fixes-tooling merged origin/dev by hand (e6247bcf). Want: sync pulls list-only drift (a merge that keeps the recorded pass, as keeps_check already allows) and a CI run warns or pulls when its lists trail dev. Lists still shouldn't count as code drift for land/recheck.
-- 2026-11-24 (prd/fixes-tooling): Same as dropped B-770. Seen in fixes-tooling wave 6: sync --force skipped 3aa912d3's quarantine restore; merged by hand as e6247bcf. Next fixes-tooling wave (after the post-wave-6 pause).
-- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
-
 ### B-772 · chore · Lighten the components tier: trim the New York zone run and slow component tests
 
 - status: triaged
@@ -2301,16 +2244,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): 2026-11-24, follow-up to hotfix/components-shard-3 (third shard). Since test-health-2 (B-372) web:components:ny reruns 53 timeline/medications/planner files in every components run: shards went 471/474s -> 704/877s. Options: narrow NY_INCLUDE to the zone-sensitive files every run and leave the rest to the release tier's zone-components jobs; profile the slowest component files (timeline, planner) for shared world setup or waits. Keep the second zone's daily value for its screens.
-
-### B-774 · chore · A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b)
-
-- status: staging
-- prd: fixes-tooling
-- owner: hotfix/sync-shared
-- commit: e19c42ab
-
-- 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
-- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
 
 ### B-776 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U…
 
@@ -2404,15 +2337,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (Robert Bo Davis): [ci-key 6f358488771f] Flaked (passed on its rerun); found by prd/fixes-ui.
 - 2026-11-24 (prd/fixes-ui): Flaked (passed on its rerun); found by prd/fixes-ui.
 
-### B-786 · change · The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree
-
-- status: landed
-- prd: self-recovery
-- owner: prd/self-recovery
-- commit: dc99f625
-
-- 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.
-
 ### B-787 · bug · Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try
 
 - status: triaged
@@ -2457,3 +2381,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): [ci-key c4d6cc19d31a] Flaked (passed on its rerun); found by 65529f69 in https://github.com/caretook/caretook.com/actions/runs/45501768335.
+
+### B-792 · bug · Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 65 (B-695): give_pass's description says to use a med time's id from today's doses, but each todays_doses passes entry (name, time, at, state, slots) has no id.
