@@ -15,6 +15,7 @@ import {
 } from "~/lib/providers/providers.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import {
   ADD_PROVIDER,
   CONFIRM,
@@ -280,6 +281,24 @@ describe("adding a provider", () => {
       .poll(() => FORM()?.querySelector<HTMLInputElement>('[name="type"]:checked')?.value)
       .toBe("pharmacy");
     expect(field("practiceId")).toBeNull();
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add sheet marks exactly the type and the name, for a clinician and a pharmacy, and no label says optional", async () => {
+    await open({ url: `${PROVIDERS_URL}/new` });
+    await waitUntil(() => !!FORM());
+    expect(requiredLabels(FORM())).toEqual(["Type", "Name"]);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => field("name")?.getAttribute("aria-required")).toBe("true");
+    await expect.poll(() => field("email")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>('[name="type"][value="pharmacy"]')),
+    );
+    await expect.poll(() => field("practiceId")).toBeNull();
+    expect(requiredLabels(FORM())).toEqual(["Type", "Name"]);
+    expect(saysOptional(FORM())).toBe(false);
   });
 });
 

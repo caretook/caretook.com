@@ -5,6 +5,7 @@ import { page, userEvent } from "vitest/browser";
 import { apiCalls } from "../../../../../test/api";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { requiredLabels } from "../../../../../test/required";
 import { InviteSomeoneCard } from "../timeline/InviteSomeoneCard";
 import * as newGroup from "./route";
 
@@ -53,7 +54,8 @@ const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: ROUTES, url: "/app/groups/new", ...options });
 
 const sheet = () => page.getByRole("dialog");
-const field = (label: string) => sheet().getByLabelText(label, { exact: true });
+// By accessible name: a required label's `*` is aria-hidden, so it isn't part of it.
+const field = (label: string) => sheet().getByRole("textbox", { name: label, exact: true });
 
 describe("the New care group sheet", () => {
   test("the group menu's New care group opens it; closing it goes back to the timeline", async () => {
@@ -66,6 +68,14 @@ describe("the New care group sheet", () => {
     await userEvent.click(sheet().getByRole("button", { name: "Close" }));
     await expect.poll(device.location).toBe(timelineUrl(TEST_GROUP.id));
     expect(document.querySelector("[data-new-group-form]")).toBeNull();
+  });
+
+  test("marks only their name required; what you call them and the group name say what they're for, not Optional", async () => {
+    await open();
+    await expect.element(field("Their name")).toHaveAttribute("aria-required", "true");
+    expect(requiredLabels(sheet().element())).toEqual(["Their name"]);
+    await expect.element(field("What you call them")).not.toHaveAttribute("aria-required");
+    expect(sheet().element().textContent).not.toMatch(/optional/i);
   });
 
   test("opened from a typed URL, closing it goes to /app", async () => {

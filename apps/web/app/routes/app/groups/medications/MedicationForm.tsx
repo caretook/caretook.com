@@ -207,18 +207,19 @@ export function MedicationForm({
         value={type}
         onChange={chooseType}
         error={issueFor(issues, "type")}
+        required
       />
 
       <div className="grid gap-x-3 sm:grid-cols-2">
         <TextField
-          label="Strength (optional)"
+          label="Strength"
           name={FIELD.strength}
           defaultValue={medication?.strength ?? draft?.strength}
           max={MEDICATION_LIMITS.strength}
           issues={issues}
           placeholder="e.g. 10 mg"
         />
-        <Field label="Form (optional)" error={issueFor(issues, "form")} kind="select">
+        <Field label="Form" error={issueFor(issues, "form")} kind="select">
           {(control) => (
             <select {...control} name={FIELD.form} defaultValue={medication?.form ?? draft?.form ?? ""}>
               <option value="">Not set</option>
@@ -233,7 +234,7 @@ export function MedicationForm({
       </div>
 
       <TextField
-        label="Dose each time (optional)"
+        label="Dose each time"
         name={FIELD.dose}
         defaultValue={medication?.dose}
         max={MEDICATION_LIMITS.dose}
@@ -251,7 +252,7 @@ export function MedicationForm({
         zoneNote={zoneNote}
       />
 
-      <Field label="Directions (optional)" error={issueFor(issues, "directions")} kind="textarea">
+      <Field label="Directions" error={issueFor(issues, "directions")} kind="textarea">
         {(control) => (
           <textarea
             {...control}
@@ -271,7 +272,7 @@ export function MedicationForm({
       />
 
       <TextField
-        label="Why it's taken (optional)"
+        label="Why it's taken"
         name={FIELD.reason}
         defaultValue={medication?.reason}
         max={MEDICATION_LIMITS.reason}
@@ -280,7 +281,7 @@ export function MedicationForm({
       />
 
       <DayField
-        label="Started on (optional)"
+        label="Started on"
         name={FIELD.startedOn}
         defaultValue={medication?.startedOn}
         issues={issues}
@@ -312,7 +313,7 @@ export function MedicationForm({
             error={issueFor(issues, "prescriberId")}
           />
           <div className="grid gap-x-3 sm:grid-cols-2">
-            <Field label="Refills left (optional)" error={issueFor(issues, "refillsLeft")} kind="input">
+            <Field label="Refills left" error={issueFor(issues, "refillsLeft")} kind="input">
               {(control) => (
                 <input
                   {...control}
@@ -327,7 +328,7 @@ export function MedicationForm({
               )}
             </Field>
             <TextField
-              label="Rx number (optional)"
+              label="Rx number"
               name={FIELD.rxNumber}
               defaultValue={medication?.rxNumber}
               max={MEDICATION_LIMITS.rxNumber}
@@ -344,7 +345,7 @@ export function MedicationForm({
       />
 
       <fieldset className="fieldset pt-2" data-refills>
-        <legend className="fieldset-legend">Refills (optional)</legend>
+        <legend className="fieldset-legend">Refills</legend>
         <div className="grid gap-x-3 sm:grid-cols-2">
           <DayField
             label="Last filled"

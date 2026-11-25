@@ -40,7 +40,7 @@ export function ConditionsField({
   return (
     <div className="fieldset" data-conditions-picker>
       <span id={legendId} className="fieldset-legend">
-        For (optional)
+        For
       </span>
       {shown.length > 0 && (
         <ChipList

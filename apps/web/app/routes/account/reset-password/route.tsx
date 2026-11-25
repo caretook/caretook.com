@@ -82,6 +82,7 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
           <Field
             kind="input"
             label="New password"
+            required
             help={`At least ${MIN_PASSWORD_LENGTH} characters. A few words you'll remember work well.`}
           >
             {(control) => (
@@ -95,7 +96,7 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
               />
             )}
           </Field>
-          <Field kind="input" label="Type it again">
+          <Field kind="input" label="Type it again" required>
             {(control) => (
               <input {...control} type="password" name="confirm" autoComplete="new-password" required />
             )}

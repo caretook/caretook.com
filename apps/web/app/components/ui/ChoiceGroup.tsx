@@ -3,6 +3,7 @@ import type { ChoiceOption } from "./choices";
 import { useId } from "react";
 import { fieldControl } from "./fieldIds";
 import { buttonClass } from "./buttonClass";
+import { RequiredLabel } from "./Required";
 import { CHOICE_BUTTON, FIELD_ERROR, FIELD_LABEL } from "./styles";
 
 /**
@@ -24,6 +25,8 @@ type Props<T extends string> = {
   labelledBy?: string;
   /** The message to show; none while the choice is fine. */
   error?: string;
+  /** A choice must be made: a `*` after the label, `aria-required` on the group. */
+  required?: boolean;
   /** Classes for the wrapper (the outer element). */
   className?: string;
   /**
@@ -51,7 +54,8 @@ type Props<T extends string> = {
  * (`name`, one per option, named by its label) in a `radiogroup`, so the
  * choice posts with its form and arrow keys move it. With an `error` the group
  * is `aria-invalid`, described by the message, and focusable, so a form can
- * move focus to it.
+ * move focus to it. `required` marks the label with a `*` and the group
+ * `aria-required`.
  */
 export function ChoiceGroup<T extends string>(props: Props<T>) {
   const {
@@ -60,6 +64,7 @@ export function ChoiceGroup<T extends string>(props: Props<T>) {
     label,
     labelledBy,
     error,
+    required,
     className = "",
     layout = "row",
     value,
@@ -68,18 +73,19 @@ export function ChoiceGroup<T extends string>(props: Props<T>) {
   } = props;
   const id = useId();
   const labelId = `${id}-label`;
-  const control = fieldControl(id, { error: !!error });
+  const control = fieldControl(id, { error: !!error, required });
   return (
     <div className={`fieldset ${className}`}>
       {label && (
         <span id={labelId} className={FIELD_LABEL}>
-          {label}
+          <RequiredLabel required={required}>{label}</RequiredLabel>
         </span>
       )}
       <div
         role="radiogroup"
         aria-labelledby={labelledBy ?? (label ? labelId : undefined)}
         aria-invalid={control["aria-invalid"]}
+        aria-required={control["aria-required"]}
         aria-describedby={control["aria-describedby"]}
         tabIndex={error ? -1 : undefined}
         className={layout === "grid" ? "grid grid-cols-2 gap-2" : "join flex-wrap"}

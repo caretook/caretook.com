@@ -65,6 +65,7 @@ export function VisitPrepSheet({
             </p>
             <DateTimeField
               label="Start from"
+              required
               defaultValue={found.from}
               max={prep.now.toISOString()}
               timeZone={timeZone}

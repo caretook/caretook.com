@@ -73,7 +73,7 @@ export function TodoLinkFields({
     <div data-todo-links>
       <LinkPickerField
         name={FIELD.providerId}
-        legend="Provider (optional)"
+        legend="Provider"
         comboLabel="Find a provider"
         placeholder="Search providers"
         emptyText="No providers match"
@@ -85,7 +85,7 @@ export function TodoLinkFields({
       />
       <LinkPickerField
         name={FIELD.eventId}
-        legend="Event (optional)"
+        legend="Event"
         comboLabel="Find an event"
         placeholder="Upcoming and recent events"
         emptyText="No events match"
@@ -97,7 +97,7 @@ export function TodoLinkFields({
       />
       <LinkPickerField
         name={FIELD.medicationId}
-        legend="Medication (optional)"
+        legend="Medication"
         comboLabel="Find a medication"
         placeholder="Current medications"
         emptyText="No current medications match"

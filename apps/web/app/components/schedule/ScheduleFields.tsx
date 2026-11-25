@@ -85,6 +85,7 @@ export function ScheduleFields({
         onCalendarPick={onDayPick}
         max={past ? now.toISOString() : undefined}
         error={futureError ?? undefined}
+        required
         // A moved start can move the end too: remount the end field to show it.
         onChange={(iso) => {
           const next = moveStart(schedule, iso, timeZone);

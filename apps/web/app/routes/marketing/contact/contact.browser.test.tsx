@@ -5,6 +5,7 @@ import { apiCalls } from "../../../../test/api";
 import { fixClock } from "../../../../test/found";
 import { openMarketing } from "../marketingWorld";
 import { content } from "./content";
+import { labelled } from "../../../../test/required";
 
 // The contact page's form on one device (moved down from marketing.spec.mjs):
 // every field a person can reach has a label (the honeypot is out of the tab
@@ -35,10 +36,10 @@ describe("the contact form", () => {
     const { screen } = await openMarketing("/contact", {
       api: calls.record({ [SEND]: () => ({ ok: true }) }),
     });
-    await userEvent.fill(screen.getByLabelText(copy.name.label), "Robin Example");
-    await userEvent.fill(screen.getByLabelText(copy.email.label), "robin+contact@example.com");
-    await userEvent.selectOptions(screen.getByLabelText(copy.topic.label), "privacy");
-    await userEvent.fill(screen.getByLabelText(copy.message.label), "Please delete my data.");
+    await userEvent.fill(screen.getByLabelText(labelled(copy.name.label)), "Robin Example");
+    await userEvent.fill(screen.getByLabelText(labelled(copy.email.label)), "robin+contact@example.com");
+    await userEvent.selectOptions(screen.getByLabelText(labelled(copy.topic.label)), "privacy");
+    await userEvent.fill(screen.getByLabelText(labelled(copy.message.label)), "Please delete my data.");
     vi.setSystemTime(Date.now() + MIN_FORM_MS + 500);
     await userEvent.click(screen.getByRole("button", { name: copy.submit }));
 

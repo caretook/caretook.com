@@ -153,7 +153,7 @@ export function EntryForm({
       )}
 
       {!easy && (
-        <Field label="Notes (optional)" kind="textarea" error={issueFor(issues, "body")}>
+        <Field label="Notes" kind="textarea" error={issueFor(issues, "body")}>
           {(control) => (
             <textarea
               {...control}
@@ -169,6 +169,7 @@ export function EntryForm({
       <DateTimeField
         name="occurredAt"
         label="When"
+        required
         defaultValue={filled?.occurredAt ?? initialAt ?? undefined}
         max={latest}
         error={issueFor(issues, "occurredAt")}

@@ -6,6 +6,7 @@ import { apiCalls, refusal } from "../../../../test/api";
 import { renderWithDevice } from "../../../../test/device";
 import { CLOSED_CODE } from "./joinPage";
 import * as join from "./route";
+import { labelled } from "../../../../test/required";
 
 // `/join/:code` (groups.mjs steps 1, 1b and 3, on the test device): a code
 // that can't be used says so plainly with no form; offline it offers Try
@@ -38,7 +39,7 @@ const open = (api: Record<string, (input: unknown) => unknown>, code = CODE) =>
 
 const usable = { "accessCode.preview": () => ({ state: "usable", code: CODE }) };
 const heading = () => page.getByRole("heading", { level: 1 });
-const field = (label: string) => page.getByLabelText(label, { exact: true });
+const field = (label: string) => page.getByLabelText(labelled(label));
 const legalBox = () => page.getByRole("checkbox", { name: /18 or older/ });
 
 /** Fill the account step and press Continue. */

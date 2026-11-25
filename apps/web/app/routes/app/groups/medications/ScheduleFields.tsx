@@ -86,6 +86,7 @@ export function ScheduleFields({
         value={type}
         onChange={setType}
         error={issueFor(issues, "schedule")}
+        required
       />
       {type === "scheduled" ? (
         <>
@@ -261,7 +262,7 @@ export function ScheduleFields({
         </>
       ) : (
         <Field
-          label="Most in a day (optional)"
+          label="Most in a day"
           help="Logging past it shows a warning, never a block."
           error={issueFor(issues, "schedule.maxPerDay")}
         >

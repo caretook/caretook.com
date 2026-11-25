@@ -3,7 +3,7 @@ import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { CONDITION_LIMITS } from "@caretook/data/schema";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { ProviderPickerField, ProvidersPickerField } from "~/components/providers";
 import { ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
@@ -21,7 +21,7 @@ const STATUS_OPTIONS = [
 
 /**
  * Add a condition, or edit one: its name (with suggestions), roughly since
- * when (an optional year, and an optional month with it) and a short note.
+ * when (a year, and a month with it) and a short note.
  * A new one also says whether it's active or past. Who diagnosed it (one
  * provider) and who manages it (any number) are picked from the group's
  * providers, or added by name with the save. A save calls `onDone`; a
@@ -51,6 +51,9 @@ export function ConditionForm({
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
   const issues = result && !result.ok ? result.issues : [];
+
+  // A month needs a year, so the year is marked required while a month is chosen.
+  const [month, setMonth] = useState(String(condition?.sinceMonth ?? ""));
 
   const handled = useRef<ActionResult | undefined>(undefined);
   useEffect(() => {
@@ -95,7 +98,7 @@ export function ConditionForm({
       {condition && <input type="hidden" name={CONDITION_FIELD.conditionId} value={condition.id} />}
       <ConditionNameField initial={condition?.name ?? ""} groupNames={groupNames} error={nameError} />
       <div className="grid grid-cols-2 gap-3">
-        <Field kind="input" label="Since: year (optional)" error={yearError}>
+        <Field kind="input" label="Since: year" error={yearError} required={month !== ""}>
           {(control) => (
             <input
               {...control}
@@ -108,9 +111,14 @@ export function ConditionForm({
             />
           )}
         </Field>
-        <Field kind="select" label="Month (optional)" error={monthError}>
+        <Field kind="select" label="Month" error={monthError}>
           {(control) => (
-            <select {...control} name={CONDITION_FIELD.sinceMonth} defaultValue={condition?.sinceMonth ?? ""}>
+            <select
+              {...control}
+              name={CONDITION_FIELD.sinceMonth}
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+            >
               <option value="">No month</option>
               {MONTH_NAMES.map((month, i) => (
                 <option key={month} value={i + 1}>
@@ -121,7 +129,7 @@ export function ConditionForm({
           )}
         </Field>
       </div>
-      <Field kind="input" label="Note (optional)" error={noteError}>
+      <Field kind="input" label="Note" error={noteError}>
         {(control) => (
           <input
             {...control}
@@ -137,7 +145,7 @@ export function ConditionForm({
         pickerId="diagnosedBy"
         name={CONDITION_FIELD.diagnosedById}
         newName={CONDITION_FIELD.newDiagnosedBy}
-        legend="Diagnosed by (optional)"
+        legend="Diagnosed by"
         chipsLabel="Diagnosed by"
         noun="provider"
         placeholder="Search the group's providers"
@@ -152,7 +160,7 @@ export function ConditionForm({
         pickerId="managedBy"
         name={CONDITION_FIELD.managerId}
         newName={CONDITION_FIELD.newManager}
-        legend="Managed by (optional)"
+        legend="Managed by"
         chipsLabel="Providers who manage it"
         comboLabel="Add a provider who manages it"
         noun="provider"

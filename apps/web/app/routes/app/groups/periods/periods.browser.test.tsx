@@ -10,6 +10,7 @@ import { found, waitUntil } from "../../../../../test/found";
 import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_TIME_ZONE } from "../../../../../test/fixtures";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import * as periods from "./route";
 import {
   daysAgo,
@@ -297,7 +298,7 @@ describe("the type choice", () => {
       const all = options();
       const group = FORM()!.querySelector<HTMLElement>('[role="radiogroup"]')!;
       const labelId = group.getAttribute("aria-labelledby") ?? "";
-      expect(document.getElementById(labelId)?.textContent).toBe("Where is care now?");
+      expect(document.getElementById(labelId)?.textContent).toBe("Where is care now?*");
 
       const rects = all.map((o) => o.box.getBoundingClientRect());
       const lefts = distinct(rects.map((r) => r.left));
@@ -343,12 +344,12 @@ describe("the type choice", () => {
     await waitUntil(() => options().length === 10, "the ten types");
     const labelText = () =>
       FORM()?.querySelector<HTMLInputElement>('[name="label"]')?.labels?.[0]?.textContent ?? null;
-    expect(labelText()).toBe("Label (optional)");
+    expect(labelText()).toBe("Label");
     await userEvent.click(await found(() => typeRadio("Hospice facility")));
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(() => typeRadio("Other")?.checked).toBe(true);
     expect(document.activeElement).toBe(typeRadio("Other"));
-    await expect.poll(labelText).toBe("Label");
+    await expect.poll(labelText).toBe("Label*");
     await expect.element(page.getByRole("radio", { name: "Other" })).toBeChecked();
   });
 
@@ -360,6 +361,28 @@ describe("the type choice", () => {
         .filter((o) => o.radio.checked)
         .map((o) => o.radio.value),
     ).toEqual(["rehab"]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add sheet marks the type and the start, and the label only for Other; no label says optional", async () => {
+    await open({ url: `${PERIODS_URL}/new` });
+    await waitUntil(() => !!FORM()?.querySelector('input[name="type"]'), "the form");
+    expect(requiredLabels(FORM())).toEqual(["Where is care now?", "Started"]);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => field("label")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>('input[name="type"][value="other"]')),
+    );
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Where is care now?", "Label", "Started"]);
+    await expect.poll(() => field("label")?.getAttribute("aria-required")).toBe("true");
+
+    await userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>('input[name="type"][value="hospital"]')),
+    );
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Where is care now?", "Started"]);
+    expect(saysOptional(FORM())).toBe(false);
   });
 });
 
