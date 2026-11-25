@@ -35,9 +35,21 @@ describe("routeRequest", () => {
     expect(route("/assets/app-def.css", "no-cors")).toBe("cache");
   });
 
-  it("leaves assets it didn't precache to the network (PowerSync's worker files, WASM)", () => {
-    expect(route("/assets/wa-sqlite-xyz.wasm", "same-origin")).toBe("network");
-    expect(route("/assets/WASQLiteDB.worker-xyz.js", "same-origin")).toBe("network");
+  // B-777: offline, PowerSync's workers load these through the worker; left to
+  // the network they came only from the HTTP cache, which phones evict.
+  it("keeps build assets it didn't precache (the other SQLite builds, PowerSync's worker files)", () => {
+    expect(route("/assets/wa-sqlite-xyz.wasm", "same-origin")).toBe("keep");
+    expect(route("/assets/WASQLiteDB.worker-xyz.js", "same-origin")).toBe("keep");
+    expect(route("/assets/mc-wa-sqlite-async-xyz.wasm", "cors")).toBe("keep");
+  });
+
+  it("keeps nothing outside /assets/, nor a page load or a write there", () => {
+    expect(route("/sw.js")).toBe("network");
+    expect(route("/site.webmanifest")).toBe("network");
+    expect(route("/icons/icon-32.png", "no-cors")).toBe("network");
+    expect(route("/assetsx/a.js")).toBe("network");
+    expect(route("/assets/a.js", "navigate")).toBe("network");
+    expect(route("/assets/a.js", "cors", "POST")).toBe("network");
   });
 
   it("never answers the API, sync or another origin", () => {

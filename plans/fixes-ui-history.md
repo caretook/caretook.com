@@ -4,6 +4,23 @@ Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `p
 
 ## Trimmed 2026-11-24
 
+**Wave 6** (session started 2026-11-24 after wave 5's landing): slices 49–58 written; base prd/fixes-ui 06a7d588 (dev f7d3ec8b plus docs). Asks a199–a201 decided by skeptics (B-698 Log opens the Dose sheet, B-700 Given all as Schedule, B-680 builds from its notes). Chains 54→55, 53+55→56, 57→58. Models: opus for all but 58 (sonnet). Still held, with why: B-684 and B-695 (app-wide sweeps, a wave each, after wave 6); B-693, B-697 (toast system B-669, onboarding-2 held); B-694 (user approves each form live); B-325 (Capacitor). Consent text in connectorRules.ts says "appointments": slice 49 left it (a consent change is the user's). At landing fold into connectors.md: `upcoming` is "Upcoming events and todos" (items `event`/`todo`), prompt `prepare_for_event` with arg `event`, `add_event` titled "Add an event"; no aliases. components.md Motion: two durations, `--motion-fast` 120 ms and `--motion` 240 ms (`--motion-slow` gone); menus/popovers on `--motion`; sheets only fade; Collapse and Chevron on `--motion` (slice 50). Hand tests: Today card vs day summary side by side, a toast by eye. live-notes.md: full screen is a native dialog the editor frame moves into (same Tiptap/Yjs instance); it closes on Escape itself since ProseMirror swallows Escape, except while the mention popup is open (slice 51; that case untested). app-shell.md: failed chunks reload once to the target (`staleChunk.ts`, entry.client.tsx, web only); bug not reproduced (slice 52). Hand test: stale tab across a staging deploy. medications.md: passes order by time, then name; no manual order (sort_order kept, unused) (slice 53). medications.md: DoseSlot.extra / AsNeededToday.extra mark a double dose; ExtraDoseWarning on Today rows, pass cards, as-needed past max and the medication page (slice 54). ui-kit.md/components.md: `ui/SearchFilterBar` ("Type to search", `?q=`, FilterMenu + chips) on medications, providers, Planner (below the tabs, per tab, text not carried) and Todos; substring match via `lib/core/textFilter.ts`, Past filters ids into the paged SQL (slice 57). Hand test: phone, bar under the Planner tabs. medications.md: `MedicationCard` (stretched link with state, controls z-10) for list, Today and as-needed rows; list Log opens the Dose sheet (closing it lands on the timeline, not the list: follow-up candidate) (slice 55).
+
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 58    | B-748 | merged (sonnet) | 27823c3e |
+| 57    | B-680 | merged (opus)   | e020375b |
+| 56    | B-700 | merged (opus)   | e0e5dbb3 |
+| 55    | B-698 | merged (opus)   | 0419f380 |
+| 54    | B-606 | merged (opus)   | c312d03e |
+| 53    | B-701 | merged (opus)   | a30cf79a |
+| 52    | B-735 | merged (opus)   | 12bcaa29 |
+| 51    | B-765 | merged (opus)   | 15167ea9 |
+| 50    | B-613 | merged (opus)   | 0157d117 |
+| 49    | B-583 | merged (opus)   | aef5557c |
+
+## Trimmed 2026-11-24
+
 **Wave 5 landed 2026-11-24** as dev f7d3ec8b through PR #164, `--no-review` (Codex out of credits), components CI `flake` (run 45485782241, usersAdmin int test, not ours, filed B-782); report filed; to-test/2026-11-24-1608-fixes-ui.md. Slices 34–48 merged; the three components failures were test-only fixes (34, 42, 48). Docs folded (ui-kit, medications, care-groups, assistant, timeline). All slice worktrees removed. Browser suite not run (permission classifier blocked it). Lesson: keep slice worktrees until land's own tier is green (land ranks components above integration). **Next session:** wave 6: `pnpm backlog ingest`/`list`, write slices for the triaged items not held (see the held list), then run them.
 
 | Slice | Item  | State                                                                                                       | Merge    |

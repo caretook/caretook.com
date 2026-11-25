@@ -3,9 +3,11 @@ import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Plus } from "lucide-react";
+import { useLocation } from "react-router";
 import { MedicationCard } from "~/components/medications";
 import { Badge, Button, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
 import {
   MEDICATION_TYPE_LABELS,
   medicationSummaryLine,
@@ -20,7 +22,8 @@ import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
  * its page): its name and strength, a badge with its type at the name's
  * right edge (none when it isn't set), its form, dose and schedule, and why
  * it's taken; a stopped one also says how and when. Writers get Log on a
- * current one: a scheduled medication opens the Dose sheet on it, an
+ * current one: a scheduled medication opens the Dose sheet on it, over the
+ * list (closing or saving it comes back to the list, search kept), an
  * as-needed one logs a dose now (asking first past its maximum, once
  * today's doses are known: `dueReady`). A stopped one has no Log.
  */
@@ -43,6 +46,7 @@ export function MedicationListItem({
   const logging = useAsNeededLog(medication.groupId, due, medication);
   const canLog = canWrite && medication.status === "current";
   const title = medicationTitle(medication);
+  const { search } = useLocation();
 
   const log = !canLog ? null : medication.schedule.type === "asNeeded" ? (
     dueReady && <AsNeededLogButton medication={medication} logging={logging} />
@@ -50,7 +54,9 @@ export function MedicationListItem({
     <Button
       size="sm"
       icon={Plus}
-      to={appUrls.newDose(medication.groupId, { medicationId: medication.id })}
+      to={appUrls.medicationListDose(medication.groupId, medication.id, search)}
+      state={SHEET_LINK_STATE}
+      preventScrollReset
       aria-label={`Log a dose of ${title}`}
       data-log-dose=""
     >

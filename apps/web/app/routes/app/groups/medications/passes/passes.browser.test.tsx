@@ -7,6 +7,7 @@ import { renderWithDevice } from "../../../../../../test/device";
 import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../../test/fixtures";
 import { pickTime } from "../../../../../../test/timeSelect";
 import { currentHourTime } from "~/lib/core/timeOfDay";
+import { clockTime } from "~/lib/medications/medicationDisplay";
 import { clearUndo } from "~/lib/medications/passUndo";
 import {
   CLOCK,
@@ -37,7 +38,9 @@ import {
 // medicationPass.int.test.ts's and syncPasses.int.test.ts's. Each card
 // shows today's state, and a writer logs a pass from it (Given all, then
 // Undo here, B-700), on a fixed clock as Schedule's are (today.browser.test.tsx
-// has Given all's rules). The tabs and
+// has Given all's rules); a medication given twice in it today is called out
+// as on Today, to viewers too (B-784; doubleDose.browser.test.tsx has Today's
+// and the medication page's). The tabs and
 // the `+` menu from each tab are tabs.browser.test.tsx's.
 
 const NEW_PASS = `${PASSES}/new`;
@@ -313,9 +316,30 @@ describe("today on the tab, on a fixed clock", () => {
       passId: LATE.id,
     }),
   });
+  /** Zc given again, 1 minute back: a double dose in Late. */
+  const ZC_AGAIN = fx.dose({
+    medicationId: ZC.id,
+    occurredAt: clockMoment(-1),
+    details: JSON.stringify({
+      medicationId: ZC.id,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: LATE.row.time,
+      passId: LATE.id,
+    }),
+  });
   const world = [SAM, fx.recipient({ timeZone: TEST_TIME_ZONE }), ROUNDS, LATE, XA, YB, ZC, ZC_GIVEN];
-  const openToday = (role: "caretaker" | "viewer" = "caretaker") =>
-    renderWithDevice({ route: MEDICATION_ROUTES, url: PASSES, role, fixtures: world });
+  const openToday = (role: "caretaker" | "viewer" = "caretaker", extra: unknown[] = []) =>
+    renderWithDevice({
+      route: MEDICATION_ROUTES,
+      url: PASSES,
+      role,
+      fixtures: [...world, ...(extra as [])],
+    });
+  const warnings = (passId: string) =>
+    [...(state(passId)?.querySelectorAll<HTMLElement>("[data-extra-dose-text]") ?? [])].map(
+      (el) => el.textContent,
+    );
   const state = (passId: string) => document.querySelector<HTMLElement>(`main [data-pass="${passId}"]`);
   const givenAll = (passId: string) => state(passId)?.querySelector<HTMLElement>("[data-given-all]") ?? null;
   const badge = (passId: string) => state(passId)?.querySelector("[data-pass-badge]")?.textContent ?? null;
@@ -369,5 +393,23 @@ describe("today on the tab, on a fixed clock", () => {
     expect(document.querySelector("main [data-given-all]")).toBeNull();
     expect(document.querySelector("[data-pass-undo]")).toBeNull();
     expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
+  });
+
+  test.each(["caretaker", "viewer"] as const)(
+    "a medication given twice in a pass today shows the double-dose badge and both times on its card (%s)",
+    async (role) => {
+      await openToday(role, [ZC_AGAIN]);
+      await expect
+        .poll(() => warnings(LATE.id))
+        .toEqual([`Zc 5 mg: Given twice: ${clockTime(clockAt(-2))} and ${clockTime(clockAt(-1))}`]);
+      expect(state(LATE.id)?.querySelector("[data-extra-dose-badge]")?.textContent).toBe("Double dose");
+      expect(state(ROUNDS.id)?.querySelector("[data-extra-dose]")).toBeNull();
+    },
+  );
+
+  test("a single dose in a pass shows no double-dose warning", async () => {
+    await openToday();
+    await expect.poll(() => badge(LATE.id)).toBe("Done");
+    expect(document.querySelector("main [data-extra-dose]")).toBeNull();
   });
 });

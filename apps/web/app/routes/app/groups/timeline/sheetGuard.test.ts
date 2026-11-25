@@ -110,6 +110,16 @@ describe("newDoseGuard", () => {
       { redirect: `${TIMELINE}?kind=dose` },
     );
   });
+
+  it("sends a viewer to `home` when the sheet sits elsewhere (the Medications list)", () => {
+    const home = `/app/groups/${G}/medications/list?q=lis`;
+    expect(newDoseGuard({ ...dose, canLog: false, search: `?q=lis&medication=${M}`, home })).toEqual({
+      redirect: home,
+    });
+    expect(newDoseGuard({ ...dose, search: `?q=lis&medication=${M}`, home })).toEqual({
+      sheet: { medicationId: M, slot: null, passId: null },
+    });
+  });
 });
 
 describe("onlySheetChanged", () => {

@@ -10,9 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** session 2026-11-24 (after the context rotation) reconciled git: slices 49–58 all merged. Docs folded (5eba26a1: connectors, components, ui-kit, live-notes, app-shell, medications; the 12-file split rule into plans/fixes-rules.md). Follow-ups filed: B-783 (Log from the list closes onto the timeline: list Log closes to the timeline) and B-784 (Passes tab cards: no double-dose warning). Wave CI (components, run 45497574016 on 9de0bc44): verdict file, two of ours: Chevron.browser.test.tsx "turns with the kit's duration" (slice 50) and medicationList.browser.test.tsx phone-width type badge (slice 55, both attempts). Slice 50 fixed (test expected 180 ms; 898c75f0, re-merged 281a5519). Slice 55 fixed (test predates the Log button; 79424028, re-merged 3792d801). Components rerun (run 45501198597 on 610a776a): flake (timelineJumpPaging, not our file). Synced dev (--force, b3736ab9: tooling only; test:tooling 2099 passed). PR #170 open; Codex out of credits (exit 4): land --no-review. Serve running :6173. Ask a205 answered by the user: lean suite once: 11/11 passed (4m35s). Landing next. **Wave 7 must include B-777** (offline: blank screen in the browser and installed PWA; backlog session 2026-11-24, the user wants it next): a slice in lib/app-shell/ (service worker), with an offline browser check; read the item's note. Also B-783, B-784 (wave 6 follow-ups). Then sync, PR, review, land; keep slice worktrees until land's tier is green.
-
-**Wave 6** (session started 2026-11-24 after wave 5's landing): slices 49–58 written; base prd/fixes-ui 06a7d588 (dev f7d3ec8b plus docs). Asks a199–a201 decided by skeptics (B-698 Log opens the Dose sheet, B-700 Given all as Schedule, B-680 builds from its notes). Chains 54→55, 53+55→56, 57→58. Models: opus for all but 58 (sonnet). Still held, with why: B-684 and B-695 (app-wide sweeps, a wave each, after wave 6); B-693, B-697 (toast system B-669, onboarding-2 held); B-694 (user approves each form live); B-325 (Capacitor). Consent text in connectorRules.ts says "appointments": slice 49 left it (a consent change is the user's). At landing fold into connectors.md: `upcoming` is "Upcoming events and todos" (items `event`/`todo`), prompt `prepare_for_event` with arg `event`, `add_event` titled "Add an event"; no aliases. components.md Motion: two durations, `--motion-fast` 120 ms and `--motion` 240 ms (`--motion-slow` gone); menus/popovers on `--motion`; sheets only fade; Collapse and Chevron on `--motion` (slice 50). Hand tests: Today card vs day summary side by side, a toast by eye. live-notes.md: full screen is a native dialog the editor frame moves into (same Tiptap/Yjs instance); it closes on Escape itself since ProseMirror swallows Escape, except while the mention popup is open (slice 51; that case untested). app-shell.md: failed chunks reload once to the target (`staleChunk.ts`, entry.client.tsx, web only); bug not reproduced (slice 52). Hand test: stale tab across a staging deploy. medications.md: passes order by time, then name; no manual order (sort_order kept, unused) (slice 53). medications.md: DoseSlot.extra / AsNeededToday.extra mark a double dose; ExtraDoseWarning on Today rows, pass cards, as-needed past max and the medication page (slice 54). ui-kit.md/components.md: `ui/SearchFilterBar` ("Type to search", `?q=`, FilterMenu + chips) on medications, providers, Planner (below the tabs, per tab, text not carried) and Todos; substring match via `lib/core/textFilter.ts`, Past filters ids into the paged SQL (slice 57). Hand test: phone, bar under the Planner tabs. medications.md: `MedicationCard` (stretched link with state, controls z-10) for list, Today and as-needed rows; list Log opens the Dose sheet (closing it lands on the timeline, not the list: follow-up candidate) (slice 55).
+**Next step (hand-over):** wave 7 slices 59–61 all merged (opus each); full CI green on 87fcc4c8 (run 45512758445); sync --force (pr refused unsynced) → 4d9587b2; PR #172 open; second full CI running; Codex out of credits (exit 4), land --no-review. Then green → sync, PR, land `--no-review` if Codex is out of credits. Slice worktrees 59–61 stay until green. Follow-ups filed: B-787 (SW install all-or-nothing, fixes-bug), B-788 (offline / and /sign-in fallback page, fixes-ui). For the docs at landing: app-shell.md service worker bullet takes slice 59's text (precache lists every assets/ JS/CSS/woff2 and the async SQLite WASM; `keep` route for other /assets/; phones evict the HTTP cache). Hand test: installed PWA, airplane mode, cold start. Held: B-684, B-695 (sweeps); B-693, B-697 (toasts B-669); B-694 (user live); B-325 (Capacitor).
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -21,18 +19,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State           | Merge    |
-| ----- | ----- | --------------- | -------- |
-| 49    | B-583 | merged (opus)   | aef5557c |
-| 50    | B-613 | merged (opus)   | 0157d117 |
-| 51    | B-765 | merged (opus)   | 15167ea9 |
-| 52    | B-735 | merged (opus)   | 12bcaa29 |
-| 53    | B-701 | merged (opus)   | a30cf79a |
-| 54    | B-606 | merged (opus)   | c312d03e |
-| 55    | B-698 | merged (opus)   | 0419f380 |
-| 56    | B-700 | merged (opus)   | e0e5dbb3 |
-| 57    | B-680 | merged (opus)   | e020375b |
-| 58    | B-748 | merged (sonnet) | 27823c3e |
+| Slice | Item  | State             | Merge    |
+| ----- | ----- | ----------------- | -------- |
+| 59    | B-777 | merged (d24db96d) | 8367a100 |
+| 60    | B-783 | merged (e295087d) | 20b588eb |
+| 61    | B-784 | merged (731378ec) | 1224a291 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -853,3 +844,45 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 **Acceptance criteria.**
 
 - [ ] Component test: the timeline search shows "Type to search" and keeps its accessible name.
+
+## Wave 7 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Only self-recovery (tooling) runs beside us; calendars-3 (held) names `lib/app-shell/serviceWorker`, but it isn't running. The user wants B-777 in this wave. The three slices touch separate files and run at once. Held to later waves: B-684 and B-695 (app-wide sweeps, a wave each), B-693, B-697 (toast system B-669), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 59: Offline /app shows the app, not a blank screen (B-777)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md, docs/domain/security-headers.md · Tests: unit, browser
+
+**Problem.** When the connection drops, the browser and the installed PWA show only a blank screen. Offline is a hard requirement. The service worker exists (`lib/app-shell/serviceWorker*.ts`, bundled to `/sw.js` by `scripts/build/service-worker.mjs`), so something on the offline `/app` path fails.
+
+**Build.** Find the cause first, on a production web build (`pnpm build`, then serve it; the worker is web production only): load `/app` and a group screen online, go offline (Playwright `context.setOffline(true)`), then reload and navigate. Candidates from B-777's notes: the shell document isn't cached or isn't served for that URL, a route chunk or asset is missing from the precache, a request the page needs at boot (session, `/rpc`, PowerSync) throws instead of falling back, or the cached shell's CSP blocks something. Fix the cause where it lives (the worker, its routes or caches, the build script, or the boot path); a failure that must stay an error shows a readable offline message, never a blank page. Write the cause and the fix in the hand-off, plus what `docs/domain/app-shell.md` should say (the orchestrator's). Hand test: the installed PWA on a phone, airplane mode, cold start.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`serviceWorkerRoutes.test.ts`, `serviceWorkerCaches.test.ts` or `scripts/build/service-worker.test.mjs`, whichever holds the cause) pins the fix.
+- [ ] Browser check (`scripts/browser-checks/layout-offline.spec.mjs` or a new spec beside it) on a production build: signed in, a group's timeline loaded once, then offline: a reload of that page and a navigation to another `/app` screen render the app (the header and the local data), not a blank page.
+
+## Slice 60: Medications list Log closes back onto the list (B-783)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** On the Medications list, Log on a scheduled medication opens the Dose sheet over the timeline (`appUrls.newDose`, `MedicationListItem.tsx`), so closing or saving it lands on the timeline instead of the list.
+
+**Build.** Log from the list opens the Dose sheet over the Medications list, and closing or saving returns to the list, as Schedule's Log does (follow whichever pattern Schedule or the medication page uses; don't add a new route if a return target on the existing one does it). The timeline's own Dose sheet keeps its behaviour.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`medicationList.browser.test.tsx`): Log on a scheduled medication opens the Dose sheet, and closing it leaves the Medications list showing.
+- [ ] Component test: saving a dose from it returns to the list too.
+
+## Slice 61: Passes tab cards warn of a double dose (B-784)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** Today and the medication page call out a double dose (`ExtraDoseWarning`, B-606), but the Passes tab's cards don't.
+
+**Build.** The Passes tab cards (`routes/app/groups/medications/passes/PassList.tsx` and the card it uses) show `ExtraDoseWarning` for a slot given twice today, with the same text and badge as Today. Viewers see it too; a single dose shows nothing.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`passes.browser.test.tsx`, or `doubleDose.browser.test.tsx` if it covers the tabs): a pass with a medication given twice shows the double-dose badge and text; a single dose shows none.

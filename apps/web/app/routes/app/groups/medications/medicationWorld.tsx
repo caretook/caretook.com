@@ -7,6 +7,7 @@ import { at, fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE } from "../../../../
 import { found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import * as medicationPage from "../medication/route";
+import * as doseSheet from "../timeline/new-dose/route";
 import * as allergiesSheet from "./allergies/route";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -244,7 +245,15 @@ export const MEDICATION_ROUTES: DeviceRoute[] = [
         module: scheduleTab,
         children: sheetsOver("schedule"),
       },
-      { path: "/app/groups/:groupId/medications/list", module: listTab, children: sheetsOver("list") },
+      {
+        path: "/app/groups/:groupId/medications/list",
+        module: listTab,
+        // The list's Log: the timeline's Dose sheet, over the list.
+        children: [
+          ...sheetsOver("list"),
+          { path: "/app/groups/:groupId/medications/list/dose", module: doseSheet },
+        ],
+      },
       {
         path: "/app/groups/:groupId/medications/passes",
         module: passesTab,
