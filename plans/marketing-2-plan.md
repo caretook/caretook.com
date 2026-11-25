@@ -15,7 +15,7 @@
 
 1. This session was opened by hand on Fable with `CARETOOK_USAGE_WATCH=off` to use up the week's limit. Slices run on Fable (`model: "fable"`), made with `CARETOOK_USAGE_WATCH=off pnpm prd slice …`.
 2. Before the landing, a Fable skeptic on the wave's decisions and code; its verdict goes here and in the landing report.
-3. Rotate only on a go from split-ops.
+3. Rotate and recover as often as needed, with no go from split-ops (the user's word, changed 2026-11-25). Before each rotation, check that `.loops/.sessions/prd-marketing-2.json` says `"model": "fable"` and that `CARETOOK_USAGE_WATCH=off` still applies; tell split-ops afterwards. After the weekly reset this topic moves to Opus however far it has got: split-ops switches the record to Opus and asks for a rotation then.
 4. Land only on the user's go, asked for through split-ops. Codex is out of credits: the landing is `--no-review`, and the report says so.
 5. Ask split-ops before any `rm` or `end`.
 6. At 100% usage everything stops; split-ops nudges after the Fable reset, and the next rotation goes to Opus.
