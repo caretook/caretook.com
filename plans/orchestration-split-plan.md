@@ -9,7 +9,7 @@
 | Slice | Wave | State   | Merge into `prd/orchestration-split` |
 | ----- | ---- | ------- | ------------------------------------ |
 | 1     | 1    | merged  | e90f5f02                             |
-| 2     | 2    | started |                                      |
+| 2     | 2    | merged  | fd5aa70e                             |
 | 6     | 2    | merged  | bd866a13                             |
 | 3     | 3    | planned |                                      |
 | 9     | 3    | planned |                                      |
@@ -47,6 +47,7 @@
 - 2026-11-25: **slice 2 handed off** (ca3c96da, slice check green): config `paths.tooling`, `backlog.idPrefix` and the helper `backlogIds()` in `config.mjs`; `scripts/backlog/` and `lib.sh` (branches, `is_protected`, `not_files`, prefix variables, `exempt_re` from `paths.tooling`) through the config; the hooks' constant checked by a test. Still hardcoded, for later slices: the staging/main status map in `backlog.mjs`, the command names in messages, `land_dir`'s `plan-`/`hotfix-` dir names. A test that copies `scripts/backlog/*.mjs` into a throwaway repo must copy `config.mjs` too.
 - 2026-11-25: **merged slice 2 as fd5aa70e, slice 6 as bd866a13** (clean), then 67686867: `scripts/project` added to `paths.tooling` (where slices 2 and 6 meet) and the missing allowlist reason; config, hooks, test-projects, check-body and fixes-plans tests pass on it. Worktrees stay until the wave is green. Next: the `full` CI run, then the Fable skeptic on the wave, then sync and land.
 - 2026-11-25: the wave's `full` CI run is out on c737db24 (`pnpm prd ci run full --wait`), and the Fable skeptic is reviewing the wave's diff (read-only, verdict `go` or `fix first`). Wait for both before syncing.
+- 2026-11-25: **the Fable skeptic on wave 2: go.** Test sets, config values, `backlogIds()` and `exempt_re` hold. Acted on: AGENTS.md _Checks_ now names `risa.json` as tooling (it is exempt through `paths.tooling`); the move runbook's step 5 drops `test-projects.test.mjs`'s manifest read; the table fixed. Filed for this topic (triaged): B-821 (a moved `B-n` read as `RISA-n`: no builder yet, needed before the move), B-822 (slice 2's prefix leftovers: `format.mjs` sort, the `item` type, the import error), B-823 (branch prefixes honoured only in `lib.sh`). Accepted as is: `trunk_drift` now fails closed on a failed diff; two sources of "what is tooling" (`paths.tooling` and `check-plan.mjs`'s `TOOLING`) until slice 10 folds them.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
