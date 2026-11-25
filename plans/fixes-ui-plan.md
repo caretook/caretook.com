@@ -25,7 +25,7 @@ Slices 76, 77, 78 in flight (worktrees .loops/fixes-ui-76..78, opus agents spawn
 
 | Slice | Item  | State          | Merge |
 | ----- | ----- | -------------- | ----- |
-| 76    | B-342 | started (opus) |       |
+| 76 | B-342 | merged (opus) | dc2e5fc4 |
 | 77    | B-817 | started (opus) |       |
 | 78    | B-828 | started (opus) |       |
 
