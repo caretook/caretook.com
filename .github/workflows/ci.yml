@@ -148,7 +148,7 @@ jobs:
           CARETOOK_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
           --reporter=json --outputFile.json=ci-results/unit.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
@@ -158,7 +158,7 @@ jobs:
           CARETOOK_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
           --reporter=json --outputFile.json=ci-results/unit.json
       - id: report
         name: Report the failures
