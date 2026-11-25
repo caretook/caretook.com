@@ -87,6 +87,19 @@ describe("addTodo", () => {
     expect(issues({ type: "addTodo", title: "Call", assigneeName: "Aunt May" })).toEqual([""]);
     expect(issues({ type: "addTodo", title: "Call", id: MED })).toEqual([""]);
   });
+
+  test("a repeat is a rule todos take, and needs a due day (B-254)", () => {
+    const weekly = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+    expect(ok({ type: "addTodo", title: "Bins out", dueOn: "2026-11-23", repeatRule: weekly })).toBe(true);
+    expect(ok({ type: "addTodo", title: "Bins out", repeatRule: null })).toBe(true);
+    expect(issues({ type: "addTodo", title: "Bins out", repeatRule: weekly })).toEqual(["repeatRule"]);
+    expect(
+      issues({ type: "addTodo", title: "Bins out", dueOn: "2026-11-23", repeatRule: "FREQ=YEARLY" }),
+    ).toEqual(["repeatRule"]);
+    expect(
+      issues({ type: "addTodo", title: "Bins out", dueOn: "2026-11-23", repeatRule: "every monday" }),
+    ).toEqual(["repeatRule"]);
+  });
 });
 
 describe("addNote and addEvent", () => {

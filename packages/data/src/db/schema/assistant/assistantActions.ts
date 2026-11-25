@@ -4,7 +4,8 @@ import {
   recipientConditionUpdateZSchema,
 } from "../profiles/recipientCondition";
 import { doseDetailsZSchema, scheduleTimeZSchema } from "../medications/medication";
-import { TODO_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../todos/todo";
+import { parseRule } from "../appointments/repeatRule";
+import { REPEAT_NEEDS_DAY_ISSUE, TODO_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../todos/todo";
 import { symptomDetailsZSchema, TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import { timeZoneZSchema } from "../core/timeZone";
 import { vitalDetailsZSchema } from "../timeline/vitals";
@@ -95,8 +96,10 @@ export const addEventActionZSchema = z.strictObject({
 /**
  * A todo: a title, at most one member to do it, and an optional due day
  * with an optional time (wall-clock in the recipient's zone), plus optional
- * links. Not a timeline entry, so it has no `occurredAt`. Whoever carries it
- * out checks the assignee is a member and the links are live in the group.
+ * links, and optionally a repeat (RRULE text, as todos store it; it needs a
+ * due day to start from). Not a timeline entry, so it has no `occurredAt`.
+ * Whoever carries it out checks the assignee is a member and the links are
+ * live in the group.
  */
 export const addTodoActionZSchema = z
   .strictObject({
@@ -108,10 +111,23 @@ export const addTodoActionZSchema = z
     providerId: z.uuid().nullish(),
     medicationId: z.uuid().nullish(),
     eventId: z.uuid().nullish(),
+    repeatRule: z
+      .string()
+      .trim()
+      .min(1)
+      .nullish()
+      .superRefine((rule, ctx) => {
+        const parsed = rule ? parseRule(rule) : null;
+        if (parsed && !parsed.ok) ctx.addIssue({ code: "custom", message: parsed.problem });
+      }),
   })
   .refine((a) => !a.dueTime || !!a.dueOn, {
     path: [TIME_NEEDS_DAY_ISSUE.path],
     message: TIME_NEEDS_DAY_ISSUE.message,
+  })
+  .refine((a) => !a.repeatRule || !!a.dueOn, {
+    path: [REPEAT_NEEDS_DAY_ISSUE.path],
+    message: REPEAT_NEEDS_DAY_ISSUE.message,
   });
 
 /** Every action. */

@@ -403,6 +403,25 @@ describe("/mcp write tools", () => {
     });
   });
 
+  it("add_todo takes no repeat: a repeatRule sent is ignored (B-253)", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+
+    const todo = await tool(token, "add_todo", {
+      title: "Put the bins out",
+      dueOn: "2027-01-11",
+      repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
+    });
+    expect(todo.isError).toBeUndefined();
+    const row = ok(await todoService.getById(w.owner.ctx, todo.structuredContent.todoId!));
+    expect(row).toMatchObject({
+      dueOn: "2027-01-11",
+      repeatRule: null,
+      repeatStartsOn: null,
+      repeatId: null,
+    });
+  });
+
   it("add a note that mentions its providers and links them", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
