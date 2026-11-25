@@ -10,6 +10,7 @@ import { isFirstSyncPending } from "~/lib/sync/firstSync";
 import { requireSession, sessionContext } from "~/lib/auth/session";
 import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
+import { OfflineBanner } from "./OfflineBanner";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
 import { UpdateNotice } from "./UpdateNotice";
@@ -86,6 +87,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           <UserMenu user={user} easy={easy} severalGroups={severalGroups} />
         </div>
       </header>
+      <OfflineBanner />
       <div data-region="announcement" className="print:hidden">
         <Announcement pathname={pathname} />
       </div>
