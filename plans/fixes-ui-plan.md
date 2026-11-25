@@ -10,9 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Now (2026-11-24 late):** B-793 (roundtrip timing, blocks staging) is wave 10 slice 69: start it first in the next session; message the backlog session (caretook-com-e5) when it lands in dev. wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 merged (e2f1d254, 22 files: over the 12-file line; split shared ui work finer next time; it took components.md and ui-kit.md just over budget: trim at landing). 67 and 68 merged; wave 9 CI gate: full run 45525300170 on df3581f9 braked: bundle budget, app 408633 B gzip over its 406187 B ceiling (the toast system in the /app layout). Fix merged as da4d28c8 (toast region loads on demand; app 404444 B, ceiling unchanged). Full rerun green (on a5505a9c); sync: nothing new. PR #176 opened, Codex review waiting. At landing: trim components.md and ui-kit.md under budget; medications.md: the Schedule tab offers every log's Undo as a toast (UndoToastProvider, offerUndoToast), the Schedule clientAction returns the dose id. B-697 wording decided by the skeptic (s29, ask a211).
-
-**Previous hand-over:** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
+**Next step (hand-over):** wave 9 landed 2026-11-24 20:56 as dev 4adabea through PR #176, `--no-review` (Codex out of credits); full CI green (run 45527846212). The first full run braked on the bundle budget (app 408633 B over 406187): slice 66's fix loads React Aria's toast region on the first toast (app 404444 B, ceiling unchanged). Slices 66, 67, 68 (all opus) merged, worktrees removed; report filed; to-test/2026-11-24-2056-fixes-ui.md. Docs folded: components.md (toast rules), ui-kit.md (toast API), app-shell.md (ToastRegion), both trimmed under budget. Not folded (medications.md is at 10237 of 10240 B): the Schedule tab's logs offer Undo as a toast (`UndoToastProvider`, `offerUndoToast`) and its clientAction returns the dose id: fold it with a trim next landing. Lesson: slice 66 ran 22 files; a shared ui primitive plus its migrations is two slices. **Next session: wave 10 = slice 69 (B-793, roundtrip timing), written; start it at once (staging is blocked on it), land it alone, then message the backlog session (caretook-com-e5) that it's in dev so it recuts the candidate.** Still held: B-684, B-694, B-325.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -21,12 +19,9 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                 | Merge    |
-| ----- | ----- | ------------------------------------- | -------- |
-| 66    | B-669 | merged (opus); worktree kept to green | e2f1d254 |
-| 67    | B-693 | merged (opus); worktree kept to green | 8ba36ee2 |
-| 68    | B-697 | merged (opus); worktree kept to green | 1b24ff73 |
-| 69    | B-793 | wave 10, first (staging blocked)      |          |
+| Slice | Item  | State                                        | Merge |
+| ----- | ----- | -------------------------------------------- | ----- |
+| 69    | B-793 | wave 10, not started (staging blocked; opus) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
