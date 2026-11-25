@@ -12,12 +12,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 | Slice | Item  | State                | Merge |
 | ----- | ----- | -------------------- | ----- |
-| 68    | B-752 | agent working (opus) |       |
-| 69    | B-779 | agent working (opus) |       |
-| 70    | B-787 | agent working (opus) |       |
-| 71    | B-792 | agent working (opus) |       |
+| 68    | B-752 | written, not started |       |
+| 69    | B-779 | written, not started |       |
+| 70    | B-787 | written, not started |       |
+| 71    | B-792 | written, not started |       |
 
-**Wave 15 (slices 68–71, B-752, B-779, B-787, B-792, all on opus; 2026-11-25).** Session started with git matching _Status_; `prd sync` needed no merge (dev only had backlog commits); inbox empty. No running topic holds these files. Hot files set (timeline route folder, `serviceWorkerCaches`, `packages/api/src/connectors/`), items claimed. B-750 (second-zone overflow umbrella) stays standing: no files named yet. All four run at once, independent; merge in order 68–71. If agents are gone after a crash, respawn with `--continue`. Worktrees stay until the wave's CI is green. **Docs at landing:** `connectors.md` (`todays_doses` passes carry `passId`), `app-shell.md` (precache in batches with retries), `timeline.md` if 69 changes the landing rule.
+**Wave 15 (slices 68–71, B-752, B-779, B-787, B-792, all on opus; 2026-11-25).** Session started with git matching _Status_; `prd sync` needed no merge (dev only had backlog commits); inbox empty. No running topic holds these files. Hot files set (timeline route folder, `serviceWorkerCaches`, `packages/api/src/connectors/`), items claimed. B-750 (second-zone overflow umbrella) stays standing: no files named yet. **Not started: `pnpm prd slice` refused all four (usage draining, 7d at 85%, until Sat 2026-11-28 12:00); the rule is to wait for the reset, never `CARETOOK_USAGE_WATCH=off`.** Hot files cleared meanwhile (no worktree); items stay claimed. **Next session (after the reset):** `pnpm prd sync`, ingest, reset hot files (`pnpm backlog prd set fixes-bug hot=apps/web/app/routes/app/groups/timeline/,apps/web/app/lib/app-shell/serviceWorkerCaches,packages/api/src/connectors/`), then `pnpm prd slice fixes-bug <n>` and one opus agent each for 68–71, all at once; merge in order 68–71. Worktrees stay until the wave's CI is green. **Docs at landing:** `connectors.md` (`todays_doses` passes carry `passId`), `app-shell.md` (precache in batches with retries), `timeline.md` if 69 changes the landing rule.
 
 ## Wave 1
 
