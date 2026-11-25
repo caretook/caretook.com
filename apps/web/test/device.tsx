@@ -8,6 +8,7 @@ import { useLayoutEffect } from "react";
 import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { ToastRegion } from "~/components/ui";
 import { sessionContext } from "~/lib/auth/session";
 import { installTestDatabase } from "~/lib/sync";
 import { searchIndexSettled } from "~/lib/search/search.sync";
@@ -297,14 +298,24 @@ const outsideApp = (route: DeviceRoute): StubRoute => {
   };
 };
 
-/** The /app route's component: the location probe, then the real frame or a bare outlet. */
+/**
+ * The /app route's component: the location probe, then the real frame or a
+ * bare outlet with the frame's toast region (so a screen's toasts show).
+ */
 const withProbe =
   (Frame: RouteModule["default"] | null) =>
   // The stub passes route component props (loaderData, params, matches) through.
   (props: object) => (
     <>
       <LocationProbe />
-      {Frame ? <Frame {...props} /> : <Outlet />}
+      {Frame ? (
+        <Frame {...props} />
+      ) : (
+        <>
+          <Outlet />
+          <ToastRegion />
+        </>
+      )}
     </>
   );
 

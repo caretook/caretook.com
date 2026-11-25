@@ -5,8 +5,9 @@ import { renderWithDevice } from "../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../test/fixtures";
 import { PROBE } from "../../../../test/probe";
 
-// The update notice (the frame's `update` region): a new service worker has
-// installed and waits; Reload asks it to take over (lib/app-shell/serviceWorker.ts).
+// The update notice (a toast from the frame, no time limit): a new service
+// worker has installed and waits; Reload asks it to take over
+// (lib/app-shell/serviceWorker.ts).
 
 const show = () =>
   renderWithDevice({
@@ -29,9 +30,9 @@ afterEach(() => waitingWorker.set(null));
 
 describe("the update notice", () => {
   test("is hidden while no new version waits", async () => {
-    const device = await show();
+    await show();
     await expect.element(page.getByText("Slept well")).toBeVisible();
-    expect(device.screen.container.querySelector('[data-region="update"]')?.childElementCount).toBe(0);
+    expect(document.querySelector("[data-update-notice]")).toBeNull();
     expect(page.getByText("A new version is ready").query()).toBeNull();
   });
 
@@ -39,13 +40,13 @@ describe("the update notice", () => {
     await show();
     const worker = fakeWaiting();
     waitingWorker.set(worker);
-    const notice = page.getByRole("status").filter({ hasText: "A new version is ready" });
+    const notice = page.getByRole("alertdialog", { name: "A new version is ready" });
     await expect.element(notice).toBeVisible();
     const reload = notice.getByRole("button", { name: "Reload" });
     await userEvent.click(reload);
     expect(worker.postMessage).toHaveBeenCalledWith("skip-waiting");
-    // Waiting for the new version to take over: the button doesn't post twice.
-    await expect.element(reload).toBeDisabled();
+    // Waiting for the new version to take over: the notice goes, so Reload can't post twice.
+    await expect.element(notice).not.toBeInTheDocument();
     expect(worker.postMessage).toHaveBeenCalledTimes(1);
   });
 
@@ -58,7 +59,7 @@ describe("the update notice", () => {
   test("goes when the waiting worker is gone", async () => {
     waitingWorker.set(fakeWaiting());
     await show();
-    const notice = page.getByRole("status").filter({ hasText: "A new version is ready" });
+    const notice = page.getByRole("alertdialog", { name: "A new version is ready" });
     await expect.element(notice).toBeVisible();
     waitingWorker.set(null);
     await expect.element(notice).not.toBeInTheDocument();

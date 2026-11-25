@@ -2,8 +2,7 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { render } from "vitest-browser-react";
-import { Toast } from "~/components/ui";
+import { toast } from "~/components/ui";
 import { THEME_KEY } from "~/lib/app-shell/theme";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
 import * as groupSettingsLayout from "~/routes/app/groups/settings/layout/route";
@@ -460,19 +459,20 @@ describe("the floating tab bar", () => {
     expect(ring.outlineColor).toBe(getComputedStyle(bar()).color);
   });
 
-  test("at 420: a toast sits above the bar", async () => {
+  test("at 420: a toast sits above the bar, and drops to the edge while the keyboard hides the bar", async () => {
     await open();
     await expect.element(page.getByText("Slept well")).toBeVisible();
-    const toast = await render(
-      <Toast open message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
+    toast({ message: "A new version is ready", timeout: null });
+    const shown = page.getByRole("alertdialog", { name: "A new version is ready" });
+    await expect.element(shown).toBeVisible();
+    expect(shown.element().getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      bar().getBoundingClientRect().top,
     );
-    const status = toast
-      .getByText("A new version is ready")
-      .element()
-      .closest("[role=status]")!
-      .getBoundingClientRect();
-    expect(status.bottom).toBeLessThanOrEqual(bar().getBoundingClientRect().top);
-    await toast.unmount();
+    // The bar slides away while typing (B-664): the toast no longer clears it.
+    bar().dataset.keyboardOpen = "";
+    await expect
+      .poll(() => innerHeight - shown.element().getBoundingClientRect().bottom)
+      .toBeLessThan(bar().getBoundingClientRect().height);
   });
 
   // Headless Chromium has no safe area, so the inset is simulated through

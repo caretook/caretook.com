@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 
 import { renderWithDevice } from "../../../../test/device";
 import { GALLERY } from "./registry";
@@ -60,6 +60,6 @@ describe("the UI gallery", () => {
     await expect.element(screen.getByRole("dialog", { name: "Delete this note?" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await userEvent.click(motion.getByRole("button", { name: "Toast" }));
-    await expect.element(screen.getByRole("status").filter({ hasText: "Added Ibuprofen" })).toBeVisible();
+    await expect.element(page.getByRole("alertdialog", { name: "Added Ibuprofen" })).toBeVisible();
   });
 });

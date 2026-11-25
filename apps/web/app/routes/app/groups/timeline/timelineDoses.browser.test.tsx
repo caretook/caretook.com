@@ -555,7 +555,7 @@ describe("the Dose sheet's + New medication", () => {
         () => document.querySelector<HTMLInputElement>('[data-medication-form] input[name="name"]')?.value,
       )
       .toBe("Ibuprofen");
-    expect(TOAST()).toBeNull();
+    await expect.poll(TOAST).toBeNull();
     expect(
       [...document.querySelectorAll("main [data-medication-name]")].map((n) => n.textContent?.trim()),
     ).toContain("Ibuprofen");

@@ -1,68 +1,47 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import { Button } from "./Button";
+import type { ComponentType } from "react";
+
+import { memo, useEffect, useState, useSyncExternalStore } from "react";
+import { queue } from "./toastQueue";
+
+/** The region's module (ToastView.tsx): React Aria's toast parts, off the first load. */
+const loadView = () => import("./ToastView").then((m) => m.ToastRegionView);
 
 /**
- * A short message with one action, fixed at the bottom of the screen above the
- * tab bar (`--tab-bar-height`; from `sm` there's no bar). It's a live status,
- * so screen readers announce it when it appears. The update notice and the
- * timeline's added-medication notice use it.
- *
- * `open` shows it; turning it false fades it out (`--motion`) and then
- * unmounts it, at once under "reduce motion". While it fades it is inert, so
- * its action can't run again. Callers keep passing the same message until it
- * has gone.
+ * Where every toast shows (`toast()`, `toastQueue.ts`): mount it once, in the
+ * /app layout (and the gallery). It renders nothing until the first toast,
+ * like React Aria's own region, and loads that region (ToastView.tsx) on the
+ * first toast or once the browser is idle, whichever comes first, so React
+ * Aria's toast parts stay out of the /app layout's first load (the bundle
+ * budget). The queue is plain module state, so a toast added before then
+ * waits and shows as soon as the region is in.
  */
-export function Toast({
-  open,
-  message,
-  actionLabel,
-  onAction,
-  busy = false,
-}: {
-  open: boolean;
-  message: string;
-  actionLabel: string;
-  onAction: () => void;
-  /** The action has started: its button is disabled. */
-  busy?: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(open);
-  if (open && !mounted) setMounted(true);
-  const exiting = mounted && !open;
+export const ToastRegion = memo(function ToastRegion() {
+  const [View, setView] = useState<ComponentType | null>(null);
+  const queued = useSyncExternalStore(
+    (listener) => queue.subscribe(listener),
+    () => queue.visibleToasts.length > 0,
+    () => false,
+  );
 
-  // Unmount once the exit's animations have finished (none under reduced motion).
-  useLayoutEffect(() => {
-    if (!exiting) return;
-    const animations = ref.current?.getAnimations?.() ?? [];
-    if (animations.length === 0) {
-      setMounted(false);
-      return;
-    }
+  useEffect(() => {
+    if (View) return;
     let live = true;
-    void Promise.all(animations.map((a) => a.finished))
-      .catch(() => undefined)
-      .then(() => live && setMounted(false));
+    const load = () => void loadView().then((view) => live && setView(() => view));
+    if (queued) {
+      load();
+      return () => void (live = false);
+    }
+    // Safari has no requestIdleCallback: a short wait instead.
+    const idle = "requestIdleCallback" in window;
+    const handle = idle
+      ? window.requestIdleCallback(load, { timeout: 5_000 })
+      : window.setTimeout(load, 2_000);
     return () => {
       live = false;
+      if (idle) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
     };
-  }, [exiting]);
+  }, [View, queued]);
 
-  if (!mounted) return null;
-  return (
-    <div
-      ref={ref}
-      data-toast=""
-      data-exiting={exiting || undefined}
-      inert={exiting}
-      className="toast toast-center z-40 mb-(--tab-bar-height) sm:mb-0 print:hidden"
-    >
-      <div role="status" className="alert border-base-300 bg-base-100 text-base-content shadow-lg">
-        <span>{message}</span>
-        <Button variant="primary" size="sm" onClick={onAction} disabled={busy}>
-          {actionLabel}
-        </Button>
-      </div>
-    </div>
-  );
-}
+  return View ? <View /> : null;
+});

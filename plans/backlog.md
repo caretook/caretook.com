@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `apps/web/app/components/ui/`, `apps/web/app/routes/app/layout/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/routes/app/groups/timeline/AddedMedicationToast.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/components/medications/`, `apps/web/app/lib/medications/passUndo.ts`, `docs/domain/components.md`, `docs/domain/ui-kit.md` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `scripts/browser-checks/roundtrip.spec.mjs`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/components/ui/`, `apps/web/app/routes/app/layout/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
@@ -103,10 +103,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `documents` | hold | `encryption` | — | to write (B-56) · Depends on: hosting (B-33, file storage); `profiles` (soft); `encryption` decision · Hot files: file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS` |
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `timeline-jump` | done | `quick-entry-2` | `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `apps/web/app/lib/medications/medicationTimeline.sync.ts`, `apps/web/app/lib/care-periods/periodMarkers.ts`, `apps/web/app/routes/app/groups/timeline/useTimelineData.ts`, `apps/web/app/routes/app/groups/timeline/timelineRows.ts`, `apps/web/app/routes/app/groups/timeline/timelinePaging.ts`, `apps/web/app/routes/app/groups/timeline/daySummaryRows.ts`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/route.tsx`, `apps/web/app/components/quick-entry/`, `packages/data/src/db/schema/assistant/quickEntryTime` | Jump to a date on the timeline, by picker and quick entry (B-557) |
-| `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
+| `orchestration-split` | hold | — | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/` | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `onboarding-2` | hold | — | — | — |
 | `asks-relay` | hold | `inbox-agent` | `scripts/loops/ask`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/session`, `scripts/loops/prd.sh` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** Also moved to the bottom of the queue by the user 2026-11-24. Released 2026-11-23 by the user. The backlog session as go-between for every agent's questions, and asks queue hygiene. Cut from inbox-agent by its planner (plans/inbox-agent-prd.md, Follow-on topic) |
+| `orchestration-split-2` | hold | `orchestration-split` | `scripts/loops/`, `scripts/project/`, `packages/data/test/`, `packages/data/scripts/`, `apps/web/test/` | — |
+| `orchestration-split-3` | hold | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `scripts/project/` | — |
+| `risa-next` | hold | `orchestration-split-3` | — | — |
 
 ## Summary
 
@@ -245,7 +248,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | staging | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
-| B-669 | feature | in-progress | fixes-ui | prd/fixes-ui | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
+| B-669 | feature | landed | fixes-ui | prd/fixes-ui | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-672 | feature | staging | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | staging | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
@@ -265,10 +268,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-688 | change | staging | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
 | B-691 | bug | staging | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
 | B-692 | change | staging | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
-| B-693 | change | in-progress | fixes-ui | prd/fixes-ui | New events and notes: the first save shows a saved toast (after the shared toast system) |
+| B-693 | change | landed | fixes-ui | prd/fixes-ui | New events and notes: the first save shows a saved toast (after the shared toast system) |
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-695 | change | landed | fixes-ui | prd/fixes-ui | Rename "passes" to "Med times" everywhere users see it |
-| B-697 | change | in-progress | fixes-ui | prd/fixes-ui | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
+| B-697 | change | landed | fixes-ui | prd/fixes-ui | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
 | B-698 | change | landed | fixes-ui | prd/fixes-ui | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
 | B-699 | bug | staging | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
 | B-700 | feature | landed | fixes-ui | prd/fixes-ui | Passes tab: quick log a pass, with cards matching the new medication card |
@@ -320,6 +323,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
 | B-792 | bug | triaged | fixes-bug |  | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
+| B-793 | bug | in-progress | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
+| B-794 | plan | triaged | risa-next |  | Risa: a central agent that gathers from several repos and prioritises across them |
+| B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
+| B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
+| B-797 | plan | triaged | risa-next |  | Risa: prove it on a second repo with tests, then make it usable by others |
 
 ## Items
 
@@ -1266,6 +1274,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): User 2026-11-22: tooling is robust enough to manage work across all projects on this machine; keep handrolling vs adopt a prebuilt option. Size: ~23k lines in scripts/loops, scripts/backlog, .githooks (~11k tests), 105 files tied to caretook. The top four registry rows (test-gates, agent-autonomy 1-3) are all orchestration. Decide before planning: freeze, extract, or replace.
 - 2026-11-22 (Robert Bo Davis): Deferred to after launch (user, 2026-11-22): the only other active project is a legacy BigCommerce Stencil site with no tests, a poor fit for this process, so no multi-project need yet. Revisit after launch.
 - 2026-11-23 (Robert Bo Davis): Sizing 2026-11-23 (estimate from measuring the code, no trial extraction): medium lift, about 2-3 PRDs to a separate tool proven on a second project. Size: ~34k lines in scripts/loops, scripts/backlog, .githooks (~17k code, ~16k tests) plus ~700 lines of role docs. Easier: no runtime package deps (only vitest in tests); app code calls it only from two test helpers (apps/web/test/browserLease.ts, packages/data/test/globalSetup.ts); most 'caretook' mentions are mechanical renames (CARETOOK_* env vars). Hard: (1) stack knowledge needs a per-project adapter (stack-lib.sh, browser.sh, test-db.sh, check-areas.d); (2) assumed paths and pnpm commands across ~40 files become config; (3) cutover: drain worktrees, pause the dispatcher, pin a tool version. Phases: (a) separate it, Caretook only, no behavior change, 1 PRD; (b) prove it on a small new repo with tests (Stencil is a poor fit), 1 PRD; (c) usable by others (install, docs, versioning, macOS/iTerm independence), open-ended, skip unless releasing. Recommendation: still after launch, once the tooling stops changing quickly.
+- 2026-11-24 (plan/orchestration-split): Planned 2026-11-24 with the user (big choices approved one at a time): Risa, an external tool at ~/git/risa that runs Claude in configured repos; Caretook becomes config, plans and its own scripts, no dependency on Risa. Stage 1 in place: orchestration-split (seams) and orchestration-split-2 (Caretook's parts, renames), both held; stage 2 a hand runbook (plans/orchestration-split-move.md); later items B-794..B-797 under risa-next (held).
 
 ### B-544 · chore · vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405
 
@@ -1670,10 +1679,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-669 · feature · Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: d5356264
 
 - 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: wants to make heavy use of toasts; agreed no new dependency. First slice of onboarding-2; B-665 (Invite someone toast) builds on it. Use react-aria-components 1.22.1's toast (UNSTABLE_ToastRegion, UNSTABLE_ToastList, UNSTABLE_Toast, UNSTABLE_ToastQueue) only inside ui/, wrapped by the existing ui/Toast, with daisyUI styling. The UNSTABLE_ exports may change on upgrade, so screens must never import them. Needs: a queue so toasts don't overlap, optional action, dismiss, Undo, caller-set timing, reduced motion. Migrate UpdateNotice and AddedMedicationToast. Prove it first on a real phone, above the tab bar and with the keyboard open (see B-664); if it falls short, extend our own component rather than add a library. Usage rules for components.md: toasts for finished actions, Undo, background news and one-time nudges. Not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes. Don't sweep the inline Message uses; move one only where a toast is clearly better.
 - 2026-11-24 (Robert Bo Davis): 2026-11-24, the user: moved from onboarding-2 into fixes-ui so B-693 (saved toast on new events and notes) and B-697 (dose-logged toast) can run; build it first in its own slice, then B-693 and B-697. onboarding-2's B-665 (Invite someone toast) builds on the landed system.
@@ -1874,10 +1883,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-693 · change · New events and notes: the first save shows a saved toast (after the shared toast system)
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 60f3b7f8
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the first save should probably generate a toast once toasts are in place. Filed apart from B-692 (focus moves to the title) so that fix doesn't wait. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until B-669 has landed. Code read: the first save is the save() path in routes/app/groups/entry/useLiveEntry.ts, one-off and repeating (lines 196 and 220), each followed by a replace navigation from entries/new to entries/:id, so the toast must live in the shared queue and survive that navigation. Show it once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider), and never on later autosaves or a failed save. Default wording 'Event saved'. It's a local write, so it works offline and must not imply it has synced. Scope is new events; the same path saves new notes, which stay silent unless the user asks.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: new notes get the toast too. This replaces 'new notes stay silent'. Wording by kind: 'Event saved' or 'Note saved'. The same rules apply: once, on a draft's first successful save, whatever triggered it, and never on later autosaves. For notes, the trigger is usually the first typed text, so the toast must not take focus or interrupt typing.
@@ -1906,10 +1915,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-697 · change · Medications Schedule: logging a dose shows a toast (after the shared toast system)
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: df3581f9
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: logging from the medications schedule should generate a toast once toasts are in place. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until it lands. Same waiting pattern as B-693 (saved toast for events and notes). Today a one-tap Given (DoseSlotRow via usePassLog.logSlot) only changes the row. Skipped and Refused go through MarkDoseDialog, as-needed Log through the Schedule route's clientAction/TodaySection. Cover each path that logs from this tab. Given all already shows 'Morning logged · Undo' in PassUndoStatus (lib/medications/passUndo.ts, about 10 s): move that into the toast rather than showing both. Toast only after the local write succeeds; errors stay inline. Wording and whether single doses get Undo are not decided: ask the user when this is built. Mind dose-accuracy's Undo fixes (B-614, B-627) if adding Undo.
 - 2026-11-24 (Robert Bo Davis): 2026-11-24: B-669 (shared toast system) moved into fixes-ui, so this is no longer held; after B-669's slice.
@@ -2390,3 +2399,49 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 65 (B-695): give_pass's description says to use a med time's id from today's doses, but each todays_doses passes entry (name, time, at, state, slots) has no id.
+
+### B-793 · bug · Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun)
+
+- status: in-progress
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): Found 2026-11-24 by the backlog session. Candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): browser roundtrip.spec.mjs:249 (localMs < 2000) failed at 2007 ms, then 2069 ms on its one rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed roundtrip. The fixes-ui full runs since then didn't run roundtrip. New app code between them: fixes-ui waves 6-8. Suspect: B-613 (87a6235c, sheets fade, overlays at 240 ms), which doubled the overlay fade (120 to 240 ms) and made useSheetExit wait for the overlay too. Against that: new/route.tsx's clientAction writes locally before onDone closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. First find whether the app got slower or the budget was already at the edge (the step prints its time only when it fails). Blocks staging promotion.
+- 2026-11-24 (Robert Bo Davis): Moved to fixes-ui on the user's word (its B-613 is the suspect); the staging candidate is recut after it lands.
+
+### B-794 · plan · Risa: a central agent that gathers from several repos and prioritises across them
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-24 (plan/orchestration-split): Filed 2026-11-24 from the orchestration-split planning: after the move (plans/orchestration-split-move.md). How Risa reads each configured repo's backlog and registry and orders work across projects; where tool state lives (today each repo's .loops/).
+
+### B-795 · chore · Clean Caretook's history of the orchestration tooling and its bloat
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-24 (plan/orchestration-split): Filed 2026-11-24 from the orchestration-split planning: after the move (plans/orchestration-split-move.md). Rewrites a public repo's history and force-pushes dev, staging and main: only on the user's word, after Risa holds the history (git filter-repo).
+
+### B-796 · chore · Risa: split the project config into a folder and tidy the test rules and gates
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-24 (plan/orchestration-split): Filed 2026-11-24 from the orchestration-split planning: after the move (plans/orchestration-split-move.md). The user: the config may become a folder of files; the test rules and gates (tiers, brake list, quarantine, check plan) move cleanly after the split.
+
+### B-797 · plan · Risa: prove it on a second repo with tests, then make it usable by others
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-24 (plan/orchestration-split): Filed 2026-11-24 from the orchestration-split planning: after the move (plans/orchestration-split-move.md). Second project first (Stencil is a poor fit); then release: install, docs, versioning, other hosts than macOS and iTerm2.

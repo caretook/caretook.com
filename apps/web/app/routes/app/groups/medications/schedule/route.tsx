@@ -1,6 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/core/api";
+import type { CreateResult } from "~/lib/core/api";
 
 import { Outlet } from "react-router";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -23,14 +23,14 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   return { due: await loadDueDoses(db, params.groupId) };
 }
 
-/** Today's doses (Given, Skipped, Refused, an as-needed Log): local writes, logged now. */
-export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
+/** Today's doses (Given, Skipped, Refused, an as-needed Log): local writes, logged now; the dose's id, for its Undo. */
+export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<CreateResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const dose = todayDoseFromForm(await request.formData());
   if (!dose) return { ok: false, error: "Nothing to do", issues: [] };
   const result = await logDose(db, group.id, dose);
-  return result.ok ? { ok: true } : result;
+  return result.ok ? { ok: true, id: result.id } : result;
 }
 
 /**
