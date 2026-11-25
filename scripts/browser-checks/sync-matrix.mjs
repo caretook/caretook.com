@@ -8,7 +8,7 @@
 // - `server` tables are written only by the services (or the seeds): a
 //   seeded row must be on both devices.
 //
-// A new synced table adds a row here; scripts/loops/sync-matrix.test.mjs
+// A new synced table adds a row here; scripts/project/sync-matrix.test.mjs
 // fails until it does. `care_recipient` is uploadable for one column only
 // (`no_known_allergies_at`), so roundtrip patches it in its own step
 // (`RECIPIENT_PATCH`) rather than inserting a row.
