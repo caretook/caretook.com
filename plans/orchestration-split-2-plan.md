@@ -6,6 +6,19 @@
 
 **On hold** (registry row `orchestration-split-2`, flag `hold`, after `orchestration-split`): the user lifts it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slice 3 is the same swap in about ten scripts: a sonnet candidate once slice 2 has set the pattern. The doc splits (6 to 8) need judgement on what is generic: opus.
 
+**Session 1 (2026-11-25, Fable):** started by the user by hand. **Landing mode: ask before each landing**, through the backlog split-ops session (`caretook-com-f7`, the user's contact for the split until the reset, Sat 2026-11-28 12:00); the user's word: "listen to backlog - split-ops agent". No slice started yet: the user skipped "which slices now" and where B-838 and B-842 go, so both were put to split-ops and wait for its answer.
+
+**This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
+
+1. Before every `pnpm prd rotate`, message split-ops and wait for its go (it checks the session record says model fable).
+2. Start every slice worktree with `CARETOOK_USAGE_WATCH=off pnpm prd slice …` (the dispatcher is off on purpose; at 100% usage sessions stop and wait, and split-ops clears the stalls after the reset).
+3. Before each wave lands, a Fable skeptic reviews its decisions and code; its verdict goes here and in the landing report (`skeptic record` takes no such verdict).
+4. Waves 1 to 3 land only when no other PRD, plan or hotfix worktree is open; if one is, hold and message split-ops.
+5. Big choices (an `asked` PRD decision, or a new one of that size) go to the user one at a time through split-ops.
+6. Ask split-ops before each landing and before `pnpm prd rm` / `end`.
+
+**Backlog:** B-543 (the split, the topic's item); B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups) are triaged to this topic with no slice: proposed to split-ops as a new slice 9 in wave 4, unanswered.
+
 | Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
 | ----- | ---- | ------- | -------------------------------------- |
 | 1     | 1    | planned |                                        |
