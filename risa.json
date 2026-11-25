@@ -24,15 +24,15 @@
   },
   "roles": {
     "backlog": { "replacement": "docs/agents/backlog.md" },
-    "hotfix": { "replacement": "docs/agents/hotfix.md" },
+    "hotfix": { "additions": "docs/agents/hotfix.md" },
     "inbox": { "replacement": "docs/agents/inbox.md" },
-    "loop": { "replacement": "docs/agents/loop.md" },
+    "loop": { "additions": "docs/agents/loop.md" },
     "machinery": { "replacement": "docs/agents/machinery.md" },
     "orchestration": { "replacement": "docs/orchestration.md" },
     "orchestrator": { "replacement": "docs/agents/orchestrator.md" },
     "planner": { "replacement": "docs/agents/planner.md" },
     "project-config": { "replacement": "docs/agents/project-config.md" },
-    "recovery": { "replacement": "docs/agents/recovery.md" }
+    "recovery": { "additions": "docs/agents/recovery.md" }
   },
   "branches": {
     "trunk": "dev",
