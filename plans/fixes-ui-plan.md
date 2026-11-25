@@ -19,9 +19,9 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                                  | Merge |
-| ----- | ----- | ---------------------------------------------------------------------- | ----- |
-| 69    | B-793 | wave 10, started 2026-11-24 (worktree fixes-ui-69, opus agent spawned) |       |
+| Slice | Item  | State                                                      | Merge    |
+| ----- | ----- | ---------------------------------------------------------- | -------- |
+| 69    | B-793 | merged; CI components requested; worktree kept until green | 4bc3c614 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
