@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Now (2026-11-24 late):** wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 first, alone; 67 and 68 start once 66 is merged. B-697 wording decided by the skeptic (s29, ask a211).
+**Now (2026-11-24 late):** B-793 (roundtrip timing, blocks staging) is wave 10 slice 69: start it first in the next session; message the backlog session (caretook-com-e5) when it lands in dev. wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 merged (e2f1d254, 22 files: over the 12-file line; split shared ui work finer next time; it took components.md and ui-kit.md just over budget: trim at landing). 67 and 68 merged; wave 9 CI gate: full run 45525300170 on df3581f9 braked: bundle budget, app 408633 B gzip over its 406187 B ceiling (the toast system in the /app layout). Fix agent (opus) in fixes-ui-66: lazy-load the toast parts, no ceiling raise; if it can't, ask the user. Then merge 66 again and rerun full. At landing: trim components.md and ui-kit.md under budget; medications.md: the Schedule tab offers every log's Undo as a toast (UndoToastProvider, offerUndoToast), the Schedule clientAction returns the dose id. B-697 wording decided by the skeptic (s29, ask a211).
 
 **Previous hand-over:** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
 
@@ -21,11 +21,12 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                    | Merge |
-| ----- | ----- | ---------------------------------------- | ----- |
-| 66    | B-669 | started 2026-11-24 (opus)                |       |
-| 67    | B-693 | waits for 66                             |       |
-| 68    | B-697 | waits for 66 (wording decided, ask a211) |       |
+| Slice | Item  | State                                 | Merge    |
+| ----- | ----- | ------------------------------------- | -------- |
+| 66    | B-669 | merged (opus); worktree kept to green | e2f1d254 |
+| 67    | B-693 | merged (opus); worktree kept to green | 8ba36ee2 |
+| 68    | B-697 | merged (opus); worktree kept to green | 1b24ff73 |
+| 69    | B-793 | wave 10, first (staging blocked)      |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -969,6 +970,8 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: component · Blocked by: slice 66
 
+**The toast API (slice 66, merged e2f1d254).** `toast({ message, action?, undo?, timeout?, data? })` from `~/components/ui` returns an id; `dismissToast(id)`; default timeout 6 s (`timeout: null` stays), paused on hover or focus; one shown at a time, newest first. Messages are plain strings. In tests a toast is `getByRole("alertdialog", { name })` and its message `role="alert"`; `renderWithDevice` shows toasts, `renderInRouter` tests mount `<ToastRegion />` themselves; keep the pointer off the toast (hover pauses its timer); `clearToasts()` runs after each test.
+
 **Problem.** A new event or note saves silently on its first save; the user wants a toast.
 
 **Build.** In `routes/app/groups/entry/useLiveEntry.ts`'s `save()` (the one-off and repeating paths, each followed by a replace navigation from `entries/new` to `entries/:id`), show the slice 66 toast "Event saved" or "Note saved" by kind, once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider); never on later autosaves or a failed save. It's a local write: the wording must not imply it has synced, and it works offline. It goes through the shared queue so it survives the navigation, and it never takes focus or interrupts typing (a note's first save is usually its first typed text).
@@ -982,6 +985,8 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: unit, component · Blocked by: slice 66
 
+**The toast API (slice 66, merged e2f1d254).** `toast({ message, action?, undo?, timeout?, data? })` from `~/components/ui` returns an id; `dismissToast(id)`; default timeout 6 s (`timeout: null` stays), paused on hover or focus; one shown at a time, newest first. Messages are plain strings. In tests a toast is `getByRole("alertdialog", { name })` and its message `role="alert"`; `renderWithDevice` shows toasts, `renderInRouter` tests mount `<ToastRegion />` themselves; keep the pointer off the toast (hover pauses its timer); `clearToasts()` runs after each test.
+
 **Problem.** Logging from the Medications Schedule tab shows no toast; only Given all shows an inline "Morning logged · Undo" line.
 
 **Build.** Decided for the user (ask a211, the user can veto): every log from the Schedule tab gets a slice 66 toast with Undo for about 10 s (`UNDO_MS`), through the existing Undo path in `lib/medications/passUndo.ts` (`offerUndo`, `clearUndo`: it deletes exactly the doses it wrote). Wording: one dose Given "Tylenol logged · Undo"; Skipped and Refused "Tylenol marked skipped · Undo" / "Tylenol marked refused · Undo"; Given all "Morning logged · Undo". Cover each path that logs from this tab: the one-tap Given (`DoseSlotRow` via `usePassLog.logSlot`), Skipped and Refused (`MarkDoseDialog`), the as-needed Log (the Schedule route's clientAction and `TodaySection`), and Given all. On the Schedule tab the toast replaces the inline `PassUndoStatus` line (`TodaySection.tsx`), so it never shows both; the other screens' `PassUndoStatus` lines (timeline, Today, the Dose sheet, quick entry, the Med times tab) stay as they are. Toast only after the local write succeeds; errors stay inline. Mind dose-accuracy's landed Undo fixes (B-614, B-627): Undo goes through the same service path.
@@ -991,3 +996,21 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test (`routes/app/groups/medications/today.browser.test.tsx` or beside it): a one-tap Given shows "<name> logged · Undo" and Undo removes that dose; Skipped and Refused show their toast; an as-needed Log shows its toast; Given all shows "Morning logged · Undo" as a toast and no inline line.
 - [ ] A failed log shows no toast, its error inline.
 - [ ] Unit test if `passUndo.ts` gains single-dose rounds.
+
+## Wave 10 (written 2026-11-24 by the orchestrator; B-793 moved into fixes-ui on the user's word, via the backlog session)
+
+Every slice: no migration, no new dependency. **Staging promotion is blocked until slice 69 lands**: start it first, at once, and land it as its own wave; the backlog session recuts the candidate after and wants a message when it lands in dev. Held: B-684 (asterisks, a wave of its own), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 69: Roundtrip's "add: shows on this device at once" fits its 2 s budget again (B-793)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser · Model: opus
+
+**Problem.** Staging candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): `scripts/browser-checks/roundtrip.spec.mjs:249` (`localMs < 2000`) took 2007 ms, then 2069 ms on rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed. Suspect: B-613 (87a6235c: overlays fade at 240 ms, not 120, and `useSheetExit` waits for the overlay too). Against it: `new/route.tsx`'s clientAction writes locally before `onDone` closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. Wave 9's toast region (slice 66) and the saved toast (slice 67) are also new in the /app layout.
+
+**Build.** First measure, then fix. Find whether the app got slower or the step was already at its budget's edge: time `addSymptom`'s phases (submit, local write, sheet close, row visible) on 65529f69's app and on the current tip (a production build, as CI runs it), several runs each, and print `localMs` on pass too. If a change made the row appear later (for example the row waits behind the sheet's exit fade, or a toast or layout change delays the render), fix the app so the new row shows without waiting for the overlay animation. Only if the app's time is unchanged and the step was already at the edge, say so with the numbers and propose (don't just raise) a budget the user approves: never widen it on your own. In the hand-off, give the before and after timings.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has timings for 65529f69 and the tip, phase by phase, and names the cause.
+- [ ] `roundtrip.spec.mjs` prints `localMs` whether it passes or fails.
+- [ ] With the fix, roundtrip passes on a production build at least 5 times in a row, `localMs` well under 2000 ms (say the margin).

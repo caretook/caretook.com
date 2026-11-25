@@ -2,13 +2,47 @@ import type { DoseStatus } from "@caretook/data/schema";
 import type { DoseSlot } from "~/lib/medications/dueDoses";
 import type { DuePass } from "~/lib/medications/duePasses";
 
-import { useCallback, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
+import { dismissToast, toast } from "~/components/ui";
 import { givenAllWrites } from "~/lib/medications/duePasses";
 import { passLoggedLabel } from "~/lib/medications/medicationDisplay";
-import { clearUndo, offerUndo } from "~/lib/medications/passUndo";
+import { clearUndo, doseUndoLabel, offerUndo, UNDO_MS } from "~/lib/medications/passUndo";
 import { getSync } from "~/lib/sync";
 import { logDose, logDoses, removeDoses } from "~/lib/medications/medications.sync";
 import { removeEntries } from "~/lib/assistant/quickEntry.sync";
+
+// The Schedule tab's Undo (B-697): every dose logged there (one-tap Given,
+// Skipped, Refused, an as-needed Log, Given all) shows a toast, "Tylenol
+// logged · Undo" or "Morning logged · Undo", for about 10 s (`UNDO_MS`),
+// instead of a `PassUndoStatus` line. The offer still goes through
+// `passUndo.ts` (one at a time; its `place` keeps the other screens' lines
+// from showing it), and Undo through `undoPassLog`.
+
+/** The `place` of the Schedule tab's offers, so no `PassUndoStatus` shows them. */
+export const UNDO_TOAST_PLACE = "toast";
+
+const UndoToastContext = createContext(false);
+/** `value` true (the Schedule tab's Today): the logging controls under it offer Undo as a toast. */
+export const UndoToastProvider = UndoToastContext.Provider;
+export const useUndoToast = () => useContext(UndoToastContext);
+
+/** The toast showing the last offer; the next offer replaces it. */
+let undoToastId: string | null = null;
+
+/** Offer Undo for doses just logged, as a toast (the Schedule tab). */
+export function offerUndoToast(groupId: string, label: string, doseIds: readonly string[]) {
+  const offer = offerUndo({ groupId, label, doseIds, place: UNDO_TOAST_PLACE });
+  if (undoToastId) dismissToast(undoToastId);
+  undoToastId = toast({
+    message: label,
+    timeout: UNDO_MS,
+    data: { "data-undo-toast": "" },
+    undo: () =>
+      void undoPassLog(offer.key, offer.doseIds).then((result) => {
+        if (!result.ok) toast({ message: result.error });
+      }),
+  });
+}
 
 /**
  * Logging doses by pass, the one path for Today, the Dose sheet and the
@@ -19,9 +53,13 @@ import { removeEntries } from "~/lib/assistant/quickEntry.sync";
  * - `logSlot(slot, status, { note, passLogId })`: one medication of a pass
  *   (or a time of its own), now; in a pass it joins the pass's round, so the
  *   round stays one log.
- * Each control has its own, so `busy` and `error` are its own.
+ * Each control has its own, so `busy` and `error` are its own. Under an
+ * `UndoToastProvider` (the Schedule tab) both offer Undo as a toast instead,
+ * a single dose's too ("Tylenol logged · Undo"); only once the write is
+ * through (a refusal stays `error`).
  */
 export function usePassLog(groupId: string) {
+  const asToast = useUndoToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +81,12 @@ export function usePassLog(groupId: string) {
         const writes = givenAllWrites(pass, new Date());
         if (!writes.length) return { ok: true };
         const result = await logDoses(getSync(), groupId, writes);
-        if (result.ok) offerUndo({ groupId, label: passLoggedLabel(pass), doseIds: result.ids, place });
+        if (!result.ok) return result;
+        if (asToast) offerUndoToast(groupId, passLoggedLabel(pass), result.ids);
+        else offerUndo({ groupId, label: passLoggedLabel(pass), doseIds: result.ids, place });
         return result;
       }),
-    [groupId, run],
+    [groupId, run, asToast],
   );
 
   const logSlot = useCallback(
@@ -55,8 +95,8 @@ export function usePassLog(groupId: string) {
       status: DoseStatus,
       { note, passLogId }: { note?: string; passLogId?: string | null } = {},
     ) =>
-      run(() =>
-        logDose(getSync(), groupId, {
+      run(async () => {
+        const result = await logDose(getSync(), groupId, {
           medicationId: slot.medication.id,
           status,
           scheduledFor: slot.time,
@@ -64,9 +104,12 @@ export function usePassLog(groupId: string) {
           passLogId: passLogId ?? null,
           amount: status === "given" ? slot.amount : null,
           note: note?.trim() || null,
-        }),
-      ),
-    [groupId, run],
+        });
+        if (result.ok && asToast)
+          offerUndoToast(groupId, doseUndoLabel(slot.medication.name, status), [result.id]);
+        return result;
+      }),
+    [groupId, run, asToast],
   );
 
   return { givenAll, logSlot, busy, error };
