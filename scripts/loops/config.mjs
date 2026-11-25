@@ -129,6 +129,8 @@ export const SHAPE = [
   // reads B-772 as RISA-772; new ids, headings and tags keep idPrefix.
   ["backlog.formerIdPrefix", "idPrefix?"],
   ["backlog.zoneOverflowItem", "item?"],
+  // The topic CI files its failures under (the release tier's and dev's, ci blame and zone-file).
+  ["backlog.ciFailureTopic", "slug?"],
   // The project's commands that the tool runs.
   ["commands.install", "command"],
   ["commands.check", "command"],
@@ -162,6 +164,8 @@ export const SHAPE = [
   ["hooks.browser", "command?"],
   ["hooks.checkAreas", "command?"],
   ["hooks.docBudget", "command?"],
+  // How to try a landing and what the main checkout needs after one (ready.sh, land.sh).
+  ["hooks.landing", "command?"],
   // The boundary lint: the project's own folders, which no core file may name.
   ["boundary.appPaths", "path[]?"],
 ];
