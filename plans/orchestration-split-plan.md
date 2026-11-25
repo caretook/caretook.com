@@ -11,8 +11,8 @@
 | 1     | 1    | merged  | e90f5f02                             |
 | 2     | 2    | merged  | fd5aa70e                             |
 | 6     | 2    | merged  | bd866a13                             |
-| 3     | 3    | planned |                                      |
-| 9     | 3    | planned |                                      |
+| 3     | 3    | started |                                      |
+| 9     | 3    | started |                                      |
 | 4     | 4    | planned |                                      |
 | 5     | 4    | planned |                                      |
 | 10    | 5    | planned |                                      |
@@ -26,7 +26,7 @@
 
 **Landed:** wave 1 as 1029b791 (PR #185), wave 2 as b50c288 (PR #186, `full`, Codex out of credits; the lease flake filed as B-824). Their hand-offs, the wave 2 Fable skeptic (go) and its fixes are in [the history](orchestration-split-history.md). Synced with dev after landing (be827a6d), which brought the rotation fix 0c7f16bc. **Before `pnpm prd rotate`, message `backlog - split-ops` and wait for its go.** The user wants a Fable skeptic on each wave's decisions and code before it lands (split-ops, 2026-11-25).
 
-**Next (a fresh session): wave 3**, slices 3 and 9, tier `full`. Slice 3 on opus (commands, the repo finder); slice 9 on sonnet unless its review finds logic (renames plus callers' paths). Wave 3 **moves scripts**: it lands only when no other PRD, plan or hotfix worktree is open (three plan worktrees were open at wave 2). Tell slice agents to unset `CARETOOK_USAGE_WATCH` for the slice check until B-818 lands. Slice 3 uses slice 2's `is_protected`, `not_files` and prefix variables; B-823 (prefixes hardcoded outside `lib.sh`) and B-822 (slice 2's id prefix leftovers) are triaged for this topic and could join slice 3. A test that copies `scripts/backlog/*.mjs` into a throwaway repo must copy `config.mjs` too. Open for this topic: B-821 (a moved `B-n` read as `RISA-n`), needed before the move.
+**Wave 3 running** (2026-11-25, a fresh session after an interruption; git was clean, nothing in flight): slices 3 and 9, worktrees `orchestration-split-3` and `-9` made, one background agent each, both on **opus** (slice 9 too: it has forwarding paths, copies and an engine that reads `risa.json` without the core loader, so not a plain rename). Slice 3 was also given B-823 for the six files it owns. The stall watch runs. Tier `full`. Wave 3 **moves scripts**: it lands only when no other PRD, plan or hotfix worktree is open (three plan worktrees were open at wave 2). Tell slice agents to unset `CARETOOK_USAGE_WATCH` for the slice check until B-818 lands. Slice 3 uses slice 2's `is_protected`, `not_files` and prefix variables; B-823 (prefixes hardcoded outside `lib.sh`) and B-822 (slice 2's id prefix leftovers) are triaged for this topic and could join slice 3. A test that copies `scripts/backlog/*.mjs` into a throwaway repo must copy `config.mjs` too. Open for this topic: B-821 (a moved `B-n` read as `RISA-n`), needed before the move.
 
 **Docs to fold at the last landing**, from wave 2: `docs/agents/loop.md` _Tests_ (`scripts:unit` is now `core:unit` + `project:unit`, plus `project:tooling`; `pnpm test:project` runs both project ones); machinery: `paths.tooling`, `backlog.idPrefix`, `backlogIds()`. Slice 10's `testProjects.tooling` = `tooling:unit`, `core:unit`, `project:unit`, `project:tooling`; harness `tooling:browser`.
 
