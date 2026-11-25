@@ -4,20 +4,20 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 5) merged and green: CI full 45553217886 on 69fb1847, only dev's B-807 (blamed). Its landing is **held** (decided a217, skeptic s33): run waves 2 and 3 in this session, then the lean browser suite once at the end, and land all of planner-3. Wave 1's worktrees removed. PR #182 open; Codex out of credits (review exit 4), so land with `--no-review` and say so. Wave 2 (slices 2, 6) started.
+**Where it stands:** wave 1 (slices 1, 5) merged and green: CI full 45553217886 on 69fb1847, only dev's B-807 (blamed). Its landing is **held** (decided a217, skeptic s33): run waves 2 and 3 in this session, then the lean browser suite once at the end, and land all of planner-3. Wave 1's worktrees removed. PR #182 open; Codex out of credits (review exit 4), so land with `--no-review` and say so. Wave 2 (slices 2, 6) merged; its full CI run on 84dd0a7d is out (slice 2/6 worktrees kept until green). Wave 3 (slices 3, 4) started alongside. Slice 6 merge: resolved conflicts in `TodoForm.tsx` and `todos/new/route.tsx` keeping both sides. B-626, B-254 marked done.
 
 **Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
 
-**Models:** slices 1, 5, 2, 6 opus.
+**Models:** every slice opus.
 
-| Slice | Wave | State                                    | Merge into `prd/planner-3` (slice commits) |
-| ----- | ---- | ---------------------------------------- | ------------------------------------------ |
-| 1     | 1    | merged                                   | d2597d36 (73a443ab, 09d71a4c)              |
-| 2     | 2    | working (worktree planner-3-2, slot 2)   |                                            |
-| 3     | 3    | not started                              |                                            |
-| 4     | 3    | not started                              |                                            |
-| 5     | 1    | merged                                   | 52cba3db (052fe85c, 03217f19)              |
-| 6     | 2    | working (worktree planner-3-6, no stack) |                                            |
+| Slice | Wave | State       | Merge into `prd/planner-3` (slice commits) |
+| ----- | ---- | ----------- | ------------------------------------------ |
+| 1     | 1    | merged      | d2597d36 (73a443ab, 09d71a4c)              |
+| 2     | 2    | merged      | 59723f9e (007af375)                        |
+| 3     | 3    | not started |                                            |
+| 4     | 3    | not started |                                            |
+| 5     | 1    | merged      | 52cba3db (052fe85c, 03217f19)              |
+| 6     | 2    | merged      | 84dd0a7d (d99e07ab, 4f457b42)              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
