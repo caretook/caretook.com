@@ -26,7 +26,7 @@ As in [`orchestration-split-plan.md`](orchestration-split-plan.md) (the names, t
 - **Other worktrees:** waves 1 to 3 move or re-route scripts the main checkout's commands call on other worktrees (the test DB, the stack, serve). Each lands only when no other PRD, plan or hotfix worktree is open.
 - **The role docs** (PRD _Decisions_, asked): one generic doc per role, the core's, in `scripts/loops/docs/<role>.md` until the move; a project adds one additions file per role or replaces the role whole, through the config; `pnpm prd doc <role>` prints the merged text.
 - **The role docs change about ten times a day** (151 commits in two weeks). So the command lands first with every role as a replacement (today's file, no text moved), and the docs then split in three small groups, one a wave. Before each doc slice lands, its orchestrator diffs `dev`'s copy of that group's docs since the slice branched and re-applies each edit to the half it now belongs in.
-- **The doc budget** is on the merged text: `pnpm prd doc <role>` stays within today's per-file figure for that role. Until the move Caretook's budget engine checks the generic docs too (a residual-list line in its config); after it, Risa's copy does.
+- **The doc budget** is a figure per half: each split slice sets one for the generic doc and one for Caretook's additions, the two adding up to today's figure for that role, so the merged text stays within it and neither side has to read the other. Until the move Caretook's budget engine checks the generic docs too (a residual-list line in its config); after it, Risa's copy does.
 
 ## How to run this plan
 
@@ -43,12 +43,12 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 
 **What to build**
 
-- `test-db.sh` moves to `scripts/project/` and stops sourcing `stack-lib.sh` (it gets the few values it needs from `config get`); the data package's test setup (`packages/data/test/globalSetup.ts`) calls it there. The config gains the `test-db` hook.
+- `test-db.sh` moves to `scripts/project/` and stops sourcing `stack-lib.sh` and `lib.sh`: it defines the few values it needs itself (the shared port, the compose project, the database name: all Caretook facts) and uses no core helper, since the integration tests run it with no Risa present; the data package's test setup (`packages/data/test/globalSetup.ts`) calls it there. The config gains the `test-db` hook.
 - The core's callers (`prd.sh`, `down.sh`, `ls.sh`, `recover.sh`, `rm.sh`, `tidy-cli.mjs`) keep working through a forwarding path at the old place; slice 3 swaps them to the hook and removes it.
 
 **Acceptance criteria**
 
-- `pnpm prd check` passes (integration tests on the shared test Postgres); the test-DB tests pass from their new home; the lint finds no core path in the data package's test setup.
+- `pnpm prd check` passes (integration tests on the shared test Postgres); the test-DB tests pass from their new home; the lint finds no core path in the data package's test setup; `test-db.sh` runs with no core file present.
 
 **Blocked by:** `orchestration-split`. **Blocks:** 2.
 
@@ -61,6 +61,7 @@ Stack: yes · Reads: docs/agents/machinery.md · Tests: unit
 **What to build**
 
 - `stack-lib.sh` splits: the stack facts (compose projects, ports, env files, containers, images) move to `scripts/project/` behind `stack up|down|status|ready`; the core logic in it (slice state, held and merged slices, gc ages, the outstanding-runs call) stays core. `stack.sh` and `serve.sh` move with the stack facts.
+- Eight core scripts still source `stack-lib.sh` for the moved facts until slice 3 (`new.sh`, `recover.sh`, `gc.sh`, `down.sh`, `ls.sh`, `reclaim.sh`, `rm.sh`, and `prd.sh`, `browser.sh` call `stack.sh` or `serve.sh` by path): the old function names stay in `stack-lib.sh` as thin calls to the hook, and the old script paths forward, until slice 3 removes both.
 - The check plan's rules (Caretook's data) name `serve.sh`'s new path in the browser harness set, so a change to it still asks for `integration`.
 
 **Acceptance criteria**
@@ -77,7 +78,7 @@ Stack: yes · Reads: docs/agents/machinery.md, docs/agents/recovery.md · Tests:
 
 **What to build**
 
-- The inventory, reclaim, recover, tidy, gc, down, ls, new and rm scripts stop knowing Docker, compose, ports and `caretook_test_*` names: they read the stack hook's `status` facts and call its `down` and the `test-db` hook; slice 1's forwarding path goes.
+- The inventory, reclaim, recover, tidy, gc, down, ls, new and rm scripts stop knowing Docker, compose, ports and `caretook_test_*` names: they read the stack hook's `status` facts and call its `down` and the `test-db` hook; the forwarding paths and thin functions from slices 1 and 2 go.
 - About 10 scripts and their tests; each change is the same swap from a direct Docker, port or `test-db.sh` call to the hook.
 - The core's tests stop importing app code: `stack.test.mjs` and `tidy.test.mjs` take the test-database name from the hook's facts or the sample project, not from `packages/data/`.
 
@@ -114,7 +115,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/planner.md · Tests: u
 
 - `pnpm prd doc <role> [section]` (core): prints the role's generic doc, then the project's additions file when the config names one; or the project's replacement alone when the config names that instead. With a section, only that heading's text from the merged doc. An unknown role or section, or a named file that is missing, is a clear error.
 - In this slice every role is a **replacement**: the config points each role at today's file in `docs/agents/` (and `docs/orchestration.md`), and no text moves.
-- Everything that reads a role doc reads it through the command: the six prompts that name one, `skeptics.mjs` (which reads two planner sections by heading, and `preferences.md` at its config path), the hotfix prompt's "write new rules into the hotfix doc" line, and AGENTS.md's _Area index_.
+- Everything that reads or names a role doc goes through the command: the six prompts that name one, `slice-fields.mjs`, `prd.sh`'s help, `new.sh`, `skeptics.mjs` (which reads two planner sections by heading, and `preferences.md` at its config path), the hotfix prompt's "write new rules into the hotfix doc" line, and AGENTS.md's _Area index_.
 - The conventions that name a role doc's path keep working and are restated: a slice's `Reads: docs/agents/<role>.md` means "run the doc command for that role" (the slice prompt says so; the 26 existing plans aren't rewritten), and AGENTS.md's _At landing_ rule says a process rule goes to the generic doc when any repo would need it, else to Caretook's additions.
 
 **Acceptance criteria**
@@ -135,7 +136,7 @@ Stack: no · Reads: docs/agents/loop.md, docs/agents/hotfix.md, docs/agents/reco
 
 **Acceptance criteria**
 
-- For each doc, a line-level diff of `pnpm prd doc <role>` against the doc before the split shows moved lines only (the hand-off shows it, with each reworded cross-reference listed); the lint finds no Caretook name or app path in a generic doc; the merged text is within the role's budget and `pnpm docs:budget` passes; edits made on `dev` to these docs since the slice branched are re-applied.
+- For each doc, a line-level diff of `pnpm prd doc <role>` against the doc before the split shows moved lines only (the hand-off shows it, with each reworded cross-reference listed); the lint finds no Caretook name or app path in a generic doc; each half has its budget figure, the two adding up to the role's figure today, and `pnpm docs:budget` passes; edits made on `dev` to these docs since the slice branched are re-applied.
 
 **Blocked by:** 5. **Blocks:** 7.
 

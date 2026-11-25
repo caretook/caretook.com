@@ -30,7 +30,7 @@ As in [`orchestration-split-plan.md`](orchestration-split-plan.md), plus:
 - **Start only when** `orchestration-split-2` has landed and the tooling is quiet. **Slice 6 moves `scripts/loops/check-areas.d/` and the checks manifest,** which PRDs add to (_Rules across PRDs_; 84 and 45 commits in two weeks): it starts only when no running PRD or fixes wave has an unlanded change to either, and its landing updates that rule in the orchestrator doc.
 - **Wave 1:** slices 1 and 2 (1 owns `browser.sh`, `scripts/ci/browser-job.mjs`, the browser tests and the places that name the harness test's path; 2 owns `open-session.sh`, `autostart.mjs`, `ask.mjs` and the dispatcher's tab and notification calls). **Wave 2:** slices 3 and 6 (3 owns the callers of `claude`, `codex`, `gh` and Node; 6 owns the checks manifest and its parser, `check-areas.d/`, the check plan's rules file, `ci.yml`'s lint step and the deploy workflow test). **Wave 3:** slice 7 (Claude Code's files). **Wave 4:** slice 4. **Wave 5:** slice 5.
 - **Waves 4 and 5 run with the dispatcher paused** (`pnpm prd dispatch --pause`) and no other worktree of any kind open: they rename what running sessions read. The orchestrator resumes it after each.
-- **Tiers** (what the check plan proposes, once at landing): waves 1, 2 and 4 touch `scripts/ci/`, `.github/` or `vitest.config.ts`: `full`; waves 3 and 5 touch `lib.sh` or `browser.sh`, which the browser harness test covers: `integration` (`full` if the sweep reaches `vitest.config.ts` or `.github/`). Every wave runs `pnpm test:tooling`.
+- **Tiers** (what the check plan proposes, once at landing): waves 1, 2, 4 and 5 touch `scripts/ci/`, `.github/` or `vitest.config.ts` (the sweep rewrites hints in the core's CI code): `full`; wave 3 is tooling only. Every wave runs `pnpm test:tooling`.
 - **Other worktrees** (PRD _Decisions_): wave 1 moves the browser runner; it lands only when no other PRD, plan or hotfix worktree is open.
 - **Docs at the last landing:** the machinery doc (the browser hook, the host layer, `RISA_*`, the command names, the residual list), the orchestrator, loop and hotfix docs, the human guide, `pnpm prd help`; each edit in the generic doc or Caretook's additions, whichever it belongs to.
 
@@ -92,7 +92,7 @@ Stack: no · Reads: docs/agents/machinery.md · Tests: unit
 
 **What to build**
 
-- A scripted rename of every tool knob from `CARETOOK_*` to `RISA_*`, no fallback, in the core, Caretook's code that reads them (`LEASES`, `LOAD_GATE`), `vitest.config.ts`, CI and the docs. The variables Caretook owns (the PRD's _Decisions_ list) keep their names.
+- A scripted rename of every tool knob from `CARETOOK_*` to `RISA_*`, no fallback, in the core, Caretook's code that reads them (`LEASES`, `LOAD_GATE`, and the check's `CHECK_STATE` and `CHECK_COUNTS`, which the core sets for the body), `vitest.config.ts`, CI and the docs. The variables Caretook owns (the PRD's _Decisions_ list) keep their names.
 - The other Caretook names in the core come from the config's project name, their values unchanged (_Architectural decisions_): `caretook-checked` and `caretook-inbox-merged` (`lib.sh`), `caretook-backlog.lock` (`lib.sh`, `backlog.mjs`, `inventory-facts.mjs`, `recover.sh`), the launchd label (`autostart.mjs`), the commit-status context `caretook-ci` (`ci-runs.mjs`) and the literal in `tidy-cli.mjs`.
 - Generic tests' Caretook-like sample paths become neutral ones.
 - The inbox folder outside the repo, `~/.caretook/inbox`, becomes `~/.risa/inbox` (PRD _Decisions_): the slice moves the default; the orchestrator asks the user to move the folder and to tell Claude Code once to trust the new one, before the dispatcher resumes.
@@ -129,7 +129,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 
 **What to build**
 
-- The checks manifest, its parser and guard (`checks.mjs`, `checks.test.mjs`) and `check-areas.d/` move to `scripts/project/`; their config paths change, and so do the check plan's rules that name them, `ci.yml`'s check-areas lint step, the browser job's manifest path, `scripts/deploy/smoke.mjs`'s import and the deploy workflow test. Each is a rename plus its callers' paths.
+- The checks manifest, its parser and guard (`checks.mjs`, `checks.test.mjs`) and `check-areas.d/` move to `scripts/project/`; their config paths change, and so do the check plan's rules that name them, `ci.yml`'s check-areas lint step, the browser job's manifest path, the gate's reads in `browser.sh`, the Vitest project lines that list `checks.test.mjs` by name, the comment in `scripts/ci/brake-list.txt` and the deploy workflow test. Each is a rename plus its callers' paths.
 - _Rules across PRDs_ in the orchestrator doc names the new folder.
 
 **Acceptance criteria**

@@ -15,11 +15,12 @@
 | 9     | 3    | planned |                                      |
 | 4     | 4    | planned |                                      |
 | 5     | 4    | planned |                                      |
-| 8     | 5    | planned |                                      |
 | 10    | 5    | planned |                                      |
+| 13    | 5    | planned |                                      |
 | 7     | 6    | planned |                                      |
+| 8     | 6    | planned |                                      |
 | 11    | 6    | planned |                                      |
-| 12    | 6    | planned |                                      |
+| 12    | 7    | planned |                                      |
 
 **Backlog:** B-543 closes with the move (the runbook's last step).
 
@@ -38,8 +39,8 @@
 ## How to run this plan
 
 - **Start only when the tooling is quiet:** no `fixes-tooling` wave or other topic with `scripts/loops/`, `scripts/backlog/`, `scripts/ci/` or `.githooks/` hot. The three stage-1 topics run one after another, never side by side.
-- **Wave 1:** slice 1. **Wave 2:** slices 2 and 6 (2 owns `scripts/backlog/` and `lib.sh`; 6 owns `package.json`, `vitest.config.ts`, `check-plan.mjs`'s tooling pattern, `tooling-lint.mjs`, the `_global` area map and AGENTS.md). **Wave 3:** slices 3 and 9 (3 owns `lib.sh`, `prd.sh`, `unsynced.sh`, `land.sh`, `new.sh` and `ready.sh`; 9 owns the moved files, `package.json`'s `log` and `docs:budget` lines, `ci.yml`, `serve.sh`'s preview line and the deploy workflow test). **Wave 4:** slices 4 and 5 (4 owns the prompts and goldens; 5 owns `scripts/ci/` and `check-plan.mjs`'s tier import). **Wave 5:** slices 8 and 10 (8 owns `scripts/ci/`; 10 owns `check-plan.mjs`, `dev-brought.mjs`, `tooling-lint.mjs` and `tooling-tests.mjs`). **Wave 6:** slices 7, 11 and 12 (7 owns `land.sh` and `browser.sh`; 11 owns `check-body.sh` and `check-run.sh`; 12 owns `scripts/ci/ci-runs.mjs` and `verdict.mjs`).
-- **Tiers** (what the check plan proposes, once at landing): wave 1 edits the `_global` area map, which the browser harness test covers: `integration`; waves 2 to 6 touch `package.json`, `vitest.config.ts`, `.github/` or `scripts/ci/`: `full`. Every wave also runs `pnpm test:tooling`.
+- **Wave 1:** slice 1. **Wave 2:** slices 2 and 6 (2 owns `scripts/backlog/` and `lib.sh`; 6 owns `package.json`, `vitest.config.ts`, `check-plan.mjs`'s tooling pattern, `tooling-lint.mjs`, the `_global` area map and AGENTS.md). **Wave 3:** slices 3 and 9 (3 owns `lib.sh`, `prd.sh`, `unsynced.sh`, `land.sh`, `new.sh` and `ready.sh`; 9 owns the moved files, `package.json`'s `log` and `docs:budget` lines, `ci.yml`, `serve.sh`'s preview line, `check-body.sh`'s check-areas line, `check-plan.mjs`'s harness pattern and the deploy workflow test). **Wave 4:** slices 4 and 5 (4 owns the prompts and goldens; 5 owns the tier data, its two readers, `tiers.mjs` and `check-plan.mjs`'s tier import). **Wave 5:** slices 10 and 13 (10 owns `check-plan.mjs`, `dev-brought.mjs`, `tooling-lint.mjs` and `tooling-tests.mjs`; 13 owns the eight `scripts/ci/` callers of the tier data and the tests that copy `tiers.mjs`). **Wave 6:** slices 7, 8 and 11 (7 owns `land.sh` and `browser.sh`; 8 owns `scripts/ci/`'s lists and release code; 11 owns `check-body.sh`, `check-run.sh`, `check-failed.mjs`, `prd.sh`'s check case and their tests). **Wave 7:** slice 12 (`scripts/ci/ci-runs.mjs`, `verdict.mjs` and the CI tests that cross the line).
+- **Tiers** (what the check plan proposes, once at landing): wave 1 edits the `_global` area map, which the browser harness test covers: `integration`; waves 2 to 7 touch `package.json`, `vitest.config.ts`, `.github/` or `scripts/ci/`: `full`. Every wave also runs `pnpm test:tooling`.
 - **Docs at the last landing:** [machinery](../docs/agents/machinery.md) (the config, the manifest, the lint, the CI split, the check plan's rules, the check hook, `pnpm test:project`), [orchestrator](../docs/agents/orchestrator.md), [loop](../docs/agents/loop.md), [orchestration](../docs/orchestration.md), `pnpm prd help`.
 
 ## Slice 1: The config, the manifest and the boundary lint
@@ -53,7 +54,7 @@ Stack: no · Reads: docs/agents/machinery.md · Tests: unit
 - `risa.json` at Caretook's root, its whole shape as in the PRD's _Implementation decisions_ (the keys later slices fill in are optional), filled with today's values; the core loader that validates it with a clear error per missing or wrong field; `config get <key>` for bash, used by one bash caller in this slice (`lib.sh`'s trunk name) so the bash side is real from the start. Bash reads the config once per process.
 - `risa.json` gets its row in the `_global` area map and counts as tooling to the check plan, so it passes the check-areas lint and asks for no tier of its own.
 - The core manifest, each file with its owner as the PRD's _Decisions_ and _Implementation decisions_ assign them.
-- The boundary lint over it, a test in `tooling:unit`, starting with an allowlist of today's offenders.
+- The boundary lint over it, a test in `tooling:unit`, starting with an allowlist of today's offenders. The path rules read code and strings, not comments; a comment in a Caretook file that names a core path is corrected at the move (the runbook's step 5).
 
 **Acceptance criteria**
 
@@ -114,7 +115,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/planner.md · Tests: u
 
 **Blocked by:** 2, 3. **Blocks:** 10, `orchestration-split-2`.
 
-## Slice 5: The CI split, part 1: the tier data
+## Slice 5: The CI split, part 1: the tier data and its readers
 
 Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tests: unit
 
@@ -124,13 +125,13 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 
 - `scripts/ci/` gets its owners in the manifest as the PRD's _Implementation decisions_ list them (folders change at the move).
 - Everything the core takes from `tiers.mjs` becomes a data file Caretook owns, named in the config: the tier names and order, each tier's jobs, the file groups with their patterns and tiers, the browser-check path pattern, the two marker file names (the narrowed-run and forced-flake files) and the `ci/` ref prefix.
-- Each side has a small reader of it. Caretook's `tiers.mjs` (the workflow's plan job, on the bare runner's Node) reads the file at a fixed path with `node:fs`, not through the core loader; a Caretook test checks that path matches the config, as for the hooks. The core's reader serves its nine callers (`ci-args`, `ci-commits`, `ci-runs`, `ci-status`, `gate`, `outstanding`, `promote`, `blame` and `check-plan.mjs`): the same swap in each, from an import of `tiers.mjs` to the core reader.
+- Each side has a small reader of it. Caretook's `tiers.mjs` (the workflow's plan job, on the bare runner's Node) reads the file at a fixed path with `node:fs`, not through the core loader; a Caretook test checks that path matches the config, as for the hooks. The core's reader is built and tested here and used by `check-plan.mjs`; the eight CI callers swap to it in slice 13.
 
 **Acceptance criteria**
 
-- The lint reports no core import of `tiers.mjs` and no file-group pattern in a core file; the CI tests and `pnpm prd ci` tests pass; `node scripts/ci/tiers.mjs <ref>` prints the same lines as before for one ref per tier and for a narrowed commit, with Node's own modules only.
+- The two readers give the same answers on Caretook's data file for every symbol the core takes today (a test compares them); `check-plan.mjs` no longer imports `tiers.mjs`; the CI tests and `pnpm prd ci` tests pass; `node scripts/ci/tiers.mjs <ref>` prints the same lines as before for one ref per tier and for a narrowed commit, with Node's own modules only.
 
-**Blocked by:** 1. **Blocks:** 8, 10.
+**Blocked by:** 1. **Blocks:** 10, 13.
 
 ## Slice 6: `scripts/project/` as tooling, and the test projects
 
@@ -179,9 +180,10 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 
 **Acceptance criteria**
 
+- `release.test.mjs` splits with the module, each half beside its owner.
 - The lint reports no core import of Caretook's `lists.mjs`, no import from `verdict.mjs` into the core's release code, and no backlog id in a core CI file; the CI tests and `pnpm prd ci` tests pass.
 
-**Blocked by:** 5. **Blocks:** 12.
+**Blocked by:** 13 (`blame.mjs`). **Blocks:** 12.
 
 ## Slice 9: Caretook's engines and scripts move
 
@@ -192,12 +194,13 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 **What to build**
 
 - These move to `scripts/project/` with their tests: the check-areas and doc-budget engines (with their own copies of `package-diff.mjs` and `status-trim.mjs`), the doc-budget data (`doc-budget.config.mjs`, beside its engine), `host-headers.mjs`, `log.sh` and `sync-matrix.test.mjs`. The check-areas engine reads its areas folder from a config path, so the folder's later move is one line.
-- `.github/workflows/ci.yml`, `pnpm check`'s doc budget, `pnpm log`, `serve.sh`'s preview line and the deploy workflow test name the new paths. The core's callers keep working through a forwarding path until slice 7.
+- `.github/workflows/ci.yml`, `pnpm check`'s doc budget, `pnpm log`, `serve.sh`'s preview line and the deploy workflow test name the new paths. The core's callers keep working through a forwarding path until slice 7, except `check-body.sh`, whose check-areas lint line names the new path at once (allowlisted until slice 11 moves the body).
+- The check plan's browser harness set names the check-areas engine's new path, so a change to it still asks for `integration`.
 - Each move is a rename plus its callers' paths; no logic changes.
 
 **Acceptance criteria**
 
-- `pnpm test`, `test:tooling` and `test:browser-harness` list the same tests as before but for the moved paths; `pnpm docs:budget`, `pnpm log` and the check-areas lint print the same as before.
+- `pnpm test`, `test:tooling` and `test:browser-harness` list the same tests as before but for the moved paths; `pnpm docs:budget`, `pnpm log` and the check-areas lint print the same as before; a change to the moved check-areas engine proposes `integration`.
 - In a temporary copy without the core's files, `pnpm check`'s doc budget, the check-areas lint and `pnpm test:project` run.
 
 **Blocked by:** 6. **Blocks:** 7, 11.
@@ -227,13 +230,15 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 
 **What to build**
 
-- `check-body.sh` (PRD _Decisions_, asked) moves to `scripts/project/` as Caretook's check script: the format, lint and typecheck steps, the Vitest projects each mode runs, the budgets. The core calls it through the config's `check` hook: the mode, the base and the own tests go in as arguments; its exit code and its log lines come out.
-- The core keeps what surrounds it in `check-run.sh`: the lease, the load gate, the log, the timings, the rerun rules and the check plan. The hook's contract (arguments, exit codes, the log lines the timings and the failure reader parse) is written in [machinery](../docs/agents/machinery.md) and tested from both sides.
+- `check-body.sh` (PRD _Decisions_, asked) moves to `scripts/project/` as Caretook's check script: the format, lint and typecheck steps, the Vitest projects each mode runs, the budgets. Its failure reader (`check-failed.mjs`) moves with it. The core calls it through the config's `check` hook, from `prd.sh`'s check case, which also stops printing the step list itself.
+- **The hook's contract, as the code has it:** the mode, the base and the own tests go in as arguments; the body reports through its exit code and through the state files (the current step, the failed and the flaky tests) and the counts file, whose paths the core hands it in the environment.
+- The body's last step today runs the core's own tooling tests. That step leaves the body: after the hook returns, the core runs them through `tooling-tests.mjs`, so the body takes no tooling argument and names no core project.
+- The core keeps what surrounds it in `check-run.sh`: the lease, the load gate, the log, the timings, the rerun rules and the check plan. The hook's contract (arguments, exit codes, the state and counts files) is written in [machinery](../docs/agents/machinery.md) and tested from both sides.
 - The sample project brings a two-line check script.
 
 **Acceptance criteria**
 
-- `pnpm prd check --quick` on a small sample change runs the same steps in the same order as before (the hand-off shows both logs); the check tests pass on the sample project's script; `check-run.sh` names no Vitest project, app path or budget; the body runs alone with no `.loops/` (it is what a repo with no Risa would run); the touched files leave the allowlist.
+- `pnpm prd check --quick` on a small sample change runs the same steps in the same order as before (the hand-off shows both logs); the check tests pass on the sample project's script; `check-run.sh` and `prd.sh`'s check case name no Vitest project, app path or budget; the tests that read the body's path or the call's text (`check-body.test.mjs`, `lint-heap.test.mjs`, `lease.test.mjs`) pass; the body runs alone with no `.loops/` and no core file (it is what a repo with no Risa would run); the touched files leave the allowlist.
 
 **Blocked by:** 3, 9, 10. **Blocks:** `orchestration-split-2`.
 
@@ -246,6 +251,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 **What to build**
 
 - The core's `ci-runs.mjs` reads a verdict as a file with its own reader instead of importing `verdict.mjs`.
+- The core's CI tests that import `verdict.mjs` to build one (`blame.test.mjs`, `promote.test.mjs`, `release.test.mjs`, `ci.test.mjs`) use verdict fixtures as files; `ci.test.mjs`, which tests both sides, splits by owner.
 - The browser job's call to `browser.sh` and its path to the checks manifest are `orchestration-split-3`'s (slices 1 and 6) and stay allowlisted until then.
 
 **Acceptance criteria**
@@ -253,3 +259,20 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 - The lint reports no reference across the line for `scripts/ci/` except the allowlisted runner call and manifest path; the CI tests and `pnpm prd ci` tests pass; in a temporary copy without the core's files, the test job, verdict, zones, env and tiers modules load and their tests pass.
 
 **Blocked by:** 8. **Blocks:** `orchestration-split-2`.
+
+## Slice 13: The CI split, part 1b: the core's callers of the tier data
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tests: unit
+
+**User stories:** 2, 6.
+
+**What to build**
+
+- The eight CI callers (`ci-args`, `ci-commits`, `ci-runs`, `ci-status`, `gate`, `outstanding`, `promote`, `blame`) swap from an import of `tiers.mjs` to slice 5's core reader: the same swap in each.
+- The tests follow: the core tests that import `tiers.mjs` (`ci.test.mjs`, `release.test.mjs`, `promote.test.mjs`) use the reader, and the four that copy `tiers.mjs` into a fixture because `outstanding.mjs` imported it (`reclaim.test.mjs`, `stack.test.mjs`, `rotate.test.mjs`, `tidy-cli.test.mjs`) copy the data file and the reader instead.
+
+**Acceptance criteria**
+
+- The lint reports no core import of `tiers.mjs` and no file-group pattern in a core file; the CI tests, the four fixture tests and `pnpm prd ci` tests pass.
+
+**Blocked by:** 5. **Blocks:** 8.
