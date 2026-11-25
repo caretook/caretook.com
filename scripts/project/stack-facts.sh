@@ -198,3 +198,101 @@ stack_facts() {
   fi
   return 0
 }
+
+# iso_epoch ISO → epoch seconds of an RFC 3339 time (Docker's FinishedAt).
+iso_epoch() {
+  local s=${1%%.*}; s=${s%Z}
+  date -j -u -f '%Y-%m-%dT%H:%M:%S' "$s" +%s 2>/dev/null || date -u -d "${s}Z" +%s 2>/dev/null
+}
+
+# stopped_secs DIR PROJECT → how long ago the stack stopped, in seconds: its
+# newest container's end; nothing when one runs. No containers at all: the root
+# .env's age stands in.
+stopped_secs() {
+  local ids line newest=0 t now
+  now=$(date +%s)
+  ids=$(docker ps -aq --filter "label=com.docker.compose.project=$2" 2>/dev/null || true)
+  if [[ -z $ids ]]; then
+    t=$(stat -f %m "$1/.env" 2>/dev/null || stat -c %Y "$1/.env" 2>/dev/null || echo "$now")
+    echo $((now - t)); return 0
+  fi
+  # shellcheck disable=SC2086
+  while read -r line; do
+    [[ $line == true* ]] && return 0
+    t=$(iso_epoch "${line#* }") || continue
+    ((t > newest)) && newest=$t
+  done < <(docker inspect -f '{{.State.Running}} {{.State.FinishedAt}}' $ids 2>/dev/null)
+  ((newest > 0)) && echo $((now - newest))
+  return 0
+}
+
+# wait_for_pg DIR PROJECT → until the stack's Postgres accepts connections
+# (CARETOOK_RECOVER_PG_SECS, 60); dies past that.
+wait_for_pg() {
+  local c deadline limit=${CARETOOK_RECOVER_PG_SECS:-60}
+  c=$(env_get "$1/.env.loop" PG_CONTAINER); c=${c:-$2-postgres-1}
+  deadline=$(($(date +%s) + limit))
+  until docker exec "$c" pg_isready -q -h 127.0.0.1 -U caretook -d caretook >/dev/null 2>&1; do
+    (($(date +%s) < deadline)) || die "$c didn't accept connections within ${limit}s"
+    sleep 1
+  done
+}
+
+# migrate DIR → the worktree's migrations, no seed; the log in .recover-migrate.log.
+migrate() { (cd "$1" && use_node && pnpm -s datastore:migrate) </dev/null >"$1/.recover-migrate.log" 2>&1; }
+
+# start_engine → open Docker Desktop and wait for `docker info`
+# (CARETOOK_DOCKER_WAIT_SECS, 180); dies past that.
+start_engine() {
+  local limit=${CARETOOK_DOCKER_WAIT_SECS:-180} deadline
+  docker info >/dev/null 2>&1 && return 0
+  open -a Docker </dev/null || die "couldn't start Docker Desktop (open -a Docker); start Docker, then rerun"
+  deadline=$(($(date +%s) + limit))
+  until docker info >/dev/null 2>&1; do
+    (($(date +%s) < deadline)) || die "Docker didn't answer within ${limit}s; start it by hand, then rerun"
+    sleep 2
+  done
+}
+
+# docker_kb SIZE → Docker's size (21.03kB, 1.127MB, 2GB, 0B) in KB.
+docker_kb() {
+  awk -v s="$1" 'BEGIN {
+    n = s + 0; u = s; sub(/^[0-9.]+/, "", u); u = toupper(u)
+    m = (u == "KB") ? 1 : (u == "MB") ? 1000 : (u == "GB") ? 1000000 : (u == "TB") ? 1000000000 : 0.001
+    printf "%d\n", n * m
+  }'
+}
+
+# leftovers [--all-flag in $all] PROJECT… → the dangling Docker data no stack
+# uses (stack.sh leftovers): volume=, image= and kept= lines. The PROJECTs are
+# in use, and so are the main checkout's (caretook) and the shared test
+# Postgres's, and each PROJECT's -test (worktrees made before the shared one).
+leftovers() {
+  local used vname vsize links labels vproj others=0 id isize shared p
+  docker info >/dev/null 2>&1 || { echo "kept=Docker isn't running: volumes and images not checked"; return 0; }
+  shared=${CARETOOK_SHARED_TEST_PROJECT:-caretook-shared-test}
+  used=" $shared caretook "
+  for p in "$@"; do used+="$p $p-test "; done
+  while read -r vname vsize links labels; do
+    [[ -n $vname && $links == 0 ]] || continue
+    vproj=$(tr ',' '\n' <<<"${labels:-}" | sed -n 's/^com\.docker\.compose\.project=//p' | head -1)
+    if [[ -z $vproj ]]; then
+      if [[ -n $all && ${labels:-} == *com.docker.volume.anonymous* ]]; then
+        echo "volume=$vname $(docker_kb "$vsize") dangling, anonymous"
+      else
+        others=$((others + 1))
+      fi
+    elif [[ $used == *" $vproj "* ]]; then
+      [[ -z $all ]] || echo "kept=volume $vname: $vproj is still in use (the main checkout, the shared test Postgres or a worktree's stack)"
+    elif [[ $vproj =~ ^caretook-loop[0-9]+(-test)?$ ]]; then
+      echo "volume=$vname $(docker_kb "$vsize") dangling; no worktree uses $vproj"
+    else
+      others=$((others + 1))
+    fi
+  done < <(docker system df -v --format '{{range .Volumes}}{{.Name}} {{.Size}} {{.Links}} {{.Labels}}{{println}}{{end}}' 2>/dev/null || true)
+  [[ -z $all ]] && return 0
+  ((others == 0)) || echo "kept=$others dangling volume(s) of other Compose projects, or named outside Compose: not caretook's, left alone"
+  while read -r id isize; do
+    [[ -z $id ]] || echo "image=$id $(docker_kb "$isize") dangling (untagged)"
+  done < <(docker images --filter dangling=true --format '{{.ID}} {{.Size}}' 2>/dev/null || true)
+}

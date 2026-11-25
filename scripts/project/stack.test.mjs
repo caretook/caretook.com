@@ -25,6 +25,10 @@ echo "docker $*" >> "$FAKE_LOG"
 case $1 in
   ps) if [[ "$*" == *status=running* ]]; then [[ -z \${FAKE_RUNNING_IDS:-} ]] || echo "$FAKE_RUNNING_IDS"
       elif [[ "$*" == *-aq* && "$*" != *-test ]]; then [[ -z \${FAKE_STACK_IDS:-} ]] || echo "$FAKE_STACK_IDS"; fi ;;
+  inspect) [[ -z \${FAKE_INSPECT:-} ]] || echo "$FAKE_INSPECT" ;;
+  info) exit "\${FAKE_INFO:-0}" ;;
+  system) [[ -z \${FAKE_DF:-} ]] || echo "$FAKE_DF" ;;
+  images) [[ -z \${FAKE_IMAGES:-} ]] || echo "$FAKE_IMAGES" ;;
 esac
 exit 0
 `;
@@ -189,5 +193,74 @@ describe("serve.sh", () => {
     const r = run("serve.sh", ["t-1"]);
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/t-1 has no stack, so no dev server/);
+  });
+});
+
+// The hook contract's additions for the core's callers (B-846 point 3): stop
+// keeping the data, the stopped-since fact, start with a migrate and no seed,
+// the engine, and the dangling data no stack uses.
+describe("stop, start, stopped_secs, engine and leftovers", () => {
+  const dir = () => join(loops, "t-1");
+  beforeAll(() => ok(["up", dir(), "--slot", "6", "--base", "prd/t", "--env-only"]));
+  afterAll(() => ok(["down", dir()]));
+
+  it("stops a stack keeping its data, and does nothing without one", () => {
+    expect(facts(ok(["stop", dir()])).project).toBe("caretook-loop6");
+    expect(calls()).toMatch(/^docker compose stop$/m);
+    expect(calls()).not.toMatch(/down|rm/);
+    mkdirSync(join(loops, "bare"), { recursive: true });
+    rmSync(log, { force: true });
+    expect(ok(["stop", join(loops, "bare")])).toBe("");
+    expect(calls()).toBe("");
+  });
+
+  it("starts a stopped stack and migrates it, never seeding", () => {
+    expect(facts(ok(["start", dir()])).project).toBe("caretook-loop6");
+    expect(calls()).toMatch(/^docker compose up -d --wait$/m);
+    expect(calls()).toMatch(/^docker exec caretook-loop6-postgres-1 pg_isready/m);
+    expect(calls()).toMatch(/^pnpm -s datastore:migrate$/m);
+    expect(calls()).not.toMatch(/seed|datastore:start/);
+    expect(run("stack.sh", ["start", join(loops, "bare")]).status).not.toBe(0);
+  });
+
+  it("says how long ago a stopped stack stopped, and nothing while one runs", () => {
+    const ready = (e) => facts(run("stack.sh", ["ready", dir()], { env: e }).stdout);
+    const stopped = ready({ FAKE_STACK_IDS: "a", FAKE_INSPECT: "false 2020-01-02T03:04:05.123456789Z" });
+    expect(Number(stopped.stopped_secs)).toBeGreaterThan(86400 * 365);
+    expect(ready({ FAKE_STACK_IDS: "a", FAKE_RUNNING_IDS: "a" }).stopped_secs).toBeUndefined();
+    // No containers at all: the root .env's age stands in.
+    expect(Number(ready({}).stopped_secs)).toBeLessThan(600);
+  });
+
+  it("reads and starts the engine", () => {
+    expect(facts(ok(["engine"]))).toEqual({ running: "yes", name: "Docker" });
+    expect(facts(run("stack.sh", ["engine"], { env: { FAKE_INFO: "1" } }).stdout).running).toBe("no");
+  });
+
+  it("lists the dangling data no stack uses, keeping the projects in use", () => {
+    const df = [
+      "caretook-loop9_data 12.5MB 0 com.docker.compose.project=caretook-loop9",
+      "caretook-loop6_data 3MB 0 com.docker.compose.project=caretook-loop6",
+      "caretook_data 5MB 0 com.docker.compose.project=caretook",
+      "caretook-shared-test_data 1MB 0 com.docker.compose.project=caretook-shared-test",
+      "other_db 1GB 0 com.docker.compose.project=other",
+      "abc123 21.03kB 0 com.docker.volume.anonymous=",
+      "linked 1MB 1 com.docker.compose.project=caretook-loop9",
+    ].join("\n");
+    const e = { env: { FAKE_DF: df, FAKE_IMAGES: "sha256img 2GB" } };
+    expect(ok(["leftovers", "caretook-loop6"], e).trim().split("\n")).toEqual([
+      "volume=caretook-loop9_data 12500 dangling; no worktree uses caretook-loop9",
+    ]);
+    const all = ok(["leftovers", "--all", "caretook-loop6"], e);
+    expect(all).toMatch(/^volume=abc123 21 dangling, anonymous$/m);
+    expect(all).toMatch(/^image=sha256img 2000000 dangling \(untagged\)$/m);
+    expect(all).toMatch(/^kept=volume caretook-loop6_data: caretook-loop6 is still in use/m);
+    expect(all).toMatch(/^kept=1 dangling volume\(s\) of other Compose projects/m);
+    expect(ok(["leftovers"], { env: { FAKE_INFO: "1" } })).toMatch(/^kept=Docker isn't running/);
+    rmSync(log, { force: true });
+    ok(["leftovers", "remove", "volume", "caretook-loop9_data"]);
+    ok(["leftovers", "remove", "image", "sha256img"]);
+    expect(calls()).toMatch(/^docker volume rm caretook-loop9_data\ndocker image rm sha256img$/m);
+    expect(run("stack.sh", ["leftovers", "remove", "network", "x"]).status).not.toBe(0);
   });
 });
