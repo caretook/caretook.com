@@ -2079,6 +2079,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): From orchestration-split slice 1 (2026-11-25): agent shells inherit CARETOOK_USAGE_WATCH=off from the orchestrator session, so the slice check failed twice on this test until the variable was unset. The test should clear the variable (or pass its own env).
+- 2026-11-25 (prd/orchestration-split-2): Seen 2026-11-25 on orchestration-split-2's slice checks (slice 4, and the base e512f067): the split week starts every slice worktree with CARETOOK_USAGE_WATCH=off, so every slice check's tooling step fails on this one test until it's fixed or the week ends.
 
 ### B-819 · change · Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped)
 
