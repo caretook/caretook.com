@@ -332,10 +332,10 @@ const passDoses = async (
   const rows = { recipient, medications, passes, doses, changes };
   const passRow = rows.passes.find((p) => p.id === action.passId);
   if (!passRow || passRow.deleted_at || passRow.group_id !== groupId)
-    return { ok: false, error: "That pass is gone. It may have been deleted.", issues: [] };
+    return { ok: false, error: "That med time is gone. It may have been deleted.", issues: [] };
   const due = toDueDoses(rows, at);
   const pass = duePasses(due, toPasses(rows.passes)).find((p) => p.passId === action.passId);
-  const name = passRow.name ?? "This pass";
+  const name = passRow.name ?? "This med time";
   if (!pass?.slots.length) return { ok: false, error: `${name} has no medications.`, issues: [] };
   const writes = givenAllWrites(pass, at).map((w) => ({ ...w, timeZone }));
   if (!writes.length) return { ok: false, error: `Nothing is left to give in ${name}.`, issues: [] };

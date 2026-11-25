@@ -55,9 +55,26 @@
 // the tick carries on.
 //
 // Every TIDY_EVERY_MS (six hours), on a tick that does nothing else (and isn't
-// paused), it runs `pnpm prd tidy --yes`. A usage limit isn't detected: the
-// user pauses and resumes. Without iTerm2 it refuses to run (it couldn't open
-// sessions); --dry-run works anywhere.
+// paused), it runs `pnpm prd tidy --yes`. Without iTerm2 it refuses to run (it
+// couldn't open sessions); --dry-run works anywhere.
+//
+// Each tick first takes the drain decision (drain.mjs) from the usage readings
+// (usage.mjs, .loops/.usage/): draining (CARETOOK_USAGE_DRAIN, 85%) holds starts,
+// plans, reopens and the keep-alive (--resume doesn't override it); limited
+// (CARETOOK_USAGE_STOP, 98%, overage, or a session stopped on a limit) also ends
+// each managed session not running a landing (marked stalled; KILL a tick later if
+// it ignored TERM), files one report naming the live hand-opened ones, and opens no
+// claude at all: no helper, session request, context or stuck follow-up. An
+// unknown reading never drains; with a session live past CARETOOK_USAGE_STALE_MIN,
+// it files one report per incident. CARETOOK_USAGE_WATCH=off turns it off.
+//
+// Then, before the pick, the resume after a limit (resume.mjs): each managed orchestrator
+// or planner marked stalled whose reset has passed is claimed (its mark cleared), so the
+// pick never counts it as a death; a live one is ended (TERM, KILL a tick later), and a
+// dead one reopened through the opener with --continue and the carry-on prompt
+// (open-session.sh --carry-on), one per tick, taking the tick's action, never counted
+// toward the reopen limit. Never while paused, draining or limited, during a pnpm prd
+// command or with a landing marker; a hand-opened session's mark is only reported.
 //
 // Files, in the main checkout's .loops: .dispatch.lock (the running
 // instance's pid; a lock whose pid is gone is taken over), .dispatch.json (the
@@ -99,7 +116,9 @@ import {
   stuckDecision,
   stuckSettings,
 } from "./dispatch-stuck.mjs";
+import { LIMITED_ERROR, drainDecision, drainSettings, landingUnder, limitActions } from "./drain.mjs";
 import { heartbeatDirOf, readHeartbeats } from "./heartbeat.mjs";
+import { listRecords as listLandings } from "./land-journal.mjs";
 import { briefProblem } from "./rotate.mjs";
 import { START_GRACE_MS, clearKeepStops, keepAliveDecision, keepAnswerAction } from "./keep-alive.mjs";
 import { readLoadGate } from "./load-gate.mjs";
@@ -115,6 +134,8 @@ import {
   settleRequest,
 } from "./session-requests.mjs";
 import { isLive, processOf, processTable, readRecord, readRecords, writeRecord } from "./sessions.mjs";
+import { resumeDecision, resumingOf, sessionOfBranch } from "./resume.mjs";
+import { clearStalled, markStalled, readReadings, readUsage, staleMsOf } from "./usage.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -216,6 +237,10 @@ export function pathsOf(/** @type {string} */ main, env = process.env) {
     notices: env.CARETOOK_NOTICES_DIR || join(loops, ".notices"),
     cap: join(loops, ".prd-cap"),
     watch: env.CARETOOK_WATCH_DIR || join(loops, ".watch"),
+    usage:
+      env.CARETOOK_USAGE_DIR ||
+      join(dirname(env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions")), ".usage"),
+    landing: env.CARETOOK_LANDING_DIR || join(loops, ".landing"),
   };
 }
 
@@ -247,7 +272,9 @@ export function prdCapOf(/** @type {string} */ file, env = process.env) {
  *   context?: Record<string, import("./dispatch-context.mjs").ContextEntry>,
  *   stuck?: { lastTickAt?: number, clockFrom?: number | null,
  *     sessions?: Record<string, import("./dispatch-stuck.mjs").StuckEntry>, reported?: string[] },
- *   keepAlive?: import("./keep-alive.mjs").KeepState }} DispatchState */
+ *   keepAlive?: import("./keep-alive.mjs").KeepState,
+ *   drain?: { state?: string, unknownReported?: boolean, reported?: string[] },
+ *   resume?: { claimed?: Record<string, import("./resume.mjs").Claim> } }} DispatchState */
 
 /** @returns {DispatchState} */
 export function readState(/** @type {string} */ file) {
@@ -980,6 +1007,310 @@ function requestStep(
   return true;
 }
 
+// ---- the drain -------------------------------------------------------------------
+
+/** The `session` of the drain's own reports. */
+export const DRAIN_SESSION = "dispatch-usage";
+
+/** The drain decision from the usage readings (an unreadable one is unknown: never drains). */
+function drainOf(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {ReturnType<typeof gather>} */ g,
+  /** @type {NodeJS.ProcessEnv} */ env,
+) {
+  const now = g.facts.now;
+  return drainDecision(readUsage(p.usage, { now, env }), {
+    ...drainSettings(env),
+    now,
+    staleMs: staleMsOf(env),
+    sessions: g.records.map((r) => ({ live: r.live, startedMs: Date.parse(r.record.started ?? "") })),
+  });
+}
+
+/**
+ * The drain's actions: one report for an unknown reading, and while limited, each managed
+ * session ended (marked stalled first) unless it runs a landing, and one report naming the
+ * hand-opened ones. Returns whether it did anything.
+ */
+function drainStep(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {ReturnType<typeof gather>} */ g,
+  /** @type {import("./drain.mjs").Drain} */ drain,
+  /** @type {{ dryRun: boolean, env: NodeJS.ProcessEnv, out: (l: string) => void }} */ { dryRun, env, out },
+) {
+  const now = g.facts.now;
+  const prev = readState(p.state).drain ?? {};
+  const report = (/** @type {string} */ text) => {
+    const r = run(
+      "node",
+      [join(HERE, "ask.mjs"), "ask", "--topic", "dispatch", "--report", text, "--session", DRAIN_SESSION],
+      { cwd: p.main, env: { ...env, CARETOOK_ASKS_DIR: p.asks } },
+    );
+    if (!r.ok) out(`usage: filing the report failed: ${(r.err || r.out).split("\n").pop()}`);
+    return r.ok;
+  };
+  let acted = false;
+  let unknownReported = drain.unknown ? prev.unknownReported === true : false;
+  if (drain.unknown && !unknownReported) {
+    if (dryRun) out("usage: would report an unknown reading");
+    else if (
+      report(
+        `The usage reading is unknown (${drain.why}) while sessions are live: the dispatcher can't drain before a limit. Check the sessions' status lines (pnpm prd usage).`,
+      )
+    ) {
+      unknownReported = true;
+      acted = true;
+      out("usage: reported an unknown reading");
+    }
+  }
+  /** @type {string[]} */
+  let reported = drain.state === "limited" ? (prev.reported ?? []) : [];
+  if (drain.state === "limited") {
+    /** @type {Map<number, { ppid: number, args: string }> | null} */
+    let table = null;
+    try {
+      table = processTable();
+    } catch {
+      /* held below */
+    }
+    const sessions = g.records.map((r) => ({
+      name: r.name,
+      pid: r.record.pid ?? 0,
+      live: r.live,
+      managed: r.record.managed === true,
+    }));
+    if (!table && sessions.some((s) => s.live && s.managed))
+      // A landing can't be told apart: none is ever stopped, so nothing is ended.
+      out("usage limited: the process table can't be read, so nothing is ended this tick");
+    else {
+      const journalPids = new Set(
+        listLandings(p.landing)
+          .map((r) => Number(r.pid))
+          .filter((n) => Number.isInteger(n) && n > 0),
+      );
+      const landing = new Set(
+        sessions.filter((s) => s.live && table && landingUnder(s.pid, table, journalPids)).map((s) => s.name),
+      );
+      /** @type {Record<string, any>} */
+      const stalls = {};
+      for (const r of readReadings(p.usage)) if (r?.stalled) stalls[String(r.session)] = r.stalled;
+      for (const a of limitActions({ sessions, landing, stalls, reported, drain, now })) {
+        if (a.type === "wait") {
+          out(`usage limited: ${a.session} left running (${a.why})`);
+          continue;
+        }
+        if (dryRun) {
+          out(`usage limited: would ${a.type} ${a.type === "report" ? a.sessions.join(", ") : a.session}`);
+          continue;
+        }
+        acted = true;
+        if (a.type === "report") {
+          if (report(a.text)) {
+            reported = [...reported, ...a.sessions];
+            out(`usage limited: reported ${a.sessions.join(", ")} (opened by hand, never ended)`);
+          }
+          continue;
+        }
+        if (a.type === "end") {
+          // Marked first: the resume (after the reset) finds it by its mark.
+          let marked = "marked stalled";
+          try {
+            markStalled(p.usage, a.session, {
+              error: LIMITED_ERROR,
+              resetsAt: drain.resetsAt,
+              pid: a.pid,
+              now,
+            });
+          } catch (e) {
+            marked = `its stall mark failed: ${e instanceof Error ? e.message : String(e)}`;
+          }
+          let sent = "TERM";
+          try {
+            process.kill(a.pid, "SIGTERM");
+          } catch (e) {
+            sent = `TERM failed (${/** @type {NodeJS.ErrnoException} */ (e).code ?? e})`;
+          }
+          out(`usage limited: ended ${a.session} (pid ${a.pid}, ${sent}; ${marked})`);
+        } else {
+          try {
+            process.kill(a.pid, "SIGKILL");
+          } catch {
+            /* gone meanwhile */
+          }
+          out(`usage limited: ${a.session} ignored TERM: killed it (pid ${a.pid})`);
+        }
+      }
+    }
+  }
+  if (!dryRun && (prev.state !== drain.state || prev.unknownReported !== unknownReported || acted))
+    updateState(p.state, (s) => {
+      s.drain = { state: drain.state, unknownReported, reported };
+    });
+  if (prev.state !== drain.state && (prev.state !== undefined || drain.state !== "normal"))
+    out(`usage: now ${drain.state}: ${drain.why}`);
+  return acted;
+}
+
+// ---- the resume after a limit -----------------------------------------------------
+
+/** Files one report under the drain's session. Returns whether it was filed. */
+function fileReport(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {NodeJS.ProcessEnv} */ env,
+  /** @type {string} */ text,
+  /** @type {(l: string) => void} */ out,
+) {
+  const r = run(
+    "node",
+    [join(HERE, "ask.mjs"), "ask", "--topic", "dispatch", "--report", text, "--session", DRAIN_SESSION],
+    { cwd: p.main, env: { ...env, CARETOOK_ASKS_DIR: p.asks } },
+  );
+  if (!r.ok) out(`resume: filing the report failed: ${(r.err || r.out).split("\n").pop()}`);
+  return r.ok;
+}
+
+/**
+ * The resume's decision, and its claims and marks applied (before the pick, so a claimed
+ * session is never a death the reopen rule counts). Returns the decision and the sessions
+ * the pick leaves to it.
+ */
+function resumePrep(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {ReturnType<typeof gather>} */ g,
+  /** @type {import("./drain.mjs").Drain} */ drain,
+  /** @type {{ dryRun: boolean, env: NodeJS.ProcessEnv, out: (l: string) => void }} */ { dryRun, env, out },
+) {
+  const now = g.facts.now;
+  const claimed = readState(p.state).resume?.claimed ?? {};
+  const marks = readReadings(p.usage)
+    .filter((r) => r?.stalled && typeof r.stalled === "object")
+    .map((r) => ({ session: String(r.session), stalled: r.stalled }));
+  if (!marks.length && !Object.keys(claimed).length) return null;
+  /** @type {Map<number, { ppid: number, args: string }> | null} */
+  let table = null;
+  try {
+    table = processTable();
+  } catch {
+    /* commands: null below */
+  }
+  const journals = listLandings(p.landing);
+  const journalPids = new Set(journals.map((r) => Number(r.pid)).filter((n) => Number.isInteger(n) && n > 0));
+  /** @type {Set<string>} */
+  const landing = new Set();
+  for (const j of journals) {
+    const s = sessionOfBranch(String(j.branch ?? ""));
+    if (s) landing.add(s);
+  }
+  /** @type {Set<string> | null} */
+  const commands = table ? new Set() : null;
+  for (const r of g.records) {
+    if (!r.live || !r.record.pid || !table) continue;
+    if (landingUnder(r.record.pid, table, journalPids)) landing.add(r.name);
+    if (commandUnder(r.record.pid, table)) commands?.add(r.name);
+  }
+  const d = resumeDecision({
+    marks,
+    sessions: g.records.map((r) => ({
+      name: r.name,
+      live: r.live,
+      managed: r.record.managed === true,
+      pid: r.record.pid ?? null,
+      started: r.record.started ?? null,
+      rotating: r.record.rotating === true,
+      rotatingAt: r.rotatingAt,
+    })),
+    worktrees: g.facts.worktrees,
+    rows: g.facts.rows,
+    claimed,
+    landing,
+    commands,
+    drain,
+    paused: g.facts.paused,
+    now,
+  });
+  const clear = (/** @type {string} */ session) => {
+    try {
+      clearStalled(/** @type {string} */ (p.usage), session);
+    } catch (e) {
+      out(`resume: clearing ${session}'s stall mark failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+  if (dryRun) {
+    for (const c of d.claim)
+      out(`resume: would claim ${c.session} (stalled on a limit; its reset has passed)`);
+    for (const x of d.drop) out(`resume: would drop ${x.session} (${x.why})`);
+    if (d.report) out(`resume: would report ${d.report.sessions.join(", ")} (opened by hand, never resumed)`);
+  } else {
+    // The claim is written before the mark goes, so neither a crash nor a failed write loses it.
+    if (d.claim.length || d.drop.length)
+      updateState(p.state, (s) => {
+        const c = { ...s.resume?.claimed };
+        for (const x of d.claim) c[x.session] = x.claim;
+        for (const x of d.drop) delete c[x.session];
+        s.resume = { ...s.resume, claimed: c };
+      });
+    for (const x of d.claim) {
+      clear(x.session);
+      out(`resume: claimed ${x.session} (stalled on a limit, ${x.claim.error}; its reset has passed)`);
+    }
+    for (const x of d.drop) out(`resume: dropped ${x.session} (${x.why})`);
+    for (const session of d.clear) clear(session);
+    if (d.report && fileReport(p, env, d.report.text, out)) {
+      for (const session of d.report.sessions) clear(session);
+      out(`resume: reported ${d.report.sessions.join(", ")} (opened by hand, never resumed)`);
+    }
+  }
+  for (const w of d.waits) out(`resume: ${w.session} waits (${w.why})`);
+  return { decision: d, resuming: resumingOf(claimed, d) };
+}
+
+/** The resume's acts: TERM or KILL a live stalled session, or reopen one. Returns whether it acted. */
+function resumeActs(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {import("./resume.mjs").ResumeDecision} */ d,
+  /** @type {{ now: number, out: (l: string) => void }} */ { now, out },
+) {
+  let acted = false;
+  for (const a of d.acts) {
+    acted = true;
+    if (a.type === "end") {
+      let sent = "TERM";
+      try {
+        process.kill(a.pid, "SIGTERM");
+      } catch (e) {
+        sent = `TERM failed (${/** @type {NodeJS.ErrnoException} */ (e).code ?? e})`;
+      }
+      updateState(p.state, (s) => {
+        const c = s.resume?.claimed?.[a.session];
+        if (c) c.termPid = a.pid;
+        if (c) c.termAt = now;
+      });
+      out(`resume: ended ${a.session} (pid ${a.pid}, ${sent}): resumed once it has ended`);
+    } else if (a.type === "kill") {
+      try {
+        process.kill(a.pid, "SIGKILL");
+      } catch {
+        /* gone meanwhile */
+      }
+      out(`resume: ${a.session} ignored TERM: killed it (pid ${a.pid})`);
+    } else {
+      const r = run("bash", [join(HERE, "open-session.sh"), a.worktree, "--background", "--carry-on"], {
+        cwd: p.main,
+      });
+      // Never counted. The claim goes once its tab opened; one that never did is retried.
+      if (r.ok)
+        updateState(p.state, (s) => {
+          delete s.resume?.claimed?.[a.session];
+        });
+      const last = (r.err || r.out).split("\n").pop() || "ok";
+      out(
+        `  ${a.session}: ${r.ok ? last : `its tab never opened (failed (exit ${r.code}): ${last}); a later tick retries`}`,
+      );
+    }
+  }
+  return acted;
+}
+
 // ---- one tick --------------------------------------------------------------------
 
 /**
@@ -1069,7 +1400,45 @@ export function tick(
     if (g.state.lastTidy === undefined) updateState(p.state, (s) => void (s.lastTidy ??= now));
   }
 
-  const choice = pick(facts);
+  // The drain decision (drain.mjs): near a limit nothing new opens; past it, nothing opens a claude.
+  const drain = drainOf(p, g, env);
+  facts.drain = { state: drain.state, why: drain.why };
+  const limited = drain.state === "limited";
+  // The resume after a limit: its claims before the pick, so the pick never counts them.
+  /** @type {ReturnType<typeof resumePrep>} */
+  let resume;
+  // Its lines follow the pick's head.
+  /** @type {string[]} */
+  const resumeLines = [];
+  const resumeOut = (/** @type {string} */ l) => void resumeLines.push(l);
+  try {
+    resume = resumePrep(p, g, drain, { dryRun, env, out: resumeOut });
+  } catch (e) {
+    resumeOut(`resume: ${e instanceof Error ? e.message : String(e)}`);
+    // Whatever was claimed before stays the resume's.
+    resume = {
+      decision: { claim: [], clear: [], report: null, drop: [], acts: [], waits: [] },
+      resuming: new Set(Object.keys(readState(p.state).resume?.claimed ?? {})),
+    };
+  }
+  for (const s of facts.sessions) if (resume?.resuming.has(s.name)) s.resuming = true;
+  /** @type {import("./dispatch-pick.mjs").Pick} */
+  let choice = pick(facts);
+  // A resume takes the tick's action: the pick's waits a tick.
+  const resumeOpen = resume?.decision.acts.find((a) => a.type === "open");
+  if (resumeOpen?.type === "open")
+    choice = {
+      action: "resume",
+      session: resumeOpen.session,
+      worktree: resumeOpen.worktree,
+      why: resumeOpen.why,
+      reasons: [
+        ...(choice.topic && choice.action !== "none"
+          ? [{ topic: choice.topic, why: `waits a tick: the resume of ${resumeOpen.session} goes first` }]
+          : []),
+        ...choice.reasons,
+      ],
+    };
   const head = formatPick(choice);
   if (g.gate.busy)
     head.splice(
@@ -1077,7 +1446,7 @@ export function tick(
       0,
       `  (the 5-minute load ${Math.round((g.gate.load ?? 0) * 10) / 10} is over ${g.gate.threshold})`,
     );
-  lines.push(...head);
+  lines.push(...head, ...resumeLines);
 
   // The pickup: lines pushed to origin/dev reach the main checkout. Beside the
   // pick, never in its way: a failure is one line.
@@ -1096,17 +1465,25 @@ export function tick(
     }
   }
 
-  // The context follow-up: apart from the pick, and never in the way of its action.
+  // The drain's actions: beside the pick; a failure is one line.
   let watched = false;
   try {
-    watched = contextStep(p, g, { dryRun, env, out });
+    watched = drainStep(p, g, drain, { dryRun, env, out });
+  } catch (e) {
+    out(`usage: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // The context follow-up: apart from the pick, and never in the way of its action.
+  // Not while limited: a rotation or its question's helper opens a claude.
+  try {
+    if (!limited && contextStep(p, g, { dryRun, env, out })) watched = true;
   } catch (e) {
     out(`context: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // The stuck orchestrator: apart from the pick, like the context follow-up.
   try {
-    if (stuckStep(p, g, { dryRun, env, out, every })) watched = true;
+    if (!limited && stuckStep(p, g, { dryRun, env, out, every })) watched = true;
   } catch (e) {
     out(`stuck: ${e instanceof Error ? e.message : String(e)}`);
   }
@@ -1124,7 +1501,8 @@ export function tick(
     sessions: facts.sessions,
     processes: processLines(env),
     keep: readState(p.state).keepAlive ?? {},
-    paused: facts.paused,
+    // Draining or limited holds it like a pause: a kept session is a reopen.
+    paused: facts.paused || drain.state !== "normal",
     off: env.CARETOOK_KEEP_SESSIONS === "off",
     now,
     claude: basename(env.CARETOOK_CLAUDE_BIN || "claude"),
@@ -1135,6 +1513,8 @@ export function tick(
 
   // Session requests: after the keep-alive (a kept session it opens counts), before starts.
   const requested = (/** @type {boolean} */ dry) => {
+    // Limited: a request waits until the reset (opening it would spend extra usage).
+    if (limited) return false;
     try {
       const starting = keepDecisions.filter((d) => d.action === "open").map((d) => d.kind);
       return requestStep(p, g, { dryRun: dry, env, out, starting });
@@ -1242,6 +1622,14 @@ export function tick(
   }
 
   if (requested(false)) keptActed = true;
+
+  // The resume's acts: ending a live stalled session, or this tick's one resume.
+  if (resume?.decision.acts.length)
+    try {
+      if (resumeActs(p, resume.decision, { now, out })) keptActed = true;
+    } catch (e) {
+      out(`resume: ${e instanceof Error ? e.message : String(e)}`);
+    }
 
   switch (choice.action) {
     case "start":

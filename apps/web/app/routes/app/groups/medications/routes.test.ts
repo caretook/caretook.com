@@ -29,6 +29,15 @@ describe("the medications routes", () => {
     ]);
   });
 
+  it("mount the timeline's Dose sheet over the list, with an id of its own", () => {
+    const frame = medicationRoutes.find((r) => r.path === "medications");
+    const list = frame?.children?.find((r) => r.path === "list");
+    expect(list?.children?.find((r) => r.path === "dose")).toMatchObject({
+      file: "routes/app/groups/timeline/new-dose/route.tsx",
+      id: "medications-list-dose",
+    });
+  });
+
   it("answer the passes URL only from the frame", () => {
     const all = paths(medicationRoutes);
     expect(all.filter((p) => p.startsWith("/medications/passes"))).toEqual([

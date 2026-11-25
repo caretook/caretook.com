@@ -246,6 +246,8 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const name = `${tag} knee pain`;
     const localMs = await addSymptom(A, name, rowWith(name));
     const remoteMs = await timeUntil(B, rowWith(name));
+    // Printed on a pass too (the full log), to see how near the budget it runs.
+    console.log(`add: shown on this device in ${localMs} ms (budget 2000 ms)`);
     await check("add: shows on this device at once", localMs < 2000, `${localMs} ms`);
     await check("add: reaches the other member", true, `${remoteMs + localMs} ms after submit`);
     const author = await waitForSql(

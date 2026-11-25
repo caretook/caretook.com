@@ -3,11 +3,12 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cdp, page, userEvent } from "vitest/browser";
 
 import { renderInRouter } from "../../../test/device";
-import { ChoiceDialog, ConfirmDialog, Menu, Popover, Toast } from "./index";
+import { ChoiceDialog, ConfirmDialog, Menu, Popover } from "./index";
 
-// Overlay motion (ui-kit-3 slice 5): menus and popovers fade in and out on
-// `--motion-fast`, toasts and the native modal dialogs on `--motion`, with no
-// scale; under "reduce motion" nothing animates and each is gone at once.
+// Overlay motion (ui-kit-3 slice 5; 240 ms, B-613): menus, popovers and the
+// native modal dialogs fade in and out on `--motion`, with no scale; under
+// "reduce motion" nothing animates and each is gone at once (toasts:
+// Toast.browser.test.tsx).
 // Reduced motion is emulated from this file (Chrome DevTools), reset after
 // each test.
 
@@ -69,7 +70,7 @@ function watchExit(el: Element) {
 /** How long an element stayed in the DOM after its exit started (NaN if either wasn't seen). */
 const stayed = (seen: { exitAt?: number; removedAt?: number }) =>
   (seen.removedAt ?? NaN) - (seen.exitAt ?? NaN);
-/** The overlay's own box around its content (React Aria's popover, the toast). */
+/** The overlay's own box around its content (React Aria's popover). */
 const parentOf = (el: Element) => {
   const parent = el.parentElement;
   if (!parent) throw new Error("no parent");
@@ -79,7 +80,7 @@ const parentOf = (el: Element) => {
 const ITEMS = [{ id: "edit", label: "Edit", onAction: () => undefined }];
 
 describe("Menu and Popover fade", () => {
-  test("a menu fades in, and on close stays for its fast fade-out, then leaves the DOM", async () => {
+  test("a menu fades in, and on close stays for its fade-out, then leaves the DOM", async () => {
     const { screen } = await renderInRouter(
       <Menu label="Note actions" variant="secondary" items={ITEMS}>
         ⋯
@@ -89,17 +90,17 @@ describe("Menu and Popover fade", () => {
     const menu = page.getByRole("menu");
     await expect.element(menu).toBeVisible();
     const popover = menu.element().parentElement!;
-    // It fades in on the fast duration.
-    expect(getComputedStyle(popover).transitionDuration).toBe("0.12s");
+    // It fades in on the kit's overlay duration.
+    expect(getComputedStyle(popover).transitionDuration).toBe("0.24s");
     await expect.poll(() => getComputedStyle(popover).opacity).toBe("1");
     const exit = watchExit(popover);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
-    expect(exit).toMatchObject({ transition: "opacity 0.12s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(100);
+    expect(exit).toMatchObject({ transition: "opacity 0.24s" });
+    expect(stayed(exit)).toBeGreaterThanOrEqual(200);
   });
 
-  test("a popover fades out on the fast duration, then leaves the DOM; focus returns to its button", async () => {
+  test("a popover fades out on the overlay duration, then leaves the DOM; focus returns to its button", async () => {
     const { screen } = await renderInRouter(
       <Popover label="Change the time" dialogLabel="When" trigger="4:40 PM">
         <p>Pick a time</p>
@@ -114,8 +115,8 @@ describe("Menu and Popover fade", () => {
     const exit = watchExit(panel);
     await userEvent.keyboard("{Escape}");
     await expect.element(dialog).not.toBeInTheDocument();
-    expect(exit).toMatchObject({ transition: "opacity 0.12s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(100);
+    expect(exit).toMatchObject({ transition: "opacity 0.24s" });
+    expect(stayed(exit)).toBeGreaterThanOrEqual(200);
     await expect.poll(active).toBe(trigger.element());
   });
 
@@ -261,8 +262,8 @@ describe.each(DIALOGS)("$name's fade", ({ opener, title, which }) => {
       const { native, box } = await openIt(onClose);
       for (const el of [native, box]) {
         const style = getComputedStyle(el);
-        expect(seconds(style.transitionDuration)).toContain(0.18);
-        expect(Math.max(...seconds(style.transitionDuration))).toBeLessThanOrEqual(0.18);
+        expect(seconds(style.transitionDuration)).toContain(0.24);
+        expect(Math.max(...seconds(style.transitionDuration))).toBeLessThanOrEqual(0.24);
         expect(style.transitionProperty).not.toMatch(/scale|translate|transform/);
       }
       expect(getComputedStyle(native).transitionProperty).toContain("background-color");
@@ -294,51 +295,5 @@ describe.each(DIALOGS)("$name's fade", ({ opener, title, which }) => {
     await nextFrame();
     expect(getComputedStyle(native).visibility).toBe("hidden");
     expect(onClose).toHaveBeenCalledOnce();
-  });
-});
-
-function ToastHarness() {
-  const [open, setOpen] = useState(true);
-  return (
-    <>
-      <button type="button" onClick={() => setOpen((o) => !o)}>
-        Toggle
-      </button>
-      <Toast
-        open={open}
-        message="A new version is ready"
-        actionLabel="Reload"
-        onAction={() => setOpen(false)}
-      />
-    </>
-  );
-}
-
-describe("Toast", () => {
-  test("open shows a status; turning it false fades it out on --motion, then unmounts it", async () => {
-    await renderInRouter(<ToastHarness />);
-    const status = page.getByRole("status").filter({ hasText: "A new version is ready" });
-    await expect.element(status).toBeVisible();
-    const toast = status.element().parentElement!;
-    const exit = watchExit(toast);
-    await userEvent.click(page.getByRole("button", { name: "Reload" }));
-    await expect.element(status).not.toBeInTheDocument();
-    expect(exit).toMatchObject({ animation: "fade-out", duration: "0.18s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(150);
-
-    // Open again: it comes back.
-    await userEvent.click(page.getByRole("button", { name: "Toggle" }));
-    await expect.element(status).toBeVisible();
-  });
-
-  test("with reduced motion it has no animation and is gone in the next frame", async () => {
-    await reduceMotion();
-    await renderInRouter(<ToastHarness />);
-    const status = page.getByRole("status").filter({ hasText: "A new version is ready" });
-    await expect.element(status).toBeVisible();
-    expect(longest(parentOf(status.element()))).toBe(0);
-    await userEvent.click(page.getByRole("button", { name: "Toggle" }));
-    await nextFrame();
-    expect(status.query()).toBeNull();
   });
 });

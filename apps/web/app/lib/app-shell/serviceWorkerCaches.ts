@@ -1,5 +1,5 @@
 // The worker's cache work, against a `CacheStorage` passed in (tests pass a fake).
-import { cacheName, SHELL_PATH, staleCaches } from "./serviceWorkerRoutes";
+import { cacheName, OFFLINE_PATH, SHELL_PATH, staleCaches } from "./serviceWorkerRoutes";
 
 /** The parts of `CacheStorage` the worker uses. */
 export type Caches = Pick<CacheStorage, "open" | "keys" | "delete">;
@@ -32,4 +32,46 @@ export async function deleteStaleCaches(caches: Caches, version: string) {
 export async function fromCache(caches: Caches, version: string, key: string) {
   const cache = await caches.open(cacheName(version));
   return cache.match(key);
+}
+
+/**
+ * A kept asset (`keep` in `routeRequest`): fetched, and a whole good answer
+ * (200, same-origin) stored in this version's cache under `key`, so the next
+ * request for it, offline too, comes from the cache. Anything else (an error
+ * page, a partial answer) is passed on and not stored; a failed fetch rejects
+ * as the network would. The store finishes before it resolves.
+ */
+export async function fetchAndKeep(
+  caches: Caches,
+  version: string,
+  key: string,
+  request: Request,
+  fetchFn: (request: Request) => Promise<Response> = fetch,
+) {
+  const response = await fetchFn(request);
+  if (response.status !== 200 || response.type !== "basic") return response;
+  const cache = await caches.open(cacheName(version));
+  await cache.put(key, response.clone());
+  return response;
+}
+
+/**
+ * A page load outside /app (`offline` in `routeRequest`, B-788): the network's
+ * answer whatever it is (an error page too), and the precached offline page
+ * only when the fetch itself fails. Nothing is stored. With no offline page in
+ * the cache, it rejects as the network did.
+ */
+export async function networkOrOffline(
+  caches: Caches,
+  version: string,
+  request: Request,
+  fetchFn: (request: Request) => Promise<Response> = fetch,
+) {
+  try {
+    return await fetchFn(request);
+  } catch (error) {
+    const page = await fromCache(caches, version, OFFLINE_PATH);
+    if (page) return page;
+    throw error;
+  }
 }

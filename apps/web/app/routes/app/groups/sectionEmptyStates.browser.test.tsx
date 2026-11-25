@@ -47,7 +47,7 @@ describe("a section with nothing in it", () => {
   test.each([
     ["Providers", "providers", PROVIDER_ROUTES, PROVIDERS_URL, "No providers yet."],
     ["the Medications list", "medications", MEDICATION_ROUTES, LIST, "No medications yet."],
-    ["Passes", "medications", MEDICATION_ROUTES, PASSES, "No passes yet."],
+    ["Med times", "medications", MEDICATION_ROUTES, PASSES, "No med times yet."],
   ] as const)("%s shows its icon circle and its words", async (_name, section, route, url, words) => {
     await renderWithDevice({ route: [...route], url, fixtures: [] });
     await expect.element(page.getByText(words)).toBeVisible();

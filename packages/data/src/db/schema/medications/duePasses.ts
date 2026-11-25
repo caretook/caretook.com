@@ -44,10 +44,10 @@ export type DuePass = {
   passLogId: string | null;
 };
 
-/** Today's passes: named passes in the day's order by time, then pass order; a time of its own after a pass at the same time. */
+/** Today's passes: named passes in the day's order by time, then name; a time of its own after a pass at the same time. */
 export function duePasses(
   due: Pick<DueDoses, "slots">,
-  passes: readonly Pick<PassLike, "id" | "name" | "sortOrder">[],
+  passes: readonly Pick<PassLike, "id" | "name">[],
 ): DuePass[] {
   const byId = new Map(passes.map((p) => [p.id, p]));
   const groups = new Map<string, DoseSlot[]>();
@@ -82,7 +82,7 @@ export function duePasses(
       passLogId: answered.map((s) => s.dose!.details.passLogId).find((id) => !!id) ?? null,
     };
   });
-  const order = (p: DuePass) => (p.passId ? (byId.get(p.passId)?.sortOrder ?? 0) : Number.MAX_SAFE_INTEGER);
+  const order = (p: DuePass) => (p.passId ? 0 : 1);
   const label = (p: DuePass) => p.name ?? p.slots[0]?.medication.name ?? "";
   return out.sort(
     (a, b) =>

@@ -1,6 +1,6 @@
 // The service worker (B-144): written to the web client build as /sw.js by
 // scripts/build/service-worker.mjs, which bundles this file and replaces
-// __PRECACHE__ (the build's precache list, the shell first) and __SW_VERSION__.
+// __PRECACHE__ (the build's precache list: the shell, the offline page, the assets) and __SW_VERSION__.
 // The web target only: the native app ships its files, and the dev server
 // never registers a worker (entry.client.tsx).
 //
@@ -8,7 +8,13 @@
 // tab on the old version keeps its old chunks; the page shows "A new version
 // is ready" and its Reload posts SKIP_WAITING. Activate deletes the other
 // versions' caches and takes over open pages.
-import { deleteStaleCaches, fromCache, precache } from "./serviceWorkerCaches";
+import {
+  deleteStaleCaches,
+  fetchAndKeep,
+  fromCache,
+  networkOrOffline,
+  precache,
+} from "./serviceWorkerCaches";
 import { routeRequest, SHELL_PATH, SKIP_WAITING } from "./serviceWorkerRoutes";
 
 declare const __PRECACHE__: string[];
@@ -54,6 +60,14 @@ worker.addEventListener("fetch", (event) => {
   );
   // The network: not answering leaves the request to the browser, as if there were no worker.
   if (route === "network") return;
+  // A page outside /app: the network first, the offline page only when it fails.
+  if (route === "offline") {
+    event.respondWith(networkOrOffline(caches, version, request));
+    return;
+  }
   const key = route === "shell" ? SHELL_PATH : url.pathname;
-  event.respondWith(fromCache(caches, version, key).then((cached) => cached ?? fetch(request)));
+  // A kept asset (not precached: the other SQLite builds, files PowerSync's
+  // workers load) is stored on its first good answer, so it's there offline.
+  const miss = () => (route === "keep" ? fetchAndKeep(caches, version, key, request) : fetch(request));
+  event.respondWith(fromCache(caches, version, key).then((cached) => cached ?? miss()));
 });

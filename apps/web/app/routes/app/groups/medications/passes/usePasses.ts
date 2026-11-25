@@ -1,10 +1,14 @@
 import type { SyncDb } from "~/lib/sync";
+import type { DuePass } from "~/lib/medications/duePasses";
+import type { DueDosesRows } from "~/lib/medications/dueDoses.sync";
 import type { PassRow } from "~/lib/medications/medicationPasses.sync";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { useMemo } from "react";
 import { useGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { useDueDoses } from "~/lib/medications/dueDoses.sync";
+import { duePasses } from "~/lib/medications/duePasses";
 import { useLiveQuery } from "~/lib/sync";
 import { passesQuery, passesWithMedications, toPasses } from "~/lib/medications/medicationPasses.sync";
 import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
@@ -47,4 +51,21 @@ export function usePassZoneNote() {
     group.recipient?.timeZone ?? null,
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
+}
+
+/**
+ * Today's state of each named pass (Schedule's `DuePass`), by pass id, live,
+ * and the recipient's zone it's read in (the cards' double-dose times);
+ * `initial` is the loader's `loadDueDoses`.
+ */
+export function useTodayPasses(
+  groupId: string,
+  initial: DueDosesRows,
+): { today: ReadonlyMap<string, DuePass>; timeZone: string } {
+  const { due, passes, timeZone } = useDueDoses(groupId, initial);
+  const today = useMemo(
+    () => new Map(duePasses(due, passes).flatMap((p) => (p.passId ? [[p.passId, p] as const] : []))),
+    [due, passes],
+  );
+  return { today, timeZone };
 }

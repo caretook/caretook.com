@@ -2,9 +2,8 @@ import type { Fixture } from "../../../../../test/fixtures";
 import type { DoseRow } from "./medicationWorld";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { fixClock, found } from "../../../../../test/found";
-import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../test/fixtures";
 import { deviceZone } from "../../../../../test/zone";
@@ -27,8 +26,9 @@ import {
 // slots read as the clock does. Times of their
 // own and passes a few minutes back are due; one tap logs Given, the ⋯ marks
 // Skipped or Refused with a note, an as-needed medication past its maximum
-// asks first; Given all logs a pass's open medications in one round with
-// Undo; a dose from another device shows who logged it; a viewer gets the
+// asks first; Given all logs a pass's open medications in one round. Every
+// log offers Undo as a toast ("Donepezil logged · Undo"), never an inline
+// line (B-697); a refused log shows its error, no toast. A dose from another device shows who logged it; a viewer gets the
 // states without controls. The device never connects, so every write here is
 // the offline one too (it's queued). What's due is dueDoses.test.ts's and
 // duePasses.test.ts's; a round's upload is syncMedications.int.test.ts's.
@@ -78,7 +78,12 @@ const slotState = (medicationId: string, time: string, root = TODAY()) =>
   slot(medicationId, time, root)?.querySelector<HTMLElement>("[data-slot-state]")?.dataset.slotState ?? null;
 const card = (passId: string) => TODAY()?.querySelector<HTMLElement>(`[data-pass="pass:${passId}"]`) ?? null;
 const cardState = (passId: string) => card(passId)?.dataset.passState ?? null;
-const UNDO = () => document.querySelector<HTMLElement>("[data-pass-undo-label]")?.textContent?.trim() ?? null;
+/** The Undo toast, by its message ("Rounds logged"). The pointer stays off it (hover pauses its time). */
+const undoToast = (message: string) => page.getByRole("alertdialog", { name: message });
+const TOAST = () => document.querySelector<HTMLElement>("[data-undo-toast]");
+/** Undo from its toast. */
+const undo = async (message: string) =>
+  userEvent.click(undoToast(message).getByRole("button", { name: "Undo" }));
 
 /** The list with Today on it (`useDueDoses` answers a moment after the first paint). */
 const open = async (fixtures: Fixture[], role: "owner" | "caretaker" | "viewer" = "caretaker") => {
@@ -137,6 +142,30 @@ describe("times of their own", () => {
     ]);
     const queued = (await device.queued()).filter((w) => w.type === "timeline_entry");
     expect(queued).toHaveLength(1);
+
+    // Its toast; Undo removes exactly that dose, and the slot is due again.
+    await expect.element(undoToast("Donepezil logged")).toBeVisible();
+    await undo("Donepezil logged");
+    await expect.poll(() => slotState(DONEPEZIL.id, T1)).toBe("due");
+    expect(await doses(device)).toHaveLength(0);
+    await expect.poll(TOAST).toBeNull();
+  });
+
+  test("a log the device refuses shows its error on the row, and no toast", async () => {
+    // A dose longer than a dose may be (made elsewhere): its Given can't be written.
+    const LONG = fx.medication({
+      name: "Donepezil",
+      dose: "1 tablet ".repeat(20),
+      schedule: { type: "scheduled", slots: [{ time: T1 }] },
+    });
+    const device = await open([LONG]);
+    await userEvent.click(await found(() => slot(LONG.id, T1)?.querySelector("[data-give]")));
+    await expect
+      .poll(() => slot(LONG.id, T1)?.querySelector('[role="alert"]')?.textContent ?? "")
+      .not.toBe("");
+    expect(slotState(LONG.id, T1)).toBe("due");
+    expect(await doses(device)).toHaveLength(0);
+    expect(TOAST()).toBeNull();
   });
 
   test("Skipped… asks for a note, then marks the slot skipped with it", async () => {
@@ -147,6 +176,7 @@ describe("times of their own", () => {
     expect(await doses(device)).toMatchObject([
       { medicationId: DONEPEZIL.id, status: "skipped", scheduledFor: T2, note: "Asleep", amount: null },
     ]);
+    await expect.element(undoToast("Donepezil marked skipped")).toBeVisible();
   });
 
   test("with the recipient in another zone, her slots are read in her zone, and Today says whose times they are", async () => {
@@ -180,6 +210,7 @@ describe("as needed", () => {
     expect(row().textContent).toContain("0 of 1 today");
     await userEvent.click(await found(() => row().querySelector("[data-log-as-needed]")));
     await expect.poll(() => row().textContent).toContain("1 of 1 today");
+    await expect.element(undoToast("Ondansetron logged")).toBeVisible();
     await userEvent.click(await found(() => row().querySelector("[data-log-as-needed]")));
     await expect.poll(() => OPEN_DIALOG()?.textContent ?? "").toContain("1 of 1 already given today");
     expect(await doses(device)).toHaveLength(1);
@@ -246,7 +277,9 @@ describe("passes", () => {
     const device = await open(passWorld);
     await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
     await expect.poll(() => cardState(ROUNDS.id)).toBe("done");
-    await expect.poll(UNDO).toBe("Rounds logged");
+    await expect.element(undoToast("Rounds logged")).toBeVisible();
+    // The toast replaces the inline line.
+    expect(document.querySelector("[data-pass-undo]")).toBeNull();
     const logged = await doses(device);
     expect(logged.map((d) => d.medicationId).sort()).toEqual([XA.id, YB.id, ZC.id].sort());
     expect(new Set(logged.map((d) => d.passLogId)).size).toBe(1);
@@ -256,9 +289,9 @@ describe("passes", () => {
     // The other pass is untouched.
     expect(cardState(ROUND_2.id)).toBe("due");
 
-    await userEvent.click(getByCss("[data-pass-undo-button]"));
+    await undo("Rounds logged");
     await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
-    await expect.poll(UNDO).toBeNull();
+    await expect.poll(TOAST).toBeNull();
     expect(card(ROUNDS.id)?.hasAttribute("data-pass-partly")).toBe(false);
     expect(await doses(device)).toHaveLength(0);
     // Soft deletes: the three rows stay, deleted.
@@ -276,6 +309,7 @@ describe("passes", () => {
     const [refused] = await doses(device);
     expect(refused).toMatchObject({ status: "refused", note: "Spat it out", passId: ROUNDS.id });
     expect(refused?.passLogId).toBeTruthy();
+    await expect.element(undoToast("Yb marked refused")).toBeVisible();
 
     // Sam gives Xa on his phone, in the same round.
     await device.sync(
@@ -335,8 +369,7 @@ describe("passes", () => {
     const device = await open([ROUNDS, XA, YB]);
     await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
     await expect.poll(() => cardState(ROUNDS.id)).toBe("done");
-    await expect.poll(UNDO).toBe("Rounds logged");
-    await userEvent.click(getByCss("[data-pass-undo-button]"));
+    await undo("Rounds logged");
     await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
     await expand(ROUNDS.id);
     await userEvent.click(await found(() => slot(XA.id, R1)?.querySelector("[data-give]")));

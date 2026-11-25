@@ -11,3 +11,6 @@ apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from 
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-776
 packages/data/src/services/accountAdmin.int.test.ts	accountAdminService.setRole makes an account support, admin and a member again, each with an audit entry	B-778
 packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-782
+apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx	scrolling newer from a day Back from an entry after loading newer restores the window	B-785
+apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx	infinite scroll three pages down, an entry arriving at the top (another device's) and its deletion leave the screen where it is, and the pages loaded	B-790
+apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx	the owner's sheet builds the list: a member removed and added back, moved up by keyboard, an outside contact refused then added, a new primary; one save	B-791

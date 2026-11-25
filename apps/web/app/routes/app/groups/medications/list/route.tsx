@@ -8,6 +8,7 @@ import { AllergiesRegion } from "~/components/medications";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { loadAllergies, useAllergies } from "~/lib/medications/allergies.sync";
+import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 import { medicationList, parseMedicationFilters } from "~/lib/medications/medicationList";
 import { loadSchedulePasses, useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { onlyMedicationSheetChanged } from "~/lib/medications/medicationSheets";
@@ -66,8 +67,10 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
   const medications = useMemo(() => toMedications(rows), [rows]);
   const passes = useSchedulePasses(params.groupId, loaderData.passRows);
   const { state: allergies } = useAllergies(params.groupId, loaderData.allergies);
+  // Today's doses, for an as-needed Log's "Log anyway?" (read as Schedule does).
+  const { due, ready: dueReady } = useDueDoses(params.groupId);
 
-  // The box filters as you type; the URL follows (see `MedicationSearch`).
+  // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
     () => medicationList(medications, { q: text, status: filters.status, type: filters.type }),
@@ -93,6 +96,8 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
         text={text}
         status={filters.status}
         type={filters.type}
+        due={due}
+        dueReady={dueReady}
       />
 
       {/* The add, edit and allergies sheets render here, over the list. */}

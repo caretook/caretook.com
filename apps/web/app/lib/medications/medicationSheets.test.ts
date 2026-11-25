@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  doseSheetHome,
   editMedicationGuard,
   MEDICATION_SHEET_STATE,
   medicationTabOf,
@@ -101,6 +102,11 @@ describe("onlyMedicationSheetChanged", () => {
     }
     expect(onlyMedicationSheetChanged(G, url(`${tab}/new`), url(`${tab}/m1/edit`))).toBe(true);
   });
+  it("is true between the list and its Dose sheet, which only the list has", () => {
+    expect(onlyMedicationSheetChanged(G, url(LIST), url(`${LIST}/dose?medication=m1`))).toBe(true);
+    expect(onlyMedicationSheetChanged(G, url(`${LIST}/dose?q=a`), url(`${LIST}?q=a`))).toBe(true);
+    expect(onlyMedicationSheetChanged(G, url(SCHEDULE), url(`${SCHEDULE}/dose`))).toBe(false);
+  });
   it("is true between Passes and its add-pass sheet, and only that sheet", () => {
     expect(onlyMedicationSheetChanged(G, url(PASSES), url(`${PASSES}/new`))).toBe(true);
     expect(onlyMedicationSheetChanged(G, url(`${PASSES}/new`), url(PASSES))).toBe(true);
@@ -128,5 +134,16 @@ describe("openedFromApp", () => {
     expect(openedFromPasses(PASS_SHEET_STATE)).toBe(true);
     expect(openedFromPasses(MEDICATION_SHEET_STATE)).toBe(false);
     expect(openedFromPasses(undefined)).toBe(false);
+  });
+});
+
+describe("doseSheetHome", () => {
+  it("is the list, search kept and the sheet's own parameters dropped, for the Dose sheet over it", () => {
+    expect(doseSheetHome(G, `${LIST}/dose`, "?q=lis&medication=m1&slot=08:00")).toBe(`${LIST}?q=lis`);
+    expect(doseSheetHome(G, `${LIST}/dose`, "")).toBe(LIST);
+  });
+  it("is undefined over the timeline (and anywhere else)", () => {
+    expect(doseSheetHome(G, `/app/groups/${G}/timeline/new/dose`, "?medication=m1")).toBeUndefined();
+    expect(doseSheetHome(G, `${SCHEDULE}/new`, "")).toBeUndefined();
   });
 });

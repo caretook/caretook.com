@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { deleteStaleCaches, fromCache, precache, type Caches } from "./serviceWorkerCaches";
+import {
+  deleteStaleCaches,
+  fetchAndKeep,
+  fromCache,
+  networkOrOffline,
+  precache,
+  type Caches,
+} from "./serviceWorkerCaches";
+import { OFFLINE_PATH, routeRequest } from "./serviceWorkerRoutes";
 
 /** An in-memory `CacheStorage`: each cache records what was added, by URL path. */
 function fakeCaches(names: string[] = []) {
   const stores = new Map<string, Map<string, Request | string>>(names.map((n) => [n, new Map()]));
+  const puts: { key: string; response: Response }[] = [];
   const caches: Caches = {
     open: (name: string) => {
       if (!stores.has(name)) stores.set(name, new Map());
@@ -14,6 +23,11 @@ function fakeCaches(names: string[] = []) {
           for (const r of requests) store.set(typeof r === "string" ? r : new URL(r.url).pathname, r);
           return Promise.resolve();
         },
+        put: (key: string, response: Response) => {
+          store.set(key, key);
+          puts.push({ key, response });
+          return Promise.resolve();
+        },
         match: (key: string) => Promise.resolve(store.has(key) ? new Response(`cached ${key}`) : undefined),
       };
       return Promise.resolve(cache as unknown as Cache);
@@ -21,7 +35,7 @@ function fakeCaches(names: string[] = []) {
     keys: () => Promise.resolve([...stores.keys()]),
     delete: (name: string) => Promise.resolve(stores.delete(name)),
   };
-  return { caches, stores };
+  return { caches, stores, puts };
 }
 
 describe("precache", () => {
@@ -58,5 +72,95 @@ describe("fromCache", () => {
     expect(await fromCache(caches, "v2", "/assets/missing.js")).toBeUndefined();
     // Another version's cache isn't read.
     expect(await fromCache(caches, "v3", "/app")).toBeUndefined();
+  });
+});
+
+/** A fetch answering with `response`, or failing as the network does offline. */
+const answering =
+  (response: Response | null, type: ResponseType = "basic") =>
+  (): Promise<Response> => {
+    if (!response) return Promise.reject(new TypeError("Failed to fetch"));
+    Object.defineProperty(response, "type", { value: type });
+    return Promise.resolve(response);
+  };
+
+// B-777: offline, a file a worker loads (SQLite's WASM) must come from the cache.
+describe("fetchAndKeep", () => {
+  const wasm = "/assets/wa-sqlite-xyz.wasm";
+  const request = new Request(`https://caretook.com${wasm}`);
+
+  it("stores a good answer in this version's cache, so the next request is answered offline", async () => {
+    const { caches, puts } = fakeCaches();
+    const response = await fetchAndKeep(caches, "v2", wasm, request, answering(new Response("wasm")));
+    expect(await response.text()).toBe("wasm");
+    expect(puts.map((p) => p.key)).toEqual([wasm]);
+    expect(await (await fromCache(caches, "v2", wasm))?.text()).toBe(`cached ${wasm}`);
+    expect(await fromCache(caches, "v3", wasm)).toBeUndefined();
+  });
+
+  it("passes on an error, a partial or an opaque answer without storing it", async () => {
+    const { caches, puts } = fakeCaches();
+    for (const [answer, type] of [
+      [new Response("gone", { status: 404 }), "basic"],
+      [new Response("part", { status: 206 }), "basic"],
+      [new Response("err", { status: 500 }), "basic"],
+      [new Response("x"), "opaque"],
+    ] as const) {
+      const response = await fetchAndKeep(caches, "v2", wasm, request, answering(answer, type));
+      expect(response.status).toBe(answer.status);
+    }
+    expect(puts).toEqual([]);
+  });
+
+  it("rejects as the network does when offline, storing nothing", async () => {
+    const { caches, puts } = fakeCaches();
+    await expect(fetchAndKeep(caches, "v2", wasm, request, answering(null))).rejects.toThrow(TypeError);
+    expect(puts).toEqual([]);
+  });
+});
+
+// B-788: offline, a direct load of / or /sign-in gets the offline page, not the browser's own.
+describe("networkOrOffline", () => {
+  const ORIGIN = "https://caretook.com";
+  const installed = async () => {
+    const fake = fakeCaches();
+    await precache(fake.caches, "v2", ["/app", OFFLINE_PATH], ORIGIN);
+    return fake;
+  };
+  const navigation = (path: string) => new Request(new URL(path, ORIGIN));
+  const routeOf = (path: string) =>
+    routeRequest({ url: new URL(path, ORIGIN), mode: "navigate" }, ORIGIN, new Set(["/app", OFFLINE_PATH]));
+
+  it("answers a failed load of / or /sign-in with the offline page", async () => {
+    const { caches } = await installed();
+    for (const path of ["/", "/sign-in"]) {
+      expect(routeOf(path)).toBe("offline");
+      const response = await networkOrOffline(caches, "v2", navigation(path), answering(null));
+      expect(await response.text()).toBe(`cached ${OFFLINE_PATH}`);
+    }
+  });
+
+  it("answers with the network's own answer when there is one, an error page too, storing nothing", async () => {
+    const { caches, puts } = await installed();
+    const page = await networkOrOffline(caches, "v2", navigation("/"), answering(new Response("home")));
+    expect(await page.text()).toBe("home");
+    const missing = await networkOrOffline(
+      caches,
+      "v2",
+      navigation("/sign-in"),
+      answering(new Response("gone", { status: 503 })),
+    );
+    expect(missing.status).toBe(503);
+    expect(puts).toEqual([]);
+  });
+
+  it("rejects as the network did when the offline page isn't cached", async () => {
+    const { caches } = fakeCaches();
+    await expect(networkOrOffline(caches, "v2", navigation("/"), answering(null))).rejects.toThrow(TypeError);
+  });
+
+  it("leaves /app page loads to the shell", () => {
+    expect(routeOf("/app")).toBe("shell");
+    expect(routeOf("/app/groups/g1/timeline")).toBe("shell");
   });
 });

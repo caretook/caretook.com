@@ -10,11 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
-
-**Wave 5 hand-over (session 3 rotates for context, 2026-11-24):** slices 34, 36–41, 43–45, 47 merged into prd/fixes-ui in plan order with no conflicts (tip da9de73f; items marked done). Their worktrees stay until the wave's verdict is green; their agents are gone, so a CI failure goes to a fresh `--continue` agent in that slice's worktree. **Next:** start slices 35 (B-672, reuse `lib/core/nameSuggestions.ts` `suggestNames`; the form is now `profile/allergies/AllergyForm.tsx`), 42 (B-762, the card is a button since slice 41), 46 (B-692, slice 45 returns focus to "Pick a date" after an inline calendar closes: take over that target on the first pick), 48 (B-737; `?day=` unchanged by slice 47), all on opus; merge them; then the wave's CI run (`pnpm prd tier`; at least integration, slice 37 touches `packages/`). Risks for the run: slice 40's tips panel shows in every empty quick entry box (other quick entry tests may trip on it); slice 45 made every `PopoverPanel` scroll inside; slice 36 changed `ui/ComboBox.tsx` (no reopen after a pick); slice 43 changed `OUTLINED`/`TOGGLE_OFF` for every off toggle. Docs at landing: ui-kit (`OUTLINED`, `motion-press`, IconButton `count`, `InlineCalendars`, ComboBox `control`), profiles (allergies live on Profile), care-groups (member statuses, managers only). Hand tests for the report: B-664 on a real iPhone, Android and Capacitor; B-621 in Easy mode over the dictation hint; B-676 says "Add" on a provider event that opens a draft. Filed: B-779 (fixes-bug, timeline `?day=` lands low with no entries today). Still held: B-748 (with B-680), B-765 (too vague unattended), B-583 (connectors-3 planned), plus the list above.
-
-**Session 4 (2026-11-24):** resumed; Status matched git. Slices 35, 42, 46, 48 started (worktrees made, opus agents spawned). All four merged (tip a2a3ebd2); items done. CI integration green on 2f49e304 (run 45478715072; tier tool said components, packages/ changed so integration). Synced dev cd940659 (tooling only); integration green on cdbf3d63 (run 45479710304). Slice worktrees removed. PR #164; Codex out of credits (land --no-review). Browser suite blocked by the permission classifier (not run). Land at components (ranked above integration) refused: components run 45481187130 (`file`) failed three of the branch's files: `profileBands` (slice 34), `timelineQuickEntryTodos` (slice 42, maybe 40), `timelineLayout` author tooltip Tab (slice 48). Worktrees 34, 42, 48 recreated; test-only fixes merged: 34 (2a9ebbb9, Allergies band in the expected order), 42 (979ec0d9, really slice 41's card heading now a span), 48 (c119913d, Tab past the copy link). Next: land again at components. Lesson: keep slice worktrees until land's own tier is green, not an earlier lower-ranked run. Watch `timelineQuickEntry*`, `medicationForm`, `providerSheets`, timeline header/row order tests, and any test clicking Done after a `?when=pick` day pick.
+**Next step (hand-over):** wave 10 (slice 69, B-793, opus) merged as 4bc3c614; CI components green (run 45533689412, on 0695a55e; af9e8aa3 after it is docs only); roundtrip passes locally (548 ms of 2000). Cause: per-call `Intl.DateTimeFormat` in `dayKeyIn` and `formatTime` slowed the timeline's renders after sign-in, so the first add's local write started late on a slow CPU; now one formatter per zone. Worktree removed. Sync skipped (dev shares no file). PR #177 open, Codex review waiting. Docs folded: medications.md (Schedule Undo toast), components.md (per-zone formatters), both at 10237 B. **Then:** land (`--tier components`), report, message the backlog session (caretook-com-e5) that B-793 is in dev so it recuts the staging candidate, status-trim, rotate. Still held: B-684, B-694, B-325.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -23,23 +19,9 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                                                                       | Merge    |
-| ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
-| 34    | B-594 | merged                                                                                                      | 86d98496 |
-| 35    | B-672 | merged (typing-mode lists cover the next field: tests Tab after a fill)                                     | d1cdca07 |
-| 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
-| 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
-| 38    | B-664 | merged                                                                                                      | 221141c3 |
-| 39    | B-636 | merged                                                                                                      | 5cbbe830 |
-| 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                            | 6df9f7cb |
-| 41    | B-676 | merged                                                                                                      | ec911d5d |
-| 42    | B-762 | merged (17 files: quick entry parser in packages/, MedicationForm, ProviderForm; assistant doc at landing)  | b7c7882c |
-| 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  | abb099ce |
-| 44    | B-756 | merged                                                                                                      | d59db667 |
-| 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
-| 46    | B-692 | merged (DateTimeField `onCalendarPick`: ui-kit doc at landing)                                              | 438dd248 |
-| 47    | B-736 | merged                                                                                                      | da9de73f |
-| 48    | B-737 | merged (easy mode gets no copy links)                                                                       | a2a3ebd2 |
+| Slice | Item  | State                                       | Merge    |
+| ----- | ----- | ------------------------------------------- | -------- |
+| 69    | B-793 | merged; CI green; worktree removed; PR #177 | 4bc3c614 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -718,3 +700,312 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component test: the day header's button copies that day's absolute link and announces it; an entry's copies the entry's link.
 - [ ] Component test: a clipboard failure shows the link instead.
+
+## Wave 6 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Only worker-watch (tooling) runs beside us, so no app hot files are taken; dose-accuracy is done, so the medication items it held are open. Where a backlog note says "check on a phone" or "check by eye", name it in the hand-off as a hand test; the agent can't do it. Decided by skeptics, the user may veto (asks a199–a201): B-698's Log opens the Dose sheet; B-700 follows Schedule's Given all rule and its card opens nothing; B-680 builds from its scope notes. Chains: 54→55, 53+55→56, 57→58. Held to later waves: B-684 and B-695 (app-wide sweeps, each a wave of its own, after this one's medication and form changes), B-693, B-697 (toast system B-669), B-694 (never unattended), B-325 (Capacitor).
+
+## Slice 49: Connectors say Event, not appointment (B-583)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/appointments.md · Tests: integration
+
+**Problem.** The app says Event everywhere (B-537), but the connector tools still say appointment.
+
+**Build.** The user's call (2026-11-23, B-583's notes): rename `prepare_for_appointment` (`packages/api/src/connectors/prompts.ts`) to `prepare_for_event` and the `kind: "appointment"` output (`tools/upcoming.ts`, and any other tool output) to `kind: "event"`, with **no alias** for the old names. Tool and prompt text (`prompts.ts`, `upcoming.ts`, `listTimeline.ts`, `writes.ts`, `protocol.ts`) say Event and still understand both words where the assistant reads them ("events (appointments)"). **Leave the consent text in `packages/data/src/db/schema/connectors/connectorRules.ts` exactly as it is** (it lists "appointments"): changing consent needs a version bump and is the user's call; say in the hand-off that it was left and quote the line. Update the connector tests and `docs/domain/connectors.md` is the orchestrator's (say what changed).
+
+**Acceptance criteria.**
+
+- [ ] Integration test: the prompts list names `prepare_for_event` and not `prepare_for_appointment`.
+- [ ] Integration test: an upcoming event comes back with `kind: "event"`.
+- [ ] The consent text and its version are unchanged.
+
+## Slice 50: Motion tuning: Today card slides, sheets fade, overlays at 240 ms (B-613)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** The Timeline Today card's rows pop open while its chevron turns, sheets slide and fade, and overlay timings differ (menus and popovers 120 ms, others 180 ms).
+
+**Build.** As B-613's notes say: (1) `TodayCard.tsx` wraps its rows in the kit's `Collapse`, matching `DaySummaryLine` (same slide, duration and Chevron); `aria-controls` points at the collapsing region, closed rows leave the tab order, and the collapsed summary line doesn't jump. (2) Sheets only fade, in and out (drop the 1.5rem panel slide). (3) 240 ms for sheets, menus, popovers, native dialogs and toasts; button, row and hover feedback stays 120 ms. Reduced motion stays instant. Update the timings pinned in `sheetExit.browser.test.tsx` (and `overlayMotion.browser.test.tsx` if it pins them), the motion notes in `app.css` and the `/dev/ui` motion section; `docs/domain/components.md` is the orchestrator's (say what changed). Hand tests: the Today card and a day summary side by side; a toast by eye.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the Today card's rows collapse through `Collapse`, closed rows aren't focusable, and `aria-controls` names the region.
+- [ ] Component test: a sheet's panel has no translate in or out, and overlays use 240 ms (reduced motion: none).
+
+## Slice 51: A live note opens full screen (B-765)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/live-notes.md · Tests: component
+
+**Problem.** A live note can only be edited inside its entry page, which is cramped for a long note.
+
+**Build.** A kit IconButton (expand icon, "Open full screen" / "Exit full screen") on the live note editor (`components/notes/LiveNotesEditor.tsx`, where the entry page shows it) that shows the same editor instance full screen over the page (a native `<dialog>` with `showModal`, or the kit's full-height sheet if one fits better: read ui-kit first), keeping the Yjs document, cursor, mentions and editor avatars; Escape and the button return to the page with the text intact. No new route and no data change. Works offline. On a phone it fills the screen above the keyboard.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the button opens the note full screen with the same content, typing there shows on return, and Escape closes it with focus back on the button.
+- [ ] Component test: viewers who can't edit can still open it full screen to read.
+
+## Slice 52: Header navigation works after a long idle tab and a deploy (B-735)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: unit
+
+**Problem.** After a tab sat idle through a staging deploy, clicking the main header nav did nothing until a reload.
+
+**Build.** Find the cause first; the likely one is a stale client: the new deploy removed the old hashed route chunks, so React Router's lazy route import fails (`vite:preloadError` or a failed dynamic import) and navigation silently stops. Check how `serviceWorkerRegister.ts`, `useUpdateNotice.ts` and `UpdateNotice.tsx` handle a new build, and what happens on a failed chunk load. Fix it so a failed route chunk load after a deploy reloads to the target URL once (guarded so it can't loop: a session-storage marker or similar), and never on the native build where chunks are bundled. If the cause turns out to be something else, fix that and say what you found. Hand test (name it): leave a tab open across a deploy, then click the nav.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: a chunk-load failure on navigation triggers one reload to the target URL; a second failure within the guard doesn't loop.
+- [ ] Unit test: the native target doesn't reload.
+
+## Slice 53: Med times always sort by time; Move up and Move down go (B-701)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md, docs/domain/data-layer.md · Tests: integration, component
+
+**Problem.** The manual pass order can list Evening above Morning on the Passes tab, quick entry, the print sheet and schedule summaries, while due times don't change.
+
+**Build.** As B-701's note says: always order passes by time, then name. Change `sortPasses` (`packages/data/src/db/schema/medications/medicationPass.ts`), `passesQuery`'s ORDER BY (`medicationPasses.sync.ts`), the model's sort (`medicationPassModel.ts`) and `duePasses`' tie-break; remove the move intent, `movePass`, its menu items in `PassList.tsx` and their tests. **No migration**: keep the `sort_order` column and keep writing a valid value on create. Existing custom orders simply stop applying.
+
+**Acceptance criteria.**
+
+- [ ] Unit or integration test: passes with sort orders against their times come back by time, then name, from the model and the device query.
+- [ ] Component test: the Passes tab menu has no Move up or Move down.
+
+## Slice 54: A double dose is highlighted on the medication and Today screens (B-606)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** When a medication has been given twice for one dose (an extra dose, defined by dose-accuracy's B-297), nothing on screen calls it out before the next dose.
+
+**Build.** The user's call (2026-11-23, B-606): in-app only; no notification, email or push. Read how dose-accuracy defines an extra dose (`dueDoses.ts`, `duePasses.ts`, `medications.sync.ts`, `docs/domain/medications.md`) and use that, not a new rule. Where a medication's dose for a slot (or an as-needed day past its maximum) has an extra dose, show a warning-toned badge and plain text ("Given twice: 8:00 and 8:20") on the Schedule tab's Today rows and pass cards, and on the medication's page, with the warning color meeting contrast in light and dark and the text readable without color. Viewers see it too. Don't change how doses are logged.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a slot with an extra dose shows the double-dose warning with both times on Today and on the medication page.
+- [ ] Component test: a normal single dose shows no warning.
+
+## Slice 55: One medication card for Schedule and the Medications list (B-698)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/medications.md · Tests: component
+
+**Blocked by:** slice 54 (same rows).
+
+**Problem.** Three separate rows (`MedicationListItem` on the list, `DoseSlotRow` and `AsNeededRow` on Schedule) look and behave differently, and on Schedule only the name opens the medication.
+
+**Build.** One shared card in `components/medications/`, used by all three: the whole card opens the medication (the stretched-link pattern: `ui/ListRow` `to` plus trailing actions at `z-10`), so Given, Log and the menu never open the page. Keep every safety behaviour: AsNeededRow's over-maximum confirm, Skipped/Refused through `MarkDoseDialog`, `canWrite` gating, inline errors, and slice 54's double-dose warning. **Decided (a199):** on the list tab, Log on a scheduled medication opens the Dose sheet; an as-needed one logs as today (with its confirm); stopped medications show no Log. Viewers see no logging controls. The logging toast waits for B-697; the wording stays "pass" until B-695.
+
+**Acceptance criteria.**
+
+- [ ] Component test: clicking the card body opens the medication; Given, Log and the menu don't.
+- [ ] Component test: on the list tab, Log on a scheduled medication opens the Dose sheet; a stopped one has no Log; a viewer sees none.
+- [ ] Component test: the as-needed over-maximum confirm still shows.
+
+## Slice 56: Quick log a med time from the Passes tab (B-700)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Blocked by:** slices 53 and 55.
+
+**Problem.** The Passes tab (`medications/passes/PassList.tsx`) only lists each pass; logging it means going to Schedule.
+
+**Build.** Each pass card matches slice 55's card style and shows today's state from `useDueDoses`'s `DuePass`. **Decided (a200):** writers get Given all whenever any open medication in it is unlogged today (Schedule's `PassCard` rule: no due-time gate), reusing `usePassLog.givenAll` and `PassUndoStatus` scoped by place, then Undo; a done pass shows its state instead. The card opens nothing; the management menu (Edit, Delete) stays for writers. Viewers see no log action.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a writer's Given all on the Passes tab logs every open medication in that pass and offers Undo there.
+- [ ] Component test: a done pass shows its state; a viewer sees no Given all.
+
+## Slice 57: One search and filter bar on every list page (B-680)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/todos.md, docs/domain/search.md · Tests: component
+
+**Problem.** List pages keep their search and filter controls in different places and styles (`MedicationFilters.tsx`, `DirectoryFilters.tsx`, `PlannerHeader.tsx`'s FilterMenu on Upcoming only, `todos/TodoFilters.tsx`), and the Planner's Past tab has none.
+
+**Build.** **Decided (a201), scope exactly as B-680's notes:** only the search box and filters. One shared bar (built on `ui/FilterMenu.tsx` and `filterModel.ts`) that the medications, providers, Planner and Todos lists use, looking and sitting the same; the timeline keeps its own controls; care periods stays as is; no change to headers, tabs or cards. On the Planner the bar sits below the tabs and acts only on the open tab, each tab supplying its own filter sections; Past gets at least an author filter, and all three tabs get the quick text input. Past is paged (`loadPast`): its text filter runs in the local SQL query, not only over the loaded page. Match with `foldSearchText` (case and accents), offline; a filtered empty state names the filter. Typed text doesn't carry across tabs. Easy-roles Planner stays without filters. Placeholder: "Type to search". Hand test: on a phone the row doesn't crowd the tabs.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the same bar renders on medications, providers, Planner and Todos.
+- [ ] Component test: Past's text filter finds an entry older than the loaded page, and its author filter works.
+- [ ] Component test: switching Planner tabs clears the text; an empty filtered result shows the filtered empty state.
+
+## Slice 58: The timeline search reads "Type to search" (B-748)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Blocked by:** slice 57 (same wording).
+
+**Problem.** The timeline's search placeholder (and its bar's label) don't match the list pages' "Type to search".
+
+**Build.** Set the timeline search input's placeholder to "Type to search", keeping its accessible name (a label, not the placeholder). Update tests that find it by the old placeholder.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the timeline search shows "Type to search" and keeps its accessible name.
+
+## Wave 7 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Only self-recovery (tooling) runs beside us; calendars-3 (held) names `lib/app-shell/serviceWorker`, but it isn't running. The user wants B-777 in this wave. The three slices touch separate files and run at once. Held to later waves: B-684 and B-695 (app-wide sweeps, a wave each), B-693, B-697 (toast system B-669), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 59: Offline /app shows the app, not a blank screen (B-777)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md, docs/domain/security-headers.md · Tests: unit, browser
+
+**Problem.** When the connection drops, the browser and the installed PWA show only a blank screen. Offline is a hard requirement. The service worker exists (`lib/app-shell/serviceWorker*.ts`, bundled to `/sw.js` by `scripts/build/service-worker.mjs`), so something on the offline `/app` path fails.
+
+**Build.** Find the cause first, on a production web build (`pnpm build`, then serve it; the worker is web production only): load `/app` and a group screen online, go offline (Playwright `context.setOffline(true)`), then reload and navigate. Candidates from B-777's notes: the shell document isn't cached or isn't served for that URL, a route chunk or asset is missing from the precache, a request the page needs at boot (session, `/rpc`, PowerSync) throws instead of falling back, or the cached shell's CSP blocks something. Fix the cause where it lives (the worker, its routes or caches, the build script, or the boot path); a failure that must stay an error shows a readable offline message, never a blank page. Write the cause and the fix in the hand-off, plus what `docs/domain/app-shell.md` should say (the orchestrator's). Hand test: the installed PWA on a phone, airplane mode, cold start.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`serviceWorkerRoutes.test.ts`, `serviceWorkerCaches.test.ts` or `scripts/build/service-worker.test.mjs`, whichever holds the cause) pins the fix.
+- [ ] Browser check (`scripts/browser-checks/layout-offline.spec.mjs` or a new spec beside it) on a production build: signed in, a group's timeline loaded once, then offline: a reload of that page and a navigation to another `/app` screen render the app (the header and the local data), not a blank page.
+
+## Slice 60: Medications list Log closes back onto the list (B-783)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** On the Medications list, Log on a scheduled medication opens the Dose sheet over the timeline (`appUrls.newDose`, `MedicationListItem.tsx`), so closing or saving it lands on the timeline instead of the list.
+
+**Build.** Log from the list opens the Dose sheet over the Medications list, and closing or saving returns to the list, as Schedule's Log does (follow whichever pattern Schedule or the medication page uses; don't add a new route if a return target on the existing one does it). The timeline's own Dose sheet keeps its behaviour.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`medicationList.browser.test.tsx`): Log on a scheduled medication opens the Dose sheet, and closing it leaves the Medications list showing.
+- [ ] Component test: saving a dose from it returns to the list too.
+
+## Slice 61: Passes tab cards warn of a double dose (B-784)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** Today and the medication page call out a double dose (`ExtraDoseWarning`, B-606), but the Passes tab's cards don't.
+
+**Build.** The Passes tab cards (`routes/app/groups/medications/passes/PassList.tsx` and the card it uses) show `ExtraDoseWarning` for a slot given twice today, with the same text and badge as Today. Viewers see it too; a single dose shows nothing.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`passes.browser.test.tsx`, or `doubleDose.browser.test.tsx` if it covers the tabs): a pass with a medication given twice shows the double-dose badge and text; a single dose shows none.
+
+## Wave 8 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. No other PRD is running. B-788 plus the Med times rename (B-695), split in three by area so each stays under about 12 files; the four slices touch separate files and run at once. B-695 changes visible text only: keep code names, the `medication_pass` table, stored data, the `/passes` URL and the `give_pass` connector tool name; sweep strings by hand (about 670 matches, most identifiers), never find-and-replace. A single slot goes by its name (Morning, Evening); the generic singular is "med time", the plural "Med times" in titles and the tab. Words quick entry already accepts keep working. Held to later waves: B-684 (required-field asterisks, a wave), B-693, B-697 (toast system B-669), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 62: Offline loads of / and /sign-in get a fallback page (B-788)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/security-headers.md, docs/domain/marketing.md · Tests: unit, browser
+
+**Problem.** Offline, a direct load of `/` or `/sign-in` shows the browser's own offline page. `/app` works offline since slice 59 (B-777); in-app redirects to sign-in are client-side and fine.
+
+**Build.** The service worker (`lib/app-shell/serviceWorker*.ts`, bundled by `scripts/build/service-worker.mjs`) answers a failed navigation outside `/app` with a small precached offline page: Caretook's name, "You're offline", a line that the app works offline once you've signed in on this device, and a link to `/app`. It is static, styled inline or with the app CSS already precached, passes the CSP (docs/domain/security-headers.md), and never replaces an online answer (network first; the fallback only when the network fails). Don't cache marketing pages themselves.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`serviceWorkerRoutes.test.ts` or `serviceWorkerCaches.test.ts`): a navigation to `/` or `/sign-in` that fails gets the offline page; one that succeeds gets the network's answer; `/app` navigations keep the shell as before.
+- [ ] Browser check (`scripts/browser-checks/layout-offline.spec.mjs`) on a production build: after one online visit, offline loads of `/` and `/sign-in` show the offline page with its `/app` link.
+
+## Slice 63: Med times on the Medications screens (B-695, part 1)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** "Pass" is nursing jargon; family caretakers can read it as skipping a dose. The user chose "Med times" (see the wave note).
+
+**Build.** Visible text and aria labels only, in: `routes/app/groups/medications/**` (the Passes tab becomes Med times, PassForm, PassList, ScheduleFields, TodaySection, MedicationForm, MedicationList, the + menu's "Add a med time" in `useAddMenu.ts`, the print and weekly print sheets), `routes/app/groups/medication/**` (MedicationDetails, MedicationHistory), `components/medications/**` (PassCard, DoseSlotRow, ExtraDoseWarning), and the refusal messages in `lib/medications/medicationPasses.sync.ts` and `medications.sync.ts`. Update these files' component tests. Leave the timeline, Today, search, quick entry and connectors to slices 64 and 65. In the hand-off, list every string changed.
+
+**Acceptance criteria.**
+
+- [ ] Component tests (the medications and passes `*.browser.test.tsx` beside these files): the tab, page title, + menu item and form read Med times / med time; no visible "pass" left on those screens.
+- [ ] `grep -rniE "['\">][^'\"<]*\bpass(es)?\b"` over these folders finds only identifiers, URLs and comments.
+
+## Slice 64: Med times on the timeline, Today and search (B-695, part 2)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** As slice 63, for the timeline side.
+
+**Build.** Visible text and aria labels only, in `routes/app/groups/timeline/**` (EasyNow, EasyTimeline, TodayMedicationsRow, PassLogItem, `pass/PassLogForm.tsx`, `new-dose/`, dayItems, useTodayCard, useMedicationStrip), `lib/medications/medicationStrip.ts`, `dueDoses.sync.ts`, `passLogs.ts`, `lib/timeline/timelineNewer.ts`, and `routes/app/groups/search/**` (ResultItems, SearchResults, EasyResultSheet). Leave the Medications screens (slice 63) and quick entry and connectors (slice 65). Update these files' component tests; a browser check under `scripts/browser-checks/` that asserts the old words gets its text updated. In the hand-off, list every string changed.
+
+**Acceptance criteria.**
+
+- [ ] Component tests beside these files: the Today card, a logged slot on the timeline and its log form, and a search result read med time / the slot's name; no visible "pass".
+- [ ] The same grep as slice 63 over these files finds only identifiers, URLs and comments.
+
+## Slice 65: Med times in quick entry and connectors; the docs (B-695, part 3)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: unit, component
+
+**Problem.** As slice 63, for quick entry and the connector text.
+
+**Build.** Visible text only in `components/quick-entry/**` (for example "Suggestions, a pass is due", "That pass is gone") and `lib/assistant/quickEntry.sync.ts`, `quickEntryCompletion.ts`; quick entry keeps accepting every word it accepts today (pass, passes) and also accepts "med time". Connector tool descriptions and prompt text in `packages/api/src/connectors/**` say med time; the `give_pass` tool name and output keys stay. `docs/domain/medications.md` says the visible name is Med times (code keeps pass). In the hand-off, list every string changed.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (quick entry parsing): "pass" and "med time" both still match a slot.
+- [ ] Component tests beside the quick-entry files: the due suggestion and the gone message read med time.
+- [ ] Connector tests that pin description text are updated; tool names unchanged.
+
+## Wave 9 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no new dependency. No other PRD is running. B-669 (the shared toast system, moved into fixes-ui by the user 2026-11-24) is slice 66 alone; slices 67 and 68 are blocked by it and start once it is merged into prd/fixes-ui; they touch separate files and run at once. Read each item's backlog note (`pnpm backlog show B-<n>`). Held to later waves: B-684 (required-field asterisks, a wave of its own), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 66: Shared toast system on React Aria, behind ui/Toast (B-669)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/app-shell.md · Tests: unit, component
+
+**Problem.** `components/ui/Toast.tsx` is one fixed message per caller: two toasts overlap, there's no dismiss, no Undo, no timing. The user wants heavy use of toasts (B-693, B-697, onboarding-2's B-665 build on this).
+
+**Build.** A shared toast queue inside `components/ui/` on react-aria-components 1.22.1's `UNSTABLE_ToastRegion`, `UNSTABLE_ToastList`, `UNSTABLE_Toast` and `UNSTABLE_ToastQueue` (already a dependency; nothing new). The `UNSTABLE_` names are imported only inside `ui/`; screens call our own API (for example `toast({ message, action?, undo?, timeout? })` returning an id, plus `dismissToast(id)`), exported from `ui/index.ts`. One region mounted once in the `/app` layout (`routes/app/layout/route.tsx`), above the tab bar (`--tab-bar-height`, none from `sm`) and above the on-screen keyboard (B-664 hides the bar while typing), print hidden. It needs: a queue so toasts never overlap (newest shown, the rest wait or stack, your choice, say which), an optional action, a dismiss button, Undo as an action, caller-set timeout (none for an action-only toast such as Reload), toasts surviving a route change, never taking focus from what the user is typing, the region a live region for screen readers, and fade motion on `--motion` under `prefers-reduced-motion: no-preference` (instant under reduce). daisyUI styling, as today's toast. Migrate `routes/app/layout/UpdateNotice.tsx` and `routes/app/groups/timeline/AddedMedicationToast.tsx` to it and drop the old one-off `Toast` if nothing else uses it (update `routes/dev/ui/sections/ToastSection.tsx` and `MotionSection.tsx`). If React Aria's toast falls short on a phone (above the bar, keyboard open), extend our own component rather than add a library, and say so in the hand-off. Add the usage rules to `docs/domain/components.md` (toasts for finished actions, Undo, background news, one-time nudges; not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes; don't sweep inline `Message` uses) and the API to `docs/domain/ui-kit.md`.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`ui/Toast.browser.test.tsx`): two toasts queued never overlap; dismiss removes one; an action runs once and closes it; a timeout closes it; a toast without a timeout stays; reduced motion shows and hides at once.
+- [ ] Component test: a toast shown, then a route change, is still shown; focus stays in a text field while a toast appears.
+- [ ] The update notice and the added-medication notice still work through the new API (their existing tests updated).
+- [ ] `grep -rn "UNSTABLE_Toast" apps/web/app` finds only files under `components/ui/`.
+
+## Slice 67: New events and notes: the first save shows a saved toast (B-693)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: component · Blocked by: slice 66
+
+**The toast API (slice 66, merged e2f1d254).** `toast({ message, action?, undo?, timeout?, data? })` from `~/components/ui` returns an id; `dismissToast(id)`; default timeout 6 s (`timeout: null` stays), paused on hover or focus; one shown at a time, newest first. Messages are plain strings. In tests a toast is `getByRole("alertdialog", { name })` and its message `role="alert"`; `renderWithDevice` shows toasts, `renderInRouter` tests mount `<ToastRegion />` themselves; keep the pointer off the toast (hover pauses its timer); `clearToasts()` runs after each test.
+
+**Problem.** A new event or note saves silently on its first save; the user wants a toast.
+
+**Build.** In `routes/app/groups/entry/useLiveEntry.ts`'s `save()` (the one-off and repeating paths, each followed by a replace navigation from `entries/new` to `entries/:id`), show the slice 66 toast "Event saved" or "Note saved" by kind, once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider); never on later autosaves or a failed save. It's a local write: the wording must not imply it has synced, and it works offline. It goes through the shared queue so it survives the navigation, and it never takes focus or interrupts typing (a note's first save is usually its first typed text).
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside the entry route's tests): a new event's first save shows "Event saved" once; a second change to it shows no toast; a new note's first typed text shows "Note saved" and focus stays in the editor.
+- [ ] A failed first save shows no toast (its error stays inline).
+
+## Slice 68: Medications Schedule: logging a dose shows a toast (B-697)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: unit, component · Blocked by: slice 66
+
+**The toast API (slice 66, merged e2f1d254).** `toast({ message, action?, undo?, timeout?, data? })` from `~/components/ui` returns an id; `dismissToast(id)`; default timeout 6 s (`timeout: null` stays), paused on hover or focus; one shown at a time, newest first. Messages are plain strings. In tests a toast is `getByRole("alertdialog", { name })` and its message `role="alert"`; `renderWithDevice` shows toasts, `renderInRouter` tests mount `<ToastRegion />` themselves; keep the pointer off the toast (hover pauses its timer); `clearToasts()` runs after each test.
+
+**Problem.** Logging from the Medications Schedule tab shows no toast; only Given all shows an inline "Morning logged · Undo" line.
+
+**Build.** Decided for the user (ask a211, the user can veto): every log from the Schedule tab gets a slice 66 toast with Undo for about 10 s (`UNDO_MS`), through the existing Undo path in `lib/medications/passUndo.ts` (`offerUndo`, `clearUndo`: it deletes exactly the doses it wrote). Wording: one dose Given "Tylenol logged · Undo"; Skipped and Refused "Tylenol marked skipped · Undo" / "Tylenol marked refused · Undo"; Given all "Morning logged · Undo". Cover each path that logs from this tab: the one-tap Given (`DoseSlotRow` via `usePassLog.logSlot`), Skipped and Refused (`MarkDoseDialog`), the as-needed Log (the Schedule route's clientAction and `TodaySection`), and Given all. On the Schedule tab the toast replaces the inline `PassUndoStatus` line (`TodaySection.tsx`), so it never shows both; the other screens' `PassUndoStatus` lines (timeline, Today, the Dose sheet, quick entry, the Med times tab) stay as they are. Toast only after the local write succeeds; errors stay inline. Mind dose-accuracy's landed Undo fixes (B-614, B-627): Undo goes through the same service path.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`routes/app/groups/medications/today.browser.test.tsx` or beside it): a one-tap Given shows "<name> logged · Undo" and Undo removes that dose; Skipped and Refused show their toast; an as-needed Log shows its toast; Given all shows "Morning logged · Undo" as a toast and no inline line.
+- [ ] A failed log shows no toast, its error inline.
+- [ ] Unit test if `passUndo.ts` gains single-dose rounds.
+
+## Wave 10 (written 2026-11-24 by the orchestrator; B-793 moved into fixes-ui on the user's word, via the backlog session)
+
+Every slice: no migration, no new dependency. **Staging promotion is blocked until slice 69 lands**: start it first, at once, and land it as its own wave; the backlog session recuts the candidate after and wants a message when it lands in dev. Held: B-684 (asterisks, a wave of its own), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 69: Roundtrip's "add: shows on this device at once" fits its 2 s budget again (B-793)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser
+
+**Problem.** Staging candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): `scripts/browser-checks/roundtrip.spec.mjs:249` (`localMs < 2000`) took 2007 ms, then 2069 ms on rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed. Suspect: B-613 (87a6235c: overlays fade at 240 ms, not 120, and `useSheetExit` waits for the overlay too). Against it: `new/route.tsx`'s clientAction writes locally before `onDone` closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. Wave 9's toast region (slice 66) and the saved toast (slice 67) are also new in the /app layout.
+
+**Build.** First measure, then fix. Find whether the app got slower or the step was already at its budget's edge: time `addSymptom`'s phases (submit, local write, sheet close, row visible) on 65529f69's app and on the current tip (a production build, as CI runs it), several runs each, and print `localMs` on pass too. If a change made the row appear later (for example the row waits behind the sheet's exit fade, or a toast or layout change delays the render), fix the app so the new row shows without waiting for the overlay animation. Only if the app's time is unchanged and the step was already at the edge, say so with the numbers and propose (don't just raise) a budget the user approves: never widen it on your own. In the hand-off, give the before and after timings.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has timings for 65529f69 and the tip, phase by phase, and names the cause.
+- [ ] `roundtrip.spec.mjs` prints `localMs` whether it passes or fails.
+- [ ] With the fix, roundtrip passes on a production build at least 5 times in a row, `localMs` well under 2000 ms (say the margin).

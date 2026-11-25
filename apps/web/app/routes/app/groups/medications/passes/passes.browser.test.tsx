@@ -1,12 +1,20 @@
-import { describe, expect, test } from "vitest";
+import type { DoseRow } from "../medicationWorld";
+
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../../test/found";
+import { fixClock, found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { fx, medicationPass } from "../../../../../../test/fixtures";
+import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../../test/fixtures";
 import { pickTime } from "../../../../../../test/timeSelect";
 import { currentHourTime } from "~/lib/core/timeOfDay";
+import { clockTime } from "~/lib/medications/medicationDisplay";
+import { clearUndo } from "~/lib/medications/passUndo";
 import {
+  CLOCK,
+  clockAt,
+  clockMoment,
   dialogButton,
+  DOSES_SQL,
   EVENING,
   MEDICATION_ROUTES,
   menuItem,
@@ -19,14 +27,20 @@ import {
 // in order with the medications in each, under the Medications header; a
 // writer adds one through the header's `+` (Pass, the add-pass sheet; a
 // taken name refused, any case), retimes it (every medication moves with it,
-// and one passMoved entry says so), moves it up, renames it and deletes it (a
+// and one passMoved entry says so; the list stays by time, then name, with
+// no Move up or Move down, B-701), renames it and deletes it (a
 // confirm saying the medications keep the time, which they do, with no
 // change entries); a retime from another device shows without a reload; a
 // viewer reads it with no controls, and the add-pass sheet's URL sends a
 // viewer or a full group to the tab. The device never connects, so every
 // write here is the offline one too. The pass rules are
 // medicationPass.test.ts's; the service's retime and delete are
-// medicationPass.int.test.ts's and syncPasses.int.test.ts's. The tabs and
+// medicationPass.int.test.ts's and syncPasses.int.test.ts's. Each card
+// shows today's state, and a writer logs a pass from it (Given all, then
+// Undo here, B-700), on a fixed clock as Schedule's are (today.browser.test.tsx
+// has Given all's rules); a medication given twice in it today is called out
+// as on Today, to viewers too (B-784; doubleDose.browser.test.tsx has Today's
+// and the medication page's). The tabs and
 // the `+` menu from each tab are tabs.browser.test.tsx's.
 
 const NEW_PASS = `${PASSES}/new`;
@@ -79,7 +93,7 @@ const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
 /** The header's `+`, then Pass: the add-pass sheet. */
 const addPass = async () => {
   await userEvent.click(page.getByRole("button", { name: "Add", exact: true }));
-  await userEvent.click(await found(() => menuItem("Pass")));
+  await userEvent.click(await found(() => menuItem("Med time")));
 };
 const action = async (name: string, item: string) => {
   await userEvent.click(
@@ -111,8 +125,23 @@ describe("the tab", () => {
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
     expect(medsIn("Morning")).toEqual(["Lisinopril 10 mg", "Metformin 500 mg"]);
     expect(medsIn("Evening")).toEqual(["Metformin 500 mg"]);
-    expect(description()).toContain("The rounds medications are given in, each day.");
+    expect(description()).toContain("The times medications are given, each day.");
     expect(description()).not.toContain("You can view");
+  });
+
+  test("passes show by time, then name, whatever their sort orders say; the menu has no Move up or Move down", async () => {
+    const late = medicationPass({ name: "Late", time: "22:00", sortOrder: 0 });
+    const brunch = medicationPass({ name: "brunch", time: "08:00", sortOrder: 7 });
+    await open({ extra: [late, brunch] });
+    await expect.poll(passList).toEqual(["brunch 08:00", "Morning 08:00", "Evening 20:00", "Late 22:00"]);
+    await userEvent.click(
+      await found(() => row("Morning")?.querySelector('button[aria-label="Actions for Morning"]')),
+    );
+    await found(() => menuItem("Edit"));
+    const items = [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].map((m) =>
+      m.textContent?.trim(),
+    );
+    expect(items).toEqual(["Edit", "Delete"]);
   });
 
   test("a viewer reads the passes and their medications, told so, with no controls", async () => {
@@ -120,7 +149,7 @@ describe("the tab", () => {
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
     expect(document.querySelector<HTMLElement>("main header [data-add-medication]")).toBeNull();
     expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
-    expect(description()).toContain("You can view the passes");
+    expect(description()).toContain("You can view the med times");
   });
 
   test("a new pass starts at the current hour in the recipient's zone, not the device's", async () => {
@@ -170,7 +199,7 @@ describe("the add-pass sheet's URL", () => {
 });
 
 describe("a writer", () => {
-  test("adds a pass, last in the list, and the sheet closes back to the tab; a taken name (any case) is refused on its field", async () => {
+  test("adds a pass, in its place by time, and the sheet closes back to the tab; a taken name (any case) is refused on its field", async () => {
     const device = await open();
     await addPass();
     await expect.poll(() => device.location()).toBe(NEW_PASS);
@@ -179,9 +208,9 @@ describe("a writer", () => {
     const describedBy = input("name").getAttribute("aria-describedby")!.split(" ").pop()!;
     await expect
       .poll(() => document.getElementById(describedBy)?.textContent)
-      .toBe("Another pass already has that name");
+      .toBe("Another med time already has that name");
     await fillForm({ name: "Noon", time: "12:00" });
-    await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00", "Noon 12:00"]);
+    await expect.poll(passList).toEqual(["Morning 08:00", "Noon 12:00", "Evening 20:00"]);
     await expect.poll(() => !FORM() && device.location()).toBe(PASSES);
     await expect
       .poll(() => row("Noon")?.querySelector("[data-pass-medications-none]")?.textContent)
@@ -193,7 +222,7 @@ describe("a writer", () => {
     expect((await device.queued()).some((w) => w.type === "medication_pass")).toBe(true);
   });
 
-  test("a retime moves its medications with it and writes one passMoved entry naming them; Move up puts it before Evening; a rename saves", async () => {
+  test("a retime moves its medications with it and writes one passMoved entry naming them; the list stays by time; a rename saves", async () => {
     const device = await open();
     const noon = await addNoon(device);
     const PASS_MED = fx.medication({
@@ -223,12 +252,7 @@ describe("a writer", () => {
     });
     expect(medsIn("Noon")).toEqual(["Pass med 5 mg"]);
 
-    await action("Noon", "Move up");
-    await expect.poll(passList).toEqual(["Morning 08:00", "Noon 12:30", "Evening 20:00"]);
-    const order = await device.query<{ name: string }>(
-      "SELECT name FROM medication_pass WHERE deleted_at IS NULL ORDER BY sort_order, time",
-    );
-    expect(order.map((p) => p.name)).toEqual(["Morning", "Noon", "Evening"]);
+    expect(passList()).toEqual(["Morning 08:00", "Noon 12:30", "Evening 20:00"]);
 
     await action("Noon", "Edit");
     await fillForm({ name: "Lunch" });
@@ -262,5 +286,130 @@ describe("a writer", () => {
       [PASS_MED.id],
     );
     expect(changes).toHaveLength(0);
+  });
+});
+
+describe("today on the tab, on a fixed clock", () => {
+  const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
+  /** Rounds, 7 minutes back, with two medications; Late, 4 minutes back, already given by Sam. */
+  const ROUNDS = medicationPass({ name: "Rounds", time: clockAt(-7), sortOrder: 0 });
+  const LATE = medicationPass({ name: "Late", time: clockAt(-4), sortOrder: 1 });
+  const inPass = (name: string, passId: string) =>
+    fx.medication({
+      name,
+      strength: "5 mg",
+      dose: "1 tablet",
+      schedule: { type: "scheduled", slots: [{ passId }] },
+    });
+  const XA = inPass("Xa", ROUNDS.id);
+  const YB = inPass("Yb", ROUNDS.id);
+  const ZC = inPass("Zc", LATE.id);
+  const ZC_GIVEN = fx.dose({
+    medicationId: ZC.id,
+    createdBy: SAM.id,
+    occurredAt: clockMoment(-2),
+    details: JSON.stringify({
+      medicationId: ZC.id,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: LATE.row.time,
+      passId: LATE.id,
+    }),
+  });
+  /** Zc given again, 1 minute back: a double dose in Late. */
+  const ZC_AGAIN = fx.dose({
+    medicationId: ZC.id,
+    occurredAt: clockMoment(-1),
+    details: JSON.stringify({
+      medicationId: ZC.id,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: LATE.row.time,
+      passId: LATE.id,
+    }),
+  });
+  const world = [SAM, fx.recipient({ timeZone: TEST_TIME_ZONE }), ROUNDS, LATE, XA, YB, ZC, ZC_GIVEN];
+  const openToday = (role: "caretaker" | "viewer" = "caretaker", extra: unknown[] = []) =>
+    renderWithDevice({
+      route: MEDICATION_ROUTES,
+      url: PASSES,
+      role,
+      fixtures: [...world, ...(extra as [])],
+    });
+  const warnings = (passId: string) =>
+    [...(state(passId)?.querySelectorAll<HTMLElement>("[data-extra-dose-text]") ?? [])].map(
+      (el) => el.textContent,
+    );
+  const state = (passId: string) => document.querySelector<HTMLElement>(`main [data-pass="${passId}"]`);
+  const givenAll = (passId: string) => state(passId)?.querySelector<HTMLElement>("[data-given-all]") ?? null;
+  const badge = (passId: string) => state(passId)?.querySelector("[data-pass-badge]")?.textContent ?? null;
+  const UNDO = () =>
+    document.querySelector<HTMLElement>("[data-pass-undo-label]")?.textContent?.trim() ?? null;
+  const doses = (device: { query: <T>(sql: string) => Promise<T[]> }) => device.query<DoseRow>(DOSES_SQL);
+
+  beforeEach(() => {
+    fixClock(CLOCK);
+  });
+  afterEach(() => {
+    clearUndo();
+    vi.useRealTimers();
+  });
+
+  test("a writer's Given all logs every open medication in that pass and offers Undo here; Undo removes them", async () => {
+    const device = await openToday();
+    await expect.poll(() => badge(ROUNDS.id)).toBe("Due");
+    expect(givenAll(ROUNDS.id)?.getAttribute("aria-label")).toContain("Given all: Rounds, ");
+    await userEvent.click(await found(() => givenAll(ROUNDS.id)));
+    await expect.poll(() => state(ROUNDS.id)?.dataset.passState).toBe("done");
+    await expect.poll(UNDO).toBe("Rounds logged");
+    expect(givenAll(ROUNDS.id)).toBeNull();
+    expect(state(ROUNDS.id)?.querySelector("[data-pass-logged]")?.textContent).toBe("you logged 2 of 2");
+    const logged = (await doses(device)).filter((d) => d.passId === ROUNDS.id);
+    expect(logged.map((d) => d.medicationId).sort()).toEqual([XA.id, YB.id].sort());
+    expect(logged.every((d) => d.status === "given")).toBe(true);
+    expect(new Set(logged.map((d) => d.passLogId)).size).toBe(1);
+    // The card itself opens nothing; the menu stays.
+    expect(state(ROUNDS.id)?.querySelector('button[aria-label="Actions for Rounds"]')).toBeTruthy();
+
+    await userEvent.click(await found(() => document.querySelector("[data-pass-undo-button]")));
+    await expect.poll(() => state(ROUNDS.id)?.dataset.passState).toBe("due");
+    await expect.poll(UNDO).toBeNull();
+    expect((await doses(device)).filter((d) => d.passId === ROUNDS.id)).toHaveLength(0);
+    expect(givenAll(ROUNDS.id)).toBeTruthy();
+  });
+
+  test("a done pass shows its state and who logged it, with no Given all", async () => {
+    await openToday();
+    await expect.poll(() => badge(LATE.id)).toBe("Done");
+    expect(state(LATE.id)?.dataset.passState).toBe("done");
+    expect(state(LATE.id)?.querySelector("[data-pass-logged]")?.textContent).toBe("Sam Okafor logged 1 of 1");
+    expect(givenAll(LATE.id)).toBeNull();
+  });
+
+  test("a viewer sees each pass's state with no Given all and no Undo", async () => {
+    await openToday("viewer");
+    await expect.poll(() => badge(ROUNDS.id)).toBe("Due");
+    expect(badge(LATE.id)).toBe("Done");
+    expect(document.querySelector("main [data-given-all]")).toBeNull();
+    expect(document.querySelector("[data-pass-undo]")).toBeNull();
+    expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
+  });
+
+  test.each(["caretaker", "viewer"] as const)(
+    "a medication given twice in a pass today shows the double-dose badge and both times on its card (%s)",
+    async (role) => {
+      await openToday(role, [ZC_AGAIN]);
+      await expect
+        .poll(() => warnings(LATE.id))
+        .toEqual([`Zc 5 mg: Given twice: ${clockTime(clockAt(-2))} and ${clockTime(clockAt(-1))}`]);
+      expect(state(LATE.id)?.querySelector("[data-extra-dose-badge]")?.textContent).toBe("Double dose");
+      expect(state(ROUNDS.id)?.querySelector("[data-extra-dose]")).toBeNull();
+    },
+  );
+
+  test("a single dose in a pass shows no double-dose warning", async () => {
+    await openToday();
+    await expect.poll(() => badge(LATE.id)).toBe("Done");
+    expect(document.querySelector("main [data-extra-dose]")).toBeNull();
   });
 });

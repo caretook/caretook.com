@@ -58,12 +58,12 @@ describe("Collapse", () => {
     expect(document.activeElement?.textContent).toBe("After");
   });
 
-  test("closed from the start, then opened: it slides with the kit's slow duration", async () => {
+  test("closed from the start, then opened: it slides with the kit's duration", async () => {
     const { screen } = await renderInRouter(<Expander />);
     expect(shown()).toBe(false);
-    const slow = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--motion-slow"));
-    expect(slow).toBe(240);
-    expect(seconds(getComputedStyle(region()).transitionDuration)).toContain(slow / 1000);
+    const motion = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--motion"));
+    expect(motion).toBe(240);
+    expect(seconds(getComputedStyle(region()).transitionDuration)).toContain(motion / 1000);
     await userEvent.click(screen.getByRole("button", { name: "Visit notes" }));
     await expect.element(screen.getByRole("button", { name: "Edit notes" })).toBeVisible();
     // Done moving, the content may show past its edges (focus rings).

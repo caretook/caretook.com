@@ -391,8 +391,8 @@ const checkProviders = async (
   return null;
 };
 
-const badPass = refuse("Choose passes in this care group", [
-  { path: "schedule", message: "Choose passes in this care group" },
+const badPass = refuse("Choose med times in this care group", [
+  { path: "schedule", message: "Choose med times in this care group" },
 ]);
 
 /**

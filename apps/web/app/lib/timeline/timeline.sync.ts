@@ -341,13 +341,19 @@ export const pastEventsWindow = (
   limit: number,
   cutoff: string,
 ): LocalQuery => {
+  const from = pastEventsFrom(groupId, filters, cutoff);
+  return {
+    sql: `${from.sql} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
+    params: [...from.params, limit + 1],
+  };
+};
+
+/** `pastEventsWindow`'s rows, unordered and uncapped (the Past tab's text filter reads them all). */
+export const pastEventsFrom = (groupId: string, filters: EntryFilters, cutoff: string): LocalQuery => {
   const { conditions, params } = filterConditions(groupId, filters, ["event"]);
   conditions.push("occurred_at <= ?");
   params.push(toLocalTimestamp(cutoff));
-  return {
-    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
-    params: [...params, limit + 1],
-  };
+  return { sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")}`, params };
 };
 
 /** One group's entries under the filters, newest first (`entryWindow`). */

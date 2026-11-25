@@ -1,6 +1,7 @@
 import type { MedicationsPageTab, MedicationTab } from "./urls";
 
 import { appUrls } from "../app-shell/appUrls";
+import { withoutSheetParams } from "../timeline/urls";
 
 // The sheet routes over the Medications tabs (`medications/<tab>/new`,
 // `medications/<tab>/:medicationId/edit`, for the
@@ -83,7 +84,7 @@ export const editMedicationGuard = <M extends { groupId: string; deletedAt: stri
 
 /**
  * The tab whose page, or one of whose sheets (`new`, `allergies`, `<id>/edit`;
- * Passes: `new`), `pathname` is; else null.
+ * the list's `dose`; Passes: `new`), `pathname` is; else null.
  */
 const tabOrSheet = (groupId: string, pathname: string): MedicationsPageTab | null => {
   const tab = medicationTabOf(groupId, pathname);
@@ -93,6 +94,8 @@ const tabOrSheet = (groupId: string, pathname: string): MedicationsPageTab | nul
   const rest = pathname.slice(base.length + 1).split("/");
   if (tab === "passes") return rest.length === 1 && rest[0] === "new" ? tab : null;
   if (rest.length === 1 && (rest[0] === "new" || rest[0] === "allergies")) return tab;
+  // The list's Log opens the Dose sheet over it.
+  if (tab === "list" && rest.length === 1 && rest[0] === "dose") return tab;
   return rest.length === 2 && rest[0] !== "" && rest[1] === "edit" ? tab : null;
 };
 
@@ -107,6 +110,17 @@ export const onlyMedicationSheetChanged = (groupId: string, current: URL, next: 
   const tab = tabOrSheet(groupId, current.pathname);
   return tab !== null && tab === tabOrSheet(groupId, next.pathname);
 };
+
+/**
+ * Where the timeline's Dose sheet sits when it's over the Medications list
+ * (`medications/list/dose`, the list's Log): the list, with its search and
+ * without the sheet's own parameters, which a viewer is sent to and a
+ * dismissal from a bookmark replaces it with. Undefined over the timeline.
+ */
+export const doseSheetHome = (groupId: string, pathname: string, search: string) =>
+  medicationTabOf(groupId, pathname) === "list"
+    ? appUrls.medicationList(groupId, withoutSheetParams(search))
+    : undefined;
 
 /** History state on the Passes tab's own links to the add-pass sheet (so closing it goes back there). */
 export const PASS_SHEET_STATE = { passSheet: true } as const;

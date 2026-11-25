@@ -12,7 +12,7 @@ type Content = ReactNode | ((close: () => void) => ReactNode);
  * A button that opens a small dialog beside it (React Aria: tap or
  * Enter/Space to open, focus moves in, Escape or a tap outside closes it,
  * focus returns to the button). `children` may be a function of `close`, for
- * a Done button. Taller than the room on screen, it scrolls inside. It fades in and out (`motion-overlay`, `--motion-fast`) and
+ * a Done button. Taller than the room on screen, it scrolls inside. It fades in and out (`motion-overlay`, `--motion`) and
  * leaves the DOM after its exit.
  */
 export function Popover({

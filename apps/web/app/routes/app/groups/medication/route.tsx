@@ -31,6 +31,7 @@ import {
 } from "~/lib/medications/medications.sync";
 import { loadMedication } from "./loadMedication";
 import { MedicationDetails, MedicationRefills } from "./MedicationDetails";
+import { MedicationExtraDoses } from "./MedicationExtraDoses";
 import { MedicationHeader } from "./MedicationHeader";
 import { MedicationHistory } from "./MedicationHistory";
 import { MedicationProviders } from "./MedicationProviders";
@@ -154,6 +155,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
             )
           }
         />
+        {!deleted && <MedicationExtraDoses groupId={groupId} medicationId={medicationId} />}
       </Section>
 
       {deleted ? (

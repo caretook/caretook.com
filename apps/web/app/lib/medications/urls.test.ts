@@ -32,6 +32,13 @@ describe("appUrls: medications", () => {
     );
   });
 
+  it("opens the Dose sheet over the list on a medication, carrying the list's search", () => {
+    expect(appUrls.medicationListDose("g", "m1")).toBe("/app/groups/g/medications/list/dose?medication=m1");
+    expect(appUrls.medicationListDose("g", "m1", "?q=lis&status=current&medication=old")).toBe(
+      "/app/groups/g/medications/list/dose?q=lis&status=current&medication=m1",
+    );
+  });
+
   it("puts the Passes tab and its add-pass sheet under the Medications page", () => {
     expect(appUrls.medicationPasses("g")).toBe("/app/groups/g/medications/passes");
     expect(appUrls.newPass("g")).toBe("/app/groups/g/medications/passes/new");

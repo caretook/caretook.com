@@ -178,10 +178,10 @@ export const MODEL_ERRORS = {
     message: "Failed to delete the medication",
   },
   "medicationPassModel:remove": {
-    message: "Failed to delete the pass",
+    message: "Failed to delete the med time",
   },
   "medicationPassModel:lock": {
-    message: "Failed to lock the pass",
+    message: "Failed to lock the med time",
   },
   "recipientAllergyModel:remove": {
     message: "Failed to delete the allergy",

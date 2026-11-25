@@ -28,7 +28,8 @@ import { pickTime } from "../../../test/timeSelect";
 
 // A sheet closes the way it opened (ui-kit-3 slice 6): a dismissal plays the
 // exit and then tells the caller; a navigation that changes the path is held
-// for the exit; a search-only change and reduced motion hold nothing.
+// for the exit; a search-only change and reduced motion hold nothing. It only
+// fades, on the kit's 240 ms; the panel doesn't move (B-613).
 
 const devtools = () => cdp() as unknown as { send: (method: string, params: object) => Promise<unknown> };
 const reduceMotion = () =>
@@ -39,8 +40,7 @@ afterEach(async () => {
   await devtools().send("Emulation.setEmulatedMedia", { features: [] });
 });
 
-const MOTION_MS = 180;
-const SLOW_MS = 240;
+const MOTION_MS = 240;
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 const overlay = () => document.querySelector<HTMLElement>('[data-sheet="overlay"]');
 const panel = () => document.querySelector<HTMLElement>('[data-sheet="panel"]');
@@ -144,6 +144,29 @@ const DISMISSALS = [
   },
 ] as const;
 
+describe("the sheet's motion", () => {
+  test("the overlay fades in and out on 240 ms; the panel has no translate, in or out", async () => {
+    const { screen } = await renderInRouter(<DismissHarness onChange={() => undefined} />, { width: 800 });
+    await userEvent.click(screen.getByRole("button", { name: "Add symptom" }));
+    // Entering: the panel already sits where it ends.
+    const sheet = await found(() => panel());
+    const dimming = await found(() => overlay());
+    expect(getComputedStyle(sheet).translate).toBe("none");
+    expect(getComputedStyle(sheet).transitionProperty).not.toMatch(/translate|transform/);
+    expect(seconds(getComputedStyle(dimming).transitionDuration)).toEqual([MOTION_MS / 1000]);
+    expect(getComputedStyle(dimming).transitionProperty).toBe("opacity");
+    await expect.poll(() => getComputedStyle(dimming).opacity).toBe("1");
+    expect(getComputedStyle(sheet).translate).toBe("none");
+    // Leaving: it fades where it is.
+    const exit = watchExit();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => exit.exitAt).toBeDefined();
+    expect(getComputedStyle(sheet).translate).toBe("none");
+    expect(sheet.hasAttribute("data-closing")).toBe(true);
+    await expect.poll(() => exit.removedAt).toBeDefined();
+  });
+});
+
 describe.each(DISMISSALS)("dismissed by $way", ({ act }) => {
   test("plays the exit, then calls onOpenChange(false) once; focus returns to the opener", async () => {
     const onChange = vi.fn<(open: boolean, at: number) => void>();
@@ -159,7 +182,7 @@ describe.each(DISMISSALS)("dismissed by $way", ({ act }) => {
     expect(onChange.mock.calls[0]?.[0]).toBe(false);
     const waited = (onChange.mock.calls[0]?.[1] ?? NaN) - (exit.exitAt ?? NaN);
     expect(waited).toBeGreaterThanOrEqual(MOTION_MS - 20);
-    expect(waited).toBeLessThanOrEqual(SLOW_MS + 100);
+    expect(waited).toBeLessThanOrEqual(MOTION_MS + 100);
     await expect.poll(() => document.activeElement).toBe(opener.element());
   });
 
@@ -258,9 +281,9 @@ describe("a real route sheet (adding a pass)", () => {
     });
     const add = page.getByRole("button", { name: "Add", exact: true });
     await userEvent.click(add);
-    await userEvent.click(await found(() => menuItem("Pass")));
+    await userEvent.click(await found(() => menuItem("Med time")));
     await expect.poll(() => device.location()).toBe(NEW_PASS);
-    await expect.element(page.getByRole("dialog", { name: "Add a pass" })).toBeVisible();
+    await expect.element(page.getByRole("dialog", { name: "Add a med time" })).toBeVisible();
     return { device, add };
   };
 
@@ -283,13 +306,13 @@ describe("a real route sheet (adding a pass)", () => {
     async ({ motion }) => {
       if (motion === "reduced") await reduceMotion();
       const { device } = await openSheet();
-      const dialog = page.getByRole("dialog", { name: "Add a pass" });
+      const dialog = page.getByRole("dialog", { name: "Add a med time" });
       await userEvent.fill(dialog.getByRole("textbox", { name: "Name" }), "Noon");
       await pickTime(
         () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="time"]'),
         "12:00",
       );
-      await userEvent.click(dialog.getByRole("button", { name: "Add pass" }));
+      await userEvent.click(dialog.getByRole("button", { name: "Add med time" }));
       await expect.poll(() => device.location()).toBe(PASSES);
       await expect.poll(overlay).toBeNull();
       await expect.element(page.getByText("Noon", { exact: true })).toBeInTheDocument();

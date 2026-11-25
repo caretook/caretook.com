@@ -1,4 +1,5 @@
 import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
+import type { DueDoses } from "~/lib/medications/dueDoses";
 import type { MedicationList as Listed } from "~/lib/medications/medicationList";
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
@@ -11,19 +12,24 @@ import { MedicationListItem } from "./MedicationListItem";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "medication" : "medications"}`;
 
+/** What each row's Log needs: whether the viewer writes, and today's doses. */
+type Logging = { canWrite: boolean; due: DueDoses; dueReady: boolean };
+
 function Rows({
   medications,
   passes,
   label,
+  logging,
 }: {
   medications: LocalMedication[];
   passes: readonly SchedulePass[];
   label: string;
+  logging: Logging;
 }) {
   return (
     <List label={label}>
       {medications.map((m) => (
-        <MedicationListItem key={m.id} medication={m} passes={passes} />
+        <MedicationListItem key={m.id} medication={m} passes={passes} {...logging} />
       ))}
     </List>
   );
@@ -42,6 +48,8 @@ export function MedicationList({
   text,
   status,
   type = null,
+  due,
+  dueReady,
 }: {
   /** Every medication in the group (not deleted), before filtering. */
   total: number;
@@ -52,6 +60,9 @@ export function MedicationList({
   text: string;
   status: MedicationStatus | null;
   type?: MedicationType | null;
+  /** Today's doses (`useDueDoses`), for an as-needed Log's warnings. */
+  due: DueDoses;
+  dueReady: boolean;
 }) {
   const shown = list.current.length + list.stopped.length;
   const what = `${[
@@ -60,7 +71,8 @@ export function MedicationList({
   ]
     .filter(Boolean)
     .join(" ")} medications`.trim();
-  const { easyRole } = useGroup();
+  const { easyRole, canWrite } = useGroup();
+  const logging = { canWrite, due, dueReady };
   const filtered = !!text.trim() || !!status || !!type;
   const emptyMark = filtered ? undefined : sectionAccent("medications", { easy: easyRole });
   return (
@@ -85,7 +97,7 @@ export function MedicationList({
         )}
 
         {list.current.length > 0 && (
-          <Rows medications={list.current} label="Current medications" passes={passes} />
+          <Rows medications={list.current} label="Current medications" passes={passes} logging={logging} />
         )}
 
         {list.stopped.length > 0 && (
@@ -98,6 +110,7 @@ export function MedicationList({
             <Rows
               medications={list.stopped}
               passes={passes}
+              logging={logging}
               label={
                 status ? `${STATUS_LABELS[status]} medications` : "Completed and discontinued medications"
               }

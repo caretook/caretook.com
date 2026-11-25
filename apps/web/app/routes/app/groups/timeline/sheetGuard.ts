@@ -94,7 +94,8 @@ export type NewDoseSheet = { medicationId: string | null; slot: string | null; p
 /**
  * `timeline/new/dose`: someone who logs care (writers and an Easy helper)
  * logging a dose. Anyone else is the timeline
- * (filters kept, the sheet's own parameters dropped). `?medication=` that
+ * (filters kept, the sheet's own parameters dropped), or `home` (the
+ * Medications list, for the sheet over it). `?medication=` that
  * isn't one of the sheet's choices (`choiceIds`) and a `?slot=` that isn't a
  * time are dropped.
  */
@@ -103,14 +104,17 @@ export const newDoseGuard = ({
   search,
   canLog,
   choiceIds,
+  home,
 }: {
   groupId: string;
   search: string;
   /** The group context's `canLog`. */
   canLog: boolean;
   choiceIds: readonly string[];
+  /** Where the sheet sits when it isn't over the timeline (its search already carried). */
+  home?: string;
 }): SheetDecision<NewDoseSheet> => {
-  if (!canLog) return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
+  if (!canLog) return { redirect: home ?? appUrls.timeline(groupId, withoutSheetParams(search)) };
   const params = new URLSearchParams(search);
   const medicationId = params.get(DOSE_MEDICATION_PARAM);
   const slot = params.get(DOSE_SLOT_PARAM);

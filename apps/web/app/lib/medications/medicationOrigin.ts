@@ -27,7 +27,7 @@ const labelFor = (path: string): string | null => {
   if (first === "medications") {
     if (second === "schedule") return "Schedule";
     if (second === "list") return "Medications";
-    if (second === "passes") return "Passes";
+    if (second === "passes") return "Med times";
     return null;
   }
   if (first === "timeline") return "Timeline";

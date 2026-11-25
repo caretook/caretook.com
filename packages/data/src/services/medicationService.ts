@@ -132,7 +132,7 @@ const checkProviders = async (
 const badPass = () =>
   newError({
     code: "medicationService:badPass",
-    meta: { issues: [{ path: "schedule", message: "Choose passes in this care group" }] },
+    meta: { issues: [{ path: "schedule", message: "Choose med times in this care group" }] },
   });
 
 /**
