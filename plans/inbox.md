@@ -35,6 +35,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later (B-737)
 - Ability to open live notes full screen. (B-765)
 - Need a banner (or permanent toast) while in offline mode. (B-804)
+- Need a loader screen for loading in offline mode.
 
 ## Big plans
 
