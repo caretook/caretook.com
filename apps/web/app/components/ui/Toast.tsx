@@ -33,7 +33,9 @@ export const ToastRegion = memo(function ToastRegion() {
     }
     // Safari has no requestIdleCallback: a short wait instead.
     const idle = "requestIdleCallback" in window;
-    const handle = idle ? window.requestIdleCallback(load, { timeout: 5_000 }) : window.setTimeout(load, 2_000);
+    const handle = idle
+      ? window.requestIdleCallback(load, { timeout: 5_000 })
+      : window.setTimeout(load, 2_000);
     return () => {
       live = false;
       if (idle) window.cancelIdleCallback(handle);
