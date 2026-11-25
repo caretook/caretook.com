@@ -1,7 +1,9 @@
 // The two committed lists beside the workflow: the brake list (brake-list.txt)
-// and the quarantine (quarantine.txt). The parsers are pure and browser-safe, since
-// the Vitest setup shares isQuarantined; only readLists touches the disk, and it
-// loads node:fs on demand. Imports nothing else: the verdict job runs with no install.
+// and the quarantine (quarantine.txt), at risa.json's paths.brakeList and
+// paths.quarantine. Caretook's copy of the parser; the core keeps its own. The
+// parsers are pure and browser-safe, since the Vitest setup shares isQuarantined;
+// only readLists touches the disk, and it loads node:fs on demand. Imports nothing
+// else: the verdict job runs with no install.
 
 const COMMENT = /^\s*(#|$)/;
 
@@ -77,9 +79,9 @@ export const quarantineMode = (env = process.env) => env.CARETOOK_QUARANTINE ?? 
 export async function readLists(root = process.cwd()) {
   const { readFileSync } = await import("node:fs");
   const { join } = await import("node:path");
-  const read = (/** @type {string} */ name) => readFileSync(join(root, "scripts/ci", name), "utf8");
+  const read = (/** @type {string} */ path) => readFileSync(join(root, path), "utf8");
   return {
-    brakes: parseBrakeList(read("brake-list.txt")),
-    quarantine: parseQuarantine(read("quarantine.txt")),
+    brakes: parseBrakeList(read("scripts/ci/brake-list.txt")),
+    quarantine: parseQuarantine(read("scripts/ci/quarantine.txt")),
   };
 }
