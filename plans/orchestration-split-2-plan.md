@@ -8,7 +8,7 @@
 
 **Session 1 (2026-11-25, Fable):** started by the user by hand. **Landing mode: ask before each landing**, through the backlog split-ops session (now `caretook-com-d6`: it rotated 2026-11-25, and the session record `backlog-split-ops` confirms it; find it with ListAgents if it rotates again; the user's contact for the split until the reset, Sat 2026-11-28 12:00); the user's word: "listen to backlog - split-ops agent". The user's word through split-ops (2026-11-25): start slices 1, 4 and 5 now on opus, and add slice 9 for B-838 and B-842 in wave 4.
 
-**Wave 1 started 2026-11-25:** slices 1, 4 and 5, each a worktree (`.loops/orchestration-split-2-<n>`, made with `CARETOOK_USAGE_WATCH=off`) and a background agent on opus. **Slice 4 handed off** (cb130e51, reviewed, waits for slice 1 to merge in plan order): its slice check passed all but `watchdog.test.mjs` 'reads the limit as the drain does', which is B-818 (it fails wherever the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2; not the slice's). It edits `vitest.config.ts` (the new helper test joins `web:unit`), so wave 1's proposed tier will be `full`, not `components`. Slices 1 and 5 are in their slice checks. B-543 claimed for `prd/orchestration-split-2` (it was still owned by the finished `prd/orchestration-split`).
+**Wave 1 started 2026-11-25:** slices 1, 4 and 5, each a worktree (`.loops/orchestration-split-2-<n>`, made with `CARETOOK_USAGE_WATCH=off`) and a background agent on opus. **Slice 4 handed off** (cb130e51, reviewed, waits for slice 1 to merge in plan order): its slice check passed all but `watchdog.test.mjs` 'reads the limit as the drain does', which is B-818 (it fails wherever the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2; not the slice's). It edits `vitest.config.ts` (the new helper test joins `web:unit`), so wave 1's proposed tier will be `full`, not `components`. **Slice 5 handed off** (5151d435, reviewed, slice check green with `env -u CARETOOK_USAGE_WATCH`; ten roles, each a replacement; AGENTS.md 8087 bytes). Slice 1 is in its slice check; 4 and 5 merge after it, in plan order. B-543 claimed for `prd/orchestration-split-2` (it was still owned by the finished `prd/orchestration-split`).
 
 **This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
 
@@ -25,7 +25,7 @@
 | ----- | ---- | ------- | -------------------------------------- |
 | 1     | 1    | running |                                        |
 | 4     | 1    | handoff |                                        |
-| 5     | 1    | running |                                        |
+| 5     | 1    | handoff |                                        |
 | 2     | 2    | planned |                                        |
 | 6     | 2    | planned |                                        |
 | 3     | 3    | planned |                                        |
