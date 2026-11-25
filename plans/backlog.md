@@ -314,6 +314,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-837 | change | inbox |  |  | Time limit gate for component tests to keep them from growing too long |
 | B-838 | chore | triaged | orchestration-split |  | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
+| B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
 
 ## Items
 
@@ -2270,3 +2271,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): search.sync.browser.test.tsx's timing case failed once in components-2 on candidate run 45672578898 (77d9d75a) and passed on rerun; on the brake list (*.sync.browser.test.tsx), so it refused promote. A rerun on the same tip was green (45675167795). Triage: fixes-tooling (a CI-load timing bound, not a sync bug); loosen or move the bound off the brake path.
+
+### B-840 · bug · Offline banner flashes too often when the connection hasn't actually dropped
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): From the inbox: Needs a longer timeout before marking the site as offline.
+- 2026-11-25 (Robert Bo Davis): Triage: wrong behaviour (the banner shows while the connection is up). Check what drives the offline flag (PowerSync status vs navigator.onLine) and add a short grace period before showing it.
