@@ -96,6 +96,38 @@ describe("opening the timeline on a day", () => {
     expect(scrollY).toBeGreaterThan(0);
   });
 
+  // B-779: with nothing today and no one else in the group, the invite card comes in after the landing.
+  const quietToday = () =>
+    Array.from({ length: 60 }, (_, i) =>
+      fx.note({ occurredAt: at(daysAgo(1 + Math.floor(i / 3), 8 + (i % 3) * 2)), text: `Older note ${i}` }),
+    );
+  const inviteCard = () => document.querySelector("[data-invite-card]");
+
+  test("with no entries today, a fresh load still ends with the day's heading at the top", async () => {
+    await openTimeline({ fixtures: quietToday(), query: `?day=${key(5)}` });
+    const heading = await found(() => document.getElementById(`day-${key(5)}`));
+    await found(inviteCard);
+    await frames(3);
+    await expect.poll(() => Math.round(heading.getBoundingClientRect().top)).toBeLessThan(40);
+    expect(heading.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    expect(scrollY).toBeGreaterThan(0);
+  });
+
+  test("a scroll after the landing wins over the hold when the page above changes", async () => {
+    const device = await openTimeline({ fixtures: quietToday(), query: `?day=${key(5)}` });
+    const heading = await found(() => document.getElementById(`day-${key(5)}`));
+    await found(inviteCard);
+    await expect.poll(() => Math.round(heading.getBoundingClientRect().top)).toBeLessThan(40);
+    window.scrollTo(0, scrollY + 200);
+    await stopsMoving(() => heading);
+    const y = Math.round(scrollY);
+    // Someone joins: the invite card goes, and the page above the day shrinks.
+    await device.sync([fx.person({ name: "Riley Moss", role: "caretaker" })]);
+    await waitUntil(() => !inviteCard(), "the invite card to go");
+    await frames(3);
+    expect(Math.abs(Math.round(scrollY) - y)).toBeLessThanOrEqual(2);
+  });
+
   test("an empty day says which day is shown", async () => {
     await openTimeline({ fixtures: farWorld(), query: `?day=${key(42)}` });
     await waitUntil(() => !!notice());
