@@ -11,11 +11,11 @@
 | 3     | 1    | merged (opus) | 2221f009 (67595728)                                                                         |
 | 4     | 2    | merged (opus) | 6addf780 (0dbc6afb)                                                                         |
 | 5     | 2    | merged (opus) | 3591bb90 (68db32a5, 8e254a89)                                                               |
-| 6     | 3    | —             | —                                                                                           |
+| 6     | 3    | merged (opus) | 0d9dc340 (702778e5, af409164 B-786, 96289ba5)                                               |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-24): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Now (2026-11-24):** wave 2 merged (4: 6addf780, 5: 3591bb90); `pnpm test:tooling` green on the merged tip (2243 tests), eslint clean; slice worktrees removed. Dev synced with `--force` (2e331b80: `pr` refused the unsynced tip; dev brought only fixes-ui app code); tooling recheck on the synced tip running. **PR #171** open, Codex review waiting. Then land `--tier none` (run-through). New: B-786 (the watchdog's limited rule should use the drain's), for slice 6 or later.
+**Now (2026-11-24):** wave 3: slice 6 handed off (slice check green on 96289ba5) and merged as 0d9dc340; tier none, gate running (`pnpm test:tooling`, `eslint scripts`). Next: PR, Codex review, land; fold docs (recovery.md watchdog follows the drain; machinery.md the resume step and `open --carry-on`); `pnpm backlog done B-407 B-786`; `pnpm prd rm self-recovery-6`, `pnpm prd rm self-recovery`, `pnpm prd end`. Gate green (2263 tooling tests, eslint clean); docs folded.
 
 **Wave 2 docs:** folded into recovery.md (watchdog, autostart, `down --stay`, the drain) with a pointer in machinery.md's pick (at its budget, trimmed). **For slice 6:** `clearStalled` the `error: limited` marks after the reset, and claim those sessions before the ordinary reopen rule counts them as reopens. **Follow-ups:** slice 4's `limitedOf` could use slice 5's `readDrain`/`probeAllowed`; pre-existing `prd.sh help` prints `line 17: design: command not found`.
 
