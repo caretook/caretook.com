@@ -24,7 +24,7 @@ const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 /**
  * A check build: a production build served on this machine for browser
- * checks (`scripts/project/serve.sh --built` sets `VITE_CHECK_BUILD=1` at build
+ * checks (`scripts/loops/serve.sh --built` sets `VITE_CHECK_BUILD=1` at build
  * and at run time). Only there may production use the dev mailbox. Both must
  * hold, so a real deploy (no flag, or a public `APP_URL`) never qualifies.
  */
