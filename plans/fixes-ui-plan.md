@@ -12,7 +12,7 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 
 **Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
 
-**Idle (2026-11-25):** after `pnpm backlog ingest`, no triaged fixes-ui item waits. Still held: B-694 (long create forms on tabs: the user approves each form live), B-325 (native safe-area inset: with Capacitor). The worktree was removed (`pnpm prd rm fixes-ui`); the next fixes-ui session starts fresh from triaged items.
+**Wave 13 (2026-11-25, the user's pre-call wave):** only B-342, B-817, B-828 (slices 76–78, all opus). Held for later: B-325 (native safe area), B-694 (long create forms on tabs), B-819 (no-group page feedback), B-833 (quick entry tip uses a group provider). Slice worktrees made with `CARETOOK_USAGE_WATCH=off` (split week). **Deadline:** land and `pnpm prd rm fixes-ui` within about 2 to 2.5 h of 2026-11-25 start, before orchestration-split wave 6 (if late, wave 6 waits). Hot files set on the registry row.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -21,10 +21,13 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-No slice in flight.
+Slices 76, 77, 78 starting.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State          | Merge |
+| ----- | ----- | -------------- | ----- |
+| 76    | B-342 | started (opus) |       |
+| 77    | B-817 | started (opus) |       |
+| 78    | B-828 | started (opus) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1103,3 +1106,46 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Browser component test: `HydrateFallback` renders the loading screen (`role="status"`, "Loading"); the layout shows it while the database open is pending and the page once it resolves; under 300 ms nothing shows.
 - [ ] `frame.browser.test.tsx` passes.
+
+## Wave 13 (written 2026-11-25 by the orchestrator: the user's pre-call wave, only B-342, B-817, B-828)
+
+Every slice: no migration and no new dependency. Land and remove the worktree within about 2 to 2.5 hours (before orchestration-split's wave 6).
+
+## Slice 76: A dropped idle Postgres connection no longer crashes the function (B-342)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md, ops/runbook.md · Tests: unit
+
+**Problem.** `packages/data/src/db/client.ts` creates a `pg.Pool` with no `error` listener, so an idle client dropped by Neon emits an unhandled `error` and crashes the serverless function. The pool's 10 clients with a 2 s connect wait (`config.ts`) time out under a burst of uploads.
+
+**Build.** In `createPool`, attach `pool.on("error", …)` that logs the error (no secrets, no row data) and keeps the process alive. Raise the default `connectTimeoutMs` (for example to 10 s) so a burst queues instead of failing; keep both env overrides. `@vercel/functions` is only a dependency of `apps/web`: if `attachDatabasePool` fits, call it from the web server side (not from `packages/data`, which may not gain the dependency); otherwise skip it and say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the created pool has an `error` listener, and emitting `error` on it doesn't throw.
+- [ ] Unit test: the default connect timeout is the new value and `DATABASE_CONNECT_TIMEOUT_MS` still overrides it.
+
+## Slice 77: The phone tab bar is light in light mode; more glass in dark (B-817)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** The phone bottom tab bar (`nav[data-tab-bar]`) is near-black in light mode (`--tab-bar-surface` in `apps/web/app/app.css`), and in dark mode its glass (`--tab-bar-glass`, 85% surface) isn't translucent enough.
+
+**Build.** The user's call: in light mode a light, slightly translucent bar matching the page (a `base` surface, its content `base-content`, the current-section pill still clearly marked); dark mode keeps its surface but its glass mixes less of it (lower than 85%) where backdrop blur is supported, keeping 4.5:1 text contrast. Update the comment block above the tokens. Don't move the bar's position (the safe-area idea is not scheduled).
+
+**Acceptance criteria.**
+
+- [ ] Component test: in light theme the tab bar's computed background is light (not the neutral near-black), and its label text meets 4.5:1 against it.
+- [ ] Component test: in dark theme the bar's glass is more translucent than before (its alpha below 0.85 where blur applies).
+
+## Slice 78: Switching settings pages and submenus shows that the tap registered (B-828)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** Moving between group settings pages (`routes/app/groups/settings/`) and other submenus (user settings `routes/app/settings/`, the group menu) sometimes takes a moment with no feedback, so it looks like nothing happened. The section tab bar already shows a pending state (`sectionNavPending.browser.test.tsx`); these links don't.
+
+**Build.** Find the links that navigate without feedback (the settings index lists, the settings layouts' page links, the group menu's items) and give them an immediate pending state, reusing the pattern `SectionNav`/`TabNav` use with `useNavigation` (the tapped link marked pending with a small spinner, or a thin progress bar in the settings layout while `navigation.state !== "idle"`). No edits under `components/ui/` unless the shared pattern belongs there; say so in the hand-off if it does.
+
+**Acceptance criteria.**
+
+- [ ] Component test: tapping a group settings page link while its loader is pending shows the pending state at once, and it clears when the page renders.
+- [ ] Component test: the same for a user settings page link.
