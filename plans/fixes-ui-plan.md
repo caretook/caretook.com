@@ -23,7 +23,7 @@ Notes for every wave:
 | ----- | ----- | -------------------------- | -------- |
 | 62    | B-788 | merged                     | e00d3ae5 |
 | 63    | B-695 | merged (22 files, over 12) | 93a86cc8 |
-| 64    | B-695 | agent spawned (sonnet)     |          |
+| 64    | B-695 | merged (tests only)        | 5e79829a |
 | 65    | B-695 | agent spawned (opus)       |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
