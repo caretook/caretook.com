@@ -6,6 +6,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- Switching between submenus and group settings sometimes loads slowly with no feedback (B-828)
+  It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
+
 ## Change requests
 
 - App first load is way too long. (B-764)
@@ -13,6 +16,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Include captain name and backlog agent name so other agents can find it. (B-799)
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
 - Orchestrator summary for backlog handoff should include the ability to pass on directives from the user more clearly and directly. (B-815)
+- Appointment-setting example in easy menu tips should use a doctor from the user's providers (B-833)
 
 ## Feature requests
 
@@ -33,5 +37,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Decide for Capacitor (SQLCipher, secure storage) against the "encryption at rest" commitment.
 - Can the PWA sync in the background after offline work, or does the user have to open it to sync? (B-805)
 - Should the orchestrator PRDQ be slice-based instead of PRD-based? (B-816)
+- Research: compare Care Book to Caring Village (B-829)
+  Review feature sets and identify overlap, places where we can surpass them, and places where we already do.
 
 ## Chores
