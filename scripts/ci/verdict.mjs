@@ -1,6 +1,8 @@
 // A CI run's verdict: one small JSON file, version 1, uploaded as the `verdict`
-// artifact and read on the Mac by `pnpm prd ci`. Pure except for the CLI at the
-// bottom, and it imports only its own modules: the verdict job runs with no install.
+// artifact and read on the Mac by `pnpm prd ci`, which reads it only as a file,
+// with its own reader: a change to the file's shape bumps VERDICT_VERSION. Pure
+// except for the CLI at the bottom, and it imports only its own modules: the
+// verdict job runs with no install.
 //
 // The kinds, worst first: `brake` (static, build, or a test on the brake list
 // still failing after its rerun), `infra` (a job that died before any test, or
@@ -315,18 +317,6 @@ export function buildVerdict({
     // What this commit skips: blame can't read a skipped test as passing.
     quarantineList: entries.map(({ file, name }) => ({ file, name })),
   };
-}
-
-/** @param {unknown} v */
-export function isVerdict(v) {
-  const o = /** @type {Record<string, unknown> | null} */ (v);
-  return (
-    !!o &&
-    o.version === VERDICT_VERSION &&
-    typeof o.commit === "string" &&
-    typeof o.tier === "string" &&
-    typeof o.kind === "string"
-  );
 }
 
 async function cli(/** @type {string[]} */ [command, path, ...more]) {
