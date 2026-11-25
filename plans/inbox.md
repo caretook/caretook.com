@@ -6,21 +6,12 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
-- After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page. (B-735)
-- On the timeline, after jumping to a day, trying to scroll always takes you back to that day. (B-736)
-  Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
-- On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the bottom of the screen. (B-763)
-- When the internet connection drops, the browser and the installed PWA show only a blank screen. (B-777)
-
 ## Change requests
 
-- Placeholder and search bar on timeline should read "Type to search". (B-748)
 - App first load is way too long. (B-764)
   We need to either speed it up or make the loading message more friendly with a progress bar.
 - Include captain name and backlog agent name so other agents can find it. (B-799)
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
-- Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. (B-803)
-  The selected item should be a horizontal oval with the same radius as the nav bar, filling the entire space, with some motion when the selection changes.
 
 ## Feature requests
 
@@ -32,10 +23,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos. (B-417)
 - Tags on everything so users can organize data how they want. (B-548)
 - nested todos (B-550)
-- A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later (B-737)
-- Ability to open live notes full screen. (B-765)
-- Need a banner (or permanent toast) while in offline mode. (B-804)
-- Need a loader screen for loading in offline mode. (B-806)
 
 ## Big plans
 

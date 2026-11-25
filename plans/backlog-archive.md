@@ -487,6 +487,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-580 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry dates a line ending in 'sat' to Saturday: 'she sat' |
 | B-581 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry keeps 'call the pharmacy in the morning' at 7:00 as a note, not a todo |
 | B-582 | bug | landed | fixes-tooling | prd/fixes-tooling | MCP rate-limit integration test times out at 5 s under machine load |
+| B-583 | change | staging | fixes-ui | prd/fixes-ui | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-585 | bug | landed | fixes-ui | prd/fixes-ui | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
 | B-586 | bug | landed | fixes-tooling | prd/fixes-tooling | Phone notifications from the backlog session never arrive |
 | B-587 | bug | landed | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
@@ -496,6 +497,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-591 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8 |
 | B-592 | change | landed | fixes-ui | prd/fixes-ui | Planner event card: replace the narrow time column with a footer-actions layout |
 | B-593 | feature | landed | member-avatars | prd/member-avatars | Choose your avatar: a color and icon instead of plain initials |
+| B-594 | change | staging | fixes-ui | prd/fixes-ui | Manage allergies on the Profile page; Medications keeps a read-only summary |
 | B-595 | chore | landed | fixes-tooling | prd/fixes-tooling | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
 | B-596 | chore | landed | fixes-tooling | prd/fixes-tooling | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
 | B-597 | chore | landed | fixes-tooling | prd/fixes-tooling | Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs |
@@ -507,22 +509,29 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-603 | change | landed | fixes-ui | prd/fixes-ui | Extend the unsaved-changes guard to InviteSheet, InviteLinks, provider import, RepeatSheet and VisitPrepSheet |
 | B-604 | chore | dropped | fixes-tooling |  | Test Discard under reduced motion in the sheet guard |
 | B-605 | bug | landed | fixes-bug | prd/fixes-bug | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
+| B-606 | feature | staging | fixes-ui | prd/fixes-ui | Highlight a double dose on a next-dose-due notification |
 | B-607 | bug | landed | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 | B-610 | bug | landed | fixes-tooling |  | CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file |
 | B-611 | bug | landed | dose-accuracy | prd/dose-accuracy | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
 | B-612 | chore | landed | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
+| B-613 | change | staging | fixes-ui | prd/fixes-ui | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
 | B-614 | bug | landed | dose-accuracy | prd/dose-accuracy | An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same) |
 | B-615 | bug | staging | fixes-bug | prd/fixes-bug | Connector log_dose names no slot, so two log_dose calls for one pass never merge into one dose; only give_pass converges |
 | B-616 | bug | landed | dose-accuracy | prd/dose-accuracy | Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried |
+| B-617 | bug | staging | fixes-ui | prd/fixes-ui | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
+| B-618 | change | staging | fixes-ui | prd/fixes-ui | Timeline day header: move Change care period to the left of the period text |
 | B-620 | bug | landed | fixes-bug | prd/fixes-bug | Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones |
+| B-621 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-622 | bug | dropped | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts |
 | B-624 | bug | dropped | fixes-tooling |  | browser.test.mjs 'passes a clean spec' fails under load: it expects exactly two output lines |
 | B-627 | bug | landed | dose-accuracy | prd/dose-accuracy | A retried dose upload can undo a later Undo: B's accepted duplicate of A's dose, replayed after A deletes it, restores the dose as B's and marks the slot given again |
 | B-628 | bug | landed | fixes-bug | prd/fixes-bug | Saving preferences reads then writes without a lock, so two simultaneous requests can lose a change such as a setup card dismissal |
+| B-629 | bug | staging | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-631 | bug | landed | fixes-bug | prd/fixes-bug | Back can still skip the discard prompt after a refused action outside the submitted form: Add a medication in the pass log, or a refused delete |
 | B-632 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry's fraction after a medication misreads a few lines: 'no pain gave tylenol 3/8', 'need to take tylenol 3/8', 'gave lorazepam 1/2' at 0.5 mg |
 | B-634 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry gives 'dr lee the 2nd at the clinic' no date: an ordinal before 'at <place>' is not read as a day |
 | B-635 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry's request rule misreads a few lines with a part of day: 'check bp 120/80 in the morning' gets a note dated now and a todo alternative, 'ask about pain in the morning' reads as a symptom first |
+| B-636 | change | staging | fixes-ui | prd/fixes-ui | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
 | B-638 | chore | landed | fixes-tooling | prd/fixes-tooling | No test pins that a waiting join request from an account with no current legal acceptance isn't asked again |
 | B-640 | bug | dropped | fixes-bug |  | Close Better Auth's update-user path so a member can't set an external avatar image |
 | B-641 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: 'gave lorazepam 1/2 mg' at a 0.5 mg strength may not record the usual dose |
@@ -544,12 +553,41 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-659 | bug | staging | fixes-bug | prd/fixes-bug | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
 | B-661 | bug | landed | fixes-tooling | prd/test-gates-2 | roundtrip's 2-second add budget fails on the CI runner |
 | B-662 | bug | staging | fixes-bug | prd/fixes-bug | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
+| B-663 | bug | staging | fixes-ui | prd/fixes-ui | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
+| B-664 | bug | staging | fixes-ui | prd/fixes-ui | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
 | B-666 | bug | staging | fixes-bug | prd/fixes-bug | Signing up at the join link doesn't prompt the password manager to save the new password |
+| B-668 | change | staging | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
+| B-669 | feature | staging | fixes-ui | prd/fixes-ui | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-671 | change | dropped | onboarding-2 |  | New groups default to No known allergies |
+| B-672 | feature | staging | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
+| B-673 | feature | staging | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
+| B-674 | change | staging | fixes-ui | prd/fixes-ui | Add a medication: the schedule starts on As needed |
 | B-675 | bug | staging | fixes-bug | prd/fixes-bug | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
+| B-676 | change | staging | fixes-ui | prd/fixes-ui | Quick entry: the suggested result card can be clicked to add it, as Enter does |
+| B-677 | change | staging | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
+| B-678 | bug | staging | fixes-ui | prd/fixes-ui | Manage members: cards truncate names and details on phone and desktop; redo the layout |
+| B-679 | feature | staging | fixes-ui | prd/fixes-ui | Manage members: show email confirmation status (last login only if easy) |
+| B-680 | change | staging | fixes-ui | prd/fixes-ui | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
+| B-682 | change | staging | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
+| B-683 | change | staging | fixes-ui | prd/fixes-ui | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
+| B-684 | change | landed | fixes-ui | prd/fixes-ui | Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go |
+| B-685 | change | staging | fixes-ui | prd/fixes-ui | Care period form: show the Where is care now? options in a simple two-column grid |
+| B-686 | change | staging | fixes-ui | prd/fixes-ui | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
+| B-687 | change | staging | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
+| B-688 | change | staging | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
 | B-689 | bug | staging | fixes-bug | prd/fixes-bug | Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab |
 | B-690 | bug | staging | fixes-bug | prd/fixes-bug | Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened |
+| B-691 | bug | staging | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
+| B-692 | change | staging | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
+| B-693 | change | staging | fixes-ui | prd/fixes-ui | New events and notes: the first save shows a saved toast (after the shared toast system) |
+| B-695 | change | staging | fixes-ui | prd/fixes-ui | Rename "passes" to "Med times" everywhere users see it |
 | B-696 | bug | landed | fixes-tooling | prd/fixes-tooling | check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours |
+| B-697 | change | staging | fixes-ui | prd/fixes-ui | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
+| B-698 | change | staging | fixes-ui | prd/fixes-ui | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
+| B-699 | bug | staging | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
+| B-700 | feature | staging | fixes-ui | prd/fixes-ui | Passes tab: quick log a pass, with cards matching the new medication card |
+| B-701 | change | staging | fixes-ui | prd/fixes-ui | Passes always sort by time: remove Move up and Move down |
+| B-702 | bug | staging | fixes-ui | prd/fixes-ui | Medications Print menu: text overflows or crowds the menu box |
 | B-703 | bug | dropped | fixes-tooling |  | Addressed: stray browser-test processes from the old connectors-1 worktree stopped |
 | B-704 | bug | landed | fixes-tooling | prd/fixes-tooling | browser.test.mjs can leave its fixture's process group running when the test is interrupted |
 | B-705 | chore | landed | fixes-tooling | prd/fixes-tooling | Enforce the one-day wait on new packages: minimumReleaseAge is missing from pnpm-workspace.yaml |
@@ -578,6 +616,9 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-732 | bug | landed | fixes-tooling | prd/fixes-tooling | tidy-cli.test.mjs beforeAll still times out at 10 s under heavy load (load ~40) after B-460's fix |
 | B-733 | feature | landed | inbox-agent | prd/inbox-agent | The main backlog session shows a random Enterprise captain's name: each new session (rotate or handoff too) draws one, different from the last, for its Remote Control name and tab title; the session record stays backlog |
 | B-734 | feature | landed | fixes-tooling | hotfix/lane-cap | Dispatcher PRD lanes set from the phone: pnpm prd dispatch --cap <n> (any n, e.g. 2 to 6) stores the orchestrator cap, read every tick and by new.sh, shown in pnpm prd status; the backlog session runs it on the user's word |
+| B-735 | bug | staging | fixes-ui | prd/fixes-ui | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
+| B-736 | bug | staging | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
+| B-737 | feature | staging | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
 | B-739 | change | landed | fixes-tooling | prd/fixes-tooling | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
 | B-740 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3 |
 | B-741 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race) |
@@ -587,13 +628,28 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-745 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start goes ahead after the bounded wa… |
 | B-746 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start waits for nothing with CARETOOK… |
 | B-747 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn is off in the tooling tests' shared env (vite… |
+| B-748 | change | staging | fixes-ui | prd/fixes-ui | Placeholder and search bar on timeline should read "Type to search". |
+| B-756 | change | staging | fixes-ui | prd/fixes-ui | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
 | B-758 | change | landed | symptom-catalog | prd/symptom-catalog | Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain') |
+| B-762 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
+| B-763 | bug | staging | fixes-ui | prd/fixes-ui | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
+| B-765 | feature | staging | fixes-ui | prd/fixes-ui | Ability to open live notes full screen. |
 | B-770 | bug | dropped | fixes-tooling |  | pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy |
 | B-771 | bug | staging | fixes-tooling | hotfix/sync-shared | prd sync skips dev's CI list updates (quarantine, brake list) |
 | B-773 | chore | landed | fixes-tooling | hotfix/recheck-tier | After a dev sync, the CI recheck runs only the tier dev's changes propose, not the wave's tier; a tooling-only sync needs no CI rerun (fixes-bug 82a3cf1b reran components 9m after a scripts-only sync) |
 | B-774 | chore | staging | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-775 | chore | dropped | fixes-tooling |  | Sync dev before a wave's CI run, not after, so a wave that needs a sync runs its tier once (2026-11-24: test-health-2, sync-safety, symptom-catalog, fixes-bug each ran twice, test-health-2 slice 5 three times) |
+| B-777 | bug | staging | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
+| B-783 | bug | staging | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
+| B-784 | change | staging | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
 | B-786 | change | landed | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
+| B-788 | change | staging | fixes-ui | prd/fixes-ui | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
+| B-793 | bug | staging | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
+| B-800 | change | landed | fixes-ui | prd/fixes-ui | Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels |
+| B-801 | change | landed | fixes-ui | prd/fixes-ui | Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels |
+| B-803 | change | landed | fixes-ui | prd/fixes-ui | Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. |
+| B-804 | feature | landed | fixes-ui | prd/fixes-ui | Need a banner (or permanent toast) while in offline mode. |
+| B-806 | change | landed | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
 
 ## Items
 
@@ -5914,6 +5970,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (prd/quick-entry-2): mcp.int.test.ts 'allows 60 calls a minute per connection': timed out in the quick-entry-2 full check (load about 20), passed when rerun alone. Needs a longer timeout or a cheaper world, as the list_timeline test got in B-394.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
 
+### B-583 · change · Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump)
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: aef5557c
+
+- 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 12 (B-537), which kept these on purpose: packages/api/src/connectors/ is API-facing and tests pin it; connectorRules.ts is consent text. Needs the user's call before any slice.
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user's call: connectors should respond the same to 'event' and 'appointment'. Keep both words working in tool and prompt text (prompts.ts, upcoming.ts, listTimeline.ts, writes.ts are static strings the assistant reads, so naming both is the change). Not decided: renaming prepare_for_appointment or the kind: appointment output; no consent text change or version bump is called for by this.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's call: rename to Event. The prepare_for_appointment tool and the kind: appointment output both move to Event, with no alias for the old names (the user was told connected assistants may rely on them). Connectors still understand both words in tool and prompt text. Check at build time whether connectorRules.ts consent text is affected: a consent change may need a version bump.
+
 ### B-585 · bug · Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start'
 
 - status: landed
@@ -6000,6 +6067,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (Robert Bo Davis): User decision 2026-11-22: a member who has not chosen defaults to a color different from everyone else in the group. This settles the earlier open question on a default color. For the planner: one person can be in several groups, so the default is per group, and every device must agree on it offline (for example, worked out from a stable order such as join order, skipping colors members chose). A member's default should not change when someone else joins or leaves if that can be avoided. When a group has more members than colors, colors repeat, and the initials or icon still tell members apart.
 - 2026-11-23 (plan/member-avatars): Planned 2026-11-23: plans/member-avatars-prd.md and -plan.md, four slices. Default colors are derived on each device; the choice is two user columns synced to co-members.
 - 2026-11-23 (Robert Bo Davis): 2026-11-23: the user approved starting this beside test-gates-2. scripts/browser-checks/ was released from test-gates-2's hot files because its remaining slices 5 and 6 don't list it. If test-gates-2 does need roundtrip.spec.mjs after all, coordinate at landing.
+
+### B-594 · change · Manage allergies on the Profile page; Medications keeps a read-only summary
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-22 (Robert Bo Davis): User decision 2026-11-22. An allergy is a fact about the care recipient, so Profile becomes the one place to manage it. (1) Add an Allergies section to the Profile page next to Conditions, with add, edit, remove and No known allergies, for the same roles as today. (2) The Medications list and each medication page keep a read-only allergy summary with a Manage link to Profile, and severe allergies stay prominent: the safety check must stay where medications are given and added. (3) Printed sheets, the emergency sheet and the connector view do not change. Must work offline as Conditions does, although most of the Profile page does not sync. No migration expected: recipient_allergy already belongs to the recipient and syncs. Old allergy URLs should redirect or keep working. Triage: fixes-ui (flow change on existing data). Sequencing: ui-kit-4 sweeps the medications and profile folders, so take this after those slices land or coordinate through hot files; if it proves too large for a fixes slice, move it to its own topic.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: stays in fixes-ui for now. If onboarding-2 (group onboarding, B-670) starts before this is done, onboarding-2 picks this up and does it first, so the profile basics step reuses the finished Profile allergies section.
 
 ### B-595 · chore · Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD
 
@@ -6112,6 +6189,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 15 (B-585), which fixed the arrow keys only.
 
+### B-606 · feature · Highlight a double dose on a next-dose-due notification
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: c312d03e
+
+- 2026-11-22 (prd/dose-accuracy): From the user's answer to dose-accuracy ask a92 (their words 'next dose tube notification', read as 'next dose due'). No such notification exists today: notifications are email only and none is about doses, push is a later plan. Needs a decision on what the notification is before this can be built.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's call: in-app only for now. Show the double-dose warning on the medication and Today screens; no notification, email or push. A real next-dose-due reminder is a separate later decision. Triaged to fixes-ui because it is a display change; build it after dose-accuracy lands, since that topic defines extra doses (B-297) and is still changing the shared dose id (B-298).
+
 ### B-607 · bug · Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing
 
 - status: landed
@@ -6155,6 +6242,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (Robert Bo Davis): User's decision 2026-11-23, since testing moved to CI. Change the default in scripts/loops/lib.sh (max_prds), dispatch.mjs and dispatch-pick.mjs (DEFAULT_CAPS), keeping CARETOOK_MAX_PRDS as the override; update tests and docs/orchestration.md, machinery.md and AGENTS-level mentions of three PRDs. The running dispatcher needs a restart to pick it up.
 - 2026-11-23 (prd/test-gates): test-gates slice 13, wave 7, after wave 6 lands. Scope from the backlog session: default cap 4 in lib.sh, dispatch.mjs, dispatch-pick.mjs; CARETOOK_MAX_PRDS stays the override; check and browser leases stay 2, load gate unchanged. The running dispatcher keeps the old default until the user restarts it.
 
+### B-613 · change · Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 0157d117
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's call after reviewing the motion from ui-kit-3 (B-471). (1) The Timeline Today card's expansion was missed: its chevron turns but the contents pop; use the kit's Collapse (TodayCard.tsx). (2) Sheets only fade: drop the 1.5rem panel slide, in and out. (3) 240 ms is the default for sheets, menus, popovers, native dialogs and toasts (menus and popovers are 120 ms today, the others 180 ms). Button, row and hover feedback stays at 120 ms. The user has not seen a toast yet, so check one by eye. Update the timings pinned in sheetExit.browser.test.tsx and the motion notes in app.css, components.md and the /dev/ui motion section. Reduced motion stays instant. The chevron's own speed was not discussed: keep it matched to the Collapse if it looks off, and say so.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: the Today card and the day summary must match in speed and animation. Today's rows are a plain ul toggled with hidden, so they pop while its Chevron turns; the day summary (DaySummaryLine) uses Collapse at 240 ms with the same Chevron. Give TodayCard the same Collapse around its rows, so both have one slide, one duration and one chevron. Keep aria-controls pointing at the collapsing region, closed rows out of the tab order, and check the collapsed summary line in the header doesn't jump as it appears. Compare the two side by side in a browser.
+
 ### B-614 · bug · An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same)
 
 - status: landed
@@ -6186,6 +6283,27 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (prd/dose-accuracy): Codex on PR #96 (P2, verified by reading assistantActionService slotDoseId): two concurrent give_pass runs can both read the slot id as free; the loser's create hits the primary key and rolls back its whole action batch, unrelated entries included. A rerun doesn't double the slot. Fix: claim or insert the id atomically and treat an existing dose as already logged.
 - 2026-11-23 (prd/dose-accuracy): Moved from fixes-bug to dose-accuracy slice 6 (wave 5) on the user's word, 2026-11-23: it shares the dose upload path in timelineEntryService with B-614 and B-627.
 
+### B-617 · bug · List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, reported by the user: Timeline's search, filter and view mode buttons don't animate; the Filter on Providers and Planner doesn't change under the cursor. Likely cause, read from the code and not yet confirmed in a browser: CIRCLE in components/ui/styles.ts sets bg-base-100 and border-base-300, and those utilities beat daisyUI's layered btn hover colours, so all circle tools lose hover. Fix it once in the shared style, keeping the outlined circle at rest and giving it a visible hover and press at the kit's 120 ms. Check every list's Filter (FilterMenu), including Medications and Todos. chipClass uses the same bg-base-100 on unselected chips, so check those too. Also: Timeline's Filter is a hand-written button with btn classes in TimelineFilters.tsx; move it to the kit's IconButton (it needs its count badge kept). Verify hover by eye or a browser test in light and dark.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: the author and type filter controls on timeline entries should also be buttons with a hover change and animation. KindFilterLink and AuthorFilterLink (components/entry/KindIcon.tsx) are hand-styled links: type has only hover:brightness-95 with no transition, author initials and name have no kit motion. Give them the kit's button feel (visible hover and press at 120 ms, none under reduced motion) in every form: type icon, initials circle and name link, on Timeline rows, cards and pass log items, and on the Planner, which shares them. They navigate to a filtered URL, so keep them real links with their names, using the kit's link-styled Button or look. Keep the accent colours and the row's stretched-link layering (z-10), so tapping one filters and doesn't open the entry.
+
+### B-618 · change · Timeline day header: move Change care period to the left of the period text
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4ecaa3f5
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: move Change care period on the Today timeline header to the left of the period text, so the page flows in a column. In DayPeriod (timeline/DayHeader.tsx) the order becomes the Change button, the period's type icon, then the text. Line the button's icon up with the column's left edge (the ghost button's padding must not indent it), and keep the text aligned when a viewer without write access sees no button or a past day has none. Check Easy mode, a long period name wrapping at phone width, and the sticky header.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's correction, replacing the placement in the first note: Change sits directly left of the care period icon, within the right-hand group, not at the page's left edge. The goal: the care period icons line up down the page as the user scrolls past day headers. Order: [Change] [period icon] [text] [+]. Moving the button is not enough on its own: the group is right-aligned (ms-auto in DayHeader), so each icon's position depends on its text length ('day 9' vs 'day 10', or a different period name). Give the icon and text a shared column so the icon starts at the same x on every day header, with the text left-aligned after it; Today's Change hangs to the left of that column and must not shift it. Days without Change or without + (read-only viewers) must keep the same icon position where possible. Handle long names at phone width (wrap inside the column, no overflow), and check Easy mode, which has larger type and no Change. Verify by scrolling several days with different periods in a browser.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's screenshot settles the scope, replacing the shared column in the previous note: this is only a button move. Today shows [icon] At home · day 6 [Change] [+], so Change pushes Today's period left of the same period on the day below. Move Change directly left of the period icon: [Change] [icon] [text] [+]. Keep the group right-aligned and add no column or fixed width; the text then ends at the same spot on every day, and the icons line up whenever the text is the same length. Check that Easy mode and a long name at phone width still wrap cleanly.
+
 ### B-620 · bug · Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones
 
 - status: landed
@@ -6195,6 +6313,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, reported by the user with a screenshot: just after midnight Eastern, Today and Yesterday both read 'At home · day 6'. Cause from the code: DayHeader splits days in the viewer's zone (dayKey), but DayPeriod counts periodDay in the recipient's zone from a moment (now for Today, the day's newest row for past days). At 00:34 EST it is still the previous evening in a Los Angeles recipient's zone, so both headers land on one recipient date. The recipient's zone on the user's group was not checked, and this was not reproduced in a test. Proposed fix: in a day header, derive the number from the header's own date, so consecutive headers always differ by one: the period's start date in the recipient's zone to dayKey, plus 1, minimum 1. Keep the period's page and other 'current' lines in the recipient's zone; during the offset hours Today's header can then read one day ahead of the period page, which the user should accept or overrule when reviewing. Which period a header shows (periodAt) should be checked for the same offset. Test with a viewer and recipient in different zones, both sides of midnight (see B-372, a second time zone in tests).
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, the user approved the proposed fix: each day header counts from its own date, so consecutive headers always differ by one. Accepted: for a few hours around midnight, Today's header can read one day ahead of the period's page, which stays in the recipient's zone ('nobody will do the math; the display bug will be noticeable'). No further decision needed.
+
+### B-621 · feature · Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: when a user clicks into the quick entry box, the first 3 times, a tooltip comes up below it with an advanced suggestion, to show it does more than it appears. No icon, no button, no dismiss control: just a line like: Why don't you try “bp 130/85 hr 72”? Use the examples removed with the rotating placeholder in 189bf74b (B-198), one per focus in order: bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm. They still live in QUICK_ENTRY_RULES (quickEntryCopy.ts); share one list. Behaviour, proposed where the user did not say: shows only while the box is focused and empty; goes on typing or blur; floats over the page and pushes nothing (B-216), and takes no taps (pointer-events none); uses the kit's overlay fade at the motion default from B-613, nothing under reduced motion. Count real user focuses only: not autofocus, the refocus after Save, closing a sheet or returning from the Suggestions popover. Store the count per user per device in localStorage with try/catch, cleared with the app's other per-user keys at sign-out; if storage fails, show nothing. The box's accessible description already carries the rules, so screen readers should not hear the tip twice. Applies to the shared QuickEntryBox in both the full timeline and Easy mode: B-157 removed permanent typing tips from Easy mode, but this one is brief and the user named the easy entry box; in Easy mode check it against the dictation hint under the box. Must not cover name completions or the suggestions popover.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's update, replacing the first note where they differ: the tip can be rather large and also shows the shorthand create codes. It is a panel below the box with: Why don't you try, then all four examples (bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm, so none is dropped), then the codes the parser really takes: n: note, e: event, s: symptom, v: vital, d: dose, t: todo, and commas to log several at once. Read the codes from one shared list so the panel can't drift from the parser (PREFIXES and TODO_PREFIX in quickEntry.ts). It disappears when focus leaves the box. It shows on the first 3 focuses, and an X ends it for good on that first press (stored with the count). The X replaces the earlier no-button and no-taps rules: the panel takes taps, pressing the X or the panel must not blur the box first, and the X is a real labelled kit IconButton reachable by keyboard, with focus on it counting as still in the box. Proposed where the user did not say: it stays while typing a code, so the reference is there when needed, and gets out of the way when a preview card or name completions appear, since it must not cover them. At phone width with the keyboard up it must fit or scroll inside itself. The panel's text should not be read twice with the box's accessible description.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: list only a couple of the shorthands: n: for a note and e: for an event. This replaces the full code list in the previous note: don't show s:, v:, d: or t:, and no shared list of codes is needed for the panel. The parser keeps accepting all of them. The four examples and the comma tip are unchanged.
 
 ### B-622 · bug · CI flake: packages/data/src/db/resetStaging.int.test.ts
 
@@ -6240,6 +6369,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (prd/onboarding): From onboarding slice 3: packages/api/src/app-shell/me.ts updatePreferences.
 
+### B-629 · bug · Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 98a3381c
+
+- 2026-11-23 (prd/onboarding): From onboarding slice 3: GettingStartedCard.
+
 ### B-631 · bug · Back can still skip the discard prompt after a refused action outside the submitted form: Add a medication in the pass log, or a refused delete
 
 - status: landed
@@ -6277,6 +6415,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: b1cf109f
 
 - 2026-11-23 (prd/fixes-bug): From slice 23 (B-581) hand-off. Also: 'call dr lee in the morning' reads as an event first, the same as 'call dr lee tomorrow'; request detection is a word list, so an unlisted opening verb still reads back as a note.
+
+### B-636 · change · Planner todo rows keep the old time column, so they align differently from event cards in the same list
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): From fixes-ui wave 3's report (a93): event cards moved the time above the title (B-592), todo rows did not. Look and layout, so fixes-ui.
 
 ### B-638 · chore · No test pins that a waiting join request from an account with no current legal acceptance isn't asked again
 
@@ -6480,6 +6627,24 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: when a bare number matches the strength and the usual dose is more than one unit, have the caretaker choose the amount instead of guessing. A caretaker who gave one 10 mg tablet otherwise gets a wrong dose on record. Replaces the behavior pinned in packages/data/src/db/schema/assistant/quickEntry.test.ts (B-648 test). Keep a usual dose of one unit recording directly (B-651).
 
+### B-663 · bug · Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 28e7247b
+
+- 2026-11-23 (Robert Bo Davis): User report with screenshot, 2026-11-23: the gap between the Cards item and the Day summaries heading is too small, so the heading reads as part of the Layout group. Menu: apps/web/app/routes/app/groups/timeline/TimelineViewMenu.tsx, sections come from the shared ui Menu; check whether the fix belongs there and affects other sectioned menus.
+
+### B-664 · bug · Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): User report with iPhone screenshot on staging, 2026-11-23: focusing the Timeline's 'Type what happened' box lifts the floating tab bar above the keyboard, where it covers the content the user may need to see. The bar is position fixed to the bottom in apps/web/app/routes/app/layout/SectionNav.tsx (mobile only). The app has no keyboard handling today (no visualViewport or interactive-widget use). Should stay off-screen or hidden for any text field while the keyboard is open and return when it closes. Verify on a real iPhone; also check Android and the later Capacitor app.
+
 ### B-666 · bug · Signing up at the join link doesn't prompt the password manager to save the new password
 
 - status: staging
@@ -6488,6 +6653,25 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 3d8e9cf5
 
 - 2026-11-23 (Robert Bo Davis): User report, 2026-11-23, submitting /join/CARE-DEMO-0001 (password manager and browser not recorded). The fields already use type=password and autoComplete=new-password (apps/web/app/routes/account/join/route.tsx:194-204). Cause not confirmed. Suspects: the email field is autoComplete=email rather than username, and the React Router Form submits by fetch and swaps the step instead of a full page navigation, which some managers need to detect success. The invite sign-up (routes/account/invite/route.tsx:288-327) has the same shape, so check and fix both. Verify with a real password manager.
+
+### B-668 · change · Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 760dca52
+
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23. Read from the code, not reproduced: the shared ComboBox uses menuTrigger=focus (apps/web/app/components/ui/ComboBox.tsx:93), and conditionSuggestions returns the first 20 names when nothing is typed, so the list opens unfiltered as soon as the field is focused. Wanted: nothing on focus with an empty field; on the first character, open the list filtered by the existing word-prefix match; clearing the field closes it. ComboBox is shared by eight other pickers (providers, places, assignees, links and more), which rely on browsing on focus, so make this an option used by ConditionNameField only. If the reported symptom is instead that the list fails to open on the first character, fix that too. Check on a phone, where the keyboard limits the room for the list.
+
+### B-669 · feature · Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: d5356264
+
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: wants to make heavy use of toasts; agreed no new dependency. First slice of onboarding-2; B-665 (Invite someone toast) builds on it. Use react-aria-components 1.22.1's toast (UNSTABLE_ToastRegion, UNSTABLE_ToastList, UNSTABLE_Toast, UNSTABLE_ToastQueue) only inside ui/, wrapped by the existing ui/Toast, with daisyUI styling. The UNSTABLE_ exports may change on upgrade, so screens must never import them. Needs: a queue so toasts don't overlap, optional action, dismiss, Undo, caller-set timing, reduced motion. Migrate UpdateNotice and AddedMedicationToast. Prove it first on a real phone, above the tab bar and with the keyboard open (see B-664); if it falls short, extend our own component rather than add a library. Usage rules for components.md: toasts for finished actions, Undo, background news and one-time nudges. Not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes. Don't sweep the inline Message uses; move one only where a toast is clearly better.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24, the user: moved from onboarding-2 into fixes-ui so B-693 (saved toast on new events and notes) and B-697 (dose-logged toast) can run; build it first in its own slice, then B-693 and B-697. onboarding-2's B-665 (Invite someone toast) builds on the landed system.
 
 ### B-671 · change · New groups default to No known allergies
 
@@ -6499,6 +6683,34 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: new groups should default to "No known allergies". Today a new recipient has no_known_allergies_at null, shown as "Allergies not recorded". Adding an allergy already clears the flag (recipientAllergyService, allergies.sync.ts). Effects to handle: (1) the flag is shown as a recorded fact on the Medications region, printed sheets, the emergency sheet (emergencyPrintSheet.ts) and the connector recipient_profile tool (noKnownAllergies), so a default would state it for a recipient nobody has asked about; PrintAllergies exists so an empty block is never read as none. (2) gettingStarted.sync.ts counts the flag as the allergy/condition step done, so a default ticks it for every new group. Open with the user: true stored default, or preselected in the onboarding profile basics step (B-670) and saved on confirm. Triaged to onboarding-2 because it shapes that step.
 - 2026-11-23 (Robert Bo Davis): Dropped at the user's request, 2026-11-23: new groups will not default to No known allergies.
 
+### B-672 · feature · Add an allergy: suggest substances and reactions as you type, like conditions
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: d1cdca07
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: a suggestion list for allergies similar to the conditions one, with the same "display on new character, not on focus" behavior as B-668. Today "Allergic to" in AllergyForm.tsx is a plain text input. Model on ConditionNameField and conditionSuggestions (lib/profiles): the group own substances first, then a curated list of common drug, food and environmental allergens worded as a family would, word-prefix match, accent- and case-insensitive, de-duplicated, free text always allowed. Nothing on focus with an empty field; the first character opens the filtered list; clearing closes it. Do B-668 first and reuse its ComboBox option (other pickers keep browsing on focus); consider sharing the matcher instead of copying it. Build after or with B-594 (manage allergies on Profile), which moves this form; B-670 profile basics then reuses it. Check on a phone.
+- 2026-11-23 (Robert Bo Davis): User addition 2026-11-23: the "Reaction (optional)" field gets a suggestion list too, same rules: nothing on focus, filtered from the first character, clearing closes it, free text always allowed. The group own reactions first, then a curated list of common reactions worded as a family would (hives, rash, swelling, trouble breathing, nausea and so on). Keep within ALLERGY_LIMITS.
+
+### B-673 · feature · Add a medication: suggest common medication names as you type, like conditions
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: medications get a suggestion list too, same rules as conditions (B-668) and allergies (B-672): nothing on focus, filtered from the first character, clearing closes it, free text always allowed. Today NameField.tsx (components/medications; used by MedicationForm and the Dose sheet quick add in QuickAddFields.tsx) shows only "Used before" chips from the group own names via suggestMedicationNames, with no curated list. Wanted: the group names first, then a bundled curated list of common medications (works offline, no new dependency), in the same ComboBox pattern, replacing the chips. Keep the allergy-match warning on the typed or picked name, and keep it non-blocking. Look-alike names are a real risk (hydroxyzine and hydralazine): a pick must show the full name, never autofill on a partial match, and fill only the name, never a dose or strength. Do B-668 first and reuse its ComboBox option; share the matcher with B-672 if it fits. Check on a phone, in the sheet too.
+
+### B-674 · change · Add a medication: the schedule starts on As needed
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: e6739d85
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: as needed should be the default for medication entry. Today the full form starts on "At set times" (ScheduleFields.tsx:62, initial?.type ?? "scheduled"). The Dose sheet quick add already saves as needed (medications.sync.ts:920), so only the full form changes. An existing medication keeps its own schedule. Switching to At set times must still offer the same starting slots (scheduleSlots.ts). Effect to keep in mind: an as-needed medication has no due doses on Today, so someone who skips the field gets no pass or missed-dose tracking for a daily medication; the choice must stay visible in the form. Update the form tests that assume the old default.
+
 ### B-675 · bug · Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll
 
 - status: staging
@@ -6507,6 +6719,126 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 3d8e9cf5
 
 - 2026-11-23 (prd/timeline-jump): Codex on PR #119 (P2), verified in useTimelineData.ts: a repeat jump only ignores the old paging while its marker is present (current=false) and never saves the reset. A sheet link replaces the location state with SHEET_LINK_STATE, so jumpMark goes null, current turns true and the old before/limit return under the sheet. Fix: persist the reset bound, limit and marker when accepting a new jump. Repro: jump to a day, load newer, jump to the same day again, open an entry's edit sheet. No data affected.
+
+### B-676 · change · Quick entry: the suggested result card can be clicked to add it, as Enter does
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): User report 2026-11-23: "when adding something from the quick entry field, the main selection should be clickable AND enter should add the suggestion." Open with the user: which selection. (a) The top name in the floating Matching names list (QuickEntryCompletions): chips are already clickable, but nothing is highlighted and Enter saves the line as typed even while the list is open (QuickEntryBox.tsx:109). (b) The result card (QuickEntryCard): not clickable today; Enter already saves it. Confirm before building. If Enter completes a name, a second Enter saves, and Shift+Enter stays a new line. A saved reading must never come from a stray tap on a card without a clear affordance.
+- 2026-11-23 (Robert Bo Davis): User answer 2026-11-23, settles the open question: the "main selector" is the default suggested item in Timeline quick entry, the result card (QuickEntryCard). It cannot be clicked today; Enter adds it correctly; it should be a real button. Enter behavior stays as is, and the Matching names list is out of scope. Build: make the main reading (icon, kind, when, title, detail) a native button that does what Enter does, with hover, focus and an accessible name saying what it adds. Do not wrap the whole card: Remove, Edit and the Make it a note chips are their own buttons and must not nest. A blocked card (red warning) or a busy save leaves it disabled, matching q.canSave. For a line with several cards Enter and Save all write every card, so the plan must decide whether a click adds that card alone or all of them; default to matching Enter unless the user says otherwise. Check on a phone.
+- 2026-11-23 (Robert Bo Davis): User clarification 2026-11-23: the "other options" (Make it a note, Metoprolol 25 mg instead) are already buttons, and the main suggestion should be one too, so it reads as a choice beside them. Note the difference when building: those chips only switch the reading (onChoose) and save nothing, while the main button adds the entry as Enter does, so it should look like the primary choice and not be mistaken for another switch.
+
+### B-677 · change · Role pickers: explain what each role can do, when inviting and managing members
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 98a3381c
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: a short description of what each role does and its permissions, beside or below each item in the role dropdown when inviting, and the same in Manage members. Today RoleOptions.tsx renders a native select and puts the description only in each option title, which phones and most browsers do not show. InviteSheet.tsx:84 and InviteLinks.tsx:108 show the selected role only as field help; MembersList.tsx:201 shows nothing. A native option cannot hold a second line, so this needs another control: a radio list with a description under each label (native first, fits the invite sheet), or a ui/ React Aria Select if the compact member row needs a dropdown (read docs/domain/components.md). Cover all three pickers through one shared component, keeping the Regular and Easier to use groups and each manager only seeing the roles they may assign. The wording in GROUP_ROLES (packages/data/src/constants/roles.ts) is thin ("Reads and writes care data."): rewrite it in plain words and check each line against the real permissions in docs/domain/care-groups.md. Staff /admin role pickers are out of scope. Check on a phone.
+- 2026-11-23 (Robert Bo Davis): User addition 2026-11-23: an accepted alternative is a link that opens a modal with the information, so it can be longer form. Backlog session recommendation: take this one. A "What can each role do?" link beside the Role label opens a native dialog listing every role with what it can see and change. The native selects stay, so there is no new picker control, it works in the compact member row, and it fits a phone. Keep the selected role short help line in the invite forms and add it where it is missing. The dialog opens from inside the invite Sheet, so check focus return and stacking. Show all roles for understanding, marking none as assignable beyond what the select offers. Final choice between this and per-item descriptions is the user to confirm if they want the latter.
+- 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: take the recommendation. A "What can each role do?" link beside the Role label opens a native dialog with the longer explanation of every role; the native selects stay; per-item descriptions in the picker are dropped. This settles the choice in the earlier notes.
+
+### B-678 · bug · Manage members: cards truncate names and details on phone and desktop; redo the layout
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: dad4b7b0
+
+- 2026-11-23 (Robert Bo Davis): User report with screenshot 2026-11-23: on the Members page, text is very truncated on mobile and desktop ("Robert Bo ...", "Joined Nov...", "Invite..."); the cards need work. Cause in MemberItem (settings/members/MembersList.tsx): avatar, name block, role select and Leave/Remove share one flex row, and the name, relationship and history lines use truncate in a min-w-0 column, so the controls squeeze the text. Wanted: full name and history readable at phone width, for example identity on its own line with role and action below it or right-aligned only when there is room. Long names wrap rather than cut. Also tidy the error line and the nested What this group sees form, which dominates your own card (consider folding it). Keep badges, relationship, contact lines and the offline state. Coordinate with B-677 (role explanation link) in the same row. Check at phone and desktop widths.
+
+### B-679 · feature · Manage members: show email confirmation status (last login only if easy)
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: show email confirmation status for invited users and last login on the Members page. Neither reaches the device today: PowerSync member_profiles syncs only user id, name and image (powersync/sync-config.yaml:172), so this needs a manager-only oRPC read and shows only online; do not add these to the synced user row. email_verified exists on user. Last sign-in exists only in the staff admin view, derived from live sessions (packages/api/src/admin/usersAdmin.ts:70), so it disappears when sessions expire or sign out; a durable value needs a new additive column set at sign-in, which means a migration and a fixes slice or PRD. Return status and time only, never the sign-in email (docs/domain/profiles.md). Open with the user: who sees last login. It tells co-members when someone was last active, so default to owners and admins only. Build with the card redo (B-678 if numbered next).
+- 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: last login is optional, only if it is easy. Email confirmation status is the required part. Read "easy" as: no migration and no new sign-in hook. If the existing session rows can give it through the same manager-only read, show it to owners and admins, and show nothing (not "never") when no session remains. If it needs the durable column, leave last login out and do not add a migration for it. This replaces the earlier note on a new column.
+
+### B-680 · change · Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: e020375b
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: the Past tab has no filters, and Todos and Upcoming keep theirs in different places. All tabs should have the filter in the same place, and each gets a quick filter input. Today PlannerHeader.tsx:126 renders FilterMenu only for Upcoming (Show, author); Past reads ?author= but offers only a clear chip after tapping a card author (past/route.tsx); Todos has its own TodoFilterRow under the header (routes/app/groups/todos/TodoFilters.tsx). Wanted: one filter row in PlannerHeader for all three tabs, each tab supplying its own FilterMenu sections (Past gets at least author), then one quick text input in the same spot. Past is paged (loadPast), so its text filter must run in the local SQL query and not only over the loaded page, or older matches are missed; empty results need a filtered empty state. Match case- and accent-insensitively (foldSearchText), and work offline. Decide in the plan whether typed text carries across tabs through tabSearch. Easy roles Planner stays without filters (readOnly). Related: B-617 list tool buttons show no hover. Check on a phone, where the row must not crowd the tabs.
+- 2026-11-24 (Robert Bo Davis): Widened by the user, 2026-11-24 (backlog session): every list page gets one unified search-and-filter UX, not only the Planner. The timeline is the exception and keeps its more complex options (search, Filter sheet, View). On tabbed pages (the Planner: Upcoming, Past, Todos) the bar sits below the tabs and only acts on the open tab. Today's list pages and their pieces: medications (MedicationFilters.tsx), providers (DirectoryFilters.tsx), Planner (PlannerHeader.tsx FilterMenu on Upcoming only), Todos (TodoFilters.tsx row), care periods (no search or filter yet); the shared parts are ui/FilterMenu.tsx and filterModel.ts. The user may add preferences; ask before building. Overlap: the tags PRD (B-548) adds a tag filter to each list, so this should land first or tags should plug into this bar.
+- 2026-11-24 (Robert Bo Davis): Scope, the user 2026-11-24: this is only about the search box and the filters, nothing else on the page. Make the existing search and filter controls look and sit the same on every list page; don't add search or filters to pages that lack them (care periods stays as is) and don't change headers, tabs, cards or other layout.
+- 2026-11-24 (Robert Bo Davis): The scope note doesn't cancel the 2026-11-23 request: the Planner's Past tab still gets its filter (at least author) and all three Planner tabs still get the quick filter input.
+
+### B-682 · change · Planner: remove the icons from the empty lists on all tabs
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4fee8d5d
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: the icons in the empty lists on the Planner tabs look goofy; remove them. The icon comes from the emptyMark prop spread into EmptyState at UpcomingList.tsx:140 (Upcoming and Past) and todos/TodoSections.tsx:24 (Todos). Stop passing it so all three show the quiet text line UpcomingList already uses at :144, and delete the emptyMark prop if nothing else uses it. Keep the EmptyState icon option in ui/: other screens use EmptyState and are out of scope. Update any test or doc that expects the icon. Pairs with B-680 (Planner filters), which touches the same tabs.
+
+### B-683 · change · Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: d832219e
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev: instead of a rounded button for each entry, the entire section should highlight. Assumed target: the shared TabNav (apps/web/app/components/ui/TabNav.tsx), used by Planner, Medications and sign-in. Today the bar is rounded-full with p-1 and gap-1, and each link is its own rounded-full pill. Make it a segmented bar: remove the inset padding, gap and per-link rounding so the current and hover fills reach the section's edges, clipped by the bar's outer shape. Keep section accents, count badges, sideways scrolling, the visible focus ring, and the dark contrast test in TabNav.browser.test.tsx. Update the look described in TabNav's comment and docs/domain/ui-kit.md. Not assumed to include the phone bottom TabBar or desktop SectionNav unless the user says so.
+- 2026-11-23 (Robert Bo Davis): User: the same applies to the mobile menu at the bottom, and only that one, so the desktop SectionNav stays as it is. This replaces the earlier 'not assumed' line for the phone bar. TabBar (apps/web/app/routes/app/layout/SectionNav.tsx): today a rounded-full bar with px-2 and justify-around, each link a size-11 rounded-full circle, the current one solid primary. Make each link an equal flex-1 full-height section with no per-link rounding, the bar clipping the fills to its outer shape (overflow-hidden). Keep the touch targets at least 44px, aria-current, labels, safe-area position and spacer; use an inset focus ring so clipping doesn't hide it. Update TabBar's comment and docs/domain/app-shell.md if it describes the look.
+
+### B-684 · change · Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: bdd703a1
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: use colored stars on required fields instead of optional labels on optional fields, everywhere. Code read: Field (apps/web/app/components/ui/Field.tsx) has no required prop and no field uses a required attribute today, while about 57 lines contain Optional text: mostly labels like 'Note (optional)', plus help text like 'Optional: Grandma, Dad, a nickname.' and picker labels passed in by callers (ProviderPickerField, ProvidersPickerField, ConditionsField). Some hits are code comments or TimeSelect's optional prop, not labels. Plan: add one required prop to Field and to the group controls that render their own label or legend (ChoiceGroup, pickers, date and time fields), so the star lives in one place. Derive each form's required fields from its Zod schema and service rules rather than guessing, including conditional ones (Other care period needs a label). Remove '(optional)' from labels and reword help text that only says Optional, keeping any useful hint. Accessibility: the star is aria-hidden, the control gets aria-required so screen readers still hear it, and the star's color must meet contrast in light and dark. Use aria-required, not the native required attribute, unless the form sets noValidate, so browser popups don't replace our inline errors. Default color, stated to the user: the theme's error color. Update tests that find fields by '(optional)' names (6 test files) and docs/domain/ui-kit.md. Covers app, sign-in and admin forms. New onboarding forms (B-670) follow the same rule.
+- 2026-11-23 (Robert Bo Davis): User, 2026-11-23: 'stars' means an asterisk. Use the * character after the label, not a star icon. Wherever the earlier note says star, read asterisk.
+- 2026-11-24 (prd/fixes-ui): fixes-ui orchestrator 2026-11-24: split for wave 11. B-684 is slice 70 (the shared required prop and asterisk in ui/, the docs); the form sweeps are B-801 (part 2) and B-800 (part 3).
+
+### B-685 · change · Care period form: show the Where is care now? options in a simple two-column grid
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4fee8d5d
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the 'Where is care' options on the care period form are very cluttered. Code read: PeriodForm (apps/web/app/routes/app/groups/periods/PeriodForm.tsx:93) renders all ten CARE_PERIOD_TYPES (Home, Emergency, Hospital, Rehab, Assisted living, Memory care, Nursing home, Hospice at home, Hospice facility, Other) through ChoiceGroup, a wrapping row of joined buttons meant for one of a few choices. Default fix, stated to the user: a native select labelled 'Where is care now?', following the native-elements-first rule. Keep the type field name and its validation error, the URL prefills, the existing value on edit, and the conditional Label field when Other is chosen. Check it at phone width and update the period tests that pick a type as a radio. The new care period onboarding step (B-670) reuses this form, so it gets the fix too.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: go with two columns and keep the entry simple. This replaces the native select default. Ten plain text options in two columns of equal width, five rows, at phone and desktop widths: one short label each, no icons or descriptions, with one clear selected state. Keep native radios (name, arrow keys, the radiogroup and its error handling) and the existing prefill, edit value and Other's Label field. Add the layout to ChoiceGroup as a small option or a sibling in ui/, so other ChoiceGroups keep their joined row. Check the longest labels fit at phone width without truncating. Period tests that pick a type as a radio should keep working.
+
+### B-686 · change · Add a provider: phone type is a dropdown of common types, with Custom for typing your own
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 948eebc8
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the phone number type on Add a provider should be a dropdown with options, plus an extra option that allows free-form text. Code read: the type is a free-text label input in the shared PhoneFields (apps/web/app/components/contact/PhoneFields.tsx:51), used by ProviderForm, RecipientContactForm and the user's ContactForm. Scope, stated to the user: ProviderForm only (add and edit share it), through a prop so the other two forms keep the text input unless the user asks. Default options, from the labels already in seed data: Office, Mobile, Front desk, Nurse line, After hours, Refills, Fax, then Custom, which reveals a text input (phoneLabel limit 40). Use a native select. No migration: phones stay [{ label, number }] and the select still posts one phoneLabel per row, in order, so phonesFromForm and row error mapping keep working. On edit, a stored label matching an option selects it; any other stored label opens Custom with its text, never lost. A blank label must stay possible, since today's label is optional. Check the row at phone width, because the label column is only w-28 and Custom adds an input; move focus to the text input when Custom is chosen. Update the provider form tests.
+
+### B-687 · change · Add a provider: saving opens the new provider's page instead of returning to the list
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 760dca52
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: you should land on the newly created provider after creating it. Code read: providers/new/route.tsx clientAction drops the id (returns { ok: true }) and ProviderForm's onDone is the sheet's close, which goes back to the list. createProvider already returns { ok: true, id }, so no data change is needed. Fix: return the id from the action, pass it to the new sheet's onDone, and navigate to appUrls provider(groupId, id) with replace, so Back from the provider goes to the directory rather than reopening a submitted form. Cancel, Escape and a tap outside still close to where the user was. Keep it local and offline: the read must find the row just written, without a server call. ActionResult has no id today, so use a route-local result type or widen it carefully. Edit keeps its current behaviour. ProviderForm stays navigation-free: the inline onboarding provider step (B-670) passes its own onDone and stays in the flow. Update providerSheets.browser.test.tsx.
+
+### B-688 · change · Add a medication: saving opens the new medication's page instead of returning to the list
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a7d65e3c
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: same as B-687 (saving a new provider opens its page): adding a medication should land on the medication, not the list. Code read: medications/new/route.tsx is the add sheet over the Schedule or List tab. Its clientAction has the id from createMedication but returns { ok: true }, and onDone is the sheet's close. The page already exists (appUrls.medication, medications/:medicationId). Fix: return the id, pass it to the new sheet's onDone, and navigate there with replace, so Back from the medication goes to the tab the sheet opened over rather than reopening a submitted form. Cancel, Escape and a tap outside still close to that tab. Keep it local and offline. Edit keeps its behaviour, and MedicationForm stays navigation-free so the inline onboarding step (B-670) passes its own onDone and stays in the flow. Share the ActionResult-with-id approach with B-687. Watch one edge: the action writes the medication, then its conditions; if the conditions step refuses, the medication already exists but the form shows an error, so decide whether that case still lands on the page rather than inviting a duplicate save. Pass log's add flow (see B-657) is a separate path and isn't changed unless it uses this route. Update medicationForm.browser.test.tsx.
 
 ### B-689 · bug · Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab
 
@@ -6527,6 +6859,44 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23, reported as two bugs with one fix: (1) on completion, adding an event from the Planner goes to the Timeline instead of the Planner; (2) it should go to the tab matching the event's time: Past if it's in the past, Upcoming if it's in the future. Code read, not reproduced: Add > Event (PlannerHeader.tsx:103) opens the full entry page at entries/new?kind=event&when=pick with no link state. That page autosaves and has no Save or Done button, so 'completion' is leaving it, and its only exit is BackLink to={timelineUrl} labelled Timeline (routes/app/groups/entry/route.tsx:103). Fix: mark the Planner as the opener in link state. The first save does navigate(appUrls.entry(...), { replace: true }) in useLiveEntry.ts (lines 199 and 227, one-off and repeating), which drops history state unless it's carried over, so carry it. While that mark is present, the back link reads Planner and goes to appUrls.plannerPast when the event is past, else appUrls.planner, decided when the user leaves so a time edited on the page counts. Use the Planner's own rule, isUpcoming/entryTiming in lib/appointments/upcoming.ts: in progress and today's all-day events count as Upcoming. An abandoned unsaved draft returns to the tab it was opened from. Deleting that event (EntryPageHeader.tsx:146, useLiveEntry.ts:342) should also return to the Planner rather than the Timeline. Entries opened any other way keep the Timeline link. Add browser tests for a past event, a future event, an in-progress event and a time changed before leaving.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: existing events opened from the Planner should also return to the Planner, specifically to where the event was opened. This extends the item. Two rules: a NEW event added from the Planner goes to Past or Upcoming by its time when leaving. An EXISTING event opened from a Planner row goes back to the tab it was opened from, even if its time was edited so it now belongs on the other tab, with that tab's URL filters kept and its scroll position restored where the router allows. Pass the opener's full URL (path and search) in the row links' history state on Upcoming and Past, and label the back link Planner. Deleting an existing event opened this way also returns to that opener. A reload should keep the return path if history state survives; a direct link or bookmark has no opener and keeps the Timeline link. Add browser tests for opening from Upcoming and from Past with a filter set, including Back after editing the time.
 
+### B-691 · bug · Event time picker: the calendar spills outside its overlay instead of sitting inside it
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev with a screenshot, 2026-11-23 (dark theme, new event page): the calendar is not contained in the date picker overlay. It floats over the Starts panel, wider than it and past its left and bottom edges, covering the fields below. Code read: EntryTimeChip's Popover is a w-72 PopoverPanel, and DateTimeField (components/ui/date/DateTimeField.tsx:194) opens its calendar as a second, nested PopoverPanel placed bottom end, with a w-72 Calendar plus p-3. So the calendar's surface is wider than the outer panel and is positioned independently of it. Fix: when DateTimeField is inside another popover, render the calendar inline in that panel, expanding it below the field, with no second surface. Use an explicit prop or context so fields in sheets and forms keep their current popover. The calendar must fit the panel's content width (w-72 less padding) with 44px-friendly day cells as far as that width allows. Keep calendarOpen on arrival (Add event's pickDay), the first picked day starting at 9:00, the calendar toggle, Esc closing the calendar before the outer panel, and a tap in the calendar not counting as a tap outside. With Starts and Ends, only one calendar is open at a time. The taller panel must stay on screen at phone width and short heights, scrolling inside if needed, with Done reachable. Update the DateTimeField and entry time chip browser tests.
+
+### B-692 · change · New event: after picking the date, focus moves to the title, which prompts Enter a title to save
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a2a3ebd2
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the new event flow is confusing. After the date is selected, focus should move to the title, and the title field should be a prompt like 'Enter a title to save', because it isn't clear that it saves on entry. Code read: Add event opens a draft with the time popover and calendar open (pickDay). Picking a day alone never saves a draft (changeSchedule in useLiveEntry.ts). The first save comes from a title (EntryTitle commits on blur or Enter), a suggested title chip, typed notes, a place, or a linked provider. The placeholder is currently just 'Title'. Fix: (1) only on the first day pick of a pickDay draft, close the calendar and time popover, commit the schedule, and focus the title input, overriding the popover's usual focus return to its trigger. Later openings of the time chip behave as usual, and so does typing in the date field, which shouldn't jump focus mid-edit. (2) On an unsaved new event, the placeholder reads 'Enter a title to save'; the accessible name stays Title, and saved unnamed events keep their current placeholder. Keep the suggested title chips, which save when tapped. Trade-off to check: closing the popover skips the time, which stays at the default hour; the time chip remains visible to change it. Check phones: iOS may not open the keyboard for focus set after an async close, so focus within the tap's gesture if possible. Coordinate with B-691 (calendar inside its overlay), which changes the same popover. Update the entry draft browser tests.
+
+### B-693 · change · New events and notes: the first save shows a saved toast (after the shared toast system)
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 60f3b7f8
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the first save should probably generate a toast once toasts are in place. Filed apart from B-692 (focus moves to the title) so that fix doesn't wait. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until B-669 has landed. Code read: the first save is the save() path in routes/app/groups/entry/useLiveEntry.ts, one-off and repeating (lines 196 and 220), each followed by a replace navigation from entries/new to entries/:id, so the toast must live in the shared queue and survive that navigation. Show it once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider), and never on later autosaves or a failed save. Default wording 'Event saved'. It's a local write, so it works offline and must not imply it has synced. Scope is new events; the same path saves new notes, which stay silent unless the user asks.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: new notes get the toast too. This replaces 'new notes stay silent'. Wording by kind: 'Event saved' or 'Note saved'. The same rules apply: once, on a draft's first successful save, whatever triggered it, and never on later autosaves. For notes, the trigger is usually the first typed text, so the toast must not take focus or interrupt typing.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24, the user: wants it in UI fixes; B-669 (shared toast system) moved into fixes-ui too, so it's no longer held: next wave after B-669's slice.
+
+### B-695 · change · Rename "passes" to "Med times" everywhere users see it
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a17eff6a
+
+- 2026-11-23 (Robert Bo Davis): User chose Med times (2026-11-23): 'pass' is nursing jargon, and family caretakers can read it as skipping a dose. A single one goes by its name (Morning, Evening); generic singular is 'med time'. Change visible text only: the Medications tab and its page, the + menu (Add a med time), PassForm and PassList, ScheduleFields, Today and PassCard, TodayMedicationsRow, EasyNow, quick entry (for example 'Suggestions, a pass is due', 'That pass is gone'), the weekly print sheet, refusal messages in medicationPasses.sync.ts and medications.sync.ts, aria labels, and connector tool descriptions. Keep the code names, medication_pass table, stored data, the /passes URL and the give_pass connector tool name, so no migration or connector break. Any words quick entry already accepts keep working. About 670 code matches for the word, most of them identifiers: sweep strings by hand, don't find-and-replace. Update browser tests and docs/domain/medications.md to say the visible name is Med times. Overlaps dose-accuracy (running) in dueDoses and connector files: take it after that lands or merge carefully.
+
 ### B-696 · bug · check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours
 
 - status: landed
@@ -6536,6 +6906,63 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (Robert Bo Davis): 2026-11-23 incident: dose-accuracy (about 9 h) and fixes-bug (about 4 h) ran 'node scripts/loops/check-plan.mjs --base dev' in a chained background command ahead of pnpm prd check --quick. The CLI reads stdin to EOF before looking at flags (check-plan.mjs:150); stdin never closed, so the check never started, no lease was taken, and the session waited for an exit notice. Also verified: --propose takes changed files only from stdin, so empty stdin prints 'none / no changes' even on a branch with changes. land and pr are safe (propose_tier in lib.sh pipes the diff). Fix: (1) validate args before reading stdin: require --mode or --propose, refuse unknown flags; a TTY check alone would not catch this, because a background stdin need not be a TTY. (2) With --propose and --base/--head, compute the diff itself rather than trusting empty stdin. (3) Add one pnpm prd command that prints the proposed tier, and name it in the orchestrator prompt and handbook, which today say to use the proposed tier with no command. (4) Orchestrator rule: don't chain a lookup ahead of a long check; confirm the check holds a lease (pnpm prd status) before reporting it as running. Touches scripts/loops/prd.sh and prompt.sh, hot for test-gates-2 and worker-watch.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 6 (check flow).
+
+### B-697 · change · Medications Schedule: logging a dose shows a toast (after the shared toast system)
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: df3581f9
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: logging from the medications schedule should generate a toast once toasts are in place. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until it lands. Same waiting pattern as B-693 (saved toast for events and notes). Today a one-tap Given (DoseSlotRow via usePassLog.logSlot) only changes the row. Skipped and Refused go through MarkDoseDialog, as-needed Log through the Schedule route's clientAction/TodaySection. Cover each path that logs from this tab. Given all already shows 'Morning logged · Undo' in PassUndoStatus (lib/medications/passUndo.ts, about 10 s): move that into the toast rather than showing both. Toast only after the local write succeeds; errors stay inline. Wording and whether single doses get Undo are not decided: ask the user when this is built. Mind dose-accuracy's Undo fixes (B-614, B-627) if adding Undo.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: B-669 (shared toast system) moved into fixes-ui, so this is no longer held; after B-669's slice.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: B-669 (shared toast system) moved into fixes-ui, so this is no longer held; after B-669's slice.
+
+### B-698 · change · One medication card for Schedule and the Medications list: the whole card opens it, with a Log button
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 0419f380
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the medication card on Schedule and on Medications should probably be a single component that has the log button, and the entire card should be clickable. Today there are three separate rows: MedicationListItem (list; name link already stretched over the row), DoseSlotRow and AsNeededRow (Schedule; only the name is a link, with Given, the more menu, or Log). Build one shared card in components/medications. Use the stretched link pattern with actions above it (ui/ListRow to + trailing, z-10), so Given, Log and the menu never open the page. Keep the dose safety behavior: AsNeededRow's over-maximum confirm, Skipped/Refused via MarkDoseDialog, canWrite gating, inline errors. Not decided, ask when built: what Log does on the list tab for a scheduled medication (which slot; likely Given for the current open slot, or the Dose sheet), and that stopped medications show no Log. Take after dose accuracy lands (dose-accuracy changes the due-dose data these rows read). Coordinate with B-697 (logging toast) and B-695 (Med times wording).
+- 2026-11-24 (slice/fixes-ui/55): Slice 55 (c672a748): MedicationCard in components/medications is the row for DoseSlotRow, AsNeededRow and MedicationListItem (whole card opens the medication). List Log: scheduled opens the Dose sheet (?medication=), as-needed logs now with the over-maximum confirm (useAsNeededLog/AsNeededLogButton in routes/medications/AsNeededLog.tsx), none when stopped or for viewers.
+
+### B-699 · bug · Medication page: Back returns to where you came from, not always the Medications list
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 98a3381c
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the back button on the medication page should take you back to where you came from, not the medications page. Today medication/route.tsx:120 is BackLink to appUrls.medicationList with the label Medications. Pages link here from Schedule, the list, Med times (PassList), a provider, a todo, search, a condition and timeline entries (MedicationEntryText). Pass the origin (URL and label) in link state, as todo/route.tsx does with listSearchFromState, rather than a bare navigate(-1), so it survives sheets opened over the page and keeps the origin's filters. The label names the origin (Schedule, Timeline, Search...). Direct load, refresh without state, or a shared link falls back to the Medications list. Deleting a medication still goes to the list unless the origin is safe. Pairs with the one-card item, which changes two of these links.
+
+### B-700 · feature · Passes tab: quick log a pass, with cards matching the new medication card
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: e0e5dbb3
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: you should be able to quick log passes from the passes tab on the Medications page, and the styling should match the new medications card. AFTER B-698 (one medication card), which sets the card style, and after dose accuracy lands. Today PassList (medications/passes/PassList.tsx) only lists each pass's name, time and medication links, with a menu for Edit, Move and Delete; it has no today state. Reuse Schedule's logging rather than a second path: read today's DuePass from useDueDoses, and use usePassLog.givenAll plus PassUndoStatus (it already scopes offers by place). Same rules as Given all on Schedule (PassCard): writers only, open medications only, given now, then Undo; a pass already done shows its state instead of the button. Keep the management menu for writers. Viewers see no log action. The toast follows B-697 and the wording B-695 (Med times). Not decided, ask when built: whether a pass can be logged before it is due if Schedule's rule doesn't already settle it, and whether the whole pass card opens anything (it has no page of its own today).
+
+### B-701 · change · Passes always sort by time: remove Move up and Move down
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a30cf79a
+
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: remove Move up and Move down from the Passes tab menu and always order passes by time, then name. Why: the manual order changes no due time, but it can list Evening above Morning on the Passes tab, quick entry, the printed weekly sheet and medication schedule summaries. Schedule already sorts by time first (duePasses) and uses sort order only as a tie-break. Change sortPasses (packages/data/src/db/schema/medications/medicationPass.ts), passesQuery's ORDER BY (medicationPasses.sync.ts), the model's sort (medicationPassModel.ts) and duePasses' tie-break; remove the move intent, movePass and its menu items and tests. No migration: keep the sort_order column for now (migrations stay additive, contract later) and keep writing a valid value. Existing custom orders simply stop applying. Take after dose accuracy lands (duePasses.ts is its hot file). Touches the same PassList menu as B-700 (Passes tab quick log), so do them together or this one first.
+
+### B-702 · bug · Medications Print menu: text overflows or crowds the menu box
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 948eebc8
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23, with a screenshot of the Print menu on the Medications page: the print list overflows the box. Not reproduced in a browser. From the code: PrintMenu uses Menu width=md (w-56, 224px). After the daisyUI menu padding, item px-3, icon and gap, about 160px is left, and 'Every medication, and who to call' needs about that much, so it sits against the right edge and may truncate with another font or text size. Likely fix: width=lg in PrintMenu.tsx (w-64), then check at phone width and in both themes that the text fits with even padding and the menu stays on screen. Confirm with the user that this is the overflow they meant. Also check the other Menus with descriptions (GroupMenu, TimelineViewMenu), since they share the same item layout.
 
 ### B-703 · bug · Addressed: stray browser-test processes from the old connectors-1 worktree stopped
 
@@ -6817,6 +7244,39 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (Robert Bo Davis): User 2026-11-24, the goal: away from the computer, tell the backlog session 'after this work finishes I want only 3 (or 2, or 5, 6) lanes for a while' and have it apply with no restart and nothing typed at the machine. Lowering never ends running PRDs: it only stops new starts until the count falls under the cap. Raising past 4 must work too: new.sh and lib.sh enforce CARETOOK_MAX_PRDS as well as dispatch.mjs/dispatch-pick.mjs, so all read the stored cap; check the slot, port, check and browser lease limits still fit 6 PRDs. It stays until changed (no expiry). The cap change leaves a notice.
 - 2026-11-24 (Robert Bo Davis): Taken by hotfix/lane-cap (backlog session, 2026-11-24, on the user's word); landing into dev now. fixes-tooling: don't slice it.
 
+### B-735 · bug · After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on…
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 12bcaa29
+
+- 2026-11-24 (prd/test-health-2): From the inbox: After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page.
+- 2026-11-24 (Robert Bo Davis): B-B-736
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
+- 2026-11-24 (Robert Bo Davis): By the fixes rules this is wrong behaviour (fixes-bug): likely a stale client after a deploy, not a look or layout fix. Placed in fixes-ui on the user's word so it runs with the next UI wave.
+- 2026-11-24 (prd/fixes-ui): Slice 52 (12bcaa29): not reproduced; fix assumes stale route chunks after a new SW takes over (React Router reloads the current page and the click hangs). staleChunk.ts reloads once to the target (30 s guard, web only). If it recurs, check PowerSync worker files, which aren't in the SW cache.
+
+### B-736 · bug · On the timeline, after jumping to a day, trying to scroll always takes you back to that day.
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-24 (prd/test-health-2): From the inbox: Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
+
+### B-737 · feature · A link icon on each timeline day header and item so users can easily send links to other people.…
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a2a3ebd2
+
+- 2026-11-24 (prd/test-health-2): From the inbox: A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
+
 ### B-739 · change · Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads
 
 - status: landed
@@ -6904,6 +7364,25 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (Robert Bo Davis): [ci-key 951deb28c518] Flaked (passed on its rerun); found by prd/fixes-tooling.
 - 2026-11-24 (slice/fixes-tooling/35): Cause (slice 35, 717aaa9c): the test's writeFileSync truncates the fake load file before writing it, so new.sh's poll read it empty as 'unread' (never busy) and went ahead ('load dropped to -'); the first test then failed before removing t-1 and the next three hit 't-1 already exists'. Fixed: atomic write-and-rename, wait on the busy line not a sleep, cleanup in finally. 20/20 at load 70-98.
 
+### B-748 · change · Placeholder and search bar on timeline should read "Type to search".
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 27823c3e
+
+- 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
+- 2026-11-24 (Robert Bo Davis): Goes with B-680 (one search and filter bar on every list page): the timeline keeps its own controls, but its search placeholder wording should match whatever B-680 settles on.
+
+### B-756 · change · Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: da9de73f
+
+- 2026-11-24 (prd/symptom-catalog): From symptom-catalog slice 5 (d78e5483): with ?symptom= chosen and no matching entries, the empty state reads as if the group had no symptoms at all. Proposed by the symptom-catalog orchestrator; for user review.
+
 ### B-758 · change · Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain')
 
 - status: landed
@@ -6912,6 +7391,34 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: e64bc270
 
 - 2026-11-24 (prd/symptom-catalog): From slice 3 (3c3f8466): similarSymptoms' contained-words rule (rank 2) follows the PRD, but with the default 'Pain' in every catalog most pain names prompt. Options: drop rank 2 for single-word defaults, or require the contained name to have 2+ words. Proposed by the orchestrator; for user review.
+
+### B-762 · feature · Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a2a3ebd2
+
+- 2026-11-24 (Robert Bo Davis): From the user (2026-11-24), option A over saving directly. Vocabulary rows (e.g. 'new med', 'started', 'add medication', 'new provider', 'add provider') plus test rows make a medication or provider card; its Save opens the existing Add sheet prefilled (name, strength, form, directions; provider name, specialty or practice, phone, address) and the sheet saves as today. No new assistant action, no server or connector change. The new-item words must win over the loose match to an existing medication ('new med lisinopril' isn't the current Lisinopril 5 mg). Writer roles only. Docs: docs/domain/assistant.md. Connector side: B-760, B-761.
+
+### B-763 · bug · On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the…
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 633ba99c
+
+- 2026-11-24 (Robert Bo Davis): From the inbox: On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the bottom of the screen.
+- 2026-11-24 (Robert Bo Davis): Triage: installed iOS app, the bottom bar's safe-area padding; a small layout fix.
+
+### B-765 · feature · Ability to open live notes full screen.
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 15167ea9
+
+- 2026-11-24 (Robert Bo Davis): Triage: a full-screen view for a live note; a small flow addition, no data change.
 
 ### B-770 · bug · pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy
 
@@ -6964,6 +7471,34 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
 - 2026-11-24 (Robert Bo Davis): Dropped 2026-11-24 (the user): orchestrator.md already syncs before the wave's run; the second run comes from dev moving during the run, covered by B-773 and B-774 (hotfixes sync-shared and recheck-tier).
 
+### B-777 · bug · When the internet connection drops, the browser and the installed PWA show only a blank screen.
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 1224a291
+
+- 2026-11-24 (Robert Bo Davis): Offline is a hard requirement: a dropped connection blanks the page in the browser and the installed PWA. Wrong behaviour, so fixes-bug; may grow into its own PRD if the app has no offline shell.
+- 2026-11-24 (Robert Bo Davis): User 2026-11-24: into the running fixes-ui PRD's next wave (it owns lib/app-shell/, where the service worker lives). Not a missing offline shell: the worker exists (serviceWorker*.ts, /sw.js), so find why an /app navigation offline renders blank (shell not cached, a route chunk missing from the cache, or the stale-CSP note in app-shell.md). Needs an offline browser check.
+
+### B-783 · bug · Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 1224a291
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 55 (B-698): the list's Log uses the timeline's Dose sheet route.
+
+### B-784 · change · Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 1224a291
+
+- 2026-11-24 (prd/fixes-ui): Follow-up from fixes-ui slice 56 (B-700) and 54 (B-606): add ExtraDoseWarning to the Passes tab cards.
+
 ### B-786 · change · The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree
 
 - status: landed
@@ -6972,3 +7507,70 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: dc99f625
 
 - 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.
+
+### B-788 · change · Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: a17eff6a
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). In-app redirects to sign-in are client-side and fine; only a direct offline load of / or /sign-in is affected.
+
+### B-793 · bug · Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun)
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4bc3c614
+
+- 2026-11-24 (Robert Bo Davis): Found 2026-11-24 by the backlog session. Candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): browser roundtrip.spec.mjs:249 (localMs < 2000) failed at 2007 ms, then 2069 ms on its one rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed roundtrip. The fixes-ui full runs since then didn't run roundtrip. New app code between them: fixes-ui waves 6-8. Suspect: B-613 (87a6235c, sheets fade, overlays at 240 ms), which doubled the overlay fade (120 to 240 ms) and made useSheetExit wait for the overlay too. Against that: new/route.tsx's clientAction writes locally before onDone closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. First find whether the app got slower or the budget was already at the edge (the step prints its time only when it fails). Blocks staging promotion.
+- 2026-11-24 (Robert Bo Davis): Moved to fixes-ui on the user's word (its B-613 is the suspect); the staging candidate is recut after it lands.
+- 2026-11-24 (slice/fixes-ui/69): slice 69: not B-613 (the row shows before the sheet's exit ends; steady adds equal on 65529f69 and the tip). The first add after sign-in waits behind the timeline's renders, which built a new Intl.DateTimeFormat per row per render (dayKeyIn, formatTime); cached per zone. At 3x CPU the first add went 2714 -> 1675 ms, later adds 1346 -> 634 ms.
+- 2026-11-24 (slice/fixes-ui/69): slice 69: cause and fix in the hand-off (Intl formatter per call in dayKeyIn and formatTime)
+
+### B-800 · change · Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 14363355
+
+- 2026-11-24 (prd/fixes-ui): Split from B-684 (over 12 files) by the fixes-ui orchestrator, 2026-11-24; uses the required prop slice 70 adds.
+
+### B-801 · change · Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 7429a2be
+
+- 2026-11-24 (prd/fixes-ui): Split from B-684 (over 12 files) by the fixes-ui orchestrator, 2026-11-24; uses the required prop slice 70 adds.
+
+### B-803 · change · Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay.
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: dfe5f95b
+
+- 2026-11-24 (Robert Bo Davis): From the inbox: The selected item should be a horizontal oval with the same radius as the nav bar, filling the entire space, with some motion when the selection changes.
+- 2026-11-24 (Robert Bo Davis): Bottom tab bar look: thinner, translucent with a backdrop blur. Same bar as B-664/B-763 (fixes-ui).
+
+### B-804 · feature · Need a banner (or permanent toast) while in offline mode.
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: c6fa22eb
+
+- 2026-11-24 (Robert Bo Davis): The header already shows a sync status; this asks for a clearer, persistent offline cue (banner or sticky toast) while offline. Keep it clear of the bottom nav (B-803).
+
+### B-806 · change · Need a loader screen for loading in offline mode.
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: c6fa22eb
+
+- 2026-11-24 (prd/fixes-ui): Orchestrator triage 2026-11-25: look and flow (fixes-ui). Starting the app offline shows a blank page while it loads (root HydrateFallback returns null; the /app layout waits on the local database). A branded loading screen there: the blank cold start B-325 names, without its native safe-area half. Wave 12 slice 75, beside B-804 (offline banner).
