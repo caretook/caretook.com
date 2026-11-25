@@ -261,16 +261,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
-| B-779 | bug | landed | fixes-bug | prd/fixes-bug | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
+| B-779 | bug | staging | fixes-bug | prd/fixes-bug | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
 | B-780 | change | triaged | fixes-tooling |  | CI warns when a branch's quarantine or brake list trails dev's (follow-up of B-771 sync brings dev's CI lists) |
 | B-781 | chore | triaged | fixes-tooling |  | Count check budget and silence stops apart in pnpm prd check --times and pnpm prd metrics |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
-| B-787 | bug | landed | fixes-bug | prd/fixes-bug | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
+| B-787 | bug | staging | fixes-bug | prd/fixes-bug | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
 | B-789 | change | triaged | self-recovery-2 |  | A landing journal (even one whose pid is dead) holds a session's resume after a usage limit with only a waits line each tick; file one report so the user runs pnpm prd land --resume |
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
-| B-792 | bug | landed | fixes-bug | prd/fixes-bug | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
+| B-792 | bug | staging | fixes-bug | prd/fixes-bug | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
 | B-794 | plan | triaged | risa-next |  | Risa: a central agent that gathers from several repos and prioritises across them |
 | B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
@@ -287,6 +287,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-812 | bug | triaged | fixes-tooling |  | An orchestrator's finishing step runs pnpm prd rm from inside its own worktree, so the next step (cd to the main checkout && pnpm prd end) never runs: the harness refuses a command whose cwd was deleted, and the session stays open |
 | B-813 | feature | triaged | fixes-tooling |  | Per-task usage override: a topic the user names may start or plan between the drain line (95%) and the 98% stop, e.g. pnpm prd dispatch --allow <topic>; everything still ends at the stop |
 | B-814 | feature | triaged | usage-aware-drain |  | Orchestrator picks the usage drain line from the current Claude plan (e.g. ultra vs smaller plans) instead of one fixed percent |
+| B-815 | change | triaged | risa-next |  | Orchestrator summary for backlog handoff should include the ability to pass on directives from the… |
+| B-816 | question | triaged | risa-next |  | Should the orchestrator PRDQ be slice-based instead of PRD-based? |
+| B-817 | bug | triaged | fixes-ui |  | Mobile bottom nav renders dark in light mode |
+| B-818 | bug | triaged | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
+| B-819 | change | triaged | fixes-ui |  | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
 
 ## Items
 
@@ -1762,7 +1767,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-779 · bug · Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 9f675672
@@ -1809,7 +1814,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-787 · bug · Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 9f675672
@@ -1846,7 +1851,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-792 · bug · Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 9f675672
@@ -1999,3 +2004,51 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-25: on hold; for a future iteration after the orchestrator split (Risa). Today's line is a fixed 95% (CARETOOK_USAGE_DRAIN) whatever the plan.
+
+### B-815 · change · Orchestrator summary for backlog handoff should include the ability to pass on directives from the…
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): From the inbox: Orchestrator summary for backlog handoff should include the ability to pass on directives from the user more clearly and directly.
+- 2026-11-25 (Robert Bo Davis): Triage: risa-next, orchestration tooling (hand-off briefs, the PRD queue) that the split moves into Risa.
+
+### B-816 · question · Should the orchestrator PRDQ be slice-based instead of PRD-based?
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): Triage: risa-next, orchestration tooling (hand-off briefs, the PRD queue) that the split moves into Risa.
+
+### B-817 · bug · Mobile bottom nav renders dark in light mode
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): User report 2026-11-25. Bottom-nav siblings already shipped: B-763 (floats too high on iOS PWA), B-664 (rides up with keyboard). Triage: fixes-ui, a theme/look fix.
+- 2026-11-25 (Robert Bo Davis): The user's call (2026-11-25): a light, slightly translucent bar matching the page in light mode; dark mode unchanged. Today's near-black light-mode surface is deliberate (--tab-bar-surface in apps/web/app/app.css). Idea, not scheduled (decide later): sit the bar about 0.75rem into the iPhone bottom safe area (calc(var(--tab-bar-inset) - 0.75rem), ~22px from the edge vs ~38px now, after B-763); other phones unchanged. Tradeoff: Apple asks controls to stay out of the home-indicator strip.
+- 2026-11-25 (Robert Bo Davis): Also (the user, 2026-11-25): the bar's glass isn't transparent enough in dark mode. Today --tab-bar-glass mixes the surface at 85% in both themes (app.css); lower it in dark (text keeps 4.5:1 over busy content).
+
+### B-818 · bug · watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited')
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): From orchestration-split slice 1 (2026-11-25): agent shells inherit CARETOOK_USAGE_WATCH=off from the orchestrator session, so the slice check failed twice on this test until the variable was unset. The test should clear the variable (or pass its own env).
+
+### B-819 · change · Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): User report 2026-11-25: the first load after picking can be slow and feels like nothing happens. Either option is fine with them: a loading page right away, or block re-taps and show a loading message in the tapped button. Triage: fixes-ui, flow feedback; no data change.
