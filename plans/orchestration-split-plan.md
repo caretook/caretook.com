@@ -4,11 +4,11 @@
 
 ## Status
 
-**On hold** (registry row `orchestration-split`, flag `hold`): the user lifts it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
+**Running** since 2026-11-25, opened by the user by hand (the registry row still carries `hold`, which keeps the dispatcher off it). **Landing mode: run everything through** (the user, 2026-11-25): land each green wave and clean up, asking only real questions. **Slices to start: slice 1 only**; ask the user before starting wave 2 (slices 2 and 6). The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split` |
 | ----- | ---- | ------- | ------------------------------------ |
-| 1     | 1    | planned |                                      |
+| 1     | 1    | started |                                      |
 | 2     | 2    | planned |                                      |
 | 6     | 2    | planned |                                      |
 | 3     | 3    | planned |                                      |
@@ -23,6 +23,10 @@
 | 12    | 7    | planned |                                      |
 
 **Backlog:** B-543 closes with the move (the runbook's last step).
+
+**Wave 1** (tier `integration`, plus `pnpm test:tooling`):
+
+- 2026-11-25: slice 1 started: worktree `.loops/orchestration-split-1` on `slice/orchestration-split/1` (from 85c7d058), one background agent on **Fable** (the user's choice: its lint rules and config shape decide what every later slice must clear). The stall watch runs beside it. Next: review its hand-off, merge, the wave's CI run, sync, PR and Codex review, land, fold the docs, then ask about wave 2 and rotate.
 
 ## Architectural decisions
 
