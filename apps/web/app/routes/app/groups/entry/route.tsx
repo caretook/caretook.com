@@ -2,10 +2,10 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LiveNotesEditorHandle } from "~/components/notes";
 
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { LinkedTodos } from "~/components/todos";
 import { BackLink, Message, Notice, Page, TITLE_SUB } from "~/components/ui";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
 import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
@@ -18,6 +18,7 @@ import { eventDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { EntryPrintView } from "./EntryPrintView";
+import { EntryTodos } from "./EntryTodos";
 import { EntryVisitPrep } from "./EntryVisitPrep";
 import { entryTiming } from "~/lib/appointments/upcoming";
 import { entryHeading, titleState, withEventDraft } from "./entryPage";
@@ -179,7 +180,10 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
                 aside: <EditorAvatars documentId={entry.id} groupId={groupId} viewerId={db.userId} />,
               }}
             />
-            {entry.kind === "event" && live.stored && <LinkedTodos link={{ eventId: entry.id }} />}
+            {/* Notes and events link todos (planner-3); other kinds have no page here. */}
+            {live.stored && canHaveNoteDocument(entry.kind) && (
+              <EntryTodos entryId={entry.id} kind={entry.kind} />
+            )}
           </>
         )}
       </div>
