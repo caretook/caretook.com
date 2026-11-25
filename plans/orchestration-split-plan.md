@@ -46,6 +46,7 @@
 - 2026-11-25: the rotation fix is in dev as 0c7f16bc (`rotate-into.sh` passes `--model`). Before rotating: `git merge-base --is-ancestor 0c7f16bc prd/orchestration-split` (the landing's sync should bring it; `pnpm prd sync --force` if not), then message split-ops for its go.
 - 2026-11-25: **slice 2 handed off** (ca3c96da, slice check green): config `paths.tooling`, `backlog.idPrefix` and the helper `backlogIds()` in `config.mjs`; `scripts/backlog/` and `lib.sh` (branches, `is_protected`, `not_files`, prefix variables, `exempt_re` from `paths.tooling`) through the config; the hooks' constant checked by a test. Still hardcoded, for later slices: the staging/main status map in `backlog.mjs`, the command names in messages, `land_dir`'s `plan-`/`hotfix-` dir names. A test that copies `scripts/backlog/*.mjs` into a throwaway repo must copy `config.mjs` too.
 - 2026-11-25: **merged slice 2 as fd5aa70e, slice 6 as bd866a13** (clean), then 67686867: `scripts/project` added to `paths.tooling` (where slices 2 and 6 meet) and the missing allowlist reason; config, hooks, test-projects, check-body and fixes-plans tests pass on it. Worktrees stay until the wave is green. Next: the `full` CI run, then the Fable skeptic on the wave, then sync and land.
+- 2026-11-25: the wave's `full` CI run is out on c737db24 (`pnpm prd ci run full --wait`), and the Fable skeptic is reviewing the wave's diff (read-only, verdict `go` or `fix first`). Wait for both before syncing.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
