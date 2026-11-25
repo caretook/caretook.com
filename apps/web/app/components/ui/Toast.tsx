@@ -1,130 +1,47 @@
-import type { CSSProperties } from "react";
-import type { QueuedToast } from "react-aria-components";
-import type { ToastContent } from "./toastQueue";
+import type { ComponentType } from "react";
 
-import { X } from "lucide-react";
-import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import {
-  Text,
-  UNSTABLE_Toast as AriaToast,
-  UNSTABLE_ToastContent as AriaToastContent,
-  UNSTABLE_ToastList as AriaToastList,
-  UNSTABLE_ToastRegion as AriaToastRegion,
-} from "react-aria-components";
-import { Button } from "./Button";
-import { IconButton } from "./IconButton";
-import {
-  dismissToast,
-  exitingKey,
-  finishExit,
-  markShown,
-  queue,
-  runToastAction,
-  subscribeExit,
-} from "./toastQueue";
+import { memo, useEffect, useState, useSyncExternalStore } from "react";
+import { queue } from "./toastQueue";
+
+/** The region's module (ToastView.tsx): React Aria's toast parts, off the first load. */
+const loadView = () => import("./ToastView").then((m) => m.ToastRegionView);
 
 /**
  * Where every toast shows (`toast()`, `toastQueue.ts`): mount it once, in the
- * /app layout (and the gallery). A fixed `region` landmark ("Notifications")
- * at the bottom, centred, above the tab bar while there is one and above the
- * on-screen keyboard while it's open (app.css, `[data-toast-region]`); hidden
- * in print. Each toast is a React Aria toast: its message an `alert`, never
- * taking focus; hovering or focusing it pauses its time. It fades in and out
- * on `--motion` (at once under "reduce motion"), inert while it fades out.
- * It renders nothing on the server and while no toast is queued.
+ * /app layout (and the gallery). It renders nothing until the first toast,
+ * like React Aria's own region, and loads that region (ToastView.tsx) on the
+ * first toast or once the browser is idle, whichever comes first, so React
+ * Aria's toast parts stay out of the /app layout's first load (the bundle
+ * budget). The queue is plain module state, so a toast added before then
+ * waits and shows as soon as the region is in.
  */
 export const ToastRegion = memo(function ToastRegion() {
-  const keyboard = useKeyboardInset();
-  return (
-    <AriaToastRegion
-      queue={queue}
-      data-toast-region=""
-      className="toast toast-center z-40 print:hidden"
-      style={{ "--toast-keyboard": `${keyboard}px` } as CSSProperties}
-    >
-      <AriaToastList<ToastContent> className="contents">
-        {({ toast }) => <ToastItem toast={toast} />}
-      </AriaToastList>
-    </AriaToastRegion>
+  const [View, setView] = useState<ComponentType | null>(null);
+  const queued = useSyncExternalStore(
+    (listener) => queue.subscribe(listener),
+    () => queue.visibleToasts.length > 0,
+    () => false,
   );
-});
 
-function ToastItem({ toast }: { toast: QueuedToast<ToastContent> }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const exiting = useSyncExternalStore(subscribeExit, exitingKey, () => null) === toast.key;
-  const { message, actions, data } = toast.content;
-
-  useLayoutEffect(() => {
-    markShown(toast.key, true);
-    return () => {
-      markShown(toast.key, false);
-      finishExit(toast.key);
-    };
-  }, [toast.key]);
-
-  // Close for good once the fade out has finished (none under reduced motion).
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!exiting || !el) return;
-    el.inert = true;
-    const animations = el.getAnimations?.() ?? [];
-    if (animations.length === 0) {
-      finishExit(toast.key);
-      return;
-    }
+  useEffect(() => {
+    if (View) return;
     let live = true;
-    void Promise.all(animations.map((a) => a.finished))
-      .catch(() => undefined)
-      .then(() => live && finishExit(toast.key));
+    const load = () => void loadView().then((view) => live && setView(() => view));
+    if (queued) {
+      load();
+      return () => void (live = false);
+    }
+    // Safari has no requestIdleCallback: a short wait instead.
+    const idle = "requestIdleCallback" in window;
+    const handle = idle
+      ? window.requestIdleCallback(load, { timeout: 5_000 })
+      : window.setTimeout(load, 2_000);
     return () => {
       live = false;
+      if (idle) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
     };
-  }, [exiting, toast.key]);
+  }, [View, queued]);
 
-  return (
-    <AriaToast
-      toast={toast}
-      ref={ref}
-      {...data}
-      data-toast=""
-      data-exiting={exiting || undefined}
-      className="alert border-base-300 bg-base-100 text-base-content flex items-center gap-2 py-2 pr-2 shadow-lg outline-offset-2"
-    >
-      <AriaToastContent className="min-w-0 grow">
-        <Text slot="title">{message}</Text>
-      </AriaToastContent>
-      {actions.map((action) => (
-        <Button key={action.label} variant="primary" size="sm" onClick={() => runToastAction(toast, action)}>
-          {action.label}
-        </Button>
-      ))}
-      <IconButton icon={X} label="Dismiss" onPress={() => dismissToast(toast.key)} />
-    </AriaToast>
-  );
-}
-
-/**
- * How far the on-screen keyboard covers the bottom of the layout viewport
- * (iOS and Android browsers overlay it; a web view that resizes for it, such
- * as Capacitor's, gives 0). 0 while zoomed in, where the visual viewport is
- * small for another reason.
- */
-function useKeyboardInset() {
-  const [inset, setInset] = useState(0);
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-    const update = () => {
-      const covered = window.innerHeight - viewport.height - viewport.offsetTop;
-      setInset(viewport.scale > 1.01 ? 0 : Math.max(0, Math.round(covered)));
-    };
-    update();
-    viewport.addEventListener("resize", update);
-    viewport.addEventListener("scroll", update);
-    return () => {
-      viewport.removeEventListener("resize", update);
-      viewport.removeEventListener("scroll", update);
-    };
-  }, []);
-  return inset;
-}
+  return View ? <View /> : null;
+});
