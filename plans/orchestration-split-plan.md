@@ -6,21 +6,21 @@
 
 **Running** since 2026-11-25, opened by the user by hand (the registry row still carries `hold`, which keeps the dispatcher off it). **Landing mode: run everything through** (the user, 2026-11-25): land each green wave and clean up, asking only real questions. **Slices to start: every ready slice from here** (the user, 2026-11-25, after wave 1 landed): wave 2 (slices 2 and 6) next, then each later wave as its blockers land, without asking again. **Wave 2's slices run on opus** (the user's choice); later waves at the orchestrator's judgement, as below. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
 
-| Slice | Wave | State      | Merge into `prd/orchestration-split` |
-| ----- | ---- | ---------- | ------------------------------------ |
-| 1     | 1    | merged     | e90f5f02                             |
-| 2     | 2    | started    |                                      |
-| 6     | 2    | handed off |                                      |
-| 3     | 3    | planned    |                                      |
-| 9     | 3    | planned    |                                      |
-| 4     | 4    | planned    |                                      |
-| 5     | 4    | planned    |                                      |
-| 10    | 5    | planned    |                                      |
-| 13    | 5    | planned    |                                      |
-| 7     | 6    | planned    |                                      |
-| 8     | 6    | planned    |                                      |
-| 11    | 6    | planned    |                                      |
-| 12    | 7    | planned    |                                      |
+| Slice | Wave | State   | Merge into `prd/orchestration-split` |
+| ----- | ---- | ------- | ------------------------------------ |
+| 1     | 1    | merged  | e90f5f02                             |
+| 2     | 2    | started |                                      |
+| 6     | 2    | merged  | bd866a13                             |
+| 3     | 3    | planned |                                      |
+| 9     | 3    | planned |                                      |
+| 4     | 4    | planned |                                      |
+| 5     | 4    | planned |                                      |
+| 10    | 5    | planned |                                      |
+| 13    | 5    | planned |                                      |
+| 7     | 6    | planned |                                      |
+| 8     | 6    | planned |                                      |
+| 11    | 6    | planned |                                      |
+| 12    | 7    | planned |                                      |
 
 **Backlog:** B-543 closes with the move (the runbook's last step).
 
@@ -44,6 +44,8 @@
 - 2026-11-25: **hand-over called off** (split-ops, on the user's word): this session carries wave 2 on. Before landing wave 2, a **Fable skeptic** (fresh agent, `model: "fable"`) reviews the wave's decisions and code; act on its findings as usual. **Before `pnpm prd rotate`, message `backlog - split-ops` and wait for its go** (a hotfix makes rotation keep Fable).
 - 2026-11-25: slice 6 reviewed: the allowlist growth is accepted (each is a reference the plan itself makes: the check plan's tooling pattern and the manifest's folders name `scripts/project/`, until slice 10 and the move); the reason for `check-plan.test.mjs` is added at the merge. Two projects for `test:project` accepted. Waiting on slice 2 to merge in order.
 - 2026-11-25: the rotation fix is in dev as 0c7f16bc (`rotate-into.sh` passes `--model`). Before rotating: `git merge-base --is-ancestor 0c7f16bc prd/orchestration-split` (the landing's sync should bring it; `pnpm prd sync --force` if not), then message split-ops for its go.
+- 2026-11-25: **slice 2 handed off** (ca3c96da, slice check green): config `paths.tooling`, `backlog.idPrefix` and the helper `backlogIds()` in `config.mjs`; `scripts/backlog/` and `lib.sh` (branches, `is_protected`, `not_files`, prefix variables, `exempt_re` from `paths.tooling`) through the config; the hooks' constant checked by a test. Still hardcoded, for later slices: the staging/main status map in `backlog.mjs`, the command names in messages, `land_dir`'s `plan-`/`hotfix-` dir names. A test that copies `scripts/backlog/*.mjs` into a throwaway repo must copy `config.mjs` too.
+- 2026-11-25: **merged slice 2 as fd5aa70e, slice 6 as bd866a13** (clean), then 67686867: `scripts/project` added to `paths.tooling` (where slices 2 and 6 meet) and the missing allowlist reason; config, hooks, test-projects, check-body and fixes-plans tests pass on it. Worktrees stay until the wave is green. Next: the `full` CI run, then the Fable skeptic on the wave, then sync and land.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
