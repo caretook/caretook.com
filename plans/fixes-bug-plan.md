@@ -6,140 +6,18 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-**Hand-off (2026-11-22, after the wave 2 landing; no slices in flight).** Wave 1 landed as 7a205be1 (PR #46). **Wave 2 (slices 13–17, all on opus) landed in dev through PR #52** (dev 4f94740): full check passed on 99023ba (557/557, quiet machine, after 7 earlier runs failed on load flakes only; flakes filed B-489–B-502), Codex clean on 608a759, tooling 47/47, browser `--changed` 8/8; lean `--suite` was skipped (said in the report). Report: ask a39; to-test `to-test/2026-11-22-0812-fixes-bug.md`. Docs folded (todos, search, app-shell, care-groups; all at ~10.2 KB, trim when adding). B-450 stopgap (roles test 60 s timeouts) landed with it; the query fix stays on B-450.
-
-**Wave 3 (slice 18, B-510) landed in dev through PR #57** (2026-11-22). `pnpm prd check` takes no reason (only `--quick` does).
-
-**Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed.
-
-**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) landed in dev through PR #102 as a04034ec** (2026-11-23): `integration` CI green on de1b975c (run 45140076884), quick check on 039ea84f, Codex clean on 039ea84f; `browser --changed` needs none. To-test: `to-test/2026-11-23-0359-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed. Known limit left as is: `finished 2nd at the race` reads as a day.
-
-**Wave 6 (slices 32–34, B-644, B-643, B-641, all on opus) landed in dev through PR #105 as a235304c** (2026-11-23): `integration` CI green on d7dab0c5 (run 45147868591), quick check and Codex clean on d7dab0c5; `browser --changed` needs none. To-test: `to-test/2026-11-23-0442-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
-
-**Wave 7 (slices 35–37, B-648, B-647, B-646, all on opus) landed in dev through PR #108 as bdff2e8** (2026-11-23): `integration` CI on 943a1b2c was `flake` (run 45155090185; only `scripts/loops/lease.test.mjs`, not this branch's, filed as B-654), quick check and Codex clean on 943a1b2c; `browser --changed` needs none. To-test: `to-test/2026-11-23-0529-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
-
-**Wave 8 (slices 38–39, B-651, B-652, both on opus) landed in dev through PR #109 as c1c5b0bf** (2026-11-23): `integration` CI on 53ab862c was `flake` (run 45159391173; only `scripts/loops/lease.test.mjs`, not this branch's, noted on B-654), quick check on 53ab862c, Codex clean on b29e187; `browser --changed` needs none. To-test: `to-test/2026-11-23-0558-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed.
-
-**Wave 9 (slice 40, B-655, on opus) landed in dev through PR #111 as ce672f1a** (2026-11-23): `integration` CI green on 221fc48b (run 45165557565; `lease.test.mjs` quarantined and passed), quick check and Codex clean on 221fc48; `browser --changed` needs none. To-test: `to-test/2026-11-23-0633-fixes-bug.md`. No doc fold: `assistant.md` already states the rule. Slice worktree removed.
-
-**Hand-over (after the wave 9 landing; no slice in flight).** **Next wave:** `pnpm prd sync`, ingest, then plan any new triaged item. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
-
-**Waiting (2026-11-23, resumed after an interruption; git matched this Status).** Synced with dev, inbox empty, no slice in flight, no wave 10 yet. All four waiting items are still held: B-615 (`assistantActionService.ts`) and B-616 (`timelineEntryService.ts`) by dose-accuracy, on its wave 4; B-620 (`timeline/DayHeader.tsx`) and B-631 (`timeline/pass/PassLogForm.tsx`) by ui-kit-5, on its wave 3. Both orchestrators were asked to message this session when they land, and a background watch exits when either row leaves `running`. **Next:** when one clears, `pnpm prd sync`, ingest, and write wave 10 from the items it freed. **Order from dose-accuracy's orchestrator:** B-615 can go once its wave 4 lands; B-616 waits for its wave 5 (slice 6, B-614 and B-627), which changes the same dose upsert in `timelineEntryService.ts`. It will message at both landings; its row stays `running` until then, so the watch won't fire for wave 4.
-
-**Wave 10 (slices 41–42, B-620, B-631, both on opus):** ui-kit-5's last wave landed as a5ec12da, which frees the timeline files; synced as 7f2e8685. B-615 and B-616 stay held as above. Slice 41 merged (slice check passed on c957fd24); its worktree stays until the wave is green. At landing, fold into `docs/domain/care-periods.md`: a day header counts to its own viewer-zone date. New item B-656 (a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone) waits for a later wave. Slice 42 merged (slice check passed on 09f40ff6); its worktree stays until the wave is green. New item B-657 (after a successful Add a medication, Back loses unsaved dose edits without asking) waits for a later wave. Synced as 7ab994fc (brings migrations 0039 and 0040; database reset): quick check passed, `components` CI green (run 45221463090). Slice worktrees removed; `care-periods.md` folded. `browser --changed --base dev` (roundtrip, ui) passed on c617e7f5 (don't rerun). Synced again as c3d6f826 (dose-accuracy wave 4, no migration): quick check passed, `components` CI green (run 45227226270). **PR #124 is open. Rotated here for context (no slice in flight). Next:** `pnpm prd review fixes-bug --wait` in the background, triage, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): day headers never repeat a care period day, Back asks after a refused action (B-620, B-631)"`. No Status commit between the review and the landing: it moves the PR's head. Land's report names Codex's verdict; the report text covers B-620, B-631 and the follow-ups B-656, B-657. The tier command reads files from stdin: `git diff --name-only dev...HEAD | node scripts/loops/check-plan.mjs --propose --repo "$PWD" --base dev --head HEAD`.
-
-**Wave 10 landed in dev through PR #124 as 07529c63** (2026-11-23): `components` CI green on c3d6f826 (run 45227226270). **Codex did not review it** (out of credits, `--no-review`). Report: ask a151. To-test: `to-test/2026-11-23-1235-fixes-bug.md`. Docs already folded (`care-periods.md`). **Next session:** `pnpm prd sync`, ingest, recheck hot files, then write wave 11 from the triaged items: B-615, B-656, B-657, B-659, B-662, B-666, B-675, B-689, B-690.
-
-**After wave 10:** B-616 moved to dose-accuracy slice 6 (recorded in the backlog on the user's word): dropped from this plan. **B-615** goes in wave 11: dose-accuracy's wave 4 landed as 30b6685a, and its orchestrator cleared `assistantActionService.ts` and `timelineEntryService.ts` for it, but asks that no one touch the `timelineEntryService` upsert until its wave 5 lands (it will message). Also waiting for wave 11: B-656 and B-657.
-
-**Wave 11 (slices 43–48, B-656, B-657, B-659, B-662, B-666, B-675, all on opus):** resumed after an interruption; git matched this Status, no slice in flight, already synced with dev (fa432c69). **Held for a later wave:** B-615 (dose-accuracy's wave 5 is still changing the `timelineEntryService` upsert; it will message), B-689 and B-690 (member-avatars holds `routes/app/groups/planner/`). At landing, fold the B-659 consent rule into `calendars.md` and B-656 into `care-periods.md`; `calendars.md` is near its 10 KB budget, so trim when adding.
-
-**Wave 11 progress:** all six slices merged; worktrees stay until the wave's verdict is green. Follow-up B-717 (consent refused on an old bundle). At landing also fold B-662 into `assistant.md` (_Doses_; at its 10 KB budget, trim). Browser: `roundtrip` is named by `carePeriodTrack.ts`; run `browser --changed --base dev`. Slice 44 changed the shared sheet guard: watch other sheets in the `components` run. Hand test for B-666: real password manager on join, link invite and email invite. **CI on 5850c33f (synced with dev; quick check passed): `file`, run 45241794955.** Three `providers.browser.test.tsx` tests (B-603, asking before losing ticks) are the branch's per blame (green on dev, run 45243680483); sent to slice 44's agent as a fix request, in flight: no rotation until it is merged and the wave is green. `pnpm datastore:reset` was refused by the permission classifier: use `pnpm datastore:migrate` (0041 from dev) before the browser checks. Follow-ups filed: B-717, B-718 (quick entry asks an amount on a skipped or refused dose). Slice 44's fix (arrival rule only inside `data-sheet-arrives`, used by the pass log) merged as 990dd9bc; CI rerun next. **User's word for wave 11: no orchestrator quick check when a CI run follows** (`components` CI runs all of it; the backlog session is hotfixing the brief). The quick check on 527a3e71 was stopped on that word; code there equals c37e20a4, whose slice check passed. **Next:** wait for the `components` verdict on this tip (`pnpm prd ci run components --wait`); on green `pnpm datastore:migrate` (never reset), `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev`, `pnpm prd rm` slices 43-48, fold docs (care-periods, calendars, assistant), `pnpm prd pr fixes-bug`, review, land `--tier components`. The landing report names the B-666 hand test and B-717, B-718. **`components` CI green on 89125c4c (run 45246214936; the only quarantined failure is `scripts/loops/lease.test.mjs`, not this branch's). Rotated here for context, no slice in flight. Next:** the steps above from `pnpm datastore:migrate` on (the verdict is in; don't rerun it, and this Status commit is docs only). **Next wave:** B-615 is free (dose-accuracy wave 5 landed as 1b2723a2), but stay off the upsert's duplicate return and `mayRestoreDose` (dose-accuracy slice 7, B-627).
-
-**Wave 11 landing (resumed after a rotation; git matched this Status).** Slices 43-48 are merged and their worktrees and branches are already gone. Synced with dev as 481a2563 (brings app code and migration 0042), so the verdict on 89125c4c no longer covers the tip: `components` CI requested on the synced tip, no quick check (the user's word). **Next:** on green, `pnpm datastore:migrate` (never reset), `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev`, fold docs (care-periods, calendars, assistant), `pnpm prd pr fixes-bug`, review, land `--tier components`. **Done since:** migrated (0042), docs folded (42db5f13), `browser --changed --base dev` passed (sign-in, session-end, invites, ui; `roundtrip` after a PowerSync restart: don't rerun). `roundtrip` first failed 4 times on the avatar step because this stack's PowerSync still had the sync config from before a dev sync. **`components` CI green on 9f3264ca (run 45248060450; one quarantined failure, a Planner test this branch doesn't touch).** PR opened next, then `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): six bug fixes across timeline, sheets, consent, quick entry and sign-up (B-656, B-657, B-659, B-662, B-666, B-675)"`. No Status commit between the review and the landing: it moves the PR's head. The report names the B-666 hand test and B-717, B-718.
-
-**Wave 11 landed in dev through PR #131 as ae42c519** (2026-11-23): `components` CI green on 9f3264ca (run 45248060450). **Codex did not review it** (out of credits, `--no-review`). To-test: `to-test/2026-11-23-1432-fixes-bug.md`. Docs folded (care-periods, calendars, assistant; the last two at their 10 KB budget: trim when adding). **Next session:** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 12 from the triaged items: B-615 (stay off the upsert's duplicate return and `mayRestoreDose`), B-689, B-690, B-717, B-718, B-719 and the America/New_York component test failures B-706 to B-715.
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-bug-history.md`](fixes-bug-history.md) (`pnpm prd status-trim`).
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                      | Merge    |
-| ----- | ----- | ------------------------------------------ | -------- |
-| 1     | B-310 | landed                                     | 6afc3f58 |
-| 2     | B-312 | landed                                     | 233dd07d |
-| 3     | B-314 | landed                                     | 8fa65e6f |
-| 4     | B-315 | landed (first-sync at landing)             | 3dc2f3cd |
-| 5     | B-317 | landed                                     | 7fb498ee |
-| 6     | B-320 | landed                                     | a40b9713 |
-| 7     | B-321 | landed                                     | c2605057 |
-| 8     | B-322 | landed                                     | 59763904 |
-| 9     | B-323 | landed (live-notes at landing)             | e7cb1d5e |
-| 10    | B-385 | landed (resetStaging flake: B-466)         | 9736353b |
-| 11    | B-386 | landed                                     | 1327d9bd |
-| 12    | B-393 | landed (test only)                         | f9fb803b |
-| 13    | B-318 | landed                                     | 61d7355f |
-| 14    | B-382 | landed (todos.md at landing)               | 586cee75 |
-| 15    | B-469 | landed (search.md at landing)              | 681f425b |
-| 16    | B-470 | landed                                     | 7e65e0ab |
-| 17    | B-472 | landed (+B-482; layout-offline at landing) | 3114a864 |
-| 18    | B-510 | landed                                     | 5d096ce3 |
-| 19    | B-527 | landed                                     | 04f5e825 |
-| 20    | B-578 | landed                                     | 5d7cfdcf |
-| 21    | B-591 | landed                                     | c177aa58 |
-| 22    | B-580 | landed                                     | 330d9639 |
-| 23    | B-581 | landed                                     | b0cd6f61 |
-| 24    | B-599 | landed                                     | f8c90c02 |
-| 25    | B-601 | landed                                     | efb9d552 |
-| 26    | B-602 | landed                                     | 43e222d4 |
-| 27    | B-605 | landed                                     | 23e69857 |
-| 28    | B-628 | landed                                     | 46f779de |
-| 29    | B-632 | landed                                     | 82eebf78 |
-| 30    | B-634 | landed                                     | c2c53eee |
-| 31    | B-635 | landed                                     | b1cf109f |
-| 32    | B-644 | landed                                     | a4252709 |
-| 33    | B-643 | landed                                     | ce9c55a2 |
-| 34    | B-641 | landed                                     | 501a58bf |
-| 35    | B-648 | landed                                     | 11820cae |
-| 36    | B-647 | landed                                     | 3e6adea0 |
-| 37    | B-646 | landed                                     | ce4d22b1 |
-| 38    | B-651 | landed                                     | a447334a |
-| 39    | B-652 | landed                                     | 7be34f48 |
-| 40    | B-655 | landed                                     | 487cb235 |
-| 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
-| 42    | B-631 | landed                                     | 2a479df8 |
-| 43    | B-656 | landed (care-periods.md folded)            | a449f67c |
-| 44    | B-657 | landed (with its CI fix)                   | 990dd9bc |
-| 45    | B-659 | landed (calendars.md folded)               | 0a8ccfcc |
-| 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
-| 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
-| 48    | B-675 | landed                                     | 3d8e9cf5 |
-| 49    | B-615 | landed (ask a161)                          | ec9155df |
-| 50    | B-717 | landed                                     | 16156d44 |
-| 51    | B-718 | landed                                     | 01632c12 |
-| 52    | B-719 | landed                                     | 09e91a94 |
-| 53    | B-706 | landed                                     | b692a863 |
-| 54    | B-707 | landed                                     | db29dbe1 |
-| 55    | B-708 | landed                                     | b965c5cd |
-| 56    | B-709 | landed                                     | 4d419f6f |
-| 57    | B-710 | landed                                     | 2767bd9d |
-| 58    | B-711 | landed                                     | 00c8c823 |
-| 59    | B-712 | landed                                     | 57459518 |
-| 60    | B-713 | landed                                     | 417c0719 |
-| 61    | B-714 | landed                                     | e1fb3268 |
-| 62    | B-729 | landed (test only)                         | 7c92d280 |
-| 63    | B-726 | landed                                     | 731dd3fa |
-| 64    | B-728 | landed (ask a168, vetoable)                | 5f29ce60 |
-| 65    | B-715 | landed (test only)                         | 5a088bc9 |
-| 66    | B-689 | landed                                     | c25d2c1b |
-| 67    | B-690 | landed (PlannerHeader import conflict)     | ce0cbf74 |
+| Slice | Item  | State                                                      | Merge    |
+| ----- | ----- | ---------------------------------------------------------- | -------- |
+| 68    | B-752 | no fix (not reproducible; back to triaged, waits on B-753) | —        |
+| 69    | B-779 | merged                                                     | d63d7a67 |
+| 70    | B-787 | merged                                                     | 9e62f2b5 |
+| 71    | B-792 | merged                                                     | 9f675672 |
 
-**Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
-
-**Wave 12 hand-over (rotated mid-wave for context, 2026-11-23). Nothing is merged yet; merge in plan order, 49 to 61.** Handed off, clean, quick check passed: 50 at 55b32372, 51 at dd042445, 52 at d880bd00, 53 at c96afea4, 54 at dc764a2e, 55 at a549ae6a, 56 at 9134375e, 57 at f5745c73, 58 at 88bd4c2b, 59 at 662973e9, 60 at 803c90cc, 61 at a432a42b. All zone slices (53–61) were test-only: the app was right, including B-708's all-day day.
-
-- **Slice 49 (B-615) is the only one in flight.** Its first hand-off was af715f46. Skeptic s18 decided (ask a161, the user can veto): a `log_dose` is a repeat only when the amount and note also match; a differing call records a separate dose on a random id. The fix is committed as 4b5bc80d and its quick check was running at rotation. Respawn with `--continue` if there's no hand-off for that tip; confirm the check passed and that a test covers different amount, different note and identical retry.
-- **Expect a conflict check** between 49 and 52 only if `timelineEntryService.ts` appears in 49's diff (it shouldn't).
-- **Gate:** slice 50 changes `serviceWorkerRegister.ts`, which `check-areas` maps to `@suite`, so `browser --changed --base dev` pulls in the lean set; run it once. Tier: take the check plan's proposal. Use `pnpm datastore:migrate`, never reset.
-- **Follow-ups filed:** B-726 (a retried dose upload can still bring back an undone dose after a time edit), B-728 (repeat preview pairs the recipient's day with the viewer's time; the fix needs a product choice). Both triaged for fixes-bug. B-719's new tests were never seen failing on the old code (the agent's direct run was blocked): say so in the report.
-- **Hand test for the report:** B-717's Reload with a real service worker update after a deploy; unit tests use fakes.
-- **Docs at landing:** `connectors.md` and `medications.md` (`log_dose` slot identity, "Already logged", the repeat rule); `assistant.md` _Doses_ (`asksAmount` is for a given dose only; at budget, trim); `calendars.md` (reload on an outdated consent; at budget, trim). `docs/agents/machinery.md` is 8 B over budget from before this wave: don't grow it.
-- **Still held:** B-689, B-690, B-715 (member-avatars holds the Planner folder).
-- **Resumed after the mid-wave rotation (2026-11-23); git matched this Status.** Nothing merged, 50–61 clean at the SHAs above, `prd/fixes-bug` is 35 commits behind `dev`. Slice 49 respawned with `--continue` on opus to confirm its tests and check on 4b5bc80d. Its slice check passed on 4b5bc80d (30 of 30 integration tests). **All of 49 to 61 are merged (tip e1fb3268); worktrees stay until the wave is green.** The landing report must say: a `log_dose` that leaves out the amount or note counts as a repeat of the recorded dose (`saysTheSame`), so a real second dose logged bare reports "Already logged"; this is looser than a161's wording. Synced with dev as 64d52d8c (no migration or sync config change); `components` CI requested on the synced tip, no quick check. **`components` CI on 4bd1a186: `brake`** (run 45258699609), one failure: `syncMedications.int.test.ts` "two members' doses for one slot keeps Given and Skipped as two rows". It fails on dev too (inbox-agent's narrowed run 45259937817 on 54a43bf1; our blame returned unknown, GitHub unreachable), filed as B-729 to fixes-bug. **Slice 62 (B-729) started on opus** to find the cause and fix it; inbox-agent-37 waits on it (told yes; message it when B-729 lands in dev). No rotation until 62 is merged and the wave is green. Slice 62 merged as 7c92d280: the test read due slots at the real clock, so after 20:00 UTC the dose answered tomorrow's slot; test only, no app change. **`components` CI green on 3f0707eb (run 45358073493).** Slice worktrees 49-62 removed; database migrated, server restarted (no sync config change since wave 11, so no PowerSync restart); docs folded (medications, connectors, assistant, calendars, all under 10 KB). `browser --changed --base dev` running (pulls the lean set; run once). **Next:** `pnpm datastore:migrate` (never reset), PowerSync restart if `sync-config.yaml` changed, `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev` once, `pnpm prd rm` slices 49-61, fold docs, `pnpm prd pr fixes-bug`, review, land `--tier components`.
-
-**Wave 12 landed in dev through PR #135 as bcf6ffff** (2026-11-24): `components` CI green on 3f0707eb (run 45358073493), `browser --changed --base dev` 11/11 (lean set included). **Codex did not review it** (out of credits, `--no-review`). Report: ask a166. To-test: `to-test/2026-11-24-0353-fixes-bug.md`. Docs folded (medications, connectors, assistant, calendars; all within a few bytes of 10 KB: trim when adding). Slice worktrees removed. B-729 (the dev brake) was a test reading due slots at the real clock; inbox-agent-37 was told it's in dev.
-
-**Next session (wave 13):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 13 from the triaged items: B-726 (a retried dose upload after a time edit), and B-689, B-690, B-715 once member-avatars no longer holds `routes/app/groups/planner/`. B-728 (repeat preview pairs the recipient's day with the viewer's time) needs a product choice first: ask through `pnpm prd ask` before planning it.
-
-**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); skeptic s20 decided A (ask a168, filed for veto under "decided for you"); slice 64 (B-728) on opus. **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`); a background watch exits when its row leaves `running`, and they become a later wave (this one only if 63 and 64 are still in flight). **Both merged** (63 as 731dd3fa after a quick check on f5b17cc3; 64 as 5f29ce60 after a quick check on dffccc4f); worktrees stay until the wave is green. No migration. `browser --changed --base dev --list` names no check for this diff (none run). Database migrated, server restarted on the tip. **Docs folded** (`medications.md`, now 10 230 B; `appointments.md`; `sync.md` has no upload rule to change). Were: `medications.md` and `sync.md` _On upload_: every accepted dose upload is recorded in `dose_duplicate_upload` (the name dates from B-627), not only duplicates and restores; server-written doses (connector, assistant, Given all round) aren't. `appointments.md` _Repeating_: a timed visit's preview line is its day and time in the viewer's zone (B-728). Hand test for the report: the repeat preview in a browser set to another zone than the group's. **`components` CI green on 9d3f2e2c (run 45362438054; one quarantined failure, `scripts/loops/lease.test.mjs`, not this branch's).** Slice worktrees 63-64 removed; `prd sync` needs no merge. **Next:** `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): retried dose uploads leave undone doses undone, repeat preview in the viewer's zone (B-726, B-728)"`. No Status commit between the review and the landing. The report names ask a168 (B-728 decided, vetoable) and the hand test: the repeat preview with the browser in another zone than the group's.
-
-**Wave 13 landed in dev through PR #136 as 99598435** (2026-11-24): `components` CI green on 82a3cf1 (run 45364779288), after a `sync --force` that brought dev's trimmed `machinery.md` (land refused on its budget). **Codex did not review it** (out of credits, `--no-review`). Report: ask a170. To-test: `to-test/2026-11-24-0433-fixes-bug.md`. Docs folded (`medications.md` at 10 236 B, `appointments.md`). Slice worktrees removed.
-
-**Next session (wave 14):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`). The only waiting items are B-689, B-690 and B-715, all held while member-avatars (`running`, its slice 4 handed off) holds `routes/app/groups/planner/`. If it still runs, ask its orchestrator (ListAgents, SendMessage) to message at landing and set a background watch that exits when its row leaves `running`; write wave 14 from the three once it clears. If ask a168 is vetoed, B-728 goes back as a new slice.
-
-**Wave 14 waiting (2026-11-24, resumed after an interruption; git matched _Status_, no slice worktree, inbox empty).** `prd/fixes-bug` is 12 commits behind dev (sync at wave start). Ask a168 not vetoed (defaulted to A). Only B-689, B-690, B-715 wait, all held by member-avatars (`running`, slice 4 handed off; its CI on 054bb015 was `brake`). Its orchestrator `member-avatars-4c` was asked to message `fixes-bug-69` at landing; a background watch exits when its row leaves `running`. It replied: its last wave (slice 4) is merged and waiting on `components` CI; its Planner changes touch `PlannerHeader`, `UpcomingRow`, `UpcomingRowParts`, `planner/route.tsx` and `past/route.tsx` (expect B-689/B-690 to build on those after the sync). **member-avatars landed as 7d69b3ba (PR #138);** `prd sync --force` merged dev as 8ad25909 (no migration; needed for its Planner code). Wave 14 written: slices 65 (B-715), 66 (B-689), 67 (B-690), all on opus, run at once. Hot files set (planner/, todos/, entry/, lib/appointments/), items claimed. **Worktrees made and agents spawned for 65, 66, 67 (opus)**; if they're gone after a crash, respawn with `--continue`. Merge in order 65, 66, 67; 66 and 67 both touch `PlannerHeader.tsx` (different menu items). **All three merged** (65 5a088bc9, 66 c25d2c1b, 67 ce0cbf74; slice checks passed); worktrees stay until the wave is green. Slice 67 changed `components/ui/BackLink.tsx` (an optional `onClick`), which maps to the `ui` browser check. Not covered by tests (memory router): Back after landing on Todos doesn't reopen the form; reload keeps the Planner return; scroll restore on Back. **`components` CI green on efed38b1 (run 45373891260).** Slice worktrees 65-67 removed. Database migrated (no new migration, no sync config change), server restarted, `browser --changed --base dev` 2/2 (live-notes, ui; don't rerun). Docs folded (`appointments.md` _Back to the Planner_ and tests, `todos.md` sheets; both under 10 KB). **Next:** `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): Planner todos land on Todos, Planner events return to the Planner, Planner test passes in New York (B-689, B-690, B-715)"`. No Status commit between the review and the landing. Hand tests for the report: Back after a Planner todo save; reload on an entry opened from the Planner; scroll on Back.
-
-**Wave 14 landed in dev through PR #140 as 3e16f92** (2026-11-24): `components` CI green on efed38b1 (run 45373891260; a later dev sync brought tooling and docs only), `browser --changed --base dev` 2/2. **Codex did not review it** (out of credits, `--no-review`). Report filed; to-test: `to-test/2026-11-24-0535-fixes-bug.md`. Docs folded (`appointments.md`, `todos.md`). Slice worktrees removed. Land first refused on a stale dev-brake notice for B-729 (landed in wave 12) until `prd sync --force`.
-
-**Next session:** no fixes-bug item waits. `pnpm prd sync`, ingest, `pnpm backlog list` for new triaged `fixes-bug` items, then write wave 15 from them.
+**Wave 15 (slices 68–71, B-752, B-779, B-787, B-792, all on opus; 2026-11-25).** Session started with git matching _Status_; `prd sync` needed no merge (dev only had backlog commits); inbox empty. No running topic holds these files. Hot files set (timeline route folder, `serviceWorkerCaches`, `packages/api/src/connectors/`), items claimed. B-750 (second-zone overflow umbrella) stays standing: no files named yet. Held at first by the usage drain (85%); dev 8103be79 raised the drain line to 95% on the user's word, so `prd sync --force` merged dev as c076a258 (tooling only) and the drain reads normal. **Worktrees made and one opus agent spawned per slice for 68–71 (2026-11-25); `prd watch --wait` running.** If agents are gone after a crash, respawn with `--continue`. Merge in order 68–71. Slice 70 maps to `@suite` (check-areas), so the landing's `browser --changed --base dev` pulls in the lean set (`layout-offline` covers it): run once. Worktrees stay until the wave's CI is green. **Merged 69–71; 68 made no change (not reproducible; B-752 back to triaged, waiting on B-753's watchdog in fixes-tooling). Worktrees stay until the wave's CI is green.** **`components` CI on 1752fb85: `file`** (run 45614044772): four `timelineJumpPaging.browser.test.tsx` "scrolling newer from a day" tests (one hard, three flaky) plus a quarantined one; slice 69's file and hook, sent to its agent as a fix request (blame couldn't run: tip is docs only). Fix (the hold's own scroll up read as the reader's by `NewerEntries`; guarded by `landingHeld()`) merged as cf685016; **`components` CI green on cb856531 (run 45616812492; one quarantined failure, `emergency.browser.test.tsx`, not this branch's; Back-after-newer passed).** Slice worktrees 68–71 removed; `prd sync` needs no merge; migrated, server restarted; docs folded (connectors, app-shell, timeline; all under 10 240 B). `browser --changed --base dev` (the lean set) running: run once. Next: `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, land `--tier components`. **After wave 15 (the user's word, via the backlog session caretook-com-b5):** land it, fold docs, commit _Status_, file the landing report (`pnpm prd ask --report`, naming wave 15 landed and its SHA; the `backlog - split-ops` session watches for it; don't message caretook-com-b5), then go idle: no new wave, no rotation, no `pnpm prd rm` (standing topic; the backlog side holds the row). **Docs at landing:** `connectors.md` (`todays_doses` passes carry `passId`), `app-shell.md` (precache in batches with retries), `timeline.md` (69: after the landing scroll the jump holds the heading in place through layout growth above, by ResizeObserver, until the reader's first input or scroll; the cause was the invite card, not today's entries). 68 and 69 both touch the jump test files: expect a conflict at 69's merge.
 
 ## Wave 1
 
@@ -830,3 +708,50 @@ The backlog item's two notes are the spec (code read and the user's decision). A
 - A reload keeps the return path if history state survives; a direct link or bookmark keeps the Timeline link, and so does every other way in.
 - In `PlannerHeader.tsx` change only the Event menu item (slice 66 changes the Todo one).
 - Component tests in a new `planner/plannerEventReturn.browser.test.tsx` (or beside the entry page's tests): new past, future and in-progress events, a time changed before leaving, opening from Upcoming and from Past with a filter set, Back after a time edit, delete.
+
+## Wave 15
+
+Four fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays a standing item: it gets slices only once its notes name files.
+
+### Slice 68: the timeline jump browser test can't hang a CI shard (B-752)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+The backlog item's note is the evidence: in CI run 45407562750, `routes/app/groups/timeline/timelineJump.browser.test.tsx` stopped reporting after test 3 ("a fresh load of the URL scrolls…") and never finished, with no test timeout firing; the rerun passed. Suspect a step that leaves the runner's page (the later tests use Back and history, tests 8–10) or an await that never settles.
+
+- Find the cause from the code (history steps that can navigate the runner's top page, an unbounded wait for scroll or a frame, a missing cleanup between tests); say in the hand-off what it was and how you know.
+- Fix it so a stuck step fails that test within its timeout instead of hanging the file. Keep every test's assertion; don't skip or loosen one.
+- Apply the same fix to `timelineJumpPaging.browser.test.tsx` only if it shares the pattern.
+- No app change unless the cause is in the app (then a component test shows it).
+
+### Slice 69: a direct `?day=` load with no entries today lands its heading at the top (B-779)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+From fixes-ui slice 47 (B-736): with no entries for today, a direct `?day=` load ends with the day's heading about 160px down instead of under 40px; something above the list (likely the setup or Today card) grows after the landing scroll (`routes/app/groups/timeline/useJumpLanding.ts`). With today's entries it lands right.
+
+- Find what grows after the landing and make the landing hold through it (land after that content settles, or keep the heading pinned while the layout above changes), without a fixed delay.
+- A user scroll after landing still wins: nothing yanks the page back.
+- Component test beside the jump tests: a world with no entries today, a direct `?day=` load, the heading ends under 40px from the top; the existing case with today's entries still passes.
+
+### Slice 70: the service worker installs over a flaky network (B-787)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+`precache` (`lib/app-shell/serviceWorkerCaches.ts`) calls `cache.addAll` over ~530 paths: one failed fetch rejects the whole install, so a device on a flaky mobile network gets no offline worker until the browser's next try.
+
+- Precache in bounded batches and retry each failed path a few times with a short backoff, so one dropped request no longer fails the install.
+- The install still fails (and the old worker keeps serving) if a path stays failed after its retries: a worker that installs without its shell (`SHELL_PATH`), the offline page or any precached asset must not take over. Keep the shell fetched past the HTTP cache.
+- Stored answers only when whole and good (status 200), as `addAll` did.
+- Unit tests in `serviceWorkerCaches.test.ts` (its fake cache): one path failing once then succeeding installs; a path failing every try fails the install; the shell request keeps `cache: "reload"`; batches never exceed the bound.
+
+### Slice 71: `todays_doses` gives each med time's id for `give_pass` (B-792)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`give_pass`'s description says to use a med time's id from today's doses, but each `todays_doses` pass (`packages/api/src/connectors/tools/todaysDoses.ts`: name, time, at, state, slots) has no id.
+
+- Add the med time's id to each pass in the structured result (`passId`, the same name `give_pass` takes), and to the text so an AI reading only the text finds it too.
+- Keep the other fields and the text's shape otherwise unchanged.
+- Integration test in `readTools.int.test.ts`: each pass carries its id, and that id works as `give_pass`'s `passId` (an existing `mcpWrites.int.test.ts` case may cover the write; reuse its setup).
+- Update `connectors.md` only if it lists the result's fields (the orchestrator folds docs at landing; note what changed in the hand-off).

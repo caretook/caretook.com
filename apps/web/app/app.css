@@ -128,7 +128,8 @@ fieldset:disabled :is(.input, .select, .textarea) {
 }
 
 /* The phone tab bar (TabBar, under the /app outlet on group routes): a
-   3.5rem bar floating --tab-bar-bottom above the screen's bottom edge: just
+   --tab-bar-bar (3rem: its 2px padding leaves 44px touch targets) bar
+   floating --tab-bar-bottom above the screen's bottom edge: just
    above the home indicator where there's a bottom safe area
    (--tab-bar-inset, the safe area plus 0.25rem; the safe area already clears
    the indicator, so the full gap on top of it floated the bar too high in the
@@ -138,20 +139,46 @@ fieldset:disabled :is(.input, .select, .textarea) {
    screen (the toast region, below) offsets itself by it. Tests simulate an inset by setting
    --tab-bar-inset. Its surface is near-black `neutral` in light; dark's
    `neutral` is within 1.1:1 of the dark page, so there it is `base-300`
-   (`light-dark` follows the theme's color-scheme). */
+   (`light-dark` follows the theme's color-scheme). It paints it as
+   --tab-bar-glass: slightly translucent over a backdrop blur where
+   `backdrop-filter` is supported, else solid (B-803). */
 :root {
   --tab-bar-gap: 0.75rem;
   --tab-bar-inset: env(safe-area-inset-bottom, 0px);
   --tab-bar-bottom: max(var(--tab-bar-gap), calc(var(--tab-bar-inset) + 0.25rem));
-  --tab-bar-height: calc(3.5rem + var(--tab-bar-gap) + var(--tab-bar-bottom));
+  --tab-bar-bar: 3rem;
+  --tab-bar-height: calc(var(--tab-bar-bar) + var(--tab-bar-gap) + var(--tab-bar-bottom));
   --tab-bar-surface: light-dark(var(--color-neutral), var(--color-base-300));
   --tab-bar-content: light-dark(var(--color-neutral-content), var(--color-base-content));
+  --tab-bar-glass: var(--tab-bar-surface);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :root {
+    --tab-bar-glass: color-mix(in oklab, var(--tab-bar-surface) 85%, transparent);
+  }
 }
 
 /* A fade in (`Toast`). */
 @keyframes fade-in {
   from {
     opacity: 0;
+  }
+}
+
+/* The start-up screen (`brand/AppLoading`, B-806): invisible for its first
+   300 ms, so a quick start doesn't flicker. Plain CSS, since the server's
+   page shows it before any script runs. Under reduce motion it appears at
+   once at 300 ms (a 0 s step, nothing moves) and without its spinner. */
+[data-app-loading] {
+  animation: fade-in 0s linear 300ms both;
+  @media (prefers-reduced-motion: no-preference) {
+    animation-duration: var(--motion);
+    animation-timing-function: var(--motion-ease);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .loading {
+      display: none;
+    }
   }
 }
 

@@ -21,14 +21,14 @@ The shared space for one care recipient's caretakers: always "care group", never
   - `access_code`: staff for everything (update: not the code or use count). `access_code_redemption`: read staff; `system` writes.
   - `user`: read self, staff and co-members (`PUBLIC_PROFILE_FIELDS`); create staff; update self (no role or email); delete self and staff.
   - `timeline_entry`: read any member; create loggers; update and (soft) delete writers, and an Easy helper on own entries (`groupOwn`), never changing a setup field, even to clear it. `provider`, `medication`, `care_period`, `medication_pass`, `recipient_allergy`, `recipient_condition`: read any member; writers create, update, (soft) delete.
-  - `medication_condition`, `condition_manager` (`medicationConditionSchema`, `conditionManagerSchema`): read any member; create and delete writers; update `system`. Written through their services, which check both ends.
-  - `task`: as above, but update also for viewers ¹. `appointment_series`: as above (writers).
+  - `medication_condition`, `condition_manager` (`medicationConditionSchema`, `conditionManagerSchema`): read any member; create and delete writers; update `system`. Their services check both ends.
+  - `todo`: as above, but update also for viewers ¹. `appointment_series`: as above (writers).
   - `member_calendar_setting`, `reminder_override`: the member's own rows only; the feed hash is `system`. `google_*`, `calendar_sync_job`: `system` only ([calendars](calendars.md)).
   - `note_document`: read any member; create loggers (snapshot, text: `system`); update and delete `system`. `note_update`: read any member; create loggers; update and delete `system`.
-  - `timeline_entry_provider`: read any member; create and delete writers; update `system`.
+  - `timeline_entry_provider`, `timeline_entry_todo` (`timelineEntryTodoSchema`): read any member; create and delete writers; update `system`.
   - `care_recipient_details`: read, create and update writers (others none; outside contacts: owner, admin); delete `system`.
   - `user_contact`: yourself only for everything (not staff). `member_contact_share`: read any member; writes `system`.
-- ¹ `todoService` limits a viewer and both easy roles to ticking or unticking a todo assigned to them (`todoService:completionOnly`, one rule and error for all three); see [todos](todos.md).
+- ¹ `todoService` limits a viewer and both easy roles to ticking or unticking a todo assigned to them (`todoService:completionOnly`); see [todos](todos.md).
 - `system` has `all` everywhere. Only it can change an id pointing at the group.
 - **Staff get no default care-data access;** support access will be an explicit, audited grant.
 - **Write memberships and invites through the services**; they enforce what the map can't:

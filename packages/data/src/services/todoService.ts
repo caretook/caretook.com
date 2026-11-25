@@ -34,11 +34,13 @@ import {
   providerModel,
   todoModel,
   timelineEntryModel,
+  timelineEntryTodoModel,
   userModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
+import { linkIn, unlinkIn } from "./entryTodoService";
 
 // Todos: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,
@@ -221,6 +223,49 @@ const hasNotes = async (tx: Tx, todoId: string) => {
   return !!doc;
 };
 
+/** Whether a timeline entry links the todo (any link row: someone's deliberate work). */
+const hasEntryLinks = async (tx: Tx, todoId: string) => {
+  const link = await timelineEntryTodoModel.get({
+    ...system(tx),
+    filter: { todoId: { type: "eq", value: todoId } },
+  });
+  if (isError(link)) return link;
+  return !!link;
+};
+
+/** A next occurrence counts as touched with notes or an entry linking it, as well as by content. */
+const isTouched = async (tx: Tx, todoId: string) => {
+  const notes = await hasNotes(tx, todoId);
+  if (isError(notes) || notes) return notes;
+  return hasEntryLinks(tx, todoId);
+};
+
+// ---------------------------------------------------------------------------
+// The mirror (planner-3): links are rows in `timeline_entry_todo`. New
+// clients never write `todo.event_id`; an old client's `eventId` on create
+// or update becomes the pair's link row here (a change removes the old pair
+// and adds the new), until a contract migration drops the column.
+// ---------------------------------------------------------------------------
+
+const mirrorEvent = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  todo: { id: string; groupId: string },
+  before: string | null,
+  after: string | null,
+) => {
+  if (before === after) return null;
+  if (before) {
+    const removed = await unlinkIn(ctx, tx, before, todo.id);
+    if (isError(removed)) return removed;
+  }
+  if (after) {
+    const linked = await linkIn(ctx, tx, { groupId: todo.groupId, entryId: after, todoId: todo.id });
+    if (isError(linked)) return linked;
+  }
+  return null;
+};
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -290,6 +335,8 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
       },
     });
     if (isError(created) || !created) return created;
+    const mirrored = await mirrorEvent(ctx, tx, created, null, created.eventId);
+    if (mirrored) return mirrored;
     const queued = await enqueueCalendarPush(tx, { todoId: created.id }, "todo");
     return queued ?? created;
   }, ctx);
@@ -335,6 +382,9 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
     if (links) return links;
 
     const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
+    // An old client's changed event moves its link row (the mirror).
+    const mirrored = await mirrorEvent(ctx, tx, existing, existing.eventId, content.eventId);
+    if (mirrored) return mirrored;
     // A new rule or due day moves the anchor; no rule clears all three.
     return write(ctx, tx, id, { ...content, ...repeatColumnsFor(id, existing, content) });
   }, ctx);
@@ -389,13 +439,13 @@ export const reopen = (ctx: ServiceContext, id: string) =>
     if (!existing.repeatRule) return write(ctx, tx, id, { doneAt: null, doneBy: null });
 
     // A repeating todo: the next one goes when nobody has touched it (open,
-    // as ticking made it, no notes). Otherwise both stay, and the later one
-    // carries the repeat: this one stops repeating.
+    // as ticking made it, no notes, no entry linking it). Otherwise both
+    // stay, and the later one carries the repeat: this one stops repeating.
     const next = await laterInChain(tx, existing);
     if (isError(next)) return next;
-    const notes = next ? await hasNotes(tx, next.id) : false;
-    if (isError(notes)) return notes;
-    if (next && isUntouchedNext(existing, next) && !notes) {
+    const touched = next ? await isTouched(tx, next.id) : false;
+    if (isError(touched)) return touched;
+    if (next && isUntouchedNext(existing, next) && !touched) {
       const removed = await todoModel.remove({
         ...system(tx),
         filter: { id: { type: "eq", value: next.id } },
@@ -459,9 +509,9 @@ export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: before }))
       return isTodoCompleter(role) ? completionRefused() : rejectError(ctx.authUser);
 
-    const notes = await hasNotes(tx, id);
-    if (isError(notes)) return notes;
-    if (!isUntouchedNext(before, next) || notes) return next;
+    const touched = await isTouched(tx, id);
+    if (isError(touched)) return touched;
+    if (!isUntouchedNext(before, next) || touched) return next;
 
     const removed = await todoModel.remove({ ...system(tx), filter: { id: { type: "eq", value: id } } });
     if (isError(removed)) return removed;
@@ -654,10 +704,11 @@ export const releaseAssignee = async (tx: Tx, groupId: string, userId: string) =
 };
 
 /**
- * An event was deleted: todos linked to it lose the link (`event_id` null),
- * quietly, done ones included (deleted todos stay as they were). The FK
- * does the same on a hard delete; this is the soft one. Runs as the system, inside the caller's
- * transaction.
+ * An event was deleted: todos linked to it lose the old column's link
+ * (`event_id` null, for old clients), quietly, done ones included (deleted
+ * todos stay as they were). The FK does the same on a hard delete; this is
+ * the soft one. Link rows (`timeline_entry_todo`) stay: readers join live
+ * entries only. Runs as the system, inside the caller's transaction.
  */
 export const releaseEvent = async (tx: Tx, eventId: string) => {
   const updated = await todoModel.update({

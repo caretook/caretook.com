@@ -22,6 +22,7 @@ import { CopyLinkButton } from "./CopyLinkButton";
 import { actionsLabel, entryLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
+import { OpenTodosMark } from "./OpenTodosMark";
 import { ASIDE_CLASS } from "./layout";
 import { entryLinkPath } from "./timelineLinks";
 
@@ -52,6 +53,8 @@ export type EntryViewProps = {
   search?: ParsedSearch;
   /** Easy mode: the kind icon and the author aren't filters (rows only). */
   easy?: boolean;
+  /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
+  openTodos?: number;
 };
 
 /**
@@ -74,6 +77,7 @@ export function TimelineEntryRow({
   providers,
   search,
   easy,
+  openTodos,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -109,6 +113,7 @@ export function TimelineEntryRow({
                 <ViaTag via={entry.via} />
               </p>
             )}
+            <OpenTodosMark count={openTodos} />
           </>
         }
       />

@@ -8,6 +8,7 @@ describe("appUrls: todos", () => {
     expect(appUrls.newTodo(G, { providerId: "p1", eventId: "e1", dueOn: "2026-11-20" }, "?who=mine")).toBe(
       `/app/groups/${G}/todos/new?who=mine&providerId=p1&eventId=e1&dueOn=2026-11-20`,
     );
+    expect(appUrls.newTodo(G, { entryId: "n1" })).toBe(`/app/groups/${G}/todos/new?entryId=n1`);
     expect(
       appUrls.newTodo(G, {
         title: "Call pharmacy & fax",

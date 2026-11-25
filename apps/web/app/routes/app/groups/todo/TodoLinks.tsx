@@ -1,25 +1,25 @@
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
-import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { loadTodo } from "./loadTodo";
 
-import { CalendarClock, Pill } from "lucide-react";
+import { isTodoWriter } from "@caretook/data/schema";
+import { Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { Badge, Section, STATUS_TONE } from "~/components/ui";
+import { Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
 import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
-import { linkedEventQuery } from "~/lib/todos/todos.sync";
-import { toTimelineEntry } from "~/lib/timeline/timeline.sync";
 import { linkLabel } from "~/lib/todos/todoDisplay";
-import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { EntryLinkRow, IconDot, LINK_ROW, LinkEntryPicker, STRETCHED } from "./TodoEntryLinks";
+import { useEntryLinking, useTodoEntries } from "./useTodoEntryLinks";
 
 type Loaded = Awaited<ReturnType<typeof loadTodo>>["linkRows"];
 
@@ -28,21 +28,6 @@ const NO_ROWS: never[] = [];
 /** The loader's rows when they're for this id (stable), else none. */
 const rowsFor = <R extends { id: string }>(rows: R[], id: string | null): R[] =>
   id && rows[0]?.id === id ? rows : NO_ROWS;
-
-const ROW = "hover:bg-base-200/50 relative isolate flex items-center gap-3 px-3 py-2.5";
-const STRETCHED =
-  "block truncate font-medium outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2";
-
-function IconDot({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="bg-primary/15 text-primary grid size-8 shrink-0 place-items-center rounded-full"
-    >
-      {children}
-    </span>
-  );
-}
 
 /** The provider: its name linking to its page, and its quick contact actions; greyed "(removed)" once deleted. */
 function ProviderLink({
@@ -62,7 +47,7 @@ function ProviderLink({
   if (!provider || provider.groupId !== groupId) return null;
   const removed = !!provider.deletedAt;
   return (
-    <li className={ROW} data-todo-link="provider">
+    <li className={LINK_ROW} data-todo-link="provider">
       <ProviderTypeIcon type={provider.type} past={removed || provider.status === "past"} />
       <div className="min-w-0 flex-1">
         <p className="text-muted text-sm">Provider</p>
@@ -81,52 +66,6 @@ function ProviderLink({
         )}
       </div>
       {!removed && <ContactActions actions={quickActions(provider)} />}
-    </li>
-  );
-}
-
-/**
- * The appointment: its title linking to its page, and when it is; struck
- * through and labelled when cancelled. A deleted one isn't shown (its link
- * is cleared with it).
- */
-function EventLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: EntryRow[] }) {
-  const q = linkedEventQuery(id);
-  const rows = useLiveQuery<EntryRow>(q.sql, q.params, loaded);
-  const event = rows[0] ? toTimelineEntry(rows[0]) : null;
-  if (!event || event.groupId !== groupId) return null;
-  const cancelled = cancelledLabel(event);
-  // Its day where it happens (an all-day one's own zone), with the time.
-  const zone = event.allDay ? event.timeZone : Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const day = new Intl.DateTimeFormat(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: zone,
-  }).format(new Date(event.occurredAt));
-  return (
-    <li className={ROW} data-todo-link="event" data-cancelled={cancelled ? "" : undefined}>
-      <IconDot>
-        <CalendarClock className="size-4" />
-      </IconDot>
-      <div className="min-w-0 flex-1">
-        <p className="text-muted text-sm">Event</p>
-        <Link
-          to={appUrls.entry(groupId, event.id)}
-          className={`${STRETCHED} ${cancelled ? "text-faint line-through" : ""}`}
-          data-todo-link-name
-        >
-          {upcomingTitle(event)}
-        </Link>
-        <p className="text-muted text-sm" data-todo-link-when>
-          <span className={cancelled ? "line-through" : ""}>{`${day} · ${timeRange(event)}`}</span>
-          {cancelled && (
-            <Badge tone={STATUS_TONE.past} className="ms-2 no-underline">
-              {cancelled}
-            </Badge>
-          )}
-        </p>
-      </div>
     </li>
   );
 }
@@ -151,7 +90,7 @@ function MedicationLink({
   const removed = !!medication.deletedAt;
   const title = medicationTitle(medication);
   return (
-    <li className={ROW} data-todo-link="medication">
+    <li className={LINK_ROW} data-todo-link="medication">
       <IconDot>
         <Pill className="size-4" />
       </IconDot>
@@ -184,11 +123,14 @@ function MedicationLink({
 }
 
 /**
- * What the todo is about: its provider (with call and map actions), its
- * appointment and its medication, each opening its page (the provider and
- * medication as plain names without `linkPages`: the easy roles can't
- * open their pages). Nothing when it has no links. Live: a provider deleted or an appointment cancelled on
- * another device shows at once.
+ * What the todo is about: its provider (with call and map actions), every
+ * note and event that links it (planner-3), newest first, and its
+ * medication, each opening its page (the provider and medication as plain
+ * names without `linkPages`: the easy roles can't open their pages).
+ * Writers link more notes and events here and remove links (neither side
+ * is deleted). Nothing for a reader when it has no links. Live: a provider
+ * deleted, an entry deleted or an appointment cancelled on another device
+ * shows at once.
  */
 export function TodoLinks({
   groupId,
@@ -197,45 +139,62 @@ export function TodoLinks({
   linkPages = true,
 }: {
   groupId: string;
-  todo: Pick<LocalTodo, "providerId" | "eventId" | "medicationId">;
+  todo: Pick<LocalTodo, "id" | "providerId" | "medicationId">;
   /** The loader's rows for the links (stable). */
   loaded: Loaded;
   /** Whether the provider and medication link to their pages. */
   linkPages?: boolean;
 }) {
-  const { providerId, eventId, medicationId } = todo;
+  const { providerId, medicationId } = todo;
+  const group = useGroup();
+  const writer = isTodoWriter(group.role);
   const initial = useMemo(
     () => ({
       provider: rowsFor(loaded.provider, providerId),
-      event: rowsFor(loaded.event, eventId),
       medication: rowsFor(loaded.medication, medicationId),
     }),
-    [loaded, providerId, eventId, medicationId],
+    [loaded, providerId, medicationId],
   );
-  if (!providerId && !eventId && !medicationId) return null;
+  // Its notes and events are link rows: one live query for them all.
+  const { entries, textOf } = useTodoEntries(groupId, todo.id, loaded);
+  const linking = useEntryLinking(todo.id);
+  const any = !!providerId || entries.length > 0 || !!medicationId;
+  if (!any && !writer) return null;
   return (
     <Section title="Linked to" id="links" data-todo-links="">
-      <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
-        {providerId && (
-          <ProviderLink
-            key={providerId}
-            groupId={groupId}
-            id={providerId}
-            loaded={initial.provider}
-            linked={linkPages}
-          />
-        )}
-        {eventId && <EventLink key={eventId} groupId={groupId} id={eventId} loaded={initial.event} />}
-        {medicationId && (
-          <MedicationLink
-            key={medicationId}
-            groupId={groupId}
-            id={medicationId}
-            loaded={initial.medication}
-            linked={linkPages}
-          />
-        )}
-      </ul>
+      {any && (
+        <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+          {providerId && (
+            <ProviderLink
+              key={providerId}
+              groupId={groupId}
+              id={providerId}
+              loaded={initial.provider}
+              linked={linkPages}
+            />
+          )}
+          {entries.map((entry) => (
+            <EntryLinkRow
+              key={entry.id}
+              groupId={groupId}
+              entry={entry}
+              text={textOf(entry.id)}
+              onRemove={writer ? () => void linking.unlink(entry.id) : undefined}
+            />
+          ))}
+          {medicationId && (
+            <MedicationLink
+              key={medicationId}
+              groupId={groupId}
+              id={medicationId}
+              loaded={initial.medication}
+              linked={linkPages}
+            />
+          )}
+        </ul>
+      )}
+      {linking.error && <Message tone="error">{linking.error}</Message>}
+      {writer && <LinkEntryPicker groupId={groupId} todoId={todo.id} onLink={linking.link} />}
     </Section>
   );
 }

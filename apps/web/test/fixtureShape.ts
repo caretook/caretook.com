@@ -62,6 +62,7 @@ export const FIXTURE_SCHEMAS: Readonly<Record<string, Shape>> = {
   condition_manager: { schema: server.conditionManagerLinkZSchema, reads: "input" },
   appointment_series: { schema: server.appointmentSeriesUpsertZSchema, reads: "input" },
   symptom_type: { schema: server.symptomTypeAddZSchema, reads: "input" },
+  timeline_entry_todo: { schema: server.entryTodoLinkZSchema, reads: "input" },
 };
 
 /** Synced tables with no server schema for their rows, each with why. */

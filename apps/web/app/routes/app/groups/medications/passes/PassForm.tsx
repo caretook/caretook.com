@@ -52,7 +52,7 @@ export function PassForm({
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-pass-form>
       <input type="hidden" name={PASS_FIELD.intent} value={pass ? "update" : "create"} />
       {pass && <input type="hidden" name={PASS_FIELD.passId} value={pass.id} />}
-      <Field label="Name" error={nameError} kind="input">
+      <Field label="Name" error={nameError} kind="input" required>
         {(control) => (
           <input
             {...control}
@@ -61,7 +61,6 @@ export function PassForm({
             maxLength={MEDICATION_PASS_LIMITS.name}
             placeholder="e.g. Noon"
             autoComplete="off"
-            required
           />
         )}
       </Field>
@@ -77,6 +76,7 @@ export function PassForm({
             : (zoneNote ?? undefined)
         }
         error={timeError}
+        required
       />
       {general && <Message tone="error">{general}</Message>}
       <FormFooter

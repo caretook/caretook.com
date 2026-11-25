@@ -9,6 +9,7 @@ import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } fr
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
 import { findTime, periodUnderway, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
 import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
+import { readRepeat } from "./quickEntryRepeat";
 import { keepsNewItemLine, readNewItem } from "./quickEntryNewItem";
 import { foldSearchText } from "../search/search";
 import { TODO_LIMITS } from "../todos/todo";
@@ -972,6 +973,8 @@ type PartState = {
   providers: NameMatch<QuickEntryProvider>[];
   /** Those named clearly enough to make the part about them (an event, or a note with a contact verb). */
   naming: NameMatch<QuickEntryProvider>[];
+  /** The repeat the line says ("every monday"), as RRULE text: its todo repeats. Its words aren't free. */
+  repeatRule?: string;
 };
 
 const roleIdx = (s: PartState, ...roles: VocabularyRole[]) =>
@@ -1995,6 +1998,7 @@ const todoReading = (s: PartState, confidence: number): QuickEntryReading => {
       providerId: null,
       medicationId: null,
       eventId: null,
+      ...(s.repeatRule ? { repeatRule: s.repeatRule } : {}),
     },
     confidence,
     warnings,
@@ -2176,6 +2180,44 @@ const isSatAfterMember = (tokens: readonly Token[], context: QuickEntryContext, 
   });
 };
 
+/** A log reading this sure, the repeat's words aside, keeps the line a log ("gave tylenol every day"). */
+const LOG_FIRST = 0.5;
+
+/** On an event quick entry makes from a line with a repeat: it makes only the first. */
+export const REPEATING_EVENT_MESSAGE =
+  "Quick entry can't make a repeating event, so this is only the first one. Make it a todo to repeat it.";
+
+/** An event this sure (an appointment word, a provider named) stays first over the repeating todo. */
+const EVENT_FIRST = 0.8;
+
+/**
+ * A line with a repeat ("bins out every monday"): a repeating todo first,
+ * due on the rule's first day; an event first instead when the line names a
+ * provider or an appointment word, saying it won't repeat; then any weak
+ * log reading, the note (dated now) and an event. Null when the line reads
+ * as a vital, dose, pass or symptom: it stays one.
+ */
+const repeatReadings = (s: PartState): QuickEntryReading[] | null => {
+  const found = [
+    ...vitalReadings(s, false),
+    ...passReadings(s, false),
+    ...doseReadings(s, false),
+    ...symptomReadings(s, false),
+  ];
+  if (found.some((r) => r.confidence >= LOG_FIRST)) return null;
+  const logs = found.map((r) => ({ ...r, confidence: Math.min(r.confidence, ASKED_FOR_CONFIDENCE) }));
+  const events = eventReadings(s, false);
+  const event = events.find((r) => r.confidence >= EVENT_FIRST);
+  if (event) event.warnings.push({ message: REPEATING_EVENT_MESSAGE, blocking: false });
+  return [
+    todoReading(s, event ? EVENT_FIRST - 0.05 : 0.85),
+    ...events,
+    ...logs,
+    noteReading(s, 0.35, { now: true }),
+    ...(events.length ? [] : [eventFromText(s, 0.2)]),
+  ];
+};
+
 const parsePart = (
   text: string,
   context: QuickEntryContext,
@@ -2198,8 +2240,8 @@ const parsePart = (
       ? ""
       : t.w,
   );
-  const wordsLeft = (found: ReturnType<typeof findTime>) => {
-    const free = tokens.map((_, i) => i).filter((i) => !found?.used.has(i));
+  const wordsLeft = (found: ReturnType<typeof findTime>, taken: ReadonlySet<number> = new Set()) => {
+    const free = tokens.map((_, i) => i).filter((i) => !found?.used.has(i) && !taken.has(i));
     const vocab = findVocabulary(
       tokens.map((t) => vocabularyWord(t.w)),
       (i) => free.includes(i),
@@ -2207,24 +2249,61 @@ const parsePart = (
     return { free, vocab };
   };
   // "tomorrow morning", "next friday morning": a part of day on a request; a report or event keeps its day.
-  const requested =
-    forced === null || forced === "todo" ? findTime(timeWords, { periodAfterDay: true }) : null;
-  const time = requested && asksForAction(wordsLeft(requested)) ? requested : findTime(timeWords);
-  const { free, vocab } = wordsLeft(time);
-  const providers = matchProviders(context, tokens, free);
-  const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
-  const s: PartState = {
-    text: body,
-    tokens,
-    time: timeOf(time?.spec ?? null, context),
-    free,
-    context,
-    previousDose,
-    claimed: new Set(),
-    vocab,
-    providers,
-    naming: providers.filter((m) => namesClearly(m, tokens, verb)),
+  const partTime = (words: readonly string[], taken?: ReadonlySet<number>) => {
+    const requested = forced === null || forced === "todo" ? findTime(words, { periodAfterDay: true }) : null;
+    return requested && asksForAction(wordsLeft(requested, taken)) ? requested : findTime(words);
   };
+  const stateOf = (spec: TimeSpec | null, { free, vocab }: ReturnType<typeof wordsLeft>): PartState => {
+    const providers = matchProviders(context, tokens, free);
+    const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
+    return {
+      text: body,
+      tokens,
+      time: timeOf(spec, context),
+      free,
+      context,
+      previousDose,
+      claimed: new Set(),
+      vocab,
+      providers,
+      naming: providers.filter((m) => namesClearly(m, tokens, verb)),
+    };
+  };
+  const time = partTime(timeWords);
+  const plain = stateOf(time?.spec ?? null, wordsLeft(time));
+
+  // "bins out every monday 7am": the repeat's words are out of the time
+  // phrase and the title; its first day is the due day, at the time said.
+  const repeatState = (): PartState | null => {
+    const today = localDate(context.now, context.timeZone);
+    const words = tokens.map((t) => t.w);
+    const found = readRepeat(words, today);
+    if (!found) return null;
+    const rest = partTime(
+      timeWords.map((w, i) => (found.used.has(i) ? "" : w)),
+      found.used,
+    );
+    const said = rest && !("relativeMinutes" in rest.spec) ? rest.spec : null;
+    // "every monday from dec 1": the first one on or after that day.
+    const from = said?.day
+      ? localDate(
+          resolveTime(said, { now: context.now, timeZone: context.timeZone, direction: "future" }).at,
+          context.timeZone,
+        )
+      : today;
+    const repeat = from === today ? found : (readRepeat(words, today, { from }) ?? found);
+    const offset = Math.round((Date.parse(repeat.firstDay) - Date.parse(today)) / 86_400_000);
+    const spec: TimeSpec = {
+      day: { offset },
+      ...(said?.clock ? { clock: said.clock } : {}),
+      ...(said?.period ? { period: said.period } : {}),
+    };
+    return { ...stateOf(spec, wordsLeft(rest, found.used)), repeatRule: repeat.rule };
+  };
+  // A medication or provider to add ("new med lisinopril 10 mg daily") keeps its words.
+  const newItem = forced === null ? readNewItem(body, context.providers) : null;
+  const repeated = (forced === null && !newItem) || forced === "todo" ? repeatState() : null;
+  const s = forced === "todo" && repeated ? repeated : plain;
   // A note incident ("911", "the ER"), or a contact verb with a provider
   // ("called Dr. Lee"), makes a note first.
   const noteFirst = hasRole(s, "noteIncident") || (hasRole(s, "contactVerb") && s.naming.length > 0);
@@ -2251,7 +2330,6 @@ const parsePart = (
     readings.push(fallback);
   } else {
     // "new med lisinopril 10 mg", "add provider Dr Kim": ahead of any loose match to what the group has.
-    const newItem = readNewItem(body, context.providers);
     readings = [
       ...(newItem ? [newItemReading(newItem.draft, newItem.confidence)] : []),
       ...vitalReadings(s, false),
@@ -2270,6 +2348,11 @@ const parsePart = (
           ? { ...r, confidence: Math.min(r.confidence, ASKED_FOR_CONFIDENCE) }
           : r,
       );
+    // A repeat makes a repeating todo, unless the line tells what happened.
+    if (repeated && !hasRole(s, "reportWord", "visitVerb", "contactVerb")) {
+      const made = repeatReadings(repeated);
+      if (made) readings = made;
+    }
   }
   readings.sort((a, b) => b.confidence - a.confidence);
   return { text: body, readings };
@@ -2283,17 +2366,42 @@ const parsePart = (
  * A line's parts: split on commas, semicolons, new lines and "and" (not a
  * comma inside a number, "1,000"). A line that starts with `n:` or `e:` is
  * one note or event, whatever it says. A todo keeps its "and" ("todo: pick
- * up milk and bread") up to the next comma, semicolon or line.
+ * up milk and bread") up to the next comma, semicolon or line, and a repeat
+ * its weekdays ("every mon, wed and fri").
  */
 const SOFT_SPLIT = /\s*(?:\band\b|\bthen\b|&|\+)\s*/i;
 const SOFT_SPLIT_START = /^\s*(?:\band\b|\bthen\b|&|\+)\s*/i;
 const TODO_AFTER_SOFT = /\s*(?:\band\b|\bthen\b|&|\+)\s*(?=(?:t|task|todo|to-do|to do)\s*:|todo\b)/i;
 
+const DAY_WORD = String.raw`(?:mon(?:day)?|tue(?:s(?:day)?)?|wed(?:s|nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)s?\b`;
+const DAY_LINK = String.raw`(?:\s*,\s*(?:(?:and|or)\s+|[&+]\s*)?|\s+(?:and|or)\s+|\s*[&+]\s*|\s+)`;
+/** A repeat's weekday list: "every mon, wed and fri", "every other week on tue & thu". */
+const REPEAT_DAYS = new RegExp(
+  String.raw`\b(?:every|weekly)\b(?:\s+(?:other|second|\d+|weeks?|on))*\s+${DAY_WORD}(?:${DAY_LINK}${DAY_WORD})+`,
+  "gi",
+);
+/** What the splitter would split a weekday list on, hidden while it splits (private-use characters). */
+const LIST_MASKS: [string, string][] = [
+  [",", "\uE000"],
+  ["&", "\uE002"],
+  ["+", "\uE003"],
+];
+/** "and" keeps its letters (and case), broken by a mark so the soft split misses it. */
+const AND_MARK = "\uE001";
+const maskList = (list: string) =>
+  LIST_MASKS.reduce((text, [was, mask]) => text.replaceAll(was, mask), list).replace(
+    /\b(a)(nd)\b/gi,
+    `$1${AND_MARK}$2`,
+  );
+const unmask = (text: string) =>
+  LIST_MASKS.reduce((t, [was, mask]) => t.replaceAll(mask, was), text).replaceAll(AND_MARK, "");
+
 export const splitQuickEntry = (text: string): string[] => {
   const line = text.trim();
   if (!line) return [];
   if (/^[ne]:/i.test(line) || keepsNewItemLine(line)) return [line];
-  return line
+  const masked = line.replace(REPEAT_DAYS, maskList);
+  return masked
     .split(/\s*(?:;|\n|(?<!\d),|,(?!\d))\s*/)
     .flatMap((piece) => {
       // From a todo's prefix on, the piece is the todo.
@@ -2302,7 +2410,7 @@ export const splitQuickEntry = (text: string): string[] => {
       const tail = todo < 0 ? [] : [piece.slice(todo).replace(SOFT_SPLIT_START, "")];
       return [...(head ? head.split(SOFT_SPLIT) : []), ...tail];
     })
-    .map((p) => p.trim())
+    .map((p) => unmask(p).trim())
     .filter((p) => /[\p{L}\p{N}]/u.test(p));
 };
 

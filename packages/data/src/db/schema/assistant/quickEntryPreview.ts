@@ -3,7 +3,7 @@ import type { AssistantAction } from "./assistantActions";
 
 import { dayLabel } from "../core/dayLabel";
 import { doseText, listText, medicationCountText, medicationTitle } from "../medications/medicationDisplay";
-import { dueText } from "../todos/todoDisplay";
+import { dueText, todoRepeatLine } from "../todos/todoDisplay";
 import { formatReading, isKnownReading } from "../timeline/vitals";
 
 // The wording of a quick-entry card: what an assistant action will save, in
@@ -32,7 +32,7 @@ export type ActionPreview = {
   title: string;
   /** What else it says: a note, "Given 1 tablet", a place and providers. */
   detail: string | null;
-  /** When: "Now", "7:30 AM", "Yesterday 9:00 PM", "Tuesday, Nov 24 2:00 PM", "Friday, Nov 20 · All day"; a todo's due ("Due Fri"). */
+  /** When: "Now", "7:30 AM", "Yesterday 9:00 PM", "Tuesday, Nov 24 2:00 PM", "Friday, Nov 20 · All day"; a todo's due ("Due Fri", "Due Mon · Repeats weekly on Monday"). */
   when: string;
 };
 
@@ -72,13 +72,16 @@ const withText = (ids: readonly string[], context: PreviewContext) => {
 /** A card's words for one action. */
 export const actionPreview = (action: AssistantAction, context: PreviewContext): ActionPreview => {
   if (action.type === "addTodo") {
-    // "Todo · Due Fri", "Call pharmacy", "Sam Rivera".
+    // "Todo · Due Fri", "Call pharmacy", "Sam Rivera"; a repeat says so after
+    // the due: "Todo · Due Mon · Repeats weekly on Monday" (planner-3).
     const zone = context.recipientTimeZone ?? context.timeZone ?? deviceZone();
     const due = { dueOn: action.dueOn ?? null, dueTime: action.dueTime ?? null, doneAt: null };
+    const dueLine = dueText(due, context.now, zone) ?? "No due date";
+    const repeats = todoRepeatLine({ repeatRule: action.repeatRule ?? null, repeatStartsOn: action.dueOn });
     return {
       title: action.title,
       detail: (action.assigneeId && context.members?.get(action.assigneeId)?.name) || null,
-      when: dueText(due, context.now, zone) ?? "No due date",
+      when: repeats ? `${dueLine} · ${repeats}` : dueLine,
     };
   }
   const when = whenText(action.occurredAt, {

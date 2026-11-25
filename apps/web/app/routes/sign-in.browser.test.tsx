@@ -4,6 +4,7 @@ import { render } from "vitest-browser-react";
 import { createRoutesStub } from "react-router";
 import * as appLayout from "./app/layout/route";
 import * as signIn from "./sign-in";
+import { labelled } from "../../test/required";
 
 // B-130: a session check the server rate-limits twice, on a device with
 // nobody cached (just signed out, say), goes to sign-in with a message,
@@ -131,7 +132,7 @@ describe("the ways to sign in", () => {
     };
     const { container } = await open("/sign-in");
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "pat@example.test");
-    await userEvent.fill(page.getByLabelText("Password"), "not-the-password-1234");
+    await userEvent.fill(page.getByLabelText(labelled("Password")), "not-the-password-1234");
     await userEvent.click(page.getByRole("button", { name: "Sign in" }));
     await expect
       .element(page.getByRole("alert"))
@@ -173,7 +174,7 @@ describe("offline", () => {
     offline();
     await open("/sign-in");
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "pat@example.test");
-    await userEvent.fill(page.getByLabelText("Password"), "a fictional password");
+    await userEvent.fill(page.getByLabelText(labelled("Password")), "a fictional password");
     await userEvent.click(page.getByRole("button", { name: "Sign in" }));
     await saysOffline();
     await expect.element(page.getByRole("button", { name: "Sign in" })).toBeEnabled();

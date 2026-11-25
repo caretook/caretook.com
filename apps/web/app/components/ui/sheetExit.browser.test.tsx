@@ -344,7 +344,7 @@ test("stacked sheets: the top one exits alone; the one under it then navigates; 
   const device = await renderWithDevice({ route: routes, url: `${LIST}/new`, role: "owner", fixtures: [] });
   const todo = page.getByRole("dialog", { name: "Add a todo" });
   await expect.element(todo).toBeVisible();
-  await userEvent.fill(todo.getByLabelText("Due (optional)"), "2027-06-14");
+  await userEvent.fill(todo.getByLabelText("Due", { exact: true }), "2027-06-14");
   await userEvent.click(todo.getByRole("button", { name: "Repeat: Doesn't repeat" }));
   const repeat = page.getByRole("dialog", { name: "Repeat" });
   await expect.element(repeat).toBeVisible();

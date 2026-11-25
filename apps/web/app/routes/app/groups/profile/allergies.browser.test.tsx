@@ -6,6 +6,7 @@ import { reactionSuggestions, substanceSuggestions } from "~/lib/medications/all
 import { found, waitUntil } from "../../../../../test/found";
 import { allergy, at, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import { JUNE, openProfile, PROFILE_URL, sections } from "./profileWorld";
 
 // The recipient's allergies on the profile (fixes-ui slice 34; they were a
@@ -169,6 +170,21 @@ describe("the sheet", () => {
       severe: ["Penicillin (hives, severe)"],
       edit: "Edit allergies",
     });
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add form marks only what they're allergic to, and no label says optional", async () => {
+    await open("owner", { url: `${PROFILE_URL}/allergies` });
+    await waitUntil(() => !!ADD(), "the sheet");
+    expect(requiredLabels(ADD())).toEqual(["Allergic to"]);
+    expect(saysOptional(ADD())).toBe(false);
+    await expect
+      .poll(() => ADD()?.querySelector('[name="substance"]')?.getAttribute("aria-required"))
+      .toBe("true");
+    await expect
+      .poll(() => ADD()?.querySelector('[name="reaction"]')?.hasAttribute("aria-required"))
+      .toBe(false);
   });
 });
 

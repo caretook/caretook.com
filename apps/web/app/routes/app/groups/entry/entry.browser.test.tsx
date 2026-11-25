@@ -268,6 +268,24 @@ describe("an event in one tap, and title chips", () => {
     expect(editorFocused()).toBe(true);
   });
 
+  test("a new event's title is required (aria-required: its label is hidden, so no *) until it's saved", async () => {
+    const device = await open(`/app/groups/${GROUP}/entries/new?kind=event`);
+    await waitUntil(() => TITLE()?.getAttribute("aria-required") === "true", "the required title");
+    expect(document.querySelector("main [data-required-mark]")).toBeNull();
+    (await found(TITLE)).focus();
+    await userEvent.keyboard("Podiatrist");
+    (await found(TITLE)).blur();
+    await expect.poll(() => device.location()).toMatch(ON_ENTRY);
+    await waitUntil(() => TITLE()?.value === "Podiatrist" && !TITLE()?.hasAttribute("aria-required"));
+  });
+
+  test("a new note marks nothing required: its title is optional", async () => {
+    await open(`/app/groups/${GROUP}/entries/new?kind=note`);
+    await waitUntil(() => TITLE()?.placeholder === "Title", "the note's title");
+    expect(TITLE()?.hasAttribute("aria-required")).toBe(false);
+    expect(document.querySelector("main [data-required-mark]")).toBeNull();
+  });
+
   test("typing a title hides the chips, clearing it brings them back, and a typed title saves the event", async () => {
     const device = await open(`/app/groups/${GROUP}/entries/new?kind=event`);
     await waitUntil(() => CHIPS().length > 0, "the chips");

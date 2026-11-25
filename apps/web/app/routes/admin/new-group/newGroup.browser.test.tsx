@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { openAdmin, postedForms } from "../adminWorld";
 import * as newGroup from "./route";
+import { labelled } from "../../../../test/required";
 
 // /admin/new-group (groups.mjs step 4's group with an owner invite, on
 // loader data): the form posts the group, the recipient, the owner's
@@ -14,9 +15,9 @@ import * as newGroup from "./route";
 // staffAdmin.int.test.ts's.
 
 const fill = async () => {
-  await userEvent.fill(page.getByLabelText("Group name"), "Lindqvist Family");
-  await userEvent.fill(page.getByLabelText("Care recipient's name"), "June Lindqvist");
-  await userEvent.fill(page.getByLabelText("Owner's email"), "pat.lindqvist@example.com");
+  await userEvent.fill(page.getByLabelText(labelled("Group name")), "Lindqvist Family");
+  await userEvent.fill(page.getByLabelText(labelled("Care recipient's name")), "June Lindqvist");
+  await userEvent.fill(page.getByLabelText(labelled("Owner's email")), "pat.lindqvist@example.com");
   await userEvent.click(page.getByRole("checkbox", { name: ATTESTATION_TEXT }));
 };
 
@@ -53,7 +54,7 @@ describe("/admin/new-group", () => {
       },
     ]);
     // A fresh form for the next family.
-    await expect.element(page.getByLabelText("Group name")).toHaveValue("");
+    await expect.element(page.getByLabelText(labelled("Group name"))).toHaveValue("");
   });
 
   test("a refused address shows its problem by the field", async () => {
@@ -73,6 +74,8 @@ describe("/admin/new-group", () => {
     await fill();
     await userEvent.click(page.getByRole("button", { name: "Create group and invite owner" }));
     await expect.element(page.getByText("Enter an email address")).toBeVisible();
-    await expect.element(page.getByLabelText("Owner's email")).toHaveValue("pat.lindqvist@example.com");
+    await expect
+      .element(page.getByLabelText(labelled("Owner's email")))
+      .toHaveValue("pat.lindqvist@example.com");
   });
 });

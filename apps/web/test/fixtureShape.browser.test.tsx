@@ -7,6 +7,7 @@ import {
   conditionChangeEntry,
   conditionManager,
   contactShare,
+  entryTodo,
   fx,
   medicationCondition,
   medicationPass,
@@ -59,6 +60,7 @@ const DEFAULTS: Record<string, Fixture[]> = {
   condition_manager: [conditionManager(conditionId, providerId)],
   appointment_series: [series()],
   symptom_type: [symptomType()],
+  timeline_entry_todo: [entryTodo(entryId, newId())],
 };
 
 /** Synced tables with a server schema but no builder, each with why. */

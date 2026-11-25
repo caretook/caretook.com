@@ -102,9 +102,10 @@ export function ProviderForm({
         value={type}
         onChange={setType}
         error={issueFor(issues, "type")}
+        required
       />
 
-      <Field label="Name" kind="input" error={issueFor(issues, "name")}>
+      <Field label="Name" kind="input" error={issueFor(issues, "name")} required>
         {(control) => (
           <input
             {...control}
@@ -117,7 +118,7 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label={`${meta.label} (optional)`} kind="input" error={issueFor(issues, "specialty")}>
+      <Field label={meta.label} kind="input" error={issueFor(issues, "specialty")}>
         {(control) => (
           <input
             {...control}
@@ -131,7 +132,7 @@ export function ProviderForm({
       </Field>
 
       {hasPractice(type) && (
-        <Field label="Practice (optional)" kind="select" error={issueFor(issues, "practiceId")}>
+        <Field label="Practice" kind="select" error={issueFor(issues, "practiceId")}>
           {(control) => (
             <select {...control} name={FIELD.practiceId} defaultValue={currentPractice}>
               <option value="">None</option>
@@ -153,7 +154,7 @@ export function ProviderForm({
         labelOptions={PHONE_LABELS}
       />
 
-      <Field label="Email (optional)" kind="input" error={issueFor(issues, "email")}>
+      <Field label="Email" kind="input" error={issueFor(issues, "email")}>
         {(control) => (
           <input
             {...control}
@@ -167,7 +168,7 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label="Address (optional)" kind="textarea" error={issueFor(issues, "address")}>
+      <Field label="Address" kind="textarea" error={issueFor(issues, "address")}>
         {(control) => (
           <textarea
             {...control}
@@ -179,7 +180,7 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label="Website (optional)" kind="input" error={issueFor(issues, "website")}>
+      <Field label="Website" kind="input" error={issueFor(issues, "website")}>
         {(control) => (
           <input
             {...control}

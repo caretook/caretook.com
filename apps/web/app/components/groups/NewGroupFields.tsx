@@ -18,7 +18,7 @@ export function NewGroupFields({ issues = [] }: { issues?: FieldIssue[] }) {
   const placeholder = recipientName.trim() ? defaultGroupName({ recipientName, preferredName }) : "";
   return (
     <div data-new-group-fields="">
-      <Field label="Their name" help="The person you help care for." error={issue("recipientName")}>
+      <Field label="Their name" required help="The person you help care for." error={issue("recipientName")}>
         {(control) => (
           <input
             {...control}
@@ -32,11 +32,7 @@ export function NewGroupFields({ issues = [] }: { issues?: FieldIssue[] }) {
           />
         )}
       </Field>
-      <Field
-        label="What you call them"
-        help="Optional: Grandma, Dad, a nickname."
-        error={issue("preferredName")}
-      >
+      <Field label="What you call them" help="Grandma, Dad, a nickname." error={issue("preferredName")}>
         {(control) => (
           <input
             {...control}
@@ -51,7 +47,7 @@ export function NewGroupFields({ issues = [] }: { issues?: FieldIssue[] }) {
       </Field>
       <Field
         label="Group name"
-        help={placeholder ? `Leave empty for “${placeholder}”.` : "Optional."}
+        help={placeholder ? `Leave empty for “${placeholder}”.` : "Leave empty to name it after them."}
         error={issue("groupName")}
       >
         {(control) => (

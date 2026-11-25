@@ -4,16 +4,20 @@
 
 ## Status
 
-**Where it stands:** replanned 2026-11-23, not started.
+**Where it stands (2026-11-25): landed and done.** planner-3 landed in dev through PR #182 (tier full, `--no-review`: Codex out of credits), merged as 8c1fa06. Report a218. The ui.spec add-sheet flake is B-808 (fixes-tooling). `addTodo.repeatRule` for connectors-3 is noted on B-253. Worktree removed by the backlog session.
 
-| Slice | Wave | State       | Merge into `prd/planner-3` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------ |
-| 1     | 1    | not started |                                            |
-| 2     | 2    | not started |                                            |
-| 3     | 3    | not started |                                            |
-| 4     | 3    | not started |                                            |
-| 5     | 1    | not started |                                            |
-| 6     | 2    | not started |                                            |
+**Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
+
+**Models:** every slice opus.
+
+| Slice | Wave | State  | Merge into `prd/planner-3` (slice commits) |
+| ----- | ---- | ------ | ------------------------------------------ |
+| 1     | 1    | merged | d2597d36 (73a443ab, 09d71a4c)              |
+| 2     | 2    | merged | 59723f9e (007af375)                        |
+| 3     | 3    | merged | eeaae853 (9c36c84d)                        |
+| 4     | 3    | merged | 3a384244 (f26c6ccb)                        |
+| 5     | 1    | merged | 52cba3db (052fe85c, 03217f19)              |
+| 6     | 2    | merged | 84dd0a7d (d99e07ab, 4f457b42)              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 

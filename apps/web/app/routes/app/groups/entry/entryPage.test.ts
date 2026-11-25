@@ -46,18 +46,19 @@ describe("titleState", () => {
     expect(titleState({ ...writer, kind: "note", title: null, saved: false })).toEqual({
       editable: true,
       value: "",
-      placeholder: "Title (optional)",
+      placeholder: "Title",
     });
     expect(titleState({ ...writer, kind: "note", title: "Morning", saved: true })).toMatchObject({
       value: "Morning",
     });
   });
 
-  it("shows an unnamed event empty: Enter a title to save on a draft, Add a title once saved", () => {
+  it("shows an unnamed event empty: Enter a title to save on a draft (required), Add a title once saved", () => {
     expect(titleState({ ...writer, kind: "event", title: null, saved: false })).toEqual({
       editable: true,
       value: "",
       placeholder: "Enter a title to save",
+      required: true,
     });
     expect(titleState({ ...writer, kind: "event", title: "Event", saved: true })).toEqual({
       editable: true,
