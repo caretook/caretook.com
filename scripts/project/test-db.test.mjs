@@ -79,6 +79,11 @@ describe("test-db.sh", () => {
     expect(ok(["status"])).toMatch(/shared test Postgres: not running/);
   });
 
+  it("gives its port and Compose project as facts (the core's only copy of them)", () => {
+    expect(ok(["facts"])).toBe("port=5436\nproject=caretook-shared-test\n");
+    expect(ok(["facts"], { env: { CARETOOK_SHARED_TEST_PORT: "5999" } })).toMatch(/^port=5999$/m);
+  });
+
   it("names databases for worktrees, and refuses to drop without a name", () => {
     expect(ok(["name", "Orchestration-5"]).trim()).toBe("caretook_test_orchestration_5");
     expect(ok(["name", "x".repeat(80)]).trim()).toHaveLength(63);
