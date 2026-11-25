@@ -33,5 +33,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Decide for Capacitor (SQLCipher, secure storage) against the "encryption at rest" commitment.
 - Can the PWA sync in the background after offline work, or does the user have to open it to sync? (B-805)
 - Should the orchestrator PRDQ be slice-based instead of PRD-based? (B-816)
+- Research: compare Care Book to Caring Village
+  Review feature sets and identify overlap, places where we can surpass them, and places where we already do.
 
 ## Chores
