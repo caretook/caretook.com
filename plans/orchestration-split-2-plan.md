@@ -10,6 +10,8 @@
 
 **Wave 2 (started 2026-11-25):** `pnpm prd sync` found nothing to merge (dev is at eaba1e81, wave 1's landing). Slices 2 (the stack as Caretook's; worktree `orchestration-split-2-2`, slot 2, stack up) and 6 (the loop, hotfix and recovery docs split; worktree `orchestration-split-2-6`, no stack) were made with `CARETOOK_USAGE_WATCH=off`, each with one background agent on opus (real logic; judgement on what is generic). The watch runs in the background. Slice 2 was told it may take B-844's point 2 (the test DB name and port parity) if it fits its files, and to say so in its hand-off. Both were told of B-818 (run the slice check with `env -u CARETOOK_USAGE_WATCH` if the shell has it; split-ops's fix is still uncommitted on `dev`).
 
+**Slice 6 handed off** (2026-11-25, 155b1904 on `slice/orchestration-split-2/6`, slice check passed, reviewed: fine to merge after slice 2). Generic docs in `scripts/loops/docs/` for loop, hotfix and recovery; lines naming `dev` stayed in Caretook's halves; six cross-references reworded (one in the orchestrator doc); `doc-budget.mjs` now measures exact-path entries outside `docs/`. The loop role is within 2 B of its budget on both halves. `dev` has no edit to these docs since eaba1e81 (check again at the merge). For slice 7: `docs/loops.md` (the stub) still says the loop doc holds the loop rules and hand-off.
+
 **Next:** review each hand-off and merge in plan order (2, then 6). Before merging 6, diff `dev`'s loop, hotfix and recovery docs since eaba1e81 and re-apply each edit to the right half. Then `pnpm test:tooling`, the wave's CI run (`pnpm prd tier`; the plan expects `integration`), a Fable skeptic on the merged code (rule 3), the PR, and ask split-ops before landing (rules 4 and 6: no other worktree open). B-818's fix is on `dev` as 2c40ee7b (the slices get it at their next sync; until then the `env -u` workaround).
 
 **Wave 1 landed 2026-11-25 as eaba1e81** (PR #196, tier `full`, `--no-review`: Codex was out of credits, so it didn't review this wave). Slices 1, 4 and 5 ran on opus; their worktrees and branches are removed. CI: green on 1a1193dd (run 45696803555); a first run failed on an unhandled rejection in app code the wave doesn't touch, filed as B-845 (fixes-tooling). The Fable skeptic (rule 3) on the merged code: go, no blocker; its follow-ups are B-844 (this topic, no slice yet: propose one to split-ops, or fold into slice 9). No docs folded: the plan folds them at the last landing (the machinery doc still says Node callers use `lease.mjs`). No other worktree was open at the landing (rule 4).
@@ -28,17 +30,17 @@
 
 **Backlog:** B-543 (the split, the topic's item); B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups) and B-844 (this PRD's wave 1 skeptic's) are slice 9 (wave 4, on the user's word; B-844 relayed by split-ops 2026-11-25, its point 2 going to slice 2 if it fits that slice's files).
 
-| Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
-| ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | landed  | ad60a316                               |
-| 4     | 1    | landed  | a4c667dd                               |
-| 5     | 1    | landed  | 73331f09                               |
-| 2     | 2    | running |                                        |
-| 6     | 2    | running |                                        |
-| 3     | 3    | planned |                                        |
-| 7     | 3    | planned |                                        |
-| 8     | 4    | planned |                                        |
-| 9     | 4    | planned |                                        |
+| Slice | Wave | State                 | Merge into `prd/orchestration-split-2` |
+| ----- | ---- | --------------------- | -------------------------------------- |
+| 1     | 1    | landed                | ad60a316                               |
+| 4     | 1    | landed                | a4c667dd                               |
+| 5     | 1    | landed                | 73331f09                               |
+| 2     | 2    | running               |                                        |
+| 6     | 2    | handed off (155b1904) |                                        |
+| 3     | 3    | planned               |                                        |
+| 7     | 3    | planned               |                                        |
+| 8     | 4    | planned               |                                        |
+| 9     | 4    | planned               |                                        |
 
 ## Architectural decisions
 
