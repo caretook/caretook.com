@@ -5,7 +5,10 @@
 #   test-db.sh status            running or not, its port and databases
 #   test-db.sh up                start it if it isn't running (never recreates it)
 #   test-db.sh down              stop it (every worktree's test database goes)
-#   test-db.sh facts             port=<its port> and project=<its Compose project>
+#   test-db.sh facts             port=<its port>, project=<its Compose project>
+#                                and running=yes|no
+#   test-db.sh orphans [worktree…]   orphan=<database> for each worktree database
+#                                or worker copy on it that none of them owns
 #   test-db.sh name <worktree>   the database name for a worktree
 #   test-db.sh create <worktree> start it if needed and create that database
 #   test-db.sh drop <worktree>   drop that database and its integration workers'
@@ -16,7 +19,8 @@
 #   test-db.sh list              the worktree databases on it, with their worker copies
 #   test-db.sh use [worktree]    point a worktree's integration tests at its
 #                                database here (packages/data/.env.test.local);
-#                                for worktrees made before the shared server
+#                                for worktrees made before the shared server;
+#                                database=, port= and summary= facts
 #
 # Env: CARETOOK_SHARED_TEST_PORT (5436), CARETOOK_SHARED_TEST_PROJECT
 # (caretook-shared-test). The integration globalSetup starts it and creates the
@@ -99,6 +103,21 @@ databases_of() {
   copies_of "$(psql_c "$1" "SELECT datname FROM pg_database WHERE datname LIKE 'caretook\_tw\_%' ORDER BY 1")" "$2"
 }
 
+# owned_by_any DB WORKTREE… → true when one of the worktrees owns DB.
+owned_by_any() {
+  local db=$1 w own p; shift
+  for w in "$@"; do [[ $(test_db_name "$w") == "$db" ]] && return 0; done
+  for w in "$@"; do
+    p=$(worker_prefix "$(test_db_name "$w")")
+    [[ $db == "$p"* && ${db#"$p"} =~ ^$worker_re ]] && return 0
+  done
+  for w in "$@"; do
+    own=$(test_db_name "$w"); p=${own:0:59}
+    [[ $db == "$p"* && ${db#"$p"} =~ ^$worker_re ]] && return 0
+  done
+  return 1
+}
+
 up() {
   [[ -n $(container) ]] && return 0
   CARETOOK_SHARED_TEST_PORT=$shared_test_port CARETOOK_SHARED_TEST_PROJECT=$shared_test_project \
@@ -129,7 +148,22 @@ case $cmd in
     # Only this project: never other Compose projects or their networks.
     docker compose -p "$shared_test_project" down --remove-orphans
     ;;
-  facts) printf '%s\n' "port=$shared_test_port" "project=$shared_test_project" ;;
+  facts)
+    printf '%s\n' "port=$shared_test_port" "project=$shared_test_project"
+    if [[ -n $(container) ]]; then echo "running=yes"; else echo "running=no"; fi
+    ;;
+  orphans)
+    # orphan=<database> for each one on the server that none of the named
+    # worktrees owns: not its own database, nor one of its worker copies (new
+    # names first, then the old <database cut to 59>_w<n>, so a topic ending
+    # -w<n> owns its database instead of it reading as another's old copy).
+    c=$(container); [[ -n $c ]] || exit 0
+    all=$(psql_c "$c" "SELECT datname FROM pg_database WHERE datname LIKE 'caretook\_test\_%' OR datname LIKE 'caretook\_tw\_%' ORDER BY 1")
+    while read -r d; do
+      [[ -n $d ]] && ! owned_by_any "$d" "$@" && echo "orphan=$d"
+    done <<<"$all"
+    exit 0
+    ;;
   name) db_of "${1:-}" ;;
   create)
     db=$(db_of "${1:-}"); up
@@ -179,7 +213,9 @@ case $cmd in
     name=${1:-$(here_name)}
     [[ -n $name && -d $loops/$name ]] || die "use: give a .loops worktree name, or run it inside one"
     write_test_env "$loops/$name" "$name"
-    echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)"
+    echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)" >&2
+    printf '%s\n' "database=$(db_of "$name")" "port=$shared_test_port" \
+      "summary=$(db_of "$name") on the shared test Postgres (:$shared_test_port)"
     ;;
-  *) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+  *) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

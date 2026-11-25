@@ -80,7 +80,8 @@ describe("test-db.sh", () => {
   });
 
   it("gives its port and Compose project as facts (the core's only copy of them)", () => {
-    expect(ok(["facts"])).toBe("port=5436\nproject=caretook-shared-test\n");
+    expect(ok(["facts"])).toBe("port=5436\nproject=caretook-shared-test\nrunning=no\n");
+    expect(ok(["facts"], { env: { FAKE_SHARED_ID: "c0ffee" } })).toMatch(/^running=yes$/m);
     expect(ok(["facts"], { env: { CARETOOK_SHARED_TEST_PORT: "5999" } })).toMatch(/^port=5999$/m);
   });
 
@@ -119,6 +120,42 @@ describe("test-db.sh", () => {
     // tidy drops such an orphan by name.
     ok(["drop-db", gone], { env: { FAKE_SHARED_ID: "c0ffee", FAKE_PSQL: "" } });
     expect(calls()).toContain(`dropdb -U caretook --if-exists --force ${gone}`);
+  });
+
+  // tidy's orphans: what no worktree owns, decided by name here (B-440).
+  it("names the databases no given worktree owns", () => {
+    const orphans = (dbs, names) =>
+      ok(["orphans", ...names], { env: { FAKE_SHARED_ID: "c0ffee", FAKE_PSQL: dbs.join("\n") } })
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => l.replace(/^orphan=/, ""));
+    const names = ["foo-w2", "bar"];
+    // A topic ending -w<n> owns its database; old-style copies are its worktree's.
+    expect(
+      orphans(
+        [
+          "caretook_test_foo_w2",
+          "caretook_test_foo_w2_w1",
+          "caretook_test_foo_w2_w16",
+          "caretook_test_bar_w3",
+          "caretook_test_gone_w1",
+          "caretook_test_gone",
+          "caretook_test_bar_w17",
+          "caretook_test_barn",
+        ],
+        names,
+      ),
+    ).toEqual(["caretook_test_gone_w1", "caretook_test_gone", "caretook_test_bar_w17", "caretook_test_barn"]);
+    // New-style worker copies go by their database's hash, never another's.
+    const copy = workerDatabaseName("caretook_test_foo", 1);
+    expect(orphans([copy, "caretook_test_foo_w1"], ["foo", "foo-w1"])).toEqual([]);
+    expect(orphans([workerDatabaseName("caretook_test_foo", 17)], ["foo"])).toHaveLength(1);
+    expect(orphans([copy], ["bar"])).toEqual([copy]);
+    const long = `t-${"x".repeat(70)}`;
+    const db = ok(["name", long]).trim();
+    expect(orphans([db, `${db.slice(0, 59)}_w4`, workerDatabaseName(db, 3)], [long])).toEqual([]);
+    // Not running: nothing to name.
+    expect(ok(["orphans", "foo"])).toBe("");
   });
 
   it("down stops only the shared project", () => {

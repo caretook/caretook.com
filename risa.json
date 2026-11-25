@@ -23,14 +23,14 @@
     "tooling": [".githooks", "risa.json", "scripts/project"]
   },
   "roles": {
-    "backlog": { "replacement": "docs/agents/backlog.md" },
+    "backlog": { "additions": "docs/agents/backlog.md" },
     "hotfix": { "additions": "docs/agents/hotfix.md" },
-    "inbox": { "replacement": "docs/agents/inbox.md" },
+    "inbox": { "additions": "docs/agents/inbox.md" },
     "loop": { "additions": "docs/agents/loop.md" },
     "machinery": { "replacement": "docs/agents/machinery.md" },
     "orchestration": { "replacement": "docs/orchestration.md" },
-    "orchestrator": { "replacement": "docs/agents/orchestrator.md" },
-    "planner": { "replacement": "docs/agents/planner.md" },
+    "orchestrator": { "additions": "docs/agents/orchestrator.md" },
+    "planner": { "additions": "docs/agents/planner.md" },
     "project-config": { "replacement": "docs/agents/project-config.md" },
     "recovery": { "additions": "docs/agents/recovery.md" }
   },
@@ -79,6 +79,11 @@
     "stackDown": "scripts/project/stack.sh down",
     "stackStatus": "scripts/project/stack.sh status",
     "stackReady": "scripts/project/stack.sh ready",
+    "stackStop": "scripts/project/stack.sh stop",
+    "stackStart": "scripts/project/stack.sh start",
+    "stackEngine": "scripts/project/stack.sh engine",
+    "stackLeftovers": "scripts/project/stack.sh leftovers",
+    "serve": "scripts/project/serve.sh",
     "testDb": "scripts/project/test-db.sh",
     "lease": "bash scripts/loops/lease.sh hold"
   },
