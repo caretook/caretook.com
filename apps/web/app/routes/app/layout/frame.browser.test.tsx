@@ -1,7 +1,7 @@
 import type { DeviceRoute } from "../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { cdp, commands, page, userEvent } from "vitest/browser";
 import { toast } from "~/components/ui";
 import { THEME_KEY } from "~/lib/app-shell/theme";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
@@ -10,7 +10,7 @@ import * as home from "~/routes/app/home/route";
 import * as settingsIndex from "~/routes/app/settings/index/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as units from "~/routes/app/settings/units/route";
-import { rgba, surfaceContrast, textContrast } from "../../../../test/contrast";
+import { over, ratio, rgba, surfaceContrast, surfaceOf, textContrast } from "../../../../test/contrast";
 import { renderWithDevice } from "../../../../test/device";
 import { found } from "../../../../test/found";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
@@ -75,6 +75,9 @@ const nameOf = (a: Element) => a.getAttribute("aria-label") ?? a.textContent?.tr
 const HEADER_NAV = '[data-region="sections"] nav[aria-label="Group sections"]';
 const shown = (el: Element | null) =>
   !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0;
+
+/** Chrome DevTools, for reduced-motion emulation (Vitest types the session loosely). */
+const devtools = () => cdp() as unknown as { send: (method: string, params: object) => Promise<unknown> };
 
 afterEach(async () => {
   await commands.colorScheme(null);
@@ -397,6 +400,7 @@ describe("the sections", () => {
 describe("the floating tab bar", () => {
   const bar = () => document.querySelector<HTMLElement>(TAB_BAR)!;
   const barLinks = () => [...bar().querySelectorAll<HTMLAnchorElement>("a")];
+  const indicator = () => bar().querySelector<HTMLElement>("[data-tab-bar-indicator]")!;
 
   test("at 420: icon links named by their sections (with the same title), each at least 44 px, the bar clear of the window's edges", async () => {
     await open();
@@ -427,7 +431,7 @@ describe("the floating tab bar", () => {
     expect(spacer.height).toBeGreaterThanOrEqual(innerHeight - b.top);
   });
 
-  test("at 420: the links split the bar into equal full-height sections, the current one marked and filled edge to edge, the focus ring inside it", async () => {
+  test("at 420: the links split the bar into equal full-height sections inside its 2px edge, the current one on a full-height pill with the bar's radius, the focus ring inside it", async () => {
     await open();
     await expect.element(page.getByText("Slept well")).toBeVisible();
     const b = bar().getBoundingClientRect();
@@ -435,19 +439,29 @@ describe("the floating tab bar", () => {
     const rects = links.map((a) => a.getBoundingClientRect());
     const widths = rects.map((r) => r.width);
     expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
-    expect(widths.reduce((sum, w) => sum + w, 0)).toBeGreaterThan(b.width - 1);
-    expect(Math.min(...rects.map((r) => r.left)) - b.left).toBeLessThan(1);
-    expect(b.right - Math.max(...rects.map((r) => r.right))).toBeLessThan(1);
+    expect(widths.reduce((sum, w) => sum + w, 0)).toBeGreaterThan(b.width - 5);
+    expect(Math.min(...rects.map((r) => r.left)) - b.left).toBeLessThan(3);
+    expect(b.right - Math.max(...rects.map((r) => r.right))).toBeLessThan(3);
     for (const r of rects) {
       expect(r.height).toBeGreaterThanOrEqual(44);
-      expect(r.top - b.top).toBeLessThan(1);
-      expect(b.bottom - r.bottom).toBeLessThan(1);
+      expect(r.top - b.top).toBeLessThan(3);
+      expect(b.bottom - r.bottom).toBeLessThan(3);
     }
     const current = links.filter((a) => a.getAttribute("aria-current") === "page");
     expect(current.map((a) => a.getAttribute("aria-label"))).toEqual(["Timeline"]);
-    // No per-link circle: a middle link is square, the bar clips the ends.
+    // The pill covers the current link's slot, full height, rounded like the bar.
+    await expect.poll(() => indicator().getBoundingClientRect().left - rects[0]!.left).toBeCloseTo(0, 0);
+    const pill = indicator().getBoundingClientRect();
+    expect(pill.width).toBeCloseTo(rects[0]!.width, 0);
+    expect(pill.top).toBeCloseTo(rects[0]!.top, 0);
+    expect(pill.height).toBeCloseTo(rects[0]!.height, 0);
+    expect(getComputedStyle(indicator()).borderTopLeftRadius).toBe(
+      getComputedStyle(bar()).borderTopLeftRadius,
+    );
+    // Links have no fill of their own; they round like the pill, so the ring follows it.
     const middle = links[1]!;
-    expect(getComputedStyle(middle).borderTopLeftRadius).toBe("0px");
+    expect(rgba(getComputedStyle(middle).backgroundColor)[3]).toBe(0);
+    expect(getComputedStyle(middle).borderTopLeftRadius).toBe(getComputedStyle(bar()).borderTopLeftRadius);
     expect(getComputedStyle(bar()).overflow).toBe("hidden");
     // Keyboard focus draws the ring inside the link, in the bar's content colour.
     links[0]!.focus();
@@ -457,6 +471,42 @@ describe("the floating tab bar", () => {
     expect(ring.outlineStyle).toBe("solid");
     expect(parseFloat(ring.outlineOffset)).toBeLessThan(0);
     expect(ring.outlineColor).toBe(getComputedStyle(bar()).color);
+  });
+
+  test("at 420: the bar is thin (48px, was 56) and translucent over a backdrop blur; the pill slides to a tapped section", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    expect(bar().getBoundingClientRect().height).toBeCloseTo(48, 0);
+    const style = getComputedStyle(bar());
+    expect(style.backdropFilter).toMatch(/blur\(/);
+    const surface = rgba(style.backgroundColor)[3];
+    expect(surface).toBeGreaterThan(0.7);
+    expect(surface).toBeLessThan(1);
+    // The pill moves by transform, on --motion.
+    const motion = getComputedStyle(indicator());
+    expect(motion.transitionProperty).toContain("transform");
+    expect(parseFloat(motion.transitionDuration)).toBeGreaterThan(0.1);
+    expect(parseFloat(motion.transitionDuration)).toBeLessThanOrEqual(0.3);
+    const planner = barLinks()[3]!;
+    await userEvent.click(planner);
+    await expect.poll(() => planner.getAttribute("aria-current")).toBe("page");
+    await expect
+      .poll(() => indicator().getBoundingClientRect().left - planner.getBoundingClientRect().left)
+      .toBeCloseTo(0, 0);
+  });
+
+  test("at 420 with reduced motion: the pill has no transition", async () => {
+    await devtools().send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    });
+    try {
+      await open();
+      await expect.element(page.getByText("Slept well")).toBeVisible();
+      const motion = getComputedStyle(indicator());
+      expect(motion.transitionDuration.split(",").every((d) => parseFloat(d) === 0)).toBe(true);
+    } finally {
+      await devtools().send("Emulation.setEmulatedMedia", { features: [] });
+    }
   });
 
   test("at 420: a toast sits above the bar, and drops to the edge while the keyboard hides the bar", async () => {
@@ -507,7 +557,7 @@ describe("the floating tab bar", () => {
   );
 
   test.each(["light", "dark"] as const)(
-    "in %s: the bar's surface stands off the page and from a card; resting icons clear 4.5:1 and the current one 3:1; the current one has a fill of its own",
+    "in %s: the bar's surface stands off the page and from a card; resting icons clear 4.5:1 and the current one 3:1 on its solid pill",
     async (theme) => {
       await open({ theme });
       await expect.element(page.getByText("Slept well")).toBeVisible();
@@ -521,13 +571,16 @@ describe("the floating tab bar", () => {
       const current = links.find((a) => a.getAttribute("aria-current") === "page")!;
       const resting = links.find((a) => !a.hasAttribute("aria-current"))!;
       const icon = (a: Element) => textContrast(a.querySelector("svg")!);
-      const fill = (a: Element) => rgba(getComputedStyle(a).backgroundColor)[3];
+      const pill = indicator();
+      const onPill = ratio(
+        over(rgba(getComputedStyle(current.querySelector("svg")!).color), surfaceOf(pill)),
+        surfaceOf(pill),
+      );
       expect(onPage).toBeGreaterThanOrEqual(1.4);
       expect(fromCard).toBeGreaterThan(1.2);
       expect(icon(resting)).toBeGreaterThanOrEqual(4.5);
-      expect(icon(current)).toBeGreaterThanOrEqual(3);
-      expect(fill(current)).toBe(1);
-      expect(fill(resting)).toBe(0);
+      expect(onPill).toBeGreaterThanOrEqual(3);
+      expect(rgba(getComputedStyle(pill).backgroundColor)[3]).toBe(1);
     },
   );
 });

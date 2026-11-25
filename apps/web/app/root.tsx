@@ -7,6 +7,7 @@ import fontSans from "./fonts/AtkinsonHyperlegibleNext-Variable.woff2?url";
 import { useDocumentCsp } from "./lib/security-headers/csp";
 import { BUILD_APP_ENV, robotsMeta } from "./lib/marketing/noindex";
 import { THEME_SCRIPT } from "./lib/app-shell/theme";
+import { AppLoading } from "./components/brand";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
@@ -65,9 +66,11 @@ export default function App() {
   return <Outlet />;
 }
 
-// Shown while the native SPA boots (required for ssr: false).
+// Shown while the app starts (both targets: the server's /app page, the
+// native SPA's file): the /app layout's session check and database open
+// (B-806). The only HydrateFallback (AGENTS.md).
 export function HydrateFallback() {
-  return null;
+  return <AppLoading />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
