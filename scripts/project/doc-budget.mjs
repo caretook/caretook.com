@@ -8,7 +8,7 @@
 //       its plan's _Status_ passes 6 KB (trim it: `pnpm prd status-trim`).
 //   node scripts/project/doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]
 //       Exits 1 if any doc is over budget AND bigger than at <base>, naming
-//       each with its size, budget and base size. --head measures that ref
+//       each with its size, budget and base size; 2 when it can't measure. --head measures that ref
 //       instead of the working tree (land.sh passes the branch being landed).
 //
 // A doc over budget that didn't grow (or shrank) never blocks anything.
@@ -213,10 +213,17 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
       err("usage: doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]");
       return 2;
     }
-    const baseSizes = docSizes(repo, base);
-    const grown = measure(docSizes(repo, head), baseSizes).filter(
-      (r) => r.status === "grown" && !isLandExempt(r.path),
-    );
+    // Exit 1 means a breach and only that: a budget that can't measure exits 2.
+    let grown;
+    try {
+      const baseSizes = docSizes(repo, base);
+      grown = measure(docSizes(repo, head), baseSizes).filter(
+        (r) => r.status === "grown" && !isLandExempt(r.path),
+      );
+    } catch (e) {
+      err(`doc budget: can't measure (${e instanceof Error ? e.message.split("\n")[0] : e})`);
+      return 2;
+    }
     if (!grown.length) return 0;
     err(`doc budget: this landing grows ${grown.length} doc(s) that are over budget; trim them first:`);
     for (const r of grown) err(line(r));

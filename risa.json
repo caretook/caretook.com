@@ -43,7 +43,8 @@
   "backlog": {
     "prdsHeading": "## PRDs",
     "idPrefix": "B",
-    "zoneOverflowItem": "B-750"
+    "zoneOverflowItem": "B-750",
+    "ciFailureTopic": "fixes-bug"
   },
   "commands": {
     "install": "pnpm install --frozen-lockfile",

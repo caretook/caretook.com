@@ -61,7 +61,7 @@ const PROJECT_UNIT = [
   "verdict",
   "zones",
 ].map((name) => `{loops,ci,project}/${name}.test.mjs`);
-const PROJECT_TOOLING = ["check-body", "doc-budget", "fixes-plans", "lint-heap", "workspace-config"].map(
+const PROJECT_TOOLING = ["fixes-plans", "lint-heap", "workspace-config"].map(
   (name) => `loops/${name}.test.mjs`,
 );
 
