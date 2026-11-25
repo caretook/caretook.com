@@ -66,6 +66,7 @@
     "browserHarness": "tooling:browser"
   },
   "hooks": {
+    "check": "scripts/project/check-body.sh",
     "checkAreas": "node scripts/project/check-areas.mjs",
     "docBudget": "node scripts/project/doc-budget.mjs"
   },
