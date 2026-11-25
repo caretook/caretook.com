@@ -62,7 +62,7 @@ describe("budgets", () => {
     expect(budgetFor("README.md")).toBeNull();
   });
   it("a split role's two halves add up to the role's 15 KB", () => {
-    for (const role of ["hotfix", "loop", "recovery"])
+    for (const role of ["hotfix", "loop", "recovery", "orchestrator", "planner", "backlog", "inbox"])
       expect(budgetFor(`scripts/loops/docs/${role}.md`) + budgetFor(`docs/agents/${role}.md`)).toBe(15 * KB);
   });
   it("measures a file a budget names by its path, outside docs/", () => {
