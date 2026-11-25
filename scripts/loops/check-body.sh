@@ -130,7 +130,7 @@ else
     tests components
     targets=()
   fi
-  step lint; node scripts/loops/check-areas.mjs lint
+  step lint; node scripts/project/check-areas.mjs lint
   step docs; pnpm docs:budget
 fi
 if [[ $tooling != 0 ]]; then

@@ -30,7 +30,7 @@
     "hooks:install": "git config core.hooksPath .githooks",
     "backlog": "node scripts/backlog/backlog.mjs",
     "prd": "bash scripts/loops/prd.sh",
-    "log": "bash scripts/loops/log.sh",
+    "log": "bash scripts/project/log.sh",
     "deploy:env": "node scripts/deploy/env.mjs",
     "datastore:start": "pnpm datastore:up && pnpm datastore:migrate && pnpm datastore:seed",
     "datastore:up": "docker compose up -d --wait",
@@ -54,7 +54,7 @@
     "datastore:stop:test": "docker compose -f docker-compose.test.yml down",
     "datastore:reset:test": "NODE_ENV=test pnpm datastore:clear && NODE_ENV=test pnpm datastore:migrate",
     "deploy:smoke": "node scripts/deploy/smoke.mjs",
-    "docs:budget": "node scripts/loops/doc-budget.mjs warn || true"
+    "docs:budget": "node scripts/project/doc-budget.mjs warn || true"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

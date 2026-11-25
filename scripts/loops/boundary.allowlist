@@ -62,8 +62,6 @@ scripts/loops/bye.test.mjs project-env 10
 scripts/loops/captain.mjs project-env 2
 scripts/loops/captain.test.mjs project-env 2
 scripts/loops/check-areas.d/_global project-to-core 3
-scripts/loops/check-areas.mjs project-to-core 1
-scripts/loops/check-body.test.mjs project-to-core 1
 scripts/loops/check-budget.mjs project-env 7
 scripts/loops/check-budget.test.mjs project-env 7
 scripts/loops/check-gate.test.mjs app-path 16
@@ -104,7 +102,6 @@ scripts/loops/dispatch.mjs project-env 61
 scripts/loops/dispatch.mjs project-name 1
 scripts/loops/dispatch.test.mjs project-env 57
 scripts/loops/dispatch.test.mjs project-name 1
-scripts/loops/doc-budget.mjs project-to-core 2
 scripts/loops/down.sh core-to-project 2
 scripts/loops/down.sh project-name 1
 scripts/loops/drain.mjs project-env 10
@@ -148,7 +145,6 @@ scripts/loops/ls.sh project-name 1
 scripts/loops/metrics.mjs project-env 3
 scripts/loops/metrics.test.mjs core-to-project 1
 scripts/loops/metrics.test.mjs project-env 2
-scripts/loops/new.sh core-to-project 1
 scripts/loops/new.sh project-env 5
 scripts/loops/new.sh project-name 2
 scripts/loops/notice.mjs project-env 6
@@ -229,7 +225,6 @@ scripts/loops/tidy.test.mjs app-path 1
 scripts/loops/tidy.test.mjs core-to-project 1
 scripts/loops/tidy.test.mjs project-name 40
 scripts/loops/tooling-lint.mjs project-env 2
-scripts/loops/unsynced.sh core-to-project 2
 scripts/loops/unsynced.sh project-env 2
 scripts/loops/unsynced.sh project-name 2
 scripts/loops/usage.mjs project-env 12

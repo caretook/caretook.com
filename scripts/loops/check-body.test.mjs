@@ -55,8 +55,8 @@ beforeAll(() => {
   writeFileSync(join(bin, "pnpm"), STUB);
   chmodSync(join(bin, "pnpm"), 0o755);
   // The check-areas lint a slice or quick check runs with node: an empty script here.
-  mkdirSync(join(root, "scripts/loops"), { recursive: true });
-  writeFileSync(join(root, "scripts/loops/check-areas.mjs"), "");
+  mkdirSync(join(root, "scripts/project"), { recursive: true });
+  writeFileSync(join(root, "scripts/project/check-areas.mjs"), "");
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 

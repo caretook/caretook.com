@@ -5,7 +5,7 @@
 ## Before
 
 - All three stage-1 topics are in `dev`; the boundary lint passes with only the named residual list.
-- **Write the removal commit first and rehearse it:** on a throwaway branch of `dev`, the commit of step 5 (delete the manifest's core files, and exactly the residual list's lines). Push it and run GitHub CI (all jobs); it must be green; then delete the branch and keep the commit to reuse.
+- **Write the removal commit first and rehearse it:** on a throwaway branch of `dev`, the commit of step 5 (delete the manifest's core files, exactly the residual list's lines, and any line of CI's two lists, `scripts/ci/quarantine.txt` and `brake-list.txt`, that names a core test: the boundary lint reads those lists as data and doesn't show them). Push it and run GitHub CI (all jobs); it must be green; then delete the branch and keep the commit to reuse.
 - `pnpm prd dispatch --pause`; every PRD, slice, plan and hotfix worktree landed or removed (`pnpm prd status` shows none); no managed sessions (the backlog captain, the inbox session and every helper closed; the dispatcher paused, so its keep-alive reopens none); no open asks that need the tooling. Save `pnpm prd status` and `pnpm prd dispatch --dry-run` output to compare.
 - **Unload the launchd watchdog** (label `com.caretook.prd-watchdog`, runs `<main>/scripts/loops/prd.sh watchdog`): `pnpm prd autostart remove`.
 - **Run the move from a plain `claude` session** in the main checkout, not one the tool opened: a tool-opened session's status line and hooks point at files step 5 deletes.
