@@ -299,22 +299,24 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-822 | chore | landed | orchestration-split | prd/orchestration-split | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
 | B-823 | chore | landed | orchestration-split | prd/orchestration-split | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
 | B-824 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
-| B-825 | chore | in-progress | orchestration-split | prd/orchestration-split | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
-| B-826 | chore | in-progress | orchestration-split | prd/orchestration-split | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
-| B-827 | chore | in-progress | orchestration-split | prd/orchestration-split | No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files |
+| B-825 | chore | ready | orchestration-split | prd/orchestration-split | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
+| B-826 | chore | ready | orchestration-split | prd/orchestration-split | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
+| B-827 | chore | ready | orchestration-split | prd/orchestration-split | No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files |
 | B-828 | bug | landed | fixes-ui | prd/fixes-ui | Switching between submenus and group settings sometimes loads slowly with no feedback |
 | B-829 | question | inbox |  |  | Research: compare Care Book to Caring Village |
 | B-830 | bug | triaged | fixes-bug |  | Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY |
 | B-831 | feature | triaged | data-rights |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
-| B-832 | chore | in-progress | orchestration-split | prd/orchestration-split | Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops |
+| B-832 | chore | ready | orchestration-split | prd/orchestration-split | Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops |
 | B-833 | change | triaged | fixes-ui |  | Quick entry tips' examples should use the group's own provider and medication |
-| B-834 | chore | in-progress | orchestration-split | prd/orchestration-split | Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack |
-| B-835 | chore | in-progress | orchestration-split | prd/orchestration-split | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
+| B-834 | chore | ready | orchestration-split | prd/orchestration-split | Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack |
+| B-835 | chore | ready | orchestration-split | prd/orchestration-split | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | inbox |  |  | Time limit gate for component tests to keep them from growing too long |
 | B-838 | chore | triaged | orchestration-split |  | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
+| B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
+| B-842 | chore | triaged | orchestration-split |  | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
 
 ## Items
 
@@ -2135,28 +2137,28 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-825 · chore · doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 73b63660
 
 - 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. scripts/project/doc-budget.mjs:102.
 
 ### B-826 · chore · run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 73b63660
 
 - 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. lib.sh:70-75; today's values are harmless.
 
 ### B-827 · chore · No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 73b63660
 
 - 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. From slices 3 and 9's hand-offs; also the stale comment at scripts/browser-checks/sync-matrix.mjs:11 naming the old sync-matrix test path. Needs a slice before the move.
 
@@ -2201,10 +2203,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-832 · chore · Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 73b63660
 
 - 2026-11-25 (prd/orchestration-split): Fable skeptic on wave 4 (2026-11-25), none blocking. (1) $(bye_line $(role_doc <role>)) is unquoted at prompts/orchestrator.sh:38, hotfix.sh:16, backlog.sh:59, recover.sh:17, plan.sh:38: shared.sh's fallback 'the <role> role's doc' word-splits, so bye_line prints 'the checks the names under _Bye_'; no test covers the fallback (every role is set today). (2) check-plan.mjs:73 reads risa.json and tiers.json at import: a broken tiers.json fails every importer at load (tooling-lint, gate, ci-gate, dev-brought) with a TierDataError. (3) scripts/ci/tier-data.mjs:150 groupOf throws a TypeError for a file name with a newline, where the old code answered unit. (4) sample-project/repo.mjs:31 copies all of scripts/loops, tests and goldens included, twice per golden test run: time only.
 
@@ -2220,19 +2222,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-834 · chore · Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 73b63660
 
 - 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 5 (go, 2026-11-25). 1: check-plan.mjs under() should refuse or tier-up an exact match on a folder path (old regexes needed a trailing slash). 2: prd.sh:473 should die when the mode read from check-plan.mjs is empty. 3: PROPOSED_TIERS/tierRank read the tier data at import (check-plan.mjs:357); give the error a clear line (see B-832). Also for the move runbook: re-home scripts/project/check-plan-rules.test.mjs to run through the risa CLI instead of dropping it, and decide in slice 11 whether tooling-tests.mjs throwing on an unset testProjects.tooling is right.
 
 ### B-835 · chore · Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split
 - owner: prd/orchestration-split
-- commit:
+- commit: 73b63660
 
 - 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 6 (2026-11-25, go) and slices 8 and 11's hand-offs. For the late follow-up slice with B-821 to B-834. Also: the check's body still names core:unit and the !tooling:* exclusions (pnpm test's set, until the move), so the hook contract's 'runs no tooling test of the tool's' is not yet true for Caretook.
 
@@ -2281,3 +2283,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (Robert Bo Davis): From the inbox: Needs a longer timeout before marking the site as offline.
 - 2026-11-25 (Robert Bo Davis): Triage: wrong behaviour (the banner shows while the connection is up). Check what drives the offline flag (PowerSync status vs navigator.onLine) and add a short grace period before showing it.
+
+### B-841 · change · Risa: one inbox session for every configured project, lines kept in a private inbox repo
+
+- status: triaged
+- prd: risa-next
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): Decided 2026-11-25 (user): after the split, not inside it. One always-on inbox session routes each line to the named or inferred project, asking when unclear (not one session per project). Lines live in one small private GitHub repo with a file per project, not plans/inbox.md on each trunk (no inbox commits on dev; the public repo exposes inbox lines today) and not a secret gist (readable by link; the API has no compare-and-swap). Write through a git clone so a racing push is refused; ingest removes a line only after the backlog commit lands. Per-project inbox path/repo is a risa.json value. Pairs with B-794 (the central agent reads the same repo).
+
+### B-842 · chore · Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command
+
+- status: triaged
+- prd: orchestration-split
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 8 (slice 15, merge 73b63660; go, no blocker). 1) scripts/project/doc-budget.mjs: only errors inside the land try-block exit 2; a failed import of doc-budget.config.mjs exits 1 and land.sh calls it a breach. 2) blame, ci-args, ci-commits, ci-runs, ci-status, gate, outstanding, promote read tier data at import through tierDataOrExit('ci'): make lazy or fix the 'lazy' wording. 3) proposedTiers()/tierRank() call loadConfig() each time; gate.mjs calls tierRank per commit in walkVerdicts: memoize. 4) ciFailureTopic() returns '' when backlog.ciFailureTopic is unset, so findings would file with prd '': refuse or skip. 5) prd.sh check case: a failing git diff reports 'the check plan failed'; separate the messages. 6) check-plan.mjs isFolder stats under project.root, not --repo DIR (symlink/gitlink edge only). 7) fixes-plans.test.mjs now tests Caretook's copy of nextSlice; the core's (scripts/loops/status-trim.mjs:111) can drift untested. 8) scripts/project/landing.mjs: read the reset command from commands.datastoreReset again, and drop 'after landing' from land.sh's post-landing next-steps line. 9) vitest.config.ts comment near PROJECT_TOOLING. 10) Without the core, check-areas.test and test-projects.test fail and are not on the PRD's residual list: add them to the list (the move runbook) or fix them. Waits for stage 1b with B-838.
