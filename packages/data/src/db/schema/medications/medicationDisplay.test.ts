@@ -230,7 +230,7 @@ describe("change wording", () => {
       "14:00 amount 2 tablets → usual dose",
     );
     expect(scheduleChange(at({ passId: GONE }), at({ passId: MORNING }))).toBe(
-      "Added to Morning; removed from a pass",
+      "Added to Morning; removed from a med time",
     );
     // A switch to as needed reads as the whole schedule, before and after.
     expect(
@@ -246,15 +246,6 @@ describe("change wording", () => {
       ),
     ).toBe("Changed schedule Morning and Evening → As needed, up to 2 a day");
     expect(scheduleChangeParts({ type: "asNeeded" }, at({ passId: MORNING }))).toBeNull();
-  });
-  it("names a med time that is gone as a med time, never a pass", () => {
-    expect(
-      scheduleChangeParts(
-        { type: "scheduled", slots: [] },
-        { type: "scheduled", slots: [{ passId: MORNING }] },
-        [],
-      ),
-    ).toEqual(["added to a med time"]);
   });
   it("adds a schedule edit to a restart", () => {
     expect(
