@@ -12,7 +12,8 @@
 
 - **Tier:** slice 4 edits `vitest.config.ts` (its helper test joins `web:unit`), so the proposal is `full`, not the plan's `components`.
 - **B-818** (the watchdog test fails where the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2): every slice check hits it; slices rerun with `env -u CARETOOK_USAGE_WATCH`. Not the wave's.
-- **For the Fable skeptic (rule 3):** slice 1's `recover.test.mjs` and `tidy-cli.test.mjs` copy `scripts/project` into their fixtures by a path built from pieces, which the boundary lint doesn't see (until slice 3 removes the forwarder); slice 4's `risa.json project-to-core 1` allowlist line (the lease command names the core's `lease.sh` until the move); the component tests first run through the new lease helper in the wave's CI run.
+- **The Fable skeptic (rule 3), on tip 3b427316: go, no blocker** ("each of the three slices does what the plan says, I found no correctness bug that must be fixed before landing, and nothing chosen here has to be undone at the move"). Its six follow-ups are B-844 (triaged, this topic; a later slice or the move). Its one condition is rule 4: check nothing else is open at the landing, since an unsynced worktree has no `doc` case in its own `prd.sh`.
+- **CI:** the `full` run on the merged tip is out (requested 2026-11-25; proposed `full` for `docker-compose.shared-test.yml`, a file no rule covers).
 - **For slice 3:** `stack-lib.sh` still has its own `write_test_env` and `test_db_name`, now also in the project's `test-db.sh`. **For the last landing's docs:** the machinery doc still says Node callers use `lease.mjs`.
 
 **This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
@@ -105,7 +106,7 @@ Stack: yes · Reads: docs/agents/machinery.md, docs/agents/recovery.md · Tests:
 
 **Acceptance criteria**
 
-- `pnpm prd status`, `pnpm prd tidy --dry-run` and `pnpm prd recover --dry-run` print the same before and after, captured together with nothing landing between; their tests pass on a stubbed hook; no core test imports from `apps/` or `packages/`; the touched files leave the allowlist.
+- `pnpm prd status`, `pnpm prd tidy --dry-run` and `pnpm prd recover --dry-run` print the same before and after, captured together with nothing landing between; their tests pass on a stubbed hook; no core test imports from `apps/` or `packages/`, and the fixture copies of `scripts/project` in `recover.test.mjs`, `tidy-cli.test.mjs` and `stack.test.mjs` (slice 1's, for the forwarder) are gone; the touched files leave the allowlist.
 
 **Blocked by:** 2. **Blocks:** `orchestration-split-3`.
 
