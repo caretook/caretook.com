@@ -23,6 +23,7 @@ describe("todoFromForm", () => {
           medicationId: "",
           eventId: "e1",
           repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
+          entryId: "n1",
         }),
       ),
     ).toEqual({
@@ -35,6 +36,7 @@ describe("todoFromForm", () => {
       medicationId: null,
       eventId: "e1",
       repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
+      entryId: "n1",
     });
     expect(todoFromForm(form({}))).toEqual({
       title: "",
@@ -46,6 +48,7 @@ describe("todoFromForm", () => {
       medicationId: null,
       eventId: null,
       repeatRule: null,
+      entryId: null,
     });
   });
 

@@ -16,8 +16,8 @@ import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { useLiveQuery } from "~/lib/sync";
 import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
-import { linkedEventQuery } from "~/lib/todos/todos.sync";
-import { toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { linkedEventsQuery } from "~/lib/todos/todos.sync";
+import { toTimelineEntries } from "~/lib/timeline/timeline.sync";
 import { linkLabel } from "~/lib/todos/todoDisplay";
 import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 
@@ -85,16 +85,14 @@ function ProviderLink({
   );
 }
 
+type LinkedEvent = ReturnType<typeof toTimelineEntries>[number];
+
 /**
- * The appointment: its title linking to its page, and when it is; struck
- * through and labelled when cancelled. A deleted one isn't shown (its link
- * is cleared with it).
+ * An appointment: its title linking to its page, and when it is; struck
+ * through and labelled when cancelled. A deleted one isn't shown (the
+ * query reads live events only).
  */
-function EventLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: EntryRow[] }) {
-  const q = linkedEventQuery(id);
-  const rows = useLiveQuery<EntryRow>(q.sql, q.params, loaded);
-  const event = rows[0] ? toTimelineEntry(rows[0]) : null;
-  if (!event || event.groupId !== groupId) return null;
+function EventLink({ groupId, event }: { groupId: string; event: LinkedEvent }) {
   const cancelled = cancelledLabel(event);
   // Its day where it happens (an all-day one's own zone), with the time.
   const zone = event.allDay ? event.timeZone : Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -197,22 +195,28 @@ export function TodoLinks({
   linkPages = true,
 }: {
   groupId: string;
-  todo: Pick<LocalTodo, "providerId" | "eventId" | "medicationId">;
+  todo: Pick<LocalTodo, "id" | "providerId" | "medicationId">;
   /** The loader's rows for the links (stable). */
   loaded: Loaded;
   /** Whether the provider and medication link to their pages. */
   linkPages?: boolean;
 }) {
-  const { providerId, eventId, medicationId } = todo;
+  const { providerId, medicationId } = todo;
   const initial = useMemo(
     () => ({
       provider: rowsFor(loaded.provider, providerId),
-      event: rowsFor(loaded.event, eventId),
       medication: rowsFor(loaded.medication, medicationId),
     }),
-    [loaded, providerId, eventId, medicationId],
+    [loaded, providerId, medicationId],
   );
-  if (!providerId && !eventId && !medicationId) return null;
+  // Its events are link rows: one live query for them all.
+  const eq = linkedEventsQuery(todo.id);
+  const eventRows = useLiveQuery<EntryRow>(eq.sql, eq.params, loaded.event);
+  const events = useMemo(
+    () => toTimelineEntries(eventRows).filter((e) => e.groupId === groupId),
+    [eventRows, groupId],
+  );
+  if (!providerId && !events.length && !medicationId) return null;
   return (
     <Section title="Linked to" id="links" data-todo-links="">
       <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
@@ -225,7 +229,9 @@ export function TodoLinks({
             linked={linkPages}
           />
         )}
-        {eventId && <EventLink key={eventId} groupId={groupId} id={eventId} loaded={initial.event} />}
+        {events.map((event) => (
+          <EventLink key={event.id} groupId={groupId} event={event} />
+        ))}
         {medicationId && (
           <MedicationLink
             key={medicationId}

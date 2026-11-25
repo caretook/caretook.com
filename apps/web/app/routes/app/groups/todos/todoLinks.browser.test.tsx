@@ -6,12 +6,15 @@ import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as todosRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, todo, TEST_GROUP } from "../../../../../test/fixtures";
+import { at, entryTodo, fx, todo, TEST_GROUP } from "../../../../../test/fixtures";
 
 // The todo sheets' link pickers (todos slice 3): a provider, an appointment
 // (upcoming and the last 30 days', soonest first) and a current
 // medication; the prefills from a provider's, medication's or event's page;
-// and an edited todo's removed or cancelled links. The choices' order is
+// and an edited todo's removed or cancelled links. The appointment is a link
+// row (planner-3), written with the todo; editing leaves it alone, so the
+// edit sheet has no appointment picker. `entryId` links any live note or
+// event. The choices' order is
 // unit-tested (todoLinks.test.ts); the service's link rules are integration
 // tests.
 
@@ -87,13 +90,33 @@ const world = () => [LARK, CORNER, GONE, SOON, LATER, RECENT, OLD, CANCELLED, ME
 const open = (url: string, fixtures = world()) =>
   renderWithDevice({ route: ROUTES, url, role: "owner", fixtures });
 
-type LinkRow = { provider_id: string | null; event_id: string | null; medication_id: string | null };
-const linksOf = async (device: Awaited<ReturnType<typeof open>>, title: string) =>
+type Device = Awaited<ReturnType<typeof open>>;
+type LinkRow = {
+  provider_id: string | null;
+  event_id: string | null;
+  medication_id: string | null;
+  entries: string | null;
+};
+/** The todo's provider and medication, its `event_id` (never written now) and its linked entries' ids. */
+const linksOf = async (device: Device, title: string) =>
   (
-    await device.query<LinkRow>("SELECT provider_id, event_id, medication_id FROM todo WHERE title = ?", [
-      title,
-    ])
+    await device.query<LinkRow>(
+      `SELECT provider_id, event_id, medication_id,
+         (SELECT group_concat(entry_id) FROM timeline_entry_todo l WHERE l.todo_id = todo.id) AS entries
+       FROM todo WHERE title = ?`,
+      [title],
+    )
   )[0];
+/** The queued uploads' tables and ops, with their local transaction. */
+const uploads = (device: Device) =>
+  device.db.powersync
+    .getAll<{ tx_id: number; data: string }>("SELECT tx_id, data FROM ps_crud ORDER BY id")
+    .then((rows) =>
+      rows.map((r) => {
+        const op = JSON.parse(r.data) as { op: string; type: string; data?: Record<string, unknown> };
+        return { tx: r.tx_id, op: `${op.op} ${op.type}`, data: op.data ?? {} };
+      }),
+    );
 
 const options = () =>
   [...document.querySelectorAll('[role="option"]')].map((o) => o.textContent?.trim() ?? "");
@@ -133,9 +156,14 @@ describe("the todo sheet's link pickers", () => {
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
     expect(await linksOf(device, "Bring the BP log")).toEqual({
       provider_id: CORNER.id,
-      event_id: LATER.id,
+      event_id: null,
       medication_id: METFORMIN.id,
+      entries: LATER.id,
     });
+    // The todo, then its one link, in one local transaction.
+    const ops = await uploads(device);
+    expect(ops.map((o) => o.op)).toEqual(["PUT todo", "PUT timeline_entry_todo"]);
+    expect(new Set(ops.map((o) => o.tx)).size).toBe(1);
   });
 
   test("starts with the link a page passed in, and × clears one", async () => {
@@ -156,8 +184,9 @@ describe("the todo sheet's link pickers", () => {
       .poll(() => linksOf(device, "Ask about the stress test"))
       .toEqual({
         provider_id: LARK.id,
-        event_id: SOON.id,
+        event_id: null,
         medication_id: null,
+        entries: SOON.id,
       });
   });
 
@@ -171,7 +200,14 @@ describe("the todo sheet's link pickers", () => {
     await expect.element(dialog.getByText("Choose a provider in this care group")).toBeInTheDocument();
   });
 
-  test("editing keeps a removed provider and a cancelled appointment, greyed, until they're cleared", async () => {
+  test("a new todo shows a cancelled appointment passed in, greyed", async () => {
+    await open(`${LIST}/new?eventId=${CANCELLED.id}`);
+    const dialog = page.getByRole("dialog", { name: "Add a todo" });
+    await expect.element(dialog.getByText(/^Dental cleaning · .* \(cancelled\)$/)).toBeInTheDocument();
+  });
+
+  test("editing a backfilled todo keeps a removed provider, greyed, and its appointment link; the save uploads no `event_id`", async () => {
+    // Backfilled: its `event_id` and the link row the migration made.
     const linked = todo({
       id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f8d01",
       title: "Reschedule the cleaning",
@@ -179,12 +215,17 @@ describe("the todo sheet's link pickers", () => {
       eventId: CANCELLED.id,
       medicationId: AMOX.id,
     });
-    const device = await open(`${LIST}/${linked.id}/edit`, [...world(), linked]);
+    const device = await open(`${LIST}/${linked.id}/edit`, [
+      ...world(),
+      linked,
+      entryTodo(CANCELLED.id, linked.id),
+    ]);
     const dialog = page.getByRole("dialog", { name: "Edit todo" });
     await expect.element(dialog.getByText("Dr. Gone (removed)")).toBeInTheDocument();
-    await expect.element(dialog.getByText(/^Dental cleaning · .* \(cancelled\)$/)).toBeInTheDocument();
     // A stopped medication stays on its chip.
     await expect.element(dialog.getByText("Amoxicillin", { exact: true })).toBeInTheDocument();
+    // Its appointments are links, which the todo's page shows; the form leaves them alone.
+    await expect.element(dialog.getByRole("combobox", { name: "Find an event" })).not.toBeInTheDocument();
 
     await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Rebook the cleaning");
     await userEvent.click(dialog.getByRole("button", { name: "Save" }));
@@ -194,6 +235,55 @@ describe("the todo sheet's link pickers", () => {
         provider_id: GONE.id,
         event_id: CANCELLED.id,
         medication_id: AMOX.id,
+        entries: CANCELLED.id,
       });
+    const ops = await uploads(device);
+    expect(ops.map((o) => o.op)).toEqual(["PATCH todo"]);
+    expect(ops[0]?.data).toMatchObject({ title: "Rebook the cleaning" });
+    expect(ops[0]?.data).not.toHaveProperty("event_id");
+  });
+});
+
+describe("todos/new with an entry (`entryId`)", () => {
+  const NOTE = fx.note({
+    id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f8e01",
+    title: "Rough night",
+    text: "Up at 3.",
+  });
+
+  test("a note's saves a todo linked to it, in one local transaction", async () => {
+    const device = await open(`${LIST}/new?entryId=${NOTE.id}`, [...world(), NOTE]);
+    const dialog = page.getByRole("dialog", { name: "Add a todo" });
+    await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Ask about sleep");
+    await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
+    await expect
+      .poll(() => linksOf(device, "Ask about sleep"))
+      .toMatchObject({ event_id: null, entries: NOTE.id });
+    const ops = await uploads(device);
+    expect(ops.map((o) => o.op)).toEqual(["PUT todo", "PUT timeline_entry_todo"]);
+    expect(new Set(ops.map((o) => o.tx)).size).toBe(1);
+  });
+
+  test("an event's fills the appointment picker", async () => {
+    const device = await open(`${LIST}/new?entryId=${SOON.id}`);
+    const dialog = page.getByRole("dialog", { name: "Add a todo" });
+    await expect.element(dialog.getByText(/^Cardiology · Tomorrow/)).toBeInTheDocument();
+    await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Bring the meds list");
+    await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
+    await expect.poll(() => linksOf(device, "Bring the meds list")).toMatchObject({ entries: SOON.id });
+  });
+
+  test("one that isn't a live note or event is ignored: a symptom, a deleted note, an unknown id", async () => {
+    const symptom = fx.symptom({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f8e02" });
+    const deleted = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f8e03", deletedAt: when(-HOUR) });
+    const ids = [symptom.id, deleted.id, "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f8eff"];
+    for (const [n, id] of ids.entries()) {
+      const device = await open(`${LIST}/new?entryId=${id}`, [...world(), symptom, deleted]);
+      const dialog = page.getByRole("dialog", { name: "Add a todo" });
+      await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), `Plain ${n}`);
+      await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
+      await expect.poll(() => linksOf(device, `Plain ${n}`)).toMatchObject({ entries: null });
+      await device.screen.unmount();
+    }
   });
 });

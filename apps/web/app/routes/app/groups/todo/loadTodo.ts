@@ -7,7 +7,7 @@ import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import { data } from "react-router";
 import { medicationQuery } from "~/lib/medications/medications.sync";
 import { providerQuery } from "~/lib/providers/providers.sync";
-import { linkedEventQuery, todoQuery, toTodo } from "~/lib/todos/todos.sync";
+import { linkedEventsQuery, todoQuery, toTodo } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 
 /**
@@ -29,7 +29,7 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
     }),
     todo.providerId ? readRows<ProviderRow>(db, providerQuery(todo.providerId)) : none,
     todo.medicationId ? readRows<MedicationRow>(db, medicationQuery(todo.medicationId)) : none,
-    todo.eventId ? readRows<EntryRow>(db, linkedEventQuery(todo.eventId)) : none,
+    readRows<EntryRow>(db, linkedEventsQuery(todoId)),
   ]);
   const updates = doc
     ? await readRows<{ id: string; data: string | null }>(db, {
