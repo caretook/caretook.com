@@ -275,6 +275,17 @@ describe("stop, start, stopped_secs, engine and leftovers", () => {
     expect(ready({ FAKE_STACK_IDS: "a", FAKE_RUNNING_IDS: "a" }).stopped_secs).toBeUndefined();
     // No containers at all: the root .env's age stands in.
     expect(Number(ready({}).stopped_secs)).toBeLessThan(600);
+    // GNU's stat (Linux): `-f` prints a File: block to stdout, then fails.
+    const gnu = join(root, "gnubin");
+    mkdirSync(gnu, { recursive: true });
+    writeFileSync(
+      join(gnu, "stat"),
+      '#!/usr/bin/env bash\nif [[ $1 == -f ]]; then echo "  File: \\"$3\\""; exit 1; fi\n[[ $1 == -c ]] && date +%s\n',
+    );
+    chmodSync(join(gnu, "stat"), 0o755);
+    const linux = run("stack.sh", ["ready", dir()], { env: { PATH: `${gnu}:${env.PATH}` } });
+    expect(linux.stdout).toMatch(/^containers=0\/0\nready=no$/m);
+    expect(Number(facts(linux.stdout).stopped_secs)).toBeLessThan(600);
   });
 
   it("reads and starts the engine", () => {

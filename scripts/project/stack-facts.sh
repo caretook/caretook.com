@@ -205,6 +205,16 @@ iso_epoch() {
   date -j -u -f '%Y-%m-%dT%H:%M:%S' "$s" +%s 2>/dev/null || date -u -d "${s}Z" +%s 2>/dev/null
 }
 
+# mtime PATH → its modification time (epoch seconds); false when it can't be
+# read. GNU's form first: on Linux, `stat -f %m` prints a `File:` block to stdout
+# before it fails, so only an all-digit answer counts.
+mtime() {
+  local t
+  t=$(stat -c %Y "$1" 2>/dev/null) && [[ $t =~ ^[0-9]+$ ]] && { echo "$t"; return 0; }
+  t=$(stat -f %m "$1" 2>/dev/null) && [[ $t =~ ^[0-9]+$ ]] && { echo "$t"; return 0; }
+  return 1
+}
+
 # stopped_secs DIR PROJECT → how long ago the stack stopped, in seconds: its
 # newest container's end; nothing when one runs. No containers at all: the root
 # .env's age stands in.
@@ -213,7 +223,7 @@ stopped_secs() {
   now=$(date +%s)
   ids=$(docker ps -aq --filter "label=com.docker.compose.project=$2" 2>/dev/null || true)
   if [[ -z $ids ]]; then
-    t=$(stat -f %m "$1/.env" 2>/dev/null || stat -c %Y "$1/.env" 2>/dev/null || echo "$now")
+    t=$(mtime "$1/.env") || t=$now
     echo $((now - t)); return 0
   fi
   # shellcheck disable=SC2086
