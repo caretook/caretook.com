@@ -70,7 +70,8 @@
     "check": "scripts/project/check-body.sh",
     "checkAreas": "node scripts/project/check-areas.mjs",
     "docBudget": "node scripts/project/doc-budget.mjs",
-    "landing": "node scripts/project/landing.mjs"
+    "landing": "node scripts/project/landing.mjs",
+    "testDb": "scripts/project/test-db.sh"
   },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
