@@ -54,7 +54,8 @@ const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: ROUTES, url: "/app/groups/new", ...options });
 
 const sheet = () => page.getByRole("dialog");
-const field = (label: string) => sheet().getByLabelText(label, { exact: true });
+// By accessible name: a required label's `*` is aria-hidden, so it isn't part of it.
+const field = (label: string) => sheet().getByRole("textbox", { name: label, exact: true });
 
 describe("the New care group sheet", () => {
   test("the group menu's New care group opens it; closing it goes back to the timeline", async () => {
