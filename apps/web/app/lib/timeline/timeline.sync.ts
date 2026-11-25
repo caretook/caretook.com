@@ -27,7 +27,7 @@ import { changedColumns } from "../core/changedColumns";
 import { isEntryKind } from "./entryDisplay";
 import { addSymptomTypeIn } from "./symptomTypes.sync";
 import { TIMELINE_KINDS } from "./timelineFilters";
-import { timelineEntries, todos } from "../sync/schema";
+import { timelineEntries } from "../sync/schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the
@@ -666,8 +666,8 @@ export const updateEntry = async (
 /**
  * Soft delete, so the deletion syncs to everyone's devices. Deleting an
  * event that others were rescheduled to leaves them cancelled, with no
- * link, and its linked todos without their link (in the same local
- * transaction).
+ * link (in the same local transaction). Its todos keep their link rows,
+ * which readers skip while the entry is deleted.
  */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
@@ -692,11 +692,9 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
             isNull(timelineEntries.deletedAt),
           ),
         );
-      // Todos linked to it lose the link quietly (todos slice 3; the server does the same).
-      await tx
-        .update(todos)
-        .set({ eventId: null, updatedAt: now, updatedBy: db.userId })
-        .where(and(eq(todos.groupId, entry.groupId), eq(todos.eventId, id), isNull(todos.deletedAt)));
+      // Its todos stay, and so do their link rows (planner-3): readers join
+      // live entries, so the link just stops showing. The server clears an
+      // old client's `event_id` (`releaseEvent`).
     }
   });
   return { ok: true };

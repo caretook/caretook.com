@@ -7,11 +7,18 @@ import {
   buildNoteDoc,
   encodeNoteDoc,
   entryProviderId,
+  entryTodoId,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { cancelPatch, UNCANCEL_PATCH } from "./eventCancel";
-import { noteDocuments, noteUpdates, timelineEntries, timelineEntryProviders } from "../sync/schema";
+import {
+  noteDocuments,
+  noteUpdates,
+  timelineEntries,
+  timelineEntryProviders,
+  timelineEntryTodos,
+} from "../sync/schema";
 import {
   contentColumns,
   forbidden,
@@ -60,6 +67,9 @@ const refuse = (error: string): RescheduleResult => ({ ok: false, error, issues:
  * links to providers that aren't deleted (their ids from `entryProviderId`);
  * its live document, plus one note update carrying the old document's whole
  * Yjs state (devices can't write a snapshot), so the notes carry on there;
+ * its live todos' links moved over, open and done (planner-3: the old
+ * event's link rows deleted, `entryTodoId(newId, todoId)` ones made; the
+ * server's unlink clears an old client's `event_id` with them);
  * then the old event cancelled (now, unless it already was, keeping its
  * reason) with `rescheduled_to` the new one. The old document is left as it
  * was. Writers only, events only, and not one already rescheduled.
@@ -148,6 +158,12 @@ export const rescheduleEvent = async (
           WHERE l.entry_id = ? ORDER BY l.created_at, l.id`,
     params: [id],
   });
+  const todoLinks = await readRows<{ id: string; todo_id: string }>(db, {
+    sql: `SELECT l.id, l.todo_id FROM timeline_entry_todo l
+          JOIN todo t ON t.id = l.todo_id AND t.deleted_at IS NULL
+          WHERE l.entry_id = ? ORDER BY l.created_at, l.id`,
+    params: [id],
+  });
 
   const now = nowTimestamp();
   const audit = { createdAt: now, updatedAt: now, createdBy: db.userId, updatedBy: db.userId };
@@ -188,6 +204,16 @@ export const rescheduleEvent = async (
         groupId: old.groupId,
         entryId: newId,
         providerId,
+        ...audit,
+      });
+    }
+    for (const { id: linkId, todo_id: todoId } of todoLinks) {
+      await tx.delete(timelineEntryTodos).where(eq(timelineEntryTodos.id, linkId));
+      await tx.insert(timelineEntryTodos).values({
+        id: entryTodoId(newId, todoId),
+        groupId: old.groupId,
+        entryId: newId,
+        todoId,
         ...audit,
       });
     }

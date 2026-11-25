@@ -17,6 +17,8 @@ export const FIELD = {
   eventId: "eventId",
   medicationId: "medicationId",
   repeatRule: "repeatRule",
+  /** A new todo's note or event to link (`todos/new?entryId=`), a hidden field. */
+  entryId: "entryId",
 } as const;
 
 /** The fields the form shows issues on; anything else is the form's general message. */
@@ -38,6 +40,7 @@ export const todoFromForm = (form: FormData): TodoInput => ({
   medicationId: value(form, FIELD.medicationId),
   eventId: value(form, FIELD.eventId),
   repeatRule: value(form, FIELD.repeatRule),
+  entryId: value(form, FIELD.entryId),
 });
 
 // --- The repeat (planner-2) --------------------------------------------------

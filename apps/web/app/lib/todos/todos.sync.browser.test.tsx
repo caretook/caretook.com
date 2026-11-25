@@ -4,7 +4,7 @@ import { addDays, localDate, UNDO_NEXT_METADATA } from "@caretook/data/schema";
 import { nextTodoId } from "@caretook/data/series";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
-import { fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
+import { entryTodo, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
 import { readRows } from "../timeline/timeline.sync";
 import { completeTodo, createTodo, reopenTodo, skipTodo, todoQuery, toTodo, updateTodo } from "./todos.sync";
 
@@ -198,6 +198,20 @@ describe("Undo", () => {
     await db.powersync.execute(
       "INSERT INTO note_document (id, group_id, subject, todo_id, text) VALUES (?, ?, 'todo', ?, 'Blue bin')",
       [NEXT_ID, TEST_GROUP.id, NEXT_ID],
+    );
+    ok(await reopenTodo(db, BINS_ID));
+    expect((await read(db, BINS_ID))?.repeatRule).toBeNull();
+    expect((await read(db, NEXT_ID))?.deletedAt).toBeNull();
+  });
+});
+
+describe("Undo with a linked next (planner-3)", () => {
+  test("keeps a next an entry links, and the reopened todo stops repeating", async () => {
+    const { db } = await device();
+    ok(await completeTodo(db, BINS_ID));
+    await db.powersync.execute(
+      "INSERT INTO timeline_entry_todo (id, group_id, entry_id, todo_id) VALUES (?, ?, ?, ?)",
+      [entryTodo(VISIT.id, NEXT_ID).id, TEST_GROUP.id, VISIT.id, NEXT_ID],
     );
     ok(await reopenTodo(db, BINS_ID));
     expect((await read(db, BINS_ID))?.repeatRule).toBeNull();

@@ -42,7 +42,8 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   if ("redirect" in decision) throw redirect(decision.redirect);
   const [memberRows, linkRows] = await Promise.all([
     loadMembers(db, group.id),
-    loadLinkChoices(db, group.id, decision.sheet.eventId),
+    // No appointment picker on edit: a todo's events are link rows, which the form leaves alone.
+    loadLinkChoices(db, group.id, null),
   ]);
   return { todo: decision.sheet, memberRows, linkRows };
 }

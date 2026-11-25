@@ -34,6 +34,8 @@ export type TodoFormPrefill = {
   providerId?: string | null;
   medicationId?: string | null;
   eventId?: string | null;
+  /** A live note to link (`todos/new?entryId=`; an event's goes in `eventId`), kept in a hidden field. */
+  entryId?: string | null;
 };
 
 /**
@@ -168,11 +170,14 @@ export function TodoForm({
         error={issueFor(issues, FIELD.repeatRule)}
       />
 
+      {!todo && prefill?.entryId && <input type="hidden" name={FIELD.entryId} value={prefill.entryId} />}
+
       <TodoLinkFields
         choices={links}
+        withEvent={!todo}
         initial={{
           providerId: todo ? todo.providerId : (prefill?.providerId ?? null),
-          eventId: todo ? todo.eventId : (prefill?.eventId ?? null),
+          eventId: todo ? null : (prefill?.eventId ?? null),
           medicationId: todo ? todo.medicationId : (prefill?.medicationId ?? null),
         }}
         errors={{
