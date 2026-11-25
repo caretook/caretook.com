@@ -27,7 +27,7 @@ Slices 76, 77, 78 in flight (worktrees .loops/fixes-ui-76..78, opus agents spawn
 | ----- | ----- | -------------- | ----- |
 | 76 | B-342 | merged (opus) | dc2e5fc4 |
 | 77    | B-817 | started (opus) |       |
-| 78    | B-828 | started (opus) |       |
+| 78 | B-828 | handed off 1bad67c1, reviewed; merges after 77 | |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
