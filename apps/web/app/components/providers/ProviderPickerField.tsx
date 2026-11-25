@@ -34,7 +34,7 @@ export function ProviderPickerField({
   pickerId: string;
   name: string;
   newName: string;
-  /** "Prescriber (optional)". */
+  /** "Prescriber". */
   legend: string;
   /** The chosen chip's list name: "Prescriber". */
   chipsLabel: string;

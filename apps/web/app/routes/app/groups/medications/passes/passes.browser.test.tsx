@@ -6,6 +6,7 @@ import { fixClock, found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../../test/fixtures";
 import { pickTime } from "../../../../../../test/timeSelect";
+import { requiredLabels } from "../../../../../../test/required";
 import { currentHourTime } from "~/lib/core/timeOfDay";
 import { clockTime } from "~/lib/medications/medicationDisplay";
 import { clearUndo } from "~/lib/medications/passUndo";
@@ -174,6 +175,16 @@ describe("the tab", () => {
     await device.sync({ ...MORNING, row: { ...MORNING.row, time: "07:30" } });
     await device.settle();
     expect(passList()).toEqual(["Morning 07:30", "Evening 20:00"]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add-pass sheet marks its name and its time, and the name isn't natively required", async () => {
+    await open({ url: NEW_PASS });
+    await expect.poll(FORM).toBeTruthy();
+    expect(requiredLabels(FORM())).toEqual(["Name", "Time"]);
+    expect(input("name").getAttribute("aria-required")).toBe("true");
+    expect(input("name").required).toBe(false);
   });
 });
 

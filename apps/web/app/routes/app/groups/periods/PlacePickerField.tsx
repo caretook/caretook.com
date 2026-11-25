@@ -42,7 +42,7 @@ export function PlacePickerField({
   return (
     <div className="fieldset" data-place-picker>
       <span id={labelId} className="fieldset-legend">
-        Place (optional)
+        Place
       </span>
       {choice.kind === "none" ? (
         <div role="group" aria-labelledby={labelId}>
