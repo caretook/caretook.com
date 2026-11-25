@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { deleteStaleCaches, fetchAndKeep, fromCache, precache, type Caches } from "./serviceWorkerCaches";
+import {
+  deleteStaleCaches,
+  fetchAndKeep,
+  fromCache,
+  networkOrOffline,
+  precache,
+  type Caches,
+} from "./serviceWorkerCaches";
+import { OFFLINE_PATH, routeRequest } from "./serviceWorkerRoutes";
 
 /** An in-memory `CacheStorage`: each cache records what was added, by URL path. */
 function fakeCaches(names: string[] = []) {
@@ -108,5 +116,51 @@ describe("fetchAndKeep", () => {
     const { caches, puts } = fakeCaches();
     await expect(fetchAndKeep(caches, "v2", wasm, request, answering(null))).rejects.toThrow(TypeError);
     expect(puts).toEqual([]);
+  });
+});
+
+// B-788: offline, a direct load of / or /sign-in gets the offline page, not the browser's own.
+describe("networkOrOffline", () => {
+  const ORIGIN = "https://caretook.com";
+  const installed = async () => {
+    const fake = fakeCaches();
+    await precache(fake.caches, "v2", ["/app", OFFLINE_PATH], ORIGIN);
+    return fake;
+  };
+  const navigation = (path: string) => new Request(new URL(path, ORIGIN));
+  const routeOf = (path: string) =>
+    routeRequest({ url: new URL(path, ORIGIN), mode: "navigate" }, ORIGIN, new Set(["/app", OFFLINE_PATH]));
+
+  it("answers a failed load of / or /sign-in with the offline page", async () => {
+    const { caches } = await installed();
+    for (const path of ["/", "/sign-in"]) {
+      expect(routeOf(path)).toBe("offline");
+      const response = await networkOrOffline(caches, "v2", navigation(path), answering(null));
+      expect(await response.text()).toBe(`cached ${OFFLINE_PATH}`);
+    }
+  });
+
+  it("answers with the network's own answer when there is one, an error page too, storing nothing", async () => {
+    const { caches, puts } = await installed();
+    const page = await networkOrOffline(caches, "v2", navigation("/"), answering(new Response("home")));
+    expect(await page.text()).toBe("home");
+    const missing = await networkOrOffline(
+      caches,
+      "v2",
+      navigation("/sign-in"),
+      answering(new Response("gone", { status: 503 })),
+    );
+    expect(missing.status).toBe(503);
+    expect(puts).toEqual([]);
+  });
+
+  it("rejects as the network did when the offline page isn't cached", async () => {
+    const { caches } = fakeCaches();
+    await expect(networkOrOffline(caches, "v2", navigation("/"), answering(null))).rejects.toThrow(TypeError);
+  });
+
+  it("leaves /app page loads to the shell", () => {
+    expect(routeOf("/app")).toBe("shell");
+    expect(routeOf("/app/groups/g1/timeline")).toBe("shell");
   });
 });

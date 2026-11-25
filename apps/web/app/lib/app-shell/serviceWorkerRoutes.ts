@@ -1,7 +1,7 @@
 // The service worker's rules (app-speed PRD, B-144), pure so they're unit-tested
 // without a browser. The worker itself (serviceWorker.ts) only wires them to events.
 //
-// Its scope is `/`, but it answers only three kinds of request:
+// Its scope is `/`, but it answers only four kinds of request:
 // - an `/app` or `/app/*` page load gets the shell: the server's own `/app`
 //   document, fetched at install with its headers. It's a client-only page
 //   (every /app route has only a clientLoader, so the server renders root's
@@ -13,11 +13,21 @@
 //   success. These are files a page or PowerSync's workers load that the
 //   precache leaves out (the other SQLite builds, worker files Vite's
 //   manifest doesn't list), so a device that used one online has it offline.
-// Everything else goes to the network untouched: the marketing pages,
-// /sign-in, /api/*, /rpc/*, PowerSync (another origin), and any non-GET request.
+// - any other page load (the marketing pages, /sign-in, account links) goes
+//   to the network, and only when the network fails gets the precached
+//   offline page (`OFFLINE_PATH`, B-788) in place of the browser's own. The
+//   pages themselves are never cached.
+// Everything else goes to the network untouched: /api/*, /rpc/*, PowerSync
+// (another origin), and any non-GET request.
 
 /** Where the shell is fetched from at install, and its key in the cache. */
 export const SHELL_PATH = "/app";
+
+/**
+ * The offline page (`apps/web/public/offline.html`): precached after the shell,
+ * and the answer to a page load outside /app whose network fetch fails.
+ */
+export const OFFLINE_PATH = "/offline.html";
 
 /** Every cache this worker makes starts with this; others' caches are never touched. */
 export const CACHE_PREFIX = "caretook-";
@@ -25,7 +35,7 @@ export const CACHE_PREFIX = "caretook-";
 /** Where the build's content-hashed files are served from. */
 export const ASSETS_PREFIX = "/assets/";
 
-export type Route = "shell" | "cache" | "keep" | "network";
+export type Route = "shell" | "cache" | "keep" | "offline" | "network";
 
 export type RoutedRequest = {
   url: URL;
@@ -38,7 +48,8 @@ export type RoutedRequest = {
  * How the worker answers a request. `origin` is the worker's own origin and
  * `precached` the precache list's paths (`/assets/…`). The worker answers
  * `cache` from the cache (the network if it's somehow missing), `keep` from
- * the cache or else the network, storing a good answer.
+ * the cache or else the network, storing a good answer, and `offline` from
+ * the network, or the offline page when the network fails.
  */
 export function routeRequest(
   { url, mode, method = "GET" }: RoutedRequest,
@@ -46,7 +57,10 @@ export function routeRequest(
   precached: ReadonlySet<string>,
 ): Route {
   if (method !== "GET" || url.origin !== origin) return "network";
-  if (mode === "navigate") return isAppPath(url.pathname) ? "shell" : "network";
+  if (mode === "navigate") {
+    if (isAppPath(url.pathname)) return "shell";
+    return url.pathname.startsWith(ASSETS_PREFIX) ? "network" : "offline";
+  }
   if (precached.has(url.pathname)) return "cache";
   return url.pathname.startsWith(ASSETS_PREFIX) ? "keep" : "network";
 }
