@@ -41,7 +41,8 @@ const setup = async () => {
           },
   });
   const rows = async () =>
-    (await getDb().$client.query(`SELECT id FROM timeline_entry_todo WHERE id = $1`, [id])).rows;
+    (await getDb().$client.query<{ id: string }>(`SELECT id FROM timeline_entry_todo WHERE id = $1`, [id]))
+      .rows;
   return {
     id,
     op,
