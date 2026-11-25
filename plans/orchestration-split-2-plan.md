@@ -38,7 +38,7 @@
 | 1     | 1    | landed  | ad60a316                               |
 | 4     | 1    | landed  | a4c667dd                               |
 | 5     | 1    | landed  | 73331f09                               |
-| 2     | 2    | running |                                        |
+| 2     | 2    | merged  | 5b690d58                               |
 | 6     | 2    | merged  | 89ef0dda                               |
 | 3     | 3    | planned |                                        |
 | 7     | 3    | planned |                                        |
