@@ -87,10 +87,10 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           <UserMenu user={user} easy={easy} severalGroups={severalGroups} />
         </div>
       </header>
-      <OfflineBanner />
       <div data-region="announcement" className="print:hidden">
         <Announcement pathname={pathname} />
       </div>
+      <OfflineBanner />
       <Outlet />
       {groupFrame && <TabBar groupId={groupFrame} pathname={pathname} />}
       <UpdateNotice />
