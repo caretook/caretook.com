@@ -16,7 +16,8 @@
     "checksManifest": "scripts/loops/checks",
     "checkAreas": "scripts/loops/check-areas.d",
     "brakeList": "scripts/ci/brake-list.txt",
-    "quarantine": "scripts/ci/quarantine.txt"
+    "quarantine": "scripts/ci/quarantine.txt",
+    "tooling": [".githooks", "risa.json"]
   },
   "branches": {
     "trunk": "dev",
@@ -30,6 +31,7 @@
   },
   "backlog": {
     "prdsHeading": "## PRDs",
+    "idPrefix": "B",
     "zoneOverflowItem": "B-750"
   },
   "commands": {

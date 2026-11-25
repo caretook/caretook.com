@@ -1,6 +1,6 @@
 // The .githooks protections, against a throwaway repo with a bare "origin".
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -49,6 +49,18 @@ beforeAll(() => {
   ok(repo, ["switch", "-q", "-c", "dev"]);
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+describe("the protected branches", () => {
+  // The hooks keep their own constant (they never read the tool's config), so
+  // this keeps it equal to risa.json's branches.protected.
+  it("are the project config's", () => {
+    const config = JSON.parse(readFileSync(new URL("../risa.json", import.meta.url), "utf8"));
+    const constant = /^PROTECTED_RE='\^\(([^)]*)\)\$'$/m.exec(
+      readFileSync(join(HOOKS, "protect.sh"), "utf8"),
+    );
+    expect(constant?.[1].split("|").sort()).toEqual([...config.branches.protected].sort());
+  });
+});
 
 describe("main and staging", () => {
   it("refuse commits, moves and pushes", () => {
