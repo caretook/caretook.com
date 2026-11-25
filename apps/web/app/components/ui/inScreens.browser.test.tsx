@@ -355,7 +355,7 @@ describe.each([
     await userEvent.click(must('[role="dialog"] button[type="submit"]'));
     const input = must<HTMLInputElement>('[role="dialog"] input[name="symptomName"]');
     await expect.poll(() => input.getAttribute("aria-invalid")).toBe("true");
-    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim()).toBe("Symptom");
+    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim()).toBe("Symptom*");
     expect(
       (input.getAttribute("aria-describedby") ?? "")
         .split(" ")

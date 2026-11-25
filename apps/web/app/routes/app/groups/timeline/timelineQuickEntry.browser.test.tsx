@@ -410,7 +410,7 @@ describe("Edit", () => {
     await expect.element(dialog.getByRole("spinbutton", { name: /Diastolic/ })).toHaveValue(85);
     await expect.element(dialog.getByRole("spinbutton", { name: /Heart rate/ })).toHaveValue(72);
     await expect
-      .element(dialog.getByRole("textbox", { name: "Notes (optional)" }))
+      .element(dialog.getByRole("textbox", { name: "Notes", exact: true }))
       .toHaveValue("after lunch");
     expect(cardKinds()).toEqual(["symptom"]);
   });
@@ -423,7 +423,7 @@ describe("Edit", () => {
     await expect.element(dialog).toBeVisible();
     await expect.element(dialog.getByRole("combobox", { name: "Symptom" })).toHaveValue("Nausea");
     await expect
-      .element(dialog.getByRole("textbox", { name: "Notes (optional)" }))
+      .element(dialog.getByRole("textbox", { name: "Notes", exact: true }))
       .toHaveValue("after breakfast");
   });
 
@@ -435,8 +435,12 @@ describe("Edit", () => {
     await expect.element(dialog).toBeVisible();
     await expect.poll(() => device.location()).toContain(`medication=${ACETAMINOPHEN.id}`);
     await expect.element(dialog.getByRole("radio", { name: "Refused" })).toBeChecked();
-    await expect.element(dialog.getByRole("textbox", { name: "Amount (optional)" })).toHaveValue("1 tablet");
-    await expect.element(dialog.getByRole("textbox", { name: "Note (optional)" })).toHaveValue("spat it out");
+    await expect
+      .element(dialog.getByRole("textbox", { name: "Amount", exact: true }))
+      .toHaveValue("1 tablet");
+    await expect
+      .element(dialog.getByRole("textbox", { name: "Note", exact: true }))
+      .toHaveValue("spat it out");
   });
 
   test("a note is saved and opens on its page, where it's written", async () => {

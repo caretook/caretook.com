@@ -132,12 +132,15 @@ export function EntryTime({
 export function EntryTitle({
   value,
   placeholder,
+  required,
   inputRef,
   onCommit,
   onTextChange,
 }: {
   value: string | null;
   placeholder: string;
+  /** It must be filled (a draft event's): `aria-required` (the label is hidden, so no `*`). */
+  required?: boolean;
   /** The input, for the page to focus. */
   inputRef?: Ref<HTMLInputElement>;
   /** Called with the trimmed text when it differs from `value`. */
@@ -163,7 +166,7 @@ export function EntryTitle({
   };
 
   return (
-    <Field label="Title" labelHidden>
+    <Field label="Title" labelHidden required={required}>
       {(control) => (
         <input
           {...control}

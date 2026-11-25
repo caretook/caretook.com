@@ -290,7 +290,7 @@ function SignUpForm({
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-invite-form="signUp">
         <input type="hidden" name="intent" value="signUp" />
         {isLink(invite) ? (
-          <Field kind="input" label="Email" help="We'll email you a link to confirm it.">
+          <Field kind="input" label="Email" required help="We'll email you a link to confirm it.">
             {(control) => (
               <input
                 {...control}
@@ -317,10 +317,10 @@ function SignUpForm({
             )}
           </Field>
         )}
-        <Field kind="input" label="Your name">
+        <Field kind="input" label="Your name" required>
           {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
         </Field>
-        <Field kind="input" label="Password" help="At least 12 characters.">
+        <Field kind="input" label="Password" required help="At least 12 characters.">
           {(control) => (
             <input
               {...control}
@@ -332,7 +332,7 @@ function SignUpForm({
             />
           )}
         </Field>
-        <Field kind="input" label="Password again">
+        <Field kind="input" label="Password again" required>
           {(control) => (
             <input {...control} type="password" name="confirm" autoComplete="new-password" required />
           )}

@@ -56,7 +56,7 @@ export const titleField = (
   title: string | null,
   saved: boolean,
 ): { value: string; placeholder: string } => {
-  if (kind === "note") return { value: title ?? "", placeholder: "Title (optional)" };
+  if (kind === "note") return { value: title ?? "", placeholder: "Title" };
   if (!isUnnamedEvent(kind, title)) return { value: title ?? "", placeholder: "Title" };
   return { value: "", placeholder: saved ? "Add a title" : "Enter a title to save" };
 };

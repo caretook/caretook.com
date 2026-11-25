@@ -181,13 +181,19 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-join-form={step}>
         <div ref={accountRef} hidden={step !== "account"} data-join-step="account">
           <p className="text-sm">First, your Caretook account. You'll be the care group's owner.</p>
-          <Field kind="input" label="Your name">
+          <Field kind="input" label="Your name" required>
             {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
           </Field>
-          <Field kind="input" label="Email" error={issue("email")}>
+          <Field kind="input" label="Email" required error={issue("email")}>
             {(control) => <input {...control} type="email" name="email" autoComplete="username" required />}
           </Field>
-          <Field kind="input" label="Password" help="At least 12 characters." error={issue("password")}>
+          <Field
+            kind="input"
+            label="Password"
+            required
+            help="At least 12 characters."
+            error={issue("password")}
+          >
             {(control) => (
               <input
                 {...control}
@@ -199,7 +205,7 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
               />
             )}
           </Field>
-          <Field kind="input" label="Password again">
+          <Field kind="input" label="Password again" required>
             {(control) => (
               <input {...control} type="password" name="confirm" autoComplete="new-password" required />
             )}

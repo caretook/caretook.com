@@ -33,7 +33,7 @@ export function QuickAddFields({
   return (
     <div className="space-y-1" data-quick-add>
       <NameField defaultValue="" names={names} error={issueFor(issues, "name")} />
-      <Field label="Dose each time (optional)" kind="input" error={issueFor(issues, "dose")}>
+      <Field label="Dose each time" kind="input" error={issueFor(issues, "dose")}>
         {(control) => (
           <input
             {...control}
@@ -47,6 +47,7 @@ export function QuickAddFields({
       <ChoiceGroup
         name={QUICK_ADD_FIELD.type}
         label="Type"
+        required
         options={TYPE_OPTIONS}
         value={type}
         onChange={setType}

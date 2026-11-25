@@ -31,7 +31,7 @@ export function VitalField({
 
   if (isChoiceField(field))
     return (
-      <Field label={field.label} kind="select" error={error}>
+      <Field label={field.label} kind="select" required={!field.optional} error={error}>
         {(control) => (
           <select {...control} name={name} defaultValue={shown}>
             <option value="">{field.optional ? "Not noted" : "Choose…"}</option>
@@ -48,7 +48,8 @@ export function VitalField({
   const unit = fieldUnitLabel(field, units);
   return (
     <Field
-      label={`${field.label}${field.optional ? " (optional)" : ""}`}
+      label={field.label}
+      required={!field.optional}
       error={error}
       warning={unusual ? UNUSUAL : undefined}
     >

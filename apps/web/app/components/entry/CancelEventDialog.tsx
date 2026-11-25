@@ -33,7 +33,7 @@ export function CancelEventDialog({
       onConfirm={() => onConfirm(reason)}
       onClose={onClose}
     >
-      <Field label="Reason (optional)">
+      <Field label="Reason">
         {(control) => (
           <input
             {...control}

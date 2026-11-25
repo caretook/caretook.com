@@ -13,6 +13,7 @@ import { pageHeader } from "../../../../../test/pageHeader";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 import { pickTime } from "../../../../../test/timeSelect";
+import { requiredLabels } from "../../../../../test/required";
 
 // The Planner's Todos tab (todos slice 1; tasks-2 put it under the Planner header): the list's Filter menu, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with
@@ -316,6 +317,17 @@ describe("the todo list", () => {
 });
 
 describe("the todo sheets", () => {
+  test("the add sheet marks only the title required; who, when and the links are optional", async () => {
+    await open("owner", `${LIST}?who=everyone`);
+    await addTodo();
+    const dialog = page.getByRole("dialog", { name: "Add a todo" });
+    await expect
+      .element(dialog.getByRole("textbox", { name: "Todo" }))
+      .toHaveAttribute("aria-required", "true");
+    expect(requiredLabels(dialog.element())).toEqual(["Todo"]);
+    await expect.element(dialog.getByLabelText("Due", { exact: true })).not.toHaveAttribute("aria-required");
+  });
+
   test("adds a todo for someone outside the group, due on a day at a time", async () => {
     const device = await open("owner", `${LIST}?who=everyone`);
     await addTodo();
@@ -326,7 +338,7 @@ describe("the todo sheets", () => {
     await userEvent.keyboard("Aunt May");
     await userEvent.click(page.getByRole("option", { name: 'Assign to "Aunt May" (not in the group)' }));
     await expect.element(dialog.getByText("Aunt May (not in the group)")).toBeInTheDocument();
-    await userEvent.fill(dialog.getByLabelText("Due (optional)"), day(2));
+    await userEvent.fill(dialog.getByLabelText("Due", { exact: true }), day(2));
     await pickTime(
       () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="dueTime"]'),
       "17:30",
@@ -352,7 +364,7 @@ describe("the todo sheets", () => {
     await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Renew the bus pass");
     await userEvent.click(dialog.getByRole("combobox", { name: "Assign to" }));
     await userEvent.click(page.getByRole("option", { name: "Sam Okafor" }));
-    await userEvent.fill(dialog.getByLabelText("Due (optional)"), day(4));
+    await userEvent.fill(dialog.getByLabelText("Due", { exact: true }), day(4));
     await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
 
     await expect.poll(() => titles(day(4))).toEqual(["Renew the bus pass"]);

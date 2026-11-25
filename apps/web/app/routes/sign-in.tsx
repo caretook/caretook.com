@@ -149,7 +149,7 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
           <input type="hidden" name="intent" value="password" />
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <EmailField />
-          <Field kind="input" label="Password">
+          <Field kind="input" label="Password" required>
             {(control) => (
               <input {...control} type="password" name="password" autoComplete="current-password" required />
             )}
@@ -186,7 +186,7 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
             <input type="hidden" name="intent" value="code" />
             <input type="hidden" name="email" value={result.sentTo} />
             <input type="hidden" name="redirectTo" value={redirectTo} />
-            <Field kind="input" label="Code">
+            <Field kind="input" label="Code" required>
               {(control) => (
                 <input
                   {...control}

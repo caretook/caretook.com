@@ -85,7 +85,7 @@ export function FeelingFields({
         </div>
         {severityError && <Message tone="error">{severityError}</Message>}
       </div>
-      <Field label="What's wrong? (optional)" kind="input" error={nameError}>
+      <Field label="What's wrong?" kind="input" error={nameError}>
         {(control) => (
           <input
             {...control}

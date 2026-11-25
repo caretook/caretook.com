@@ -63,7 +63,7 @@ describe("unnamed events", () => {
   it("leave a note's optional title alone", () => {
     expect(titleField("note", null, true)).toEqual({
       value: "",
-      placeholder: "Title (optional)",
+      placeholder: "Title",
     });
     expect(titleField("note", "Event", true)).toMatchObject({ value: "Event" });
   });

@@ -47,7 +47,7 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
 /** An email field (the same on every account form). */
 export function EmailField({ defaultValue }: { defaultValue?: string }) {
   return (
-    <Field kind="input" label="Email">
+    <Field kind="input" label="Email" required>
       {(control) => (
         <input
           {...control}
