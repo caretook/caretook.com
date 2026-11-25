@@ -10,9 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Now (2026-11-24 late):** B-793 (roundtrip timing, blocks staging) is wave 10 slice 69: start it first in the next session; message the backlog session (caretook-com-e5) when it lands in dev. wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 merged (e2f1d254, 22 files: over the 12-file line; split shared ui work finer next time; it took components.md and ui-kit.md just over budget: trim at landing). 67 and 68 merged; wave 9 CI gate: full run 45525300170 on df3581f9 braked: bundle budget, app 408633 B gzip over its 406187 B ceiling (the toast system in the /app layout). Fix merged as da4d28c8 (toast region loads on demand; app 404444 B, ceiling unchanged). Full rerun green (on a5505a9c); sync: nothing new. PR #176 opened, Codex review waiting. At landing: trim components.md and ui-kit.md under budget; medications.md: the Schedule tab offers every log's Undo as a toast (UndoToastProvider, offerUndoToast), the Schedule clientAction returns the dose id. B-697 wording decided by the skeptic (s29, ask a211).
-
-**Previous hand-over:** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
+**Next step (hand-over):** wave 10 (slice 69, B-793, opus) merged as 4bc3c614; CI components green (run 45533689412, on 0695a55e; af9e8aa3 after it is docs only); roundtrip passes locally (548 ms of 2000). Cause: per-call `Intl.DateTimeFormat` in `dayKeyIn` and `formatTime` slowed the timeline's renders after sign-in, so the first add's local write started late on a slow CPU; now one formatter per zone. Worktree removed. Sync skipped (dev shares no file). PR #177 open, Codex review waiting. Docs folded: medications.md (Schedule Undo toast), components.md (per-zone formatters), both at 10237 B. **Then:** land (`--tier components`), report, message the backlog session (caretook-com-e5) that B-793 is in dev so it recuts the staging candidate, status-trim, rotate. Still held: B-684, B-694, B-325.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -21,12 +19,9 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                 | Merge    |
-| ----- | ----- | ------------------------------------- | -------- |
-| 66    | B-669 | merged (opus); worktree kept to green | e2f1d254 |
-| 67    | B-693 | merged (opus); worktree kept to green | 8ba36ee2 |
-| 68    | B-697 | merged (opus); worktree kept to green | 1b24ff73 |
-| 69    | B-793 | wave 10, first (staging blocked)      |          |
+| Slice | Item  | State                                       | Merge    |
+| ----- | ----- | ------------------------------------------- | -------- |
+| 69    | B-793 | merged; CI green; worktree removed; PR #177 | 4bc3c614 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1003,7 +998,7 @@ Every slice: no migration, no new dependency. **Staging promotion is blocked unt
 
 ## Slice 69: Roundtrip's "add: shows on this device at once" fits its 2 s budget again (B-793)
 
-Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser · Model: opus
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser
 
 **Problem.** Staging candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): `scripts/browser-checks/roundtrip.spec.mjs:249` (`localMs < 2000`) took 2007 ms, then 2069 ms on rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed. Suspect: B-613 (87a6235c: overlays fade at 240 ms, not 120, and `useSheetExit` waits for the overlay too). Against it: `new/route.tsx`'s clientAction writes locally before `onDone` closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. Wave 9's toast region (slice 66) and the saved toast (slice 67) are also new in the /app layout.
 

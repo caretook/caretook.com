@@ -6,8 +6,18 @@ import { getLocalTimeZone } from "@internationalized/date";
 export const localTimeZone = () => getLocalTimeZone();
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" });
-const timeFormat = (timeZone?: string) =>
-  new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone });
+// One formatter per zone, made once: building one is far slower than using it,
+// and the timeline formats every row's time on each render (B-793).
+const timeFormats = new Map<string, Intl.DateTimeFormat>();
+const timeFormat = (timeZone?: string) => {
+  const key = timeZone ?? "";
+  let format = timeFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone });
+    timeFormats.set(key, format);
+  }
+  return format;
+};
 
 export const formatDay = (iso: string) => {
   const date = new Date(iso);
