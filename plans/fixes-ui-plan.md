@@ -26,6 +26,7 @@ Notes for every wave:
 | 66    | B-669 | merged (opus); worktree kept to green | e2f1d254 |
 | 67    | B-693 | merged (opus); worktree kept to green | 8ba36ee2 |
 | 68    | B-697 | merged (opus); worktree kept to green | 1b24ff73 |
+| 69    | B-793 | wave 10, first (staging blocked)      |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -995,3 +996,21 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test (`routes/app/groups/medications/today.browser.test.tsx` or beside it): a one-tap Given shows "<name> logged · Undo" and Undo removes that dose; Skipped and Refused show their toast; an as-needed Log shows its toast; Given all shows "Morning logged · Undo" as a toast and no inline line.
 - [ ] A failed log shows no toast, its error inline.
 - [ ] Unit test if `passUndo.ts` gains single-dose rounds.
+
+## Wave 10 (written 2026-11-24 by the orchestrator; B-793 moved into fixes-ui on the user's word, via the backlog session)
+
+Every slice: no migration, no new dependency. **Staging promotion is blocked until slice 69 lands**: start it first, at once, and land it as its own wave; the backlog session recuts the candidate after and wants a message when it lands in dev. Held: B-684 (asterisks, a wave of its own), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 69: Roundtrip's "add: shows on this device at once" fits its 2 s budget again (B-793)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: browser · Model: opus
+
+**Problem.** Staging candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): `scripts/browser-checks/roundtrip.spec.mjs:249` (`localMs < 2000`) took 2007 ms, then 2069 ms on rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed. Suspect: B-613 (87a6235c: overlays fade at 240 ms, not 120, and `useSheetExit` waits for the overlay too). Against it: `new/route.tsx`'s clientAction writes locally before `onDone` closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. Wave 9's toast region (slice 66) and the saved toast (slice 67) are also new in the /app layout.
+
+**Build.** First measure, then fix. Find whether the app got slower or the step was already at its budget's edge: time `addSymptom`'s phases (submit, local write, sheet close, row visible) on 65529f69's app and on the current tip (a production build, as CI runs it), several runs each, and print `localMs` on pass too. If a change made the row appear later (for example the row waits behind the sheet's exit fade, or a toast or layout change delays the render), fix the app so the new row shows without waiting for the overlay animation. Only if the app's time is unchanged and the step was already at the edge, say so with the numbers and propose (don't just raise) a budget the user approves: never widen it on your own. In the hand-off, give the before and after timings.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has timings for 65529f69 and the tip, phase by phase, and names the cause.
+- [ ] `roundtrip.spec.mjs` prints `localMs` whether it passes or fails.
+- [ ] With the fix, roundtrip passes on a production build at least 5 times in a row, `localMs` well under 2000 ms (say the margin).
