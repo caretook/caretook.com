@@ -4,18 +4,40 @@
 
 ## Status
 
-**On hold** (registry row `orchestration-split-2`, flag `hold`, after `orchestration-split`): the user lifts it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slice 3 is the same swap in about ten scripts: a sonnet candidate once slice 2 has set the pattern. The doc splits (6 to 8) need judgement on what is generic: opus.
+**Running by hand** (2026-11-25): the user opening this session lifted the hold for this run. The registry row `orchestration-split-2` keeps its `hold` flag on purpose, so the dispatcher can't start it on Opus. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slice 3 is the same swap in about ten scripts: a sonnet candidate once slice 2 has set the pattern. The doc splits (6 to 8) need judgement on what is generic: opus.
+
+**Session 1 (2026-11-25, Fable):** started by the user by hand. **Landing mode: ask before each landing**, through the backlog split-ops session (now `caretook-com-d6`: it rotated 2026-11-25, and the session record `backlog-split-ops` confirms it; find it with ListAgents if it rotates again; the user's contact for the split until the reset, Sat 2026-11-28 12:00); the user's word: "listen to backlog - split-ops agent". The user's word through split-ops (2026-11-25): start slices 1, 4 and 5 now on opus, and add slice 9 for B-838 and B-842 in wave 4.
+
+**Wave 1 (2026-11-25): green and ready to land; waiting for split-ops' go (rule 6), asked 2026-11-25.** PR #196 (https://github.com/caretook/caretook.com/pull/196). Codex is out of credits (`pnpm prd ready` says no review is coming), so the landing is `pnpm prd land orchestration-split-2 --tier full --no-review -m "feat(orchestration-split-2): the test DB as Caretook's, the lease command and the doc command (B-543)"`, and the report says Codex didn't review it. The three slice worktrees and branches are still there: `pnpm prd rm orchestration-split-2-<n>` also waits for split-ops (rule 6). No local browser suite was run: the diff asks for the whole lean set only because of `vitest.config.ts`, and the green `full` run covers it. After the landing: no docs to fold (the plan folds them at the last landing), `pnpm prd status-trim`, then ask split-ops before `pnpm prd rotate` (rule 1); wave 2 is slices 2 (stack: yes) and 6. Slices 1, 4 and 5 ran on opus; each keeps its worktree (`.loops/orchestration-split-2-<n>`) and branch until the verdict is green. One conflict, mine to resolve: `risa.json`'s `hooks` took both `testDb` (slice 1) and `lease` (slice 4). The boundary lint passes on the merged tip (1740 allowed). B-543 is claimed for `prd/orchestration-split-2`.
+
+- **Tier:** slice 4 edits `vitest.config.ts` (its helper test joins `web:unit`), so the proposal is `full`, not the plan's `components`.
+- **B-818** (the watchdog test fails where the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2): every slice check hits it; slices rerun with `env -u CARETOOK_USAGE_WATCH`. Not the wave's.
+- **The Fable skeptic (rule 3), on tip 3b427316: go, no blocker** ("each of the three slices does what the plan says, I found no correctness bug that must be fixed before landing, and nothing chosen here has to be undone at the move"). Its six follow-ups are B-844 (triaged, this topic; a later slice or the move). Its one condition is rule 4: check nothing else is open at the landing, since an unsynced worktree has no `doc` case in its own `prd.sh`.
+- **CI:** the first `full` run (3b427316, run 45694997111) came back `file`: job components-2 passed all 996 tests but Vitest caught one unhandled rejection from `entryMentions.browser.test.tsx` (app code the wave doesn't touch; filed as B-845, fixes-tooling). `ci blame` gives 5 (a partial list), so no slice gets it. `pnpm prd sync`: nothing to merge. The second `full` run is **green** (1a1193dd, run 45696803555).
+- **For slice 3:** `stack-lib.sh` still has its own `write_test_env` and `test_db_name`, now also in the project's `test-db.sh`. **For the last landing's docs:** the machinery doc still says Node callers use `lease.mjs`.
+
+**This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
+
+1. Before every `pnpm prd rotate`, message split-ops and wait for its go (it checks the session record says model fable).
+2. Start every slice worktree with `CARETOOK_USAGE_WATCH=off pnpm prd slice …` (the dispatcher is off on purpose; at 100% usage sessions stop and wait, and split-ops clears the stalls after the reset).
+3. Before each wave lands, a Fable skeptic reviews its decisions and code; its verdict goes here and in the landing report (`skeptic record` takes no such verdict).
+4. Waves 1 to 3 land only when no other PRD, plan or hotfix worktree is open; if one is, hold and message split-ops.
+5. Big choices (an `asked` PRD decision, or a new one of that size) go to the user one at a time through split-ops.
+6. Ask split-ops before each landing and before `pnpm prd rm` / `end`.
+
+**Backlog:** B-543 (the split, the topic's item); B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups) are slice 9 (wave 4, on the user's word).
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
 | ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | planned |                                        |
-| 4     | 1    | planned |                                        |
-| 5     | 1    | planned |                                        |
+| 1     | 1    | merged  | ad60a316                               |
+| 4     | 1    | merged  | a4c667dd                               |
+| 5     | 1    | merged  | 73331f09                               |
 | 2     | 2    | planned |                                        |
 | 6     | 2    | planned |                                        |
 | 3     | 3    | planned |                                        |
 | 7     | 3    | planned |                                        |
 | 8     | 4    | planned |                                        |
+| 9     | 4    | planned |                                        |
 
 ## Architectural decisions
 
@@ -31,8 +53,8 @@ As in [`orchestration-split-plan.md`](orchestration-split-plan.md) (the names, t
 ## How to run this plan
 
 - **Start only when** `orchestration-split` has landed and the tooling is quiet.
-- **Wave 1:** slices 1, 4 and 5 (1 owns `test-db.sh` and the data package's test setup; 4 owns the lease CLI, `lease.sh`, `lease.mjs` and `apps/web/test/`; 5 owns `prd.sh`, the doc command, the prompts, `skeptics.mjs` and AGENTS.md). **Wave 2:** slices 2 and 6 (2 owns `stack-lib.sh`, `stack.sh`, `serve.sh` and `lib.sh`'s stack functions; 6 owns the loop, hotfix and recovery docs). **Wave 3:** slices 3 and 7 (3 owns the inventory, reclaim, recover, tidy and worktree scripts; 7 owns the orchestrator, planner, backlog and inbox docs). **Wave 4:** slice 8 (the machinery doc and `docs/orchestration.md`).
-- **Tiers** (what the check plan proposes, once at landing): wave 1 touches `packages/data/` and `apps/web/test/`: `components`; wave 2 edits `serve.sh` and `lib.sh`, which the browser harness test covers: `integration`; waves 3 and 4 are tooling and docs only. Waves 2 and 3 also need a stack: one `pnpm prd stack up` and down each. Every wave runs `pnpm test:tooling`.
+- **Wave 1:** slices 1, 4 and 5 (1 owns `test-db.sh` and the data package's test setup; 4 owns the lease CLI, `lease.sh`, `lease.mjs` and `apps/web/test/`; 5 owns `prd.sh`, the doc command, the prompts, `skeptics.mjs` and AGENTS.md). **Wave 2:** slices 2 and 6 (2 owns `stack-lib.sh`, `stack.sh`, `serve.sh` and `lib.sh`'s stack functions; 6 owns the loop, hotfix and recovery docs). **Wave 3:** slices 3 and 7 (3 owns the inventory, reclaim, recover, tidy and worktree scripts; 7 owns the orchestrator, planner, backlog and inbox docs). **Wave 4:** slices 8 and 9 (8 owns the machinery doc and `docs/orchestration.md`; 9 owns the `scripts/ci/`, `scripts/backlog/` and `scripts/project/` files its two items name, and the lines they name in `prd.sh`, `land.sh`, `ls.sh`, `pr.sh` and `tidy-cli.mjs`).
+- **Tiers** (what the check plan proposes, once at landing): wave 1 touches `packages/data/` and `apps/web/test/`: `components`; wave 2 edits `serve.sh` and `lib.sh`, which the browser harness test covers: `integration`; waves 3 and 4 are tooling and docs only, except that slice 9 edits `scripts/ci/`, which proposes `full` for wave 4. Waves 2 and 3 also need a stack: one `pnpm prd stack up` and down each. Every wave runs `pnpm test:tooling`.
 - **Docs at the last landing:** the machinery doc (the stack hooks and their contract, the lease command, the doc command and how a project adds to a role), the loop and hotfix docs.
 
 ## Slice 1: The test DB as Caretook's
@@ -84,7 +106,7 @@ Stack: yes · Reads: docs/agents/machinery.md, docs/agents/recovery.md · Tests:
 
 **Acceptance criteria**
 
-- `pnpm prd status`, `pnpm prd tidy --dry-run` and `pnpm prd recover --dry-run` print the same before and after, captured together with nothing landing between; their tests pass on a stubbed hook; no core test imports from `apps/` or `packages/`; the touched files leave the allowlist.
+- `pnpm prd status`, `pnpm prd tidy --dry-run` and `pnpm prd recover --dry-run` print the same before and after, captured together with nothing landing between; their tests pass on a stubbed hook; no core test imports from `apps/` or `packages/`, and the fixture copies of `scripts/project` in `recover.test.mjs`, `tidy-cli.test.mjs` and `stack.test.mjs` (slice 1's, for the forwarder) are gone; the touched files leave the allowlist.
 
 **Blocked by:** 2. **Blocks:** `orchestration-split-3`.
 
@@ -172,3 +194,21 @@ Stack: no · Reads: docs/agents/machinery.md, docs/orchestration.md · Tests: un
 - As slice 6; every role in the config is now generic plus additions, none a replacement.
 
 **Blocked by:** 7. **Blocks:** `orchestration-split-3`.
+
+## Slice 9: The stage 1a skeptics' follow-ups
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+**User stories:** 3, 6. Backlog items B-838 and B-842 (added 2026-11-25 on the user's word; `pnpm backlog show` has each numbered point with its file and line).
+
+**What to build**
+
+- **B-838:** a test ties the verdict fixtures and the one `VERDICT_VERSION` to `buildVerdict`; a former id prefix, when set, is read everywhere the current one is matched (the inbox tags, `land.sh --fixes`, `prd.sh`, the plan prompt, the CI args, lists and blame), with a test of an ingest under a new prefix; `tidy-cli.mjs` and `pr.sh` take a slice's topic and the branch prefixes through the one helper; `ls.sh` escapes the prefix in its pattern; a broken `risa.json` gives each importer of `registry.mjs` and `format.mjs` its own clear error; `outstanding.mjs` and `prd.sh`'s help take the branch prefixes from the config.
+- **B-842:** `doc-budget.mjs` exits 2 on any error that isn't a breach; the eight `scripts/ci` modules read the tier data when first used, not at import; `proposedTiers` and `tierRank` load the config once; an unset `ciFailureTopic` refuses to file; `prd.sh`'s check case tells a failed `git diff` from a failed check plan; `isFolder` stats under `--repo`; the core's `nextSlice` has its own test; `landing.mjs` reads the reset command from the config and `land.sh`'s next-steps line drops "after landing"; the `vitest.config.ts` comment; `check-areas.test` and `test-projects.test` pass without the core or join the PRD's residual list.
+- Not here: Risa's id counter starting above Caretook's highest id (the move runbook's step 3). A point that turns out to need a choice of the PRD's _Decisions_ size is left, with a note on its item.
+
+**Acceptance criteria**
+
+- Each numbered point of the two items is fixed with a test, or named in the hand-off with why it was left; `pnpm test:tooling` passes; no behaviour of Caretook's commands changes (the prompt goldens and the CI verdict fixtures pass unchanged).
+
+**Blocked by:** 3, 7 (they change the same scripts and docs). **Blocks:** `orchestration-split-3`.

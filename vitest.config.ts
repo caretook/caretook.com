@@ -186,11 +186,12 @@ export default defineConfig({
       {
         // Pure apps/web logic (app/**/*.test.ts): no PowerSync, no React Router
         // plugin (apps/web's vite.config.ts isn't loaded), so tests import
-        // relatively, not through "~/".
+        // relatively, not through "~/". Plus the test harness's own Node
+        // parts (test/*.test.ts: the browser lease helper).
         test: {
           name: "web:unit",
           root: "./apps/web",
-          include: ["app/**/*.test.ts"],
+          include: ["app/**/*.test.ts", "test/**/*.test.ts"],
         },
       },
       {

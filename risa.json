@@ -25,9 +25,13 @@
   "roles": {
     "backlog": { "replacement": "docs/agents/backlog.md" },
     "hotfix": { "replacement": "docs/agents/hotfix.md" },
+    "inbox": { "replacement": "docs/agents/inbox.md" },
     "loop": { "replacement": "docs/agents/loop.md" },
+    "machinery": { "replacement": "docs/agents/machinery.md" },
+    "orchestration": { "replacement": "docs/orchestration.md" },
     "orchestrator": { "replacement": "docs/agents/orchestrator.md" },
     "planner": { "replacement": "docs/agents/planner.md" },
+    "project-config": { "replacement": "docs/agents/project-config.md" },
     "recovery": { "replacement": "docs/agents/recovery.md" }
   },
   "branches": {
@@ -70,7 +74,9 @@
     "check": "scripts/project/check-body.sh",
     "checkAreas": "node scripts/project/check-areas.mjs",
     "docBudget": "node scripts/project/doc-budget.mjs",
-    "landing": "node scripts/project/landing.mjs"
+    "landing": "node scripts/project/landing.mjs",
+    "testDb": "scripts/project/test-db.sh",
+    "lease": "bash scripts/loops/lease.sh hold"
   },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
