@@ -13,6 +13,8 @@ docs/                                    -
 .claude/                                 -
 scripts/loops/                           -
 scripts/backlog/                         -
+# The project's own scripts and data (the tooling that stays when the core moves).
+scripts/project/                         -
 scripts/build/                           -
 # The project config the tooling reads (scripts/loops/config.mjs).
 risa.json                                -
