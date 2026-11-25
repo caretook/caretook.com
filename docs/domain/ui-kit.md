@@ -1,15 +1,14 @@
 # The UI kit (`apps/web/app/components/ui/`)
 
-The `ui/` contracts; layout, rules, tests: [components](components.md).
+The `ui/` contracts; rules and tests: [components](components.md).
 
 ## What's in it
 
-- **Primitives** (the `ui` index) import nothing from feature folders; **only `ui/` imports React Aria** (lint).
+- **Primitives** (the `ui` index) import no feature folder; **only `ui/` imports React Aria** (lint).
 - `ui/tooltip/` and `ui/date/` have their own indexes. `DateTimeField`: hour arrows cross AM/PM; in `InlineCalendars` the calendar opens inline, one at once; `onCalendarPick` fires on a calendar pick only.
 - **`ui/plain`**, the light entry: everything without React Aria. Light pages (sign-in, account forms, `/connect`, marketing) import it, never `ui` (React Aria's chunk).
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry.
 - **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes, one `sections/` file each, listed in `registry.ts`. A new primitive (**only for a repeated pattern**) adds its section.
-- **Contrast:** `apps/web/test/contrast.ts`.
 
 ## Which to use
 
@@ -28,18 +27,19 @@ The `ui/` contracts; layout, rules, tests: [components](components.md).
 - `Sheet` is full screen below `sm`, a centred modal from it, above the tab bar, and returns focus to its opener (from a `Menu` item: its button). Close, Escape and a tap outside play the exit (`useSheetExit`). The topmost sheet holds a path change for the exit (not a search or hash change, a submission or reduced motion); closing it sends a held navigation at once; a save plays the exit when its caller navigates. `guardChanges`: a changed form asks "Discard changes?" on those or Back, for the user's own edits only (not a sync); only a successful save skips it.
 - **Accents** (`ui/accents.ts`): `ACCENTS` and `accentClass(accent | "neutral", "solid" | "soft" | "text")` over the `--color-hue-*` tokens; nothing else names one, and none is a status colour. `IconChip` is hidden from assistive tech unless labelled.
 - `UserAvatar` `look` (`color`, `icon`, `defaultColor`, `neutral`) beats `image` when chosen; `row`: a row's author. Only `avatarLook.ts` names `--color-avatar-*`.
-- `Field` gives its control the `id`, `aria-invalid` and `aria-describedby`, and an optional `warning` line (never `aria-invalid`) while there's no error.
+- `Field` gives its control the `id`, `aria-invalid`, `aria-describedby`, and an optional `warning` line (never `aria-invalid`) when there's no error.
 - `Field` `kind` (`input`, `select`, `textarea`): the control gets `<kind> w-full`, plus `<kind>-error` with an error (pure `fieldControlClass`); a later `className` replaces it.
 - `CheckField`, `ToggleField` (the input's props plus `label`, `help?`, `error?`): a native checkbox (the toggle `role="switch"`, one size), its label beside it toggling it, help and error as its description (`aria-invalid` on error), `data-*` on the input; an `aria-label` replaces the visible label.
 - `Card` (`{ id?, title?, headingId?, actions? }`): `base-100`, one body gap; titled, a `section` named by its `h2` (`TITLE_SECTION`) with `data-section`, `actions` by the title. `SettingsCard` wraps it.
 - `List` (`{ label? }`): one `ul` box with dividers. `ListRow` (`{ to?, trailing? }`, `data-*` on the `li`): with `to` one stretched link, `trailing` controls above it. For `href` or `state`, hand-write it.
 - `DetailHeader`: `icon` and `tone` (`primary`, `neutral`, `muted`) or `media`; `title` the `h1` (`titleProps`); `badges` (`STATUS_TONE`), `details` (`detailsProps`), `editors`, `actions`, each a `data-region` that renders nothing when empty; `data-*` on the header.
-- `ChipGroup`: link chips a `nav` (`aria-current="true"`), button chips a `ul` (`aria-pressed` when they toggle).
+- `ChipGroup`: link chips a `nav` (`aria-current="true"`), button chips a `ul` (`aria-pressed` if toggling).
 - `ComboBox`: `options`, a controlled `inputValue`, `onSelect`, `onCreate?` (last), `sections`; the caller filters. `opensOn` `focus` (default) or `typing` (an empty field has no list; typing opens it, clearing closes it: condition, allergy, medication names). `control`: inside a `Field`.
 - `TabNav` (`{ label, tabs: [{ label, to, match?, current?, icon?, count?, replace? }] }`): a `nav` of links, not a tablist. A tab claims its path and below (`match` replaces that, `current` overrides both); the first claimant gets `aria-current="page"` from the pending navigation; prefetches. `count` is a badge read in the name. A segmented bar: no padding, gap or per-link rounding; the current fill reaches its edges, the focus ring inside; `accent` tints the current one and the counts (default primary). Equal tabs on phones, `sm:w-fit`; overflow scrolls.
-- `Message` (`{ tone, children }`): `error` is `role="alert"`; `success`, `warning`, `info` (default) `role="status"`. Empty, it stays mounted.
-- `Notice` (`{ tone, icon?, action? }`): a soft daisyUI alert with the tone's icon (or `icon`); role by tone (`role` overrides); `action` a `{ label, to }` link or a `{ label, onAction }` button.
-- `EmptyState`: one quiet line and an optional action; `icon`, `accent` add a soft circle above it (main lists only). `Toast` (`open`) stays, inert, through its fade.
+- `Message` (`{ tone, children }`): `error` `role="alert"`, other tones `role="status"`; empty, it stays mounted.
+- `Notice` (`{ tone, icon?, action? }`): a soft alert with the tone's icon (or `icon`), role by tone (`role` overrides); `action` a `{ label, to }` link or `{ label, onAction }` button.
+- `EmptyState`: a quiet line, an optional action; `icon`, `accent` add a soft circle (main lists only).
+- `toast({ message, action?, undo?, timeout? })` → id, `dismissToast(id)`: one at a time, newest first; an action runs once; 6 s (`null` stays); the region loads on the first.
 - `Loading` (`{ label, lines? }`): a status named by `label`, a spinner and the label, or with `lines` a `Skeleton` and a screen-reader label. `Skeleton` (`{ lines }`): `aria-hidden` bars, `data-skeleton`.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`, pure); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current and now `primary`; past and stopped `neutral`; overdue `danger`; due soon `warning`; done `success`. `ViaTag` stays its own.
 - `SearchFilterBar`: search (`?q=`, `lib/core/textFilter.ts`), `FilterMenu`, chips. `Highlight` marks matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).

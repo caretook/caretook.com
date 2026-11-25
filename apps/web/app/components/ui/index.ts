@@ -29,7 +29,6 @@ export type { ListChip } from "./ChipList";
 export { ComboBox } from "./ComboBox";
 export type { ComboBoxOption, ComboBoxSection } from "./ComboBox";
 export { Highlight, MARK_CLASS } from "./Highlight";
-export { Toast } from "./Toast";
 export { ViaTag } from "./ViaTag";
 export { useShowModal } from "./useShowModal";
 export { PageHeader } from "./PageHeader";
@@ -90,3 +89,7 @@ export { avatarColorClass, avatarIconGlyph } from "./avatarLook";
 // fixes-ui (slice 57): every list page's search and filter bar.
 export { SEARCH_PLACEHOLDER, SearchFilterBar } from "./SearchFilterBar";
 export type { SearchFilterBarProps } from "./SearchFilterBar";
+// fixes-ui (slice 66): the shared toast queue (B-669); the region mounts once in the /app layout.
+export { ToastRegion } from "./Toast";
+export { clearToasts, dismissToast, toast, TOAST_TIMEOUT } from "./toastQueue";
+export type { ToastAction, ToastOptions } from "./toastQueue";

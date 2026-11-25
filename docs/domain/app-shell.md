@@ -4,7 +4,7 @@
 
 - header `group` (left): the Caretook link (mark only below `sm` on group routes), then `GroupMenu` on group routes. The header isn't sticky;
 - header `sections` (`hidden sm:flex`): `SectionNav`; `status`: `SyncIndicator` ("Offline · N waiting"; "N not saved" links to that page); `user`: `UserMenu`;
-- the outlet, then `TabBar` (phones, group routes), then `update`: `UpdateNotice` ("A new version is ready" · Reload).
+- the outlet, then `TabBar` (phones, group routes), then `ToastRegion`; `UpdateNotice` toasts "A new version is ready" · Reload.
 - **Typeface:** Atkinson Hyperlegible Next in `app/fonts/` (`SOURCE.txt`), preloaded by `root.tsx`.
 - **The service worker** (web production only; `entry.client.tsx` registers it): `lib/app-shell/serviceWorker*.ts`, bundled to `/sw.js` by `scripts/build/service-worker.mjs` in React Router's web `buildEnd`. Install caches the server's `/app` document (no care data), all JS, CSS and `woff2` file in `assets/` (Vite's manifest misses PowerSync's chunks) and the async SQLite WASM (`SQLITE_WASM`, `scripts/build/manifest.mjs`; the build fails without it). `/app/*` navigations get that shell, other pages the network, else `/offline.html` (second in the list, B-788); precached assets come cache-first, other `/assets/` files are kept on first success (`keep`), the rest to the network (`routeRequest`). A new worker waits until Reload posts `skip-waiting`. ⚠ The cached shell keeps the CSP of its build until the next worker installs. **Install:** `site.webmanifest`, linked from `root.tsx`, opens `/app` standalone.
 - Screens outside a group get the header only. A failed chunk reloads once to the target (`staleChunk.ts`, web).

@@ -11,6 +11,7 @@ import type { EntryPageData } from "./loadEntry";
 import { canChangeEntry, canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { toast } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/live-notes/liveEntry";
@@ -194,6 +195,17 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     [draft, groupId, recipient],
   );
 
+  /**
+   * A draft's first save (B-693): its URL becomes the entry's own (replaced, so
+   * Back goes to the timeline), and a toast says it's saved. A local write, so
+   * the wording says nothing of syncing; the queue outlives the URL replace,
+   * and the toast never takes focus from the field being typed in.
+   */
+  const savedDraft = useCallback(() => {
+    toast({ message: draft.kind === "event" ? "Event saved" : "Note saved" });
+    void navigate(appUrls.entry(groupId, draft.id), { replace: true, state: savedState });
+  }, [draft, groupId, navigate, savedState]);
+
   const save = useCallback((): Promise<boolean> => {
     if (saved.current) return Promise.resolve(true);
     saving.current ??= (async () => {
@@ -213,7 +225,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
         saved.current = true;
         repeatRef.current = null;
         setRepeat(null);
-        if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true, state: savedState });
+        if (isNew) savedDraft();
         return true;
       }
       const input: MaterializeInput = {
@@ -240,12 +252,11 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
         const linked = await linkProvider(getSync(), draft.id, providerId);
         if (!linked.ok) setSaveError(linked.error);
       }
-      // Back from here goes to the timeline, and the link is the entry's own.
-      if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true, state: savedState });
+      if (isNew) savedDraft();
       return true;
     })();
     return saving.current;
-  }, [draft, groupId, isNew, navigate, startSeries, savedState]);
+  }, [draft, groupId, isNew, startSeries, savedDraft]);
 
   // The editor asks on each local change until this says it's saved.
   const ensureSaved = useCallback(

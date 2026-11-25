@@ -8,7 +8,7 @@ import {
   ListRow,
   Menu,
   Popover,
-  Toast,
+  toast,
 } from "~/components/ui";
 import { Example } from "../Example";
 
@@ -19,7 +19,6 @@ export function MotionSection() {
   const [open, setOpen] = useState(false);
   const [turned, setTurned] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [toast, setToast] = useState(false);
   const id = useId();
   return (
     <>
@@ -75,7 +74,13 @@ export function MotionSection() {
           <p className="text-sm">A dose counts as taken when anyone in the group logs it.</p>
         </Popover>
         <Button onClick={() => setConfirming(true)}>Dialog</Button>
-        <Button onClick={() => setToast((t) => !t)}>{toast ? "Hide the toast" : "Toast"}</Button>
+        <Button
+          onClick={() =>
+            toast({ message: "Added Ibuprofen", action: { label: "Add details", onAction: () => {} } })
+          }
+        >
+          Toast
+        </Button>
         <ConfirmDialog
           open={confirming}
           title="Delete this note?"
@@ -83,12 +88,6 @@ export function MotionSection() {
           confirmLabel="Delete"
           onConfirm={() => setConfirming(false)}
           onClose={() => setConfirming(false)}
-        />
-        <Toast
-          open={toast}
-          message="Added Ibuprofen"
-          actionLabel="Add details"
-          onAction={() => setToast(false)}
         />
       </Example>
     </>

@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clearUndo, offerUndo, subscribeUndo, UNDO_MS, undoFor, undoSnapshot } from "./passUndo";
+import {
+  clearUndo,
+  doseUndoLabel,
+  offerUndo,
+  subscribeUndo,
+  UNDO_MS,
+  undoFor,
+  undoSnapshot,
+} from "./passUndo";
 
 const round = { groupId: "g", label: "Morning logged", doseIds: ["a", "b"] };
 
@@ -22,6 +30,18 @@ describe("passUndo", () => {
     expect(undoFor("g", { now: 2000 })?.label).toBe("Evening logged");
     clearUndo();
     expect(undoSnapshot()).toBeNull();
+  });
+
+  it("one dose is a round of its own, and the offer comes back to its caller", () => {
+    const offer = offerUndo({ groupId: "g", label: doseUndoLabel("Tylenol", "given"), doseIds: ["d"] }, 1000);
+    expect(offer).toBe(undoSnapshot());
+    expect(offer).toMatchObject({ label: "Tylenol logged", doseIds: ["d"], expiresAt: 1000 + UNDO_MS });
+  });
+
+  it("names one dose by what it was", () => {
+    expect(doseUndoLabel("Tylenol", "given")).toBe("Tylenol logged");
+    expect(doseUndoLabel("Tylenol", "skipped")).toBe("Tylenol marked skipped");
+    expect(doseUndoLabel("Tylenol", "refused")).toBe("Tylenol marked refused");
   });
 
   it("an offer with a place is shown only there", () => {
