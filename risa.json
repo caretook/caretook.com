@@ -41,7 +41,8 @@
     "typegen": "pnpm typegen",
     "datastoreStart": "pnpm datastore:start",
     "datastoreReset": "pnpm datastore:reset",
-    "datastoreSeed": "pnpm datastore:seed"
+    "datastoreSeed": "pnpm datastore:seed",
+    "hooksInstall": "git config core.hooksPath .githooks"
   },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
