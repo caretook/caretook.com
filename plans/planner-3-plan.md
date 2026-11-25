@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-25, landing):** all six slices merged (B-245, B-254, B-626 done); planner-3 lands once, as a whole. CI: full run 45558728409 on ee51ee7a, file, only dev's B-807; commits since are docs only; dev sync up to date. Browser suite: 10/11, `ui.spec.mjs` add-sheet 0×0 failure passed alone on a rerun: a load flake, filed as B-808 (fixes-tooling). Server restarted, PR #182 updated at 7d186339. Codex out of credits (review exit 4), so landing `--tier full --no-review` unasked. **Next if cut off:** `pnpm prd land --resume prd/planner-3`, then the report (`pnpm prd ask --report`), status-trim, `pnpm prd rm planner-3`, tell `connectors-3` that `addTodo.repeatRule` exists, `pnpm prd end`.
+**Where it stands (2026-11-25): landed and done.** planner-3 landed in dev through PR #182 (tier full, `--no-review`: Codex out of credits), merged as 8c1fa06. Report a218. The ui.spec add-sheet flake is B-808 (fixes-tooling). `addTodo.repeatRule` for connectors-3 is noted on B-253. Worktree removed by the backlog session.
 
 **Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
 
