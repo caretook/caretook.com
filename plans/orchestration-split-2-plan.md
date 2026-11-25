@@ -6,9 +6,9 @@
 
 **Running by hand** (2026-11-25): the user opening this session lifted the hold for this run. The registry row `orchestration-split-2` keeps its `hold` flag on purpose, so the dispatcher can't start it on Opus. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slice 3 is the same swap in about ten scripts: a sonnet candidate once slice 2 has set the pattern. The doc splits (6 to 8) need judgement on what is generic: opus.
 
-**Hand-over (2026-11-25, session 2 on Fable): wave 2 has landed; start wave 3.** **Landing mode: ask before each landing**, through the backlog split-ops session (`caretook-com-d6` at this writing; the session record is `backlog-split-ops`, find it with ListAgents; the user's contact for the split until the reset, Sat 2026-11-28 12:00). The user's word to session 1: "listen to backlog - split-ops agent".
+**Session 3 on Fable (2026-11-25): wave 3 is running.** **Landing mode: ask before each landing**, through the backlog split-ops session (`caretook-com-d6` at this writing; the session record is `backlog-split-ops`, find it with ListAgents; the user's contact for the split until the reset, Sat 2026-11-28 12:00). The user's word to session 1: "listen to backlog - split-ops agent".
 
-**Next:** `pnpm backlog ingest` and `list`, `pnpm prd sync --force` (the branch's code is in `dev` as 47fb5414, but the last two syncs skipped the merge: wave 3 should start from `dev`'s tip, which also has B-818's fix, 2c40ee7b), then wave 3: slices 3 (stack: yes) and 7 (the orchestrator, planner, backlog and inbox docs split; opus), each worktree made with `CARETOOK_USAGE_WATCH=off`. **Slice 3 on opus, not sonnet:** it now also extends the hook contract (B-846 point 3, in its section), which is design. **The user wants a push notification when wave 3 lands** (split-ops then prints marketing-2's start commands): tell split-ops at that landing. Older hand-offs: [`orchestration-split-2-history.md`](orchestration-split-2-history.md).
+**Wave 3:** synced `dev` with `--force` (d53f17b5: wave 2's code and B-818's fix are in). Slices 3 (stack, slot 2) and 7 (no stack) have worktrees (made with `CARETOOK_USAGE_WATCH=off`) and one background agent each, both on opus (3 extends the hook contract, B-846 point 3: design; 7 needs judgement on what is generic); the watch runs. Weekly usage was at 97% at the start: an agent stopped by the limit resumes from its commits (`prompt slice … --continue`). **Next:** on each hand-off review and merge in plan order (3, then 7; for 7 first re-apply `dev`'s edits to the four docs since it branched), `pnpm test:tooling` (the wave has no tier) and one stack up and down, the Fable skeptic (rule 3), then ask split-ops before landing. **The user wants a push notification when wave 3 lands** (split-ops then prints marketing-2's start commands): tell split-ops at that landing. Older hand-offs: [`orchestration-split-2-history.md`](orchestration-split-2-history.md).
 
 **Wave 2 landed 2026-11-25 as 47fb5414** (PR #197, tier `integration`, `--no-review`: Codex was out of credits, so it didn't review this wave; landed on an unsynced tip, `dev`'s 2 newer commits sharing no file). CI: green on 00929e32 (run 45708541701). The Fable skeptic (rule 3): no at 878f964e (one blocker: `stack_hook`'s relative folder after `new.sh`'s `cd`), go at 00929e32 after the fix; its follow-ups are B-846. No docs folded (the plan folds them at the last landing). No other worktree was open (rule 4). Worktrees and branches of slices 2 and 6 are removed.
 
@@ -36,8 +36,8 @@
 | 5     | 1    | landed  | 73331f09                               |
 | 2     | 2    | landed  | 5b690d58                               |
 | 6     | 2    | landed  | 89ef0dda                               |
-| 3     | 3    | planned |                                        |
-| 7     | 3    | planned |                                        |
+| 3     | 3    | started |                                        |
+| 7     | 3    | started |                                        |
 | 8     | 4    | planned |                                        |
 | 9     | 4    | planned |                                        |
 
