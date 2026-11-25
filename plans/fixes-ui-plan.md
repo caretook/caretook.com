@@ -10,7 +10,9 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
+**Now (2026-11-24 late):** wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 first, alone; 67 and 68 start once 66 is merged. B-697 wording decided by the skeptic (s29, ask a211).
+
+**Previous hand-over:** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,8 +21,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State                                    | Merge |
+| ----- | ----- | ---------------------------------------- | ----- |
+| 66    | B-669 | started 2026-11-24 (opus)                |       |
+| 67    | B-693 | waits for 66                             |       |
+| 68    | B-697 | waits for 66 (wording decided, ask a211) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -940,3 +945,49 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/
 - [ ] Unit test (quick entry parsing): "pass" and "med time" both still match a slot.
 - [ ] Component tests beside the quick-entry files: the due suggestion and the gone message read med time.
 - [ ] Connector tests that pin description text are updated; tool names unchanged.
+
+## Wave 9 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no new dependency. No other PRD is running. B-669 (the shared toast system, moved into fixes-ui by the user 2026-11-24) is slice 66 alone; slices 67 and 68 are blocked by it and start once it is merged into prd/fixes-ui; they touch separate files and run at once. Read each item's backlog note (`pnpm backlog show B-<n>`). Held to later waves: B-684 (required-field asterisks, a wave of its own), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 66: Shared toast system on React Aria, behind ui/Toast (B-669)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/app-shell.md · Tests: unit, component
+
+**Problem.** `components/ui/Toast.tsx` is one fixed message per caller: two toasts overlap, there's no dismiss, no Undo, no timing. The user wants heavy use of toasts (B-693, B-697, onboarding-2's B-665 build on this).
+
+**Build.** A shared toast queue inside `components/ui/` on react-aria-components 1.22.1's `UNSTABLE_ToastRegion`, `UNSTABLE_ToastList`, `UNSTABLE_Toast` and `UNSTABLE_ToastQueue` (already a dependency; nothing new). The `UNSTABLE_` names are imported only inside `ui/`; screens call our own API (for example `toast({ message, action?, undo?, timeout? })` returning an id, plus `dismissToast(id)`), exported from `ui/index.ts`. One region mounted once in the `/app` layout (`routes/app/layout/route.tsx`), above the tab bar (`--tab-bar-height`, none from `sm`) and above the on-screen keyboard (B-664 hides the bar while typing), print hidden. It needs: a queue so toasts never overlap (newest shown, the rest wait or stack, your choice, say which), an optional action, a dismiss button, Undo as an action, caller-set timeout (none for an action-only toast such as Reload), toasts surviving a route change, never taking focus from what the user is typing, the region a live region for screen readers, and fade motion on `--motion` under `prefers-reduced-motion: no-preference` (instant under reduce). daisyUI styling, as today's toast. Migrate `routes/app/layout/UpdateNotice.tsx` and `routes/app/groups/timeline/AddedMedicationToast.tsx` to it and drop the old one-off `Toast` if nothing else uses it (update `routes/dev/ui/sections/ToastSection.tsx` and `MotionSection.tsx`). If React Aria's toast falls short on a phone (above the bar, keyboard open), extend our own component rather than add a library, and say so in the hand-off. Add the usage rules to `docs/domain/components.md` (toasts for finished actions, Undo, background news, one-time nudges; not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes; don't sweep inline `Message` uses) and the API to `docs/domain/ui-kit.md`.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`ui/Toast.browser.test.tsx`): two toasts queued never overlap; dismiss removes one; an action runs once and closes it; a timeout closes it; a toast without a timeout stays; reduced motion shows and hides at once.
+- [ ] Component test: a toast shown, then a route change, is still shown; focus stays in a text field while a toast appears.
+- [ ] The update notice and the added-medication notice still work through the new API (their existing tests updated).
+- [ ] `grep -rn "UNSTABLE_Toast" apps/web/app` finds only files under `components/ui/`.
+
+## Slice 67: New events and notes: the first save shows a saved toast (B-693)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: component · Blocked by: slice 66
+
+**Problem.** A new event or note saves silently on its first save; the user wants a toast.
+
+**Build.** In `routes/app/groups/entry/useLiveEntry.ts`'s `save()` (the one-off and repeating paths, each followed by a replace navigation from `entries/new` to `entries/:id`), show the slice 66 toast "Event saved" or "Note saved" by kind, once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider); never on later autosaves or a failed save. It's a local write: the wording must not imply it has synced, and it works offline. It goes through the shared queue so it survives the navigation, and it never takes focus or interrupts typing (a note's first save is usually its first typed text).
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside the entry route's tests): a new event's first save shows "Event saved" once; a second change to it shows no toast; a new note's first typed text shows "Note saved" and focus stays in the editor.
+- [ ] A failed first save shows no toast (its error stays inline).
+
+## Slice 68: Medications Schedule: logging a dose shows a toast (B-697)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: unit, component · Blocked by: slice 66
+
+**Problem.** Logging from the Medications Schedule tab shows no toast; only Given all shows an inline "Morning logged · Undo" line.
+
+**Build.** Decided for the user (ask a211, the user can veto): every log from the Schedule tab gets a slice 66 toast with Undo for about 10 s (`UNDO_MS`), through the existing Undo path in `lib/medications/passUndo.ts` (`offerUndo`, `clearUndo`: it deletes exactly the doses it wrote). Wording: one dose Given "Tylenol logged · Undo"; Skipped and Refused "Tylenol marked skipped · Undo" / "Tylenol marked refused · Undo"; Given all "Morning logged · Undo". Cover each path that logs from this tab: the one-tap Given (`DoseSlotRow` via `usePassLog.logSlot`), Skipped and Refused (`MarkDoseDialog`), the as-needed Log (the Schedule route's clientAction and `TodaySection`), and Given all. On the Schedule tab the toast replaces the inline `PassUndoStatus` line (`TodaySection.tsx`), so it never shows both; the other screens' `PassUndoStatus` lines (timeline, Today, the Dose sheet, quick entry, the Med times tab) stay as they are. Toast only after the local write succeeds; errors stay inline. Mind dose-accuracy's landed Undo fixes (B-614, B-627): Undo goes through the same service path.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`routes/app/groups/medications/today.browser.test.tsx` or beside it): a one-tap Given shows "<name> logged · Undo" and Undo removes that dose; Skipped and Refused show their toast; an as-needed Log shows its toast; Given all shows "Morning logged · Undo" as a toast and no inline line.
+- [ ] A failed log shows no toast, its error inline.
+- [ ] Unit test if `passUndo.ts` gains single-dose rounds.
