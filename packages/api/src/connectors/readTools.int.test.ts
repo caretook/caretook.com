@@ -503,6 +503,51 @@ describe("read tools", { timeout: 60_000 }, () => {
     await agreesWithTheCore(new Date("2030-06-12T07:05:00.000Z"));
   });
 
+  it("todays_doses: each med time carries its id, in the result and the text, and give_pass takes it", async () => {
+    // The real clock, as give_pass writes now.
+    const handler = handlerAt();
+    const w = await world();
+    const [morning, evening] = ok(
+      await medicationPassService.list(w.owner.ctx, { groupId: w.group.id }),
+    ).data;
+    // Started days ago, so Evening's slot is on today's schedule at any hour the test runs.
+    const daysAgo = { changedAt: hoursAgo(72) };
+    await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      {
+        name: "Metformin",
+        strength: "500 mg",
+        schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
+      },
+      daysAgo,
+    );
+    // A time of its own: a pass with no id.
+    await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      { name: "Aspirin", strength: null, schedule: { type: "scheduled", slots: [{ time: "13:00" }] } },
+      daysAgo,
+    );
+    const token = await w.connect(w.caretaker, "readWrite");
+    const result = await callTool(handler, token, "todays_doses");
+    const out = result.structuredContent as {
+      passes: { passId: string | null; name: string; time: string }[];
+    };
+    const byName = new Map(out.passes.map((p) => [p.name, p]));
+    expect(byName.get("Morning")?.passId).toBe(morning!.id);
+    expect(byName.get("Evening")?.passId).toBe(evening!.id);
+    expect(out.passes.find((p) => p.time === "13:00")?.passId).toBeNull();
+    const text = result.content[0]!.text;
+    expect(text).toContain(`Evening (20:00, `);
+    expect(text).toContain(`, id ${evening!.id}):`);
+    expect(text).toContain(`, id ${morning!.id}):`);
+
+    const pass = await callTool(handler, token, "give_pass", { passId: byName.get("Evening")!.passId });
+    expect(pass.isError).toBeUndefined();
+    expect(pass.structuredContent.entryIds).toHaveLength(1);
+  });
+
   it("upcoming: events soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
