@@ -12,8 +12,6 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 
 **Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
 
-**Wave 13 (2026-11-25, the user's pre-call wave):** only B-342, B-817, B-828 (slices 76–78, all opus). Held for later: B-325 (native safe area), B-694 (long create forms on tabs), B-819 (no-group page feedback), B-833 (quick entry tip uses a group provider). Slice worktrees made with `CARETOOK_USAGE_WATCH=off` (split week). **Deadline:** land and `pnpm prd rm fixes-ui` within about 2 to 2.5 h of 2026-11-25 start, before orchestration-split wave 6 (if late, wave 6 waits). Hot files set on the registry row.
-
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
 Notes for every wave:
@@ -21,13 +19,10 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-All three slices merged (prd tip 3b726996, dev sync: already up to date); wave CI run components requested 2026-11-25 (run 45660347915). Lean browser suite (the user said run it once): 10/11, ui.spec fail is B-808 (add sheet 0x0 under load), not ours. Docs folded into app-shell.md (ba854ef6). CI components green (run 45660347915, 3b726996). Dev synced (58a1d4e5), slice worktrees removed, PR #190 open; Codex out of credits (exit 4): landing `--no-review --tier components` now, land requests the post-sync recheck. Slices 76, 77, 78 were in flight (worktrees .loops/fixes-ui-76..78, opus agents spawned 2026-11-25; watch running).
+**Idle (2026-11-25):** wave 13 (B-342 Postgres pool, B-817 light tab bar, B-828 settings tap feedback; slices 76–78, opus) landed as dev 62ebbeeb through PR #190, `--no-review` (Codex out of credits), CI components green (run 45662544684); lean suite 10/11 (ui.spec = B-808, noted). Docs folded into app-shell.md. Still held: B-325 (native safe area), B-694 (long create forms on tabs), B-819 (no-group page feedback), B-833 (quick entry tip uses a group provider). Worktree removed; the next session starts fresh from triaged items. No slice in flight.
 
-| Slice | Item  | State         | Merge    |
-| ----- | ----- | ------------- | -------- |
-| 76    | B-342 | merged (opus) | dc2e5fc4 |
-| 77    | B-817 | merged (opus) | e57ed71a |
-| 78    | B-828 | merged (opus) | ee6117ca |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
