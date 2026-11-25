@@ -4,11 +4,11 @@
 
 ## Status
 
-**On hold** (registry row `orchestration-split`, flag `hold`): the user lifts it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
+**Running** since 2026-11-25, opened by the user by hand (the registry row still carries `hold`, which keeps the dispatcher off it). **Landing mode: run everything through** (the user, 2026-11-25): land each green wave and clean up, asking only real questions. **Slices to start: slice 1 only**; ask the user before starting wave 2 (slices 2 and 6). The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split` |
 | ----- | ---- | ------- | ------------------------------------ |
-| 1     | 1    | planned |                                      |
+| 1     | 1    | merged  | e90f5f02                             |
 | 2     | 2    | planned |                                      |
 | 6     | 2    | planned |                                      |
 | 3     | 3    | planned |                                      |
@@ -23,6 +23,19 @@
 | 12    | 7    | planned |                                      |
 
 **Backlog:** B-543 closes with the move (the runbook's last step).
+
+**Wave 1** (tier `integration`, plus `pnpm test:tooling`):
+
+- 2026-11-25: slice 1 started: worktree `.loops/orchestration-split-1` on `slice/orchestration-split/1` (from 85c7d058), one background agent on **Fable** (the user's choice: its lint rules and config shape decide what every later slice must clear). The stall watch runs beside it.
+- 2026-11-25: slice 1 handed off (f85fa596, slice check green with `CARETOOK_USAGE_WATCH` unset: B-818 filed in `fixes-tooling` for the test that reads it) and merged as e90f5f02. Its worktree stays until the wave is green. The wave's CI run (`pnpm prd ci run integration --wait`) is out. Its agent is past its context limit: a fix goes to a fresh `--continue` agent. Next: the verdict, sync, PR and Codex review, land, fold the docs (below), then ask about wave 2 and rotate.
+
+**What slice 1 set, for later slices** (fold into machinery at the last landing):
+
+- The config: `risa.json`; the loader `scripts/loops/config.mjs` (`get`, `dump`, `check`; an unknown key is an error); bash `config_get KEY` in `lib.sh`, loaded once at source. `RISA_CONFIG` overrides the path (the throwaway-repo tests set it through `config-fixture.mjs`, until slice 4's sample project). A new optional key `boundary.appPaths` holds the app paths the lint refuses.
+- The manifest `scripts/loops/boundary.manifest`: `<path> core|project`, sorted; a new file under the folders needs its line.
+- The lint `scripts/loops/boundary.mjs`: rules `project-env`, `project-name`, `app-path`, `core-to-project`, `project-to-core`; the allowlist `boundary.allowlist` is `<path> <rule> <count> [# why]`, exact counts (1,900 findings today), shrunk with `--write`, never grown. Blind spots: paths built from pieces, bare names with no extension, paths inside a regex group.
+- Ownership beyond the PRD's lists (one manifest line each to change): the project's are `lint-heap.test.mjs`, `workspace-config.test.mjs`, `fixes-plans.test.mjs`, `check-body.test.mjs`, `check-failed.mjs` and the prompt golden; core for now are `stack-lib.sh`, `stack.test.mjs`, `browser.sh`, `browser.test.mjs`, `ci.test.mjs`, `release.mjs`.
+- Left for slice 2: `lib.sh`'s `exempt_re` doesn't name `risa.json` yet.
 
 ## Architectural decisions
 
