@@ -17,7 +17,7 @@
     "checkAreas": "scripts/loops/check-areas.d",
     "brakeList": "scripts/ci/brake-list.txt",
     "quarantine": "scripts/ci/quarantine.txt",
-    "tooling": [".githooks", "risa.json"]
+    "tooling": [".githooks", "risa.json", "scripts/project"]
   },
   "branches": {
     "trunk": "dev",
