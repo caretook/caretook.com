@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -14,8 +15,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { holdLease } from "./browserLease.ts";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { holdLease } from "./browserLease";
 
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -48,13 +49,9 @@ afterEach(async () => {
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const held = (n = 1) => existsSync(join(leases, "browser", String(n)));
-const until = async (cond: () => boolean, ms = 10_000) => {
-  const end = Date.now() + ms;
-  while (!cond()) {
-    if (Date.now() > end) throw new Error("timed out");
-    await new Promise((r) => setTimeout(r, 50));
-  }
-};
+// Waits on a state (the lease's folder, a line of output) to come true.
+const until = (cond: () => boolean) =>
+  vi.waitFor(() => expect(cond()).toBe(true), { timeout: 10_000, interval: 50 });
 const hold = async (opts: Parameters<typeof holdLease>[0] = {}) => {
   const lease = await holdLease({ repo: REPO, main, env, ...opts });
   releases.push(lease.release);
@@ -94,7 +91,9 @@ describe("the browser lease helper", () => {
 
     let mine = false;
     const waiting = hold().then((lease) => ((mine = true), lease));
-    await new Promise((r) => setTimeout(r, 2500));
+    // The helper is queued behind the check (lease.sh's waiting file), not holding.
+    const waiters = join(leases, "browser", ".waiting");
+    await until(() => existsSync(waiters) && readdirSync(waiters).length === 1);
     expect(mine).toBe(false);
 
     check.stdin.end();

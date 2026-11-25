@@ -41,7 +41,7 @@ function leaseCommand(repo: string): string {
   try {
     config = JSON.parse(readFileSync(path, "utf8")) as typeof config;
   } catch (error) {
-    throw new Error(`browser lease: can't read ${path}: ${(error as Error).message}`);
+    throw new Error(`browser lease: can't read ${path}: ${(error as Error).message}`, { cause: error });
   }
   const command = config.hooks?.lease;
   if (typeof command !== "string" || !command.trim()) {
@@ -82,7 +82,7 @@ export function holdLease({
   try {
     command = leaseCommand(repo);
   } catch (error) {
-    return Promise.reject(error as Error);
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
   const args = [kind, "--label", label, "--watch", String(watch)];
   const child = spawn("sh", ["-c", `exec ${command} "$@"`, "lease", ...args], {
