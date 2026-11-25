@@ -65,6 +65,9 @@
     "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
     "browserHarness": "tooling:browser"
   },
+  "hooks": {
+    "check": "scripts/project/check-body.sh"
+  },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
   }
