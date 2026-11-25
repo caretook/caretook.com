@@ -10,7 +10,9 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 11 landed 2026-11-24 22:59 as dev 9f3d7027 through PR #179, `--no-review` (Codex out of credits); CI components green (run 45542165290, b951e50b), landed unsynced (dev shared no file). B-684 split in three, all opus: slice 70 (B-684, the shared `required` prop and `*`), 71 (B-801, medication/provider/profile/period forms), 72 (B-800, the rest). The first CI run (45539558339) was red: 29 label lookups (`Password` vs `Password*`; tests now use `labelled()` from `apps/web/test/required.ts`) and a real regression: consent boxes submitted unticked once `CheckField` dropped native `required` (fix: `nativeRequired`). Lesson for planning: a sweep of renamed labels breaks tests the slice check doesn't run; name the wider test files in the slice. Slices 71 and 72 ran to 28 and 30+ files. Browser --changed 7/7. Report filed; to-test/2026-11-24-2259-fixes-ui.md. Docs folded: ui-kit.md (required rule, `nativeRequired`, `labelled()`), trimmed under budget. Quarantined emergency test failed once (B-791, noted). Slice worktrees removed. **Next session:** `pnpm backlog ingest` and `list`; wave 12 from B-803 (mobile nav footer thinner, translucent with blur) and B-804 (offline banner), both triaged fixes-ui. Still held: B-694 (user approves each form live), B-325 (Capacitor).
+**Wave 12 (2026-11-25, in flight):** slices 73 (B-803, tab bar thinner/translucent), 74 (B-804, offline banner), 75 (B-806, loading screen; B-806 triaged in from the inbox this session), all opus, started at once. Hot files set to layout/, root.tsx, app.css, ui/. Merge in order 73, 74, 75; then CI per `pnpm prd tier`.
+
+**Previous hand-over:** wave 11 landed 2026-11-24 22:59 as dev 9f3d7027 through PR #179, `--no-review` (Codex out of credits); CI components green (run 45542165290, b951e50b), landed unsynced (dev shared no file). B-684 split in three, all opus: slice 70 (B-684, the shared `required` prop and `*`), 71 (B-801, medication/provider/profile/period forms), 72 (B-800, the rest). The first CI run (45539558339) was red: 29 label lookups (`Password` vs `Password*`; tests now use `labelled()` from `apps/web/test/required.ts`) and a real regression: consent boxes submitted unticked once `CheckField` dropped native `required` (fix: `nativeRequired`). Lesson for planning: a sweep of renamed labels breaks tests the slice check doesn't run; name the wider test files in the slice. Slices 71 and 72 ran to 28 and 30+ files. Browser --changed 7/7. Report filed; to-test/2026-11-24-2259-fixes-ui.md. Docs folded: ui-kit.md (required rule, `nativeRequired`, `labelled()`), trimmed under budget. Quarantined emergency test failed once (B-791, noted). Slice worktrees removed. **Next session:** `pnpm backlog ingest` and `list`; wave 12 from B-803 (mobile nav footer thinner, translucent with blur) and B-804 (offline banner), both triaged fixes-ui. Still held: B-694 (user approves each form live), B-325 (Capacitor).
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -1059,3 +1061,46 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component tests beside the forms: a new event, a note entry, a todo and a new group show the asterisk on exactly their required fields.
 - [ ] No user-visible label or help text under `apps/web/app` says "(optional)" or only "Optional" once slices 71 and 72 are both in (`grep` in the hand-off, naming any code-only hits left); existing tests pass with the new names.
+
+## Wave 12 (written 2026-11-25 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no new dependency. No other PRD is running. Slices 73 and 74 both mount in the `/app` layout (`routes/app/layout/`): 73 owns `SectionNav.tsx` and the tab bar's CSS in `app.css`, 74 adds its own component and only a mount line in `layout/route.tsx`; the orchestrator resolves any merge conflict. Slice 75 owns `root.tsx`'s `HydrateFallback` and the layout's loading state. Still held: B-694 (the user approves each form live), B-325 (Capacitor; slice 75 takes only its blank cold start).
+
+## Slice 73: The phone tab bar is thinner and translucent, its current section a full-height pill (B-803)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** The phone bottom tab bar (`nav[data-tab-bar]`, `routes/app/layout/SectionNav.tsx`, styles in `app.css`) is tall and opaque, and its current section is a small rounded button.
+
+**Build.** Make the bar thinner vertically (keep 44 px touch targets and the iOS home-indicator inset, `env(safe-area-inset-bottom)`, from B-763), slightly translucent with a backdrop blur over the content behind it (a solid fallback where `backdrop-filter` isn't supported; text keeps 4.5:1 in light and dark). The current section shows as a horizontal oval with the bar's own radius, filling its slot's height, and moves to the new section with a short motion (transform, about 200 ms) that `prefers-reduced-motion` turns off. Keep B-664's hide-while-typing and the end-of-page clearance (`frame.browser.test.tsx`): if the bar's height changes, the page padding that clears it changes with it.
+
+**Acceptance criteria.**
+
+- [ ] Browser component test at 420: the bar is shorter than before, has a `backdrop-filter`, and the current section's indicator spans its slot's height; with reduced motion there is no transition.
+- [ ] `frame.browser.test.tsx`, `tabBarKeyboard.browser.test.tsx` and `sectionNavPending.browser.test.tsx` pass (the end of a long page still clears the bar; a sheet is still over it).
+
+## Slice 74: A clear banner while offline (B-804)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component (browser)
+
+**Problem.** Offline, only the header's small `SyncIndicator` says so; users miss it.
+
+**Build.** An `OfflineBanner` in `routes/app/layout/` shown on every `/app` page while the device is offline, from the same connection state `SyncIndicator` reads (`lib/sync`), never a second source: "You're offline. Changes save on this device and sync when you reconnect." (`role="status"`, so it's announced once, not on every render). It isn't dismissable while offline and goes when the connection is back. It sits under the header, out of the content's way, and clear of the phone tab bar (slice 73) and open sheets; add only a mount line in `layout/route.tsx`. Easy mode keeps it too.
+
+**Acceptance criteria.**
+
+- [ ] Browser component test: offline shows the banner with its status role; back online hides it; at 420 it doesn't overlap the tab bar or the header.
+- [ ] `SyncIndicator`'s existing tests pass unchanged.
+
+## Slice 75: A loading screen instead of a blank page while the app starts (B-806)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component (browser)
+
+**Problem.** Starting the app, offline above all, shows a blank page: `root.tsx`'s `HydrateFallback` returns `null`, and the `/app` layout shows nothing while it opens the session and the local database (B-325 measured up to about 4 s).
+
+**Build.** One `AppLoading` screen (the Caretook mark and "Loading…", in daisyUI's loading style, centred, theme-aware with no flash: it renders before the theme script settles, so use the `:root` tokens) returned by `root.tsx`'s `HydrateFallback` (the only one, AGENTS.md) and by the `/app` layout while it waits on the session or the local database. It comes up only after about 300 ms so a fast start doesn't flicker (reduced motion: no spinner animation). Offline it says nothing alarming: the B-804 banner (slice 74) tells the user they're offline once the app is up. Don't touch the safe-area half of B-325.
+
+**Acceptance criteria.**
+
+- [ ] Browser component test: `HydrateFallback` renders the loading screen (`role="status"`, "Loading"); the layout shows it while the database open is pending and the page once it resolves; under 300 ms nothing shows.
+- [ ] `frame.browser.test.tsx` passes.
