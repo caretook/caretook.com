@@ -45,7 +45,7 @@ const open = async (width: number, listPath: string, items: readonly SettingsIte
       ],
     },
   ]);
-  render(<Stub initialEntries={[url]} />);
+  await render(<Stub initialEntries={[url]} />);
   return { first, second, release: gate.release };
 };
 
