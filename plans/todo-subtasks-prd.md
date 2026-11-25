@@ -72,3 +72,4 @@ Any todo can have subtasks, and subtasks can have their own, three levels deep. 
 
 - Seeds: append a Dev Family "Get ready for the hospital stay" with three subtasks: one done; one done by rollup, with its own done subtask; and one assigned to viewer@, the only open child, so `roundtrip`'s tick completes the parent. All fictional.
 - The rollup writes as the system but records the actor as `done_by`, so "Done by" shows who finished the job.
+- **Split in two topics** (the user's call after two skeptic send-backs on slice size, 2026-11-25): `todo-subtasks` builds the server, the device and the todo page in six small slices; `todo-subtasks-2` changes the lists (the _Implementation decisions_' "Lists"), in two. Both are held until the user lifts them.
