@@ -17,6 +17,11 @@ export type CheckFieldProps = Omit<
   error?: string;
   /** It must be checked: a `*` after the label, `aria-required` on the input (not the native attribute). */
   required?: boolean;
+  /**
+   * With `required`, the native attribute too: for a form the browser
+   * validates (the account forms' consent boxes, which must block the submit).
+   */
+  nativeRequired?: boolean;
   /** Classes for the outer element (a margin), never its look. */
   className?: string;
   /** Data hooks (`data-*`), on the input. */
@@ -40,6 +45,7 @@ export function CheckRow({
   help,
   error,
   required,
+  nativeRequired,
   className = "",
   look,
   "aria-describedby": describedBy,
@@ -54,6 +60,7 @@ export function CheckRow({
         {...input}
         {...control}
         aria-describedby={describers}
+        required={(required && nativeRequired) || undefined}
         type="checkbox"
         role={look === "toggle" ? "switch" : undefined}
         className={`${look} peer`}

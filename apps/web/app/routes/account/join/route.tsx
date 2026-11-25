@@ -217,6 +217,7 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
             className="mt-3 text-sm"
             name="legal"
             required={step === "recipient"}
+            nativeRequired
             error={issue("legal")}
             data-legal-box=""
             label={<LegalAgreement />}
