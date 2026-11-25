@@ -11,7 +11,7 @@ import { intWorkers, isOwnDatabase, maintenanceUrl, workerDatabaseNames } from "
 import { isError } from "../src/errors";
 import { loadTestEnv } from "./env";
 
-const TEST_DB_SCRIPT = fileURLToPath(new URL("../../../scripts/loops/test-db.sh", import.meta.url));
+const TEST_DB_SCRIPT = fileURLToPath(new URL("../../../scripts/project/test-db.sh", import.meta.url));
 
 const connect = async (url: string) => {
   const client = new pg.Client({ connectionString: url, connectionTimeoutMillis: 5000 });
