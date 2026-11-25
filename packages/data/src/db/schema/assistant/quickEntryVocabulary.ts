@@ -21,6 +21,8 @@ import { foldSearchText } from "../search/search";
  * - `newMedication`, `newProvider`: opening a line, a medication or provider to add ("new med
  *   lisinopril 10 mg"): a card whose Save opens the Add sheet filled in, ahead of any loose match
  *   to one the group has. With `wholeLine`, the line isn't split (its commas separate the fields).
+ * - `repeatWord`: opens a repeat ("every monday", "daily"): the line is a repeating todo, unless it
+ *   reads as a vital, dose or symptom. quickEntryRepeat.ts reads the words after it.
  */
 export type VocabularyRole =
   | "symptomIncident"
@@ -32,7 +34,8 @@ export type VocabularyRole =
   | "requestLead"
   | "reportWord"
   | "newMedication"
-  | "newProvider";
+  | "newProvider"
+  | "repeatWord";
 
 export type VocabularyEntry = {
   /** One or more words, matched folded and in order ("passed out"). */
@@ -49,6 +52,8 @@ export type VocabularyEntry = {
 const ASLEEP = ["asleep"];
 /** "call from Dr. Lee" is a call that came in, not one to make. */
 const RECEIVED = ["from"];
+/** "every hour" is a dose's interval, not a todo's repeat. */
+const NOT_A_REPEAT = ["hour", "hours", "hr", "hrs", "h", "minute", "minutes", "min", "mins", "m"];
 
 export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   // Incidents tracked as symptoms.
@@ -166,6 +171,12 @@ export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   { phrase: "add new provider", role: "newProvider", wholeLine: true },
   { phrase: "add doctor", role: "newProvider", wholeLine: true },
   { phrase: "add a doctor", role: "newProvider", wholeLine: true },
+
+  // A repeat: a todo that comes back ("bins out every monday"). Appended by planner-3 (B-254).
+  { phrase: "every", role: "repeatWord", unlessNext: NOT_A_REPEAT },
+  { phrase: "daily", role: "repeatWord" },
+  { phrase: "weekly", role: "repeatWord" },
+  { phrase: "monthly", role: "repeatWord" },
 ];
 
 /** A word as the vocabulary compares it: folded, letters and digits only ("E.R." → "er"). */

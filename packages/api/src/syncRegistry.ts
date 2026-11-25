@@ -5,6 +5,7 @@ import {
   appointmentSeriesService,
   carePeriodService,
   entryProviderService,
+  entryTodoService,
   isError,
   medicationConditionService,
   medicationPassService,
@@ -463,6 +464,8 @@ const medicationCondition = linkTable(
   "medication_id condition_id",
   medicationConditionService,
 );
+// Which todos a note or event links (planner-3).
+const entryTodo = linkTable("timeline_entry_todo", "entry_id todo_id", entryTodoService);
 
 // Live documents. Devices create a document (its id is the entry's) and
 // append Yjs updates; nothing else. Snapshots and text are the server's.
@@ -589,6 +592,7 @@ export const UPLOAD_REGISTRY: ReadonlyMap<string, UploadEntry> = new Map([
   ["condition_manager", conditionManager],
   ["appointment_series", appointmentSeries],
   ["symptom_type", symptomType],
+  ["timeline_entry_todo", entryTodo],
 ]);
 
 /** One op through its table's handler; any other table is read-only. */

@@ -139,6 +139,30 @@ describe("actionPreview", () => {
         .when,
     ).toBe("Due today");
   });
+
+  test("a repeating todo says its repeat after the due (planner-3)", () => {
+    const todo = { type: "addTodo", title: "Bins out", dueOn: "2026-11-23" } as const;
+    expect(actionPreview({ ...todo, repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO" }, context).when).toBe(
+      "Due Mon · Repeats weekly on Monday",
+    );
+    expect(
+      actionPreview(
+        { ...todo, dueTime: "07:00", repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR" },
+        context,
+      ).when,
+    ).toBe("Due Mon 07:00 · Repeats weekly on Monday, Wednesday and Friday");
+    expect(
+      actionPreview({ ...todo, dueOn: "2026-11-19", repeatRule: "FREQ=DAILY;INTERVAL=2" }, context).when,
+    ).toBe("Due today · Repeats every 2 days");
+    expect(
+      actionPreview(
+        { ...todo, dueOn: "2026-12-15", repeatRule: "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=15" },
+        context,
+      ).when,
+    ).toBe("Due Dec 15 · Repeats monthly on the 15th");
+    // No repeat: the due alone.
+    expect(actionPreview({ ...todo, repeatRule: null }, context).when).toBe("Due Mon");
+  });
 });
 
 describe("whenText", () => {

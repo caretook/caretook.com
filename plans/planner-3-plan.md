@@ -4,16 +4,20 @@
 
 ## Status
 
-**Where it stands:** replanned 2026-11-23, not started.
+**Where it stands (2026-11-25, landing):** all six slices merged (B-245, B-254, B-626 done); planner-3 lands once, as a whole. CI: full run 45558728409 on ee51ee7a, file, only dev's B-807; commits since are docs only; dev sync up to date. Browser suite: 10/11, `ui.spec.mjs` add-sheet 0×0 failure passed alone on a rerun: a load flake, filed as B-808 (fixes-tooling). Server restarted, PR #182 updated at 7d186339. Codex out of credits (review exit 4), so landing `--tier full --no-review` unasked. **Next if cut off:** `pnpm prd land --resume prd/planner-3`, then the report (`pnpm prd ask --report`), status-trim, `pnpm prd rm planner-3`, tell `connectors-3` that `addTodo.repeatRule` exists, `pnpm prd end`.
 
-| Slice | Wave | State       | Merge into `prd/planner-3` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------ |
-| 1     | 1    | not started |                                            |
-| 2     | 2    | not started |                                            |
-| 3     | 3    | not started |                                            |
-| 4     | 3    | not started |                                            |
-| 5     | 1    | not started |                                            |
-| 6     | 2    | not started |                                            |
+**Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
+
+**Models:** every slice opus.
+
+| Slice | Wave | State  | Merge into `prd/planner-3` (slice commits) |
+| ----- | ---- | ------ | ------------------------------------------ |
+| 1     | 1    | merged | d2597d36 (73a443ab, 09d71a4c)              |
+| 2     | 2    | merged | 59723f9e (007af375)                        |
+| 3     | 3    | merged | eeaae853 (9c36c84d)                        |
+| 4     | 3    | merged | 3a384244 (f26c6ccb)                        |
+| 5     | 1    | merged | 52cba3db (052fe85c, 03217f19)              |
+| 6     | 2    | merged | 84dd0a7d (d99e07ab, 4f457b42)              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 

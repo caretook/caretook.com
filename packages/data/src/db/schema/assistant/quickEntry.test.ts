@@ -80,6 +80,12 @@ describe("splitting", () => {
     ["bp 130/85 and t: call the pharmacy then fax it", ["bp 130/85", "t: call the pharmacy then fax it"]],
     ["   ", []],
     [",,, ;", []],
+    // A repeat's weekdays are one part (B-254); what follows them splits as ever.
+    ["every mon, wed and fri walk the dog", ["every mon, wed and fri walk the dog"]],
+    ["walk the dog every Tue & Thu, gave metformin", ["walk the dog every Tue & Thu", "gave metformin"]],
+    ["bins out every monday and gave metformin", ["bins out every monday", "gave metformin"]],
+    ["every other week on mon + fri mow", ["every other week on mon + fri mow"]],
+    ["saw dr lee on mon, wed was fine", ["saw dr lee on mon", "wed was fine"]],
   ])("%s", (line, parts) => {
     expect(splitQuickEntry(line)).toEqual(parts);
   });
@@ -1511,6 +1517,14 @@ describe("the vocabulary", () => {
         expect(r.newItem).toMatchObject({ kind, name: role === "newMedication" ? "Amlodipine" : "Dr Kim" });
         return;
       }
+      if (role === "repeatWord") {
+        // A repeating todo: "water the plants daily", "… every day".
+        const r = top(`water the plants ${phrase}${phrase === "every" ? " day" : ""}`);
+        expect(r.kind).toBe("todo");
+        expect(action(r)).toMatchObject({ title: "Water the plants" });
+        expect(action(r)).toHaveProperty("repeatRule", expect.stringMatching(/^FREQ=/));
+        return;
+      }
       if (role === "reportWord") {
         expect(top(`call the pharmacy ${phrase} in the evening`).kind).toBe("note");
         return;
@@ -2003,6 +2017,157 @@ describe("times", () => {
   test("in another zone, times are the recipient's", () => {
     const r = top("bp 120/80 at 7am", { timeZone: "America/New_York" });
     expect(when(r)).toBe(at("2026-11-19T12:00:00Z"));
+  });
+});
+
+describe("repeats (B-254)", () => {
+  type Repeating = {
+    title: string;
+    assigneeId: string | null;
+    dueOn: string;
+    dueTime: string | null;
+    repeatRule: string;
+  };
+  const todoOf = (r: QuickEntryReading): Repeating => {
+    const a = action(r);
+    if (a.type !== "addTodo") throw new Error(`not a todo: ${a.type}`);
+    return {
+      title: a.title,
+      assigneeId: a.assigneeId ?? null,
+      dueOn: a.dueOn!,
+      dueTime: a.dueTime ?? null,
+      repeatRule: a.repeatRule!,
+    };
+  };
+  const MONDAYS = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+
+  test.each<[string, Repeating]>([
+    // The item's line: no prefix, the first Monday ahead, the repeat's words out of the title.
+    [
+      "bins out every monday",
+      { title: "Bins out", assigneeId: null, dueOn: "2026-11-23", dueTime: null, repeatRule: MONDAYS },
+    ],
+    // With a time and a member.
+    [
+      "bins out every monday 7am for Sam",
+      { title: "Bins out", assigneeId: SAM, dueOn: "2026-11-23", dueTime: "07:00", repeatRule: MONDAYS },
+    ],
+    // Today included (Thursday), a day of the month, the phrase first.
+    [
+      "water plants every thursday",
+      {
+        title: "Water plants",
+        assigneeId: null,
+        dueOn: "2026-11-19",
+        dueTime: null,
+        repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=TH",
+      },
+    ],
+    [
+      "pay rent on the 1st of every month",
+      {
+        title: "Pay rent",
+        assigneeId: null,
+        dueOn: "2026-12-01",
+        dueTime: null,
+        repeatRule: "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=1",
+      },
+    ],
+    [
+      "every other day check the feeding tube at 9pm",
+      {
+        title: "Check the feeding tube",
+        assigneeId: null,
+        dueOn: "2026-11-19",
+        dueTime: "21:00",
+        repeatRule: "FREQ=DAILY;INTERVAL=2",
+      },
+    ],
+    // The weekday list as one part.
+    [
+      "walk the dog every mon, wed and fri",
+      {
+        title: "Walk the dog",
+        assigneeId: null,
+        dueOn: "2026-11-20",
+        dueTime: null,
+        repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR",
+      },
+    ],
+  ])("%s", (line, expected) => {
+    const parts = parse(line);
+    expect(parts).toHaveLength(1);
+    const r = parts[0]!.readings[0]!;
+    expect(r.kind).toBe("todo");
+    expect(todoOf(r)).toEqual(expected);
+    expect(blocking(r)).toEqual([]);
+    expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+    // The note stays one tap away, dated now with the whole line.
+    expect(action(parts[0]!.readings.find((x) => x.kind === "note")!)).toMatchObject({
+      text: line,
+      occurredAt: NOW.toISOString(),
+    });
+  });
+
+  test("todo: with a repeat", () => {
+    const readings = parse("todo: put the bins out every monday for Sam")[0]!.readings;
+    expect(readings.map((r) => r.label)).toEqual(["Todo", "Note"]);
+    expect(todoOf(readings[0]!)).toEqual({
+      title: "Put the bins out",
+      assigneeId: SAM,
+      dueOn: "2026-11-23",
+      dueTime: null,
+      repeatRule: MONDAYS,
+    });
+  });
+
+  test("a dose line stays a log, with no repeating todo", () => {
+    for (const line of ["gave tylenol every day", "gave tylenol every 4 hours"]) {
+      const readings = parse(line)[0]!.readings;
+      expect(readings[0]!.kind).toBe("dose");
+      expect(readings.map((r) => r.kind)).not.toContain("todo");
+    }
+    expect(top("dizzy every day").kind).toBe("symptom");
+    expect(top("bp 130/85 every monday").kind).toBe("vital");
+  });
+
+  test("a line that tells what happened, or adds a medication, keeps its repeat words", () => {
+    expect(parse("she was tired every day")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
+    expect(top("new med lisinopril 10 mg daily").kind).toBe("medication");
+  });
+
+  test("a provider's line stays an event first, saying it won't repeat; the repeating todo second", () => {
+    const readings = parse("appt dr lee every tuesday 2pm")[0]!.readings;
+    expect(readings.map((r) => r.kind).slice(0, 2)).toEqual(["event", "todo"]);
+    expect(action(readings[0]!)).toMatchObject({
+      type: "addEvent",
+      providerIds: [LEE],
+      occurredAt: at("2026-11-24T22:00:00Z"),
+      allDay: false,
+    });
+    expect(warnings(readings[0]!)).toEqual([
+      "Quick entry can't make a repeating event, so this is only the first one. Make it a todo to repeat it.",
+    ]);
+    expect(blocking(readings[0]!)).toEqual([]);
+    expect(todoOf(readings[1]!)).toMatchObject({
+      dueOn: "2026-11-24",
+      dueTime: "14:00",
+      repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=TU",
+    });
+    // A provider named alone does the same.
+    expect(
+      parse("dr lee every monday")[0]!
+        .readings.map((r) => r.kind)
+        .slice(0, 2),
+    ).toEqual(["event", "todo"]);
+  });
+
+  test("words that only look like a repeat read as before", () => {
+    expect(top("everyone was tired").kind).toBe("symptom");
+    expect(parse("everyone was tired")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
+    expect(top("call pharmacy every hour").kind).not.toBe("todo");
+    const todo = action(top("call pharmacy friday"));
+    expect(todo).not.toHaveProperty("repeatRule");
   });
 });
 

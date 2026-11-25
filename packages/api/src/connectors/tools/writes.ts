@@ -333,7 +333,10 @@ export const addTodo = defineTool({
     "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
-    ...(({ assigneeId: _assigneeId, ...rest }) => rest)(shapeOf(addTodoActionZSchema)),
+    // No repeat yet (B-253): a `repeatRule` sent is dropped with the other unknown keys.
+    ...(({ assigneeId: _assigneeId, repeatRule: _repeatRule, ...rest }) => rest)(
+      shapeOf(addTodoActionZSchema),
+    ),
     assignee: z.string().trim().min(1).max(120).optional().describe("The member to do it, by name."),
   }),
   annotations: WRITE_ANNOTATIONS,

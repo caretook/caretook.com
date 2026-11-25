@@ -223,16 +223,18 @@ describe("isUntouchedNext", () => {
     expect(isUntouchedNext(ticked, next())).toBe(true);
   });
 
-  it("is false once it's edited, ticked, deleted or linked to an appointment", () => {
+  it("is false once it's edited, ticked or deleted", () => {
     expect(isUntouchedNext(ticked, { ...next(), title: "Bins and recycling" })).toBe(false);
     expect(isUntouchedNext(ticked, { ...next(), dueTime: "20:00" })).toBe(false);
     expect(isUntouchedNext(ticked, { ...next(), assigneeId: null })).toBe(false);
     expect(isUntouchedNext(ticked, { ...next(), repeatRule: "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO" })).toBe(false);
     expect(isUntouchedNext(ticked, { ...next(), doneAt: "2026-11-23T20:00:00Z" })).toBe(false);
     expect(isUntouchedNext(ticked, { ...next(), deletedAt: "2026-11-23T20:00:00Z" })).toBe(false);
-    expect(isUntouchedNext(ticked, { ...next(), eventId: "5a2f6b7c-8d9e-4f0a-9b1c-d3e4f5a6b7c8" })).toBe(
-      false,
-    );
+  });
+
+  it("leaves links to its callers: the old event column isn't read (link rows are, by the caller)", () => {
+    const withOldColumn = { ...next(), eventId: "5a2f6b7c-8d9e-4f0a-9b1c-d3e4f5a6b7c8" };
+    expect(isUntouchedNext(ticked, withOldColumn)).toBe(true);
   });
 
   it("is false for a row moved to another day (its id no longer matches)", () => {

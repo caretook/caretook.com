@@ -9,6 +9,7 @@ import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
+import { OpenTodosMark } from "./OpenTodosMark";
 import { CANCELLED_TEXT, CancelledBadge, EntryCopyLink } from "./TimelineEntryRow";
 
 /** One entry as a compact card: the body's first line beside the time, all its text, then who wrote it. */
@@ -25,6 +26,7 @@ export function TimelineEntryCard({
   liveLabel,
   providers,
   search,
+  openTodos,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -53,6 +55,7 @@ export function TimelineEntryCard({
         footer={
           <>
             {cancelled && <CancelledBadge label={cancelled} />}
+            <OpenTodosMark count={openTodos} />
             <p className="text-faint inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
               <ViaTag via={entry.via} className="ml-1.5" />

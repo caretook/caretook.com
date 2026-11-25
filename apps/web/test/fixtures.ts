@@ -13,6 +13,7 @@ import {
   conditionManagerId,
   encodeNoteDoc,
   entryProviderId,
+  entryTodoId,
   medicationConditionId,
   noteDocFromText,
   symptomTypeRow,
@@ -665,6 +666,24 @@ export const symptomType = (name = "Nausea", v: Partial<Values<"symptomTypes">> 
   const base = symptomTypeRow(v.groupId ?? groupId, name);
   return row("symptomTypes", {
     ...base,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by planner-3 slice 1 ----------------------------------------------
+
+/** A timeline entry linking a todo (the entry's Todos, the todo's Linked to). */
+export const entryTodo = (entryId: string, todoId: string, v: Partial<Values<"timelineEntryTodos">> = {}) => {
+  const created = hoursAgo(1);
+  return row("timelineEntryTodos", {
+    id: entryTodoId(entryId, todoId),
+    groupId,
+    entryId,
+    todoId,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

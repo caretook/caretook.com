@@ -16,20 +16,25 @@ import {
 export type TodoLinkIds = { providerId: string | null; eventId: string | null; medicationId: string | null };
 
 /**
- * The todo's three optional links: a provider ("Call Dr. Lee's office"), an
+ * The todo's optional links: a provider ("Call Dr. Lee's office"), an
  * appointment (upcoming or from the last 30 days: "Bring the insurance
  * card") and a current medication ("Refill Metformin"). Each is one choice,
  * cleared with ×. A link chosen earlier that's since been removed or
  * cancelled stays on its chip, greyed, until it's cleared.
+ *
+ * The appointment only on a new todo (`withEvent`): it's saved as a link row
+ * (planner-3), which editing the todo leaves alone.
  */
 export function TodoLinkFields({
   choices,
   initial,
   errors,
+  withEvent = true,
 }: {
   choices: LinkChoices;
   initial: TodoLinkIds;
   errors: Partial<Record<keyof TodoLinkIds, string>>;
+  withEvent?: boolean;
 }) {
   const { providers, events, medications } = choices;
 
@@ -83,18 +88,20 @@ export function TodoLinkFields({
         initialId={initial.providerId}
         error={errors.providerId}
       />
-      <LinkPickerField
-        name={FIELD.eventId}
-        legend="Event"
-        comboLabel="Find an event"
-        placeholder="Upcoming and recent events"
-        emptyText="No events match"
-        clearLabel="Clear the event"
-        optionsFor={eventOptions}
-        chipFor={eventChip}
-        initialId={initial.eventId}
-        error={errors.eventId}
-      />
+      {withEvent && (
+        <LinkPickerField
+          name={FIELD.eventId}
+          legend="Event"
+          comboLabel="Find an event"
+          placeholder="Upcoming and recent events"
+          emptyText="No events match"
+          clearLabel="Clear the event"
+          optionsFor={eventOptions}
+          chipFor={eventChip}
+          initialId={initial.eventId}
+          error={errors.eventId}
+        />
+      )}
       <LinkPickerField
         name={FIELD.medicationId}
         legend="Medication"

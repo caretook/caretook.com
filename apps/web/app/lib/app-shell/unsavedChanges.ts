@@ -56,6 +56,7 @@ const KINDS: Record<string, string> = {
   care_recipient: "profile",
   todo: "to-do",
   appointment_series: "repeating event",
+  timeline_entry_todo: "entry's to-do",
 };
 
 /** The kind of thing a table holds; an unknown table is a "change". */

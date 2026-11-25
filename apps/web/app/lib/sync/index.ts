@@ -53,6 +53,7 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
           conditions: await import("../profiles/conditions.sync"),
           medicationConditions: await import("../profiles/medicationConditions.sync"),
           notes: await import("../live-notes/notes.sync"),
+          entryTodos: await import("../todos/entryTodos.sync"),
         });
       }
       // The search index follows the database (built in the background).

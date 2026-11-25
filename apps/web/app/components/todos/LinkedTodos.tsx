@@ -22,7 +22,8 @@ import { useTodoTick } from "./useTodoTick";
  * sheet with the link filled in (and comes back here when it closes).
  *
  * `band`: on a banded page (a provider's, a medication's) it is a `Section`
- * of its own; without it (an entry's page) it looks as it always has.
+ * of its own; without it, a plain section. An entry's page has its own
+ * Todos (`EntryTodos`, planner-3).
  */
 export function LinkedTodos({
   link,
