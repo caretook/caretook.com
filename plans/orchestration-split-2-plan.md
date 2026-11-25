@@ -10,7 +10,7 @@
 
 **Wave 2 (started 2026-11-25):** `pnpm prd sync` found nothing to merge (dev is at eaba1e81, wave 1's landing). Slices 2 (the stack as Caretook's; worktree `orchestration-split-2-2`, slot 2, stack up) and 6 (the loop, hotfix and recovery docs split; worktree `orchestration-split-2-6`, no stack) were made with `CARETOOK_USAGE_WATCH=off`, each with one background agent on opus (real logic; judgement on what is generic). The watch runs in the background. Slice 2 was told it may take B-844's point 2 (the test DB name and port parity) if it fits its files, and to say so in its hand-off. Both were told of B-818 (run the slice check with `env -u CARETOOK_USAGE_WATCH` if the shell has it; split-ops's fix is still uncommitted on `dev`).
 
-**Next:** review each hand-off and merge in plan order (2, then 6). Before merging 6, diff `dev`'s loop, hotfix and recovery docs since eaba1e81 and re-apply each edit to the right half. Then `pnpm test:tooling`, the wave's CI run (`pnpm prd tier`; the plan expects `integration`), a Fable skeptic on the merged code (rule 3), the PR, and ask split-ops before landing (rules 4 and 6: no other worktree open). Still open with split-ops: whether B-844's other points fold into slice 9.
+**Next:** review each hand-off and merge in plan order (2, then 6). Before merging 6, diff `dev`'s loop, hotfix and recovery docs since eaba1e81 and re-apply each edit to the right half. Then `pnpm test:tooling`, the wave's CI run (`pnpm prd tier`; the plan expects `integration`), a Fable skeptic on the merged code (rule 3), the PR, and ask split-ops before landing (rules 4 and 6: no other worktree open). B-818's fix is on `dev` as 2c40ee7b (the slices get it at their next sync; until then the `env -u` workaround).
 
 **Wave 1 landed 2026-11-25 as eaba1e81** (PR #196, tier `full`, `--no-review`: Codex was out of credits, so it didn't review this wave). Slices 1, 4 and 5 ran on opus; their worktrees and branches are removed. CI: green on 1a1193dd (run 45696803555); a first run failed on an unhandled rejection in app code the wave doesn't touch, filed as B-845 (fixes-tooling). The Fable skeptic (rule 3) on the merged code: go, no blocker; its follow-ups are B-844 (this topic, no slice yet: propose one to split-ops, or fold into slice 9). No docs folded: the plan folds them at the last landing (the machinery doc still says Node callers use `lease.mjs`). No other worktree was open at the landing (rule 4).
 
@@ -26,7 +26,7 @@
 5. Big choices (an `asked` PRD decision, or a new one of that size) go to the user one at a time through split-ops.
 6. Ask split-ops before each landing and before `pnpm prd rm` / `end`.
 
-**Backlog:** B-543 (the split, the topic's item); B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups) are slice 9 (wave 4, on the user's word).
+**Backlog:** B-543 (the split, the topic's item); B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups) and B-844 (this PRD's wave 1 skeptic's) are slice 9 (wave 4, on the user's word; B-844 relayed by split-ops 2026-11-25, its point 2 going to slice 2 if it fits that slice's files).
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
 | ----- | ---- | ------- | -------------------------------------- |
@@ -200,16 +200,17 @@ Stack: no · Reads: docs/agents/machinery.md, docs/orchestration.md · Tests: un
 
 Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
 
-**User stories:** 3, 6. Backlog items B-838 and B-842 (added 2026-11-25 on the user's word; `pnpm backlog show` has each numbered point with its file and line).
+**User stories:** 3, 6. Backlog items B-838, B-842 and B-844 (added 2026-11-25 on the user's word; `pnpm backlog show` has each numbered point with its file and line).
 
 **What to build**
 
 - **B-838:** a test ties the verdict fixtures and the one `VERDICT_VERSION` to `buildVerdict`; a former id prefix, when set, is read everywhere the current one is matched (the inbox tags, `land.sh --fixes`, `prd.sh`, the plan prompt, the CI args, lists and blame), with a test of an ingest under a new prefix; `tidy-cli.mjs` and `pr.sh` take a slice's topic and the branch prefixes through the one helper; `ls.sh` escapes the prefix in its pattern; a broken `risa.json` gives each importer of `registry.mjs` and `format.mjs` its own clear error; `outstanding.mjs` and `prd.sh`'s help take the branch prefixes from the config.
 - **B-842:** `doc-budget.mjs` exits 2 on any error that isn't a breach; the eight `scripts/ci` modules read the tier data when first used, not at import; `proposedTiers` and `tierRank` load the config once; an unset `ciFailureTopic` refuses to file; `prd.sh`'s check case tells a failed `git diff` from a failed check plan; `isFolder` stats under `--repo`; the core's `nextSlice` has its own test; `landing.mjs` reads the reset command from the config and `land.sh`'s next-steps line drops "after landing"; the `vitest.config.ts` comment; `check-areas.test` and `test-projects.test` pass without the core or join the PRD's residual list.
+- **B-844:** the points slice 2 didn't take: the browser lease test finds the tool in CI after the move; the lease spawn's exec takes more than a simple command, or refuses one clearly; `sectionOf`'s fence and heading edge cases; `test-db.sh` gives a clear error outside git; and the test DB name and port parity, if slice 2 left it.
 - Not here: Risa's id counter starting above Caretook's highest id (the move runbook's step 3). A point that turns out to need a choice of the PRD's _Decisions_ size is left, with a note on its item.
 
 **Acceptance criteria**
 
-- Each numbered point of the two items is fixed with a test, or named in the hand-off with why it was left; `pnpm test:tooling` passes; no behaviour of Caretook's commands changes (the prompt goldens and the CI verdict fixtures pass unchanged).
+- Each numbered point of the three items is fixed with a test, or named in the hand-off with why it was left; `pnpm test:tooling` passes; no behaviour of Caretook's commands changes (the prompt goldens and the CI verdict fixtures pass unchanged).
 
 **Blocked by:** 3, 7 (they change the same scripts and docs). **Blocks:** `orchestration-split-3`.
