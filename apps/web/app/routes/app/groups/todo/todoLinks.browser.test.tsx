@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
 import { describe, expect, test } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import * as todoRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, entryTodo, fx, todo, TEST_GROUP } from "../../../../../test/fixtures";
@@ -15,7 +15,15 @@ import { removeEntry } from "~/lib/timeline/timeline.sync";
 // are link rows (planner-3): the fixtures are a backfilled todo, its
 // `event_id` with the row the migration made for it.
 
-const ROUTES: DeviceRoute[] = [{ path: "/app/groups/:groupId/todos/:todoId", module: todoRoute }];
+/** Stands in for an entry's page. */
+function EntryProbe() {
+  return <h1>Entry page</h1>;
+}
+
+const ROUTES: DeviceRoute[] = [
+  { path: "/app/groups/:groupId/todos/:todoId", module: todoRoute },
+  { path: "/app/groups/:groupId/entries/:entryId", module: { default: EntryProbe } },
+];
 const pageOf = (id: string) => `/app/groups/${TEST_GROUP.id}/todos/${id}`;
 
 const HOUR = 3_600_000;
@@ -148,12 +156,129 @@ describe("the todo page's links", () => {
     ).toEqual(["Echo scan", "Cardiology follow-up"]);
   });
 
-  test("shows no links region for a todo without links", async () => {
+  test("shows a reader no links region for a todo without links", async () => {
     const plain = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d02", title: "Water the plants" });
-    await open(plain.id, [plain]);
+    await open(plain.id, [plain], "viewer");
     await expect
       .element(page.getByRole("heading", { name: "Water the plants", level: 1 }))
       .toBeInTheDocument();
     expect(document.querySelector("[data-todo-links]")).toBeNull();
+  });
+});
+
+// Linked to lists every linked note and event (planner-3 slice 4): newest
+// first, a note by its title or first line, each opening its page; writers
+// link more and remove links, readers only read.
+
+const NOTE_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9e01";
+const CALL_NOTE = fx.note({
+  id: NOTE_ID,
+  occurredAt: when(-2 * DAY),
+  text: "Pharmacy said the refill is late\nCall back Friday",
+});
+const OTHER_NOTE = fx.note({
+  id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9e02",
+  occurredAt: when(-DAY),
+  text: "Sleep was better this week",
+});
+const SYMPTOM = fx.symptom({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9e03", name: "Sore knee" });
+const REFILL = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d03", title: "Chase the refill" });
+const TWO_LINKED = [
+  VISIT,
+  CALL_NOTE,
+  OTHER_NOTE,
+  SYMPTOM,
+  REFILL,
+  entryTodo(VISIT.id, REFILL.id),
+  entryTodo(NOTE_ID, REFILL.id),
+  // No kind check in the table: the screen shows notes and events only.
+  entryTodo(SYMPTOM.id, REFILL.id),
+];
+const linkNames = () =>
+  [...document.querySelectorAll("[data-todo-links] [data-todo-link-name]")].map((el) => el.textContent);
+
+describe("the todo page's linked entries", () => {
+  test("lists a note and an event, newest first, and opens them", async () => {
+    const device = await open(REFILL.id, TWO_LINKED);
+    await expect.poll(linkNames).toEqual(["Cardiology follow-up", "Pharmacy said the refill is late"]);
+    expect(row("note")?.querySelector("[data-todo-link-when]")?.textContent).toMatch(
+      / · \d{1,2}:\d\d [AP]M$/,
+    );
+    const links = page.getByRole("region", { name: "Linked to" });
+    await expect
+      .element(links.getByRole("link", { name: "Cardiology follow-up" }))
+      .toHaveAttribute("href", `/app/groups/${TEST_GROUP.id}/entries/${VISIT.id}`);
+    await userEvent.click(links.getByRole("link", { name: "Pharmacy said the refill is late" }));
+    await expect.element(page.getByRole("heading", { name: "Entry page" })).toBeInTheDocument();
+    expect(device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${NOTE_ID}`);
+  });
+
+  test("a deleted entry drops out", async () => {
+    const device = await open(REFILL.id, TWO_LINKED);
+    await expect.poll(linkNames).toHaveLength(2);
+    await device.sync(
+      fx.note({
+        id: NOTE_ID,
+        occurredAt: when(-2 * DAY),
+        text: "Pharmacy said the refill is late",
+        deletedAt: when(-HOUR),
+      }),
+    );
+    await device.settle();
+    await expect.poll(linkNames).toEqual(["Cardiology follow-up"]);
+  });
+
+  test("a reader sees no Remove and no Link an entry", async () => {
+    await open(REFILL.id, TWO_LINKED, "viewer");
+    await expect.poll(linkNames).toHaveLength(2);
+    expect(document.querySelector("[data-todo-link-remove]")).toBeNull();
+    expect(document.querySelector("[data-todo-link-add]")).toBeNull();
+  });
+
+  test("a writer removes a link: the entry and the todo stay, the link row goes", async () => {
+    const device = await open(REFILL.id, TWO_LINKED);
+    await expect.poll(linkNames).toHaveLength(2);
+    await userEvent.click(page.getByRole("button", { name: "Remove link to Cardiology follow-up" }));
+    await device.settle();
+    await expect.poll(linkNames).toEqual(["Pharmacy said the refill is late"]);
+    const left = await device.query<{ entry_id: string }>(
+      "SELECT entry_id FROM timeline_entry_todo WHERE todo_id = ?",
+      [REFILL.id],
+    );
+    expect(left.map((r) => r.entry_id).sort()).toEqual([NOTE_ID, SYMPTOM.id].sort());
+    expect(await device.query("SELECT deleted_at FROM timeline_entry WHERE id = ?", [VISIT.id])).toEqual([
+      { deleted_at: null },
+    ]);
+    expect((await device.queued()).map((w) => `${w.op} ${w.id}`)).toEqual([
+      `DELETE ${entryTodo(VISIT.id, REFILL.id).id}`,
+    ]);
+  });
+
+  test("a writer links another note from the search, offline", async () => {
+    const device = await open(REFILL.id, TWO_LINKED);
+    await expect.poll(linkNames).toHaveLength(2);
+    await userEvent.click(page.getByRole("button", { name: "Link an entry" }));
+    const search = page.getByRole("combobox", { name: "Link an entry" });
+    await expect.element(search).toHaveFocus();
+    // Linked ones aren't offered.
+    await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBe(1);
+    await userEvent.keyboard("sleep");
+    await userEvent.click(page.getByRole("option", { name: /^Sleep was better this week/ }));
+    await device.settle();
+    await expect
+      .poll(linkNames)
+      .toEqual(["Cardiology follow-up", "Sleep was better this week", "Pharmacy said the refill is late"]);
+    await expect.element(page.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
+    expect((await device.queued()).map((w) => `${w.op} ${w.id}`)).toEqual([
+      `PUT ${entryTodo(OTHER_NOTE.id, REFILL.id).id}`,
+    ]);
+  });
+
+  test("a writer sees Linked to with Link an entry on a todo without links", async () => {
+    const plain = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d04", title: "Water the plants" });
+    await open(plain.id, [plain]);
+    const links = page.getByRole("region", { name: "Linked to" });
+    await expect.element(links.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
+    expect(links.element().querySelector("ul")).toBeNull();
   });
 });

@@ -122,3 +122,40 @@ export const unlinkTodo = async (db: SyncDb, entryId: string, todoId: string): P
   await db.drizzle.delete(timelineEntryTodos).where(eq(timelineEntryTodos.id, id));
   return { ok: true };
 };
+
+// ---------------------------------------------------------------------------
+// The todo page's Linked to (planner-3 slice 4)
+// ---------------------------------------------------------------------------
+
+/** The documents of a todo's live linked entries, as `NoteDocRow`s (their preview text: `previewText`). */
+export const todoEntryDocumentsQuery = (todoId: string): LocalQuery => ({
+  sql: `SELECT d.id, d.snapshot, d.text,
+               (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = d.id) AS updates
+        FROM timeline_entry_todo l
+        JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
+        JOIN note_document d ON d.id = e.id
+        WHERE l.todo_id = ? AND e.deleted_at IS NULL`,
+  params: [todoId],
+});
+
+export type LinkableEntryRow = {
+  id: string;
+  kind: string;
+  title: string | null;
+  occurred_at: string;
+  text: string | null;
+};
+
+/** How many notes and events "Link an entry" reads (newest first). */
+export const LINKABLE_ENTRIES_LIMIT = 500;
+
+/** The group's live notes and events this todo doesn't link yet, newest first, with their documents' text. */
+export const linkableEntriesQuery = (groupId: string, todoId: string): LocalQuery => ({
+  sql: `SELECT e.id, e.kind, e.title, e.occurred_at, d.text FROM timeline_entry e
+        LEFT JOIN note_document d ON d.id = e.id
+        WHERE e.group_id = ? AND e.kind IN ('note', 'event') AND e.deleted_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM timeline_entry_todo l WHERE l.entry_id = e.id AND l.todo_id = ?)
+        ORDER BY e.occurred_at DESC, e.id DESC
+        LIMIT ${LINKABLE_ENTRIES_LIMIT}`,
+  params: [groupId, todoId],
+});

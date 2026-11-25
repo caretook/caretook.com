@@ -749,13 +749,4 @@ export const todoEventChoicesQuery = (
   params: [groupId, toLocalTimestamp(from), chosenId ?? ""],
 });
 
-/** A todo's linked live events (its link rows), newest first. */
-export const linkedEventsQuery = (todoId: string): LocalQuery => ({
-  sql: `SELECT e.* FROM timeline_entry_todo l
-        JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
-        WHERE l.todo_id = ? AND e.kind = 'event' AND e.deleted_at IS NULL
-        ORDER BY e.occurred_at DESC, e.id DESC`,
-  params: [todoId],
-});
-
 import { toLocalTimestamp } from "../timeline/timeline.sync";
