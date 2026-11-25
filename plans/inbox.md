@@ -6,6 +6,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- Switching between submenus and group settings sometimes loads slowly with no feedback
+  It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
+
 ## Change requests
 
 - App first load is way too long. (B-764)
