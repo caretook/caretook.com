@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Now (2026-11-24 late):** wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 first, alone; 67 and 68 start once 66 is merged. B-697 wording decided by the skeptic (s29, ask a211).
+**Now (2026-11-24 late):** wave 9 written (slices 66 to 68); synced (dev had nothing new). Slice 66 merged (e2f1d254, 22 files: over the 12-file line; split shared ui work finer next time; it took components.md and ui-kit.md just over budget: trim at landing). 67 and 68 running. B-697 wording decided by the skeptic (s29, ask a211).
 
 **Previous hand-over:** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
 
@@ -21,11 +21,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                 | Merge |
-| ----- | ----- | ----------------------------------------------------- | ----- |
-| 66    | B-669 | agent spawned 2026-11-24 (opus), worktree fixes-ui-66 |       |
-| 67    | B-693 | waits for 66                                          |       |
-| 68    | B-697 | waits for 66 (wording decided, ask a211)              |       |
+| Slice | Item  | State                                    | Merge    |
+| ----- | ----- | ---------------------------------------- | -------- |
+| 66    | B-669 | merged (opus); worktree kept to green    | e2f1d254 |
+| 67    | B-693 | waits for 66                             |          |
+| 68    | B-697 | waits for 66 (wording decided, ask a211) |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -969,6 +969,8 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: component · Blocked by: slice 66
 
+**The toast API (slice 66, merged e2f1d254).** `toast({ message, action?, undo?, timeout?, data? })` from `~/components/ui` returns an id; `dismissToast(id)`; default timeout 6 s (`timeout: null` stays), paused on hover or focus; one shown at a time, newest first. Messages are plain strings. In tests a toast is `getByRole("alertdialog", { name })` and its message `role="alert"`; `renderWithDevice` shows toasts, `renderInRouter` tests mount `<ToastRegion />` themselves; keep the pointer off the toast (hover pauses its timer); `clearToasts()` runs after each test.
+
 **Problem.** A new event or note saves silently on its first save; the user wants a toast.
 
 **Build.** In `routes/app/groups/entry/useLiveEntry.ts`'s `save()` (the one-off and repeating paths, each followed by a replace navigation from `entries/new` to `entries/:id`), show the slice 66 toast "Event saved" or "Note saved" by kind, once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider); never on later autosaves or a failed save. It's a local write: the wording must not imply it has synced, and it works offline. It goes through the shared queue so it survives the navigation, and it never takes focus or interrupts typing (a note's first save is usually its first typed text).
@@ -981,6 +983,8 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 ## Slice 68: Medications Schedule: logging a dose shows a toast (B-697)
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: unit, component · Blocked by: slice 66
+
+**The toast API (slice 66, merged e2f1d254).** `toast({ message, action?, undo?, timeout?, data? })` from `~/components/ui` returns an id; `dismissToast(id)`; default timeout 6 s (`timeout: null` stays), paused on hover or focus; one shown at a time, newest first. Messages are plain strings. In tests a toast is `getByRole("alertdialog", { name })` and its message `role="alert"`; `renderWithDevice` shows toasts, `renderInRouter` tests mount `<ToastRegion />` themselves; keep the pointer off the toast (hover pauses its timer); `clearToasts()` runs after each test.
 
 **Problem.** Logging from the Medications Schedule tab shows no toast; only Given all shows an inline "Morning logged · Undo" line.
 
