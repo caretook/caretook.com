@@ -192,7 +192,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-387 | bug | triaged | sync-safety-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-404 | feature | triaged | staging-ship |  | One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is |
-| B-417 | feature | triaged | marketing-2 |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
+| B-417 | feature | in-progress | marketing-2 | prd/marketing-2 | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
@@ -322,6 +322,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 | B-846 | chore | triaged | orchestration-split-2 |  | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
 | B-847 | chore | triaged | orchestration-split-2 |  | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
+| B-848 | bug | inbox |  |  | Right nav links overlap the recipient selector and header menu on medium-sized screens |
+| B-849 | change | inbox |  |  | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
+| B-850 | change | inbox |  |  | Timeline Full view should show live notes with their rich text formatting |
 
 ## Items
 
@@ -1058,9 +1061,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-417 · feature · We are getting close to feature complete. We need another marketing content pass that updates copy…
 
-- status: triaged
+- status: in-progress
 - prd: marketing-2
-- owner:
+- owner: prd/marketing-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos.
@@ -2358,3 +2361,24 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic's go on wave 3 at 9bea8d9c (2026-11-25). 1. inventory-facts.mjs:120-131 (readyFacts) and tidy-cli.mjs:297-298 ignore stackReady's exit status: a failed call reads as no stack, so its project leaves the in-use set and the dispatcher's unattended tidy-cli --yes could remove its dangling volumes (harmless today: every stack volume is a bind mount); take the project from stackStatus, skip volume findings when a hook call failed, add a tidy-cli test. 2. scripts/project/stack.sh:121 ready exits 1 for not-ready and for a failed hook; gc.sh:44, ls.sh:28, inventory-facts.mjs:121 can't tell them apart: a distinct exit code or an always-printed fact. 3. tidy's read path runs docker system df -v (stack-facts.sh:292) where it ran docker volume ls --filter dangling=true: the non --all form could use the cheap listing. 4. new.sh:100-112: a failed install leaves a stacked worktree with no .env.loop and its slot lease held, so a later stack up leases a second slot; the missing-main-env check moved to after install. 5. recover.sh:239 writes the migrate marker before the hook, so a failed compose-up or Postgres wait reads as a cut-off migrate, and a stack_up on a worktree with no stack leaves a marker nothing clears; bring back the dropped marker-exists-while-migrating test through the stub's SAMPLE_STACK_MARK. 6. hooks.mjs has no unit test (127 for an unset hook, cwd at the tool's top, fact's last value, factList); with no stackEngine hook inventory-facts.mjs:166 reads engine not running and recover dies: a project without a stack needs no-hook-means-no-engine. 7. Docker words left in the core: inventory.mjs:15,55,194,370, recover.sh:294,301, prd.sh:60,70 (orchestration-split-3). 8. packages/notifications/src/config.ts:27 names the removed scripts/loops/serve.sh (should be scripts/project/serve.sh). 9. Merged docs read out of order: docs/agents/orchestrator.md:1-4 and planner.md:4 put the role's intro mid-document, scripts/loops/docs/backlog.md opens with Deciding what's next; a generic one-line intro per role, or an additions file that can prepend. 10. Orchestrator budgets have 4 bytes of room each (3387 of 3391, 11965 of 11969). 11. Slice 3's touched files still on the allowlist: recover.sh (project-env 18), inventory-facts.mjs (13), ls.sh (9), tidy-cli.mjs (6, core-to-project 1), browser.sh (core-to-project 4). 12. test-db.sh:216 use prints its human line to stderr, shown beside new.sh's summary (cosmetic). Proposed for slice 9 (wave 4) with B-838, B-842, B-844, B-846: the user's word needed.
 - 2026-11-25 (prd/orchestration-split-2): Goes to slice 9 (wave 4) with B-838, B-842, B-844 and B-846, on the user's word relayed by split-ops 2026-11-25; slice 9 may be split in two when wave 4 is planned.
+
+### B-848 · bug · Right nav links overlap the recipient selector and header menu on medium-sized screens
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-849 · change · Rename timeline View menu labels from Rows and Cards to Condensed and Full
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-850 · change · Timeline Full view should show live notes with their rich text formatting
+
+- status: inbox
+- prd:
+- owner:
+- commit:
