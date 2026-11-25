@@ -10,6 +10,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
 - Offline banner flashes too often when the connection hasn't actually dropped (B-840)
   Needs a longer timeout before marking the site as offline.
+- Right nav links overlap the recipient selector and header menu on medium-sized screens
 
 ## Change requests
 
