@@ -26,9 +26,10 @@ const files = [
 ];
 
 describe("precacheList", () => {
-  it("lists the shell first, then every JS, CSS and font file in assets/ once, and the SQLite WASM", () => {
+  it("lists the shell and the offline page first, then every JS, CSS and font file in assets/ once, and the SQLite WASM", () => {
     expect(precacheList({ files: [...files, "root-a1.js"] })).toEqual([
       "/app",
+      "/offline.html",
       "/assets/Font-Italic-Variable-k2.woff2",
       "/assets/Font-Variable-k1.woff2",
       "/assets/IDBBatchAtomicVFS-r5.js",

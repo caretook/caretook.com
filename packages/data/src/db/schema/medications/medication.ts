@@ -247,13 +247,13 @@ const slotAmountZSchema = z
 /** One slot: a pass or a time (exactly one), and an optional amount. */
 const scheduleSlotZSchema = z
   .strictObject({
-    passId: z.uuid({ error: "Choose a pass" }).optional(),
+    passId: z.uuid({ error: "Choose a med time" }).optional(),
     time: scheduleTimeZSchema.optional(),
     amount: slotAmountZSchema,
   })
   .superRefine((slot, ctx) => {
     if ((slot.passId === undefined) === (slot.time === undefined))
-      ctx.addIssue({ code: "custom", message: "Choose a pass or a time" });
+      ctx.addIssue({ code: "custom", message: "Choose a med time or a time of day" });
   })
   .transform(({ passId, time, amount }): ScheduleSlot => {
     const at = passId !== undefined ? { passId } : { time: time ?? "" };

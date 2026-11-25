@@ -52,6 +52,10 @@ describe("pass logs", () => {
     await waitUntil(() => text() === "Morning: 1 given, 1 refused", "the pass row");
     expect(tagged()).toBe(1);
     await expect.poll(() => row()?.querySelector('a[aria-label^="Edit Morning log"]')).toBeTruthy();
+    // Med times, never "pass", in the row's words and its link's label.
+    expect(`${row()?.textContent} ${row()?.querySelector("a")?.getAttribute("aria-label")}`).not.toMatch(
+      /\bpass/i,
+    );
     await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
     await waitUntil(() => row()?.querySelector("[data-pass-log-doses]")?.hasAttribute("data-open") === true);
     await expect.poll(() => row()?.querySelectorAll("[data-pass-log-doses] li").length).toBe(2);

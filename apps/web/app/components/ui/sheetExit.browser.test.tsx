@@ -281,9 +281,9 @@ describe("a real route sheet (adding a pass)", () => {
     });
     const add = page.getByRole("button", { name: "Add", exact: true });
     await userEvent.click(add);
-    await userEvent.click(await found(() => menuItem("Pass")));
+    await userEvent.click(await found(() => menuItem("Med time")));
     await expect.poll(() => device.location()).toBe(NEW_PASS);
-    await expect.element(page.getByRole("dialog", { name: "Add a pass" })).toBeVisible();
+    await expect.element(page.getByRole("dialog", { name: "Add a med time" })).toBeVisible();
     return { device, add };
   };
 
@@ -306,13 +306,13 @@ describe("a real route sheet (adding a pass)", () => {
     async ({ motion }) => {
       if (motion === "reduced") await reduceMotion();
       const { device } = await openSheet();
-      const dialog = page.getByRole("dialog", { name: "Add a pass" });
+      const dialog = page.getByRole("dialog", { name: "Add a med time" });
       await userEvent.fill(dialog.getByRole("textbox", { name: "Name" }), "Noon");
       await pickTime(
         () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="time"]'),
         "12:00",
       );
-      await userEvent.click(dialog.getByRole("button", { name: "Add pass" }));
+      await userEvent.click(dialog.getByRole("button", { name: "Add med time" }));
       await expect.poll(() => device.location()).toBe(PASSES);
       await expect.poll(overlay).toBeNull();
       await expect.element(page.getByText("Noon", { exact: true })).toBeInTheDocument();

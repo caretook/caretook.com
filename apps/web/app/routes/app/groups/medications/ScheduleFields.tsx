@@ -103,14 +103,14 @@ export function ScheduleFields({
           >
             <div className="flex items-baseline justify-between gap-2">
               <span id={`${id}-passes`} className="fieldset-legend">
-                Passes
+                Med times
               </span>
               <Link to={passesHref} className={`${LINK} text-sm`} data-manage-passes>
-                Manage passes
+                Manage med times
               </Link>
             </div>
             {live.length === 0 ? (
-              <EmptyState>No passes yet. Add Morning or Evening on Passes.</EmptyState>
+              <EmptyState>No med times yet. Add Morning or Evening on Med times.</EmptyState>
             ) : (
               <ul className="space-y-1.5">
                 {live.map((pass) => {

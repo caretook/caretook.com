@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 7 slices 59–61 all merged (opus each); full CI green on 87fcc4c8 (run 45512758445); sync --force (pr refused unsynced) → 4d9587b2; PR #172 open; second full CI running; Codex out of credits (exit 4), land --no-review. Then green → sync, PR, land `--no-review` if Codex is out of credits. Slice worktrees 59–61 stay until green. Follow-ups filed: B-787 (SW install all-or-nothing, fixes-bug), B-788 (offline / and /sign-in fallback page, fixes-ui). For the docs at landing: app-shell.md service worker bullet takes slice 59's text (precache lists every assets/ JS/CSS/woff2 and the async SQLite WASM; `keep` route for other /assets/; phones evict the HTTP cache). Hand test: installed PWA, airplane mode, cold start. Held: B-684, B-695 (sweeps); B-693, B-697 (toasts B-669); B-694 (user live); B-325 (Capacitor).
+**Now (wave 8, 2026-11-24 evening):** full CI green on 7a32231d (run 45518539733); synced dev as 555029e8 (quarantine.txt conflict: took dev's); full run on the synced tip next, then PR and land. wave 7 landed as dev 914bafb (PR #172, `--no-review`, Codex out of credits; history file has the rest). Wave 8 written: slices 62 (B-788 offline fallback, opus), 63 and 64 (B-695 Med times on Medications / timeline-Today-search, sonnet: text only), 65 (B-695 quick entry, connectors, docs, opus). Dev sync at the boundary: no merge needed (took dev's CI lists). Items claimed, hot files set. **Wave 9 (backlog session, on the user's word, 2026-11-24):** B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; see its backlog note), then B-693 and B-697 on top of it. Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane. Follow-up filed: B-792 (todays_doses has no med time id, fixes-bug). Docs to fold at landing: app-shell.md (offline page fallback, precache order), medications.md over budget (trim).
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,11 +19,12 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State             | Merge    |
-| ----- | ----- | ----------------- | -------- |
-| 59    | B-777 | merged (d24db96d) | 8367a100 |
-| 60    | B-783 | merged (e295087d) | 20b588eb |
-| 61    | B-784 | merged (731378ec) | 1224a291 |
+| Slice | Item  | State                      | Merge    |
+| ----- | ----- | -------------------------- | -------- |
+| 62    | B-788 | merged                     | e00d3ae5 |
+| 63    | B-695 | merged (22 files, over 12) | 93a86cc8 |
+| 64    | B-695 | merged (tests only)        | 5e79829a |
+| 65    | B-695 | merged                     | 336425e9 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -886,3 +887,60 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 **Acceptance criteria.**
 
 - [ ] Component test (`passes.browser.test.tsx`, or `doubleDose.browser.test.tsx` if it covers the tabs): a pass with a medication given twice shows the double-dose badge and text; a single dose shows none.
+
+## Wave 8 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. No other PRD is running. B-788 plus the Med times rename (B-695), split in three by area so each stays under about 12 files; the four slices touch separate files and run at once. B-695 changes visible text only: keep code names, the `medication_pass` table, stored data, the `/passes` URL and the `give_pass` connector tool name; sweep strings by hand (about 670 matches, most identifiers), never find-and-replace. A single slot goes by its name (Morning, Evening); the generic singular is "med time", the plural "Med times" in titles and the tab. Words quick entry already accepts keep working. Held to later waves: B-684 (required-field asterisks, a wave), B-693, B-697 (toast system B-669), B-694 (the user approves each form live), B-325 (Capacitor).
+
+## Slice 62: Offline loads of / and /sign-in get a fallback page (B-788)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/security-headers.md, docs/domain/marketing.md · Tests: unit, browser
+
+**Problem.** Offline, a direct load of `/` or `/sign-in` shows the browser's own offline page. `/app` works offline since slice 59 (B-777); in-app redirects to sign-in are client-side and fine.
+
+**Build.** The service worker (`lib/app-shell/serviceWorker*.ts`, bundled by `scripts/build/service-worker.mjs`) answers a failed navigation outside `/app` with a small precached offline page: Caretook's name, "You're offline", a line that the app works offline once you've signed in on this device, and a link to `/app`. It is static, styled inline or with the app CSS already precached, passes the CSP (docs/domain/security-headers.md), and never replaces an online answer (network first; the fallback only when the network fails). Don't cache marketing pages themselves.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`serviceWorkerRoutes.test.ts` or `serviceWorkerCaches.test.ts`): a navigation to `/` or `/sign-in` that fails gets the offline page; one that succeeds gets the network's answer; `/app` navigations keep the shell as before.
+- [ ] Browser check (`scripts/browser-checks/layout-offline.spec.mjs`) on a production build: after one online visit, offline loads of `/` and `/sign-in` show the offline page with its `/app` link.
+
+## Slice 63: Med times on the Medications screens (B-695, part 1)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+**Problem.** "Pass" is nursing jargon; family caretakers can read it as skipping a dose. The user chose "Med times" (see the wave note).
+
+**Build.** Visible text and aria labels only, in: `routes/app/groups/medications/**` (the Passes tab becomes Med times, PassForm, PassList, ScheduleFields, TodaySection, MedicationForm, MedicationList, the + menu's "Add a med time" in `useAddMenu.ts`, the print and weekly print sheets), `routes/app/groups/medication/**` (MedicationDetails, MedicationHistory), `components/medications/**` (PassCard, DoseSlotRow, ExtraDoseWarning), and the refusal messages in `lib/medications/medicationPasses.sync.ts` and `medications.sync.ts`. Update these files' component tests. Leave the timeline, Today, search, quick entry and connectors to slices 64 and 65. In the hand-off, list every string changed.
+
+**Acceptance criteria.**
+
+- [ ] Component tests (the medications and passes `*.browser.test.tsx` beside these files): the tab, page title, + menu item and form read Med times / med time; no visible "pass" left on those screens.
+- [ ] `grep -rniE "['\">][^'\"<]*\bpass(es)?\b"` over these folders finds only identifiers, URLs and comments.
+
+## Slice 64: Med times on the timeline, Today and search (B-695, part 2)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** As slice 63, for the timeline side.
+
+**Build.** Visible text and aria labels only, in `routes/app/groups/timeline/**` (EasyNow, EasyTimeline, TodayMedicationsRow, PassLogItem, `pass/PassLogForm.tsx`, `new-dose/`, dayItems, useTodayCard, useMedicationStrip), `lib/medications/medicationStrip.ts`, `dueDoses.sync.ts`, `passLogs.ts`, `lib/timeline/timelineNewer.ts`, and `routes/app/groups/search/**` (ResultItems, SearchResults, EasyResultSheet). Leave the Medications screens (slice 63) and quick entry and connectors (slice 65). Update these files' component tests; a browser check under `scripts/browser-checks/` that asserts the old words gets its text updated. In the hand-off, list every string changed.
+
+**Acceptance criteria.**
+
+- [ ] Component tests beside these files: the Today card, a logged slot on the timeline and its log form, and a search result read med time / the slot's name; no visible "pass".
+- [ ] The same grep as slice 63 over these files finds only identifiers, URLs and comments.
+
+## Slice 65: Med times in quick entry and connectors; the docs (B-695, part 3)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: unit, component
+
+**Problem.** As slice 63, for quick entry and the connector text.
+
+**Build.** Visible text only in `components/quick-entry/**` (for example "Suggestions, a pass is due", "That pass is gone") and `lib/assistant/quickEntry.sync.ts`, `quickEntryCompletion.ts`; quick entry keeps accepting every word it accepts today (pass, passes) and also accepts "med time". Connector tool descriptions and prompt text in `packages/api/src/connectors/**` say med time; the `give_pass` tool name and output keys stay. `docs/domain/medications.md` says the visible name is Med times (code keeps pass). In the hand-off, list every string changed.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (quick entry parsing): "pass" and "med time" both still match a slot.
+- [ ] Component tests beside the quick-entry files: the due suggestion and the gone message read med time.
+- [ ] Connector tests that pin description text are updated; tool names unchanged.

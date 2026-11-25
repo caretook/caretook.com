@@ -80,7 +80,7 @@ export function PassForm({
       />
       {general && <Message tone="error">{general}</Message>}
       <FormFooter
-        submitLabel={pass ? "Save" : "Add pass"}
+        submitLabel={pass ? "Save" : "Add med time"}
         busy={busy}
         cancel={{ label: "Cancel", onCancel }}
       />

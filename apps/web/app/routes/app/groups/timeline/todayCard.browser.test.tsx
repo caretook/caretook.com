@@ -158,7 +158,7 @@ describe("the Today card's rows", () => {
     await expect.poll(() => CARD()?.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
   });
 
-  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the todo", async () => {
+  test("the rows' words: the latest readings with their time, the next appointment (+N more), the med time, the todo", async () => {
     await open([...EVERYTHING, fx.event({ title: "Dentist", occurredAt: clockMoment(26 * 60) })]);
     await expect.poll(shownRows).toHaveLength(4);
     expect(row("vitals")?.textContent).toMatch(/^Needs attention: Latest vitals: BP 130\/85 mmHg 2d ago/);
@@ -169,6 +169,7 @@ describe("the Today card's rows", () => {
     );
     expect(next.getAttribute("href")).toBe(`/app/groups/${G}/entries/${CARDIOLOGY.id}`);
     expect(row("medications")?.textContent).toContain("Overdue: Late · 8:55 · 1 med · +1 more");
+    expect(CARD()?.textContent).not.toMatch(/\bpass/i);
     expect(row("todos")?.textContent).toMatch(/^Today: Pick up the walker/);
   });
 

@@ -16,7 +16,8 @@ describe("routeRequest", () => {
     expect(route("/app/settings/units", "navigate")).toBe("shell");
   });
 
-  it("leaves other page loads to the network: marketing, sign-in, account links, a lookalike path", () => {
+  // B-788: the network first, the offline page only when it fails (networkOrOffline).
+  it("sends other page loads to the network with the offline page behind: marketing, sign-in, account links, a lookalike path", () => {
     for (const path of [
       "/",
       "/features/",
@@ -27,7 +28,7 @@ describe("routeRequest", () => {
       "/admin",
       "/apple",
     ])
-      expect(route(path, "navigate")).toBe("network");
+      expect(route(path, "navigate")).toBe("offline");
   });
 
   it("serves precached assets from the cache", () => {
@@ -45,6 +46,7 @@ describe("routeRequest", () => {
 
   it("keeps nothing outside /assets/, nor a page load or a write there", () => {
     expect(route("/sw.js")).toBe("network");
+    expect(route("/", "cors")).toBe("network");
     expect(route("/site.webmanifest")).toBe("network");
     expect(route("/icons/icon-32.png", "no-cors")).toBe("network");
     expect(route("/assetsx/a.js")).toBe("network");
