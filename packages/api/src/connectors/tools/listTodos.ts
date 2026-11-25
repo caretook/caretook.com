@@ -1,6 +1,7 @@
 import {
   assigneeOf,
   doneOrder,
+  entryTodoService,
   isError,
   todoOrder,
   todoRepeatText,
@@ -28,7 +29,7 @@ const input = z.object({
 export const listTodos = defineTool({
   name: "list_todos",
   title: "List todos",
-  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), state (overdue, today, upcoming, undated, done) and who finished it. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), the linked event (eventId, the first) and every linked note and event (linkedEntryIds), state (overdue, today, upcoming, undated, done) and who finished it. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -55,9 +56,16 @@ export const listTodos = defineTool({
     );
     const ordered = status === "open" ? open : status === "done" ? done : [...open, ...done];
     const page = pageOf(ordered, args);
+    // Links are rows (planner-3): `eventId` stays, the first linked event.
+    const linked = await entryTodoService.linkedEntriesOf(
+      asMember(ctx),
+      page.items.map((t) => t.id),
+    );
+    if (isError(linked)) return linked;
 
     const todos = page.items.map((t) => {
       const assignee = assigneeOf(t);
+      const entries = linked.get(t.id) ?? [];
       return {
         id: t.id,
         title: t.title,
@@ -75,7 +83,8 @@ export const listTodos = defineTool({
         doneBy: t.doneBy ? (who.get(t.doneBy) ?? null) : null,
         providerId: t.providerId,
         medicationId: t.medicationId,
-        eventId: t.eventId,
+        eventId: entries.find((e) => e.kind === "event")?.entryId ?? null,
+        linkedEntryIds: entries.map((e) => e.entryId),
         createdAt: zonedIso(t.createdAt, timeZone),
       };
     });

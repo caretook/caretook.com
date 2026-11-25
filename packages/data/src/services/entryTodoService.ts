@@ -2,7 +2,7 @@ import type { z } from "zod";
 import type { EntryTodoLinkInput, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
-import { SYSTEM_USER } from "../constants";
+import { MAX_PAGE_SIZE, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import { entryTodoId, entryTodoLinkZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
@@ -175,3 +175,43 @@ export const unlink = (ctx: ServiceContext, id: string) =>
 /** `unlink` by the pair. */
 export const unlinkPair = (ctx: ServiceContext, entryId: string, todoId: string) =>
   unlink(ctx, entryTodoId(entryId, todoId));
+
+/**
+ * Each todo's live linked entries, oldest link first (the connector's
+ * `list_todos`): two reads for a page of todos, never one per todo. Todos
+ * with no live link are left out.
+ */
+export const linkedEntriesOf = async (ctx: ServiceContext, todoIds: readonly string[]) => {
+  const byTodo = new Map<string, { entryId: string; kind: string }[]>();
+  if (!todoIds.length) return byTodo;
+  const links = await timelineEntryTodoModel.list({
+    ...ctx,
+    filter: { todoId: { type: "inArray", value: [...todoIds] } },
+    orderBy: [
+      { field: "createdAt", direction: "asc" },
+      { field: "id", direction: "asc" },
+    ],
+  });
+  if (isError(links)) return links;
+  const entryIds = [...new Set(links.data.map((l) => l.entryId))];
+  const kinds = new Map<string, string>();
+  let cursor: string | null = null;
+  while (entryIds.length) {
+    const page = await timelineEntryModel.listPage({
+      ...ctx,
+      filter: { id: { type: "inArray", value: entryIds } },
+      cursor,
+      limit: MAX_PAGE_SIZE,
+    });
+    if (isError(page)) return page;
+    for (const entry of page.data) kinds.set(entry.id, entry.kind);
+    cursor = page.nextCursor;
+    if (!cursor) break;
+  }
+  for (const link of links.data) {
+    const kind = kinds.get(link.entryId);
+    if (!kind) continue;
+    byTodo.set(link.todoId, [...(byTodo.get(link.todoId) ?? []), { entryId: link.entryId, kind }]);
+  }
+  return byTodo;
+};

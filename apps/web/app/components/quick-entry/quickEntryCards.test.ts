@@ -345,6 +345,20 @@ describe("editTarget", () => {
     });
   });
 
+  test("a repeating todo's Edit carries its repeatRule, and only a repeating one's (planner-3)", () => {
+    const todo = { type: "addTodo", title: "Bins out", dueOn: "2026-11-23" } as const;
+    const urlOf = (action: Parameters<typeof editTarget>[0]) => {
+      const target = editTarget(action, GROUP);
+      if (typeof target === "string") throw new Error("expected a link");
+      return new URL(target.to, "https://example.test").searchParams;
+    };
+    expect(urlOf({ ...todo, repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO" }).get("repeatRule")).toBe(
+      "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
+    );
+    expect(urlOf({ ...todo, repeatRule: null }).has("repeatRule")).toBe(false);
+    expect(urlOf(todo).has("repeatRule")).toBe(false);
+  });
+
   test("notes and events are saved and opened on their page", () => {
     expect(editTarget({ type: "addNote", text: "Hi", occurredAt: at, providerIds: [] }, GROUP)).toBe(
       "saveAndOpen",

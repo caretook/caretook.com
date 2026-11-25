@@ -104,6 +104,7 @@ export default function NewTodoSheet({ loaderData, params }: Route.ComponentProp
           medicationId: query.get(TODO_PREFILL_PARAMS.medicationId),
           eventId: loaderData.entry.eventId,
           entryId: loaderData.entry.entryId,
+          repeatRule: query.get(TODO_PREFILL_PARAMS.repeatRule),
         }}
         links={links}
         zoneNote={scheduleZoneNote(

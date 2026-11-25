@@ -35,7 +35,15 @@ import {
 } from "../medications/medications.sync";
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
-import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
+import {
+  noteDocuments,
+  noteUpdates,
+  todos,
+  timelineEntries,
+  timelineEntryProviders,
+  timelineEntryTodos,
+} from "../sync/schema";
+import { entryTodoRow } from "../todos/entryTodos.sync";
 import { plannedTodo } from "../todos/todos.sync";
 import { addSymptomTypeIn } from "../timeline/symptomTypes.sync";
 import {
@@ -59,7 +67,8 @@ import {
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
 // slots on its day, as one round. A todo (`addTodo`) is checked as
 // `createTodo` checks it (`plannedTodo`) and written in the same transaction;
-// it isn't an entry. A symptom adds its name's catalog row when the group
+// it isn't an entry. Its `eventId` is written as a link row
+// (`timeline_entry_todo`), never `todo.event_id`. A symptom adds its name's catalog row when the group
 // has none (`addSymptomTypeIn`). A refused action refuses the batch, naming
 // the action it was.
 
@@ -77,8 +86,8 @@ type EntryInsert = typeof timelineEntries.$inferInsert;
 
 type Rows =
   | EntryRows
-  /** A todo (not an entry). */
-  | { todo: typeof todos.$inferInsert };
+  /** A todo (not an entry), and the entry it's linked to. */
+  | { todo: typeof todos.$inferInsert; link?: typeof timelineEntryTodos.$inferInsert };
 
 type EntryRows = {
   entry: EntryInsert;
@@ -196,9 +205,12 @@ export const runActions = async (
     if (action.type === "addTodo") {
       if (!writer) return refuse("You don't have permission to do that.", index);
       const { type: _type, ...input } = action;
+      // Checked as before (a live event in the group), but the event is a
+      // link row, never the old `event_id` column (planner-3).
       const todo = await plannedTodo(db, groupId, input);
       if (!todo.ok) return refuse(todo.error, index, todo.issues);
-      planned.push({ todo: todo.row });
+      const link = input.eventId ? entryTodoRow(db, groupId, input.eventId, todo.row.id) : null;
+      planned.push({ todo: { ...todo.row, eventId: null }, ...(link && { link }) });
       continue;
     }
     const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
@@ -254,6 +266,7 @@ export const runActions = async (
     for (const rows of planned) {
       if ("todo" in rows) {
         await tx.insert(todos).values(rows.todo);
+        if (rows.link) await tx.insert(timelineEntryTodos).values(rows.link);
         continue;
       }
       const { entry, more, document, providerIds, symptomName } = rows;

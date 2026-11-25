@@ -1,7 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { addDays, buildNoteDoc, dayInZone, doseSlotIdFor, passRoundId, zonedInstant } from "../db/schema";
+import {
+  addDays,
+  buildNoteDoc,
+  dayInZone,
+  doseSlotIdFor,
+  entryTodoId,
+  passRoundId,
+  REPEAT_NEEDS_DAY_ISSUE,
+  zonedInstant,
+} from "../db/schema";
 import { createGroup, createUser, createWorld, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
@@ -11,6 +20,7 @@ import {
   medicationSchema,
   todoSchema,
   timelineEntryProviderSchema,
+  timelineEntryTodoSchema,
   timelineEntrySchema,
 } from "../db/schema";
 import { isError } from "../errors";
@@ -710,5 +720,95 @@ describe("assistantActionService.run: edits (connectors-2)", () => {
     expect((await docOf(noteId))?.text).toBe("Original");
     expect(await entriesOf()).toEqual(before);
     expect((await docOf(otherNote))?.text).toBe("Not yours");
+  });
+});
+
+describe("assistantActionService.run: addTodo (planner-3)", () => {
+  const WEEKLY = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+
+  it("a repeat with a due day sets the three repeat columns", async () => {
+    const { run, todosOf } = await setup();
+    const res = ok(
+      await run("caretaker", [
+        { type: "addTodo", title: "Bins out", dueOn: "2030-06-17", repeatRule: WEEKLY },
+      ]),
+    );
+    const [todo] = await todosOf();
+    expect(todo).toMatchObject({
+      id: res.byAction[0]![0],
+      title: "Bins out",
+      dueOn: "2030-06-17",
+      repeatRule: WEEKLY,
+      repeatStartsOn: "2030-06-17",
+      repeatId: todo!.id,
+      via: VIA,
+    });
+  });
+
+  it("a repeat without a due day, or one that doesn't parse, is refused, writing nothing", async () => {
+    const { run, todosOf } = await setup();
+    expect(
+      refusal(await run("caretaker", [{ type: "addTodo", title: "Bins out", repeatRule: WEEKLY }])),
+    ).toEqual({
+      code: "assistantActionService:invalid",
+      index: 0,
+      issues: [{ ...REPEAT_NEEDS_DAY_ISSUE }],
+    });
+    expect(
+      refusal(
+        await run("caretaker", [
+          { type: "addTodo", title: "Bins out", dueOn: "2030-06-17", repeatRule: "FREQ=YEARLY" },
+        ]),
+      ),
+    ).toMatchObject({ code: "assistantActionService:invalid", index: 0 });
+    expect(await todosOf()).toEqual([]);
+  });
+
+  it("an event it names is a link row, never todo.event_id; a note, another group's or a deleted event is refused", async () => {
+    const { u, group, run, todosOf } = await setup();
+    const addEntry = async (ctx: typeof u.owner.ctx, groupId: string, kind: "event" | "note") =>
+      ok(
+        await timelineEntryService.create(ctx, {
+          groupId,
+          kind,
+          title: kind === "event" ? "Follow-up visit" : "Call notes",
+          occurredAt: minutesAgo(60),
+          timeZone: "America/Los_Angeles",
+        }),
+      )!;
+    const visit = await addEntry(u.caretaker.ctx, group.id, "event");
+    const res = ok(await run("caretaker", [{ type: "addTodo", title: "Book a ride", eventId: visit.id }]));
+    const todoId = res.byAction[0]![0]!;
+    const [todo] = await todosOf();
+    expect(todo).toMatchObject({ id: todoId, eventId: null });
+    const links = await getDb()
+      .select()
+      .from(timelineEntryTodoSchema)
+      .where(eq(timelineEntryTodoSchema.todoId, todoId));
+    expect(links).toEqual([
+      expect.objectContaining({
+        id: entryTodoId(visit.id, todoId),
+        groupId: group.id,
+        entryId: visit.id,
+        createdBy: u.caretaker.user.id,
+      }),
+    ]);
+
+    const note = await addEntry(u.caretaker.ctx, group.id, "note");
+    const elsewhere = await createUser("elsewhere");
+    const { group: other } = await createGroup(elsewhere);
+    const foreign = await addEntry(elsewhere.ctx, other.id, "event");
+    const deleted = await addEntry(u.caretaker.ctx, group.id, "event");
+    ok(await timelineEntryService.remove(u.caretaker.ctx, deleted.id));
+    for (const eventId of [note.id, foreign.id, deleted.id, randomUUID()])
+      expect(
+        refusal(
+          await run("caretaker", [
+            { type: "addNote", text: "Fine", occurredAt: minutesAgo(1) },
+            { type: "addTodo", title: "Nope", eventId },
+          ]),
+        ),
+      ).toMatchObject({ code: "todoService:badLink", index: 1, issues: [{ path: "eventId" }] });
+    expect((await todosOf()).map((t) => t.title)).toEqual(["Book a ride"]);
   });
 });

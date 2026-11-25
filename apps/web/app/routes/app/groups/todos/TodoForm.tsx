@@ -10,7 +10,7 @@ import { useFetcher } from "react-router";
 import { Field, FormFooter, Message, TimeSelect } from "~/components/ui";
 import { AssigneeField } from "./AssigneeField";
 import { TodoLinkFields } from "./TodoLinkFields";
-import { FIELD, initialRepeat, isFieldIssue, repeatOnDay } from "./todoFormData";
+import { FIELD, initialRepeat, isFieldIssue, prefillRepeat, repeatOnDay } from "./todoFormData";
 import { TodoRepeat } from "./TodoRepeat";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
@@ -24,8 +24,8 @@ const choiceOf = (todo: Pick<LocalTodo, "assigneeId" | "assigneeName"> | undefin
 
 /**
  * A new todo's prefills besides its due day: quick entry's Edit (a member's
- * id only when they're one), and a link from a provider's, medication's or
- * appointment's page.
+ * id only when they're one; a repeat only when its rule parses), and a link
+ * from a provider's, medication's or appointment's page.
  */
 export type TodoFormPrefill = {
   title?: string | null;
@@ -36,6 +36,7 @@ export type TodoFormPrefill = {
   eventId?: string | null;
   /** A live note to link (`todos/new?entryId=`; an event's goes in `eventId`), kept in a hidden field. */
   entryId?: string | null;
+  repeatRule?: string | null;
 };
 
 /**
@@ -79,7 +80,9 @@ export function TodoForm({
   const busy = fetcher.state !== "idle";
   const [day, setDay] = useState(todo?.dueOn ?? dueOn ?? "");
   const [time, setTime] = useState(todo?.dueTime ?? prefill?.dueTime ?? "");
-  const [repeat, setRepeat] = useState(() => initialRepeat(todo));
+  const [repeat, setRepeat] = useState(() =>
+    todo ? initialRepeat(todo) : prefillRepeat(prefill?.repeatRule, dueOn),
+  );
 
   // A save closes the sheet; a refusal moves focus to the first field it's about.
   const handled = useRef<ActionResult | undefined>(undefined);

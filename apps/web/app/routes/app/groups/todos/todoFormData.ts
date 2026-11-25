@@ -1,7 +1,7 @@
 import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
 import type { TodoInput } from "~/lib/todos/todos.sync";
 
-import { ruleText } from "@caretook/data/schema";
+import { parseRule, ruleText } from "@caretook/data/schema";
 import { choiceOfRule, choiceRule } from "../../../../lib/appointments/repeatChoice";
 
 // The todo sheet's form (pure; web:unit tests it): its field names, and the
@@ -55,6 +55,17 @@ export const initialRepeat = (
   todo?.repeatRule && todo.dueOn
     ? { choice: choiceOfRule(todo.repeatRule, todo.dueOn), rule: todo.repeatRule, day: todo.dueOn }
     : null;
+
+/**
+ * A new todo's repeat from a prefill (quick entry's Edit, planner-3): the
+ * rule on its due day, or none without a day or for a rule that doesn't
+ * parse (the form then opens with no repeat).
+ */
+export const prefillRepeat = (
+  rule: string | null | undefined,
+  day: string | null | undefined,
+): TodoRepeatDraft =>
+  rule && day && parseRule(rule).ok ? initialRepeat({ repeatRule: rule, dueOn: day }) : null;
 
 /**
  * The repeat after the due day changes: none without a day (Repeat needs

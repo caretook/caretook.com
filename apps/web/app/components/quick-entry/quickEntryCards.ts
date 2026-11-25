@@ -266,6 +266,7 @@ export const editTarget = (
           providerId: action.providerId ?? undefined,
           medicationId: action.medicationId ?? undefined,
           eventId: action.eventId ?? undefined,
+          repeatRule: action.repeatRule ?? undefined,
         }),
         state: { ...TODO_SHEET_STATE },
       };
