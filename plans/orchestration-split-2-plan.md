@@ -8,6 +8,8 @@
 
 **Session 1 (2026-11-25, Fable):** started by the user by hand. **Landing mode: ask before each landing**, through the backlog split-ops session (`caretook-com-f7`, the user's contact for the split until the reset, Sat 2026-11-28 12:00); the user's word: "listen to backlog - split-ops agent". The user's word through split-ops (2026-11-25): start slices 1, 4 and 5 now on opus, and add slice 9 for B-838 and B-842 in wave 4.
 
+**Wave 1 started 2026-11-25:** slices 1, 4 and 5, each a worktree (`.loops/orchestration-split-2-<n>`, made with `CARETOOK_USAGE_WATCH=off`) and a background agent on opus. No hand-off yet. B-543 claimed for `prd/orchestration-split-2` (it was still owned by the finished `prd/orchestration-split`).
+
 **This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
 
 1. Before every `pnpm prd rotate`, message split-ops and wait for its go (it checks the session record says model fable).
@@ -21,9 +23,9 @@
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
 | ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | planned |                                        |
-| 4     | 1    | planned |                                        |
-| 5     | 1    | planned |                                        |
+| 1     | 1    | running |                                        |
+| 4     | 1    | running |                                        |
+| 5     | 1    | running |                                        |
 | 2     | 2    | planned |                                        |
 | 6     | 2    | planned |                                        |
 | 3     | 3    | planned |                                        |
