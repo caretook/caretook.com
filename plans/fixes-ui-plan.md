@@ -19,12 +19,12 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                             | Merge |
-| ----- | ----- | ------------------------------------------------- | ----- |
-| 62    | B-788 | agent spawned (opus)                              |       |
-| 63    | B-695 | handed off 3664d066 (also packages/data messages) |       |
-| 64    | B-695 | agent spawned (sonnet)                            |       |
-| 65    | B-695 | agent spawned (opus)                              |       |
+| Slice | Item  | State                      | Merge    |
+| ----- | ----- | -------------------------- | -------- |
+| 62    | B-788 | agent spawned (opus)       |          |
+| 63    | B-695 | merged (22 files, over 12) | 93a86cc8 |
+| 64    | B-695 | agent spawned (sonnet)     |          |
+| 65    | B-695 | agent spawned (opus)       |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
