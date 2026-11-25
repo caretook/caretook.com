@@ -19,6 +19,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   We need to either speed it up or make the loading message more friendly with a progress bar.
 - Include captain name and backlog agent name so other agents can find it. (B-799)
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
+- Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay.
+  The selected item should be a horizontal oval with the same radius as the nav bar, filling the entire space, with some motion when the selection changes.
 
 ## Feature requests
 
