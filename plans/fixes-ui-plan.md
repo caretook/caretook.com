@@ -10,7 +10,9 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Previous hand-over:** wave 11 landed 2026-11-24 22:59 as dev 9f3d7027 through PR #179, `--no-review` (Codex out of credits); CI components green (run 45542165290, b951e50b), landed unsynced (dev shared no file). B-684 split in three, all opus: slice 70 (B-684, the shared `required` prop and `*`), 71 (B-801, medication/provider/profile/period forms), 72 (B-800, the rest). The first CI run (45539558339) was red: 29 label lookups (`Password` vs `Password*`; tests now use `labelled()` from `apps/web/test/required.ts`) and a real regression: consent boxes submitted unticked once `CheckField` dropped native `required` (fix: `nativeRequired`). Lesson for planning: a sweep of renamed labels breaks tests the slice check doesn't run; name the wider test files in the slice. Slices 71 and 72 ran to 28 and 30+ files. Browser --changed 7/7. Report filed; to-test/2026-11-24-2259-fixes-ui.md. Docs folded: ui-kit.md (required rule, `nativeRequired`, `labelled()`), trimmed under budget. Quarantined emergency test failed once (B-791, noted). Slice worktrees removed. **Next session:** `pnpm backlog ingest` and `list`; wave 12 from B-803 (mobile nav footer thinner, translucent with blur) and B-804 (offline banner), both triaged fixes-ui. Still held: B-694 (user approves each form live), B-325 (Capacitor).
+**Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
+
+**Idle (2026-11-25):** after `pnpm backlog ingest`, no triaged fixes-ui item waits. Still held: B-694 (long create forms on tabs: the user approves each form live), B-325 (native safe-area inset: with Capacitor). The worktree was removed (`pnpm prd rm fixes-ui`); the next fixes-ui session starts fresh from triaged items.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,11 +21,7 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State          | Merge |
-| ----- | ----- | -------------- | ----- |
-| 70    | B-684 | started (opus) |       |
-| 71    | B-801 | waits on 70    |       |
-| 72    | B-800 | waits on 70    |       |
+No slice in flight.
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
