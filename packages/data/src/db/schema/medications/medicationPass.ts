@@ -159,7 +159,10 @@ export const canAddPass = (passes: readonly PassLike[]) =>
   passes.filter(isLive).length < MEDICATION_PASS_LIMITS.live;
 
 /** The field issue for a taken name, the same on the device and the server. */
-export const PASS_NAME_TAKEN_ISSUE = { path: "name", message: "Another med time already has that name" } as const;
+export const PASS_NAME_TAKEN_ISSUE = {
+  path: "name",
+  message: "Another med time already has that name",
+} as const;
 /** Why another pass can't be added. */
 export const TOO_MANY_PASSES_MESSAGE = `A care group can have at most ${MEDICATION_PASS_LIMITS.live} med times`;
 
