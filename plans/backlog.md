@@ -301,10 +301,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-825 | chore | triaged | orchestration-split |  | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
 | B-826 | chore | triaged | orchestration-split |  | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
 | B-827 | chore | triaged | orchestration-split |  | No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files |
-| B-828 | bug | inbox |  |  | Switching between submenus and group settings sometimes loads slowly with no feedback |
+| B-828 | bug | triaged | fixes-ui |  | Switching between submenus and group settings sometimes loads slowly with no feedback |
 | B-829 | question | inbox |  |  | Research: compare Care Book to Caring Village |
 | B-830 | bug | triaged | fixes-bug |  | Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY |
 | B-831 | feature | triaged | data-rights |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
+| B-832 | chore | triaged | orchestration-split |  | Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops |
 
 ## Items
 
@@ -2145,12 +2146,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-828 · bug · Switching between submenus and group settings sometimes loads slowly with no feedback
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): From the inbox: It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
+- 2026-11-25 (Robert Bo Davis): Triage: fixes-ui (flow feedback: show a pending state on navigation). Also worth having before alpha testers.
 
 ### B-829 · question · Research: compare Care Book to Caring Village
 
@@ -2178,3 +2180,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): User request 2026-11-25: a group none of whose members has signed in for the last X days starts a cycle of reminder emails, then an automatic data scrub of that group. Joins the data rights PRD (user's choice); plan after the Sat 2026-11-28 reset. Open for planning: X and the reminder schedule; who is emailed (owners, all members); what counts as activity (sign-in only, or sync and connector use); what a sign-in or reply does to the cycle; what is scrubbed (the group's rows, files, live notes, sync buckets, backups) and whether the group shell or accounts remain; audit trail; the cron (calendars' sweep pattern); staff override; and the promise in the privacy policy (B-358).
+
+### B-832 · chore · Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops
+
+- status: triaged
+- prd: orchestration-split
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): Fable skeptic on wave 4 (2026-11-25), none blocking. (1) $(bye_line $(role_doc <role>)) is unquoted at prompts/orchestrator.sh:38, hotfix.sh:16, backlog.sh:59, recover.sh:17, plan.sh:38: shared.sh's fallback 'the <role> role's doc' word-splits, so bye_line prints 'the checks the names under _Bye_'; no test covers the fallback (every role is set today). (2) check-plan.mjs:73 reads risa.json and tiers.json at import: a broken tiers.json fails every importer at load (tooling-lint, gate, ci-gate, dev-brought) with a TierDataError. (3) scripts/ci/tier-data.mjs:150 groupOf throws a TypeError for a file name with a newline, where the old code answered unit. (4) sample-project/repo.mjs:31 copies all of scripts/loops, tests and goldens included, twice per golden test run: time only.
