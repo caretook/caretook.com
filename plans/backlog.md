@@ -2096,6 +2096,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: a changed prefix would split behaviour, so slice 4's sample project can't vary it. Slice 3 owns ready.sh; rm.sh and the rest have no slice yet.
+- 2026-11-25 (prd/orchestration-split): Wave 3: slice 3 takes the prefixes in the six files it owns (lib.sh, prd.sh, unsynced.sh, land.sh, new.sh, ready.sh); rm.sh and the rest stay open.
 
 ### B-824 · bug · CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai…
 
