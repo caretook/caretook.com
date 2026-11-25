@@ -12,7 +12,7 @@ scripts/browser-checks/   Playwright Test specs (<check>.spec.mjs), run by pnpm 
 scripts/build/            build budget, check build and service worker scripts
 scripts/deploy/           deploy env check and smoke checks (pnpm deploy:env, deploy:smoke)
 ops/                      runbook.md (deploys, secrets), break-glass.md, data-copies.md
-scripts/loops/            check-areas.d/<area> + check-areas.mjs: which browser checks a changed file needs
+scripts/loops/            check-areas.d/<area> (+ scripts/project/check-areas.mjs): which browser checks a changed file needs
                           pnpm prd (prd.sh) → new/ls/rm/prompt/queue/serve/ready/land/browser (+ lib.sh): worktrees in .loops/, slot and browser leases, a Docker stack each
                           slice-fields.mjs: a slice's Stack, Reads and Tests from its plan
 scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses and renders)
