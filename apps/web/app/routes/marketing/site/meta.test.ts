@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { content as about } from "../about/content";
+import { content as contact } from "../contact/content";
+import { content as faq } from "../faq/content";
+import { content as features } from "../features/content";
+import { homeContent } from "../home/content";
 import {
   DEFAULT_OG_IMAGE,
   DEFAULT_SITE_URL,
@@ -43,6 +50,48 @@ describe("pageTitle", () => {
   it("adds the site name unless the title has it", () => {
     expect(pageTitle("Features")).toBe("Features · Caretook");
     expect(pageTitle("Caretook: keep track")).toBe("Caretook: keep track");
+  });
+
+  it("gives home the tagline and every other page its own name", () => {
+    expect(pageTitle(homeContent.meta.title)).toBe("Caretook: Care, taken.");
+    expect(pageTitle(features.meta.title)).toBe("Features · Caretook");
+    expect(pageTitle(faq.meta.title)).toBe("FAQ · Caretook");
+    expect(pageTitle(about.meta.title)).toBe("About · Caretook");
+    expect(pageTitle(contact.meta.title)).toBe("Contact · Caretook");
+  });
+
+  it("carries the descriptor in the descriptions of home, features, FAQ and About", () => {
+    for (const page of [homeContent, features, faq, about]) {
+      expect(page.meta.description).toMatch(/the free care notebook for families/i);
+    }
+  });
+});
+
+describe("the share image", () => {
+  const { name, tagline, descriptor } = homeContent.hero.lockup;
+  const publicFile = (path: string) =>
+    readFileSync(fileURLToPath(new URL(`../../../../public${path}`, import.meta.url)));
+
+  it("has the lockup as its alt text", () => {
+    expect(DEFAULT_OG_IMAGE.alt).toBe(`${name}. ${tagline} ${descriptor}`);
+    expect(DEFAULT_OG_IMAGE.alt).toBe("Caretook. Care, taken. The free care notebook for families.");
+  });
+
+  it("is drawn from an SVG source that says the same words", () => {
+    const svg = publicFile(DEFAULT_OG_IMAGE.path.replace(/\.png$/, ".svg")).toString("utf8");
+    const words = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    expect(words.slice(0, 3)).toEqual([name, tagline, descriptor]);
+    expect(svg).toContain(`viewBox="0 0 ${DEFAULT_OG_IMAGE.width} ${DEFAULT_OG_IMAGE.height}"`);
+  });
+
+  it("is a PNG of the size the tags give", () => {
+    const png = publicFile(DEFAULT_OG_IMAGE.path);
+    expect(png.subarray(1, 4).toString("latin1")).toBe("PNG");
+    // The IHDR chunk: width then height, big-endian, from byte 16.
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([
+      DEFAULT_OG_IMAGE.width,
+      DEFAULT_OG_IMAGE.height,
+    ]);
   });
 });
 

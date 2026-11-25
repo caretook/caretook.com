@@ -9,7 +9,7 @@ export const content = {
   meta: {
     title: "About",
     description:
-      "Why Caretook exists: a calm, private place for families to keep track of a loved one's care together, and who's building it.",
+      "Why Caretook, the free care notebook for families, exists: a calm, private place to keep track of a loved one's care together, and who's building it.",
   } satisfies PageMeta,
 
   intro: {
