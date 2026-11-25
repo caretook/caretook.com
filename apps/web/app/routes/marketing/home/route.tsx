@@ -24,7 +24,7 @@ export default function Home() {
       <Gallery content={homeContent.gallery} />
       <Steps content={homeContent.steps} />
       <PromiseSection content={homeContent.promise} />
-      <CtaBand content={homeContent.earlyAccess} />
+      <CtaBand content={homeContent.price} />
       <WaitlistBand content={homeContent.waitlist} />
     </>
   );

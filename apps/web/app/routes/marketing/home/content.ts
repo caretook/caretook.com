@@ -9,6 +9,7 @@ import type {
   WaitlistBandContent,
 } from "../sections/types";
 import { MARKETING_LINKS } from "../site/pages";
+import { PRICE_HEADLINE, PRICE_PROMISE } from "../site/price";
 
 /**
  * Home page copy (draft: the user edits it). Change the words here; the
@@ -22,7 +23,7 @@ export const homeContent = {
   } satisfies PageMeta,
 
   hero: {
-    eyebrow: "Free while in early access",
+    eyebrow: PRICE_HEADLINE,
     // The lockup: the name and tagline are the h1, the descriptor sits under
     // them, and `heading` is the supporting line. The share image
     // (public/og-default.svg) and its alt (site/meta.ts) say the same words.
@@ -122,16 +123,17 @@ export const homeContent = {
       {
         icon: "noAiTraining",
         title: "Not for AI training",
-        body: "Any AI provider we use may not keep your data or train on it.",
+        body: "Caretook doesn't use AI on your information today. If we add AI features, their providers may not keep your data or train on it.",
       },
       { icon: "delete", title: "Yours to delete", body: "You can delete your data whenever you want." },
     ],
   } satisfies PromiseContent,
 
-  earlyAccess: {
-    id: "early-access",
-    heading: "Free while in early access",
-    body: "Caretook is invitation-only while we build it with the first families. It's free during early access, and if that ever changes, you'll hear from us first.",
+  // The price band: the same sentence as the FAQ's cost answer (site/price.ts).
+  price: {
+    id: "free-for-families",
+    heading: PRICE_HEADLINE,
+    body: PRICE_PROMISE,
     actions: [],
   } satisfies CtaBandContent,
 
