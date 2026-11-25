@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# check-body.sh MODE BASE TOOLING [OWN_TEST_FILE…]: what one check runs, in the
-# current directory (prd.sh check puts it inside the lease and check-run.sh).
-# The plan (check-plan.mjs) has decided MODE, TOOLING (0, 1, or 2 with the
-# browser harness test) and the diff's
-# own test files; this runs them.
+# check-body.sh MODE BASE [OWN_TEST_FILE…]: Caretook's check, in the current
+# directory (the repo's root). The tool runs it through risa.json's `check` hook,
+# inside its lease, load gate, log and limits (scripts/loops/check-run.sh), and
+# runs its own tooling tests after it; without the tool it runs alone. The
+# tool's check plan has decided MODE and the diff's own test files; this runs them.
 #   slice: typecheck, lint, format, every unit test, and the integration and
 #          component test files the diff adds or edits (the OWN files that still
-#          exist), then the check-areas lint, the docs budget and the tooling tests
+#          exist), then the check-areas lint and the docs budget
 #   quick: the same, plus the integration tests related to the diff
 #          (`vitest --changed BASE`); no component test beyond the OWN files
-#   full:  what `pnpm check` runs, the build budget, then the tooling tests
+#   full:  what `pnpm check` runs, then the build budget
 # A slice or quick check writes "<test files run> <test files in all>" to
-# $CARETOOK_CHECK_COUNTS (check-run.sh logs them).
+# $CARETOOK_CHECK_COUNTS when it is set (the tool logs them).
 #
 # The static steps: one typegen, then tsc, ESLint and Prettier side by side (they
 # only read), each one's output printed whole, in that order, once all are done.
@@ -19,15 +19,20 @@
 # pass there passes the step and names the files as flakes. No rerun after an
 # unhandled error (no file owns it) or past CARETOOK_CHECK_RERUN_MAX failed files
 # (20: that many is a real break).
-# $CARETOOK_CHECK_STATE, a directory from check-run.sh, gets the current `step`
-# and the `failed` and `flaky` files, one per line.
+# $CARETOOK_CHECK_STATE, a directory, when set, gets the current `step` and the
+# `failed` and `flaky` files, one per line. The exit code is the check's: 0 passed.
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-mode=$1 base=$2 tooling=$3; shift 3
+mode=$1 base=$2; shift 2
 unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit)
 state=${CARETOOK_CHECK_STATE:-}
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
+
+case $mode in
+  slice) echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits" ;;
+  quick) echo "Quick check against ${base:0:7}: typecheck, lint, format, every unit test, the integration tests related to the diff, and the component tests it adds or edits" ;;
+esac
 
 step() { [[ -z $state ]] || printf '%s\n' "$1" > "$state/step"; }
 record() { # record failed|flaky FILE…
@@ -132,12 +137,5 @@ else
   fi
   step lint; node scripts/project/check-areas.mjs lint
   step docs; pnpm docs:budget
-fi
-if [[ $tooling != 0 ]]; then
-  # The static steps linted and formatted every file, so this skips the lint of
-  # the changed tooling files that `pnpm test:tooling` runs first.
-  projects=(--project tooling:unit --project core:unit --project project:unit --project project:tooling)
-  [[ $tooling != 2 ]] || projects+=(--project tooling:browser)
-  tests tooling
 fi
 exit 0
