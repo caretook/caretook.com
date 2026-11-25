@@ -8,7 +8,11 @@
 
 **Session 3 on Fable (2026-11-25): wave 3 is running.** **Landing mode: ask before each landing**, through the backlog split-ops session (`caretook-com-d6` at this writing; the session record is `backlog-split-ops`, find it with ListAgents; the user's contact for the split until the reset, Sat 2026-11-28 12:00). The user's word to session 1: "listen to backlog - split-ops agent".
 
-**Wave 3:** synced `dev` with `--force` (d53f17b5: wave 2's code and B-818's fix are in). Slices 3 (stack, slot 2) and 7 (no stack) have worktrees (made with `CARETOOK_USAGE_WATCH=off`) and one background agent each, both on opus (3 extends the hook contract, B-846 point 3: design; 7 needs judgement on what is generic); the watch runs. Weekly usage was at 97% at the start: an agent stopped by the limit resumes from its commits (`prompt slice … --continue`). **Slice 3's first agent stopped itself at about 210k context** after 9a647095 (the hook contract's additions: `stackStop`, `stackStart`, `stackEngine`, `stackLeftovers`, a `serve` hook, `stopped_secs` in `ready`, `test-db orphans` and `running=`; more than B-846 point 3 names, for the skeptic to weigh); a second opus agent continues from its plan (the core swaps, the forwarders' removal, the tests on a stub hook, the allowlist). Its "before" captures are in the session's scratchpad (lost on a reboot: a new agent retakes them from 9a647095, which changed no caller). **Slice 3 is on its fourth opus agent** (each of the three before stopped itself at its context limit; the slice was too big for one). At ef536e1a: the core callers go through the hooks (a new `hooks.mjs`), the forwarders are gone, and the rotate, disk, reclaim, tidy-cli and stack tests run on a stub hook in the sample project (`stubHookConfig`). Left for the fourth: `recover.test.mjs` (16 failing), the drain and load-gate fixtures, `boundary.mjs --write`, reverting the one app-file edit (a comment in `packages/notifications/src/config.ts`, so the wave stays tooling-only), the after captures (the before ones are in the scratchpad's `cap/`), the quick check. **Slice 7 handed off at 8c57fb09** (quick check passed; reviewed, ready to merge after slice 3, in plan order). It split from `dev`'s copies in d53f17b5 (orchestrator 155b1904, planner 178e45ed, backlog dffce9ef, inbox 2cd9b8aa): before merging, re-apply any later `dev` edit to those four docs (none yet). It raised the allowlist's `doc-budget.config.mjs project-to-core` count from 3 to 7 (the residual budget paths, as slice 6): for the skeptic. **Next:** on each hand-off review and merge in plan order (3, then 7; for 7 first re-apply `dev`'s edits to the four docs since it branched), `pnpm test:tooling` (the wave has no tier) and one stack up and down, the Fable skeptic (rule 3), then ask split-ops before landing. **The user wants a push notification when wave 3 lands** (split-ops then prints marketing-2's start commands): tell split-ops at that landing. Older hand-offs: [`orchestration-split-2-history.md`](orchestration-split-2-history.md).
+**Wave 3:** synced `dev` with `--force` (d53f17b5), then slices 3 and 7, both on opus, are **merged** (721935db, 70449b6f; no conflict; boundary lint and doc budget ok on the tip). Slice 3 took four agents (three stopped at their context limit: 37 files was too big for one slice). **The wave's tier is `integration`**, not none: slice 3 edits `browser.sh` (its serve call goes through the hook). **Next:** `pnpm test:tooling` on the tip, `pnpm prd ci run integration --wait`, one stack up and down, the Fable skeptic (rule 3), `pnpm prd pr` and the Codex review, then ask split-ops before landing (rule 4: no other PRD, plan or hotfix worktree open). The slices' worktrees stay until the verdict is green. `dev` had no edit to the four split docs since d53f17b5 at the merge: check again before landing. **The user wants a push notification when wave 3 lands** (split-ops then prints marketing-2's start commands): tell split-ops at that landing. Older hand-offs: [`orchestration-split-2-history.md`](orchestration-split-2-history.md).
+
+- **For the skeptic:** slice 3's contract grew past B-846 point 3: hooks `stackStop`, `stackStart`, `stackEngine`, `stackLeftovers`, `serve`; `stopped_secs=` in `ready`; `test-db` `orphans`, `running=` and `use` facts; a core `hooks.mjs`; a stub hook in the sample project. Behaviour changes: `rm.sh` dies on a failed `stackDown`; recover keeps the migrate marker when the start fails; `ls.sh`'s fallback text. One test dropped (the marker exists while the migrate runs). Slice 7 raised the allowlist's `doc-budget.config.mjs project-to-core` count instead of taking the paths out.
+- **Left for later:** `inventory.mjs` keeps "Docker" in a step name, field and line (orchestration-split-3); a comment in `packages/notifications/src/config.ts` names the removed `scripts/loops/serve.sh` (an app file, kept out of this wave); `browser.test.mjs` and `fixes-plans.test.mjs` still copy or import `scripts/project`.
+- **For the last landing's docs (machinery):** the contract additions above; a generic doc's additions file can continue only its last section, so a section mixing generic lines and `dev` lines stays whole in Caretook's half.
 
 **Wave 2 landed 2026-11-25 as 47fb5414** (PR #197, tier `integration`, `--no-review`: Codex was out of credits, so it didn't review this wave; landed on an unsynced tip, `dev`'s 2 newer commits sharing no file). CI: green on 00929e32 (run 45708541701). The Fable skeptic (rule 3): no at 878f964e (one blocker: `stack_hook`'s relative folder after `new.sh`'s `cd`), go at 00929e32 after the fix; its follow-ups are B-846. No docs folded (the plan folds them at the last landing). No other worktree was open (rule 4). Worktrees and branches of slices 2 and 6 are removed.
 
@@ -29,17 +33,17 @@
 
 **Backlog:** B-543 (the split, the topic's item). Slice 9 (wave 4) takes B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups), B-844 (wave 1's; its point 2 is done, slice 2) and B-846 (wave 2's) but its point 3, which is slice 3's: all on the user's word, relayed by split-ops 2026-11-25.
 
-| Slice | Wave | State                 | Merge into `prd/orchestration-split-2` |
-| ----- | ---- | --------------------- | -------------------------------------- |
-| 1     | 1    | landed                | ad60a316                               |
-| 4     | 1    | landed                | a4c667dd                               |
-| 5     | 1    | landed                | 73331f09                               |
-| 2     | 2    | landed                | 5b690d58                               |
-| 6     | 2    | landed                | 89ef0dda                               |
-| 3     | 3    | started               |                                        |
-| 7     | 3    | handed off (8c57fb09) |                                        |
-| 8     | 4    | planned               |                                        |
-| 9     | 4    | planned               |                                        |
+| Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
+| ----- | ---- | ------- | -------------------------------------- |
+| 1     | 1    | landed  | ad60a316                               |
+| 4     | 1    | landed  | a4c667dd                               |
+| 5     | 1    | landed  | 73331f09                               |
+| 2     | 2    | landed  | 5b690d58                               |
+| 6     | 2    | landed  | 89ef0dda                               |
+| 3     | 3    | started |                                        |
+| 7     | 3    | merged  | 70449b6f                               |
+| 8     | 4    | planned |                                        |
+| 9     | 4    | planned |                                        |
 
 ## Architectural decisions
 
