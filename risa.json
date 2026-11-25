@@ -79,6 +79,11 @@
     "stackDown": "scripts/project/stack.sh down",
     "stackStatus": "scripts/project/stack.sh status",
     "stackReady": "scripts/project/stack.sh ready",
+    "stackStop": "scripts/project/stack.sh stop",
+    "stackStart": "scripts/project/stack.sh start",
+    "stackEngine": "scripts/project/stack.sh engine",
+    "stackLeftovers": "scripts/project/stack.sh leftovers",
+    "serve": "scripts/project/serve.sh",
     "testDb": "scripts/project/test-db.sh",
     "lease": "bash scripts/loops/lease.sh hold"
   },
