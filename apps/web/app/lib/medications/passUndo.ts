@@ -2,7 +2,9 @@
 // about 10 s, wherever a `PassUndoStatus` is mounted (Today, the Dose sheet,
 // the timeline's medication strip). Quick entry's Save offers the same Undo
 // for a whole line ("Saved 3 entries · Undo"), shown only where it was saved
-// (its `place`). One at a time: a newer offer replaces it.
+// (its `place`). The Schedule tab shows its offers as a toast instead, one
+// dose's too ("Tylenol logged", `doseUndoLabel`). One at a time: a newer
+// offer replaces it.
 // Plain module state (no React), so a sheet that closes doesn't take the
 // Undo with it. Pure apart from the clock; web:unit tests it.
 
@@ -32,11 +34,17 @@ let current: PassUndo | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
-/** Offer Undo for a round just logged. */
-export function offerUndo(round: Omit<PassUndo, "key" | "expiresAt">, now = Date.now()) {
-  current = { ...round, key: `${now}-${round.doseIds.join(",")}`, expiresAt: now + UNDO_MS };
+/** Offer Undo for a round (or one dose) just logged; returns the offer. */
+export function offerUndo(round: Omit<PassUndo, "key" | "expiresAt">, now = Date.now()): PassUndo {
+  const offer = { ...round, key: `${now}-${round.doseIds.join(",")}`, expiresAt: now + UNDO_MS };
+  current = offer;
   emit();
+  return offer;
 }
+
+/** One dose's Undo label: "Tylenol logged", "Tylenol marked skipped", "Tylenol marked refused". */
+export const doseUndoLabel = (name: string, status: "given" | "skipped" | "refused") =>
+  status === "given" ? `${name} logged` : `${name} marked ${status}`;
 
 /** The round Undo is offered for in this group and place, or null (none, another group's or place's, or expired). */
 export function undoFor(
