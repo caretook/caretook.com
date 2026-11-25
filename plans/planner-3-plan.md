@@ -4,16 +4,20 @@
 
 ## Status
 
-**Where it stands:** replanned 2026-11-23, not started.
+**Where it stands:** wave 1 (slices 1, 5) started 2026-11-24; B-245 and B-254 claimed.
 
-| Slice | Wave | State       | Merge into `prd/planner-3` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------ |
-| 1     | 1    | not started |                                            |
-| 2     | 2    | not started |                                            |
-| 3     | 3    | not started |                                            |
-| 4     | 3    | not started |                                            |
-| 5     | 1    | not started |                                            |
-| 6     | 2    | not started |                                            |
+**Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
+
+**Models:** slice 1 opus, slice 5 opus.
+
+| Slice | Wave | State                                    | Merge into `prd/planner-3` (slice commits) |
+| ----- | ---- | ---------------------------------------- | ------------------------------------------ |
+| 1     | 1    | working (worktree planner-3-1, slot 2)   |                                            |
+| 2     | 2    | not started                              |                                            |
+| 3     | 3    | not started                              |                                            |
+| 4     | 3    | not started                              |                                            |
+| 5     | 1    | working (worktree planner-3-5, no stack) |                                            |
+| 6     | 2    | not started                              |                                            |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
