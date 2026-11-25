@@ -183,10 +183,10 @@ describe("issuesForSlotRows", () => {
       issuesForSlotRows(
         [
           { path: "schedule.slots.2.time", message: "Use a time like 08:00" },
-          { path: "schedule.slots.1", message: "Choose a pass or a time" },
+          { path: "schedule.slots.1", message: "Choose a med time or a time of day" },
           { path: "schedule.slots.1.amount", message: "Too long" },
           { path: "schedule.slots.0.amount", message: "Too long" },
-          { path: "schedule.slots.0.passId", message: "Choose a pass" },
+          { path: "schedule.slots.0.passId", message: "Choose a med time" },
           { path: "schedule.slots", message: "List each time once" },
           { path: "name", message: "Enter a name" },
         ],
@@ -194,10 +194,10 @@ describe("issuesForSlotRows", () => {
       ),
     ).toEqual([
       { path: "schedule.times.2", message: "Use a time like 08:00" },
-      { path: "schedule.times.0", message: "Choose a pass or a time" },
+      { path: "schedule.times.0", message: "Choose a med time or a time of day" },
       { path: "schedule.times.0.amount", message: "Too long" },
       { path: `schedule.passes.${MORNING}.amount`, message: "Too long" },
-      { path: "schedule.passes", message: "Choose a pass" },
+      { path: "schedule.passes", message: "Choose a med time" },
       { path: "schedule.times", message: "List each time once" },
       { path: "name", message: "Enter a name" },
     ]);

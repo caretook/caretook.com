@@ -26,7 +26,7 @@ import { loadPasses, usePasses, usePassZoneNote, useTodayPasses } from "./usePas
 // and add one in the add-pass sheet (`new`, a child route, opened from the
 // header's `+`). Viewers read only.
 
-export const meta = () => [{ title: "Passes · Medications · Caretook" }];
+export const meta = () => [{ title: "Med times · Medications · Caretook" }];
 
 export async function clientLoader({ params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
@@ -77,9 +77,9 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
   return (
     <div className="space-y-4" data-passes-page>
       <p className="text-muted text-sm" data-passes-description>
-        The rounds medications are given in, each day.
+        The times medications are given, each day.
         {zoneNote && ` ${zoneNote}.`}
-        {!group.canWrite && " You can view the passes."}
+        {!group.canWrite && " You can view the med times."}
       </p>
 
       <PassList

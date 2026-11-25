@@ -93,7 +93,7 @@ const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
 /** The header's `+`, then Pass: the add-pass sheet. */
 const addPass = async () => {
   await userEvent.click(page.getByRole("button", { name: "Add", exact: true }));
-  await userEvent.click(await found(() => menuItem("Pass")));
+  await userEvent.click(await found(() => menuItem("Med time")));
 };
 const action = async (name: string, item: string) => {
   await userEvent.click(
@@ -125,7 +125,7 @@ describe("the tab", () => {
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
     expect(medsIn("Morning")).toEqual(["Lisinopril 10 mg", "Metformin 500 mg"]);
     expect(medsIn("Evening")).toEqual(["Metformin 500 mg"]);
-    expect(description()).toContain("The rounds medications are given in, each day.");
+    expect(description()).toContain("The times medications are given, each day.");
     expect(description()).not.toContain("You can view");
   });
 
@@ -149,7 +149,7 @@ describe("the tab", () => {
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
     expect(document.querySelector<HTMLElement>("main header [data-add-medication]")).toBeNull();
     expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
-    expect(description()).toContain("You can view the passes");
+    expect(description()).toContain("You can view the med times");
   });
 
   test("a new pass starts at the current hour in the recipient's zone, not the device's", async () => {
@@ -208,7 +208,7 @@ describe("a writer", () => {
     const describedBy = input("name").getAttribute("aria-describedby")!.split(" ").pop()!;
     await expect
       .poll(() => document.getElementById(describedBy)?.textContent)
-      .toBe("Another pass already has that name");
+      .toBe("Another med time already has that name");
     await fillForm({ name: "Noon", time: "12:00" });
     await expect.poll(passList).toEqual(["Morning 08:00", "Noon 12:00", "Evening 20:00"]);
     await expect.poll(() => !FORM() && device.location()).toBe(PASSES);

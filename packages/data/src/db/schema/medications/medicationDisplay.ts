@@ -216,7 +216,7 @@ export const scheduleChangeParts = (
   const now = byKey(after.slots);
   const passOf = new Map(passes.map((p) => [p.id, p]));
   const name = (slot: ScheduleSlot) =>
-    isPassSlot(slot) ? (passOf.get(slot.passId)?.name ?? "a pass") : clockTime(slot.time);
+    isPassSlot(slot) ? (passOf.get(slot.passId)?.name ?? "a med time") : clockTime(slot.time);
   // Passes in their order (unknown ones last), then times by time.
   const passRank = new Map(sortPasses(passes).map((p, index) => [p.id, index]));
   const rank = (slot: ScheduleSlot) =>

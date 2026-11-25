@@ -37,10 +37,10 @@ export function useAddMenu(groupId: string, tab: MedicationsPageTab | null, sear
       },
       roomForPass && {
         id: "pass",
-        label: "Pass",
+        label: "Med time",
         icon: Clock,
         href: newPass,
-        // From the Passes tab, closing goes back to it; from another tab, the sheet closes onto Passes.
+        // From the Med times tab, closing goes back to it; from another tab, the sheet closes onto Med times.
         state: tab === "passes" ? PASS_SHEET_STATE : undefined,
       },
     ];

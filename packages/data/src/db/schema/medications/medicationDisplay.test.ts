@@ -230,7 +230,7 @@ describe("change wording", () => {
       "14:00 amount 2 tablets → usual dose",
     );
     expect(scheduleChange(at({ passId: GONE }), at({ passId: MORNING }))).toBe(
-      "Added to Morning; removed from a pass",
+      "Added to Morning; removed from a med time",
     );
     // A switch to as needed reads as the whole schedule, before and after.
     expect(

@@ -28,27 +28,27 @@ export const MEDICATIONS_ERRORS = {
     statusCode: 400,
   },
   "medicationService:badPass": {
-    message: "A medication's passes must be passes in this care group",
+    message: "A medication's med times must be med times in this care group",
     statusCode: 400,
   },
   "medicationPassService:invalid": {
-    message: "The pass is invalid",
+    message: "The med time is invalid",
     statusCode: 400,
   },
   "medicationPassService:notFound": {
-    message: "Pass not found",
+    message: "Med time not found",
     statusCode: 404,
   },
   "medicationPassService:immutable": {
-    message: "A pass's group and recipient can't change",
+    message: "A med time's group and recipient can't change",
     statusCode: 400,
   },
   "medicationPassService:nameTaken": {
-    message: "Another pass already has that name",
+    message: "Another med time already has that name",
     statusCode: 409,
   },
   "medicationPassService:tooMany": {
-    message: "This care group already has as many passes as it can",
+    message: "This care group already has as many med times as it can",
     statusCode: 409,
   },
 } as const;

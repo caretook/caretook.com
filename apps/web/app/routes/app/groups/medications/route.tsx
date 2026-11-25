@@ -30,7 +30,7 @@ export default function Medications({ params }: Route.ComponentProps) {
     () => [
       { label: "Schedule", to: appUrls.medicationSchedule(params.groupId) },
       { label: "Medications", to: appUrls.medicationList(params.groupId) },
-      { label: "Passes", to: appUrls.medicationPasses(params.groupId) },
+      { label: "Med times", to: appUrls.medicationPasses(params.groupId) },
     ],
     [params.groupId],
   );
