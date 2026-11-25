@@ -333,10 +333,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-800 | change | landed | fixes-ui | prd/fixes-ui | Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels |
 | B-801 | change | landed | fixes-ui | prd/fixes-ui | Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels |
 | B-802 | bug | triaged | fixes-tooling |  | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
-| B-803 | change | ready | fixes-ui | prd/fixes-ui | Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. |
-| B-804 | feature | ready | fixes-ui | prd/fixes-ui | Need a banner (or permanent toast) while in offline mode. |
+| B-803 | change | landed | fixes-ui | prd/fixes-ui | Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. |
+| B-804 | feature | landed | fixes-ui | prd/fixes-ui | Need a banner (or permanent toast) while in offline mode. |
 | B-805 | question | triaged | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
-| B-806 | change | ready | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
+| B-806 | change | landed | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
 
 ## Items
 
@@ -622,6 +622,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. root.tsx:31,58. Only Sheet handles the inset. Belongs with Capacitor work when that starts.
 - 2026-11-21 (prd/orchestration-2): category: ui (orchestration-2 split)
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: checked against dev, still present and not yet fixed.
+- 2026-11-24 (prd/fixes-ui): fixes-ui wave 12 (dev ea38277): the blank cold start is covered by B-806 (root HydrateFallback is now brand/AppLoading). Left: the top safe-area inset (viewport-fit=cover) on the header and sticky day headers, with Capacitor.
 
 ### B-327 · bug · A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again
 
@@ -2507,7 +2508,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-803 · change · Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay.
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: dfe5f95b
@@ -2517,7 +2518,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-804 · feature · Need a banner (or permanent toast) while in offline mode.
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: c6fa22eb
@@ -2535,7 +2536,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-806 · change · Need a loader screen for loading in offline mode.
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: c6fa22eb
