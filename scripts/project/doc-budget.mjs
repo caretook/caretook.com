@@ -62,7 +62,10 @@ export function measure(sizes, baseSizes = {}, budgets = BUDGETS) {
 const git = (repo, ...args) =>
   execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
-const isDoc = (p) => p === "AGENTS.md" || p.startsWith("docs/");
+// What is measured: docs/ and each file a budget names by its exact path (AGENTS.md, the
+// core's generic role docs until the move).
+const exactPaths = () => BUDGETS.map((e) => e.pattern).filter((p) => !p.endsWith("/*.md"));
+const isDoc = (p) => p.startsWith("docs/") || exactPaths().includes(p);
 
 /** { path: bytes } for the docs in the working tree, or at `ref`. */
 export function docSizes(repo, ref = null) {
@@ -81,9 +84,9 @@ export function docSizes(repo, ref = null) {
       else if (budgetFor(p) !== null) sizes[p] = statSync(join(repo, p)).size;
     }
   };
-  if (budgetFor("AGENTS.md") !== null) {
+  for (const p of exactPaths().filter((p) => !p.startsWith("docs/"))) {
     try {
-      sizes["AGENTS.md"] = statSync(join(repo, "AGENTS.md")).size;
+      sizes[p] = statSync(join(repo, p)).size;
     } catch {
       /* absent */
     }

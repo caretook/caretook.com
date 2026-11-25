@@ -5,6 +5,7 @@
 #   test-db.sh status            running or not, its port and databases
 #   test-db.sh up                start it if it isn't running (never recreates it)
 #   test-db.sh down              stop it (every worktree's test database goes)
+#   test-db.sh facts             port=<its port> and project=<its Compose project>
 #   test-db.sh name <worktree>   the database name for a worktree
 #   test-db.sh create <worktree> start it if needed and create that database
 #   test-db.sh drop <worktree>   drop that database and its integration workers'
@@ -128,6 +129,7 @@ case $cmd in
     # Only this project: never other Compose projects or their networks.
     docker compose -p "$shared_test_project" down --remove-orphans
     ;;
+  facts) printf '%s\n' "port=$shared_test_port" "project=$shared_test_project" ;;
   name) db_of "${1:-}" ;;
   create)
     db=$(db_of "${1:-}"); up
@@ -179,5 +181,5 @@ case $cmd in
     write_test_env "$loops/$name" "$name"
     echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)"
     ;;
-  *) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+  *) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac
