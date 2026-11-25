@@ -137,24 +137,30 @@ fieldset:disabled :is(.input, .select, .textarea) {
    offset below and --tab-bar-gap above it: its spacer reserves this much at
    the end of the page, and anything else fixed to the bottom of a group
    screen (the toast region, below) offsets itself by it. Tests simulate an inset by setting
-   --tab-bar-inset. Its surface is near-black `neutral` in light; dark's
-   `neutral` is within 1.1:1 of the dark page, so there it is `base-300`
-   (`light-dark` follows the theme's color-scheme). It paints it as
-   --tab-bar-glass: slightly translucent over a backdrop blur where
-   `backdrop-filter` is supported, else solid (B-803). */
+   --tab-bar-inset. Its surface is light `base-100` in light, a step off the
+   `base-200` page under its shadow, with `base-content` icons (it was
+   near-black `neutral`, B-817); dark's `base-100` and `neutral` sit too close
+   to the dark page, so there it is `base-300` (`light-dark` follows the
+   theme's color-scheme). It paints it as --tab-bar-glass: translucent over a
+   backdrop blur where `backdrop-filter` is supported (85% of the surface in
+   light, 70% in dark, which still keeps its icons past 4.5:1), else solid
+   (B-803). */
 :root {
   --tab-bar-gap: 0.75rem;
   --tab-bar-inset: env(safe-area-inset-bottom, 0px);
   --tab-bar-bottom: max(var(--tab-bar-gap), calc(var(--tab-bar-inset) + 0.25rem));
   --tab-bar-bar: 3rem;
   --tab-bar-height: calc(var(--tab-bar-bar) + var(--tab-bar-gap) + var(--tab-bar-bottom));
-  --tab-bar-surface: light-dark(var(--color-neutral), var(--color-base-300));
-  --tab-bar-content: light-dark(var(--color-neutral-content), var(--color-base-content));
+  --tab-bar-surface: light-dark(var(--color-base-100), var(--color-base-300));
+  --tab-bar-content: var(--color-base-content);
   --tab-bar-glass: var(--tab-bar-surface);
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   :root {
-    --tab-bar-glass: color-mix(in oklab, var(--tab-bar-surface) 85%, transparent);
+    --tab-bar-glass: light-dark(
+      color-mix(in oklab, var(--tab-bar-surface) 85%, transparent),
+      color-mix(in oklab, var(--tab-bar-surface) 70%, transparent)
+    );
   }
 }
 
