@@ -514,6 +514,20 @@ describe("commands through the config", () => {
     expect(r.stderr).toBe(`${CONFIG_NAME}: no value for commands.hooksInstall\n`);
   });
 
+  it("runs the command in a subshell: a cd or exit in it leaves the caller as it was", () => {
+    const moved = join(tmp, "moved.json");
+    writeFileSync(
+      moved,
+      JSON.stringify(
+        changed((c) => {
+          c.commands.install = "cd /; exit 3";
+        }),
+      ),
+    );
+    const r = bash('run_project install; echo "rc=$? $PWD"', { RISA_CONFIG: moved });
+    expect(r.stdout).toBe(`rc=3 ${ROOT}\n`);
+  });
+
   it("runs a hook from the top of the checkout it is called in, with its arguments and stdin", () => {
     const hooked = join(tmp, "hooks.json");
     writeFileSync(
@@ -534,6 +548,18 @@ describe("commands through the config", () => {
     );
     expect(r.stdout).toBe(`${repo}\nin\nresolve|x y|rc=127\n`);
     expect(r.stderr).toBe(`${CONFIG_NAME}: no value for hooks.docBudget\n`);
+  });
+
+  it("runs the landing hook for the reports, and prints nothing when the config sets none", () => {
+    const hooked = join(tmp, "landing.json");
+    writeFileSync(hooked, JSON.stringify(changed((c) => (c.hooks = { landing: "printf '%s|'" }))));
+    const none = join(tmp, "no-landing.json");
+    writeFileSync(none, JSON.stringify(changed((c) => (c.hooks = {}))));
+    const script = 'landing_hook try "/m"; echo "rc=$?"';
+    expect(bash(script, { RISA_CONFIG: hooked }).stdout).toBe("try|/m|rc=0\n");
+    const r = bash(script, { RISA_CONFIG: none });
+    expect(r.stdout).toBe("rc=0\n");
+    expect(r.stderr).toBe("");
   });
 
   it("finds the repo's main checkout and its .loops, from the main checkout and from a worktree", () => {

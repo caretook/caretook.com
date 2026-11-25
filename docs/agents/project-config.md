@@ -1,0 +1,40 @@
+# The project config and the core's line
+
+The orchestration tooling is being split from Caretook (PRD: [`plans/orchestration-split-prd.md`](../../plans/orchestration-split-prd.md)): the **core** (Risa, later a tool of its own) and **Caretook's** scripts and data. Stage 1a drew the line in place; nothing moved out yet and commands are still `pnpm prd` and `pnpm backlog`. Read this before changing a file under `scripts/loops`, `scripts/backlog`, `scripts/ci`, `scripts/project` or `.githooks`.
+
+## The config
+
+- **`risa.json`** at the root holds every Caretook fact the core uses. The loader is `scripts/loops/config.mjs` (`get`, `dump`, `check`; an unknown or mistyped key is an error; `loadConfigOrExit(who)` prints one `<who>:` line and exits 2). Bash reads it once per process through `lib.sh`: `config_get KEY`. `RISA_CONFIG` overrides the path (tests). `scripts/project/risa.mjs` is Caretook's plain read, with no core file.
+- **Keys:** `tool` (the command names; `tool_command` in `lib.sh`), `paths` (backlog, inbox, archive, plans, docs, `promptGolden`, `checkAreas`, `brakeList`, `quarantine`, `tierData`, `checkPlanRules`, `tooling`), `roles` (each role's doc; `role_doc`), `branches` (trunk, protected, prefixes; `branchKinds()`), `backlog` (`idPrefix`, `formerIdPrefix`, `zoneOverflowItem`, `ciFailureTopic`), `commands`, `stack.portEnv`, `testProjects`, `hooks`, `boundary.appPaths`.
+- **Backlog ids** come from `backlogIds()`: Caretook's are `B-n`. A project that sets `formerIdPrefix` reads an old id as its own (Risa: `B-772` is `RISA-772`).
+- **Commands the core runs** (install, typecheck, datastore, hooks install, the tooling tests) go through `run_project`, in a subshell. `find_repo` finds the main checkout; `in_main` tells whether a script runs there.
+- **The git hooks** keep their own protected-branch constant; a Caretook test checks it against the config.
+
+## The line
+
+- **The manifest** `scripts/loops/boundary.manifest`: `<path> core|project`, sorted, one line per tracked file under the five folders, tests included. **A new file there needs its line.**
+- **The lint** `scripts/loops/boundary.mjs` (a test in `tooling:unit`): rules `project-env`, `project-name`, `app-path`, `core-to-project`, `project-to-core`. It reads imports, spawns and path strings, not comments. Blind spots: paths built from pieces, bare names with no extension, paths in a regex group.
+- **The allowlist** `boundary.allowlist`: `<path> <rule> <count> [# why]`, exact counts; shrink it with `--write`, never grow it. Stage 1 ends with the PRD's named residual list.
+- **Copied, not shared:** `package-diff.mjs`, `status-trim.mjs` and the CI lists parser `lists.mjs` each have a core copy and a Caretook copy.
+- **The sample project** `scripts/loops/sample-project/` (`risa.json`, `repo.mjs`'s `makeRepo(main, { config, files })`, its own rules, check script and prompt golden; prefixes `topic/`, `part/`, `draft/`, `quick/`) is what the core's tests run on. A test that copies `scripts/backlog` or `scripts/loops` into a throwaway repo copies `config.mjs` too.
+
+## Hooks
+
+Each is a command in `hooks`, run by `run_hook` from the checkout's top; an unset one is skipped, but for `check`.
+
+- **`check`** (`scripts/project/check-body.sh`): the check's body. `check-hook.sh MODE BASE TOOLING [OWN…]` runs it, then the core's tooling tests (`check-tooling.mjs`, `testProjects.tooling`, plus `browserHarness` when TOOLING is 2). In: the mode, base and own test files as arguments, a state directory and a counts file in the environment. Out: the exit code, the state files `step`, `failed` and `flaky`, and the counts. The contract is in `check-hook.sh`'s header. The core keeps the lease, load gate, log, limits and rerun rules (`check-run.sh`).
+- **`checkAreas`**: `resolve --root --areas --base [--head]`, files on stdin (`browser.sh`'s `--changed`).
+- **`docBudget`**: `land <trunk> --head <branch> --repo <main>`. Exit 1 is a breach; any other failure is "failed to run".
+- **`landing`** (`scripts/project/landing.mjs`): `try [MAIN]` prints what to try in a landing report; `notes`, with the changed files on stdin, prints the migration, seed and sync notes (`landing_hook`, in `land.sh` and `ready.sh`).
+
+## The check plan and CI
+
+- **The check plan:** the engine is the core's `check-plan.mjs` (`checkPlanFor(project)`, `proposedTiers()`); the rules are Caretook's `scripts/project/check-plan-rules.json` (its shape is in the engine's header). `scripts/project/` and `risa.json` are tooling: a change only there asks for no tier.
+- **The tier data** `scripts/ci/tiers.json` has two readers: Caretook's `tiers.mjs` (the workflow's plan job, `node:fs` only) and the core's `tier-data.mjs` (`tierData()`; `tierDataOrExit("ci")` gives a broken file one clear line). A test compares them.
+- **`scripts/ci/` by owner:** Caretook's are the GitHub jobs (`browser-job`, `test-job`, `env`, `zones`, `verdict`, `quarantine-setup`), `tiers.mjs`, `lists.mjs`, `release-jobs.mjs`, the tier data and the two lists. The core's are `ci*.mjs`, `gate`, `release-gate`, `candidate`, `promote`, `release`, `outstanding`, `filing`, `blame`, `ci-lists.mjs`.
+- **The verdict is a file contract:** the core reads it with its own reader (`ci-runs.mjs`), never importing `verdict.mjs`. `VERDICT_VERSION` is in both; a shape change regenerates `scripts/ci/verdict.fixtures/` from `buildVerdict`.
+- **Tests by owner** (`vitest.config.ts`): `core:unit` and `tooling:unit` are the core's; `project:unit` and `project:tooling` are Caretook's and run alone with `pnpm test:project`. Every tooling test is in exactly one. `pnpm test`, `test:tooling` and `test:browser-harness` keep their sets until the move.
+
+## Still to come
+
+`orchestration-split-2` (the stack, test DB, lease and role docs), `orchestration-split-3` (the browser runner, the host layer, the `RISA_` and `risa` renames), then the hand move ([runbook](../../plans/orchestration-split-move.md)).

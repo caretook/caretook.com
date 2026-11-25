@@ -74,6 +74,7 @@ scripts/ci/verdict.fixtures/dev-named-failure.json core
 scripts/ci/verdict.fixtures/dev-quarantined-failed.json core
 scripts/ci/verdict.fixtures/dev-quarantined-passed.json core
 scripts/ci/verdict.fixtures/dev-quarantined-skipped.json core
+scripts/ci/verdict.fixtures/release-green.json core
 scripts/ci/verdict.mjs project
 scripts/ci/verdict.test.mjs project
 scripts/ci/zones.mjs project
@@ -288,6 +289,8 @@ scripts/project/doc-budget.config.mjs project
 scripts/project/doc-budget.mjs project
 scripts/project/doc-budget.test.mjs project
 scripts/project/host-headers.mjs project
+scripts/project/landing.mjs project
+scripts/project/landing.test.mjs project
 scripts/project/log.sh project
 scripts/project/package-diff.mjs project
 scripts/project/prompt-golden.txt project

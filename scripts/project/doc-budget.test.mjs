@@ -1,11 +1,11 @@
 // The doc budget guard (doc-budget.mjs): measuring, warn mode and land mode,
 // against a throwaway git repo.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { budgetFor, isLandExempt, longStatuses, measure, run } from "./doc-budget.mjs";
+import { budgetFor, isLandExempt, longStatuses, measure, registryRows, run } from "./doc-budget.mjs";
 
 const KB = 1024;
 let repo;
@@ -151,5 +151,14 @@ describe("plan status warnings", () => {
   });
   it("says nothing without a backlog", () => {
     expect(longStatuses(tmpdir())).toEqual([]);
+  });
+  // The registry's header is the core's (it writes the table); this file keeps a
+  // copy. Reading this checkout's own backlog ties the two: a column the core adds
+  // fails here instead of warn mode printing 'plan status: skipped'.
+  it("reads this checkout's own registry table", () => {
+    const backlog = readFileSync(new URL("../../plans/backlog.md", import.meta.url), "utf8");
+    const rows = registryRows(backlog);
+    expect(rows).not.toBeNull();
+    expect(rows?.length).toBeGreaterThan(0);
   });
 });

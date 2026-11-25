@@ -43,7 +43,8 @@
   "backlog": {
     "prdsHeading": "## PRDs",
     "idPrefix": "B",
-    "zoneOverflowItem": "B-750"
+    "zoneOverflowItem": "B-750",
+    "ciFailureTopic": "fixes-bug"
   },
   "commands": {
     "install": "pnpm install --frozen-lockfile",
@@ -68,7 +69,8 @@
   "hooks": {
     "check": "scripts/project/check-body.sh",
     "checkAreas": "node scripts/project/check-areas.mjs",
-    "docBudget": "node scripts/project/doc-budget.mjs"
+    "docBudget": "node scripts/project/doc-budget.mjs",
+    "landing": "node scripts/project/landing.mjs"
   },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
