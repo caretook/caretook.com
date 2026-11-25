@@ -10,7 +10,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 
-import { canChangeEntry, parseSearch } from "@caretook/data/schema";
+import { canChangeEntry, canHaveNoteDocument, parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -52,6 +52,7 @@ import { dayKeyIn, withMarkers } from "./timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
+import { useOpenTodoCounts } from "./useOpenTodoCounts";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
@@ -185,6 +186,8 @@ export function TimelineEntryList({
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
   const group = useGroup();
+  // The open-todo marks: one live query for the group (none in easy mode).
+  const openTodos = useOpenTodoCounts(groupId, !easy);
   // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
   const mayChange = (createdBy: string | null) =>
     canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
@@ -308,6 +311,7 @@ export function TimelineEntryList({
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
         easy={easy}
+        openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}
       />
     );
   };
