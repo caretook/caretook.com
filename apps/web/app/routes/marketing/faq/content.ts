@@ -10,7 +10,7 @@ export const content = {
   meta: {
     title: "FAQ",
     description:
-      "Answers about what Caretook costs, who can see what, security, using it offline, leaving a care group and deleting your data.",
+      "Answers about Caretook, the free care notebook for families: what it costs, who can see what, security, using it offline, leaving a care group and deleting your data.",
   } satisfies PageMeta,
 
   intro: {

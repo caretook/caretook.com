@@ -15,9 +15,23 @@ describe("homeContent", () => {
     expect(homeContent.meta.description.length).toBeLessThanOrEqual(200);
   });
 
-  it("has one h1 (the hero heading) and a lead", () => {
-    expect(nonEmpty(homeContent.hero.heading)).toBe(true);
+  it("leads with the lockup: the name, the tagline, then the descriptor without the founder clause", () => {
+    expect(homeContent.hero.lockup).toEqual({
+      name: "Caretook",
+      tagline: "Care, taken.",
+      descriptor: "The free care notebook for families.",
+    });
+  });
+
+  it("keeps the old heading as supporting copy under the lockup, and a lead", () => {
+    expect(homeContent.hero.heading).toBe("Keep track of someone's care, together.");
     expect(nonEmpty(homeContent.hero.lead)).toBe(true);
+  });
+
+  it("carries the tagline in its title and the descriptor in its description", () => {
+    const { name, tagline, descriptor } = homeContent.hero.lockup;
+    expect(homeContent.meta.title).toBe(`${name}: ${tagline}`);
+    expect(homeContent.meta.description).toContain(descriptor.replace(/\.$/, ""));
   });
 
   it("offers both calls to action: the waitlist and an access code", () => {

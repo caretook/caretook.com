@@ -16,13 +16,21 @@ import { MARKETING_LINKS } from "../site/pages";
  */
 export const homeContent = {
   meta: {
-    title: "Caretook: keep track of someone's care, together",
+    title: "Caretook: Care, taken.",
     description:
-      "A shared place for a family to keep track of a loved one's care: daily notes, symptoms and vitals, and visits. On any phone, even offline. Free while in early access.",
+      "The free care notebook for families: a shared place to keep track of a loved one's care, with daily notes, symptoms and vitals, and visits. On any phone, even offline.",
   } satisfies PageMeta,
 
   hero: {
     eyebrow: "Free while in early access",
+    // The lockup: the name and tagline are the h1, the descriptor sits under
+    // them, and `heading` is the supporting line. The share image
+    // (public/og-default.svg) and its alt (site/meta.ts) say the same words.
+    lockup: {
+      name: "Caretook",
+      tagline: "Care, taken.",
+      descriptor: "The free care notebook for families.",
+    },
     heading: "Keep track of someone's care, together.",
     lead: "Caretook is a shared place for a family to keep track of a loved one's care: what happened today, symptoms and vitals, notes from visits, and soon medications and providers. Everyone sees the same thing, on any phone, even offline.",
     primary: { label: "Join the waitlist", href: MARKETING_LINKS.waitlist },

@@ -16,7 +16,7 @@ export const content = {
   meta: {
     title: "Features",
     description:
-      "How Caretook helps a family keep track of someone's care: a shared timeline, notes written together, vitals, a provider directory, sharing with the right access, and offline use.",
+      "What's in Caretook, the free care notebook for families: a shared timeline, notes written together, vitals, a provider directory, sharing with the right access, and offline use.",
   } satisfies PageMeta,
 
   intro: {
