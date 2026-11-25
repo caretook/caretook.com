@@ -40,7 +40,7 @@
 | 5     | 1    | landed  | 73331f09                               |
 | 2     | 2    | landed  | 5b690d58                               |
 | 6     | 2    | landed  | 89ef0dda                               |
-| 3     | 3    | started |                                        |
+| 3     | 3    | merged  | 721935db                               |
 | 7     | 3    | merged  | 70449b6f                               |
 | 8     | 4    | planned |                                        |
 | 9     | 4    | planned |                                        |
