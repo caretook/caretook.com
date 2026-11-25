@@ -21,11 +21,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                    | Merge    |
-| ----- | ----- | ---------------------------------------- | -------- |
-| 66    | B-669 | merged (opus); worktree kept to green    | e2f1d254 |
-| 67    | B-693 | waits for 66                             |          |
-| 68    | B-697 | waits for 66 (wording decided, ask a211) |          |
+| Slice | Item  | State                                                        | Merge    |
+| ----- | ----- | ------------------------------------------------------------ | -------- |
+| 66    | B-669 | merged (opus); worktree kept to green                        | e2f1d254 |
+| 67    | B-693 | agent spawned (opus), worktree fixes-ui-67                   |          |
+| 68    | B-697 | agent spawned (opus), worktree fixes-ui-68; wording ask a211 |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
