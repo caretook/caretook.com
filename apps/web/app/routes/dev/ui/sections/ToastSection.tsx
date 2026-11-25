@@ -1,18 +1,29 @@
-import { useState } from "react";
-import { Button, Toast } from "~/components/ui";
+import { Button, toast } from "~/components/ui";
 import { Example } from "../Example";
 
+// The shared toasts (B-669): one at a time, the newest; the rest wait behind it.
 export function ToastSection() {
-  const [shown, setShown] = useState(false);
   return (
-    <Example label="Fixed at the bottom, above the tab bar">
-      <Button onClick={() => setShown((s) => !s)}>{shown ? "Hide the toast" : "Show the toast"}</Button>
-      <Toast
-        open={shown}
-        message="A new version is ready."
-        actionLabel="Reload"
-        onAction={() => setShown(false)}
-      />
-    </Example>
+    <>
+      <Example label="A finished action, with Undo (6 s)">
+        <Button onClick={() => toast({ message: "Note deleted", undo: () => {} })}>Undo toast</Button>
+      </Example>
+      <Example label="Background news, an action and no time limit">
+        <Button
+          onClick={() =>
+            toast({
+              message: "A new version is ready",
+              action: { label: "Reload", onAction: () => {} },
+              timeout: null,
+            })
+          }
+        >
+          Reload toast
+        </Button>
+      </Example>
+      <Example label="A message alone (6 s)">
+        <Button onClick={() => toast({ message: "Saved to this device" })}>Plain toast</Button>
+      </Example>
+    </>
   );
 }

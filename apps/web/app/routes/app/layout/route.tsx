@@ -4,7 +4,7 @@ import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "reac
 import { Search } from "lucide-react";
 import { Wordmark } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
-import { Button, IconButton } from "~/components/ui";
+import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { isFirstSyncPending } from "~/lib/sync/firstSync";
 import { requireSession, sessionContext } from "~/lib/auth/session";
@@ -46,7 +46,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - `announcement`: staff's banner (`Announcement`), when there is one;
  * - the outlet;
  * - `TabBar` (phones) under the outlet, on group routes;
- * - `update`: "A new version is ready" (`UpdateNotice`), when a new service worker waits.
+ * - the toast region (`ToastRegion`, every screen's toasts), and `UpdateNotice`,
+ *   which toasts "A new version is ready" when a new service worker waits.
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in easy mode
@@ -90,9 +91,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       </div>
       <Outlet />
       {groupFrame && <TabBar groupId={groupFrame} pathname={pathname} />}
-      <div data-region="update">
-        <UpdateNotice />
-      </div>
+      <UpdateNotice />
+      <ToastRegion />
     </>
   );
 }

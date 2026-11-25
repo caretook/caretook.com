@@ -1,16 +1,11 @@
-import { Toast } from "~/components/ui";
 import { useUpdateNotice } from "./useUpdateNotice";
 
-/** The `update` region's content: a new version is installed and waiting (lib/app-shell/serviceWorkerRegister.ts). */
+/**
+ * "A new version is ready" · Reload, as a toast with no time limit, while a
+ * new version is installed and waiting (lib/app-shell/serviceWorkerRegister.ts).
+ * Rendered by the /app layout; it draws nothing itself.
+ */
 export function UpdateNotice() {
-  const { ready, reloading, reload } = useUpdateNotice();
-  return (
-    <Toast
-      open={ready}
-      message="A new version is ready"
-      actionLabel="Reload"
-      onAction={reload}
-      busy={reloading}
-    />
-  );
+  useUpdateNotice();
+  return null;
 }

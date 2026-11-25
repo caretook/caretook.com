@@ -1,68 +1,130 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import type { QueuedToast } from "react-aria-components";
+import type { ToastContent } from "./toastQueue";
+
+import { X } from "lucide-react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Text,
+  UNSTABLE_Toast as AriaToast,
+  UNSTABLE_ToastContent as AriaToastContent,
+  UNSTABLE_ToastList as AriaToastList,
+  UNSTABLE_ToastRegion as AriaToastRegion,
+} from "react-aria-components";
 import { Button } from "./Button";
+import { IconButton } from "./IconButton";
+import {
+  dismissToast,
+  exitingKey,
+  finishExit,
+  markShown,
+  queue,
+  runToastAction,
+  subscribeExit,
+} from "./toastQueue";
 
 /**
- * A short message with one action, fixed at the bottom of the screen above the
- * tab bar (`--tab-bar-height`; from `sm` there's no bar). It's a live status,
- * so screen readers announce it when it appears. The update notice and the
- * timeline's added-medication notice use it.
- *
- * `open` shows it; turning it false fades it out (`--motion`) and then
- * unmounts it, at once under "reduce motion". While it fades it is inert, so
- * its action can't run again. Callers keep passing the same message until it
- * has gone.
+ * Where every toast shows (`toast()`, `toastQueue.ts`): mount it once, in the
+ * /app layout (and the gallery). A fixed `region` landmark ("Notifications")
+ * at the bottom, centred, above the tab bar while there is one and above the
+ * on-screen keyboard while it's open (app.css, `[data-toast-region]`); hidden
+ * in print. Each toast is a React Aria toast: its message an `alert`, never
+ * taking focus; hovering or focusing it pauses its time. It fades in and out
+ * on `--motion` (at once under "reduce motion"), inert while it fades out.
+ * It renders nothing on the server and while no toast is queued.
  */
-export function Toast({
-  open,
-  message,
-  actionLabel,
-  onAction,
-  busy = false,
-}: {
-  open: boolean;
-  message: string;
-  actionLabel: string;
-  onAction: () => void;
-  /** The action has started: its button is disabled. */
-  busy?: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(open);
-  if (open && !mounted) setMounted(true);
-  const exiting = mounted && !open;
+export const ToastRegion = memo(function ToastRegion() {
+  const keyboard = useKeyboardInset();
+  return (
+    <AriaToastRegion
+      queue={queue}
+      data-toast-region=""
+      className="toast toast-center z-40 print:hidden"
+      style={{ "--toast-keyboard": `${keyboard}px` } as CSSProperties}
+    >
+      <AriaToastList<ToastContent> className="contents">
+        {({ toast }) => <ToastItem toast={toast} />}
+      </AriaToastList>
+    </AriaToastRegion>
+  );
+});
 
-  // Unmount once the exit's animations have finished (none under reduced motion).
+function ToastItem({ toast }: { toast: QueuedToast<ToastContent> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const exiting = useSyncExternalStore(subscribeExit, exitingKey, () => null) === toast.key;
+  const { message, actions, data } = toast.content;
+
   useLayoutEffect(() => {
-    if (!exiting) return;
-    const animations = ref.current?.getAnimations?.() ?? [];
+    markShown(toast.key, true);
+    return () => {
+      markShown(toast.key, false);
+      finishExit(toast.key);
+    };
+  }, [toast.key]);
+
+  // Close for good once the fade out has finished (none under reduced motion).
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!exiting || !el) return;
+    el.inert = true;
+    const animations = el.getAnimations?.() ?? [];
     if (animations.length === 0) {
-      setMounted(false);
+      finishExit(toast.key);
       return;
     }
     let live = true;
     void Promise.all(animations.map((a) => a.finished))
       .catch(() => undefined)
-      .then(() => live && setMounted(false));
+      .then(() => live && finishExit(toast.key));
     return () => {
       live = false;
     };
-  }, [exiting]);
+  }, [exiting, toast.key]);
 
-  if (!mounted) return null;
   return (
-    <div
+    <AriaToast
+      toast={toast}
       ref={ref}
+      {...data}
       data-toast=""
       data-exiting={exiting || undefined}
-      inert={exiting}
-      className="toast toast-center z-40 mb-(--tab-bar-height) sm:mb-0 print:hidden"
+      className="alert border-base-300 bg-base-100 text-base-content flex items-center gap-2 py-2 pr-2 shadow-lg outline-offset-2"
     >
-      <div role="status" className="alert border-base-300 bg-base-100 text-base-content shadow-lg">
-        <span>{message}</span>
-        <Button variant="primary" size="sm" onClick={onAction} disabled={busy}>
-          {actionLabel}
+      <AriaToastContent className="min-w-0 grow">
+        <Text slot="title">{message}</Text>
+      </AriaToastContent>
+      {actions.map((action) => (
+        <Button key={action.label} variant="primary" size="sm" onClick={() => runToastAction(toast, action)}>
+          {action.label}
         </Button>
-      </div>
-    </div>
+      ))}
+      <IconButton icon={X} label="Dismiss" onPress={() => dismissToast(toast.key)} />
+    </AriaToast>
   );
+}
+
+/**
+ * How far the on-screen keyboard covers the bottom of the layout viewport
+ * (iOS and Android browsers overlay it; a web view that resizes for it, such
+ * as Capacitor's, gives 0). 0 while zoomed in, where the visual viewport is
+ * small for another reason.
+ */
+function useKeyboardInset() {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const covered = window.innerHeight - viewport.height - viewport.offsetTop;
+      setInset(viewport.scale > 1.01 ? 0 : Math.max(0, Math.round(covered)));
+    };
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
 }
