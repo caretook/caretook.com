@@ -8,7 +8,12 @@
 
 **Session 1 (2026-11-25, Fable):** started by the user by hand. **Landing mode: ask before each landing**, through the backlog split-ops session (now `caretook-com-d6`: it rotated 2026-11-25, and the session record `backlog-split-ops` confirms it; find it with ListAgents if it rotates again; the user's contact for the split until the reset, Sat 2026-11-28 12:00); the user's word: "listen to backlog - split-ops agent". The user's word through split-ops (2026-11-25): start slices 1, 4 and 5 now on opus, and add slice 9 for B-838 and B-842 in wave 4.
 
-**Wave 1 started 2026-11-25:** slices 1, 4 and 5, each a worktree (`.loops/orchestration-split-2-<n>`, made with `CARETOOK_USAGE_WATCH=off`) and a background agent on opus. **Slice 4 handed off** (cb130e51, reviewed, waits for slice 1 to merge in plan order): its slice check passed all but `watchdog.test.mjs` 'reads the limit as the drain does', which is B-818 (it fails wherever the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2; not the slice's). It edits `vitest.config.ts` (the new helper test joins `web:unit`), so wave 1's proposed tier will be `full`, not `components`. **Slice 5 handed off** (5151d435, reviewed, slice check green with `env -u CARETOOK_USAGE_WATCH`; ten roles, each a replacement; AGENTS.md 8087 bytes). Slice 1 is in its slice check; 4 and 5 merge after it, in plan order. B-543 claimed for `prd/orchestration-split-2` (it was still owned by the finished `prd/orchestration-split`).
+**Wave 1 (2026-11-25): all three slices merged, the wave's CI run is next.** Slices 1, 4 and 5 ran on opus; each keeps its worktree (`.loops/orchestration-split-2-<n>`) and branch until the verdict is green. One conflict, mine to resolve: `risa.json`'s `hooks` took both `testDb` (slice 1) and `lease` (slice 4). The boundary lint passes on the merged tip (1740 allowed). B-543 is claimed for `prd/orchestration-split-2`.
+
+- **Tier:** slice 4 edits `vitest.config.ts` (its helper test joins `web:unit`), so the proposal is `full`, not the plan's `components`.
+- **B-818** (the watchdog test fails where the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2): every slice check hits it; slices rerun with `env -u CARETOOK_USAGE_WATCH`. Not the wave's.
+- **For the Fable skeptic (rule 3):** slice 1's `recover.test.mjs` and `tidy-cli.test.mjs` copy `scripts/project` into their fixtures by a path built from pieces, which the boundary lint doesn't see (until slice 3 removes the forwarder); slice 4's `risa.json project-to-core 1` allowlist line (the lease command names the core's `lease.sh` until the move); the component tests first run through the new lease helper in the wave's CI run.
+- **For slice 3:** `stack-lib.sh` still has its own `write_test_env` and `test_db_name`, now also in the project's `test-db.sh`. **For the last landing's docs:** the machinery doc still says Node callers use `lease.mjs`.
 
 **This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
 
@@ -23,9 +28,9 @@
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
 | ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | running |                                        |
-| 4     | 1    | handoff |                                        |
-| 5     | 1    | handoff |                                        |
+| 1     | 1    | merged  | ad60a316                               |
+| 4     | 1    | merged  | a4c667dd                               |
+| 5     | 1    | merged  | 73331f09                               |
 | 2     | 2    | planned |                                        |
 | 6     | 2    | planned |                                        |
 | 3     | 3    | planned |                                        |
