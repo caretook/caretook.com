@@ -3,6 +3,7 @@ import type { FieldControl, FieldKind } from "./fieldIds";
 
 import { useId } from "react";
 import { fieldControl, fieldControlClass } from "./fieldIds";
+import { RequiredLabel } from "./Required";
 import { FIELD_ERROR, FIELD_HELP, FIELD_LABEL, FIELD_WARNING } from "./styles";
 
 /**
@@ -14,6 +15,8 @@ import { FIELD_ERROR, FIELD_HELP, FIELD_LABEL, FIELD_WARNING } from "./styles";
  * classes (`input w-full`, and `input-error` while there's an error); a
  * `className` the caller sets after spreading the props replaces them. `labelHidden` keeps
  * the label for screen readers only (a title field whose look says what it is).
+ * `required` puts a `*` after the label and `aria-required` on the control
+ * (never the native attribute: our inline error, not the browser's popup).
  */
 export function Field({
   label,
@@ -21,6 +24,7 @@ export function Field({
   error,
   warning,
   labelHidden,
+  required,
   kind,
   className = "",
   children,
@@ -32,6 +36,8 @@ export function Field({
   /** A softer message, shown (and described) only while there's no error. */
   warning?: string;
   labelHidden?: boolean;
+  /** The field must be filled: a `*` after the label, `aria-required` on the control. */
+  required?: boolean;
   /** The control's kind, so the field styles it; without it the caller does. */
   kind?: FieldKind;
   /** Classes for the wrapper (the outer element). */
@@ -40,7 +46,7 @@ export function Field({
 }) {
   const id = useId();
   const control: FieldControl = {
-    ...fieldControl(id, { help: !!help, error: !!error, warning: !!warning }),
+    ...fieldControl(id, { help: !!help, error: !!error, warning: !!warning, required }),
     ...(kind && { className: fieldControlClass(kind, !!error) }),
   };
   const lines = (
@@ -77,7 +83,7 @@ export function Field({
   return (
     <fieldset className={`fieldset ${className}`}>
       <label htmlFor={id} className={FIELD_LABEL}>
-        {label}
+        <RequiredLabel required={required}>{label}</RequiredLabel>
       </label>
       {children(control)}
       {lines}

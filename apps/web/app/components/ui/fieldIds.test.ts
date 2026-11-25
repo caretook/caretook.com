@@ -44,4 +44,9 @@ describe("fieldControlClass", () => {
     expect(fieldControlClass("select", true)).toBe("select select-error w-full");
     expect(fieldControlClass("textarea", true)).toBe("textarea textarea-error w-full");
   });
+
+  it("is aria-required when required, never the native attribute", () => {
+    expect(fieldControl("f", { required: true })).toEqual({ id: "f", "aria-required": true });
+    expect(fieldControl("f", { required: false })).toEqual({ id: "f" });
+  });
 });

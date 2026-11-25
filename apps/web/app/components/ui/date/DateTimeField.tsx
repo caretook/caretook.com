@@ -24,6 +24,7 @@ import { localTimeZone } from "~/lib/core/format";
 import { steppedMinute } from "~/lib/core/timeOfDay";
 import { buttonClass } from "../buttonClass";
 import { PopoverPanel } from "../Popover";
+import { RequiredLabel } from "../Required";
 import { FIELD_ERROR, FIELD_LABEL } from "../styles";
 
 /** The field's and the calendar's icon-only buttons. */
@@ -68,6 +69,8 @@ const InlineCalendarsContext = createContext<{
  * The hour segment's arrow keys move through the day's 24 hours (11 AM up is
  * 12 PM) and never change the date (11 PM up is 12 AM that day); PageUp and
  * PageDown do the same, two hours at a time (10 AM up is 12 PM).
+ * `required` puts a `*` after the label and marks the segments
+ * `aria-required` (React Aria keeps the browser's popup away).
  */
 export function DateTimeField({
   name,
@@ -75,6 +78,7 @@ export function DateTimeField({
   defaultValue,
   onChange,
   error,
+  required,
   max,
   granularity = "minute",
   dayPickTime,
@@ -89,6 +93,8 @@ export function DateTimeField({
   defaultValue?: string;
   onChange?: (iso: string) => void;
   error?: string;
+  /** It must be set: a `*` after the label, `aria-required` on the segments. */
+  required?: boolean;
   /** ISO 8601: the latest time allowed. */
   max?: string;
   granularity?: "minute" | "day";
@@ -193,12 +199,14 @@ export function DateTimeField({
       onOpenChange={setOpen}
       granularity={granularity}
       maxValue={max ? parseAbsolute(max, zone) : undefined}
-      isRequired
+      isRequired={required}
       isInvalid={error ? true : undefined}
       onChange={change}
       className="fieldset"
     >
-      <Label className={FIELD_LABEL}>{label}</Label>
+      <Label className={FIELD_LABEL}>
+        <RequiredLabel required={required}>{label}</RequiredLabel>
+      </Label>
       {/* min-w-0: the fieldset is a grid, whose items otherwise grow to the
           segments' width and spill out of a narrow popover (B-71). The
           segments wrap (the time drops to a second line) before they'd clip. */}
