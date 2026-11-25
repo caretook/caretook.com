@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `apps/web/app/components/ui/`, `apps/web/app/routes/app/layout/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/routes/app/groups/timeline/AddedMedicationToast.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/components/medications/`, `apps/web/app/lib/medications/passUndo.ts`, `docs/domain/components.md`, `docs/domain/ui-kit.md` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `scripts/browser-checks/roundtrip.spec.mjs`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/components/ui/`, `apps/web/app/routes/app/layout/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
@@ -245,7 +245,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | staging | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
-| B-669 | feature | ready | fixes-ui | prd/fixes-ui | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
+| B-669 | feature | landed | fixes-ui | prd/fixes-ui | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-672 | feature | staging | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | staging | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
@@ -265,10 +265,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-688 | change | staging | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
 | B-691 | bug | staging | fixes-ui | prd/fixes-ui | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
 | B-692 | change | staging | fixes-ui | prd/fixes-ui | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
-| B-693 | change | ready | fixes-ui | prd/fixes-ui | New events and notes: the first save shows a saved toast (after the shared toast system) |
+| B-693 | change | landed | fixes-ui | prd/fixes-ui | New events and notes: the first save shows a saved toast (after the shared toast system) |
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-695 | change | landed | fixes-ui | prd/fixes-ui | Rename "passes" to "Med times" everywhere users see it |
-| B-697 | change | ready | fixes-ui | prd/fixes-ui | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
+| B-697 | change | landed | fixes-ui | prd/fixes-ui | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
 | B-698 | change | landed | fixes-ui | prd/fixes-ui | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
 | B-699 | bug | staging | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
 | B-700 | feature | landed | fixes-ui | prd/fixes-ui | Passes tab: quick log a pass, with cards matching the new medication card |
@@ -1671,7 +1671,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-669 · feature · Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: d5356264
@@ -1875,7 +1875,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-693 · change · New events and notes: the first save shows a saved toast (after the shared toast system)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 60f3b7f8
@@ -1907,7 +1907,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-697 · change · Medications Schedule: logging a dose shows a toast (after the shared toast system)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: df3581f9
