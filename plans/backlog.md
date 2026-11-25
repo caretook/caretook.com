@@ -312,11 +312,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-835 | chore | ready | orchestration-split | prd/orchestration-split | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | inbox |  |  | Time limit gate for component tests to keep them from growing too long |
-| B-838 | chore | triaged | orchestration-split |  | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
+| B-838 | chore | triaged | orchestration-split-2 |  | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
-| B-842 | chore | triaged | orchestration-split |  | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
+| B-842 | chore | triaged | orchestration-split-2 |  | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
 
 ## Items
 
@@ -2259,7 +2259,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-838 · chore · Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers
 
 - status: triaged
-- prd: orchestration-split
+- prd: orchestration-split-2
 - owner:
 - commit:
 
@@ -2296,7 +2296,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-842 · chore · Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command
 
 - status: triaged
-- prd: orchestration-split
+- prd: orchestration-split-2
 - owner:
 - commit:
 
