@@ -323,7 +323,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
 | B-792 | bug | triaged | fixes-bug |  | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
-| B-793 | bug | in-progress | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
+| B-793 | bug | ready | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
 | B-794 | plan | triaged | risa-next |  | Risa: a central agent that gathers from several repos and prioritises across them |
 | B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
@@ -2403,10 +2403,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-793 · bug · Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun)
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 4bc3c614
 
 - 2026-11-24 (Robert Bo Davis): Found 2026-11-24 by the backlog session. Candidate rc/20261125-0057 (ff861fe2, from dev 608754a5) braked in CI run 45522160639 (PR #175): browser roundtrip.spec.mjs:249 (localMs < 2000) failed at 2007 ms, then 2069 ms on its one rerun, at load 5. The previous candidate (65529f69, run 45501768335) passed roundtrip. The fixes-ui full runs since then didn't run roundtrip. New app code between them: fixes-ui waves 6-8. Suspect: B-613 (87a6235c, sheets fade, overlays at 240 ms), which doubled the overlay fade (120 to 240 ms) and made useSheetExit wait for the overlay too. Against that: new/route.tsx's clientAction writes locally before onDone closes the sheet, so the row shouldn't wait for the exit. Not reproduced locally. First find whether the app got slower or the budget was already at the edge (the step prints its time only when it fails). Blocks staging promotion.
 - 2026-11-24 (Robert Bo Davis): Moved to fixes-ui on the user's word (its B-613 is the suspect); the staging candidate is recut after it lands.
