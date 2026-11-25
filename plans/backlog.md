@@ -295,9 +295,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-818 | bug | triaged | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
 | B-819 | change | triaged | fixes-ui |  | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
 | B-820 | feature | triaged | risa-next |  | Risa: cross-repo topics: a Risa topic can change a configured subproject's code (Caretook), each side passing its own repo's checks |
-| B-821 | change | triaged | orchestration-split |  | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
-| B-822 | chore | triaged | orchestration-split |  | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
-| B-823 | chore | triaged | orchestration-split |  | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
+| B-821 | change | in-progress | orchestration-split | prd/orchestration-split | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
+| B-822 | chore | in-progress | orchestration-split | prd/orchestration-split | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
+| B-823 | chore | in-progress | orchestration-split | prd/orchestration-split | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
 | B-824 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-825 | chore | triaged | orchestration-split |  | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
 | B-826 | chore | triaged | orchestration-split |  | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
@@ -311,6 +311,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-834 | chore | triaged | orchestration-split |  | Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack |
 | B-835 | chore | triaged | orchestration-split |  | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
+| B-837 | change | inbox |  |  | Time limit gate for component tests to keep them from growing too long |
 
 ## Items
 
@@ -2094,27 +2095,27 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-821 · change · Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet
 
-- status: triaged
+- status: in-progress
 - prd: orchestration-split
-- owner:
+- owner: prd/orchestration-split
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: normalize('B-772') under prefix RISA says no item; backlog.test.mjs asserts B-2 is note text under RISA. Additive; needs an owner before the move (runbook step 3).
 
 ### B-822 · chore · Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken
 
-- status: triaged
+- status: in-progress
 - prd: orchestration-split
-- owner:
+- owner: prd/orchestration-split
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: format.mjs:486 Number(a.id.slice(2)) is NaN for RISA- (use IDS.num); config.mjs:62 item type [A-Z]+-\d+ rejects a digit prefix idPrefix allows and isn't checked against idPrefix; format.mjs:19 throws a Node stack at import, not a backlog: line. None change B- today.
 
 ### B-823 · chore · Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller
 
-- status: triaged
+- status: in-progress
 - prd: orchestration-split
-- owner:
+- owner: prd/orchestration-split
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: a changed prefix would split behaviour, so slice 4's sample project can't vary it. Slice 3 owns ready.sh; rm.sh and the rest have no slice yet.
@@ -2239,3 +2240,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (plan/marketing-2): Split from B-417 when marketing-2 took its copy part (2026-11-25): the visual refresh B-417 also asked for, left for a later marketing topic.
+
+### B-837 · change · Time limit gate for component tests to keep them from growing too long
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): From the inbox: 5 minute goal, 6 minute hard cutoff.
