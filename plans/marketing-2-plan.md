@@ -6,10 +6,25 @@
 
 | Slice | Wave | State                   | Merge into `prd/marketing-2` (slice commits) |
 | ----- | ---- | ----------------------- | -------------------------------------------- |
-| 1     | 1    | planned                 |                                              |
+| 1     | 1    | running (Fable)         |                                              |
 | 2     | 1    | planned                 |                                              |
 | 3     | 1    | planned                 |                                              |
 | 4     | 1    | planned (text approved) |                                              |
+
+**Landing mode (the user, 2026-11-25): "listen to backlog - split-ops"; run every ready slice.** The contact until the weekly reset (Sat 2026-11-28 12:00) is the backlog session split-ops (`caretook-com-d6`): rotate-go, landing and other questions go to it, not to the user directly. Its rules:
+
+1. This session was opened by hand on Fable with `CARETOOK_USAGE_WATCH=off` to use up the week's limit. Slices run on Fable (`model: "fable"`), made with `CARETOOK_USAGE_WATCH=off pnpm prd slice …`.
+2. Before the landing, a Fable skeptic on the wave's decisions and code; its verdict goes here and in the landing report.
+3. Rotate only on a go from split-ops.
+4. Land only on the user's go, asked for through split-ops. Codex is out of credits: the landing is `--no-review`, and the report says so.
+5. Ask split-ops before any `rm` or `end`.
+6. At 100% usage everything stops; split-ops nudges after the Fable reset, and the next rotation goes to Opus.
+
+The tests' setup changed 2026-11-25 (test DB, lease and stack through `risa.json`'s hooks): a check failing in setup is reported to split-ops before any workaround. Tedder reads the founder story before the wave lands (the landing report asks).
+
+**Log**
+
+- 2026-11-25: session started; backlog ingested (nothing new for this topic). B-417 claimed. Slice 1 started: worktree `.loops/marketing-2-1` (slot 1), agent spawned on Fable; the watch runs in the background. Slices 2 to 4 start as the one before merges.
 
 ## Architectural decisions
 
