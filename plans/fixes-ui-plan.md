@@ -21,7 +21,7 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-Slices 76, 77, 78 starting.
+Slices 76, 77, 78 in flight (worktrees .loops/fixes-ui-76..78, opus agents spawned 2026-11-25; watch running).
 
 | Slice | Item  | State          | Merge |
 | ----- | ----- | -------------- | ----- |
