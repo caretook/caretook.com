@@ -4,6 +4,12 @@ Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `p
 
 ## Trimmed 2026-11-25
 
+| Slice | Item  | State                                       | Merge    |
+| ----- | ----- | ------------------------------------------- | -------- |
+| 69    | B-793 | merged; CI green; worktree removed; PR #177 | 4bc3c614 |
+
+## Trimmed 2026-11-25
+
 | Slice | Item  | State           | Merge                  |
 | ----- | ----- | --------------- | ---------------------- |
 | 68    | B-697 | landed (wave 9) | 1b24ff73               |

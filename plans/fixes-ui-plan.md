@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 10 (slice 69, B-793, opus) merged as 4bc3c614; CI components green (run 45533689412, on 0695a55e; af9e8aa3 after it is docs only); roundtrip passes locally (548 ms of 2000). Cause: per-call `Intl.DateTimeFormat` in `dayKeyIn` and `formatTime` slowed the timeline's renders after sign-in, so the first add's local write started late on a slow CPU; now one formatter per zone. Worktree removed. Sync skipped (dev shares no file). PR #177 open, Codex review waiting. Docs folded: medications.md (Schedule Undo toast), components.md (per-zone formatters), both at 10237 B. **Then:** land (`--tier components`), report, message the backlog session (caretook-com-e5) that B-793 is in dev so it recuts the staging candidate, status-trim, rotate. Still held: B-684, B-694, B-325.
+**Next step (hand-over):** wave 10 landed 2026-11-24 21:47 as dev e7798575 through PR #177, `--no-review` (Codex out of credits); CI components green (run 45533689412), landed unsynced (dev shared no file). Slice 69 (B-793, opus): per-call `Intl.DateTimeFormat` in `dayKeyIn` and `formatTime` slowed the timeline's renders after sign-in; now one formatter per zone; roundtrip 548 ms locally. Report a213; to-test/2026-11-24-2147-fixes-ui.md; backlog session (caretook-com-e5) told to recut the staging candidate. Docs folded: medications.md (Schedule Undo toast), components.md (per-zone formatters). Follow-ups from the slice, not filed: `dayLabel` in `@caretook/data/schema` and `medicationDisplay.ts:144` build a formatter per call too (minor). **Next session:** `pnpm backlog ingest` and `list`; write wave 11 from any new triaged fixes-ui items. Still held: B-684, B-694, B-325.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,9 +19,8 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                       | Merge    |
-| ----- | ----- | ------------------------------------------- | -------- |
-| 69    | B-793 | merged; CI green; worktree removed; PR #177 | 4bc3c614 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
