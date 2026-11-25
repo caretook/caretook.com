@@ -86,10 +86,11 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: u
 
 - The backlog and registry read the backlog, inbox and archive paths and the PRDs table heading from the loader; `lib.sh`'s exempt paths and branch names (trunk, protected, prefixes) come from `config get`.
 - The hooks keep their protected-branch constant (PRD _Decisions_); a Caretook test checks it matches the config.
+- The backlog id prefix and pattern come from the config (PRD _Decisions_: Risa `RISA-n`, Caretook `B-n`): one helper in the loader, used by `scripts/backlog/` (`backlog.mjs`, `format.mjs`, `inbox-edit.mjs`, `inbox-merge.mjs`). The other files that hardcode `B-` swap to the helper in the slice that owns them: `prd.sh` and `land.sh` in slice 3, `prompts/plan.sh` and `slice-brief.mjs` in slice 4, `ci-args.mjs` and `blame.mjs` in slice 13, `lists.mjs` in slice 8.
 
 **Acceptance criteria**
 
-- The backlog, registry and hook tests pass unchanged; a test drives the backlog with a sample config's paths; the touched files leave the allowlist.
+- The backlog, registry and hook tests pass unchanged; a test drives the backlog with a sample config's paths and a different id prefix (new ids, headings, tags and lookups use it); the touched files leave the allowlist.
 
 **Blocked by:** 1. **Blocks:** 3, 4.
 
