@@ -29,6 +29,7 @@ export function TimeSelect({
   help,
   error,
   labelHidden,
+  required,
   className,
 }: {
   name?: string;
@@ -44,6 +45,8 @@ export function TimeSelect({
   help?: string;
   error?: string;
   labelHidden?: boolean;
+  /** A time must be given: a `*` after the label, `aria-required` on the hour (`Field`'s). */
+  required?: boolean;
   /** Classes for the field's wrapper. */
   className?: string;
 }) {
@@ -66,6 +69,7 @@ export function TimeSelect({
       help={help}
       error={error}
       labelHidden={labelHidden}
+      required={required}
       className={className}
     >
       {(control) => (

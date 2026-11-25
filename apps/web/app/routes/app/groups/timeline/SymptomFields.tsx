@@ -17,7 +17,7 @@ export function SymptomFields({ stored, nameError }: { stored?: SymptomDetails; 
   const listId = useId();
   return (
     <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-      <Field label="Symptom" kind="input" error={nameError}>
+      <Field label="Symptom" kind="input" required error={nameError}>
         {(control) => (
           <input
             {...control}

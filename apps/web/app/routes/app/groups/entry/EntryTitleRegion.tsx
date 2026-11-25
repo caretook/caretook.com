@@ -49,6 +49,7 @@ export function EntryTitleRegion({
       <EntryTitle
         value={state.value}
         placeholder={state.placeholder}
+        required={state.required}
         inputRef={inputRef}
         onCommit={onCommit}
         onTextChange={(text) => {

@@ -69,15 +69,12 @@ export function PassLogForm({
             <ChoiceGroup
               name={doseField("status", dose.id)}
               label="Status"
+              required
               options={DOSE_STATUS_OPTIONS}
               defaultValue={dose.details.status}
               error={issueFor(issues, `${dose.id}.details.status`)}
             />
-            <Field
-              label="Amount (optional)"
-              kind="input"
-              error={issueFor(issues, `${dose.id}.details.amount`)}
-            >
+            <Field label="Amount" kind="input" error={issueFor(issues, `${dose.id}.details.amount`)}>
               {(control) => (
                 <input
                   {...control}
@@ -90,14 +87,11 @@ export function PassLogForm({
             <DateTimeField
               name={doseField("occurredAt", dose.id)}
               label="When"
+              required
               defaultValue={dose.occurredAt}
               error={issueFor(issues, `${dose.id}.occurredAt`)}
             />
-            <Field
-              label="Note (optional)"
-              kind="textarea"
-              error={issueFor(issues, `${dose.id}.details.note`)}
-            >
+            <Field label="Note" kind="textarea" error={issueFor(issues, `${dose.id}.details.note`)}>
               {(control) => (
                 <textarea
                   {...control}

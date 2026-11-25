@@ -106,7 +106,7 @@ export function TodoForm({
 
   return (
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-todo-form>
-      <Field label="Todo" kind="input" error={issueFor(issues, FIELD.title)}>
+      <Field label="Todo" kind="input" required error={issueFor(issues, FIELD.title)}>
         {(control) => (
           <input
             {...control}
@@ -133,7 +133,7 @@ export function TodoForm({
       />
 
       <div className="grid gap-x-3 sm:grid-cols-2">
-        <Field label="Due (optional)" kind="input" error={issueFor(issues, FIELD.dueOn)}>
+        <Field label="Due" kind="input" error={issueFor(issues, FIELD.dueOn)}>
           {(control) => (
             <input
               {...control}
@@ -149,7 +149,7 @@ export function TodoForm({
           )}
         </Field>
         <TimeSelect
-          label="Time (optional)"
+          label="Time"
           name={FIELD.dueTime}
           optional
           help={zoneNote ?? undefined}

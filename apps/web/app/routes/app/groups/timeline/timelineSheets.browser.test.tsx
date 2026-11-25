@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { fixClock, found } from "../../../../../test/found";
+import { fixClock, found, waitUntil } from "../../../../../test/found";
 import { fx, TEST_USER } from "../../../../../test/fixtures";
+import { requiredLabels } from "../../../../../test/required";
 import { rows, rowWith, TIMELINE_URL as T, openTimeline } from "./timelineWorld";
 
 // The add and edit sheets' own behaviour (roundtrip.mjs's validation,
@@ -58,6 +59,24 @@ const openAdd = async (fixtures: ReturnType<typeof fx.symptom>[] = []) => {
 };
 
 describe("the add sheet", () => {
+  test("marks exactly its required fields: a symptom's name and when; each vital's required numbers and when", async () => {
+    await openAdd();
+    expect(requiredLabels(SHEET())).toEqual(["Symptom", "When"]);
+    expect(NAME()?.getAttribute("aria-required")).toBe("true");
+    const notes = SHEET()?.querySelector("textarea[name=body]");
+    expect(notes?.hasAttribute("aria-required")).toBe(false);
+  });
+
+  test.each([
+    ["bloodPressure", ["Systolic (top)", "Diastolic (bottom)", "When"]],
+    ["urineOutput", ["When"]],
+    ["bowelMovement", ["When"]],
+  ])("a %s reading marks %j", async (type, labels) => {
+    await openTimeline({ url: `${T}/new/vital?type=${type}`, role: "caretaker" });
+    await waitUntil(() => !!SHEET()?.querySelector("[data-required-mark]"), "the vital sheet");
+    expect(requiredLabels(SHEET())).toEqual(labels);
+  });
+
   test("a symptom with no name shows a field error and writes nothing; Cancel closes it", async () => {
     const device = await openAdd();
     await userEvent.click(await found(SUBMIT));

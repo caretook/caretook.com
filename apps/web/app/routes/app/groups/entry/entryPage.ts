@@ -27,12 +27,13 @@ export const entryHeading = (
 
 /** What the title region shows: an editable field (and what's in it), or the heading as text. */
 export type TitleState =
-  | { editable: true; value: string; placeholder: string }
-  | { editable: false; value?: undefined; placeholder?: undefined };
+  | { editable: true; value: string; placeholder: string; required?: true }
+  | { editable: false; value?: undefined; placeholder?: undefined; required?: undefined };
 
 /**
  * Writers name notes and events here, until the entry is deleted. An unnamed
- * event (saved as "Event") shows an empty field asking for a title.
+ * event (saved as "Event") shows an empty field asking for a title. A draft
+ * event's title is required (it's what saves it).
  */
 export const titleState = ({
   kind,
@@ -49,7 +50,11 @@ export const titleState = ({
   deleted: boolean;
 }): TitleState => {
   if (!canWrite || deleted || !isLiveEntryKind(kind)) return { editable: false };
-  return { editable: true, ...titleField(kind, title, saved) };
+  return {
+    editable: true,
+    ...titleField(kind, title, saved),
+    ...(kind === "event" && !saved && { required: true }),
+  };
 };
 
 /** Suggested names show while an editable event is unnamed and nothing is typed in the field. */
