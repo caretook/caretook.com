@@ -43,6 +43,7 @@
   - Also edited `check-body.sh`, `tooling-tests.mjs`, `ci.yml`, `package.json`, four tests. For landing: fold `docs/agents/loop.md` _Tests_ (the project names); slice 10's `testProjects.tooling` = `tooling:unit`, `core:unit`, `project:unit`, `project:tooling`, harness `tooling:browser`.
 - 2026-11-25: **hand-over called off** (split-ops, on the user's word): this session carries wave 2 on. Before landing wave 2, a **Fable skeptic** (fresh agent, `model: "fable"`) reviews the wave's decisions and code; act on its findings as usual. **Before `pnpm prd rotate`, message `backlog - split-ops` and wait for its go** (a hotfix makes rotation keep Fable).
 - 2026-11-25: slice 6 reviewed: the allowlist growth is accepted (each is a reference the plan itself makes: the check plan's tooling pattern and the manifest's folders name `scripts/project/`, until slice 10 and the move); the reason for `check-plan.test.mjs` is added at the merge. Two projects for `test:project` accepted. Waiting on slice 2 to merge in order.
+- 2026-11-25: the rotation fix is in dev as 0c7f16bc (`rotate-into.sh` passes `--model`). Before rotating: `git merge-base --is-ancestor 0c7f16bc prd/orchestration-split` (the landing's sync should bring it; `pnpm prd sync --force` if not), then message split-ops for its go.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
