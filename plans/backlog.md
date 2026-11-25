@@ -133,10 +133,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | staging-ship |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
 | B-244 | chore | triaged | fixes-tooling |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
-| B-245 | plan | ready | planner-3 | prd/planner-3 | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
+| B-245 | plan | landed | planner-3 | prd/planner-3 | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
-| B-254 | feature | ready | planner-3 | prd/planner-3 | Quick entry: 'bins out every monday' makes a repeating todo |
+| B-254 | feature | landed | planner-3 | prd/planner-3 | Quick entry: 'bins out every monday' makes a repeating todo |
 | B-294 | bug | triaged | sync-safety-2 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
@@ -233,7 +233,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-621 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-623 | bug | triaged | fixes-tooling |  | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
-| B-626 | feature | ready | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
+| B-626 | feature | landed | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
 | B-629 | bug | staging | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-633 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
@@ -523,7 +523,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-245 · plan · Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date
 
-- status: ready
+- status: landed
 - prd: planner-3
 - owner: prd/planner-3
 - commit: 3a384244
@@ -553,10 +553,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21: repeating todos are created from the todo form only in planner-2; the connector's add_todo taking a repeat is this follow-up, after planner-2 (B-248 remove reminders) is in dev. Proposed with B-252 in connectors-3; for the user to check.
 - 2026-11-21 (plan/connectors-3): Planned as connectors-3 slice 2: add_todo takes a structured repeat (every day, week on weekdays, or month; interval; no end). Waits for planner-3 (addTodo.repeatRule). plans/connectors-3-plan.md
+- 2026-11-25 (prd/planner-3): planner-3 landed (8c1fa06, PR #182): addTodo.repeatRule now exists in the assistant action runners; add_todo can pass it through instead of building its own rule.
+- 2026-11-25 (prd/planner-3): planner-3 landed (8c1fa06b, PR #182): addTodo.repeatRule exists in the assistant action runners and the todo service; connectors-3 can build add_todo's repeat on it.
+- 2026-11-25 (prd/planner-3): planner-3 landed in dev (8c1fa06, PR #182): the assistant's addTodo action now takes repeatRule (B-254), so add_todo can pass it through
+- 2026-11-25 (prd/planner-3): planner-3 landed (8c1fa06): the quick-entry addTodo action now takes repeatRule (B-254); add_todo can reuse it rather than add its own repeat shape.
 
 ### B-254 · feature · Quick entry: 'bins out every monday' makes a repeating todo
 
-- status: ready
+- status: landed
 - prd: planner-3
 - owner: prd/planner-3
 - commit: 84dd0a7d
@@ -1530,7 +1534,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-626 · feature · Decide whether a rescheduled event's todos follow it to the new event
 
-- status: ready
+- status: landed
 - prd: planner-3
 - owner:
 - commit: 59723f9e
