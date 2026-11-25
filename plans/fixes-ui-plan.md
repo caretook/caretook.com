@@ -21,7 +21,7 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-All three slices merged (prd tip 3b726996, dev sync: already up to date); wave CI run components requested 2026-11-25 (run 45660347915). Lean browser suite (the user said run it once): 10/11, ui.spec fail is B-808 (add sheet 0x0 under load), not ours. Docs folded into app-shell.md (ba854ef6). Slices 76, 77, 78 were in flight (worktrees .loops/fixes-ui-76..78, opus agents spawned 2026-11-25; watch running).
+All three slices merged (prd tip 3b726996, dev sync: already up to date); wave CI run components requested 2026-11-25 (run 45660347915). Lean browser suite (the user said run it once): 10/11, ui.spec fail is B-808 (add sheet 0x0 under load), not ours. Docs folded into app-shell.md (ba854ef6). CI components green (run 45660347915, 3b726996). Dev synced (58a1d4e5), slice worktrees removed, PR #190 open; Codex out of credits (exit 4): landing `--no-review --tier components` now, land requests the post-sync recheck. Slices 76, 77, 78 were in flight (worktrees .loops/fixes-ui-76..78, opus agents spawned 2026-11-25; watch running).
 
 | Slice | Item  | State         | Merge    |
 | ----- | ----- | ------------- | -------- |
