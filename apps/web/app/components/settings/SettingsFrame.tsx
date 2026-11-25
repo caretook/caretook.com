@@ -2,7 +2,7 @@ import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 
 import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate, useNavigation } from "react-router";
 import { BackLink, Page, TITLE_PAGE } from "~/components/ui";
 import { isSettingsList, SETTINGS_WIDE_QUERY, settingsCurrent } from "~/lib/app-shell/settingsNav";
 
@@ -17,7 +17,11 @@ import { isSettingsList, SETTINGS_WIDE_QUERY, settingsCurrent } from "~/lib/app-
  *   here when the window widens on the list).
  *
  * The current item has `aria-current="page"`. One nav serves both widths, so
- * screen readers meet it once.
+ * screen readers meet it once. A tap responds at once, before the subpage's
+ * loader finishes: `aria-current` follows the pending navigation (as
+ * `SectionNav` and `TabNav` do), and the tapped item shows a small spinner
+ * (`data-pending`, `aria-busy`) until the subpage renders. A cancelled
+ * navigation leaves `navigation.location` unset, so both fall back.
  */
 export function SettingsFrame({
   title,
@@ -29,6 +33,8 @@ export function SettingsFrame({
   items: readonly SettingsItem[];
 }) {
   const { pathname } = useLocation();
+  const navigation = useNavigation();
+  const target = navigation.location?.pathname ?? pathname;
   const atList = isSettingsList(pathname, listPath);
   useWideSettingsRedirect(atList ? items[0]?.path : undefined);
   return (
@@ -45,14 +51,17 @@ export function SettingsFrame({
         )}
         <ul className="rounded-box bg-base-100 divide-base-200 divide-y shadow-sm md:divide-y-0 md:bg-transparent md:shadow-none">
           {items.map((item) => {
-            const current = settingsCurrent(item, pathname);
+            const current = settingsCurrent(item, target);
+            const pending = target !== pathname && current === "page";
             const Icon = item.icon;
             return (
               <li key={item.id}>
                 <Link
                   to={item.path}
                   aria-current={current}
+                  aria-busy={pending || undefined}
                   data-settings-item={item.id}
+                  data-pending={pending || undefined}
                   className={`flex items-center gap-3 px-4 py-3 md:rounded-field md:px-3 md:py-2 ${
                     current ? "md:bg-base-200 font-semibold" : "md:hover:bg-base-200"
                   }`}
@@ -64,7 +73,14 @@ export function SettingsFrame({
                       {item.description}
                     </span>
                   </span>
-                  <ChevronRight aria-hidden="true" className="text-base-content/50 size-4 md:hidden" />
+                  {pending ? (
+                    <span
+                      aria-hidden="true"
+                      className="loading loading-spinner loading-xs text-base-content/60"
+                    />
+                  ) : (
+                    <ChevronRight aria-hidden="true" className="text-base-content/50 size-4 md:hidden" />
+                  )}
                 </Link>
               </li>
             );

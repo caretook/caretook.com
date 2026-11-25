@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { getDbConfig } from "../config";
 import { isError, newError } from "../errors";
+import { logError } from "../logging";
 import { forget, remember } from "../utils/remember";
 import * as schema from "./schema";
 
@@ -16,15 +17,31 @@ export const getSchema = <K extends keyof typeof schema>(name: K) => schema[name
 
 const POOL_KEY = "caretook:db-pool";
 
-const createPool = () => {
+/** Called with each new pool (the web app's `attachDatabasePool` on Vercel). */
+type PoolHook = (pool: pg.Pool) => void;
+let poolHook: PoolHook | null = null;
+
+/** Set once at server start, before the first query (B-342). */
+export const setPoolHook = (next: PoolHook | null) => {
+  poolHook = next;
+};
+
+/** Exported for its unit test; the app gets its pool through `getDb`. */
+export const createPool = () => {
   const { url, maxPool, connectTimeoutMs } = getDbConfig();
   if (!url) throw newError({ code: "db:missingUrl" });
-  return new pg.Pool({
+  const pool = new pg.Pool({
     connectionString: url,
     max: maxPool,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: connectTimeoutMs,
   });
+  // An idle client the server drops (Neon closes them) emits `error` on the
+  // pool; with no listener Node throws it and the function crashes. pg-pool
+  // has already removed that client, so log it (class and code only) and go on.
+  pool.on("error", (error) => logError("db: idle client error", error));
+  poolHook?.(pool);
+  return pool;
 };
 
 // { schema } enables the relational query API (db.query.userSchema...).

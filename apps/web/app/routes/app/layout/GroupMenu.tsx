@@ -5,7 +5,7 @@ import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import { ChevronDown, MapPin, Plus, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { useNavigate, useRouteLoaderData } from "react-router";
+import { useLocation, useNavigate, useNavigation, useRouteLoaderData } from "react-router";
 import { Menu, SEPARATOR } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { rememberGroup } from "~/lib/app-shell/lastGroup";
@@ -33,12 +33,18 @@ const NO_ROWS: GroupRow[] = [];
  * With a care period, the button shows the current period's type icon after
  * the name (the period's name as its text and hover hint).
  *
+ * While a navigation into one of the menu's destinations is pending (the menu
+ * has closed, the target's loader is slow), the button's chevron is a small
+ * spinner (`data-pending`), so the tap shows it registered.
+ *
  * Until the device's list answers (a moment after the page renders), the
  * group route's own copy of the current group stands in, so the header never
  * shows without its group menu.
  */
 export function GroupMenu({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const pendingPath = useNavigation().location?.pathname;
   // The signed-in user from the /app layout's loader (not `getSync()`, which
   // throws while signing out, when the database closes under this header).
   const userId = useRouteLoaderData<typeof layoutLoader>("app")?.user.id ?? "";
@@ -71,6 +77,16 @@ export function GroupMenu({ groupId }: { groupId: string }) {
   const name = displayName(current);
   const periodLabel = period ? periodName(period.span.period) : null;
   const PeriodIcon = period ? periodTypeMeta(period.span.period.type).icon : null;
+  const destinations = [
+    ...groups.filter((g) => g.id !== groupId).map((g) => appUrls.timeline(g.id)),
+    appUrls.newGroup(),
+    appUrls.profile(groupId),
+    appUrls.periods(groupId),
+    appUrls.groupSettings(groupId),
+  ];
+  const under = (path: string, to: string) => path === to || path.startsWith(`${to}/`);
+  // A move within a destination (between settings subpages) is that page's own to show.
+  const pending = !!pendingPath && destinations.some((to) => under(pendingPath, to) && !under(pathname, to));
 
   return (
     <Menu
@@ -132,7 +148,11 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           <PeriodIcon aria-hidden="true" className="size-4" />
         </span>
       )}
-      <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
+      {pending ? (
+        <span aria-hidden="true" data-pending className="loading loading-spinner loading-xs shrink-0" />
+      ) : (
+        <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
+      )}
     </Menu>
   );
 }
