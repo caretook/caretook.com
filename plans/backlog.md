@@ -14,7 +14,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | --- | ----- | ----- | --------- | ------------- |
 | `fixes-ui` | standing, hold | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `planner-3` | done | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
-| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/lib/app-shell/serviceWorkerCaches`, `packages/api/src/connectors/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing, hold | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
 | `test-gates` | done | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
@@ -261,16 +261,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
-| B-779 | bug | ready | fixes-bug | prd/fixes-bug | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
+| B-779 | bug | landed | fixes-bug | prd/fixes-bug | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
 | B-780 | change | triaged | fixes-tooling |  | CI warns when a branch's quarantine or brake list trails dev's (follow-up of B-771 sync brings dev's CI lists) |
 | B-781 | chore | triaged | fixes-tooling |  | Count check budget and silence stops apart in pnpm prd check --times and pnpm prd metrics |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-785 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
-| B-787 | bug | ready | fixes-bug | prd/fixes-bug | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
+| B-787 | bug | landed | fixes-bug | prd/fixes-bug | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
 | B-789 | change | triaged | self-recovery-2 |  | A landing journal (even one whose pid is dead) holds a session's resume after a usage limit with only a waits line each tick; file one report so the user runs pnpm prd land --resume |
 | B-790 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
-| B-792 | bug | ready | fixes-bug | prd/fixes-bug | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
+| B-792 | bug | landed | fixes-bug | prd/fixes-bug | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
 | B-794 | plan | triaged | risa-next |  | Risa: a central agent that gathers from several repos and prioritises across them |
 | B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
@@ -1740,6 +1740,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): 2026-11-24, follow-up to hotfix/components-shard-3 (third shard). Since test-health-2 (B-372) web:components:ny reruns 53 timeline/medications/planner files in every components run: shards went 471/474s -> 704/877s. Options: narrow NY_INCLUDE to the zone-sensitive files every run and leave the rest to the release tier's zone-components jobs; profile the slowest component files (timeline, planner) for shared world setup or waits. Keep the second zone's daily value for its screens.
+- 2026-11-25 (Robert Bo Davis): 2026-11-25: components-2 now runs 10-12 min (others 6-9). Two causes: (1) Vitest shards by file count, so shard 2 holds most of the 30-60 s timeline/planner browser files, in both zones; (2) runner speed varies ~30% (fixes-bug cb856531 vs 1752fb85: same 92 files, 733 s vs 551 s, every file slower evenly). Add, on the user's word: a custom Vitest sequencer whose shard() balances files by past durations from the ci-results/components-*.json CI already writes (fallback: by count). Together with narrowing NY_INCLUDE this should put each shard near 6-7 min.
 
 ### B-776 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U…
 
@@ -1761,7 +1762,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-779 · bug · Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 9f675672
@@ -1808,7 +1809,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-787 · bug · Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 9f675672
@@ -1845,7 +1846,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-792 · bug · Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 9f675672
