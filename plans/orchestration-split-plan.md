@@ -41,6 +41,8 @@
   - Same sets: `pnpm test` 690 = 690, harness 1 = 1, `test:tooling` 95 then 96 (the one addition is the new lasting test `scripts/project/test-projects.test.mjs`; lists in the scratchpad `s6/`).
   - **The allowlist grew** (the plan says it only shrinks): `boundary.mjs core-to-project` 1→2, `boundary.test.mjs core-to-project` +1, `check-plan.mjs` 8→9, `check-plan.test.mjs` 11→12 (with no reason), `test-projects.test.mjs project-to-core` +1. The agent asks for approval; judge before merging (each is a new reference made by `scripts/project/` holding files).
   - Also edited `check-body.sh`, `tooling-tests.mjs`, `ci.yml`, `package.json`, four tests. For landing: fold `docs/agents/loop.md` _Tests_ (the project names); slice 10's `testProjects.tooling` = `tooling:unit`, `core:unit`, `project:unit`, `project:tooling`, harness `tooling:browser`.
+- 2026-11-25: **hand-over called off** (split-ops, on the user's word): this session carries wave 2 on. Before landing wave 2, a **Fable skeptic** (fresh agent, `model: "fable"`) reviews the wave's decisions and code; act on its findings as usual. **Before `pnpm prd rotate`, message `backlog - split-ops` and wait for its go** (a hotfix makes rotation keep Fable).
+- 2026-11-25: slice 6 reviewed: the allowlist growth is accepted (each is a reference the plan itself makes: the check plan's tooling pattern and the manifest's folders name `scripts/project/`, until slice 10 and the move); the reason for `check-plan.test.mjs` is added at the merge. Two projects for `test:project` accepted. Waiting on slice 2 to merge in order.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
