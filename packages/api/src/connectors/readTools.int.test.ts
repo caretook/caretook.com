@@ -7,6 +7,7 @@ import {
   careRecipientService,
   dueDoses,
   duePasses,
+  entryTodoService,
   medicationPassService,
   medicationService,
   memberSharingService,
@@ -692,6 +693,43 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(page3.structuredContent.todos).toHaveLength(1);
     expect(page3.structuredContent.nextCursor).toBeNull();
     expect(JSON.stringify([open, done, page, page2])).not.toContain("Elsewhere");
+  });
+
+  it("list_todos: eventId is the first linked event, linkedEntryIds every live linked entry (planner-3)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const entry = async (kind: string, title: string, occurredAt = hoursAgo(1)) =>
+      ok(await addEntry(w.caretaker.ctx, w.group.id, { kind, title, occurredAt }))!;
+    const note = await entry("note", "Call notes");
+    const visit = await entry("event", "Follow-up visit", hoursAhead(48));
+    const gone = await entry("event", "Cancelled visit", hoursAhead(72));
+    const linked = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Book a ride" }),
+    )!;
+    const lone = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Fax the form" }),
+    )!;
+    // The note first, then the event, then an event deleted after linking (its row stays, unread).
+    for (const entryId of [note.id, visit.id, gone.id])
+      ok(await entryTodoService.link(w.caretaker.ctx, { groupId: w.group.id, entryId, todoId: linked.id }));
+    ok(await timelineEntryService.remove(w.caretaker.ctx, gone.id));
+    const token = await w.connect(w.viewer);
+
+    const listed = await callTool(handler, token, "list_todos");
+    const byTitle = new Map(
+      (
+        listed.structuredContent.todos as {
+          title: string;
+          eventId: string | null;
+          linkedEntryIds: string[];
+        }[]
+      ).map((t) => [t.title, t]),
+    );
+    expect(byTitle.get("Book a ride")).toMatchObject({
+      eventId: visit.id,
+      linkedEntryIds: [note.id, visit.id],
+    });
+    expect(byTitle.get(lone.title)).toMatchObject({ eventId: null, linkedEntryIds: [] });
   });
 
   it("list_providers: current by default, practice and pharmacy phones kept, an 'other' contact's left out", async () => {
