@@ -40,7 +40,7 @@ The `ui/` contracts; layout, rules, tests: [components](components.md).
 - `Message` (`{ tone, children }`): `error` is `role="alert"`; `success`, `warning`, `info` (default) `role="status"`. Empty, it stays mounted.
 - `Notice` (`{ tone, icon?, action? }`): a soft daisyUI alert with the tone's icon (or `icon`); role by tone (`role` overrides); `action` a `{ label, to }` link or a `{ label, onAction }` button.
 - `EmptyState`: one quiet line and an optional action; `icon`, `accent` add a soft circle above it (main lists only).
-- **Toasts** (`toastQueue.ts`): `toast({ message, action?, undo?, timeout?, data? })` → id, `dismissToast(id)`; actions run once and close it; `timeout` ms (6 s; `null` stays); newest first, the rest wait. `ToastRegion` (`Toast.tsx`) loads React Aria's region (`ToastView.tsx`) on the first toast or when idle, keeping it off the `app` bundle budget; the queue stays sync.
+- **Toasts** (`toastQueue.ts`): `toast({ message, action?, undo?, timeout?, data? })` → id, `dismissToast(id)`; actions run once and close it; `timeout` ms (6 s; `null` stays); newest first, the rest wait.
 - `Loading` (`{ label, lines? }`): a status named by `label`, a spinner and the label, or with `lines` a `Skeleton` and a screen-reader label. `Skeleton` (`{ lines }`): `aria-hidden` bars, `data-skeleton`.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`, pure); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current and now `primary`; past and stopped `neutral`; overdue `danger`; due soon `warning`; done `success`. `ViaTag` stays its own.
 - `SearchFilterBar`: search (`?q=`, `lib/core/textFilter.ts`), `FilterMenu`, chips. `Highlight` marks matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).
