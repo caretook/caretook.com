@@ -76,7 +76,7 @@ export function PassList({
   if (!passes.length)
     return (
       <EmptyState {...sectionAccent("medications", { easy: easyRole })} data-passes-empty="">
-        No passes yet.
+        No med times yet.
       </EmptyState>
     );
 
@@ -101,7 +101,7 @@ export function PassList({
       </List>
       <ConfirmDialog
         open={!!deleting}
-        title={deleting ? `Delete ${deleting.name}?` : "Delete pass?"}
+        title={deleting ? `Delete ${deleting.name}?` : "Delete med time?"}
         message={
           deleting
             ? `Its medications keep ${clockTime(deleting.time)} as a time of their own. Nothing else changes.`

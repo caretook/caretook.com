@@ -102,7 +102,7 @@ describe("the tabs", () => {
       .toEqual([
         ["Schedule", SCHEDULE],
         ["Medications", LIST],
-        ["Passes", PASSES],
+        ["Med times", PASSES],
       ]);
   });
 
@@ -139,7 +139,7 @@ describe("the tabs", () => {
   test("the passes URL shows the Medications header with Passes current, one h1, no back link", async () => {
     await open(PASSES);
     await expect.poll(() => parts().passes).toBe(true);
-    expect(currentTab()).toEqual(["Passes"]);
+    expect(currentTab()).toEqual(["Med times"]);
     expect(header()).toEqual({ h1: "Medications", add: true, print: true });
     expect(document.querySelectorAll("h1")).toHaveLength(1);
     // The old page's back link ("Medications", to Schedule) is gone: only the tab bar links there.
@@ -159,9 +159,9 @@ describe("the tabs", () => {
     await expect.poll(() => parts().list).toBe(true);
     expect(parts().today).toBe(false);
 
-    await userEvent.click(await found(() => tabLink("Passes")));
+    await userEvent.click(await found(() => tabLink("Med times")));
     await expect.poll(device.location).toBe(PASSES);
-    await expect.poll(currentTab).toEqual(["Passes"]);
+    await expect.poll(currentTab).toEqual(["Med times"]);
     await expect.poll(() => parts().passes).toBe(true);
     expect(parts().list).toBe(false);
 
@@ -193,14 +193,14 @@ describe("the tabs", () => {
 });
 
 describe("the header's +", () => {
-  test("is the header's last control, named Add, and its menu lists Medication then Pass", async () => {
+  test("is the header's last control, named Add, and its menu lists Medication then Med time", async () => {
     await open(SCHEDULE);
     await expect.element(addButton()).toHaveAttribute("title", "Add");
     expect(addButton().element().textContent.trim()).toBe("");
     expect([...document.querySelectorAll("main header a, main header button")].at(-1)).toBe(
       addButton().element(),
     );
-    expect(await addMenu()).toEqual(["Medication", "Pass"]);
+    expect(await addMenu()).toEqual(["Medication", "Med time"]);
   });
 
   test("from Passes, Medication opens the add sheet over the list", async () => {
@@ -215,17 +215,17 @@ describe("the header's +", () => {
   test.each([
     ["Schedule", SCHEDULE],
     ["the list", LIST],
-    ["Passes", PASSES],
+    ["Med times", PASSES],
   ])("from %s, Pass opens the add-pass sheet on the Passes tab", async (_, url) => {
     const device = await open(url);
-    await choose("Pass");
+    await choose("Med time");
     await expect.poll(() => !!PASS_FORM()).toBe(true);
     expect(device.location()).toBe(`${PASSES}/new`);
-    expect(currentTab()).toEqual(["Passes"]);
+    expect(currentTab()).toEqual(["Med times"]);
     expect(parts().passes).toBe(true);
   });
 
-  test("with 8 passes the menu has no Pass", async () => {
+  test("with 8 passes the menu has no Med time", async () => {
     // The world has Morning and Evening: six more fill the group.
     const more = ["Noon", "Afternoon", "Supper", "Bedtime", "Night", "Late"].map((name, i) =>
       medicationPass({ name, time: `${String(9 + i).padStart(2, "0")}:30`, sortOrder: 2 + i }),

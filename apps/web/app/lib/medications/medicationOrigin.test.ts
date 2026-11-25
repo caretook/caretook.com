@@ -16,7 +16,7 @@ describe("medicationOriginFromState", () => {
       url: `${HOME}/medications/list?q=met&status=current`,
       label: "Medications",
     });
-    expect(from(`${HOME}/medications/passes`).label).toBe("Passes");
+    expect(from(`${HOME}/medications/passes`).label).toBe("Med times");
     expect(from(`${HOME}/timeline?kinds=dose`)).toEqual({
       url: `${HOME}/timeline?kinds=dose`,
       label: "Timeline",
