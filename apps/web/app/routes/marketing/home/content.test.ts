@@ -45,7 +45,7 @@ describe("homeContent", () => {
     homeContent.helps,
     homeContent.steps,
     homeContent.promise,
-    homeContent.earlyAccess,
+    homeContent.price,
     homeContent.waitlist,
   ];
 

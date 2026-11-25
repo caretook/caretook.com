@@ -6,6 +6,7 @@ import type {
   ShowcaseContent,
 } from "../sections/types";
 import { MARKETING_LINKS } from "../site/pages";
+import { PRICE_HEADLINE } from "../site/price";
 
 /**
  * Features page copy (draft: the user edits it). Change the words here; the
@@ -20,7 +21,7 @@ export const content = {
   } satisfies PageMeta,
 
   intro: {
-    eyebrow: "Free while in early access",
+    eyebrow: PRICE_HEADLINE,
     heading: "Everything your family needs to keep track, in one place",
     lead: "Caretook keeps a loved one's care in one shared timeline: what happened today, how they're feeling, their readings, and the notes from every visit. Here's how each part works.",
   } satisfies PageIntroContent,
@@ -145,7 +146,7 @@ export const content = {
   cta: {
     id: "get-started",
     heading: "Ready when your family is",
-    body: "Caretook is free while in early access. Join the waitlist, or use your access code if you have one.",
+    body: "Caretook is free for families. Join the waitlist, or use your access code if you have one.",
     actions: [
       { label: "Join the waitlist", href: MARKETING_LINKS.waitlist },
       { label: "Have an access code?", href: MARKETING_LINKS.join },

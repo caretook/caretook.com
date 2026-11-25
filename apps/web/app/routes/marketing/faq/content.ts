@@ -1,4 +1,5 @@
 import type { FaqGroup, PageIntroContent, PageMeta } from "../sections/types";
+import { PRICE_PROMISE } from "../site/price";
 
 /**
  * FAQ copy (draft: the user edits it). The page and its `FAQPage` JSON-LD are
@@ -25,9 +26,8 @@ export const content = {
       items: [
         {
           question: "What does Caretook cost?",
-          answer: [
-            "Caretook is free while in early access. If that ever changes, you'll hear from us well before anything does, and you'll be able to take your information with you.",
-          ],
+          // The same sentence as home's price band (site/price.ts).
+          answer: [PRICE_PROMISE],
         },
         {
           question: "How do I get in?",
@@ -74,7 +74,7 @@ export const content = {
       heading: "Privacy and security",
       items: [
         {
-          question: "Is our information secure?",
+          question: "How is our information protected?",
           answer: [
             "Your information is encrypted when it travels between your phone and our servers, and encrypted where it's stored. Access is checked on our servers for every read and every change, so a person only ever gets what their role allows.",
             "Each phone keeps a copy of its care groups so the app works offline. Signing out removes that copy from the phone.",
@@ -90,7 +90,8 @@ export const content = {
         {
           question: "Do you sell our data or show ads?",
           answer: [
-            "No. We never show ads, we never sell or rent your information, and no advertising or analytics tools can see your care data. Any AI provider we use may not keep your data or train on it.",
+            "No. We never show ads, we never sell or rent your information, and no advertising or analytics tools can see your care data.",
+            "Caretook itself doesn't use AI on your information today. If we add AI features of our own, we'll only use AI providers that don't keep your data or train on it.",
           ],
         },
       ],
@@ -126,7 +127,7 @@ export const content = {
         {
           question: "How do I delete my data?",
           answer: [
-            "You can delete your data whenever you want. While we're in early access, write to us from the contact page and we'll delete your account and what's tied to it, and confirm when it's done.",
+            "You can delete your data whenever you want. Write to us from the contact page and we'll delete your account and what's tied to it, and confirm when it's done.",
           ],
         },
         {
