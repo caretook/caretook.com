@@ -21,6 +21,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Appointment-setting example in easy menu tips should use a doctor from the user's providers (B-833)
 - Time limit gate for component tests to keep them from growing too long (B-837)
   5 minute goal, 6 minute hard cutoff.
+- Rename timeline View menu labels from Rows and Cards to Condensed and Full
 
 ## Feature requests
 
