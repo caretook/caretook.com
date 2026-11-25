@@ -3,11 +3,12 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cdp, page, userEvent } from "vitest/browser";
 
 import { renderInRouter } from "../../../test/device";
-import { ChoiceDialog, ConfirmDialog, Menu, Popover, Toast } from "./index";
+import { ChoiceDialog, ConfirmDialog, Menu, Popover } from "./index";
 
-// Overlay motion (ui-kit-3 slice 5; 240 ms, B-613): menus, popovers, toasts
-// and the native modal dialogs fade in and out on `--motion`, with no
-// scale; under "reduce motion" nothing animates and each is gone at once.
+// Overlay motion (ui-kit-3 slice 5; 240 ms, B-613): menus, popovers and the
+// native modal dialogs fade in and out on `--motion`, with no scale; under
+// "reduce motion" nothing animates and each is gone at once (toasts:
+// Toast.browser.test.tsx).
 // Reduced motion is emulated from this file (Chrome DevTools), reset after
 // each test.
 
@@ -69,7 +70,7 @@ function watchExit(el: Element) {
 /** How long an element stayed in the DOM after its exit started (NaN if either wasn't seen). */
 const stayed = (seen: { exitAt?: number; removedAt?: number }) =>
   (seen.removedAt ?? NaN) - (seen.exitAt ?? NaN);
-/** The overlay's own box around its content (React Aria's popover, the toast). */
+/** The overlay's own box around its content (React Aria's popover). */
 const parentOf = (el: Element) => {
   const parent = el.parentElement;
   if (!parent) throw new Error("no parent");
@@ -294,51 +295,5 @@ describe.each(DIALOGS)("$name's fade", ({ opener, title, which }) => {
     await nextFrame();
     expect(getComputedStyle(native).visibility).toBe("hidden");
     expect(onClose).toHaveBeenCalledOnce();
-  });
-});
-
-function ToastHarness() {
-  const [open, setOpen] = useState(true);
-  return (
-    <>
-      <button type="button" onClick={() => setOpen((o) => !o)}>
-        Toggle
-      </button>
-      <Toast
-        open={open}
-        message="A new version is ready"
-        actionLabel="Reload"
-        onAction={() => setOpen(false)}
-      />
-    </>
-  );
-}
-
-describe("Toast", () => {
-  test("open shows a status; turning it false fades it out on --motion, then unmounts it", async () => {
-    await renderInRouter(<ToastHarness />);
-    const status = page.getByRole("status").filter({ hasText: "A new version is ready" });
-    await expect.element(status).toBeVisible();
-    const toast = status.element().parentElement!;
-    const exit = watchExit(toast);
-    await userEvent.click(page.getByRole("button", { name: "Reload" }));
-    await expect.element(status).not.toBeInTheDocument();
-    expect(exit).toMatchObject({ animation: "fade-out", duration: "0.24s" });
-    expect(stayed(exit)).toBeGreaterThanOrEqual(200);
-
-    // Open again: it comes back.
-    await userEvent.click(page.getByRole("button", { name: "Toggle" }));
-    await expect.element(status).toBeVisible();
-  });
-
-  test("with reduced motion it has no animation and is gone in the next frame", async () => {
-    await reduceMotion();
-    await renderInRouter(<ToastHarness />);
-    const status = page.getByRole("status").filter({ hasText: "A new version is ready" });
-    await expect.element(status).toBeVisible();
-    expect(longest(parentOf(status.element()))).toBe(0);
-    await userEvent.click(page.getByRole("button", { name: "Toggle" }));
-    await nextFrame();
-    expect(status.query()).toBeNull();
   });
 });

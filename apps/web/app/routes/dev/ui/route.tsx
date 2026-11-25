@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { requireDevUi } from "~/.server/devUi";
-import { ChoiceGroup } from "~/components/ui";
+import { ChoiceGroup, ToastRegion } from "~/components/ui";
 import { GALLERY } from "./registry";
 
 // The dev UI gallery (web only, 404 in production): every ui/ primitive and
@@ -73,6 +73,7 @@ export default function DevUi() {
           <Section />
         </section>
       ))}
+      <ToastRegion />
     </main>
   );
 }

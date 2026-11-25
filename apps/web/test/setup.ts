@@ -2,6 +2,7 @@ import "~/app.css";
 
 import { afterEach, beforeEach, vi } from "vitest";
 import { cleanup } from "vitest-browser-react";
+import { clearToasts } from "~/components/ui/toastQueue";
 import { closeDevices } from "./device";
 import { TEST_NOW } from "./found";
 // Registers `getByCss` on `page` and every locator.
@@ -17,6 +18,8 @@ document.body.className = "min-h-dvh bg-base-200 text-base-content";
 afterEach(async () => {
   vi.useRealTimers();
   await cleanup();
+  // The toast queue is module state: no test's toasts wait into the next.
+  clearToasts();
   await closeDevices();
 });
 
