@@ -10,6 +10,15 @@ export const LANDING_GAP = 8;
 /** What the reader does that ends the hold: their own scrolling or a tap or key wins over it. */
 const INTENTS = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
 
+/** Where the hold last put the page, while one holds: its scrolls aren't the reader's. */
+let heldAt: number | null = null;
+
+/**
+ * Whether the page is where the landing's hold put it: a scroll then is the
+ * hold's (the cards above settling), not the reader's, so it loads nothing newer.
+ */
+export const landingHeld = () => heldAt !== null && Math.abs(window.scrollY - heldAt) <= 1;
+
 /**
  * Keep the landed target `LANDING_GAP` from the top while the page around it
  * changes size (the setup, invite or Today card coming in once their queries
@@ -20,12 +29,14 @@ const INTENTS = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
  */
 function holdInPlace(target: Element, list: Element | null) {
   let expected = window.scrollY;
+  heldAt = expected;
   const pin = () => {
     if (!target.isConnected) return release();
     const off = target.getBoundingClientRect().top - LANDING_GAP;
     if (Math.abs(off) < 1) return;
     window.scrollTo({ top: window.scrollY + off });
     expected = window.scrollY;
+    heldAt = expected;
   };
   const onScroll = () => {
     if (Math.abs(window.scrollY - expected) > 1) release();
@@ -36,6 +47,7 @@ function holdInPlace(target: Element, list: Element | null) {
   window.addEventListener("scroll", onScroll, { passive: true });
   for (const type of INTENTS) window.addEventListener(type, release, { passive: true, capture: true });
   function release() {
+    heldAt = null;
     sizes.disconnect();
     window.removeEventListener("scroll", onScroll);
     for (const type of INTENTS) window.removeEventListener(type, release, { capture: true });

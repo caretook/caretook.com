@@ -97,6 +97,22 @@ describe("scrolling newer from a day", () => {
     for (const hour of [9, 12, 15]) expect(rowWith(`Day ${d} at ${hour}`)).toBeTruthy();
   });
 
+  test("the landing's hold moving the page up as a card above goes loads nothing newer", async () => {
+    await openTimeline({ fixtures: history(40), query: `?day=${key(20)}` });
+    const landed = await found(() => document.getElementById(`day-${key(20)}`));
+    const invite = await found(() => document.querySelector<HTMLElement>("[data-invite-card]"));
+    await stopsMoving(() => landed);
+    expect(Math.round(landed.getBoundingClientRect().top)).toBeLessThan(40);
+    const y = scrollY;
+    // The page above the day shrinks (a card going as its query answers): the hold scrolls up after it.
+    invite.style.display = "none";
+    await expect.poll(() => scrollY).toBeLessThan(y - 100);
+    await frames(3);
+    expect(headingIds()[0]).toBe(`day-${key(20)}`);
+    expect(document.querySelector("[data-newer-entries] [role=status]")?.textContent).toBe("");
+    expect(Math.round(landed.getBoundingClientRect().top)).toBeLessThan(40);
+  });
+
   test("after a jump from the picker, scrolling on while newer rows load isn't pulled back to the day", async () => {
     await openTimeline({ fixtures: history(60) });
     await waitUntil(() => rows().length > 0, "the timeline");
