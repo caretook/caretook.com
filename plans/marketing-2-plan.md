@@ -6,8 +6,8 @@
 
 | Slice | Wave | State                   | Merge into `prd/marketing-2` (slice commits) |
 | ----- | ---- | ----------------------- | -------------------------------------------- |
-| 1     | 1    | running (Fable)         |                                              |
-| 2     | 1    | planned                 |                                              |
+| 1     | 1    | merged                  | a99f66c0 (c75b6d15)                          |
+| 2     | 1    | running (Fable)         |                                              |
 | 3     | 1    | planned                 |                                              |
 | 4     | 1    | planned (text approved) |                                              |
 
@@ -25,6 +25,7 @@ The tests' setup changed 2026-11-25 (test DB, lease and stack through `risa.json
 **Log**
 
 - 2026-11-25: session started; backlog ingested (nothing new for this topic). B-417 claimed. Slice 1 started: worktree `.loops/marketing-2-1` (slot 1), agent spawned on Fable; the watch runs in the background. Slices 2 to 4 start as the one before merges.
+- Slice 1 handed off (slice check and the `marketing` check green) and merged as a99f66c0; its worktree stays until the wave is green. Slice 2 started: `.loops/marketing-2-2`, agent on Fable. For slice 4: the founder clause changes in four places together (`hero.lockup.descriptor`, `DEFAULT_OG_IMAGE.alt`, the third `<text>` of `og-default.svg`, the re-rendered PNG), and the longer descriptor needs a second line or a smaller size in the image. Docs to fold at landing: the lockup field; the share image rendered from `og-default.svg` by `scripts/build/share-image.mjs`. For the next plan: slice 1 changed 14 files (the hook warns past 12).
 
 ## Architectural decisions
 
