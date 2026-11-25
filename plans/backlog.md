@@ -281,7 +281,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-799 | change | inbox |  |  | Include captain name and backlog agent name so other agents can find it. |
 | B-802 | bug | triaged | fixes-tooling |  | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
 | B-805 | question | triaged | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
-| B-807 | bug | triaged | fixes-bug |  | CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev |
+| B-807 | bug | triaged | fixes-tooling |  | CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev |
 | B-808 | bug | triaged | fixes-tooling |  | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
 
 ## Items
@@ -1950,12 +1950,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-807 · bug · CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev
 
 - status: triaged
-- prd: fixes-bug
+- prd: fixes-tooling
 - owner:
 - commit:
 
 - 2026-11-25 (prd/planner-3): [ci-key 8f5760aaa54d] Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45553217886.
 - 2026-11-25 (Robert Bo Davis): Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45558728409.
+- 2026-11-25 (Robert Bo Davis): Symptom fixed on dev in a563f62f (empty Status table restored). Left open for the cause: fixes-ui's idle hand-over (92177808) dropped the Slice | Item | State | Merge header; make the hand-over or pnpm prd status-trim keep it, or let the test accept an idle plan. Moved from fixes-bug: it is tooling.
 
 ### B-808 · bug · Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load
 
