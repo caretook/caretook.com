@@ -20,7 +20,7 @@
   "browserHarness": {
     "tier": "integration",
     "paths": [
-      "scripts/loops/serve.sh",
+      "scripts/project/serve.sh",
       "scripts/loops/checks",
       "scripts/loops/check-areas.d",
       "scripts/project/check-areas.mjs",

@@ -75,6 +75,10 @@
     "checkAreas": "node scripts/project/check-areas.mjs",
     "docBudget": "node scripts/project/doc-budget.mjs",
     "landing": "node scripts/project/landing.mjs",
+    "stackUp": "scripts/project/stack.sh up",
+    "stackDown": "scripts/project/stack.sh down",
+    "stackStatus": "scripts/project/stack.sh status",
+    "stackReady": "scripts/project/stack.sh ready",
     "testDb": "scripts/project/test-db.sh",
     "lease": "bash scripts/loops/lease.sh hold"
   },
