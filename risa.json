@@ -19,6 +19,7 @@
     "brakeList": "scripts/ci/brake-list.txt",
     "quarantine": "scripts/ci/quarantine.txt",
     "tierData": "scripts/ci/tiers.json",
+    "checkPlanRules": "scripts/project/check-plan-rules.json",
     "tooling": [".githooks", "risa.json", "scripts/project"]
   },
   "roles": {
@@ -59,6 +60,10 @@
   },
   "stack": {
     "portEnv": "apps/web/.env"
+  },
+  "testProjects": {
+    "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
+    "browserHarness": "tooling:browser"
   },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
