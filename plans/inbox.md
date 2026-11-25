@@ -32,5 +32,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for up to 3 days offline. (B-145)
   Decide for Capacitor (SQLCipher, secure storage) against the "encryption at rest" commitment.
 - Can the PWA sync in the background after offline work, or does the user have to open it to sync? (B-805)
+- Should the orchestrator PRDQ be slice-based instead of PRD-based?
 
 ## Chores
