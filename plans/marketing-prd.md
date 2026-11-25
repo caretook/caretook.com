@@ -109,3 +109,15 @@ Pages are prerendered at build, carry none of the app's sync or editor code, and
   - **Build and analytics:** prerendered static pages with the SEO basics; analytics decided later.
   - **Visuals and price:** screenshots, illustrations and a draft logo, favicon and OG image; the site says "free in early access".
 - The marketing site makes public promises (no ads, no trackers, deletion). Anything that changes those, such as adding analytics, needs the privacy page updated in the same change.
+
+## Messaging update (2026-11-25)
+
+From an outside tagline and marketing workshop, discussed with the user in a backlog session. These guide the next content pass (B-417) and replace the v1 lines they contradict.
+
+- **Lockup:** the home hero leads with three parts: **Caretook**, the tagline **_Care, taken._** (it turns the past-tense name into "handled"), then one descriptor line, drafted as "The free care notebook for families, built by caregivers who've been there." The current heading ("Keep track of someone's care, together.") becomes supporting copy. Use the tagline in the share image and page titles too.
+- **Price promise (replaces "Free while in early access" as the headline):** the hero says **"Free for families."** The FAQ and the price band say: _"The essentials (timeline, notes, medications, sharing with family) are free, always. If we ever add paid extras, early families keep what they have, free."_ Why: there will always be a free tier, and existing users are grandfathered on the core if costly features (such as AI) are added later. So "free" is tied to the core, never to every feature. Don't write "free forever" unqualified, and don't promise future features free.
+- **Founder story on About:** "Built by caregivers who've been there" must be backed by a real story of about 150 words. The copy waits on 3 or 4 facts from the user about their own caregiving experience; agents never invent them. Until then, the descriptor drops "built by caregivers who've been there".
+- **Claims discipline:** concrete promises only ("never sold", "delete anytime", "export anytime" once export exists, B-52 download all your data); never "HIPAA compliant" or a bare "secure". Never name a competitor. Show the difference instead. Claim only what the app does today (it prints a medication list, a weekly bedside sheet and the profile; check before naming an ER sheet or visit summary).
+- **Stays caretook.com, not a nonprofit:** the workshop's caretook.org and "A nonprofit" lines are not adopted.
+- **Not adopted for now:** a partners page for hospice and agency staff (still out of scope above), a sample-printables page, and the print and fundraising pieces (referral card, partner one-pager, grant boilerplate).
+- **Untested:** the lockup's check is to show it to five caregivers and ask what the product does and what it costs. If they answer "organizes care" and "free", it works.

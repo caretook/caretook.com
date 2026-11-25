@@ -1,12 +1,12 @@
 // The doc budget guard: keeps AGENTS.md and docs/ small (budgets in
 // doc-budget.config.mjs).
 //
-//   node scripts/loops/doc-budget.mjs [warn]
+//   node scripts/project/doc-budget.mjs [warn]
 //       Lists the docs over budget with their sizes. Always exits 0, even if
 //       the measuring itself fails (it runs inside `pnpm check`). Then, for
 //       each topic in plans/backlog.md's registry not flagged done, warns when
 //       its plan's _Status_ passes 6 KB (trim it: `pnpm prd status-trim`).
-//   node scripts/loops/doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]
+//   node scripts/project/doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]
 //       Exits 1 if any doc is over budget AND bigger than at <base>, naming
 //       each with its size, budget and base size. --head measures that ref
 //       instead of the working tree (land.sh passes the branch being landed).
@@ -14,9 +14,10 @@
 // A doc over budget that didn't grow (or shrank) never blocks anything.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { createRequire } from "node:module";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { BUDGETS } from "./doc-budget.config.mjs";
+import { readRisa } from "./risa.mjs";
 import { STATUS_WARN_BYTES, statusBytes } from "./status-trim.mjs";
 
 /** The budget in bytes for a repo-relative path, or null if it has none. */
@@ -95,6 +96,63 @@ export function docSizes(repo, ref = null) {
   return sizes;
 }
 
+// The backlog's registry table, read as the core's registry does (Caretook's
+// copy of the part this needs, so the budget runs with no core present): its
+// section heading is risa.json's backlog.prdsHeading in this checkout.
+const REGISTRY_HEADER = ["PRD", "Flags", "After", "Hot files", "Doc and notes"];
+const NONE = "—";
+const prdsHeading = () =>
+  readRisa(fileURLToPath(new URL("../..", import.meta.url)))?.backlog?.prdsHeading ?? "## PRDs";
+/** "| a | b \\| c |" → ["a", "b | c"]. */
+const cells = (line) =>
+  line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/(?<!\\)\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((c) => c.trim().replace(/\\\|/g, "|"));
+const unquote = (s) =>
+  s
+    .trim()
+    .replace(/^`+|`+$/g, "")
+    .trim();
+
+/**
+ * The registry's rows as { topic, flags }, or null when the backlog has no
+ * table or one in the old format; a header this doesn't know throws.
+ */
+export function registryRows(text) {
+  const heading = prdsHeading();
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const start = lines.findIndex((l) => l.trim() === heading);
+  if (start < 0) return null;
+  let end = lines.findIndex((l, i) => i > start && /^##? /.test(l));
+  if (end < 0) end = lines.length;
+  let at = lines.findIndex((l, i) => i > start && i < end && l.trim().startsWith("|"));
+  if (at < 0) return null;
+  const table = [];
+  while (at < end && lines[at].trim().startsWith("|")) table.push(lines[at++]);
+  const [head = "", ...body] = table;
+  const header = cells(head);
+  if (header.join("|") !== REGISTRY_HEADER.join("|")) {
+    if (header[0] === "PRD" && header[1] === "Doc") return null;
+    throw new Error(`the "${heading}" table's header isn't one this tool knows: ${head.trim()}`);
+  }
+  return body
+    .filter((l) => !/^\|(\s*:?-+:?\s*\|)+\s*$/.test(l.trim()))
+    .map(cells)
+    .map(([topic = "", flags = ""]) => ({
+      topic: unquote(topic),
+      flags:
+        !flags.trim() || flags.trim() === NONE || flags.trim() === "-"
+          ? []
+          : flags
+              .split(",")
+              .map(unquote)
+              .filter((f) => f && f !== NONE),
+    }));
+}
+
 /**
  * The running topics' plans whose _Status_ is over `limit` bytes, as
  * { topic, size }: every registry row not flagged done that has a plan.
@@ -102,12 +160,10 @@ export function docSizes(repo, ref = null) {
 export function longStatuses(repo, limit = STATUS_WARN_BYTES) {
   const backlog = join(repo, "plans", "backlog.md");
   if (!existsSync(backlog)) return [];
-  // Loaded here, not at the top, so land mode needs nothing outside scripts/loops/.
-  const { parseRegistry } = createRequire(import.meta.url)("../backlog/registry.mjs");
-  const reg = parseRegistry(readFileSync(backlog, "utf8"));
-  if (reg.format !== "new") return [];
+  const rows = registryRows(readFileSync(backlog, "utf8"));
+  if (!rows) return [];
   const out = [];
-  for (const row of reg.rows) {
+  for (const row of rows) {
     const plan = join(repo, "plans", `${row.topic}-plan.md`);
     if (row.flags.includes("done") || !existsSync(plan)) continue;
     const size = statusBytes(readFileSync(plan, "utf8"));

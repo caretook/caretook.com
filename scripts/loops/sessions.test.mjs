@@ -31,6 +31,7 @@ import {
   START_SLACK_MS,
   writeRecord,
 } from "./sessions.mjs";
+import "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -226,6 +227,7 @@ beforeAll(() => {
   for (const f of [
     "prd.sh",
     "lib.sh",
+    "config.mjs",
     "session.sh",
     "sessions.mjs",
     "captain.mjs",
@@ -578,7 +580,7 @@ describe("the inbox session", () => {
     run("prd.sh", ["inbox", ...args], { CARETOOK_INBOX_DIR: inboxDir(), ...extra });
   beforeEach(() => rmSync(home(), { recursive: true, force: true }));
 
-  it("starts in its own directory outside the repository, creating it, on Sonnet at low effort", () => {
+  it("starts in its own directory outside the repository, creating it, on Opus at low effort", () => {
     const r = inbox();
     expect(r.status).toBe(0);
     expect(r.stderr).toContain(`Made ${inboxDir()} for the inbox session.`);
@@ -586,7 +588,7 @@ describe("the inbox session", () => {
     expect(record("inbox")).toMatchObject({
       pid: stubPid(),
       kind: "inbox",
-      model: "sonnet",
+      model: "opus",
       remote: "inbox",
       exit: 0,
     });
@@ -597,7 +599,7 @@ describe("the inbox session", () => {
       "--settings",
       scripts("inbox-settings.json"),
       "--model",
-      "sonnet",
+      "opus",
       "--remote-control",
       "inbox",
     ]);
@@ -606,11 +608,11 @@ describe("the inbox session", () => {
     expect(inbox().stderr).not.toContain("Made ");
   });
 
-  it("--model overrides Sonnet; the low-effort settings stay", () => {
-    expect(inbox(["--model", "opus"]).status).toBe(0);
-    expect(record("inbox")).toMatchObject({ kind: "inbox", model: "opus" });
+  it("--model overrides Opus; the low-effort settings stay", () => {
+    expect(inbox(["--model", "sonnet"]).status).toBe(0);
+    expect(record("inbox")).toMatchObject({ kind: "inbox", model: "sonnet" });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
-    expect(args.slice(0, 4)).toEqual(["--settings", scripts("inbox-settings.json"), "--model", "opus"]);
+    expect(args.slice(0, 4)).toEqual(["--settings", scripts("inbox-settings.json"), "--model", "sonnet"]);
     expect(inbox(["--model=haiku"]).status).toBe(0);
     expect(record("inbox").model).toBe("haiku");
     expect(inbox(["--bogus"]).stderr).toContain(
@@ -624,7 +626,7 @@ describe("the inbox session", () => {
     const other = join(home(), "other-inbox");
     expect(inbox(["--dir", other, "--managed"], { CARETOOK_INBOX_DIR: "" }).status).toBe(0);
     expect(readFileSync(join(state, "cwd"), "utf8").trim()).toBe(other);
-    expect(record("inbox")).toMatchObject({ kind: "inbox", dir: other, managed: true, model: "sonnet" });
+    expect(record("inbox")).toMatchObject({ kind: "inbox", dir: other, managed: true, model: "opus" });
     expect(inbox(["--dir", join(main, "scripts")]).stderr).toContain("where AGENTS.md would load");
   });
 

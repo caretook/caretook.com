@@ -21,6 +21,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { collectTidyFacts, processCwds } from "./tidy-cli.mjs";
 import { tidy as sortFacts } from "./tidy.mjs";
+import "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -120,7 +121,7 @@ beforeAll(() => {
   for (const f of readdirSync(HERE).filter((f) => /\.(sh|mjs)$/.test(f) && !f.endsWith(".test.mjs")))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   mkdirSync(join(main, "scripts/ci"), { recursive: true });
-  for (const f of ["outstanding.mjs", "tiers.mjs"])
+  for (const f of ["outstanding.mjs", "tier-data.mjs", "tiers.json"])
     copyFileSync(join(HERE, "../ci", f), join(main, "scripts/ci", f));
   writeFileSync(join(main, "scripts/backlog/backlog.mjs"), FAKE_BACKLOG);
   writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\nnode_modules/\n");

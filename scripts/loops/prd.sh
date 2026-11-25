@@ -8,8 +8,8 @@ source "$(dirname "$0")/lib.sh"
 bin=$(dirname "$0")
 # The model plan, backlog and hotfix sessions run on unless --model names another.
 agent_model=opus
-# The inbox session's: Sonnet, for speed (inbox-settings.json sets low effort, fast mode off).
-inbox_model=sonnet
+# The inbox session's: Opus at low effort, for fast, accurate replies (inbox-settings.json sets low effort, fast mode off).
+inbox_model=opus
 # Every command runs on .nvmrc's Node, whatever shell called it.
 use_node || true
 
@@ -37,15 +37,15 @@ pnpm prd <command>
     dispatch --pause [<why>]|--resume|--stop   the brakes, from any shell (the hold flag is the row's)
     queue <topic>             put the topic first in the PRD registry and return: the dispatcher takes it next
                               (or, with none running, says to start one or pnpm prd start <topic>)
-    plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
+    plan <topic> [--open] [${backlog_id_prefix}n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
                               (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next; its Remote Control
                               name and tab title are a captain's, a new one each session; its record stays backlog)
     inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
-                              adds, rewords, moves or removes inbox lines on origin/dev; Sonnet at low effort
-                              (--model <m>: another model, this session only; a reopen or rotation is Sonnet),
+                              adds, rewords, moves or removes inbox lines on origin/dev; Opus at low effort
+                              (--model <m>: another model, this session only; a reopen or rotation is Opus),
                               Remote Control "inbox", opened in its own directory outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
                               the dispatcher keeps it open once you have opened it by hand and trusted the folder
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
@@ -188,7 +188,7 @@ pnpm prd <command>
     tier [--base <ref>]       the CI tier this worktree's commits propose against <ref> (default $trunk), and why
 
   Land
-    land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
+    land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes ${backlog_id_prefix}n,…] [--no-review] [--local]
                               [--force] [--skeptic <id>… | --by-user]
                               merge prd/<topic> into dev (only when the dev keeper says so) through its
                               PR: merged on GitHub once its head is the local tip and Codex's verdict is
@@ -348,7 +348,7 @@ case $cmd in
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
-      case $a in --open) open=1 ;; B-[0-9]*) items+=("$a") ;; *) die "plan: unknown argument $a" ;; esac
+      case $a in --open) open=1 ;; "$backlog_id_prefix"[0-9]*) items+=("$a") ;; *) die "plan: unknown argument $a" ;; esac
     done
     dir=$loops/plan-$topic
     [[ -d $dir ]] || "$bin/new.sh" plan "$topic"
@@ -362,7 +362,7 @@ case $cmd in
     echo "  $cmd_line"
     ;;
   inbox)
-    # The inbox session (prompt.sh inbox): Sonnet at low effort, fast mode off
+    # The inbox session (prompt.sh inbox): Opus at low effort, fast mode off
     # (session.sh gives the inbox kind inbox-settings.json: the context hook,
     # effortLevel and fastMode in one file), opened bare: in its own directory
     # outside the repository, so neither AGENTS.md nor the project's memory loads.
@@ -467,7 +467,7 @@ case $cmd in
     asked=full
     if ((quick)); then
       asked=quick
-      [[ $(git -C "$dir" branch --show-current) == slice/* ]] && asked=slice
+      [[ $(git -C "$dir" branch --show-current) == "$slice_prefix"* ]] && asked=slice
     fi
     base=$(check_base "$dir" "$asked")
     { read -r pmode; read -r ptooling; read -r pown; } < <(
@@ -475,15 +475,13 @@ case $cmd in
     rm -f "$record"
     # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
     # wave of loops finishing together doesn't run every pnpm check at once.
-    if [[ $pmode == slice ]]; then
-      echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits ($why)"
-    elif [[ $pmode == quick ]]; then
-      echo "Quick check against ${base:0:7}: typecheck, lint, format, every unit test, the integration tests related to the diff, and the component tests it adds or edits ($why)"
-    fi
-    [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
+    # The project's check (the config's check hook) prints its own steps;
+    # check-hook.sh runs it, then the tooling tests when the plan says so.
+    echo "The $pmode check of the diff since ${base:0:7}${why:+ ($why)}."
+    [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests join after the project's check."
     # shellcheck disable=SC2086
     (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check${pmode:+ ($pmode)}" -- \
-      "$bin/check-run.sh" "$pmode" "$why" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
+      "$bin/check-run.sh" "$pmode" "$why" -- "$bin/check-hook.sh" "$pmode" "$base" "$ptooling" $pown)
     if [[ $pmode == quick || $pmode == slice ]]; then
       echo "$(git -C "$dir" rev-parse HEAD) quick $base $why" > "$record"
       echo "quick check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current)): $why"
@@ -495,7 +493,8 @@ case $cmd in
   sync)
     name=$(here_name); [[ -n $name ]] || die "run pnpm prd sync inside a PRD's worktree"
     dir=$loops/$name; branch=$(git -C "$dir" branch --show-current)
-    [[ $branch == prd/* || $branch == plan/* || $branch == hotfix/* ]] || die "$branch isn't a prd/, plan/ or hotfix/ branch"
+    [[ $branch == "$prd_prefix"* || $branch == "$plan_prefix"* || $branch == "$hotfix_prefix"* ]] ||
+      die "$branch isn't a $prd_prefix, $plan_prefix or $hotfix_prefix branch"
     # shellcheck source=unsynced.sh
     source "$bin/unsynced.sh"
     unsynced_clear "$dir"
@@ -524,7 +523,7 @@ case $cmd in
       echo "$branch needs no merge: $trunk's changes share no file with it and bring nothing risky. No recheck needed (pnpm prd sync --force merges anyway, when you need that code)"
     else
       git -C "$dir" merge --no-ff -m "chore(${branch#*/}): merge $trunk into $branch" "$trunk"
-      echo "Merged $trunk into $branch. If seeds or migrations changed: pnpm datastore:reset. Then: pnpm prd check"
+      echo "Merged $trunk into $branch. If seeds or migrations changed: $(project_command datastoreReset). Then: pnpm prd check"
     fi
     ;;
   ask | asks | answer)

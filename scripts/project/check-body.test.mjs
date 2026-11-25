@@ -1,11 +1,15 @@
-// check-body.sh: a failing step fails the check and stops it; a failed test file
-// is rerun alone, and a pass there is a flake. A stub pnpm stands in for every tool.
+// check-body.sh, Caretook's check (risa.json's check hook): a failing step fails
+// the check and stops it; a failed test file is rerun alone, and a pass there is a
+// flake. It runs alone: a copy of it and its failure reader, in a throwaway folder
+// with no .loops/ and no file of the tool's. A stub pnpm stands in for every tool.
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -55,8 +59,10 @@ beforeAll(() => {
   writeFileSync(join(bin, "pnpm"), STUB);
   chmodSync(join(bin, "pnpm"), 0o755);
   // The check-areas lint a slice or quick check runs with node: an empty script here.
-  mkdirSync(join(root, "scripts/loops"), { recursive: true });
-  writeFileSync(join(root, "scripts/loops/check-areas.mjs"), "");
+  mkdirSync(join(root, "scripts/project"), { recursive: true });
+  writeFileSync(join(root, "scripts/project/check-areas.mjs"), "");
+  for (const f of ["check-body.sh", "check-failed.mjs"])
+    copyFileSync(join(HERE, f), join(root, "scripts/project", f));
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
@@ -65,7 +71,7 @@ const body = (args, fail = "", extra = {}) => {
   rmSync(`${calls}.seen`, { force: true });
   rmSync(state, { recursive: true, force: true });
   mkdirSync(state);
-  const r = spawnSync("bash", [join(HERE, "check-body.sh"), ...args], {
+  const r = spawnSync("bash", [join(root, "scripts/project/check-body.sh"), ...args], {
     cwd: root,
     encoding: "utf8",
     env: {
@@ -96,9 +102,8 @@ const TSC = "--filter ./apps/* --filter ./packages/* exec tsc";
 const ESLINT = "exec eslint .";
 const PRETTIER = "exec prettier --check .";
 const UNIT =
-  "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit";
-const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser";
-const TOOLING = "exec vitest run --project tooling:unit --project scripts:unit";
+  "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit";
+const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser --project !project:tooling";
 const runs = (r) => r.ran.filter((c) => !c.startsWith("exec vitest list"));
 // The three static tools run side by side, so their order is free.
 const afterStatic = (r) => {
@@ -109,8 +114,16 @@ const afterStatic = (r) => {
 };
 
 describe("check-body.sh", () => {
+  it("runs alone, with no .loops/ and no file of the tool's beside it", () => {
+    expect(existsSync(join(root, ".loops"))).toBe(false);
+    expect(readdirSync(join(root, "scripts"))).toEqual(["project"]);
+    const r = body(["slice", "base0123456789"]);
+    expect(r.status).toBe(0);
+    expect(r.out).toMatch(/^Slice check against base012: typecheck, lint, format, every unit test/);
+  });
+
   it("runs one typegen", () => {
-    const r = body(["slice", "base", "0"]);
+    const r = body(["slice", "base"]);
     expect(r.ran.filter((c) => c === "typegen")).toHaveLength(1);
   });
 
@@ -120,7 +133,7 @@ describe("check-body.sh", () => {
       ["exec eslint", "lint"],
       ["exec prettier", "format"],
     ]) {
-      const r = body(["quick", "base", "1"], tool);
+      const r = body(["quick", "base"], tool);
       expect(r.status).toBe(7);
       expect(r.step).toBe(step);
       expect(afterStatic(r)).toEqual([]);
@@ -128,16 +141,16 @@ describe("check-body.sh", () => {
   });
 
   it("fails at a failing typegen and runs nothing after it", () => {
-    const r = body(["full", "base", "1"], "typegen");
+    const r = body(["full", "base"], "typegen");
     expect(r.status).toBe(7);
     expect(r.step).toBe("typecheck");
     expect(r.ran).toEqual(["typegen"]);
   });
 
-  it("passes a full check when every command passes", () => {
-    const r = body(["full", "base", "1"]);
+  it("passes a full check when every command passes, and runs no tooling test (the tool runs those)", () => {
+    const r = body(["full", "base"]);
     expect(r.status).toBe(0);
-    expect(afterStatic(r)).toEqual([ALL, "docs:budget", "build:budget", TOOLING]);
+    expect(afterStatic(r)).toEqual([ALL, "docs:budget", "build:budget"]);
   });
 
   it("a full check runs what pnpm check runs", () => {
@@ -145,22 +158,21 @@ describe("check-body.sh", () => {
     expect(pkg.scripts.check).toBe(
       "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:budget",
     );
-    expect(pkg.scripts.test).toBe("vitest run --project '!tooling:unit' --project '!tooling:browser'");
+    expect(pkg.scripts.test).toBe(
+      "vitest run --project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling'",
+    );
   });
 
-  it("fails a full check at a failing tooling test and names the step", () => {
-    const r = body(["full", "base", "1"], "", { STUB_TESTS: "scripts/loops/x.test.mjs:9" });
+  it("fails a full check at a failing test and names the step", () => {
+    const r = body(["full", "base"], "", { STUB_TESTS: "scripts/loops/x.test.mjs:9" });
     expect(r.status).not.toBe(0);
     expect(r.step).toBe("unit");
-    const t = body(["full", "base", "1"], "--project tooling:unit");
-    expect(t.status).toBe(7);
-    expect(t.step).toBe("tooling");
   });
 
   it("a slice check runs every unit test and only the diff's own test files that still exist", () => {
     writeFileSync(join(root, "a.int.test.ts"), "");
     writeFileSync(join(root, "b.browser.test.tsx"), "");
-    const r = body(["slice", "base", "0", "a.int.test.ts", "b.browser.test.tsx", "gone.int.test.ts"]);
+    const r = body(["slice", "base", "a.int.test.ts", "b.browser.test.tsx", "gone.int.test.ts"]);
     expect(r.status).toBe(0);
     expect(afterStatic(r)).toEqual([
       UNIT,
@@ -171,30 +183,29 @@ describe("check-body.sh", () => {
   });
 
   it("a slice check with no test files of its own runs only the unit tests", () => {
-    const r = body(["slice", "base", "0"]);
+    const r = body(["slice", "base"]);
     expect(r.status).toBe(0);
     expect(afterStatic(r)).toEqual([UNIT, "docs:budget"]);
   });
 
   it("a quick check adds the integration tests related to the diff, and no other component test", () => {
-    const r = body(["quick", "base", "1", "a.int.test.ts", "b.browser.test.tsx"]);
+    const r = body(["quick", "base", "a.int.test.ts", "b.browser.test.tsx"]);
     expect(r.status).toBe(0);
     expect(afterStatic(r)).toEqual([
       UNIT,
       "exec vitest run --changed base --passWithNoTests --project integration",
       "exec vitest run --project web:components b.browser.test.tsx",
       "docs:budget",
-      TOOLING,
     ]);
   });
 });
 
 describe("check-body.sh reruns a failed test file", () => {
   const rerun = (...files) =>
-    `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit ${files.join(" ")}`;
+    `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit ${files.join(" ")}`;
 
   it("a file that passes alone passes the check and is reported as a flake", () => {
-    const r = body(["slice", "base", "0"], "", { STUB_TESTS: "a.test.ts:1,ok.test.ts:0" });
+    const r = body(["slice", "base"], "", { STUB_TESTS: "a.test.ts:1,ok.test.ts:0" });
     expect(r.status).toBe(0);
     expect(r.flaky).toEqual(["a.test.ts"]);
     expect(r.failed).toEqual([]);
@@ -203,7 +214,7 @@ describe("check-body.sh reruns a failed test file", () => {
   });
 
   it("a file that fails twice fails the check, and the rerun names only the failed files", () => {
-    const r = body(["slice", "base", "0"], "", { STUB_TESTS: "a.test.ts:2,b.test.ts:1,ok.test.ts:0" });
+    const r = body(["slice", "base"], "", { STUB_TESTS: "a.test.ts:2,b.test.ts:1,ok.test.ts:0" });
     expect(r.status).toBe(1);
     expect(r.step).toBe("unit");
     expect(r.failed).toEqual(["a.test.ts"]);
@@ -213,14 +224,14 @@ describe("check-body.sh reruns a failed test file", () => {
   });
 
   it("doesn't rerun after an unhandled error", () => {
-    const r = body(["slice", "base", "0"], "", { STUB_TESTS: "a.test.ts:1", STUB_UNHANDLED: "1" });
+    const r = body(["slice", "base"], "", { STUB_TESTS: "a.test.ts:1", STUB_UNHANDLED: "1" });
     expect(r.status).toBe(1);
     expect(r.failed).toEqual(["a.test.ts"]);
     expect(r.ran.some((c) => c.includes("--no-file-parallelism"))).toBe(false);
   });
 
   it("doesn't rerun past the limit of failed files", () => {
-    const r = body(["slice", "base", "0"], "", {
+    const r = body(["slice", "base"], "", {
       STUB_TESTS: "a.test.ts:1,b.test.ts:1",
       CARETOOK_CHECK_RERUN_MAX: "1",
     });

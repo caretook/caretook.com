@@ -212,7 +212,7 @@ describe("the deploy workflows", () => {
     expect(run("env")).toContain('node scripts/ci/env.mjs browser >> "$GITHUB_ENV"');
     expect(run("stack")).toBe("pnpm datastore:up");
     expect(run("serve")).toContain("NODE_ENV=production");
-    expect(run("serve")).toContain("host-headers.mjs");
+    expect(run("serve")).toContain("--import ../../scripts/project/host-headers.mjs");
     expect(run("suite")).toBe("node scripts/ci/browser-job.mjs");
     expect(run("report")).toBe('node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"');
     expect(browser.outputs.failures).toBe("${{ steps.report.outputs.failures }}");
@@ -222,7 +222,7 @@ describe("the deploy workflows", () => {
   it("runs the check-areas lint in CI's static job", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     const step = jobs.static.steps.find((s) => s.id === "check-areas");
-    expect(step.run).toBe("node scripts/loops/check-areas.mjs lint");
+    expect(step.run).toBe("node scripts/project/check-areas.mjs lint");
     expect(step.if).toBe("${{ !cancelled() }}");
   });
 

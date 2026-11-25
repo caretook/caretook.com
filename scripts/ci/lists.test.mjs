@@ -170,7 +170,7 @@ describe("the Vitest setup", () => {
     expect(text).toMatch(/\]\s*(\.map\(\w+\)\s*)*\.map\(withQuarantine\),/);
     const listed = execFileSync(
       "pnpm",
-      ["exec", "vitest", "list", "--filesOnly", "--project", "scripts:unit"],
+      ["exec", "vitest", "list", "--filesOnly", "--project", "project:unit"],
       {
         cwd: root,
         encoding: "utf8",

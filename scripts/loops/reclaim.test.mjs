@@ -17,6 +17,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -127,10 +128,12 @@ beforeAll(() => {
   ])
     git(main, "config", k, v);
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
-  for (const f of readdirSync(HERE).filter((f) => f.endsWith(".sh") || f === "slice-fields.mjs"))
+  for (const f of readdirSync(HERE).filter(
+    (f) => f.endsWith(".sh") || f === "slice-fields.mjs" || f === "config.mjs",
+  ))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   mkdirSync(join(main, "scripts/ci"), { recursive: true });
-  for (const f of ["outstanding.mjs", "tiers.mjs"])
+  for (const f of ["outstanding.mjs", "tier-data.mjs", "tiers.json"])
     copyFileSync(join(HERE, "../ci", f), join(main, "scripts/ci", f));
   writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\n.postgres/\nnode_modules/\nbuild/\n");
   mkdirSync(join(main, "plans"));

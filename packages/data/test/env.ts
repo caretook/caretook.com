@@ -5,7 +5,7 @@ import { loadEnv } from "../src/utils/loadEnv";
 const PACKAGE_DIR = fileURLToPath(new URL("..", import.meta.url));
 
 /**
- * The pool's connect budget in tests (the app's is 2 s). pg-pool times a
+ * The pool's connect budget in tests (now the app's default too, B-342). pg-pool times a
  * connect on the test process's own clock, so under a loaded check a worker
  * whose event loop or libuv thread pool is busy (Better Auth's scrypt, pg's
  * SCRAM handshake behind it) missed 2 s though the server answered at once:

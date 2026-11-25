@@ -6,12 +6,19 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- Switching between submenus and group settings sometimes loads slowly with no feedback (B-828)
+  It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
+
 ## Change requests
 
 - App first load is way too long. (B-764)
   We need to either speed it up or make the loading message more friendly with a progress bar.
 - Include captain name and backlog agent name so other agents can find it. (B-799)
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
+- Orchestrator summary for backlog handoff should include the ability to pass on directives from the user more clearly and directly. (B-815)
+- Appointment-setting example in easy menu tips should use a doctor from the user's providers (B-833)
+- Time limit gate for component tests to keep them from growing too long (B-837)
+  5 minute goal, 6 minute hard cutoff.
 
 ## Feature requests
 
@@ -31,5 +38,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for up to 3 days offline. (B-145)
   Decide for Capacitor (SQLCipher, secure storage) against the "encryption at rest" commitment.
 - Can the PWA sync in the background after offline work, or does the user have to open it to sync? (B-805)
+- Should the orchestrator PRDQ be slice-based instead of PRD-based? (B-816)
+- Research: compare Care Book to Caring Village (B-829)
+  Review feature sets and identify overlap, places where we can surpass them, and places where we already do.
 
 ## Chores

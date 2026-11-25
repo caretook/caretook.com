@@ -21,6 +21,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -99,7 +100,9 @@ beforeAll(() => {
   ])
     git(main, "config", k, v);
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
-  for (const f of readdirSync(HERE).filter((f) => f.endsWith(".sh") || f === "slice-fields.mjs"))
+  for (const f of readdirSync(HERE).filter(
+    (f) => f.endsWith(".sh") || f === "slice-fields.mjs" || f === "config.mjs",
+  ))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   // A fake serve.sh: browser.sh calls it to start (and build) the check server.
   writeFileSync(
@@ -246,5 +249,26 @@ describe("pnpm prd status", () => {
     expect(low.stdout).toMatch(
       /^disk: 9 GB free \(line 10 GB\) · LOW: new stacks and check builds are refused: pnpm prd reclaim$/m,
     );
+  });
+});
+
+// new.sh runs the project's commands from the config, and names branches by its
+// prefixes: a sample config with other ones changes what runs.
+describe("new.sh through the config", () => {
+  it("runs the config's install, datastore start and hooks install, on the config's branch", () => {
+    const raw = JSON.parse(readFileSync(process.env.RISA_CONFIG, "utf8"));
+    Object.assign(raw.commands, {
+      install: "pnpm i --offline",
+      datastoreStart: "pnpm db:up",
+      hooksInstall: 'echo hooks-install >> "$FAKE_LOG"',
+    });
+    raw.branches.prefixes.hotfix = "quick/";
+    const sample = join(root, "sample.json");
+    writeFileSync(sample, JSON.stringify(raw));
+    const r = sh("new.sh", ["--stack", "hotfix", "q"], { env: { ...ROOMY, RISA_CONFIG: sample } });
+    expect(r.status, r.stderr).toBe(0);
+    expect(calls()).toMatch(/^hooks-install\npnpm i --offline\npnpm db:up\n/m);
+    expect(calls()).not.toMatch(/pnpm install|datastore:start/);
+    expect(git(join(loops, "hotfix-q"), "branch", "--show-current")).toBe("quick/q");
   });
 });

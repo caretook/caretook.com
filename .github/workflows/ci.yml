@@ -115,7 +115,7 @@ jobs:
       - id: check-areas
         name: Check areas
         if: ${{ !cancelled() }}
-        run: node scripts/loops/check-areas.mjs lint
+        run: node scripts/project/check-areas.mjs lint
 
   unit:
     needs:
@@ -148,7 +148,7 @@ jobs:
           CARETOOK_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
           --reporter=json --outputFile.json=ci-results/unit.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
@@ -158,7 +158,7 @@ jobs:
           CARETOOK_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
           --reporter=json --outputFile.json=ci-results/unit.json
       - id: report
         name: Report the failures
@@ -436,7 +436,7 @@ jobs:
         name: Serve the check build
         run: |
           cd apps/web
-          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+          NODE_ENV=production nohup node --import ../../scripts/project/host-headers.mjs \
             node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
             > ../../.ci-server.log 2>&1 < /dev/null &
           for _ in $(seq 1 60); do
@@ -508,7 +508,7 @@ jobs:
         name: Serve the check build
         run: |
           cd apps/web
-          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+          NODE_ENV=production nohup node --import ../../scripts/project/host-headers.mjs \
             node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
             > ../../.ci-server.log 2>&1 < /dev/null &
           for _ in $(seq 1 60); do
@@ -580,7 +580,7 @@ jobs:
         name: Serve the check build
         run: |
           cd apps/web
-          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+          NODE_ENV=production nohup node --import ../../scripts/project/host-headers.mjs \
             node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
             > ../../.ci-server.log 2>&1 < /dev/null &
           for _ in $(seq 1 60); do
@@ -653,7 +653,7 @@ jobs:
         name: Serve the check build
         run: |
           cd apps/web
-          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+          NODE_ENV=production nohup node --import ../../scripts/project/host-headers.mjs \
             node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
             > ../../.ci-server.log 2>&1 < /dev/null &
           for _ in $(seq 1 60); do

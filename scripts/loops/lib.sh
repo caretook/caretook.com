@@ -1,12 +1,102 @@
 #!/usr/bin/env bash
 # Shared by the scripts in scripts/loops/. Source it; don't run it.
 
-# The main checkout (the first worktree; it stays on dev). Every other worktree
-# lives in $main/.loops.
-main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain | awk 'NR==1{print $2}')
-loops=$main/.loops
+# find_repo [DIR] → sets main, the repo's main checkout (its first worktree,
+# which stays on the trunk), and loops, $main/.loops (every other worktree, and
+# the tool's state), for the repo DIR is in: by default the one this file is in.
+# The one place a command finds its repo; risa's machine config will answer here.
+# False, main empty, outside a repo.
+find_repo() {
+  main=$(git -C "${1:-$(dirname "${BASH_SOURCE[0]}")}" worktree list --porcelain 2>/dev/null | awk 'NR==1{print $2}')
+  loops=$main/.loops
+  [[ -n $main ]]
+}
+find_repo || true
 leases=$loops/.slots
-trunk=${TRUNK:-dev}
+
+# The project config (risa.json; config.mjs is its loader and the only code that
+# knows where the file is). Bash reads it once per process: config_load starts
+# Node once and keeps every value, and config_get answers from that copy. It is
+# loaded here, as lib.sh is sourced, so a $(config_get …) never starts Node again.
+#   config_get KEY → the value (a list: one item per line); fails, with a line
+#   on stderr, when the config has no value for KEY.
+config_load() {
+  [[ -n ${_config_loaded:-} ]] && return 0
+  _config=$(node "$(dirname "${BASH_SOURCE[0]}")/config.mjs" dump) || return 1
+  _config_loaded=1
+}
+config_get() {
+  local line found=""
+  config_load || return 1
+  while IFS= read -r line; do
+    case $line in
+      "$1="* | "$1".[0-9]*=*) echo "${line#*=}"; found=1 ;;
+    esac
+  done <<< "$_config"
+  [[ -n $found ]] || { echo "risa.json: no value for $1" >&2; return 1; }
+}
+config_load || { echo "lib.sh: the project config didn't load" >&2; return 1 2>/dev/null || exit 1; }
+trunk=${TRUNK:-$(config_get branches.trunk)}
+# The rest of the project's names, from the config: its name (which the lock and
+# marker files in the git dir carry), the branch kinds' prefixes (prd/, slice/,
+# plan/, hotfix/ here), the protected branches, the backlog's files and CI's two
+# lists (either may be unset).
+project_name=$(config_get name)
+prd_prefix=$(config_get branches.prefixes.prd)
+slice_prefix=$(config_get branches.prefixes.slice)
+plan_prefix=$(config_get branches.prefixes.plan)
+hotfix_prefix=$(config_get branches.prefixes.hotfix)
+protected_branches=()
+while IFS= read -r _b; do protected_branches+=("$_b"); done < <(config_get branches.protected)
+backlog_files=("$(config_get paths.backlog)" "$(config_get paths.inbox)" "$(config_get paths.archive)")
+ci_lists=()
+for _k in paths.brakeList paths.quarantine; do
+  _b=$(config_get "$_k" 2>/dev/null) && ci_lists+=("$_b")
+done
+unset _b _k
+# Backlog ids are <idPrefix>-<n> (config.mjs's backlogIds builds the rest from the
+# same value): backlog_id_prefix is "B-" here.
+backlog_id_prefix=$(config_get backlog.idPrefix)-
+
+# tool_command NAME → what the tool's own command NAME (prd, backlog) is called
+# in this repo: `pnpm prd` here (config.mjs's toolCommands in Node).
+tool_command() { config_get "tool.$1"; }
+
+# project_command NAME → the project's command NAME (commands.NAME in the config:
+# install, check, typecheck, typegen, datastoreStart…); fails when it isn't set.
+project_command() { config_get "commands.$1"; }
+# run_project NAME [ARG…] → runs that command here, ARGs after it, and gives its
+# exit code; 127, with a line, when the config doesn't set it.
+run_project() {
+  local c
+  c=$(project_command "$1") || return 127
+  shift
+  eval "$c" '"$@"'
+}
+# run_hook NAME [ARG…] → runs the project's hook NAME (hooks.NAME in the config:
+# the project's own script the tool calls, checkAreas, docBudget…) from the top
+# of the checkout the command runs in, ARGs after it, stdin passed on, and gives
+# its exit code; 127, with a line, when the config doesn't set it.
+run_hook() {
+  local c top
+  c=$(config_get "hooks.$1") || return 127
+  top=$(git rev-parse --show-toplevel) || return 1
+  shift
+  (cd "$top" && eval "$c" '"$@"')
+}
+
+# is_protected BRANCH → true when BRANCH is one of the config's protected branches.
+is_protected() {
+  local b
+  for b in "${protected_branches[@]}"; do [[ $1 == "$b" ]] && return 0; done
+  return 1
+}
+
+# not_files FILE… → stdin without the lines that are exactly one of FILEs (none
+# named: all of it). Never fails.
+not_files() {
+  if (($#)); then grep -vxF -f <(printf '%s\n' "$@") || true; else cat; fi
+}
 # The PRD cap (lanes): `pnpm prd dispatch --cap <n>` stores it in .loops/.prd-cap, which
 # wins over CARETOOK_MAX_PRDS; the default is 4. max_prds_from says which one set it.
 prd_cap_file=$loops/.prd-cap
@@ -29,7 +119,7 @@ dispatch_pid() {
 #   slice/<topic>/<n> → prd/<topic>;  prd/*, plan/* and hotfix/* → trunk.
 parent_of() {
   case $1 in
-    slice/*/*) local t=${1#slice/}; echo "prd/${t%/*}" ;;
+    "$slice_prefix"*/*) local t=${1#"$slice_prefix"}; echo "$prd_prefix${t%/*}" ;;
     *) echo "$trunk" ;;
   esac
 }
@@ -82,7 +172,7 @@ env_get() { [[ -f $1 ]] && grep "^$2=" "$1" | tail -1 | cut -d= -f2- | tr -d '"'
 prd_count() {
   local d n=0
   for d in "$loops"/*/; do
-    [[ $(git -C "$d" branch --show-current 2>/dev/null) == prd/* ]] && n=$((n + 1))
+    [[ $(git -C "$d" branch --show-current 2>/dev/null) == "$prd_prefix"* ]] && n=$((n + 1))
   done
   echo "$n"
 }
@@ -112,8 +202,8 @@ topic_of() {
   local b
   b=$(git -C "$loops/$1" branch --show-current 2>/dev/null || echo "$1")
   case $b in
-    slice/*/*) b=${b#slice/}; echo "${b%/*}" ;;
-    prd/*) echo "${b#prd/}" ;;
+    "$slice_prefix"*/*) b=${b#"$slice_prefix"}; echo "${b%/*}" ;;
+    "$prd_prefix"*) echo "${b#"$prd_prefix"}" ;;
     *) echo "$1" ;;
   esac
 }
@@ -144,7 +234,7 @@ checked_file() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/caretook-chec
 check_base() {
   local dir=$1 asked=$2 cur parent prev="" pmode="" qbase="" _rest
   if [[ $asked == slice ]]; then
-    cur=$(git -C "$dir" branch --show-current); parent=${cur#slice/}; parent=prd/${parent%/*}
+    cur=$(git -C "$dir" branch --show-current); parent=${cur#"$slice_prefix"}; parent=$prd_prefix${parent%/*}
     if git -C "$dir" rev-parse -q --verify "$parent" > /dev/null; then
       git -C "$dir" merge-base "$parent" HEAD; return
     fi
@@ -163,9 +253,13 @@ check_base() {
 # `pnpm prd check --quick` (typecheck, lint, format and the tests related to
 # the diff since <base>). A bare `<sha>` (older records) reads as full.
 
-# exempt_re → the paths that need no check: docs and the internal tooling
+# exempt_re → the paths that need no check: docs, the tool's own folders while
+# they sit in this repo, and the project's tooling (the config's paths.tooling)
 # (AGENTS.md: docs-only and tooling-only changes skip `pnpm check`).
-exempt_re='(\.md$|^scripts/loops/|^scripts/backlog/|^\.githooks/)'
+exempt_re='scripts/loops|scripts/backlog'
+while IFS= read -r _p; do exempt_re+=${exempt_re:+|}${_p//./\\.}; done < <(config_get paths.tooling)
+exempt_re="(\\.md\$|^($exempt_re)(/|\$))"
+unset _p
 
 # exempt_only DIR FROM TO → succeeds when every file changed between FROM and
 # TO (git diff FROM TO, or FROM...TO when TO is empty) is exempt.
@@ -181,7 +275,7 @@ exempt_only() {
 # aren't exempt themselves, so a branch that changes only them still needs a check.
 keeps_check() {
   [[ -z $(git -C "$1" diff --name-only --no-renames "$2" "$3" |
-    grep -Ev "$exempt_re" | grep -vxF -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt) ]]
+    grep -Ev "$exempt_re" | not_files ${ci_lists[@]+"${ci_lists[@]}"}) ]]
 }
 
 # docs_only BASE TIP → succeeds when BASE...TIP changes something and every
@@ -266,8 +360,7 @@ node_is() {
 # pnpm prd ci commit those onto dev, and they never affect a branch's code).
 # Empty means BRANCH is up to date with dev.
 trunk_drift() {
-  git -C "$main" diff --name-only "$1...${2:-$trunk}" |
-    grep -vxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt || true
+  git -C "$main" diff --name-only "$1...${2:-$trunk}" | not_files "${backlog_files[@]}" ${ci_lists[@]+"${ci_lists[@]}"}
 }
 
 # trunk_lists BRANCH [REF] → CI's two lists that dev (or REF) changed since
@@ -277,7 +370,7 @@ trunk_drift() {
 trunk_lists() {
   local base f
   base=$(git -C "$main" merge-base "$1" "${2:-$trunk}") || return 0
-  for f in scripts/ci/brake-list.txt scripts/ci/quarantine.txt; do
+  for f in ${ci_lists[@]+"${ci_lists[@]}"}; do
     git -C "$main" diff --quiet "$base" "${2:-$trunk}" -- "$f" && continue
     git -C "$main" diff --quiet "$base" "$1" -- "$f" || continue
     echo "$f"
@@ -391,7 +484,7 @@ disk_line() {
 
 # pr_branch WHAT → the branch a command means: prd/, plan/ and hotfix/ branches
 # (or any other with a slash) as given, else a topic's prd/<topic>.
-pr_branch() { case $1 in */*) echo "$1" ;; *) echo "prd/$1" ;; esac; }
+pr_branch() { case $1 in */*) echo "$1" ;; *) echo "$prd_prefix$1" ;; esac; }
 
 # gh_repo → origin's owner/name (cached per shell).
 gh_repo() {
@@ -425,13 +518,13 @@ pr_verdict() {
 
 # The PR path (pr.sh, land.sh): landing subjects, pushing dev, and dev-sync.
 
-inbox_path=plans/inbox.md
+inbox_path=${backlog_files[1]}
 
 # land_dir BRANCH → the worktree a prd/, plan/ or hotfix/ branch lives in.
 land_dir() {
   case $1 in
-    plan/*) echo "$loops/plan-${1#*/}" ;;
-    hotfix/*) echo "$loops/hotfix-${1#*/}" ;;
+    "$plan_prefix"*) echo "$loops/plan-${1#"$plan_prefix"}" ;;
+    "$hotfix_prefix"*) echo "$loops/hotfix-${1#"$hotfix_prefix"}" ;;
     *) echo "$loops/${1#*/}" ;;
   esac
 }
@@ -446,8 +539,8 @@ land_subject() {
       const t=r.length&&r.every(i=>i.type==="bug")?"fix":"feat";
       console.log(t+"\t"+r.map(i=>i.id).join(", "))')
   type=${ids%%$'\t'*}; ids=${ids#*$'\t'}
-  [[ $1 == plan/* ]] && type=docs
-  [[ $1 == hotfix/* ]] && type=fix
+  [[ $1 == "$plan_prefix"* ]] && type=docs
+  [[ $1 == "$hotfix_prefix"* ]] && type=fix
   echo "$type($topic): land $1${ids:+ ($ids)}"
 }
 
@@ -470,7 +563,7 @@ pr_seam() {
 # and the lock is still dropped.
 with_backlog_lock() {
   local lock deadline=$((SECONDS + 20)) age status
-  lock="$(cd "$main" && cd "$(git rev-parse --git-common-dir)" && pwd)/caretook-backlog.lock"
+  lock="$(cd "$main" && cd "$(git rev-parse --git-common-dir)" && pwd)/$project_name-backlog.lock"
   until mkdir "$lock" 2>/dev/null; do
     age=$(($(date +%s) - $(file_mtime "$lock" || date +%s)))
     if ((age > 30)); then rm -rf "$lock"; continue; fi
@@ -503,8 +596,7 @@ land_push_trunk() {
   push_trunk
   after=$(git -C "$main" rev-parse "refs/heads/$trunk")
   [[ $before != "$after" ]] || return 0
-  moved=$(git -C "$main" diff --name-only "$before" "$after" |
-    grep -vxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt || true)
+  moved=$(git -C "$main" diff --name-only "$before" "$after" | not_files "${backlog_files[@]}" ${ci_lists[@]+"${ci_lists[@]}"})
   [[ -z $moved ]] || die "origin/$trunk brought changes this landing's checks didn't see (${moved%%$'\n'*}…): nothing landed; run \`pnpm prd sync\`, then land again"
 }
 _push_trunk() {
@@ -525,7 +617,7 @@ backlog_commit() {
   (($(git -C "$main" rev-list --parents -n 1 "$1" | wc -w) == 2)) || return 1
   [[ -n $(git -C "$main" log -1 --format='%(trailers:key=Backlog-Tool,valueonly)' "$1" | tr -d '[:space:]') ]] || return 1
   files=$(git -C "$main" diff-tree --no-commit-id --name-only -r "$1")
-  [[ -n $files ]] && ! grep -qvxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md <<< "$files"
+  [[ -n $files && -z $(not_files "${backlog_files[@]}" <<< "$files") ]]
 }
 
 # held_elsewhere SHA → true when another ref (a branch, remote-tracking ref, tag
@@ -657,9 +749,9 @@ _move_trunk() {
   if [[ -n $tmp ]]; then
     gd=$(git -C "$main" rev-parse --absolute-git-dir)
     git -C "$main" update-index --cacheinfo "100644,$b,$inbox_path"
-    cp -p "$work" "$gd/caretook-inbox-merged"
-    cat "$tmp/merged" > "$gd/caretook-inbox-merged"
-    mv "$gd/caretook-inbox-merged" "$work"
+    cp -p "$work" "$gd/$project_name-inbox-merged"
+    cat "$tmp/merged" > "$gd/$project_name-inbox-merged"
+    mv "$gd/$project_name-inbox-merged" "$work"
     rm -rf "$tmp"
     echo "dev-sync: kept your uncommitted lines in $inbox_path"
   fi

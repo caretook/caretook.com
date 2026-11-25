@@ -1,0 +1,76 @@
+{
+  "name": "caretook",
+  "tool": {
+    "prd": "pnpm prd",
+    "backlog": "pnpm backlog"
+  },
+  "paths": {
+    "backlog": "plans/backlog.md",
+    "inbox": "plans/inbox.md",
+    "archive": "plans/backlog-archive.md",
+    "plans": "plans",
+    "docs": "docs",
+    "agentsDoc": "AGENTS.md",
+    "preferences": "docs/agents/preferences.md",
+    "promptGolden": "scripts/project/prompt-golden.txt",
+    "browserChecks": "scripts/browser-checks",
+    "checksManifest": "scripts/loops/checks",
+    "checkAreas": "scripts/loops/check-areas.d",
+    "brakeList": "scripts/ci/brake-list.txt",
+    "quarantine": "scripts/ci/quarantine.txt",
+    "tierData": "scripts/ci/tiers.json",
+    "checkPlanRules": "scripts/project/check-plan-rules.json",
+    "tooling": [".githooks", "risa.json", "scripts/project"]
+  },
+  "roles": {
+    "backlog": { "replacement": "docs/agents/backlog.md" },
+    "hotfix": { "replacement": "docs/agents/hotfix.md" },
+    "loop": { "replacement": "docs/agents/loop.md" },
+    "orchestrator": { "replacement": "docs/agents/orchestrator.md" },
+    "planner": { "replacement": "docs/agents/planner.md" },
+    "recovery": { "replacement": "docs/agents/recovery.md" }
+  },
+  "branches": {
+    "trunk": "dev",
+    "protected": ["main", "staging"],
+    "prefixes": {
+      "prd": "prd/",
+      "slice": "slice/",
+      "plan": "plan/",
+      "hotfix": "hotfix/"
+    }
+  },
+  "backlog": {
+    "prdsHeading": "## PRDs",
+    "idPrefix": "B",
+    "zoneOverflowItem": "B-750"
+  },
+  "commands": {
+    "install": "pnpm install --frozen-lockfile",
+    "check": "pnpm check",
+    "typecheck": "pnpm typecheck",
+    "typegen": "pnpm typegen",
+    "toolingTests": "pnpm test:tooling",
+    "log": "pnpm log",
+    "docBudget": "pnpm docs:budget",
+    "datastoreStart": "pnpm datastore:start",
+    "datastoreReset": "pnpm datastore:reset",
+    "datastoreSeed": "pnpm datastore:seed",
+    "hooksInstall": "git config core.hooksPath .githooks"
+  },
+  "stack": {
+    "portEnv": "apps/web/.env"
+  },
+  "testProjects": {
+    "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
+    "browserHarness": "tooling:browser"
+  },
+  "hooks": {
+    "check": "scripts/project/check-body.sh",
+    "checkAreas": "node scripts/project/check-areas.mjs",
+    "docBudget": "node scripts/project/doc-budget.mjs"
+  },
+  "boundary": {
+    "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
+  }
+}

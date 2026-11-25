@@ -57,7 +57,7 @@ Your final message:
 
 ### Which checks a file needs
 
-`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/loops/check-areas.mjs resolve <file>…`).
+`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
 
 - A line is a bash-style glob (`*` also matches `/`), then checks as words, or `-` (none), `@suite` (the lean set) or `@self` (the check file itself; `- (deleted)` when deleted). `#` comments. The file a rule sits in, and its order, never matter: put it in the area that owns the path.
 - **The most specific rule wins** across all files: the longest literal prefix before the first wildcard, then fewer wildcards, then the longer glob; a remaining tie is an error.

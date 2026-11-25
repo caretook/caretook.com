@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Which browser checks a changed file needs: the rules in scripts/loops/check-areas.d/,
-// resolved most specific first. `pnpm prd browser --changed` (browser.sh) calls this.
+// Which browser checks a changed file needs: the rules in the check areas folder
+// (risa.json's paths.checkAreas), resolved most specific first. `pnpm prd browser
+// --changed` (browser.sh) calls this.
 //
 // Rule files: one per area (check-areas.d/<area>), plus _global for docs,
 // tooling, config, build and the checks themselves. One rule per line: a glob
@@ -44,12 +45,14 @@
 //     checks the rules against `git ls-files`: every tracked file resolves, no
 //     rule or default is dead, no glob is written twice, no tie. Exits 1 with the problems.
 //
-// DIR defaults to the repo this file sits in; --areas to DIR/scripts/loops/check-areas.d.
+// DIR defaults to the repo this file sits in; --areas to DIR's risa.json paths.checkAreas
+// (read here, not through the core's loader: this runs in GitHub CI with no core).
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { readPackages, scriptsOnlyFiles } from "./package-diff.mjs";
+import { readRisa } from "./risa.mjs";
 
 /** The checks a file no rule covers runs, with a warning. */
 export const UNMAPPED_DEFAULT = "sign-in phase2 roundtrip";
@@ -251,7 +254,7 @@ export function lint(rules, files, exists) {
 
 const repoRoot = () => fileURLToPath(new URL("../..", import.meta.url)).replace(/\/$/, "");
 
-function main(argv) {
+export function main(argv) {
   const [cmd, ...rest] = argv;
   let root = repoRoot();
   let areas = "";
@@ -265,7 +268,14 @@ function main(argv) {
     else if (rest[i] === "--head") head = rest[++i];
     else files.push(rest[i]);
   }
-  areas ||= join(root, "scripts/loops/check-areas.d");
+  if (!areas) {
+    const configured = readRisa(root)?.paths?.checkAreas;
+    if (!configured) {
+      console.error(`check-areas: no --areas and no paths.checkAreas in ${join(root, "risa.json")}`);
+      return 1;
+    }
+    areas = join(root, configured);
+  }
   if (!existsSync(areas)) {
     console.error(`check-areas: no rules folder ${areas}`);
     return 1;

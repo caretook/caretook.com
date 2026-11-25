@@ -72,7 +72,7 @@ if [[ -z $(server_pids "$port") ]]; then
     # react-router-serve serves itself, as Vercel does (prerendered pages, assets).
     (cd apps/web && VITE_CHECK_BUILD=1 HOST=127.0.0.1 PORT=$port NODE_ENV=production exec nohup node \
       --env-file-if-exists=.env --env-file-if-exists=../../packages/data/.env \
-      --import ../../scripts/loops/host-headers.mjs \
+      --import ../../scripts/project/host-headers.mjs \
       node_modules/@react-router/serve/bin.cjs build/web/server/index.js) >> .dev.log 2>&1 < /dev/null &
     disown
   else
