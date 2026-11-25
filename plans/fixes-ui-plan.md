@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 10 landed 2026-11-24 21:47 as dev e7798575 through PR #177, `--no-review` (Codex out of credits); CI components green (run 45533689412), landed unsynced (dev shared no file). Slice 69 (B-793, opus): per-call `Intl.DateTimeFormat` in `dayKeyIn` and `formatTime` slowed the timeline's renders after sign-in; now one formatter per zone; roundtrip 548 ms locally. Report a213; to-test/2026-11-24-2147-fixes-ui.md; backlog session (caretook-com-e5) told to recut the staging candidate. Docs folded: medications.md (Schedule Undo toast), components.md (per-zone formatters). Follow-up filed: B-798 (fixes-perf, triaged), the same per-call formatter in `dayLabel` and `medicationDisplay.ts:144`. **Next session:** `pnpm backlog ingest` and `list`; write wave 11 from any new triaged fixes-ui items. Still held: B-684, B-694, B-325.
+**Wave 11 (in progress, 2026-11-24):** B-684 required asterisks, split in three (B-801, B-800 filed for the form sweeps). Synced at the boundary: dev shared no file, no merge. Slice 70 (opus) first; slices 71 and 72 (opus) start once 70 is merged. Hot files set to the ui/ and form folders. Wave 10 landed as dev e7798575 (PR #177, report a213); follow-up B-798 is fixes-perf. Still held: B-694, B-325.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,8 +19,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State          | Merge |
+| ----- | ----- | -------------- | ----- |
+| 70    | B-684 | started (opus) |       |
+| 71    | B-801 | waits on 70    |       |
+| 72    | B-800 | waits on 70    |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1008,3 +1011,51 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domai
 - [ ] The hand-off has timings for 65529f69 and the tip, phase by phase, and names the cause.
 - [ ] `roundtrip.spec.mjs` prints `localMs` whether it passes or fails.
 - [ ] With the fix, roundtrip passes on a production build at least 5 times in a row, `localMs` well under 2000 ms (say the margin).
+
+## Wave 11 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no new dependency. No other PRD is running. B-684 (required asterisks) split in three, as its backlog notes plan: slice 70 adds the shared `required` prop and asterisk in `ui/`; slices 71 and 72 (B-801, B-800) apply it to the forms and are blocked by slice 70 (start them once it is merged into prd/fixes-ui); they touch separate files and run at once. For every form, derive which fields are required from its Zod schema and service rules, never by guessing, including conditional ones (an Other care period needs a label). Still held: B-694 (the user approves each form live; it coordinates with these asterisks), B-325 (Capacitor).
+
+## Slice 70: A required prop puts a colored asterisk on required fields (B-684)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md · Tests: component
+
+**Problem.** The user wants a colored asterisk (`*`, the character, not an icon) after the label of each required field, and no "(optional)" labels. `ui/Field.tsx` has no `required` prop and no field marks itself required today.
+
+**Build.** Add one `required` prop to `Field` and to the `ui/` controls that render their own label or legend (`ChoiceGroup`, `CheckField` where it can be required, `date/DateTimeField`, `ComboBox` if it renders a label), so the asterisk lives in one place: `*` after the label text, `aria-hidden`, in the theme's error color, meeting contrast in light and dark. The control gets `aria-required="true"`, not the native `required` attribute (so browser popups don't replace our inline errors), unless the form sets `noValidate`. Show it on the `/dev/ui` page (Field's section). Document the rule in docs/domain/ui-kit.md: required fields pass `required`, labels never say "(optional)", help text only saying "Optional" goes. Don't change any app form here (slices 71 and 72 do).
+
+**Acceptance criteria.**
+
+- [ ] Component test (`Field.browser.test.tsx`): a `required` field shows an `aria-hidden` `*` after its label and its control has `aria-required="true"` and no `required` attribute; without the prop, neither.
+- [ ] Component test: the same for each group control given `required` (the legend gets the asterisk; the group or its inputs carry `aria-required`).
+- [ ] The asterisk's color meets 4.5:1 contrast on the form background in light and dark (say the ratios in the hand-off).
+
+## Slice 71: Medication, provider, profile and care period forms mark required fields (B-801)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/medications.md, docs/domain/providers.md, docs/domain/profiles.md, docs/domain/care-periods.md · Tests: component
+
+**Blocked by:** slice 70.
+
+**Problem.** These forms label optional fields "(optional)" and mark nothing required.
+
+**Build.** With slice 70's `required` prop, mark the required fields and drop "(optional)" from labels, and reword help text that only says "Optional" (keep any useful hint), in `routes/app/groups/medications/` (`MedicationForm`, `ScheduleFields`, `ConditionsField`, `ProviderPickerField`, `passes/PassForm`), `routes/app/groups/providers/ProviderForm`, `routes/app/groups/profile/` (`EmergencyForm`, `allergies/AllergyForm`, `conditions/ConditionForm`, `ConditionNameField`), `routes/app/groups/periods/` (`PeriodForm`, `PlacePickerField`), `components/medications/` (`NameField`, `MarkDoseDialog`, `MedicationStatusActions`) and `components/providers/` (`ProviderPickerField`, `ProvidersPickerField`; the picker label their callers pass). Required fields come from each form's Zod schema and service rules; a conditionally required field shows the asterisk only while it is required. Update the tests that find these fields by their "(optional)" names. Stay out of the timeline, todo, entry, group, admin and marketing forms (slice 72).
+
+**Acceptance criteria.**
+
+- [ ] Component tests beside the forms: the medication, provider, allergy, condition, emergency and care period forms show the asterisk on exactly their required fields, and the care period label field gets it only for Other.
+- [ ] No label in these files says "(optional)" (`grep` in the hand-off); existing tests pass with the new names.
+
+## Slice 72: Timeline, todo, event and the remaining forms mark required fields (B-800)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/timeline.md, docs/domain/todos.md, docs/domain/appointments.md · Tests: component
+
+**Blocked by:** slice 70.
+
+**Problem.** The rest of the app's forms label optional fields "(optional)" and mark nothing required.
+
+**Build.** As slice 71, for `routes/app/groups/timeline/` (`EntryForm`, `DoseForm`, `FeelingFields`, `QuickAddFields`, `VitalField`, `pass/PassLogForm`), `routes/app/groups/todos/` (`TodoForm`, `TodoLinkFields`, `LinkPickerField`, `AssigneeField`), `routes/app/groups/entry/`, `components/entry/CancelEventDialog`, `components/repeat/SeriesEditSheet`, `components/groups/NewGroupFields`, the sign-in, account and join forms, `routes/admin/settings/SettingCard` and `routes/marketing/sections/PublicForm`. Leave slice 71's files alone. Update the tests that find fields by "(optional)" names (`timelineEasyTiles`, `timelineQuickEntry`, `timelineQuickEntryTodos`, `todos`, `todoRepeat`, `periods` only where its fields are yours, `ui/sheetExit`).
+
+**Acceptance criteria.**
+
+- [ ] Component tests beside the forms: a new event, a note entry, a todo and a new group show the asterisk on exactly their required fields.
+- [ ] No user-visible label or help text under `apps/web/app` says "(optional)" or only "Optional" once slices 71 and 72 are both in (`grep` in the hand-off, naming any code-only hits left); existing tests pass with the new names.
