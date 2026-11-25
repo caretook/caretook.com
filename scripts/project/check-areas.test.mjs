@@ -14,6 +14,7 @@ import {
   resolveFile,
   specificity,
 } from "./check-areas.mjs";
+import { readRisa } from "./risa.mjs";
 
 const CLI = new URL("./check-areas.mjs", import.meta.url).pathname;
 const ROOT = new URL("../..", import.meta.url).pathname;
@@ -259,7 +260,7 @@ describe("lint", () => {
   });
 
   it("passes over the real check-areas.d/ and git ls-files", () => {
-    const real = loadRules(new URL("./check-areas.d", import.meta.url).pathname);
+    const real = loadRules(join(ROOT, readRisa(ROOT).paths.checkAreas));
     const tracked = execFileSync("git", ["-C", ROOT, "ls-files"], { encoding: "utf8" })
       .split("\n")
       .filter((f) => f && existsSync(join(ROOT, f)));
@@ -322,6 +323,23 @@ describe("the command line", () => {
       expect(resolve("--base", version)).toBe("package.json\t@suite\n");
     } finally {
       rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it("reads the rules folder from the root's risa.json without --areas, and says when it has none", () => {
+    const root = mkdtempSync(join(tmpdir(), "check-areas-risa-"));
+    const cli = (...args) =>
+      spawnSync("node", [CLI, "resolve", "--root", root, ...args], { encoding: "utf8" });
+    try {
+      const none = cli("src/a.ts");
+      expect(none.status).toBe(1);
+      expect(none.stderr).toContain("no --areas and no paths.checkAreas");
+      mkdirSync(join(root, "rules/areas"), { recursive: true });
+      writeFileSync(join(root, "rules/areas/a"), "src/* ui\n");
+      writeFileSync(join(root, "risa.json"), JSON.stringify({ paths: { checkAreas: "rules/areas" } }));
+      expect(cli("src/a.ts").stdout).toBe("src/a.ts\tui\n");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 

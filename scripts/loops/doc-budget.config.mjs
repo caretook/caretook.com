@@ -1,15 +1,3 @@
-// Byte budgets for the docs, in one place. The first matching entry wins; a
-// pattern is an exact path, or `dir/*.md` for every .md directly in that
-// folder (so a new doc in a budgeted folder takes the folder's budget).
-// Read by doc-budget.mjs; see its header for the modes. An entry may set
-// `landExempt: true` to warn but never block a landing (none does).
-const KB = 1024;
-
-export const BUDGETS = [
-  { pattern: "AGENTS.md", bytes: 8 * KB },
-  { pattern: "docs/agents/*.md", bytes: 15 * KB },
-  { pattern: "docs/domain/*.md", bytes: 10 * KB },
-  { pattern: "docs/layout.md", bytes: 10 * KB },
-  { pattern: "docs/loops.md", bytes: 2 * KB }, // a stub pointing to docs/agents/
-  { pattern: "docs/orchestration.md", bytes: 17 * KB }, // its size when set (17129 B), rounded up
-];
+// A forwarding path, until slice 7: land.sh's refusal names this file. The doc
+// budgets are the project's, beside their engine at scripts/project/doc-budget.config.mjs.
+export { BUDGETS } from "../project/doc-budget.config.mjs";
