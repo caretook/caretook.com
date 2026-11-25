@@ -186,11 +186,13 @@ describe("required fields (B-684)", () => {
     const segments = [...starts.querySelectorAll('[role="spinbutton"]')];
     expect(segments.length).toBeGreaterThan(0);
     for (const segment of segments) expect(segment.getAttribute("aria-required")).toBe("true");
-    expect(starts.querySelector("[required]:not([type=hidden])")).toBeNull();
+    // Only React Aria's hidden form input is natively required (it posts the value and stops the
+    // browser's popup itself); nothing the user sees or focuses is.
+    expect(starts.querySelector("[required]:not([hidden])")).toBeNull();
 
     const ends = document.querySelector('[data-field="ends"]')!;
     expect(markIn(ends)).toBeNull();
-    expect(ends.querySelector('[aria-required="true"]')).toBeNull();
+    expect(ends.querySelector('[aria-required="true"], [required]')).toBeNull();
   });
 
   test.each(["light", "dark"] as const)(
