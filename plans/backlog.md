@@ -318,6 +318,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
 | B-842 | chore | triaged | orchestration-split-2 |  | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
 | B-843 | bug | triaged | fixes-ui |  | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
+| B-844 | chore | triaged | orchestration-split-2 |  | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
+| B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 
 ## Items
 
@@ -2312,3 +2314,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): From a phone screenshot (2026-11-25, staging, dark theme). Invite links card: the details column squeezes to one word per line ('Used / 1 / of / 10 / times …') and 'Expires Dec' runs under the Copy and Share buttons. Pending invitations card: the email is cut to 'sam.invited@e…' and the meta wraps over five lines beside Resend and Revoke. Fix: at narrow widths put the actions on their own row under the details (or in a menu), let the email wrap or show it in full. The 'Couldn't load this link' error and greyed Copy/Share on the same card are B-830 (staging seed without INVITE_LINK_KEY), not this item.
+
+### B-844 · chore · Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git
+
+- status: triaged
+- prd: orchestration-split-2
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic on wave 1 (2026-11-25, tip 3b427316; go, no blocker). 1) scripts/loops/recover.test.mjs:232-235 and tidy-cli.test.mjs:124-127 copy scripts/project by join(HERE, '..', 'project'), unseen by the boundary lint: slice 3 removes both (now in its acceptance criteria). 2) scripts/project/test-db.sh:46-64 duplicates stack-lib.sh:9-32 (test_db_name, write_test_env, the port and project defaults): a name drift leaks databases (new.sh writes the core's name, rm.sh drops the project's), a port drift breaks a worktree's tests; add a one-line parity assertion until slice 2 or 3 removes the core copy. 3) apps/web/test/browserLease.test.ts:79-84 runs the real hooks.lease in web:unit, which CI runs: once Risa is external, a clone without the tool fails five of six tests; at the move, skip when the command is absent or use a stub lease command. 4) apps/web/test/browserLease.ts:91: sh -c 'exec <cmd>' fails for a command with a leading env assignment or a compound command; say 'one simple command' in the config doc. 5) scripts/loops/doc.mjs:60-76 sectionOf: any fence marker toggles the fence state, the heading match takes the first heading at any level (the old skeptics.mjs matched only ##), closing #s aren't stripped; none bites today's docs. 6) scripts/project/test-db.sh:32: under set -euo pipefail, main=$(git … | awk …) exits with no message outside a git repository, and awk's $2 truncates a main-checkout path with a space (as lib.sh:10).
+
+### B-845 · bug · entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split-2): Seen 2026-11-25 on orchestration-split-2's wave 1 full run (https://github.com/caretook/caretook.com/actions/runs/45694997111, job components-2, tip 3b427316; the wave touches no app code but apps/web/test/browserLease.ts). The rejection: requireOpen (DatabaseServer.ts:64) < liveProvider apps/web/app/lib/providers/providers.sync.ts:247 < linkProvider :429 < apps/web/app/routes/app/groups/entry/useEntryMentions.ts:44, last test 'mentioning a provider already linked makes no second link (nothing more to upload)'. useEntryMentions starts linkProvider without awaiting or catching it, so it can run after teardown closes the client; the same shard logs many 'Couldn't save live notes [Error: Client has already been closed]'. Either the hook should catch (a real unhandled rejection in the app when the database closes mid-link, e.g. at sign-out) or the test should wait for the link to settle. The verdict was 'file' with a partial list (no failed test file in the report), so ci blame returns 5 (unknown) and the job isn't rerun.
