@@ -992,6 +992,14 @@ describe("passes", () => {
     ["gave all meds", MORNING],
     ["meds given", MORNING],
     ["gave her meds", MORNING],
+    // "Pass" is the code's word, "med time" the screen's (B-695): both still mean the slot.
+    ["gave evening pass", EVENING],
+    ["gave evening passes", EVENING],
+    ["gave evening med time", EVENING],
+    ["evening med time given", EVENING],
+    ["gave the pass", MORNING],
+    ["gave med time", MORNING],
+    ["gave the med times", MORNING],
   ])("%s", (line, passId) => {
     const r = top(line, withPasses);
     expect(r.kind).toBe("dose");
@@ -1040,6 +1048,8 @@ describe("passes", () => {
     expect(top("gave evening meds with applesauce", withPasses).kind).toBe("note");
     expect(top("evening", withPasses).kind).toBe("note");
     expect(top("gave meds", { passes: [] }).kind).toBe("note");
+    // "Time" is a med time only right after "med": alone it's another word.
+    expect(top("gave evening time", withPasses).kind).toBe("note");
   });
 
   test.each([

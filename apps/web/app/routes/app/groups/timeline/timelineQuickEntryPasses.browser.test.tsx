@@ -77,7 +77,7 @@ const undoLabel = () =>
 const undoButton = () =>
   document.querySelector<HTMLButtonElement>("[data-quick-entry] [data-pass-undo-button]");
 const dueChips = () => [...document.querySelectorAll<HTMLButtonElement>('[data-quick-row="due"] button')];
-const PASS_DUE = "Suggestions, a pass is due";
+const PASS_DUE = "Suggestions, a med time is due";
 const suggestButton = () => page.getByRole("button", { name: /^Suggestions/ });
 /** The empty box's Suggestions button, named for a due pass. */
 const passDueButton = () => page.getByRole("button", { name: PASS_DUE, exact: true });

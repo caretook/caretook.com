@@ -23,6 +23,20 @@ describe("the connector tools", () => {
     expect(JSON.stringify(described)).not.toMatch(/task/i);
   });
 
+  it("say med time, the app's word, while give_pass keeps its name and passId (B-695)", () => {
+    const give = described.find((t) => t.name === "give_pass");
+    expect(give?.title).toBe("Give a med time");
+    expect(give?.description).toMatch(/^Mark a med time /);
+    const input = give?.inputSchema as { properties: Record<string, { description?: string }> };
+    expect(input.properties.passId?.description).toBe("The med time's id.");
+    expect(described.find((t) => t.name === "todays_doses")?.description).toContain("each med time");
+    // What a member's AI reads: no "pass" for a med time ("pass nextCursor back" is the verb).
+    const prose = JSON.stringify(described)
+      .replaceAll(/\b\w+_\w+\b|\bpassId\b/g, "")
+      .replaceAll(/\bpass nextCursor\b/gi, "");
+    expect(prose).not.toMatch(/\bpass(es|'s)?\b|medication round/i);
+  });
+
   it("describe their inputs as JSON Schema objects", () => {
     for (const tool of described) {
       expect(tool.inputSchema).toMatchObject({ type: "object" });
