@@ -59,7 +59,7 @@ What runs `pnpm prd` (`scripts/loops/`).
 
 ## The check runner
 
-- **Scripts:** `prompts/<kind>.sh` (golden: `CARETOOK_UPDATE_GOLDEN=1`), `slice-brief.mjs`, `ci-*.mjs`; lint at 6 GB; `pnpm prd tier`.
+- **Scripts:** `prompts/<kind>.sh` (two goldens: `vitest -u`), `slice-brief.mjs`, `ci-*.mjs`; lint at 6 GB; `pnpm prd tier`.
 - **The log:** `.check-times.log`, 16 fields; the last four: failed step, failed files, flaky ones, the limit that stopped it.
 - **The limits** (`check-budget.mjs`): the budget, max(2× median, slowest + 20%) of the last 20 passes of that mode and branch kind, load-scaled ×1–3, between 10 minutes and the limit (20, full 40, `CARETOOK_CHECK_LIMIT`; it alone under 5 runs). Silence: `CARETOOK_CHECK_SILENCE` (480 s), scaled alike. A clock gap over `CARETOOK_CHECK_SLEEP_GAP` (30 s) is sleep. A breach: TERM to the tree, KILL after 10 s, step and last 30 lines, exit 124.
 - **The rerun:** a failed test step reruns only its failed files, once, one at a time; a pass there passes the check and logs them as flaky. No rerun after an unhandled error, or past `CARETOOK_CHECK_RERUN_MAX` (20) failed files.

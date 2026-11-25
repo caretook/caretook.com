@@ -55,6 +55,7 @@ const PROJECT_UNIT = [
   "env",
   "lists",
   "test-job",
+  "tiers",
   "verdict",
   "zones",
 ].map((name) => `{loops,ci,project}/${name}.test.mjs`);
