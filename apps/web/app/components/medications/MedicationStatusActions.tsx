@@ -115,7 +115,7 @@ export function MedicationStatusActions({
   ];
 
   const stopDay = (
-    <Field label="Stopped on" kind="input">
+    <Field label="Stopped on" kind="input" required>
       {(control) => (
         <input
           {...control}
@@ -215,8 +215,9 @@ export function MedicationStatusActions({
             value={reason}
             onChange={setReason}
             error={reasonError}
+            required
           />
-          <Field label="Note (optional)" kind="textarea">
+          <Field label="Note" kind="textarea">
             {(control) => (
               <textarea
                 {...control}

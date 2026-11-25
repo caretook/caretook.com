@@ -36,7 +36,7 @@ export function ProvidersPickerField({
   pickerId: string;
   name: string;
   newName: string;
-  /** "Managed by (optional)". */
+  /** "Managed by". */
   legend: string;
   /** The chips' list name: "Providers who manage it". */
   chipsLabel: string;

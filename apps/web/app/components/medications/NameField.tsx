@@ -45,7 +45,7 @@ export function NameField({
   );
 
   return (
-    <Field label="Name" error={error} warning={warning} kind="input">
+    <Field label="Name" error={error} warning={warning} kind="input" required>
       {(control) => (
         <div data-medication-name-field="">
           <ComboBox

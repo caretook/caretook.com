@@ -52,7 +52,7 @@ export function MarkDoseDialog({
         onClose();
       }}
     >
-      <Field label="Note (optional)" kind="textarea">
+      <Field label="Note" kind="textarea">
         {(control) => (
           <textarea
             {...control}

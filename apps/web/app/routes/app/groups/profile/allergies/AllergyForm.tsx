@@ -17,8 +17,8 @@ const SEVERITY_OPTIONS = ALLERGY_SEVERITIES.map((value) => ({
 }));
 
 /**
- * Add an allergy, or edit one: what they're allergic to, what it does
- * (optional) and how bad it is. Both text fields suggest once you type (the
+ * Add an allergy, or edit one: what they're allergic to (required), what
+ * it does and how bad it is. Both text fields suggest once you type (the
  * group's own first, then common ones; nothing on focus or for an empty
  * field); any other text is kept as typed. A save calls `onDone`; a refusal shows on its
  * field and takes focus there. The write is local, so it works offline.
@@ -73,9 +73,10 @@ export function AllergyForm({
         placeholder="e.g. Penicillin"
         suggest={(typed) => substanceSuggestions(typed, groupAllergies)}
         error={substanceError}
+        required
       />
       <SuggestField
-        label="Reaction (optional)"
+        label="Reaction"
         name={ALLERGY_FIELD.reaction}
         initial={allergy?.reaction ?? ""}
         maxLength={ALLERGY_LIMITS.reaction}
@@ -109,6 +110,7 @@ function SuggestField({
   placeholder,
   suggest,
   error,
+  required,
 }: {
   label: string;
   name: string;
@@ -117,12 +119,13 @@ function SuggestField({
   placeholder: string;
   suggest: (typed: string) => string[];
   error?: string;
+  required?: boolean;
 }) {
   const [text, setText] = useState(initial);
   const options = suggest(text).map((id) => ({ id, label: id }));
 
   return (
-    <Field label={label} error={error} kind="input">
+    <Field label={label} error={error} kind="input" required={required}>
       {(control) => (
         <div data-allergy-field={name}>
           <ComboBox

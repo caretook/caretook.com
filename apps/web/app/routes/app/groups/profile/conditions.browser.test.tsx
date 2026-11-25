@@ -5,6 +5,7 @@ import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { at, condition, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import { conditionSuggestions } from "~/lib/profiles/conditionSuggestions";
 import { JUNE, openProfile, PROFILE_URL } from "./profileWorld";
 
@@ -219,6 +220,30 @@ describe("adding", () => {
     await expect.poll(() => field("sinceYear")?.getAttribute("aria-invalid")).toBe("true");
     await expect.element(page.getByText("Enter the year too")).toBeInTheDocument();
     expect(await device.query(ROWS_SQL)).toEqual([]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add form marks the name, and the year only while a month is chosen; no label says optional", async () => {
+    await open("owner", { url: `${PROFILE_URL}/conditions/new` });
+    await found(FORM);
+    expect(requiredLabels(FORM())).toEqual(["Condition"]);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => nameInput()?.getAttribute("aria-required")).toBe("true");
+    await expect.poll(() => field("sinceYear")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.selectOptions(await found(() => field("sinceMonth") as HTMLSelectElement), "June");
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Condition", "Since: year"]);
+    await expect.poll(() => field("sinceYear")?.getAttribute("aria-required")).toBe("true");
+
+    await userEvent.selectOptions(field("sinceMonth") as HTMLSelectElement, "No month");
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Condition"]);
+  });
+
+  test("editing one with a month starts with the year marked", async () => {
+    await open("owner", { url: `${PROFILE_URL}/conditions/${PNEUMONIA.id}/edit`, fixtures: recorded });
+    await found(FORM);
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Condition", "Since: year"]);
   });
 });
 
