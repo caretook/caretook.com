@@ -17,7 +17,7 @@ export const SUGGEST_ROOM: Record<QuickEntrySize, string> = { md: "pr-11", lg: "
 /**
  * The Sparkles button inside the empty box's border, at its right edge
  * (top-aligned, so it stays put as the box grows). It opens the suggestions
- * popover; a dot, and its name ("Suggestions, a pass is due"), say a due
+ * popover; a dot, and its name ("Suggestions, a med time is due"), say a due
  * pass is offered. The box shows it only while it's empty and some row has
  * something.
  */
@@ -28,7 +28,7 @@ export function QuickEntrySuggestButton({
   const due = !!rows.onGivePass && !!rows.duePasses?.length;
   return (
     <Popover
-      label={due ? "Suggestions, a pass is due" : "Suggestions"}
+      label={due ? "Suggestions, a med time is due" : "Suggestions"}
       dialogLabel="Suggestions"
       placement="bottom end"
       variant="ghost"

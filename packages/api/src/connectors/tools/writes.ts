@@ -234,7 +234,7 @@ const medicationNames = (ctx: ToolContext, medicationId: string) => async () => 
 export const logDose = defineTool({
   name: "log_dose",
   title: "Log a medication dose",
-  description: `Record one dose of a current medication as ${DOSE_STATUSES.join(", ")}, with an optional amount ("1 tablet") and note. Use a medication's id from the medication list. A dose near a scheduled time counts for that slot: repeating the same status, amount and note adds nothing, while a different amount or note records a separate dose. To mark a whole medication round given, use give_pass instead. Ask the member before calling.`,
+  description: `Record one dose of a current medication as ${DOSE_STATUSES.join(", ")}, with an optional amount ("1 tablet") and note. Use a medication's id from the medication list. A dose near a scheduled time counts for that slot: repeating the same status, amount and note adds nothing, while a different amount or note records a separate dose. To mark a whole med time given, use give_pass instead. Ask the member before calling.`,
   scope: "readWrite",
   input: z.object({
     ...shapeOf(logDoseActionZSchema),
@@ -252,13 +252,13 @@ export const logDose = defineTool({
 
 export const givePass = defineTool({
   name: "give_pass",
-  title: "Give a medication round",
+  title: "Give a med time",
   description:
-    "Mark a medication round (a pass, such as Morning or Evening) given: one dose for each medication in it that nothing has answered yet that day, as the app's Given all does. Doses already logged are left alone. Use a pass's id from today's doses. Ask the member before calling.",
+    "Mark a med time (a named time of day for medications, such as Morning or Evening) given: one dose for each medication in it that nothing has answered yet that day, as the app's Given all does. Doses already logged are left alone. Use a med time's id from today's doses. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(givePassActionZSchema),
-    passId: givePassActionZSchema.shape.passId.describe("The pass's id."),
+    passId: givePassActionZSchema.shape.passId.describe("The med time's id."),
     occurredAt: when,
   }),
   annotations: WRITE_ANNOTATIONS,

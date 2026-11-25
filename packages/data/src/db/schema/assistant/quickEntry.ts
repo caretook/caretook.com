@@ -375,6 +375,7 @@ const GENERIC_MEDS_WORDS = [
   "everything",
   "round",
   "pass",
+  "passes",
 ];
 const GENERIC_MEDS = new Set([
   ...GENERIC_MEDS_WORDS,
@@ -386,6 +387,10 @@ const GENERIC_MEDS = new Set([
   "dose",
   "doses",
 ]);
+
+/** "Med time(s)", the visible name for a pass: "time" after one of these words. */
+const MED_TIME_LEADS = new Set(["med", "meds", "medication", "medications"]);
+const MED_TIME_WORDS = new Set(["time", "times"]);
 
 /** Words for trouble that a "no" can open a phrase about, beside the symptom words: "no problems when…". */
 const TROUBLE_WORDS = new Set([
@@ -1462,7 +1467,12 @@ const passReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     .filter((m): m is { pass: QuickEntryPass; used: number[] } => !!m)
     .sort((a, b) => b.used.length - a.used.length)[0];
   const others = rest.filter((i) => !named?.used.includes(i) && !FILLER.has(s.tokens[i]!.w));
-  if (!others.every((i) => GENERIC_MEDS.has(s.tokens[i]!.w))) return [];
+  // "Med time" is the screen's word for a pass: "time" counts only right after "med" ("gave evening med time").
+  const medTime = (i: number) =>
+    MED_TIME_WORDS.has(s.tokens[i]!.w) &&
+    MED_TIME_LEADS.has(s.tokens[i - 1]?.w ?? "") &&
+    others.includes(i - 1);
+  if (!others.every((i) => GENERIC_MEDS.has(s.tokens[i]!.w) || medTime(i))) return [];
   const generic = others.length > 0;
   if (!named && !generic) return [];
   if (!inherited && !forced && !(named && generic)) return [];
