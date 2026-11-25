@@ -298,6 +298,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-822 | chore | triaged | orchestration-split |  | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
 | B-823 | chore | triaged | orchestration-split |  | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
 | B-824 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
+| B-825 | chore | triaged | orchestration-split |  | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
+| B-826 | chore | triaged | orchestration-split |  | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
+| B-827 | chore | triaged | orchestration-split |  | No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files |
 
 ## Items
 
@@ -2107,3 +2110,30 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): [ci-key 5f15601fb275] Flaked (passed on its rerun); found by prd/orchestration-split.
+
+### B-825 · chore · doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two
+
+- status: triaged
+- prd: orchestration-split
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. scripts/project/doc-budget.mjs:102.
+
+### B-826 · chore · run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell
+
+- status: triaged
+- prd: orchestration-split
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. lib.sh:70-75; today's values are harmless.
+
+### B-827 · chore · No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files
+
+- status: triaged
+- prd: orchestration-split
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. From slices 3 and 9's hand-offs; also the stale comment at scripts/browser-checks/sync-matrix.mjs:11 naming the old sync-matrix test path. Needs a slice before the move.
