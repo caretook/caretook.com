@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 7 slices 59–61 all merged (opus each); full CI green on 87fcc4c8 (run 45512758445); sync --force (pr refused unsynced) → 4d9587b2; PR #172 open; second full CI running; Codex out of credits (exit 4), land --no-review. Then green → sync, PR, land `--no-review` if Codex is out of credits. Slice worktrees 59–61 stay until green. Follow-ups filed: B-787 (SW install all-or-nothing, fixes-bug), B-788 (offline / and /sign-in fallback page, fixes-ui). For the docs at landing: app-shell.md service worker bullet takes slice 59's text (precache lists every assets/ JS/CSS/woff2 and the async SQLite WASM; `keep` route for other /assets/; phones evict the HTTP cache). Hand test: installed PWA, airplane mode, cold start. Held: B-684, B-695 (sweeps); B-693, B-697 (toasts B-669); B-694 (user live); B-325 (Capacitor).
+**Next step (hand-over):** wave 7 landed 2026-11-24 19:11 as dev 914bafb through PR #172, `--no-review` (Codex out of credits); full CI green (run 45512758445), then a flake after the sync (run 45514026572, timelineScroll, filed B-790, not ours); to-test/2026-11-24-1911-fixes-ui.md. Slices 59–61 (opus) merged, worktrees removed. Docs folded (app-shell.md service worker bullet, trimmed under budget). Follow-ups: B-787 (SW install all-or-nothing, fixes-bug), B-788 (offline / and /sign-in fallback, fixes-ui). **Next session: wave 8.** `pnpm backlog ingest`/`list`; write slices for the triaged items not held (B-788 at least). Held, with why: B-684 and B-695 (app-wide sweeps, a wave each: may be next if nothing else waits); B-693, B-697 (toast system B-669); B-694 (user approves each form live); B-325 (Capacitor). Split any item likely to touch more than 12 files (plans/fixes-rules.md).
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,11 +19,8 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State             | Merge    |
-| ----- | ----- | ----------------- | -------- |
-| 59    | B-777 | merged (d24db96d) | 8367a100 |
-| 60    | B-783 | merged (e295087d) | 20b588eb |
-| 61    | B-784 | merged (731378ec) | 1224a291 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
