@@ -180,7 +180,7 @@ describe("required fields (B-684)", () => {
       </>,
     );
     const starts = document.querySelector('[data-field="starts"]')!;
-    const label = starts.querySelector("label")!;
+    const label = starts.querySelector(".fieldset-legend")!;
     expect(label.textContent).toBe("Starts*");
     expect(markIn(label)?.getAttribute("aria-hidden")).toBe("true");
     const segments = [...starts.querySelectorAll('[role="spinbutton"]')];
