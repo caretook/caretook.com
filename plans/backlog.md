@@ -337,6 +337,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-804 | feature | landed | fixes-ui | prd/fixes-ui | Need a banner (or permanent toast) while in offline mode. |
 | B-805 | question | triaged | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
 | B-806 | change | landed | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
+| B-807 | bug | triaged | fixes-bug |  | CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev |
 
 ## Items
 
@@ -2542,3 +2543,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: c6fa22eb
 
 - 2026-11-24 (prd/fixes-ui): Orchestrator triage 2026-11-25: look and flow (fixes-ui). Starting the app offline shows a blank page while it loads (root HydrateFallback returns null; the /app layout waits on the local database). A branded loading screen there: the blank cold start B-325 names, without its native safe-area half. Wave 12 slice 75, beside B-804 (offline banner).
+
+### B-807 · bug · CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-25 (prd/planner-3): [ci-key 8f5760aaa54d] Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45553217886.
