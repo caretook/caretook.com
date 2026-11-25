@@ -150,6 +150,10 @@ streams:
       - >-
         SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by
         FROM symptom_type WHERE group_id IN my_groups
+      # Which todos a note or event links (planner-3): entry ↔ todo links (hard deletes).
+      - >-
+        SELECT id, group_id, entry_id, todo_id, created_at, updated_at, created_by, updated_by
+        FROM timeline_entry_todo WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only (WRITER_ROLES in

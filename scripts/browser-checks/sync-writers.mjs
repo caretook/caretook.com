@@ -16,7 +16,7 @@
 // `ctx` the run's context (`writerContext`), with `ids` holding each table's
 // row written so far. It returns the writer's result plus the row's `id`.
 // sync-matrix.test.mjs fails an uploadable table with no entry.
-import { conditionManagerId, entryProviderId, medicationConditionId } from "./sync-matrix.mjs";
+import { conditionManagerId, entryProviderId, entryTodoId, medicationConditionId } from "./sync-matrix.mjs";
 
 /** A table written by its own writer: `writer` names it for the report. */
 const own = (writer, run, id) => ({ writer, run, ...(id && { id }) });
@@ -167,6 +167,12 @@ export const SYNC_WRITERS = {
     ]);
     return row ? { ok: true, id: row.id } : { ok: false, error: "no symptom_type written" };
   }),
+  // The matrix note links the matrix todo (both written above).
+  timeline_entry_todo: own(
+    "entryTodos.linkTodo",
+    (m, db, ctx) => m.entryTodos.linkTodo(db, ctx.ids.timeline_entry, ctx.ids.todo),
+    (ids) => entryTodoId(ids.timeline_entry, ids.todo),
+  ),
 };
 
 /** What every writer's `ctx` starts from. */
@@ -215,6 +221,7 @@ export const matrixIds = (ids) => ({
   conditionManager: ids.condition_manager,
   series: ids.appointment_series,
   symptomType: ids.symptom_type,
+  entryTodo: ids.timeline_entry_todo,
 });
 
 /** What `cleanupSql` doesn't remove: the note's own live document (materializeLiveEntry writes it). */
