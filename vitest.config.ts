@@ -55,6 +55,7 @@ const PROJECT_UNIT = [
   "browser-job",
   "env",
   "lists",
+  "release-jobs",
   "test-job",
   "tiers",
   "verdict",
