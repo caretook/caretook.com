@@ -157,7 +157,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-338 | feature | triaged | account-security |  | Account settings: change name, email and password (today the page is read-only; password only via reset) |
 | B-339 | question | triaged | account-security |  | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
 | B-340 | change | triaged | account-security |  | A member in two groups can connect a given assistant to only one (one grant per user and client) |
-| B-342 | bug | triaged | fixes-bug |  | The Postgres pool has no error listener: a dropped idle connection crashes the function; 10 clients with a 2 s wait time out under a burst of uploads |
+| B-342 | bug | triaged | fixes-ui |  | The Postgres pool has no error listener: a dropped idle connection crashes the function; 10 clients with a 2 s wait time out under a burst of uploads |
 | B-343 | bug | triaged | hosting |  | The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting |
 | B-344 | bug | triaged | hosting |  | The migrator can silently skip a migration whose journal timestamp is older than the last applied one; nothing guards it |
 | B-345 | bug | triaged | hosting |  | No lock_timeout, statement_timeout or idle_in_transaction_session_timeout anywhere: a migration queued behind a PowerSync snapshot blocks every query on that table |
@@ -705,13 +705,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-342 · bug · The Postgres pool has no error listener: a dropped idle connection crashes the function; 10 clients with a 2 s wait time out under a burst of uploads
 
 - status: triaged
-- prd: fixes-bug
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/client.ts:22-27. Fix idea: pool.on('error', logError), attachDatabasePool from @vercel/functions (already a dependency), a longer queue wait. High.
 - 2026-11-25 (Robert Bo Davis): Moved from hosting to fixes-bug (backlog session, 2026-11-25): a small fix testers would hit as random errors on staging; wanted before the user's live alpha-tester call on 2026-11-26.
 - 2026-11-25 (Robert Bo Davis): Moved from hosting to fixes-bug (backlog session, 2026-11-25): a small fix testers would hit as random errors on staging; wanted before the user's live alpha-tester call on 2026-11-26.
+- 2026-11-25 (Robert Bo Davis): Pre-call run 2026-11-25 (the user's choice): one fixes-ui wave of only B-342, B-817, B-828; B-342 moved from fixes-bug for it. Must land and remove its worktree before orchestration-split wave 6 lands (about 2 to 2.5 h).
 
 ### B-343 · bug · The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting
 
@@ -2055,6 +2056,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (Robert Bo Davis): The user's call (2026-11-25): a light, slightly translucent bar matching the page in light mode; dark mode unchanged. Today's near-black light-mode surface is deliberate (--tab-bar-surface in apps/web/app/app.css). Idea, not scheduled (decide later): sit the bar about 0.75rem into the iPhone bottom safe area (calc(var(--tab-bar-inset) - 0.75rem), ~22px from the edge vs ~38px now, after B-763); other phones unchanged. Tradeoff: Apple asks controls to stay out of the home-indicator strip.
 - 2026-11-25 (Robert Bo Davis): Also (the user, 2026-11-25): the bar's glass isn't transparent enough in dark mode. Today --tab-bar-glass mixes the surface at 85% in both themes (app.css); lower it in dark (text keeps 4.5:1 over busy content).
 - 2026-11-25 (Robert Bo Davis): Wanted before the user's live alpha-tester call on 2026-11-26 (backlog session, 2026-11-25), with B-342 in fixes-bug. Starts only if the user opens a lane; fixes-ui stays on hold until then.
+- 2026-11-25 (Robert Bo Davis): Pre-call run 2026-11-25 (the user's choice): one fixes-ui wave of only B-342, B-817, B-828; B-342 moved from fixes-bug for it. Must land and remove its worktree before orchestration-split wave 6 lands (about 2 to 2.5 h).
 
 ### B-818 · bug · watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited')
 
@@ -2158,6 +2160,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (prd/orchestration-split): From the inbox: It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
 - 2026-11-25 (Robert Bo Davis): Triage: fixes-ui (flow feedback: show a pending state on navigation). Also worth having before alpha testers.
 - 2026-11-25 (Robert Bo Davis): Wanted before the user's live alpha-tester call on 2026-11-26 (backlog session, 2026-11-25), with B-342 in fixes-bug. Starts only if the user opens a lane; fixes-ui stays on hold until then.
+- 2026-11-25 (Robert Bo Davis): Pre-call run 2026-11-25 (the user's choice): one fixes-ui wave of only B-342, B-817, B-828; B-342 moved from fixes-bug for it. Must land and remove its worktree before orchestration-split wave 6 lands (about 2 to 2.5 h).
 
 ### B-829 · question · Research: compare Care Book to Caring Village
 
