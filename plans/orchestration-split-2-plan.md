@@ -13,7 +13,7 @@
 - **Tier:** slice 4 edits `vitest.config.ts` (its helper test joins `web:unit`), so the proposal is `full`, not the plan's `components`.
 - **B-818** (the watchdog test fails where the shell has `CARETOOK_USAGE_WATCH=off`, this week's rule 2): every slice check hits it; slices rerun with `env -u CARETOOK_USAGE_WATCH`. Not the wave's.
 - **The Fable skeptic (rule 3), on tip 3b427316: go, no blocker** ("each of the three slices does what the plan says, I found no correctness bug that must be fixed before landing, and nothing chosen here has to be undone at the move"). Its six follow-ups are B-844 (triaged, this topic; a later slice or the move). Its one condition is rule 4: check nothing else is open at the landing, since an unsynced worktree has no `doc` case in its own `prd.sh`.
-- **CI:** the `full` run on the merged tip is out (requested 2026-11-25; proposed `full` for `docker-compose.shared-test.yml`, a file no rule covers).
+- **CI:** the first `full` run (3b427316, run 45694997111) came back `file`: job components-2 passed all 996 tests but Vitest caught one unhandled rejection from `entryMentions.browser.test.tsx` (app code the wave doesn't touch; filed as B-845, fixes-tooling). `ci blame` gives 5 (a partial list), so no slice gets it. `pnpm prd sync`: nothing to merge. A second `full` run on c74cca94 is out (2026-11-25); if it fails the same way, ask split-ops rather than run a third.
 - **For slice 3:** `stack-lib.sh` still has its own `write_test_env` and `test_db_name`, now also in the project's `test-db.sh`. **For the last landing's docs:** the machinery doc still says Node callers use `lease.mjs`.
 
 **This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
