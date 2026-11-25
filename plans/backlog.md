@@ -210,7 +210,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
-| B-543 | question | in-progress | orchestration-split | prd/orchestration-split | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
+| B-543 | question | in-progress | orchestration-split | prd/orchestration-split-2 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-545 | chore | triaged | fixes-tooling |  | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
 | B-548 | feature | triaged | tags |  | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
@@ -292,7 +292,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-815 | change | triaged | risa-next |  | Orchestrator summary for backlog handoff should include the ability to pass on directives from the… |
 | B-816 | question | triaged | risa-next |  | Should the orchestrator PRDQ be slice-based instead of PRD-based? |
 | B-817 | bug | landed | fixes-ui | prd/fixes-ui | Mobile bottom nav renders dark in light mode |
-| B-818 | bug | triaged | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
+| B-818 | bug | landed | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
 | B-819 | change | triaged | fixes-ui |  | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
 | B-820 | feature | triaged | risa-next |  | Risa: cross-repo topics: a Risa topic can change a configured subproject's code (Caretook), each side passing its own repo's checks |
 | B-821 | change | landed | orchestration-split | prd/orchestration-split | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
@@ -318,6 +318,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
 | B-842 | chore | triaged | orchestration-split-2 |  | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
 | B-843 | bug | triaged | fixes-ui |  | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
+| B-844 | chore | triaged | orchestration-split-2 |  | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
+| B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
+| B-846 | chore | triaged | orchestration-split-2 |  | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
 
 ## Items
 
@@ -1247,7 +1250,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - status: in-progress
 - prd: orchestration-split
-- owner: prd/orchestration-split
+- owner: prd/orchestration-split-2
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): User 2026-11-22: tooling is robust enough to manage work across all projects on this machine; keep handrolling vs adopt a prebuilt option. Size: ~23k lines in scripts/loops, scripts/backlog, .githooks (~11k tests), 105 files tied to caretook. The top four registry rows (test-gates, agent-autonomy 1-3) are all orchestration. Decide before planning: freeze, extract, or replace.
@@ -2073,12 +2076,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-818 · bug · watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited')
 
-- status: triaged
+- status: landed
 - prd: fixes-tooling
 - owner:
-- commit:
+- commit: 2c40ee7b
 
 - 2026-11-25 (prd/orchestration-split): From orchestration-split slice 1 (2026-11-25): agent shells inherit CARETOOK_USAGE_WATCH=off from the orchestrator session, so the slice check failed twice on this test until the variable was unset. The test should clear the variable (or pass its own env).
+- 2026-11-25 (prd/orchestration-split-2): Seen 2026-11-25 on orchestration-split-2's slice checks (slice 4, and the base e512f067): the split week starts every slice worktree with CARETOOK_USAGE_WATCH=off, so every slice check's tooling step fails on this one test until it's fixed or the week ends.
 
 ### B-819 · change · Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped)
 
@@ -2311,3 +2315,33 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): From a phone screenshot (2026-11-25, staging, dark theme). Invite links card: the details column squeezes to one word per line ('Used / 1 / of / 10 / times …') and 'Expires Dec' runs under the Copy and Share buttons. Pending invitations card: the email is cut to 'sam.invited@e…' and the meta wraps over five lines beside Resend and Revoke. Fix: at narrow widths put the actions on their own row under the details (or in a menu), let the email wrap or show it in full. The 'Couldn't load this link' error and greyed Copy/Share on the same card are B-830 (staging seed without INVITE_LINK_KEY), not this item.
+
+### B-844 · chore · Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git
+
+- status: triaged
+- prd: orchestration-split-2
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic on wave 1 (2026-11-25, tip 3b427316; go, no blocker). 1) scripts/loops/recover.test.mjs:232-235 and tidy-cli.test.mjs:124-127 copy scripts/project by join(HERE, '..', 'project'), unseen by the boundary lint: slice 3 removes both (now in its acceptance criteria). 2) scripts/project/test-db.sh:46-64 duplicates stack-lib.sh:9-32 (test_db_name, write_test_env, the port and project defaults): a name drift leaks databases (new.sh writes the core's name, rm.sh drops the project's), a port drift breaks a worktree's tests; add a one-line parity assertion until slice 2 or 3 removes the core copy. 3) apps/web/test/browserLease.test.ts:79-84 runs the real hooks.lease in web:unit, which CI runs: once Risa is external, a clone without the tool fails five of six tests; at the move, skip when the command is absent or use a stub lease command. 4) apps/web/test/browserLease.ts:91: sh -c 'exec <cmd>' fails for a command with a leading env assignment or a compound command; say 'one simple command' in the config doc. 5) scripts/loops/doc.mjs:60-76 sectionOf: any fence marker toggles the fence state, the heading match takes the first heading at any level (the old skeptics.mjs matched only ##), closing #s aren't stripped; none bites today's docs. 6) scripts/project/test-db.sh:32: under set -euo pipefail, main=$(git … | awk …) exits with no message outside a git repository, and awk's $2 truncates a main-checkout path with a space (as lib.sh:10).
+- 2026-11-25 (prd/orchestration-split-2): Folds into orchestration-split-2 slice 9 (wave 4) with B-838 and B-842, on the user's word (relayed by split-ops 2026-11-25); point 2 (test DB name and port parity) goes to slice 2 if it fits its files.
+- 2026-11-25 (prd/orchestration-split-2): Point 2 (test DB name and port parity) done by orchestration-split-2 slice 2 (merge 5b690d58): the core keeps no copy; they come from the test-db hook. The other points stay for slice 9.
+
+### B-845 · bug · entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split-2): Seen 2026-11-25 on orchestration-split-2's wave 1 full run (https://github.com/caretook/caretook.com/actions/runs/45694997111, job components-2, tip 3b427316; the wave touches no app code but apps/web/test/browserLease.ts). The rejection: requireOpen (DatabaseServer.ts:64) < liveProvider apps/web/app/lib/providers/providers.sync.ts:247 < linkProvider :429 < apps/web/app/routes/app/groups/entry/useEntryMentions.ts:44, last test 'mentioning a provider already linked makes no second link (nothing more to upload)'. useEntryMentions starts linkProvider without awaiting or catching it, so it can run after teardown closes the client; the same shard logs many 'Couldn't save live notes [Error: Client has already been closed]'. Either the hook should catch (a real unhandled rejection in the app when the database closes mid-link, e.g. at sign-out) or the test should wait for the link to settle. The verdict was 'file' with a partial list (no failed test file in the report), so ci blame returns 5 (unknown) and the job isn't rerun.
+
+### B-846 · chore · Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move
+
+- status: triaged
+- prd: orchestration-split-2
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic on wave 2 (go at 00929e32, 2026-11-25). 1) scripts/project/stack-facts.sh:187-191: stack_facts derives project= from .env.loop's SLOT, not .env's CARETOOK_STACK (which teardown uses); a SLOT outside 1-19 prints no project. 2) scripts/project/stack.sh:52 (base_of): --env-only keeps an existing .env.loop BASE_BRANCH over the --base given, where the old write_stackless_env and write_stack_env always wrote the given one; harmless for today's callers. 3) Slice 3 needs from the hook contract: a 'stop, keep data' operation (down.sh:75), a stopped-since fact (stack_stopped_secs still calls Docker), and recover.sh's compose-up-plus-migrate, which is not stackUp (that also seeds). 4) docs/agents/loop.md:1 opens with a headless list (it continues the generic Loop rules): a one-line pointer to pnpm prd doc loop would help a direct reader. 5) After the move to Risa, the checkout the tool lives in (lib.sh stack_hook, loops_lib_dir) is no longer the project: stack_hook needs the project root. 6) cd … && pwd in a $(…) prints twice when CDPATH matches (lib.sh loops_lib_dir; also session.sh, rotate.sh). Point 3 is for slice 3 (wave 3); the rest for slice 9 or the move runbook.
+- 2026-11-25 (prd/orchestration-split-2): On the user's word (relayed by split-ops 2026-11-25): point 3 (the hook contract's gaps) goes to orchestration-split-2 slice 3 (wave 3), the rest to slice 9 (wave 4).
