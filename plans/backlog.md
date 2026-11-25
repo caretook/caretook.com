@@ -1046,6 +1046,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): From the inbox: We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos.
 - 2026-11-21 (Robert Bo Davis): Triage: marketing topic (on hold). A copy and layout pass for the new features plus a design refresh; no screenshots or videos, so it does not wait on B-40.
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): before launch, the marketing language should cover connecting your own Claude or ChatGPT (the connectors / MCP connect guide under Settings → Devices and Group settings → Assistants).
+- 2026-11-25 (Robert Bo Davis): From the user (backlog session, 2026-11-25): the content pass follows plans/marketing-prd.md, Messaging update (2026-11-25): the 'Care, taken.' lockup in the hero; 'Free for families' with the essentials free, always, and early families grandfathered; a founder story on About once the user gives the facts; claims discipline; stays caretook.com.
 
 ### B-429 · change · Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user
 
