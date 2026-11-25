@@ -11,6 +11,7 @@ import { getByCss } from "../../../../../../test/locators";
 import { TEST_GROUP } from "../../../../../../test/fixtures";
 import * as settingsLayout from "../layout/route";
 import * as members from "./route";
+import { labelled } from "../../../../../../test/required";
 
 // The Members page's invite controls (invites.mjs's screen steps 5, 7, 8 and
 // 9, on the test device): the Invite by email sheet (the roles offered, the
@@ -80,7 +81,7 @@ describe("the Invite by email sheet", () => {
     await open();
     await userEvent.click(inviteButton());
     await expect.element(page.getByRole("button", { name: "Send invitation" })).toBeVisible();
-    await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
+    await expect.element(page.getByLabelText(labelled("Email"))).toHaveValue("");
     const roles = [...sheet()!.querySelectorAll<HTMLOptionElement>('select[name="role"] option')];
     expect(roles.map((o) => o.value)).toEqual([
       "owner",
@@ -93,7 +94,7 @@ describe("the Invite by email sheet", () => {
     await expect
       .poll(() => sheet()?.querySelector<HTMLSelectElement>('select[name="role"]')?.value)
       .toBe("caretaker");
-    await expect.element(page.getByLabelText(ATTESTATION_TEXT)).not.toBeChecked();
+    await expect.element(page.getByLabelText(labelled(ATTESTATION_TEXT))).not.toBeChecked();
   });
 
   test("an admin can't offer the owner role", async () => {
@@ -140,9 +141,9 @@ describe("the Invite by email sheet", () => {
       api: calls.record({ "invite.createEmail": () => ({ email: "avery.invited@example.com" }) }),
     });
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "  avery.invited@example.com ");
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "  avery.invited@example.com ");
     await userEvent.selectOptions(page.getByLabelText("Role"), "viewer");
-    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(ATTESTATION_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
     await expect
       .element(page.getByRole("status").getByText("Invitation sent to avery.invited@example.com."))
@@ -161,14 +162,12 @@ describe("the Invite by email sheet", () => {
   test("a refusal from the server is shown in the sheet, which stays open", async () => {
     await open({ api: { "invite.createEmail": () => refusal("careGroupInviteService:alreadyInvited") } });
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
-    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
+    await userEvent.click(page.getByLabelText(labelled(ATTESTATION_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
     await expect.element(page.getByRole("alert")).toBeVisible();
     expect(sheet()).not.toBeNull();
-    await expect
-      .element(page.getByLabelText("Email", { exact: true }))
-      .toHaveValue("avery.invited@example.com");
+    await expect.element(page.getByLabelText(labelled("Email"))).toHaveValue("avery.invited@example.com");
   });
 
   test("offline, the button is disabled and says it needs a connection", async () => {
@@ -327,7 +326,7 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
   test("Invite by email: a changed form asks, Discard closes, and the next open starts fresh and asks again", async () => {
     await open();
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
     await userEvent.selectOptions(page.getByLabelText("Role"), "viewer");
     await close();
     await expect.poll(asked).toBe(true);
@@ -335,9 +334,9 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
     await expect.poll(sheet).toBeNull();
 
     await userEvent.click(inviteButton());
-    await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
+    await expect.element(page.getByLabelText(labelled("Email"))).toHaveValue("");
     await expect.poll(() => roleValue(sheet())).toBe("caretaker");
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
     await close();
     await expect.poll(asked).toBe(true);
   });
@@ -353,8 +352,8 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
   test("Invite by email: a successful send closes without asking", async () => {
     await open({ api: { "invite.createEmail": () => ({ email: "avery.invited@example.com" }) } });
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
-    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
+    await userEvent.click(page.getByLabelText(labelled(ATTESTATION_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
     await expect.poll(sheet).toBeNull();
     expect(asked()).toBe(false);

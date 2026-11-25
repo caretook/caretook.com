@@ -265,6 +265,7 @@ function LegalBox({ error }: { error?: string }) {
       className="mt-3 text-sm"
       name="legal"
       required
+      nativeRequired
       error={error}
       data-legal-box=""
       label={<LegalAgreement />}
@@ -390,7 +391,7 @@ function ConsentForm({
       ) : (
         <p className="text-muted text-sm">The person who invited you confirmed: “{ATTESTATION_TEXT}”</p>
       )}
-      <CheckField className="text-sm" name="consent" required label={CONSENT_TEXT} />
+      <CheckField className="text-sm" name="consent" required nativeRequired label={CONSENT_TEXT} />
       {(legalNeeded || legalIssue) && <LegalBox error={legalIssue} />}
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <Button type="submit" variant="primary" block busy={busy}>

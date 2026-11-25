@@ -63,19 +63,25 @@ export default function NewGroup({ actionData }: Route.ComponentProps) {
         </p>
         {/* The action runs on the server, so the recipient's zone is this browser's, filled in on submit. */}
         <input type="hidden" name="timeZone" defaultValue="" />
-        <Field kind="input" label="Group name" error={issueFor(actionData, "groupName")}>
+        <Field kind="input" label="Group name" required error={issueFor(actionData, "groupName")}>
           {(control) => <input {...control} name="groupName" maxLength={120} required />}
         </Field>
-        <Field kind="input" label="Care recipient's name" error={issueFor(actionData, "recipientName")}>
+        <Field
+          kind="input"
+          label="Care recipient's name"
+          required
+          error={issueFor(actionData, "recipientName")}
+        >
           {(control) => <input {...control} name="recipientName" maxLength={120} required />}
         </Field>
-        <Field kind="input" label="Owner's email" error={issueFor(actionData, "ownerEmail")}>
+        <Field kind="input" label="Owner's email" required error={issueFor(actionData, "ownerEmail")}>
           {(control) => <input {...control} name="ownerEmail" type="email" autoComplete="off" required />}
         </Field>
         <CheckField
           label={ATTESTATION_TEXT}
           name="attested"
           required
+          nativeRequired
           error={issueFor(actionData, "attested")}
           className="py-2 text-sm"
         />

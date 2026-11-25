@@ -6,6 +6,7 @@ import { fixClock } from "../../../../test/found";
 import { openMarketing } from "../marketingWorld";
 import { waitlistSource } from "../sections/forms";
 import { homeContent } from "./content";
+import { labelled } from "../../../../test/required";
 
 // Home's waitlist band on one device (moved down from marketing.spec.mjs):
 // what a submit sends (the fields, the page and its UTM parameters, the
@@ -49,7 +50,7 @@ describe("the waitlist band", () => {
     fixClock();
     const calls = apiCalls();
     const { screen } = await openMarketing("/", { api: calls.record({ [JOIN]: () => ({ ok: true }) }) });
-    await userEvent.fill(screen.getByLabelText(copy.email.label), "robin+wl@example.com");
+    await userEvent.fill(screen.getByLabelText(labelled(copy.email.label)), "robin+wl@example.com");
     await userEvent.fill(screen.getByLabelText(copy.firstName.label, { exact: false }), "Robin");
     await userEvent.selectOptions(screen.getByLabelText(copy.caringFor.label, { exact: false }), "parent");
     await userEvent.fill(screen.getByLabelText(copy.heardFrom.label, { exact: false }), "A friend");
@@ -76,7 +77,7 @@ describe("the waitlist band", () => {
   test("a filled honeypot and a fast submit go to the server as they are, for it to judge, and are thanked", async () => {
     const calls = apiCalls();
     const { screen } = await openMarketing("/", { api: calls.record({ [JOIN]: () => ({ ok: true }) }) });
-    await userEvent.fill(screen.getByLabelText(copy.email.label), "bot+wl@example.com");
+    await userEvent.fill(screen.getByLabelText(labelled(copy.email.label)), "bot+wl@example.com");
     setField(HONEYPOT_FIELD, "https://spam.example");
     await userEvent.click(screen.getByRole("button", { name: copy.submit }));
     await expect.element(screen.getByRole("status").getByText(copy.thanks.heading)).toBeVisible();
@@ -90,7 +91,7 @@ describe("the waitlist band", () => {
     const { screen } = await openMarketing("/", {
       api: { [JOIN]: () => invalid([{ path: ["email"], message }]) },
     });
-    const email = screen.getByLabelText(copy.email.label);
+    const email = screen.getByLabelText(labelled(copy.email.label));
     await userEvent.fill(email, "not-an-email");
     await userEvent.click(screen.getByRole("button", { name: copy.submit }));
 
