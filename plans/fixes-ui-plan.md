@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Next step (hand-over):** wave 9 landed 2026-11-24 20:56 as dev 4adabea through PR #176, `--no-review` (Codex out of credits); full CI green (run 45527846212). The first full run braked on the bundle budget (app 408633 B over 406187): slice 66's fix loads React Aria's toast region on the first toast (app 404444 B, ceiling unchanged). Slices 66, 67, 68 (all opus) merged, worktrees removed; report filed; to-test/2026-11-24-2056-fixes-ui.md. Docs folded: components.md (toast rules), ui-kit.md (toast API), app-shell.md (ToastRegion), both trimmed under budget. Not folded (medications.md is at 10237 of 10240 B): the Schedule tab's logs offer Undo as a toast (`UndoToastProvider`, `offerUndoToast`) and its clientAction returns the dose id: fold it with a trim next landing. Lesson: slice 66 ran 22 files; a shared ui primitive plus its migrations is two slices. **Next session: wave 10 = slice 69 (B-793, roundtrip timing), written; start it at once (staging is blocked on it), land it alone, then message the backlog session (caretook-com-e5) that it's in dev so it recuts the candidate.** Still held: B-684, B-694, B-325.
+**Next step (hand-over):** wave 10 (slice 69, B-793, opus) merged as 4bc3c614; CI components green (run 45533689412, on 0695a55e; af9e8aa3 after it is docs only); roundtrip passes locally (548 ms of 2000). Cause: per-call `Intl.DateTimeFormat` in `dayKeyIn` and `formatTime` slowed the timeline's renders after sign-in, so the first add's local write started late on a slow CPU; now one formatter per zone. Worktree removed. Sync skipped (dev shares no file). PR #177 open, Codex review waiting. Docs folded: medications.md (Schedule Undo toast), components.md (per-zone formatters), both at 10237 B. **Then:** land (`--tier components`), report, message the backlog session (caretook-com-e5) that B-793 is in dev so it recuts the staging candidate, status-trim, rotate. Still held: B-684, B-694, B-325.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,9 +19,9 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                      | Merge    |
-| ----- | ----- | ---------------------------------------------------------- | -------- |
-| 69    | B-793 | merged; CI components requested; worktree kept until green | 4bc3c614 |
+| Slice | Item  | State                                       | Merge    |
+| ----- | ----- | ------------------------------------------- | -------- |
+| 69    | B-793 | merged; CI green; worktree removed; PR #177 | 4bc3c614 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
