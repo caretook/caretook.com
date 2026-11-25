@@ -10,7 +10,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Now (wave 8, 2026-11-24 evening):** full CI green on 7a32231d (run 45518539733); synced dev as 555029e8 (quarantine.txt conflict: took dev's); full run on the synced tip next, then PR and land. wave 7 landed as dev 914bafb (PR #172, `--no-review`, Codex out of credits; history file has the rest). Wave 8 written: slices 62 (B-788 offline fallback, opus), 63 and 64 (B-695 Med times on Medications / timeline-Today-search, sonnet: text only), 65 (B-695 quick entry, connectors, docs, opus). Dev sync at the boundary: no merge needed (took dev's CI lists). Items claimed, hot files set. **Wave 9 (backlog session, on the user's word, 2026-11-24):** B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; see its backlog note), then B-693 and B-697 on top of it. Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane. Follow-up filed: B-792 (todays_doses has no med time id, fixes-bug). Docs to fold at landing: app-shell.md (offline page fallback, precache order), medications.md over budget (trim).
+**Next step (hand-over):** wave 8 landed 2026-11-24 19:55 as dev 608754a through PR #174, `--no-review` (Codex out of credits); full CI green (run 45520283463 on the synced tip; the sync's quarantine.txt conflict took dev's). Slices 62 (opus), 63, 64 (sonnet), 65 (opus) merged, worktrees removed; report filed; to-test/2026-11-24-1955-fixes-ui.md. Docs folded (app-shell.md offline page; medications.md Med times, both under budget). Follow-up: B-792 (todays_doses has no med time id, fixes-bug). Lesson: slice 63 ran 22 files; split app-wide text sweeps finer. **Next session: wave 9** (backlog session, on the user's word): B-669 (shared toast system) moved into fixes-ui: its own slice first (react-aria-components toast inside `ui/` only, no new dependency; read its backlog note), then B-693 and B-697 on top of it (blocked by it). Still held: B-684 (asterisks sweep, a wave of its own), B-694 (user approves each form live), B-325 (Capacitor). Lane cap 1 overnight: fixes-ui is the only lane.
 
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
@@ -19,12 +19,8 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                      | Merge    |
-| ----- | ----- | -------------------------- | -------- |
-| 62    | B-788 | merged                     | e00d3ae5 |
-| 63    | B-695 | merged (22 files, over 12) | 93a86cc8 |
-| 64    | B-695 | merged (tests only)        | 5e79829a |
-| 65    | B-695 | merged                     | 336425e9 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 

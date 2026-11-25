@@ -2,6 +2,15 @@
 
 Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `pnpm prd status-trim fixes-ui`, the newest trim first.
 
+## Trimmed 2026-11-25
+
+| Slice | Item  | State                      | Merge    |
+| ----- | ----- | -------------------------- | -------- |
+| 65    | B-695 | merged                     | 336425e9 |
+| 64    | B-695 | merged (tests only)        | 5e79829a |
+| 63    | B-695 | merged (22 files, over 12) | 93a86cc8 |
+| 62    | B-788 | merged                     | e00d3ae5 |
+
 ## Trimmed 2026-11-24
 
 **Wave 6** (session started 2026-11-24 after wave 5's landing): slices 49–58 written; base prd/fixes-ui 06a7d588 (dev f7d3ec8b plus docs). Asks a199–a201 decided by skeptics (B-698 Log opens the Dose sheet, B-700 Given all as Schedule, B-680 builds from its notes). Chains 54→55, 53+55→56, 57→58. Models: opus for all but 58 (sonnet). Still held, with why: B-684 and B-695 (app-wide sweeps, a wave each, after wave 6); B-693, B-697 (toast system B-669, onboarding-2 held); B-694 (user approves each form live); B-325 (Capacitor). Consent text in connectorRules.ts says "appointments": slice 49 left it (a consent change is the user's). At landing fold into connectors.md: `upcoming` is "Upcoming events and todos" (items `event`/`todo`), prompt `prepare_for_event` with arg `event`, `add_event` titled "Add an event"; no aliases. components.md Motion: two durations, `--motion-fast` 120 ms and `--motion` 240 ms (`--motion-slow` gone); menus/popovers on `--motion`; sheets only fade; Collapse and Chevron on `--motion` (slice 50). Hand tests: Today card vs day summary side by side, a toast by eye. live-notes.md: full screen is a native dialog the editor frame moves into (same Tiptap/Yjs instance); it closes on Escape itself since ProseMirror swallows Escape, except while the mention popup is open (slice 51; that case untested). app-shell.md: failed chunks reload once to the target (`staleChunk.ts`, entry.client.tsx, web only); bug not reproduced (slice 52). Hand test: stale tab across a staging deploy. medications.md: passes order by time, then name; no manual order (sort_order kept, unused) (slice 53). medications.md: DoseSlot.extra / AsNeededToday.extra mark a double dose; ExtraDoseWarning on Today rows, pass cards, as-needed past max and the medication page (slice 54). ui-kit.md/components.md: `ui/SearchFilterBar` ("Type to search", `?q=`, FilterMenu + chips) on medications, providers, Planner (below the tabs, per tab, text not carried) and Todos; substring match via `lib/core/textFilter.ts`, Past filters ids into the paged SQL (slice 57). Hand test: phone, bar under the Planner tabs. medications.md: `MedicationCard` (stretched link with state, controls z-10) for list, Today and as-needed rows; list Log opens the Dose sheet (closing it lands on the timeline, not the list: follow-up candidate) (slice 55).
