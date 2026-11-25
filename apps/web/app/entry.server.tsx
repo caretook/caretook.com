@@ -16,9 +16,9 @@ import { ServerRouter } from "react-router";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
-import { waitUntil } from "@vercel/functions";
+import { attachDatabasePool, waitUntil } from "@vercel/functions";
 
-import { setCalendarBackgroundRunner } from "./.server/data";
+import { setCalendarBackgroundRunner, setPoolHook } from "./.server/data";
 import { deployEnvRefusal } from "./.server/deployEnv";
 import { setBackgroundRunner } from "./.server/notifications";
 import { applySecurityHeaders, contentSecurityPolicy, envOptions, newNonce } from "./.server/securityHeaders";
@@ -32,6 +32,9 @@ export const streamTimeout = 5_000;
 if (process.env.VERCEL) setBackgroundRunner((work) => waitUntil(work));
 // The same for a Google Calendar push right after a save (appointments-2).
 if (process.env.VERCEL) setCalendarBackgroundRunner((work) => waitUntil(work));
+// And the database pool (B-342): `attachDatabasePool` keeps a suspended
+// function alive long enough to close the pool's idle clients cleanly.
+if (process.env.VERCEL) setPoolHook((pool) => attachDatabasePool(pool));
 
 export default function handleRequest(
   request: Request,
