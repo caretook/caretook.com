@@ -1,6 +1,8 @@
 // stack.sh and serve.sh, Caretook's dev stack behind the config's stack hooks,
 // against a throwaway repo that holds only scripts/project (no core file), with
-// fake docker, pnpm and lsof on PATH: nothing here touches real containers.
+// fake docker, pnpm, lsof, open and sleep on PATH: nothing here touches real
+// containers. A count in $FAKE_STATE/<name> fails that many calls: pg-slow (the
+// Postgres probe), migrate-fail (pnpm), boot (docker info).
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
@@ -20,20 +22,25 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
 
+// countdown NAME → fails (exit 0) while $FAKE_STATE/NAME holds a count above 0, taking one off.
+const COUNTDOWN = `countdown() { local n; n=$(cat "$FAKE_STATE/$1" 2>/dev/null || echo 0); ((n > 0)) || return 1; echo $((n - 1)) > "$FAKE_STATE/$1"; }`;
 const FAKE_DOCKER = `#!/usr/bin/env bash
 echo "docker $*" >> "$FAKE_LOG"
+${COUNTDOWN}
 case $1 in
+  exec) countdown pg-slow && exit 1 ;;
   ps) if [[ "$*" == *status=running* ]]; then [[ -z \${FAKE_RUNNING_IDS:-} ]] || echo "$FAKE_RUNNING_IDS"
       elif [[ "$*" == *-aq* && "$*" != *-test ]]; then [[ -z \${FAKE_STACK_IDS:-} ]] || echo "$FAKE_STACK_IDS"; fi ;;
   inspect) [[ -z \${FAKE_INSPECT:-} ]] || echo "$FAKE_INSPECT" ;;
-  info) exit "\${FAKE_INFO:-0}" ;;
+  info) countdown boot && exit 1; exit "\${FAKE_INFO:-0}" ;;
   system) [[ -z \${FAKE_DF:-} ]] || echo "$FAKE_DF" ;;
   images) [[ -z \${FAKE_IMAGES:-} ]] || echo "$FAKE_IMAGES" ;;
 esac
 exit 0
 `;
 
-let root, main, loops, log, env;
+let root, main, loops, log, env, state;
+const put = (file, text) => writeFileSync(join(state, file), text);
 const run = (script, args = [], opts = {}) =>
   spawnSync("bash", [join(main, "scripts/project", script), ...args], {
     cwd: opts.cwd ?? main,
@@ -65,10 +72,25 @@ beforeAll(() => {
   const bin = join(root, "bin");
   mkdirSync(bin);
   writeFileSync(join(bin, "docker"), FAKE_DOCKER);
-  writeFileSync(join(bin, "pnpm"), '#!/usr/bin/env bash\necho "pnpm $*" >> "$FAKE_LOG"\n');
+  writeFileSync(
+    join(bin, "pnpm"),
+    `#!/usr/bin/env bash\necho "pnpm $*" >> "$FAKE_LOG"\n${COUNTDOWN}\ncountdown migrate-fail && exit 1\nexit 0\n`,
+  );
   writeFileSync(join(bin, "lsof"), '#!/usr/bin/env bash\n[[ "$*" == *":${FAKE_LISTEN:-none}"* ]]\n');
-  for (const f of ["docker", "pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
-  env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, FAKE_LOG: log, CARETOOK_SHARED_TEST_PORT: "" };
+  for (const f of ["open", "sleep"])
+    writeFileSync(join(bin, f), `#!/usr/bin/env bash\necho "${f} $*" >> "$FAKE_LOG"\n`);
+  for (const f of ["docker", "pnpm", "lsof", "open", "sleep"]) chmodSync(join(bin, f), 0o755);
+  state = join(root, "state");
+  mkdirSync(state);
+  env = {
+    ...process.env,
+    PATH: `${bin}:${process.env.PATH}`,
+    FAKE_LOG: log,
+    FAKE_STATE: state,
+    CARETOOK_SHARED_TEST_PORT: "",
+    CARETOOK_RECOVER_PG_SECS: "",
+    CARETOOK_DOCKER_WAIT_SECS: "",
+  };
   execFileSync("git", ["init", "-q", "-b", "dev", main]);
   for (const [k, v] of [
     ["user.email", "test@example.com"],
@@ -221,6 +243,31 @@ describe("stop, start, stopped_secs, engine and leftovers", () => {
     expect(run("stack.sh", ["start", join(loops, "bare")]).status).not.toBe(0);
   });
 
+  it("waits for the stack's Postgres before migrating, and retries a failed migrate once", () => {
+    put("pg-slow", "2");
+    put("migrate-fail", "1");
+    const r = run("stack.sh", ["start", dir()]);
+    expect(r.status).toBe(0);
+    expect(r.stderr).toMatch(/migrate failed; retrying once/);
+    expect(calls().match(/^docker exec caretook-loop6-postgres-1 pg_isready/gm)).toHaveLength(3);
+    expect(calls().match(/^pnpm -s datastore:migrate$/gm)).toHaveLength(2);
+    expect(calls().indexOf("pnpm -s datastore:migrate")).toBeGreaterThan(calls().lastIndexOf("pg_isready"));
+  });
+
+  it("fails a start whose migrate fails twice, or whose Postgres doesn't answer in time", () => {
+    put("migrate-fail", "2");
+    let r = run("stack.sh", ["start", dir()]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/migrate failed again/);
+    rmSync(log, { force: true });
+    put("pg-slow", "1");
+    r = run("stack.sh", ["start", dir()], { env: { CARETOOK_RECOVER_PG_SECS: "0" } });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/caretook-loop6-postgres-1 didn't accept connections within 0s/);
+    expect(calls()).not.toMatch(/datastore:migrate/);
+    rmSync(join(dir(), ".recover-migrate.log"), { force: true });
+  });
+
   it("says how long ago a stopped stack stopped, and nothing while one runs", () => {
     const ready = (e) => facts(run("stack.sh", ["ready", dir()], { env: e }).stdout);
     const stopped = ready({ FAKE_STACK_IDS: "a", FAKE_INSPECT: "false 2020-01-02T03:04:05.123456789Z" });
@@ -233,6 +280,20 @@ describe("stop, start, stopped_secs, engine and leftovers", () => {
   it("reads and starts the engine", () => {
     expect(facts(ok(["engine"]))).toEqual({ running: "yes", name: "Docker" });
     expect(facts(run("stack.sh", ["engine"], { env: { FAKE_INFO: "1" } }).stdout).running).toBe("no");
+    put("boot", "3"); // docker info fails three times: before open, then twice
+    expect(facts(ok(["engine", "start"])).running).toBe("yes");
+    const after = calls().split("\n").slice(calls().split("\n").indexOf("open -a Docker"));
+    expect(after.filter((l) => l === "sleep 2")).toHaveLength(2);
+    expect(after.at(-2)).toBe("docker info");
+  });
+
+  it("gives up starting an engine that doesn't answer in time", () => {
+    put("boot", "5");
+    const r = run("stack.sh", ["engine", "start"], { env: { CARETOOK_DOCKER_WAIT_SECS: "0" } });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/Docker didn't answer within 0s/);
+    expect(calls()).toMatch(/^open -a Docker$/m);
+    put("boot", "0");
   });
 
   it("lists the dangling data no stack uses, keeping the projects in use", () => {
