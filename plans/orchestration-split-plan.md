@@ -8,7 +8,7 @@
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split` |
 | ----- | ---- | ------- | ------------------------------------ |
-| 1     | 1    | started |                                      |
+| 1     | 1    | merged  | e90f5f02                             |
 | 2     | 2    | planned |                                      |
 | 6     | 2    | planned |                                      |
 | 3     | 3    | planned |                                      |
@@ -26,7 +26,16 @@
 
 **Wave 1** (tier `integration`, plus `pnpm test:tooling`):
 
-- 2026-11-25: slice 1 started: worktree `.loops/orchestration-split-1` on `slice/orchestration-split/1` (from 85c7d058), one background agent on **Fable** (the user's choice: its lint rules and config shape decide what every later slice must clear). The stall watch runs beside it. Next: review its hand-off, merge, the wave's CI run, sync, PR and Codex review, land, fold the docs, then ask about wave 2 and rotate.
+- 2026-11-25: slice 1 started: worktree `.loops/orchestration-split-1` on `slice/orchestration-split/1` (from 85c7d058), one background agent on **Fable** (the user's choice: its lint rules and config shape decide what every later slice must clear). The stall watch runs beside it.
+- 2026-11-25: slice 1 handed off (f85fa596, slice check green with `CARETOOK_USAGE_WATCH` unset: B-818 filed in `fixes-tooling` for the test that reads it) and merged as e90f5f02. Its worktree stays until the wave is green. The wave's CI run (`pnpm prd ci run integration --wait`) is out. Its agent is past its context limit: a fix goes to a fresh `--continue` agent. Next: the verdict, sync, PR and Codex review, land, fold the docs (below), then ask about wave 2 and rotate.
+
+**What slice 1 set, for later slices** (fold into machinery at the last landing):
+
+- The config: `risa.json`; the loader `scripts/loops/config.mjs` (`get`, `dump`, `check`; an unknown key is an error); bash `config_get KEY` in `lib.sh`, loaded once at source. `RISA_CONFIG` overrides the path (the throwaway-repo tests set it through `config-fixture.mjs`, until slice 4's sample project). A new optional key `boundary.appPaths` holds the app paths the lint refuses.
+- The manifest `scripts/loops/boundary.manifest`: `<path> core|project`, sorted; a new file under the folders needs its line.
+- The lint `scripts/loops/boundary.mjs`: rules `project-env`, `project-name`, `app-path`, `core-to-project`, `project-to-core`; the allowlist `boundary.allowlist` is `<path> <rule> <count> [# why]`, exact counts (1,900 findings today), shrunk with `--write`, never grown. Blind spots: paths built from pieces, bare names with no extension, paths inside a regex group.
+- Ownership beyond the PRD's lists (one manifest line each to change): the project's are `lint-heap.test.mjs`, `workspace-config.test.mjs`, `fixes-plans.test.mjs`, `check-body.test.mjs`, `check-failed.mjs` and the prompt golden; core for now are `stack-lib.sh`, `stack.test.mjs`, `browser.sh`, `browser.test.mjs`, `ci.test.mjs`, `release.mjs`.
+- Left for slice 2: `lib.sh`'s `exempt_re` doesn't name `risa.json` yet.
 
 ## Architectural decisions
 
