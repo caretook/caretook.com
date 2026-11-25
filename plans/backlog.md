@@ -2553,6 +2553,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (prd/planner-3): [ci-key 8f5760aaa54d] Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45553217886.
+- 2026-11-25 (Robert Bo Davis): Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45558728409.
 
 ### B-808 · bug · Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load
 
