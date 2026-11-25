@@ -4,20 +4,20 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 5) started 2026-11-24; B-245 and B-254 claimed.
+**Where it stands:** wave 1 (slices 1, 5) merged 2026-11-25; its full CI run is out. Base issue: dev's `fixes-ui` plan fails `scripts/loops/fixes-plans.test.mjs` (fails on our base too; not ours; told the backlog session).
 
 **Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
 
 **Models:** slice 1 opus, slice 5 opus.
 
-| Slice | Wave | State                                                  | Merge into `prd/planner-3` (slice commits) |
-| ----- | ---- | ------------------------------------------------------ | ------------------------------------------ |
-| 1     | 1    | working (worktree planner-3-1, slot 2)                 |                                            |
-| 2     | 2    | not started                                            |                                            |
-| 3     | 3    | not started                                            |                                            |
-| 4     | 3    | not started                                            |                                            |
-| 5     | 1    | handed off 03217f19, quick check green; merges after 1 |                                            |
-| 6     | 2    | not started                                            |                                            |
+| Slice | Wave | State       | Merge into `prd/planner-3` (slice commits) |
+| ----- | ---- | ----------- | ------------------------------------------ |
+| 1     | 1    | merged      | d2597d36 (73a443ab, 09d71a4c)              |
+| 2     | 2    | not started |                                            |
+| 3     | 3    | not started |                                            |
+| 4     | 3    | not started |                                            |
+| 5     | 1    | merged      | 52cba3db (052fe85c, 03217f19)              |
+| 6     | 2    | not started |                                            |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
