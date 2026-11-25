@@ -9,7 +9,7 @@ const ROLES = {
   prescriber: {
     name: FIELD.prescriberId,
     newName: FIELD.newPrescriber,
-    legend: "Prescriber (optional)",
+    legend: "Prescriber",
     chipsLabel: "Prescriber",
     noun: "prescriber",
     placeholder: "Search clinicians and practices",
@@ -19,7 +19,7 @@ const ROLES = {
   pharmacy: {
     name: FIELD.pharmacyId,
     newName: FIELD.newPharmacy,
-    legend: "Pharmacy (optional)",
+    legend: "Pharmacy",
     chipsLabel: "Pharmacy",
     noun: "pharmacy",
     placeholder: "Search pharmacies",

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderInRouter } from "../../../test/device";
+import { requiredLabels } from "../../../test/required";
 import { ScheduleFields } from "./ScheduleFields";
 
 /** The fields around a schedule the test can read, as a sheet holds one. */
@@ -44,5 +45,16 @@ describe("ScheduleFields", () => {
     expect(endSegment("dayPeriod").textContent).toBe("PM");
     expect(latest?.endsAt).toBe(noon);
     await expect.element(page.getByText("Must be after the start")).not.toBeInTheDocument();
+  });
+
+  test("the start is marked required; the end is not (B-801)", async () => {
+    const start = new Date(2026, 10, 18, 10).toISOString();
+    const end = new Date(2026, 10, 18, 11).toISOString();
+    await renderInRouter(
+      <div data-fields>
+        <Held initial={{ occurredAt: start, endsAt: end, allDay: false }} onSchedule={() => undefined} />
+      </div>,
+    );
+    expect(requiredLabels(document.querySelector("[data-fields]"))).toEqual(["Starts"]);
   });
 });

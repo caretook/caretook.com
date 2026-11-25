@@ -37,6 +37,7 @@ import {
   openAddMedication,
 } from "./medicationWorld";
 import { pickTime } from "../../../../../test/timeSelect";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import { currentHourTime } from "~/lib/core/timeOfDay";
 import { medicationNameSuggestions } from "~/lib/medications/medicationNames";
 import { medicationNamesQuery } from "~/lib/medications/medications.sync";
@@ -528,6 +529,38 @@ describe("the type", () => {
     await device.settle();
     expect(await typeOf(device, FOLIC.id)).toBe("supplement");
     expect(await changes(device, FOLIC.id)).toEqual([]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add sheet marks exactly the name, the type and the schedule, as needed or at set times, and no label says optional", async () => {
+    await open(LIST);
+    await openAddSheet();
+    await found(() => FORM());
+    const expected = ["Name", "Type", "Schedule"];
+    expect(requiredLabels(FORM())).toEqual(expected);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => field("name")?.getAttribute("aria-required")).toBe("true");
+    await expect.poll(() => field("strength")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.click(await found(() => scheduleType("scheduled")));
+    await waitUntil(() => !!FORM()?.querySelector("[data-schedule-times]"), "the times");
+    expect(requiredLabels(FORM())).toEqual(expected);
+    expect(saysOptional(FORM())).toBe(false);
+  });
+
+  test("Discontinue marks the reason and the day; Mark completed only the day", async () => {
+    await open(medicationUrl(LOSARTAN.id));
+    await pageAction(TITLE, "Discontinue…");
+    await waitUntil(() => !!OPEN_DIALOG()?.querySelector("[data-discontinue-form]"), "the dialog");
+    expect(requiredLabels(OPEN_DIALOG())).toEqual(["Why was it stopped?", "Stopped on"]);
+    expect(saysOptional(OPEN_DIALOG())).toBe(false);
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !OPEN_DIALOG(), "the dialog to close");
+
+    await pageAction(TITLE, "Mark completed");
+    await waitUntil(() => !!dialogButton("Mark completed"), "the dialog");
+    expect(requiredLabels(OPEN_DIALOG())).toEqual(["Stopped on"]);
   });
 });
 
