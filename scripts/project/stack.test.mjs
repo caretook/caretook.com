@@ -120,9 +120,10 @@ describe("up and down", () => {
   const dir = () => join(loops, "t-1");
 
   it("refuses a stack while the main checkout lacks its env files", () => {
-    const r = run("stack.sh", ["up", "--check"]);
+    const r = run("stack.sh", ["up", dir(), "--slot", "4", "--base", "prd/t"]);
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/missing .*packages\/data\/\.env/);
+    expect(existsSync(join(dir(), ".env"))).toBe(false);
   });
 
   it("writes the env files for a slot, then starts, reads and takes down the stack", () => {
@@ -130,15 +131,15 @@ describe("up and down", () => {
     mkdirSync(join(main, "apps/web"), { recursive: true });
     writeFileSync(join(main, "packages/data/.env"), 'DATABASE_URL="x"\nSEED_USER_PASSWORD="pw-fictional"\n');
     writeFileSync(join(main, "apps/web/.env"), 'BETTER_AUTH_URL="x"\nCRON_SECRET="s"\n');
-    ok(["up", "--check"]);
 
     expect(run("stack.sh", ["up", dir()]).stderr).toMatch(/needs --slot/);
-    expect(ok(["up", dir(), "--slot", "4", "--base", "prd/t", "--env-only"])).toMatch(/^slot=4$/m);
+    expect(ok(["up", dir(), "--slot", "4", "--base", "prd/t"])).toMatch(/^slot=4$/m);
     expect(read(dir(), ".env")).toMatch(/^CARETOOK_STACK=caretook-loop4$/m);
     expect(read(dir(), "apps/web/.env")).toMatch(/^WEB_PORT=6473$/m);
     expect(read(dir(), ".env.loop")).toMatch(/^BASE_BRANCH=prd\/t\nBASE=http:\/\/localhost:6473\n/m);
     expect(read(dir(), ".env.loop")).toMatch(/^SEED_USER_PASSWORD="pw-fictional"$/m);
-    expect(calls()).toBe("");
+    expect(calls()).toMatch(/pnpm datastore:start/);
+    rmSync(log, { force: true });
 
     // A stack it has: started again, its facts unchanged, the test env written.
     const up = run("stack.sh", ["up", dir()]);
@@ -156,11 +157,8 @@ describe("up and down", () => {
     expect(ready({}).stdout).toMatch(/^containers=0\/0\nready=no$/m);
     expect(ready({ FAKE_STACK_IDS: "a", FAKE_RUNNING_IDS: "a" }).status).toBe(0);
 
-    ok(["down", dir(), "--teardown-only"]);
-    expect(calls()).toMatch(/docker compose -p caretook-loop4 down --remove-orphans/);
-    expect(existsSync(join(dir(), ".env"))).toBe(true);
-
     const down = ok(["down", dir(), "--base", "dev"]);
+    expect(calls()).toMatch(/docker compose -p caretook-loop4 down --remove-orphans/);
     expect(facts(down).project).toBe("caretook-loop4");
     for (const f of [".env", "packages/data/.env", "apps/web/.env"])
       expect(existsSync(join(dir(), f)), f).toBe(false);
@@ -201,7 +199,7 @@ describe("serve.sh", () => {
 // the engine, and the dangling data no stack uses.
 describe("stop, start, stopped_secs, engine and leftovers", () => {
   const dir = () => join(loops, "t-1");
-  beforeAll(() => ok(["up", dir(), "--slot", "6", "--base", "prd/t", "--env-only"]));
+  beforeAll(() => ok(["up", dir(), "--slot", "6", "--base", "prd/t"]));
   afterAll(() => ok(["down", dir()]));
 
   it("stops a stack keeping its data, and does nothing without one", () => {

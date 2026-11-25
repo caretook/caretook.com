@@ -19,7 +19,8 @@
 #   test-db.sh list              the worktree databases on it, with their worker copies
 #   test-db.sh use [worktree]    point a worktree's integration tests at its
 #                                database here (packages/data/.env.test.local);
-#                                for worktrees made before the shared server
+#                                for worktrees made before the shared server;
+#                                database=, port= and summary= facts
 #
 # Env: CARETOOK_SHARED_TEST_PORT (5436), CARETOOK_SHARED_TEST_PROJECT
 # (caretook-shared-test). The integration globalSetup starts it and creates the
@@ -212,7 +213,9 @@ case $cmd in
     name=${1:-$(here_name)}
     [[ -n $name && -d $loops/$name ]] || die "use: give a .loops worktree name, or run it inside one"
     write_test_env "$loops/$name" "$name"
-    echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)"
+    echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)" >&2
+    printf '%s\n' "database=$(db_of "$name")" "port=$shared_test_port" \
+      "summary=$(db_of "$name") on the shared test Postgres (:$shared_test_port)"
     ;;
   *) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

@@ -1,22 +1,19 @@
 #!/usr/bin/env bash
 # Caretook's dev stack for a worktree (Postgres, PowerSync and its storage, and
 # the dev server's env): the config's stack hooks (hooks.stackUp, stackDown,
-# stackStatus, stackReady). The core's `pnpm prd stack` calls them; so do the
-# core's old stack functions (stack-lib.sh) until orchestration-split-2 slice 3.
+# stackStatus, stackReady, stackStop, stackStart, stackEngine, stackLeftovers).
+# The core calls them (pnpm prd stack, new, rm, gc, status, down, recover,
+# reclaim, tidy) and knows nothing of Docker beyond their facts.
 #
 #   stack.sh up DIR [--slot N] [--base B]
 #                  a worktree with no stack: write its env files for slot N (the
 #                  core leased it) and BASE; then the test env if it has none,
 #                  start Compose, migrate and seed. A stopped stack starts again.
 #                  A half-made new stack is taken down again before failing.
-#   stack.sh up DIR --slot N --base B --env-only    only write the env files
-#   stack.sh up --check      the main checkout has the env files a stack needs
 #   stack.sh down DIR [--base B]
 #                  stop the dev server, remove the Compose projects and their
 #                  data and the stack's env files (.env.loop keeps BASE_BRANCH,
-#                  else B); no stack: nothing
-#   stack.sh down DIR --teardown-only   only the server, projects and data
-#   stack.sh down DIR --base B --env-only   only write the stackless .env.loop
+#                  else B); no stack: write the stackless .env.loop, no facts
 #   stack.sh status DIR      its facts, from its env files (no Docker)
 #   stack.sh status --slot N [--probe]   slot N's facts; --probe adds in_use
 #   stack.sh ready DIR       its facts, containers=<running>/<all> and
@@ -51,19 +48,18 @@ here=$(dirname "$0")
 source "$here/stack-facts.sh"
 
 cmd=${1:-}; (($#)) && shift
-dir="" slot="" base="" only="" probe="" all="" rest=()
+dir="" slot="" base="" probe="" all="" rest=()
 while (($#)); do
   case $1 in
     --slot) slot=${2:?--slot N}; shift 2 ;;
     --base) base=${2:?--base B}; shift 2 ;;
-    --env-only | --teardown-only | --check) only=${1#--}; shift ;;
     --probe) probe=1; shift ;;
     --all) all=1; shift ;;
     --*) die "stack.sh $cmd: unknown option $1" ;;
     *) if [[ -z $dir ]]; then dir=$1; else rest+=("$1"); fi; shift ;;
   esac
 done
-usage() { sed -n '2,48p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
+usage() { sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
 need_dir() { [[ -n $dir && -d $dir ]] || die "stack.sh $cmd: no worktree at ${dir:-(none given)}"; }
 name=$(basename "${dir:-.}")
 # The base a rewritten .env.loop keeps: its own, else the one given.
@@ -71,43 +67,32 @@ base_of() { local b; b=$(env_get "$dir/.env.loop" BASE_BRANCH); echo "${b:-$base
 
 case $cmd in
   up)
-    if [[ $only == check ]]; then require_main_env; exit 0; fi
     need_dir
     if [[ -z $(stack_project "$dir") ]]; then
       [[ -n $slot ]] || die "stack.sh up: $name has no stack, so it needs --slot"
       require_main_env
       base=$(base_of)
-      if [[ $only != env-only ]]; then
-        # Undo a half-made stack: its containers and env files.
-        trap 'echo "stack up failed: taking it down again" >&2; stack_teardown "$dir" >&2 || true
-          rm -f "$dir/.env" "$dir/packages/data/.env" "$dir/apps/web/.env"
-          write_stackless_env "$dir" "$base"' ERR
-      fi
+      # Undo a half-made stack: its containers and env files.
+      trap 'echo "stack up failed: taking it down again" >&2; stack_teardown "$dir" >&2 || true
+        rm -f "$dir/.env" "$dir/packages/data/.env" "$dir/apps/web/.env"
+        write_stackless_env "$dir" "$base"' ERR
       write_stack_env "$dir" "$slot" "$base"
     fi
-    if [[ $only != env-only ]]; then
-      [[ -f $dir/packages/data/.env.test.local ]] || bash "$here/test-db.sh" use "$name" >&2
-      (cd "$dir" && use_node && pnpm datastore:start) >&2
-      trap - ERR
-    fi
+    [[ -f $dir/packages/data/.env.test.local ]] || bash "$here/test-db.sh" use "$name" >/dev/null
+    (cd "$dir" && use_node && pnpm datastore:start) >&2
+    trap - ERR
     stack_facts "$dir"
     ;;
   down)
     need_dir
-    if [[ $only == env-only ]]; then write_stackless_env "$dir" "$(base_of)"; exit 0; fi
     proj=$(stack_project "$dir")
     # No stack: leave it as a stackless worktree (its .env.loop), no facts.
-    if [[ -z $proj ]]; then
-      [[ $only == teardown-only ]] || write_stackless_env "$dir" "$(base_of)"
-      exit 0
-    fi
+    if [[ -z $proj ]]; then write_stackless_env "$dir" "$(base_of)"; exit 0; fi
     facts=$(stack_facts "$dir")
     stack_teardown "$dir" >&2
-    [[ $only == teardown-only ]] || {
-      b=$(base_of)
-      rm -f "$dir/.env" "$dir/packages/data/.env" "$dir/apps/web/.env" "$dir/.serve-mode" "$dir/.serve-built"
-      write_stackless_env "$dir" "$b"
-    }
+    b=$(base_of)
+    rm -f "$dir/.env" "$dir/packages/data/.env" "$dir/apps/web/.env" "$dir/.serve-mode" "$dir/.serve-built"
+    write_stackless_env "$dir" "$b"
     echo "$facts"
     ;;
   status)
@@ -149,7 +134,8 @@ case $cmd in
     proj=$(stack_project "$dir")
     [[ $proj == caretook-loop* ]] || die "stack.sh start: $name has no stack"
     facts=$(stack_facts "$dir")
-    (cd "$dir" && docker compose up -d --wait) </dev/null >&2 || die "compose up failed"
+    # Quiet, as recover prints: only its own lines go to stderr.
+    (cd "$dir" && docker compose up -d --wait) </dev/null >/dev/null 2>&1 || die "compose up failed"
     wait_for_pg "$dir" "$proj"
     if ! migrate "$dir"; then
       echo "migrate failed; retrying once" >&2
