@@ -18,6 +18,7 @@
     "checkAreas": "scripts/loops/check-areas.d",
     "brakeList": "scripts/ci/brake-list.txt",
     "quarantine": "scripts/ci/quarantine.txt",
+    "tierData": "scripts/ci/tiers.json",
     "tooling": [".githooks", "risa.json", "scripts/project"]
   },
   "roles": {
