@@ -133,7 +133,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | staging-ship |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
 | B-244 | chore | triaged | fixes-tooling |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
-| B-245 | plan | in-progress | planner-3 | prd/planner-3 | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
+| B-245 | plan | ready | planner-3 | prd/planner-3 | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | ready | planner-3 | prd/planner-3 | Quick entry: 'bins out every monday' makes a repeating todo |
@@ -522,10 +522,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-245 · plan · Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date
 
-- status: in-progress
+- status: ready
 - prd: planner-3
 - owner: prd/planner-3
-- commit:
+- commit: 3a384244
 
 - 2026-11-21 (Robert Bo Davis): From the backlog session, 2026-11-21, at the user's request: the future replacement for reminders (future-dated notes), which are to be removed from the Planner. Not triaged; no PRD yet.
 - 2026-11-21 (Robert Bo Davis): Follows planner-2 (B-248 remove reminders).
