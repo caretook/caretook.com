@@ -165,6 +165,23 @@ fieldset:disabled :is(.input, .select, .textarea) {
   }
 }
 
+/* The start-up screen (`brand/AppLoading`, B-806): invisible for its first
+   300 ms, so a quick start doesn't flicker. Plain CSS, since the server's
+   page shows it before any script runs. Under reduce motion it appears at
+   once at 300 ms (a 0 s step, nothing moves) and without its spinner. */
+[data-app-loading] {
+  animation: fade-in 0s linear 300ms both;
+  @media (prefers-reduced-motion: no-preference) {
+    animation-duration: var(--motion);
+    animation-timing-function: var(--motion-ease);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .loading {
+      display: none;
+    }
+  }
+}
+
 /* The toast region (`ui/Toast`): 1rem above the bottom edge, or above the
    tab bar while one shows (phones, group routes, no keyboard), and lifted
    over the on-screen keyboard where the browser overlays it
