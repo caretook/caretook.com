@@ -480,7 +480,7 @@ describe("the floating tab bar", () => {
     const style = getComputedStyle(bar());
     expect(style.backdropFilter).toMatch(/blur\(/);
     const surface = rgba(style.backgroundColor)[3];
-    expect(surface).toBeGreaterThan(0.7);
+    expect(surface).toBeGreaterThan(0.6);
     expect(surface).toBeLessThan(1);
     // The pill moves by transform, on --motion.
     const motion = getComputedStyle(indicator());
@@ -557,7 +557,7 @@ describe("the floating tab bar", () => {
   );
 
   test.each(["light", "dark"] as const)(
-    "in %s: the bar's surface stands off the page and from a card; resting icons clear 4.5:1 and the current one 3:1 on its solid pill",
+    "in %s: the bar's surface stands off the page and from a card in dark, matches the page in light; resting icons clear 4.5:1 and the current one 3:1 on its solid pill",
     async (theme) => {
       await open({ theme });
       await expect.element(page.getByText("Slept well")).toBeVisible();
@@ -576,11 +576,41 @@ describe("the floating tab bar", () => {
         over(rgba(getComputedStyle(current.querySelector("svg")!).color), surfaceOf(pill)),
         surfaceOf(pill),
       );
-      expect(onPage).toBeGreaterThanOrEqual(1.4);
-      expect(fromCard).toBeGreaterThan(1.2);
+      if (theme === "dark") {
+        expect(onPage).toBeGreaterThanOrEqual(1.4);
+        expect(fromCard).toBeGreaterThan(1.2);
+      } else {
+        // Light matches the page (B-817): a light bar, raised by its shadow.
+        expect(onPage).toBeLessThan(1.2);
+        expect(getComputedStyle(bar()).boxShadow).not.toBe("none");
+      }
       expect(icon(resting)).toBeGreaterThanOrEqual(4.5);
       expect(onPill).toBeGreaterThanOrEqual(3);
       expect(rgba(getComputedStyle(pill).backgroundColor)[3]).toBe(1);
     },
   );
+
+  // B-817: light mode's bar was near-black `neutral`; dark's glass was 85% surface.
+  const luminance = ([r, g, b]: readonly number[]) => (0.2126 * r! + 0.7152 * g! + 0.0722 * b!) / 255;
+
+  test("in light: the bar is light, not near-black, and its labels clear 4.5:1 on it", async () => {
+    await open({ theme: "light" });
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    expect(luminance(surfaceOf(bar()))).toBeGreaterThan(0.85);
+    expect(textContrast(bar())).toBeGreaterThanOrEqual(4.5);
+    for (const a of barLinks().filter((link) => !link.hasAttribute("aria-current"))) {
+      expect(textContrast(a.querySelector("svg")!)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test("in dark: the bar's glass is more translucent than before (alpha below 0.85 over the blur), its labels still 4.5:1", async () => {
+    await open({ theme: "dark" });
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const style = getComputedStyle(bar());
+    expect(style.backdropFilter).toMatch(/blur\(/);
+    const alpha = rgba(style.backgroundColor)[3];
+    expect(alpha).toBeLessThan(0.85);
+    expect(alpha).toBeGreaterThan(0.5);
+    expect(textContrast(bar())).toBeGreaterThanOrEqual(4.5);
+  });
 });

@@ -49,7 +49,7 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
  * rounded bar (`--tab-bar-bar`, 3rem) floating clear of the screen's edges,
  * `--tab-bar-bottom` up (just above the home indicator where there's a bottom
  * safe area, `app.css`), on a slightly translucent, blurred surface of its own
- * (`--tab-bar-glass`, over `--tab-bar-surface`: near-black `neutral` in light,
+ * (`--tab-bar-glass`, over `--tab-bar-surface`: light `base-100` in light,
  * `base-300` in dark; solid where `backdrop-filter` isn't supported), split
  * into one equal full-height section per section of the group, each an icon.
  * The current one sits on a `primary` pill (`data-tab-bar-indicator`) with the
