@@ -1521,7 +1521,8 @@ describe("the vocabulary", () => {
         // A repeating todo: "water the plants daily", "… every day".
         const r = top(`water the plants ${phrase}${phrase === "every" ? " day" : ""}`);
         expect(r.kind).toBe("todo");
-        expect(action(r)).toMatchObject({ title: "Water the plants", repeatRule: expect.any(String) });
+        expect(action(r)).toMatchObject({ title: "Water the plants" });
+        expect(action(r)).toHaveProperty("repeatRule", expect.stringMatching(/^FREQ=/));
         return;
       }
       if (role === "reportWord") {
