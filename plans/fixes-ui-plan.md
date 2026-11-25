@@ -21,7 +21,7 @@ Notes for every wave:
 
 | Slice | Item  | State                      | Merge    |
 | ----- | ----- | -------------------------- | -------- |
-| 62    | B-788 | agent spawned (opus)       |          |
+| 62    | B-788 | merged                     | e00d3ae5 |
 | 63    | B-695 | merged (22 files, over 12) | 93a86cc8 |
 | 64    | B-695 | agent spawned (sonnet)     |          |
 | 65    | B-695 | agent spawned (opus)       |          |
