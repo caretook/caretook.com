@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 5) merged 2026-11-25; its full CI run is out. Base issue: dev's `fixes-ui` plan fails `scripts/loops/fixes-plans.test.mjs` (fails on our base too; not ours; told the backlog session).
+**Where it stands:** wave 1 (slices 1, 5) merged; CI full 45553217886 on 69fb1847: only dev's B-807 (blamed, landable). Dev sync: up to date. PR #182 open; Codex review out. Browser: `--changed` needs the lean suite (migration, sync rules); per the user's no-suite-unasked rule, asking (skeptic first) whether to hold landing until wave 3 and run the suite once at the end (recommended) or run it now.
 
 **Landing mode:** run everything through (started run-through; land each green wave, ask only real questions via `pnpm prd ask`).
 
