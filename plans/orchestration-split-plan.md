@@ -6,21 +6,21 @@
 
 **Running** since 2026-11-25, opened by the user by hand (the registry row still carries `hold`, which keeps the dispatcher off it). **Landing mode: run everything through** (the user, 2026-11-25): land each green wave and clean up, asking only real questions. **Slices to start: every ready slice from here** (the user, 2026-11-25, after wave 1 landed): wave 2 (slices 2 and 6) next, then each later wave as its blockers land, without asking again. **Wave 2's slices run on opus** (the user's choice); later waves at the orchestrator's judgement, as below. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
 
-| Slice | Wave | State   | Merge into `prd/orchestration-split` |
-| ----- | ---- | ------- | ------------------------------------ |
-| 1     | 1    | merged  | e90f5f02                             |
-| 2     | 2    | started |                                      |
-| 6     | 2    | started |                                      |
-| 3     | 3    | planned |                                      |
-| 9     | 3    | planned |                                      |
-| 4     | 4    | planned |                                      |
-| 5     | 4    | planned |                                      |
-| 10    | 5    | planned |                                      |
-| 13    | 5    | planned |                                      |
-| 7     | 6    | planned |                                      |
-| 8     | 6    | planned |                                      |
-| 11    | 6    | planned |                                      |
-| 12    | 7    | planned |                                      |
+| Slice | Wave | State      | Merge into `prd/orchestration-split` |
+| ----- | ---- | ---------- | ------------------------------------ |
+| 1     | 1    | merged     | e90f5f02                             |
+| 2     | 2    | started    |                                      |
+| 6     | 2    | handed off |                                      |
+| 3     | 3    | planned    |                                      |
+| 9     | 3    | planned    |                                      |
+| 4     | 4    | planned    |                                      |
+| 5     | 4    | planned    |                                      |
+| 10    | 5    | planned    |                                      |
+| 13    | 5    | planned    |                                      |
+| 7     | 6    | planned    |                                      |
+| 8     | 6    | planned    |                                      |
+| 11    | 6    | planned    |                                      |
+| 12    | 7    | planned    |                                      |
 
 **Backlog:** B-543 closes with the move (the runbook's last step).
 
@@ -35,6 +35,12 @@
 - 2026-11-25: the backlog id prefix decision recorded (82234d46, from the backlog session on the user's word): slice 2 does `scripts/backlog/`'s sites; the other `B-` sites go to slices 3, 4, 8 and 13, which own those files.
 - 2026-11-25: dev sync was a skip (up to date). Slices 2 and 6 started: worktrees `.loops/orchestration-split-2` and `-6` (from 82234d46), one background **opus** agent each (the user's choice), told to unset `CARETOOK_USAGE_WATCH` for the slice check. The stall watch runs beside them.
 - 2026-11-25: **handing over to a Fable session** (split-ops' word: this one rotated onto Opus by mistake). Slices 2 and 6 were still working, with no hand-off yet; the stall watch was out. The fresh session: check ListAgents; if a slice's agent is gone, respawn it with `pnpm prd prompt slice orchestration-split <n> --continue` (the brief must keep the `CARETOOK_USAGE_WATCH` note), then start the watch again. Answered split-ops on B-820 (cross-repo topics): stage 1 doesn't block it, no plan change.
+- 2026-11-25: **slice 6 handed off** as 9b036a29 (slice check green; no stack). Not merged: slice 2 merges first. Its hand-off, for review:
+  - `scripts/project/` is tooling: `check-plan.mjs`'s `TOOLING`, `_global` default `scripts/project/  -`, AGENTS.md _Checks_.
+  - Vitest projects by owner: Caretook's `project:unit` (in `pnpm test`) and `project:tooling`; the core's `core:unit`, `tooling:unit`, `tooling:browser`. `scripts:unit` is gone. `test:project` is **two** projects (`project:unit` + `project:tooling`), not one, because Caretook's tooling tests are split between `pnpm test` and `test:tooling`: a deviation from the plan's wording, to accept or send back.
+  - Same sets: `pnpm test` 690 = 690, harness 1 = 1, `test:tooling` 95 then 96 (the one addition is the new lasting test `scripts/project/test-projects.test.mjs`; lists in the scratchpad `s6/`).
+  - **The allowlist grew** (the plan says it only shrinks): `boundary.mjs core-to-project` 1→2, `boundary.test.mjs core-to-project` +1, `check-plan.mjs` 8→9, `check-plan.test.mjs` 11→12 (with no reason), `test-projects.test.mjs project-to-core` +1. The agent asks for approval; judge before merging (each is a new reference made by `scripts/project/` holding files).
+  - Also edited `check-body.sh`, `tooling-tests.mjs`, `ci.yml`, `package.json`, four tests. For landing: fold `docs/agents/loop.md` _Tests_ (the project names); slice 10's `testProjects.tooling` = `tooling:unit`, `core:unit`, `project:unit`, `project:tooling`, harness `tooling:browser`.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
