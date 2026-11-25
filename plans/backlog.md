@@ -311,7 +311,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-834 | chore | landed | orchestration-split | prd/orchestration-split | Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack |
 | B-835 | chore | landed | orchestration-split | prd/orchestration-split | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
-| B-837 | change | inbox |  |  | Time limit gate for component tests to keep them from growing too long |
+| B-837 | change | triaged | fixes-tooling |  | Time limit gates for component tests and the local quick check |
 | B-838 | chore | triaged | orchestration-split-2 |  | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
@@ -321,6 +321,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-844 | chore | triaged | orchestration-split-2 |  | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
 | B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 | B-846 | chore | triaged | orchestration-split-2 |  | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
+| B-847 | chore | triaged | orchestration-split-2 |  | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
 
 ## Items
 
@@ -2252,14 +2253,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (plan/marketing-2): Split from B-417 when marketing-2 took its copy part (2026-11-25): the visual refresh B-417 also asked for, left for a later marketing topic.
 
-### B-837 · change · Time limit gate for component tests to keep them from growing too long
+### B-837 · change · Time limit gates for component tests and the local quick check
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-tooling
 - owner:
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): From the inbox: 5 minute goal, 6 minute hard cutoff.
+- 2026-11-25 (Robert Bo Davis): Widened 2026-11-25 (user): the local quick check now takes over 8 minutes on a low-load machine. Add a gate for it too: aim 5 minutes, warn past 5, fail past 6 (same as the component tests' 5-minute goal and 6-minute cutoff). Measure on a quiet machine, not under load (the load gate already holds slow runs back); report the slowest files on a breach so the fix is obvious. Related: B-772 (trims slow component tests, the likely first fix), B-781 (keeps check time apart from waits in --times/metrics), B-370 (guards the quick check always runs).
 
 ### B-838 · chore · Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers
 
@@ -2345,3 +2347,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic on wave 2 (go at 00929e32, 2026-11-25). 1) scripts/project/stack-facts.sh:187-191: stack_facts derives project= from .env.loop's SLOT, not .env's CARETOOK_STACK (which teardown uses); a SLOT outside 1-19 prints no project. 2) scripts/project/stack.sh:52 (base_of): --env-only keeps an existing .env.loop BASE_BRANCH over the --base given, where the old write_stackless_env and write_stack_env always wrote the given one; harmless for today's callers. 3) Slice 3 needs from the hook contract: a 'stop, keep data' operation (down.sh:75), a stopped-since fact (stack_stopped_secs still calls Docker), and recover.sh's compose-up-plus-migrate, which is not stackUp (that also seeds). 4) docs/agents/loop.md:1 opens with a headless list (it continues the generic Loop rules): a one-line pointer to pnpm prd doc loop would help a direct reader. 5) After the move to Risa, the checkout the tool lives in (lib.sh stack_hook, loops_lib_dir) is no longer the project: stack_hook needs the project root. 6) cd … && pwd in a $(…) prints twice when CDPATH matches (lib.sh loops_lib_dir; also session.sh, rotate.sh). Point 3 is for slice 3 (wave 3); the rest for slice 9 or the move runbook.
 - 2026-11-25 (prd/orchestration-split-2): On the user's word (relayed by split-ops 2026-11-25): point 3 (the hook contract's gaps) goes to orchestration-split-2 slice 3 (wave 3), the rest to slice 9 (wave 4).
+
+### B-847 · chore · Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order
+
+- status: triaged
+- prd: orchestration-split-2
+- owner:
+- commit:
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic's go on wave 3 at 9bea8d9c (2026-11-25). 1. inventory-facts.mjs:120-131 (readyFacts) and tidy-cli.mjs:297-298 ignore stackReady's exit status: a failed call reads as no stack, so its project leaves the in-use set and the dispatcher's unattended tidy-cli --yes could remove its dangling volumes (harmless today: every stack volume is a bind mount); take the project from stackStatus, skip volume findings when a hook call failed, add a tidy-cli test. 2. scripts/project/stack.sh:121 ready exits 1 for not-ready and for a failed hook; gc.sh:44, ls.sh:28, inventory-facts.mjs:121 can't tell them apart: a distinct exit code or an always-printed fact. 3. tidy's read path runs docker system df -v (stack-facts.sh:292) where it ran docker volume ls --filter dangling=true: the non --all form could use the cheap listing. 4. new.sh:100-112: a failed install leaves a stacked worktree with no .env.loop and its slot lease held, so a later stack up leases a second slot; the missing-main-env check moved to after install. 5. recover.sh:239 writes the migrate marker before the hook, so a failed compose-up or Postgres wait reads as a cut-off migrate, and a stack_up on a worktree with no stack leaves a marker nothing clears; bring back the dropped marker-exists-while-migrating test through the stub's SAMPLE_STACK_MARK. 6. hooks.mjs has no unit test (127 for an unset hook, cwd at the tool's top, fact's last value, factList); with no stackEngine hook inventory-facts.mjs:166 reads engine not running and recover dies: a project without a stack needs no-hook-means-no-engine. 7. Docker words left in the core: inventory.mjs:15,55,194,370, recover.sh:294,301, prd.sh:60,70 (orchestration-split-3). 8. packages/notifications/src/config.ts:27 names the removed scripts/loops/serve.sh (should be scripts/project/serve.sh). 9. Merged docs read out of order: docs/agents/orchestrator.md:1-4 and planner.md:4 put the role's intro mid-document, scripts/loops/docs/backlog.md opens with Deciding what's next; a generic one-line intro per role, or an additions file that can prepend. 10. Orchestrator budgets have 4 bytes of room each (3387 of 3391, 11965 of 11969). 11. Slice 3's touched files still on the allowlist: recover.sh (project-env 18), inventory-facts.mjs (13), ls.sh (9), tidy-cli.mjs (6, core-to-project 1), browser.sh (core-to-project 4). 12. test-db.sh:216 use prints its human line to stderr, shown beside new.sh's summary (cosmetic). Proposed for slice 9 (wave 4) with B-838, B-842, B-844, B-846: the user's word needed.
