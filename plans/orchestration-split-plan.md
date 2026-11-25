@@ -9,8 +9,8 @@
 | Slice | Wave | State   | Merge into `prd/orchestration-split` |
 | ----- | ---- | ------- | ------------------------------------ |
 | 1     | 1    | merged  | e90f5f02                             |
-| 2     | 2    | planned |                                      |
-| 6     | 2    | planned |                                      |
+| 2     | 2    | started |                                      |
+| 6     | 2    | started |                                      |
 | 3     | 3    | planned |                                      |
 | 9     | 3    | planned |                                      |
 | 4     | 4    | planned |                                      |
@@ -29,6 +29,11 @@
 - 2026-11-25: slice 1 started: worktree `.loops/orchestration-split-1` on `slice/orchestration-split/1` (from 85c7d058), one background agent on **Fable** (the user's choice: its lint rules and config shape decide what every later slice must clear). The stall watch runs beside it.
 - 2026-11-25: slice 1 handed off (f85fa596, slice check green with `CARETOOK_USAGE_WATCH` unset: B-818 filed in `fixes-tooling` for the test that reads it) and merged as e90f5f02. Its worktree stays until the wave is green. The wave's CI run (`pnpm prd ci run integration --wait`) is out.
 - 2026-11-25: **wave 1 landed in `dev` as 1029b791** through PR #185, at tier `integration` (CI green on e90f5f02, run 45626511160; the dev sync was a skip). Codex was out of credits, so it landed `--no-review` with no review. Slice 1's worktree and branch are removed. Docs wait for the last landing, as _How to run this plan_ says; the notes below are what to fold. **Next (a fresh session): start wave 2**: `pnpm backlog ingest` and `list`, `pnpm prd sync`, then `pnpm prd slice orchestration-split 2` and `6`, one opus agent each, the stall watch beside them; the wave's tier is `full`. Tell slice agents to unset `CARETOOK_USAGE_WATCH` for their slice check until B-818 lands.
+
+**Wave 2** (tier `full`, plus `pnpm test:tooling`):
+
+- 2026-11-25: the backlog id prefix decision recorded (82234d46, from the backlog session on the user's word): slice 2 does `scripts/backlog/`'s sites; the other `B-` sites go to slices 3, 4, 8 and 13, which own those files.
+- 2026-11-25: dev sync was a skip (up to date). Slices 2 and 6 started: worktrees `.loops/orchestration-split-2` and `-6` (from 82234d46), one background **opus** agent each (the user's choice), told to unset `CARETOOK_USAGE_WATCH` for the slice check. The stall watch runs beside them.
 
 **What slice 1 set, for later slices** (fold into machinery at the last landing):
 
