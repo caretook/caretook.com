@@ -225,7 +225,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
-| B-694 | change | in-progress | fixes-ui | prd/fixes-ui | Long create forms: core fields on the first tab, the rest on other tabs |
+| B-694 | change | landed | fixes-ui | prd/fixes-ui | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-720 | chore | triaged | fixes-tooling |  | Confirm dev syncs that share no files with a branch no longer trigger a second CI run |
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
@@ -1330,10 +1330,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-694 · change · Long create forms: core fields on the first tab, the rest on other tabs
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f375234f
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev: new-item forms that are complex should show a core set of required and key optional fields, with the rest in an Advanced options dropdown, so first entry is less confusing. No shared disclosure exists in the app yet (no <details> in app forms): add one to ui/, native <details> first. Default scope, for the user's review: MedicationForm (core: name, type, strength, dose, schedule; advanced: form, directions, why it's taken, started on, refills, Rx number), ProviderForm (core: type, name, phone; advanced: practice, email, address, website, status), ConditionForm (core: name, status; advanced: since, note, diagnosed by, managed by). Short forms stay as they are: todo, care period, timeline entry, allergy. Rules: creating starts collapsed; editing opens the section when any advanced field has a value, so saved data is never hidden; a validation error inside it opens it and focuses the field; values survive collapsing; the discard prompt still counts them. Coordinate with B-684 required asterisks and B-686 provider phone type, same forms.
 - 2026-11-23 (Robert Bo Davis): USER APPROVAL REQUIRED, do not build unattended: the user wants this done in live sessions and approves each form's breakdown (which fields are core, which go under Advanced options) before that form is changed. The split in the first note is only a starting proposal. Go one form at a time: show the proposed split, get the user's approval, then build. A dispatcher or fixes-ui loop must leave this item out of its slices.
