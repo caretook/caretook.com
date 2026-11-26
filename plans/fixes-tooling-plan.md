@@ -20,7 +20,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 51    | B-767        | working (opus)                                                                   | —        |
 | 52    | B-768        | handed off a574e9e2 (check failed only on load, untouched files); merge after 51 | —        |
 | 53    | B-542        | working (opus)                                                                   | —        |
-| 54    | B-623, B-860 | working (opus)                                                                   | —        |
+| 54    | B-623, B-860 | handed off 729a8858 (check passed); merge after 53                               | —        |
 | 55    | B-807        | handed off cefd6394 (check passed); merge after 54                               | —        |
 | 56    | B-754        | working (opus)                                                                   | —        |
 | 57    | B-824        | working (opus)                                                                   | —        |
