@@ -1,4 +1,4 @@
-import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
+import type { LocalTodo, SubtaskProgressRow, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -6,7 +6,14 @@ import { useLocation } from "react-router";
 import { useGroupRecordTags, useGroupTags } from "~/components/tags";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { doneCountQuery, todosQuery, toTodos } from "~/lib/todos/todos.sync";
+import {
+  doneCountQuery,
+  parentsById,
+  progressByParent,
+  subtaskProgressQuery,
+  todosQuery,
+  toTodos,
+} from "~/lib/todos/todos.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { matchesText, textTokens } from "~/lib/core/textFilter";
 import { tagFilterOf } from "~/lib/tags/tagFilter";
@@ -27,7 +34,12 @@ function useMinuteClock() {
   return now;
 }
 
-export type TodoListRows = { openRows: TodoRow[]; doneRows: TodoRow[]; memberRows: MemberRow[] };
+export type TodoListRows = {
+  openRows: TodoRow[];
+  doneRows: TodoRow[];
+  memberRows: MemberRow[];
+  progressRows: SubtaskProgressRow[];
+};
 const NO_COUNT: { count: number }[] = [];
 
 /**
@@ -38,6 +50,9 @@ const NO_COUNT: { count: number }[] = [];
  * other reads as no filter). `text` (the search box) keeps
  * the todos whose title or assignee has every word typed; with text, Done
  * reads every done todo and pages the matches, so older ones are found too.
+ * Open and done alike, a subtask lists only on its own terms (`listsOnItsOwn`);
+ * the group's one progress query gives parents' "n of m done" and subtasks'
+ * parents.
  */
 export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const group = useGroup();
@@ -48,6 +63,17 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const openQuery = todosQuery(groupId);
   const openRows = useLiveQuery<TodoRow>(openQuery.sql, openQuery.params, initial.openRows);
   const open = useMemo(() => toTodos(openRows), [openRows]);
+
+  const progressQuery = subtaskProgressQuery(groupId);
+  const progressRows = useLiveQuery<SubtaskProgressRow>(
+    progressQuery.sql,
+    progressQuery.params,
+    initial.progressRows,
+  );
+  const progress = useMemo(() => progressByParent(progressRows), [progressRows]);
+  const parents = useMemo(() => parentsById(progressRows), [progressRows]);
+  const progressOf = useCallback((todoId: string) => progress.get(todoId), [progress]);
+  const parentOf = useCallback((parentId: string) => parents.get(parentId), [parents]);
 
   const who = whoOf(search);
   const tags = useGroupTags(groupId);
@@ -78,6 +104,7 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   // With text, every done todo is read and the matches paged here (a page of the table would miss older ones).
   const doneQuery = todosQuery(groupId, {
     done: true,
+    listed: true,
     who,
     userId: group.userId,
     tagId: tag?.id,
@@ -90,7 +117,7 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
     [doneAll, filtering, matches],
   );
   const done = filtering ? doneMatching.slice(0, doneLimit) : doneMatching;
-  const countQuery = doneCountQuery(groupId, { who, userId: group.userId, tagId: tag?.id });
+  const countQuery = doneCountQuery(groupId, { who, userId: group.userId, tagId: tag?.id, listed: true });
   const [count] = useLiveQuery<{ count: number }>(countQuery.sql, countQuery.params, NO_COUNT);
   const moreDone = (filtering ? doneMatching.length : (count?.count ?? 0)) > done.length;
   // The React Compiler memoizes it.
@@ -121,6 +148,8 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
     moreDone,
     showMoreDone,
     nameOf,
+    progressOf,
+    parentOf,
     now,
     timeZone,
     total: open.length,

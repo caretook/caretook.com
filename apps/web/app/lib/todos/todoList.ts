@@ -1,6 +1,6 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
 
-import { assigneeOf, localDate, todoOrder, todoState } from "@caretook/data/schema";
+import { assigneeOf, listsOnItsOwn, localDate, todoOrder, todoState } from "@caretook/data/schema";
 import { matchingText } from "../core/textFilter";
 import { dayHeading } from "./todoDisplay";
 
@@ -94,8 +94,12 @@ export type TodoSection<T> = {
   todos: T[];
 };
 
-/** Open todos in sections, in list order (`todoOrder`); empty sections are left out. */
-export const todoSections = <T extends TodoRuleFields>(
+/**
+ * Open todos in sections, in list order (`todoOrder`); empty sections are
+ * left out. A subtask is there only if it lists on its own (`listsOnItsOwn`:
+ * a due day or an assignee); the rest show on their parent's page.
+ */
+export const todoSections = <T extends TodoRuleFields & { parentId?: string | null }>(
   todos: readonly T[],
   now: Date | number,
   timeZone: string,
@@ -103,7 +107,7 @@ export const todoSections = <T extends TodoRuleFields>(
   const today = localDate(now, timeZone);
   const sections: TodoSection<T>[] = [];
   for (const todo of todoOrder(
-    todos.filter((t) => !t.doneAt),
+    todos.filter((t) => !t.doneAt && listsOnItsOwn(t)),
     now,
     timeZone,
   )) {
