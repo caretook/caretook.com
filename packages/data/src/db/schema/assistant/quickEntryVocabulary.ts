@@ -108,6 +108,8 @@ export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   { phrase: "check-up", role: "appointmentWord" },
   { phrase: "consult", role: "appointmentWord" },
   { phrase: "consultation", role: "appointmentWord" },
+  { phrase: "event", role: "appointmentWord" },
+  { phrase: "events", role: "appointmentWord" },
 
   // Asking for something to be done, when it opens the line: with a part of day, a todo.
   { phrase: "call", role: "requestVerb", unlessNext: RECEIVED },

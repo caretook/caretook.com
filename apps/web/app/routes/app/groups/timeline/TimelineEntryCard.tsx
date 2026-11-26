@@ -12,7 +12,7 @@ import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
 import { CANCELLED_TEXT, CancelledBadge, EntryCopyLink } from "./TimelineEntryRow";
 
-/** One entry as a compact card: the body's first line beside the time, all its text, then who wrote it. */
+/** One entry as a compact card: the body's first line beside the time, all its text (a note's or event's formatted), then who wrote it. */
 export function TimelineEntryCard({
   entry,
   authorName,
@@ -25,6 +25,7 @@ export function TimelineEntryCard({
   onRemind,
   liveLabel,
   providers,
+  richText,
   search,
   openTodos,
 }: EntryViewProps) {
@@ -41,6 +42,7 @@ export function TimelineEntryCard({
         entry={entry}
         units={units}
         providers={providers}
+        richText={richText}
         search={search}
         className={`space-y-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         aside={

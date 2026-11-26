@@ -16,7 +16,12 @@ function useTargetPathname(pathname: string): string {
   return useNavigation().location?.pathname ?? pathname;
 }
 
-/** The header's `sections` region on wide screens: links to the group's sections. */
+/**
+ * The header's `sections` region on wide screens: links to the group's
+ * sections. Below `lg` they're icons only (the label stays as screen-reader
+ * text and is the hover hint), so from `sm` to `lg` they leave the group menu
+ * and the account menu room (B-848).
+ */
 export function SectionNav({ groupId, pathname }: { groupId: string; pathname: string }) {
   const target = useTargetPathname(pathname);
   return (
@@ -31,10 +36,11 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
                 to={section.path(groupId)}
                 prefetch="render"
                 aria-current={current}
+                title={section.label}
                 className={navLinkClass(!!current)}
               >
                 <Icon className={ICON} aria-hidden="true" />
-                {section.label}
+                <span className="max-lg:sr-only">{section.label}</span>
               </Link>
             </li>
           );

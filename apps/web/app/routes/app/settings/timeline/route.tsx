@@ -21,8 +21,8 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
 }
 
 const TIMELINE_VIEW_OPTIONS: ChoiceOption<TimelineView>[] = [
-  { value: "rows", label: "Rows" },
-  { value: "cards", label: "Cards" },
+  { value: "rows", label: "Condensed" },
+  { value: "cards", label: "Full" },
 ];
 
 const EASY_MODE_OPTIONS: ChoiceOption<EasyModeSetting>[] = [
@@ -73,7 +73,7 @@ function SaveStatusLine({ status }: { status: SaveStatus | null }) {
 }
 
 /**
- * Rows or cards: the preference the timeline's own toggle changes, saved the
+ * Condensed or full: the preference the timeline's own toggle changes, saved the
  * same way (`saveSettings`), as soon as it's chosen. Offline, it's kept on
  * this device and sent on the next online visit. Then easy mode: always or
  * never (an Easy helper or Easy viewer has it in their group whatever this

@@ -4,6 +4,16 @@ Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `p
 
 ## Trimmed 2026-11-25
 
+**Wave 13 (2026-11-25, the user's pre-call wave):** only B-342, B-817, B-828 (slices 76–78, all opus). Held for later: B-325 (native safe area), B-694 (long create forms on tabs), B-819 (no-group page feedback), B-833 (quick entry tip uses a group provider). Slice worktrees made with `CARETOOK_USAGE_WATCH=off` (split week). **Deadline:** land and `pnpm prd rm fixes-ui` within about 2 to 2.5 h of 2026-11-25 start, before orchestration-split wave 6 (if late, wave 6 waits). Hot files set on the registry row.
+
+| Slice | Item  | State         | Merge    |
+| ----- | ----- | ------------- | -------- |
+| 78    | B-828 | merged (opus) | ee6117ca |
+| 77    | B-817 | merged (opus) | e57ed71a |
+| 76    | B-342 | merged (opus) | dc2e5fc4 |
+
+## Trimmed 2026-11-25
+
 **Next step (hand-over):** wave 12 landed 2026-11-24 23:51 as dev ea38277 through PR #180, `--no-review` (Codex out of credits); CI components green (run 45547361491, 2246ae8f), landed unsynced (dev shared no file); browser --changed --base dev 11/11. Slices, all opus: 73 (B-803, 3rem glass tab bar, sliding `data-tab-bar-indicator` pill), 74 (B-804, `OfflineBanner` after a 3 s grace, mounted after the staff announcement), 75 (B-806, `brand/AppLoading` as root HydrateFallback, 300 ms CSS delay). Sent back twice: the banner flashed on every online cold load (grace added); the first CI run (45545458788) broke staff.browser.test (`header + [data-region="announcement"]`). Lesson: a new region in the layout breaks frame tests that pin sibling order; name staff/frame tests in such a slice. Report filed; to-test/2026-11-24-2351-fixes-ui.md. Docs folded into app-shell.md (trimmed to budget). Slice worktrees removed. **Next session:** `pnpm backlog ingest` and `list`; no triaged fixes-ui item waits except the held B-694 (user approves each form live) and B-325 (Capacitor; its blank-start half now done by B-806).
 
 ## Trimmed 2026-11-25

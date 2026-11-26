@@ -192,7 +192,7 @@ describe("searching the timeline", () => {
     await open("?q=quince", { width: 1280 });
     await expect.poll(() => texts().length).toBe(3);
     await found(() => document.querySelector('button[aria-label="View options"]'));
-    await setView("Cards");
+    await setView("Full");
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     expect(texts().length).toBe(3);
     await openField();
@@ -335,7 +335,7 @@ describe("highlights and snippets", () => {
     const device = await open("?q=plumber", { fixtures: [world(), marked], width: 1280 });
     await expect.poll(() => !!rowWith("Visit note")).toBe(true);
     await found(() => document.querySelector('button[aria-label="View options"]'));
-    await setView("Cards");
+    await setView("Full");
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     await frames();
     const card = rowWith("Visit note")!;

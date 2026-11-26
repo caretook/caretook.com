@@ -93,14 +93,14 @@ const toTheBeginning = async () => {
 };
 
 describe("infinite scroll", () => {
-  test.each(["Rows", "Cards"] as const)(
+  test.each(["Condensed", "Full"] as const)(
     "%s: a fresh load shows one page; scrolling loads every page with no button, each announced once, the end once, nothing moving",
     async (to) => {
       const older = 90;
       const total = TODAY_COUNT + older;
       await openTimeline({ fixtures: world(older) });
       await waitUntil(() => rows().length > 0);
-      if (to === "Cards") await setView("Cards");
+      if (to === "Full") await setView("Full");
       expect(rows().length).toBe(30);
       const watched = record();
       await toTheBeginning();
