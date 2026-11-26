@@ -14,6 +14,8 @@
 
 **Wave 3 landed 2026-11-26 as 7d4201a2** (PR #233, `--no-review`: Codex out of credits; integration CI 45887954631 green on 54579af8; unsynced tip, dev's 2 commits shared no file). Slices 8 and 7 on opus; worktrees removed. Docs folded: `project-config.md` (the machine config, `claude.configDir`, `tool.self`). Carried for later: the dispatcher's keep-alive and session requests ignore the work switch; the drain reads only its own env's Claude account; `CARETOOK_CLAUDE_PROJECTS`/`CARETOOK_CLAUDE_CONFIG` live in `host.mjs` for slice 4; at the last landing the machinery doc gains the machine config and host's Claude section, and Risa's `risa.json` sets `tool.self` at the move. B-543 stays in progress until slice 5 lands.
 
+**Waiting (2026-11-26, resumed session):** the backlog session (caretook-com-6d) is parking fixes-ui (slices 95–98) at a resync point and will message when it's parked; then wave 4 runs past the open-worktree gate on the user's standing decision of 2026-11-26 (as in wave 1). Don't start slice 4 before that message.
+
 **Next: wave 4** (slice 4, the `RISA_*` rename; opus for the script, sonnet candidate once it's reviewed). It runs with the dispatcher paused (`pnpm prd dispatch --pause`) and no other worktree of any kind open (_How to run this plan_); check `pnpm prd status` first and coordinate with the backlog session if any is open. First `pnpm prd sync`. Tier: full. After it, ask the user to move `~/.caretook/inbox` to `~/.risa/inbox` and trust the new folder before resuming the dispatcher.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
