@@ -20,6 +20,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call
 - Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation
   Move this section so it's the first item after the timeline on the features page.
+- Features page should highlight easy mode
 
 ## Feature requests
 
