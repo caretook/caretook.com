@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { isOwnRowLogger, isLoggerRole, isWriterRole } from "../../../constants/roles";
+import {
+  OWNER_ROLES,
+  hasGroupRole,
+  isOwnRowLogger,
+  isLoggerRole,
+  isWriterRole,
+} from "../../../constants/roles";
 import { uuidV5 } from "../core/uuidV5";
 
 // The tags' pure rules (tags PRD), client-safe: the one place that folds a
@@ -131,6 +137,23 @@ export const canTagRecord = (
   if (isWriterRole(role)) return true;
   return isOwnRowLogger(role) && record.target === "entry" && !!userId && record.createdBy === userId;
 };
+
+/**
+ * Who may rename a tag: owners, admins and caretakers any tag; an Easy
+ * helper only one they created (`created_by`: when two people add one tag
+ * offline, the first upload's author). Viewers and Easy viewers never.
+ */
+export const canRenameTag = (
+  role: string | null | undefined,
+  tag: { createdBy: string | null | undefined },
+  userId: string | null | undefined,
+) => {
+  if (isWriterRole(role)) return true;
+  return isOwnRowLogger(role) && !!userId && tag.createdBy === userId;
+};
+
+/** Who may delete a tag (from every record; the records stay): owners only. */
+export const canDeleteTag = (role: string | null | undefined) => hasGroupRole(OWNER_ROLES, role);
 
 // ---------------------------------------------------------------------------
 // `?tag=`: a list's tag filter, one tag at a time
