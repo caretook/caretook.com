@@ -28,7 +28,7 @@ To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait
 | Slice | Item         | State               | Merge |
 | ----- | ------------ | ------------------- | ----- |
 | 86    | B-885        | agent working       |       |
-| 87    | B-897, B-900 | agent working       |       |
+| 87    | B-897, B-900 | handed off 26dab4cd |       |
 | 88    | B-902        | handed off b1ca690c |       |
 | 89    | B-904        | agent working       |       |
 | 90    | B-905        | waits for 89        |       |
