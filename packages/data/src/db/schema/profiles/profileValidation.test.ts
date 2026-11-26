@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { careRecipientProfileZSchema, RECIPIENT_LIMITS } from "./careRecipient";
+import { careRecipientProfileZSchema, careRecipientUpdateZSchema, RECIPIENT_LIMITS } from "./careRecipient";
 import {
   careRecipientDetailsUpdateZSchema,
   DETAILS_LIMITS,
@@ -173,5 +173,37 @@ describe("a member's contact details and sharing", () => {
       ),
     ).toEqual(["relationship"]);
     expect(memberSharingZSchema.parse({ relationship: " " })).toEqual({ relationship: null });
+  });
+});
+
+describe("recipient profile, apart from drizzle-zod (B-872)", () => {
+  // The profile schema was a pick of the update schema; it's plain zod now so
+  // the web app doesn't carry drizzle-zod. Both still parse alike.
+  const picked = careRecipientUpdateZSchema
+    .pick({
+      name: true,
+      preferredName: true,
+      dateOfBirth: true,
+      codeStatus: true,
+      bloodType: true,
+      primaryLanguage: true,
+      pronouns: true,
+      notes: true,
+      timeZone: true,
+    })
+    .partial();
+  const outcome = (schema: typeof picked | typeof careRecipientProfileZSchema, input: unknown) => {
+    const result = schema.safeParse(input);
+    return result.success ? { data: result.data } : { issues: issuePaths(result) };
+  };
+
+  it.each([
+    {},
+    { name: "  Ada Lovelace ", preferredName: "", dateOfBirth: "1950-02-03", timeZone: "America/Chicago" },
+    { codeStatus: "dnrPolst", bloodType: "O+", primaryLanguage: " French", pronouns: "she/her", notes: null },
+    { name: "", dateOfBirth: "02/03/1950", codeStatus: "DNR", bloodType: "C+", timeZone: "Mars/Olympus" },
+    { notes: "x".repeat(RECIPIENT_LIMITS.notes + 1), extra: "dropped" },
+  ])("parses %o as the update schema's pick did", (input) => {
+    expect(outcome(careRecipientProfileZSchema, input)).toEqual(outcome(picked, input));
   });
 });

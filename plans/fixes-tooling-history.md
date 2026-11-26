@@ -2,6 +2,37 @@
 
 Finished-wave history moved out of [the plan](fixes-tooling-plan.md)'s _Status_ by `pnpm prd status-trim fixes-tooling`, the newest trim first.
 
+## Trimmed 2026-11-26
+
+**Wave 8 (2026-11-26, run-through; resumed after the wave 7 rotation).** Reconciled: no landing cut off, no slices in flight; `prd sync` needed no merge. Slices 61–68 written (landing, Codex, cleanup: B-239, B-240, B-244, B-867, B-442, B-443, B-447, B-639, B-649, B-738, B-545), items claimed, hot files set. Running about 5 at once (wave 7's lesson): first 61, 63, 64, 66, 67 (all opus); then 62, 65 (opus) and 68 (sonnet). 65 waits for 66 (both `land.sh`).
+
+| Slice | Item         | State                        | Merge    |
+| ----- | ------------ | ---------------------------- | -------- |
+| 68    | B-545        | merged (sonnet)              | 7b608d23 |
+| 67    | B-738        | merged (opus)                | a6ade197 |
+| 66    | B-639, B-649 | merged (opus), in 65's merge | ee34a22e |
+| 65    | B-443, B-447 | merged (opus)                | ee34a22e |
+| 64    | B-442        | merged (opus)                | 3c48b294 |
+| 63    | B-867        | merged (opus)                | 69bcc9c1 |
+| 62    | B-244        | merged (opus)                | 35e43036 |
+| 61    | B-239, B-240 | merged (opus)                | 1699763a |
+
+## Trimmed 2026-11-26
+
+| Slice | Item         | State                                                                   | Merge    |
+| ----- | ------------ | ----------------------------------------------------------------------- | -------- |
+| 60    | B-812        | merged (check passed)                                                   | e5f7b7cb |
+| 59    | B-633        | merged (check passed; app-wide, revert alone if sync goes red)          | 7975988e |
+| 58    | B-769        | merged (check passed)                                                   | c1fb36b0 |
+| 57    | B-824        | merged (check passed; 20/20 under load)                                 | 0783ecf7 |
+| 56    | B-754        | merged (check passed)                                                   | 729eeed7 |
+| 55    | B-807        | merged (check passed)                                                   | 42781ced |
+| 54    | B-623, B-860 | merged (check passed)                                                   | 793bcf65 |
+| 53    | B-542        | merged (check passed; cap 4 = +50% unit time, proposal 5 noted on item) | f1166303 |
+| 52    | B-768        | merged (check failed only on load, untouched files)                     | dd8d3a21 |
+| 51    | B-767        | merged (check passed)                                                   | 4bf25df7 |
+| 50    | B-766        | merged (check stopped on load 149; CI gates)                            | 86103144 |
+
 ## Trimmed 2026-11-24
 
 **Wave 6 contents (the user, via the backlog session, 2026-11-24; replaces the old wave 6–8 order for these items).** In priority order: (1) agent efficiency, the user's top concern: B-595 (slice agents read only their section), B-596 (cap slice size at planning), B-597 (split ci.mjs and prompt.sh), B-598 (short plan Status); (2) B-696 (check-plan can hang forever); (3) test load: B-542 (cap unit-test workers), B-576 (local lint OOM at 4 GB), B-574 (ESLint exit 134); (4) B-586 (backlog session's phone notifications never arrive); (5) B-705 (minimumReleaseAge missing from pnpm-workspace.yaml); (6) B-464 and B-650 (a hold write drops standing or other flags). Split by hot files as usual; anything that clashes goes to wave 7 in the same order. Codex-review items wait (Codex is out of credits). Wave 5 is unchanged.

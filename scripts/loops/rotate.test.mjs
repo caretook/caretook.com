@@ -23,7 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CAPTAINS } from "./captain.mjs";
-import { clearsHot, doneFlags, slicesLeft } from "./rotate.mjs";
+import { clearsHot, contextHold, doneFlags, slicesLeft } from "./rotate.mjs";
 import { stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
@@ -85,6 +85,21 @@ describe("the pure part", () => {
     expect(clearsHot(rows, "g")).toBe(false);
     expect(clearsHot(rows, "p")).toBe(false);
     expect(clearsHot(rows, "missing")).toBe(false);
+  });
+
+  it("holds a context rotation for the slices still at work, until the hard limit", () => {
+    const planText = plan(`${MERGED}\n| 3 | 2 | handed off d4e5 | |\n| 4 | 2 | running (opus) | |`);
+    // 1 merged, 3 handed off: done with; 4 running and 5 with no row: at work.
+    expect(contextHold({ planText, slices: ["1", "3", "4", "5"], hard: 225_000 })).toEqual(["4", "5"]);
+    expect(contextHold({ planText, slices: ["1", "3"], hard: 225_000 })).toEqual([]);
+    // Under the hard limit (B-877: 166k) it holds; past it, or once marked over, it doesn't.
+    expect(contextHold({ planText, slices: ["4"], record: { size: 166_000 }, hard: 225_000 })).toEqual(["4"]);
+    expect(contextHold({ planText, slices: ["4"], record: { size: 230_000 }, hard: 225_000 })).toEqual([]);
+    expect(
+      contextHold({ planText, slices: ["4"], record: { size: 200_000, hardOverAt: "x" }, hard: 225_000 }),
+    ).toEqual([]);
+    // No table to read: every slice counts as at work.
+    expect(contextHold({ planText: "# Plan\n", slices: ["2"], hard: 225_000 })).toEqual(["2"]);
   });
 });
 
@@ -200,6 +215,8 @@ beforeAll(() => {
     "rotate.sh",
     "rotate-into.sh",
     "rotate.mjs",
+    "context.mjs",
+    "heartbeat.mjs",
     "open-session.sh",
     "open-session.mjs",
     "planner-model.mjs",
@@ -343,6 +360,34 @@ describe("pnpm prd rotate", () => {
     } finally {
       git(main, "worktree", "remove", "--force", join(loops, "w-1"));
       git(main, "branch", "-D", "slice/w/1");
+    }
+  });
+
+  it("holds a mid-wave context rotation for a slice still at work, until the hard limit", async () => {
+    // Slice 3's row is "not started": its agent would be cut off (B-877).
+    git(main, "worktree", "add", "-q", "-b", "slice/w/3", join(loops, "w-3"), "prd/w");
+    const sizeFile = join(loops, ".context/prd-w.json");
+    try {
+      const { s, pid } = await liveSession();
+      let r = run("prd.sh", ["rotate", "w", "--mid-wave", "--reason", "context"]);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("waits for the slices still at work (3)");
+      expect(spawnSync("kill", ["-0", String(pid)]).status).toBe(0);
+      // Another reason (the user's word) goes ahead.
+      r = run("prd.sh", ["rotate", "w", "--mid-wave", "--reason", "user"]);
+      expect(r.status).toBe(0);
+      // Past the hard limit, a context rotation goes ahead too.
+      mkdirSync(join(loops, ".context"), { recursive: true });
+      writeFileSync(sizeFile, JSON.stringify({ pid, size: 230_000, hardOverAt: new Date().toISOString() }));
+      r = run("prd.sh", ["rotate", "w", "--mid-wave", "--reason", "context"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain("mid-wave (the agents of w-3 end too).");
+      process.kill(pid, "SIGTERM");
+      await s.done;
+    } finally {
+      rmSync(sizeFile, { force: true });
+      git(main, "worktree", "remove", "--force", join(loops, "w-3"));
+      git(main, "branch", "-D", "slice/w/3");
     }
   });
 });
@@ -940,6 +985,27 @@ Intro.
     expect(r.status).toBe(0);
     expect(r.stdout).not.toContain("hot files");
     expect(rowOf("busy").hot).toEqual(["apps/web/"]);
+  });
+
+  it("reads the registry once per rm (B-545)", () => {
+    commitOnDev({ "plans/backlog.md": REGISTRY, "plans/fin-plan.md": plan(MERGED) });
+    for (const b of ["prd/fin"]) if (git(main, "branch", "--list", b)) git(main, "branch", "-D", b);
+    prdWorktree("fin");
+    const file = join(main, "scripts/backlog/backlog.mjs");
+    const original = readFileSync(file, "utf8");
+    const log = join(root, "registry-reads");
+    rmSync(log, { force: true });
+    // A counting stub: the real tool, with a line appended per `prd list` call.
+    const counter = `import { appendFileSync as __a } from "node:fs";\nif (process.argv.slice(2, 4).join(" ") === "prd list") __a(${JSON.stringify(log)}, "x\\n");\n`;
+    writeFileSync(file, counter + original.replace(/^#!.*\n/, ""));
+    try {
+      const r = run("rm.sh", ["fin"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain("Marked fin done");
+      expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(1);
+    } finally {
+      writeFileSync(file, original);
+    }
   });
 
   it("--no-registry marks nothing done and clears no hot files (the dispatcher's undo, B-452)", () => {
