@@ -18,7 +18,7 @@
 
 **Dispatcher still paused.** Before resuming it the user moves `~/.caretook/inbox` to `~/.risa/inbox` and trusts the new folder (ask a287, `--waits`, filed and pushed at wave 4's landing; run `pnpm prd ask --wait a287` in the background; report a286); `CARETOOK_*` tool knobs set in shells or sessions are now ignored (e.g. `RISA_MAX_PRDS`).
 
-**Wave 5 waiting (orchestrator session orchestration-split-3-77, 2026-11-26):** synced, no merge needed. The backlog session (caretook-com-6d) agreed: fixes-ui lands its wave 17 and parks, then messages the go to start slice 5 past the open-worktree gate (the user's standing decision). Ask a287 waits in the background.
+**Wave 5 running (orchestrator session orchestration-split-3-77, 2026-11-26):** fixes-ui landed wave 17 (dev 919af00d) and parked; the backlog session (caretook-com-6d) gave the go past the open-worktree gate on the user's standing decision, and wants a message when wave 5 lands so it can release fixes-ui. Synced (no merge needed). Slice 5 worktree made, agent spawned on opus (real logic: the sweep script, the lint rule, the doc placeholder); watch running. Ask a287 waits in the background; dispatcher stays paused.
 
 **Next: wave 5** (slice 5, the command-name sweep and residual list; opus). It runs with the dispatcher paused and no other worktree open, like wave 4: coordinate with the backlog session first (caretook-com-6d; told at landing it may release fixes-ui, and that wave 5 needs it parked again). First `pnpm prd sync`. Tier: full. Last landing: the docs list in _How to run this plan_, then `pnpm prd rm orchestration-split-3`.
 
@@ -31,7 +31,7 @@
 | 8     | 3    | landed  | 09f81cfd (dev 7d4201a2)                |
 | 7     | 3    | landed  | 94a42c1a (dev 7d4201a2)                |
 | 4     | 4    | landed  | d5ea9c23 (dev 48db0d34)                |
-| 5     | 5    | planned |                                        |
+| 5     | 5    | running |                                        |
 
 ## Architectural decisions
 
