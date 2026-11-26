@@ -15,7 +15,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 72    | B-830 | merged | ab6da878 |
 | 73    | B-840 | merged | 9dd61dda |
 
-**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. Next: PR + Codex review, land --tier full. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
+**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. PR #208 open; Codex out of credits (exit 4: land --no-review). Browser --changed: app-shell, invites pass. Next: land --tier full --no-review once the recheck is green. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
 
 ## Wave 1
 
