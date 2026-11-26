@@ -59,9 +59,12 @@ test("at 360 the hero's two buttons share one row and neither label wraps", asyn
   const { screen } = await openMarketing("/", { width: 360 });
   const { primary, secondary } = homeContent.hero;
   await expect.element(screen.getByRole("heading", { level: 1 })).toBeVisible();
-  const buttons = [primary.label, secondary?.label ?? ""].map((label) =>
-    screen.getByRole("link", { name: label, exact: true }).element(),
-  );
+  const hero = document.querySelector("#hero-heading")?.closest("section");
+  const buttons = [primary.label, secondary?.label ?? ""].map((label) => {
+    const link = [...(hero?.querySelectorAll("a") ?? [])].find((a) => a.textContent === label);
+    if (!link) throw new Error(`no hero button ${label}`);
+    return link;
+  });
   const [a, b] = buttons.map((el) => el.getBoundingClientRect());
   expect(a?.top, "same top").toBe(b?.top);
   for (const el of buttons) {
