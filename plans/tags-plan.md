@@ -4,17 +4,19 @@
 
 ## Status
 
-**Where it stands:** wave 1 starting (2026-11-25). `symptom-catalog` is done.
+**Where it stands:** wave 1 landed in `dev` (2026-11-26). **Next: wave 2** (slice 2, the picker and chips; opus), then wave 3 (slices 3, 4, 5 together), then wave 4 (slice 6).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
 **Models:** slice 1 opus.
 
-**Wave 1:** slice 1 (two opus agents: build, then the `roundtrip` step) merged as 7e67f8a9. CI `full` green on 98e1019b (run 45759404517); `tags-1` removed. Dev synced (tooling only); `full` recheck green on 6479a4c1 (run 45760695334). `browser --changed`: 10/11 pass, `ui.spec` the known flake B-808 (noted; no UI in this wave). PR #206; Codex out of credits (exit 4): landing `--no-review`. Docs: `docs/domain/tags.md` written, _Area index_ entry added. Filed B-862 (roundtrip cleanup gap, fixes-tooling). **Landing wave 1 now.**
+**Wave 1 landed** in `dev` as 465efcf through PR #206, tier `full` (run 45761975122 green on 98b38637), **without a Codex review (out of credits)**. Slice 1 merged as 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a; two opus agents, the second for the `roundtrip` step). Report a254; to-test `to-test/2026-11-26-0038-tags.md`. Docs: `docs/domain/tags.md` and its _Area index_ entry (sync.md and care-groups.md are at their budgets, so tags' sync and permission rules live in tags.md). Filed B-862 (roundtrip cleanup gap); noted B-808 (`ui.spec` flake). Dev moved twice during landing (tooling, then `ci.yml`/`vitest.config.ts`): `full` ran three times.
+
+**Lessons:** slice 1 was 46 files (the hook warned); its agent ran out of context before the browser step. Brief wave-2+ agents to keep context lean. `libLayout.test` needs a `docs/domain/<area>.md` for a new `lib/<area>/`.
 
 | Slice | Wave | State       | Merge into `prd/tags` (slice commits)   |
 | ----- | ---- | ----------- | --------------------------------------- |
-| 1     | 1    | merged      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
+| 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
 | 2     | 2    | not started |                                         |
 | 3     | 3    | not started |                                         |
 | 4     | 3    | not started |                                         |
