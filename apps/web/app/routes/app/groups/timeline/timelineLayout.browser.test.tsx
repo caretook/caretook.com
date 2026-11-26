@@ -212,29 +212,32 @@ describe("the wide layout", () => {
     }
   });
 
-  test.each(["Condensed", "Full"] as const)("1280, %s: the day heading spans the list and sticks", async (to) => {
-    await openTimeline({ width: 1280, fixtures: world(60) });
-    await ready();
-    if (to === "Full") await setView("Full");
-    const box = (el: Element) => el.getBoundingClientRect();
-    for (const ol of document.querySelectorAll("section > ol")) {
-      const [h, list] = [box(ol.parentElement!.querySelector("[data-day-header]")!), box(ol)];
-      expect(h.left <= list.left && h.right >= list.right).toBe(true);
-    }
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    const day = [...document.querySelectorAll("section > ol")]
-      .map((ol) => ol.parentElement!)
-      .find(
-        (s) =>
-          s.getBoundingClientRect().height > 120 &&
-          s.getBoundingClientRect().top + window.scrollY + 30 <= max,
-      )!;
-    window.scrollTo(0, day.getBoundingClientRect().top + window.scrollY + 30);
-    await frames();
-    const h = day.querySelector("[data-day-header]")!.getBoundingClientRect();
-    expect(Math.abs(h.top)).toBeLessThan(1);
-    expect(h.top - day.getBoundingClientRect().top).toBeGreaterThan(20);
-  });
+  test.each(["Condensed", "Full"] as const)(
+    "1280, %s: the day heading spans the list and sticks",
+    async (to) => {
+      await openTimeline({ width: 1280, fixtures: world(60) });
+      await ready();
+      if (to === "Full") await setView("Full");
+      const box = (el: Element) => el.getBoundingClientRect();
+      for (const ol of document.querySelectorAll("section > ol")) {
+        const [h, list] = [box(ol.parentElement!.querySelector("[data-day-header]")!), box(ol)];
+        expect(h.left <= list.left && h.right >= list.right).toBe(true);
+      }
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const day = [...document.querySelectorAll("section > ol")]
+        .map((ol) => ol.parentElement!)
+        .find(
+          (s) =>
+            s.getBoundingClientRect().height > 120 &&
+            s.getBoundingClientRect().top + window.scrollY + 30 <= max,
+        )!;
+      window.scrollTo(0, day.getBoundingClientRect().top + window.scrollY + 30);
+      await frames();
+      const h = day.querySelector("[data-day-header]")!.getBoundingClientRect();
+      expect(Math.abs(h.top)).toBeLessThan(1);
+      expect(h.top - day.getBoundingClientRect().top).toBeGreaterThan(20);
+    },
+  );
 });
 
 describe("the author chip", () => {
