@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { BRAND } from "~/components/brand";
 import { MARKETING_ICONS } from "../sections/icons";
 import { MARKETING_LINKS } from "../site/pages";
 import { homeContent } from "./content";
@@ -15,27 +16,22 @@ describe("homeContent", () => {
     expect(homeContent.meta.description.length).toBeLessThanOrEqual(200);
   });
 
-  it("leads with the lockup: the name, the tagline, then the descriptor with the founder clause", () => {
+  it("leads with the lockup: the descriptor with the founder clause, and a lead", () => {
     expect(homeContent.hero.lockup).toEqual({
-      name: "Caretook",
-      tagline: "Care, taken.",
-      descriptor: "The free care notebook for families, built by caregivers who've been there.",
+      descriptor: "A care notebook for families, made by caregivers who've been there.",
     });
-  });
-
-  it("keeps the old heading as supporting copy under the lockup, and a lead", () => {
-    expect(homeContent.hero.heading).toBe("Keep track of someone's care, together.");
+    expect("heading" in homeContent.hero).toBe(false);
     expect(nonEmpty(homeContent.hero.lead)).toBe(true);
   });
 
   it("carries the tagline in its title and the descriptor's first clause in its description", () => {
-    const { name, tagline, descriptor } = homeContent.hero.lockup;
-    expect(homeContent.meta.title).toBe(`${name}: ${tagline}`);
+    expect(homeContent.meta.title).toBe(`${BRAND.name}: ${BRAND.tagline}`);
     // The founder clause stays out of the description: with it, the description
     // would pass the search length the first test holds it to.
-    const [first] = descriptor.split(",");
-    expect(first).toBe("The free care notebook for families");
-    expect(homeContent.meta.description).toContain(first);
+    const [first = ""] = homeContent.hero.lockup.descriptor.split(",");
+    expect(first).toBe("A care notebook for families");
+    // The description says "The free care notebook…": the clause past its article.
+    expect(homeContent.meta.description).toContain(first.replace(/^A /, ""));
   });
 
   it("offers both calls to action: the waitlist and an access code", () => {

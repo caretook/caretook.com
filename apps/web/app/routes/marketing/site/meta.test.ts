@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { BRAND } from "~/components/brand";
 
 import { content as about } from "../about/content";
 import { content as contact } from "../contact/content";
@@ -62,20 +63,21 @@ describe("pageTitle", () => {
 
   it("carries the descriptor in the descriptions of home, features, FAQ and About", () => {
     for (const page of [homeContent, features, faq, about]) {
-      expect(page.meta.description).toMatch(/the free care notebook for families/i);
+      expect(page.meta.description).toMatch(/care notebook for families/i);
     }
   });
 });
 
 describe("the share image", () => {
-  const { name, tagline, descriptor } = homeContent.hero.lockup;
+  const { name, tagline } = BRAND;
+  const { descriptor } = homeContent.hero.lockup;
   const publicFile = (path: string) =>
     readFileSync(fileURLToPath(new URL(`../../../../public${path}`, import.meta.url)));
 
   it("has the lockup as its alt text", () => {
     expect(DEFAULT_OG_IMAGE.alt).toBe(`${name}. ${tagline} ${descriptor}`);
     expect(DEFAULT_OG_IMAGE.alt).toBe(
-      "Caretook. Care, taken. The free care notebook for families, built by caregivers who've been there.",
+      "Caretook. Care, taken. A care notebook for families, made by caregivers who've been there.",
     );
   });
 

@@ -1,3 +1,5 @@
+import { BRAND } from "~/components/brand";
+
 import type {
   CtaBandContent,
   FeatureGridContent,
@@ -17,22 +19,19 @@ import { PRICE_HEADLINE, PRICE_PROMISE } from "../site/price";
  */
 export const homeContent = {
   meta: {
-    title: "Caretook: Care, taken.",
+    title: `${BRAND.name}: ${BRAND.tagline}`,
     description:
       "The free care notebook for families: a shared place to keep track of a loved one's care, with daily notes, symptoms and vitals, medications and visits. On any phone, even offline.",
   } satisfies PageMeta,
 
   hero: {
     eyebrow: PRICE_HEADLINE,
-    // The lockup: the name and tagline are the h1, the descriptor sits under
-    // them, and `heading` is the supporting line. The share image
-    // (public/og-default.svg) and its alt (site/meta.ts) say the same words.
+    // The lockup: the full logo (name and tagline, from `BRAND`) is the h1 and
+    // the descriptor sits under it. The share image (public/og-default.svg)
+    // and its alt (site/meta.ts) say the same words.
     lockup: {
-      name: "Caretook",
-      tagline: "Care, taken.",
-      descriptor: "The free care notebook for families, built by caregivers who've been there.",
+      descriptor: "A care notebook for families, made by caregivers who've been there.",
     },
-    heading: "Keep track of someone's care, together.",
     lead: "Caretook is a shared place for a family to keep track of a loved one's care: what happened today, symptoms and vitals, medications, notes from visits, and the doctors and pharmacies to call. Everyone sees the same thing, on any phone, even offline.",
     primary: { label: "Join the waitlist", href: MARKETING_LINKS.waitlist },
     secondary: { label: "Have an access code?", href: MARKETING_LINKS.join },

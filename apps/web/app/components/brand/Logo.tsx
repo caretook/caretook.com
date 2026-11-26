@@ -27,17 +27,47 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
+/** The name and tagline, in one place: the logo, the hero, page titles and the share image use them. */
+export const BRAND = { name: "Caretook", tagline: "Care, taken." } as const;
+
+const SIZES = {
+  header: { gap: "gap-2", mark: "size-9", name: "text-xl", tagline: "-mt-px text-xs leading-none" },
+  hero: {
+    gap: "gap-4 sm:gap-5",
+    mark: "size-16 sm:size-24",
+    name: "text-5xl sm:text-7xl",
+    tagline: "-mt-0.5 text-xl leading-none sm:-mt-1.5 sm:text-3xl",
+  },
+} as const;
+
 /**
- * The mark plus "Caretook". With `wordHiddenBelow`, the word is screen-reader
- * text below that breakpoint (the mark stays), so a link around it keeps the
- * name "Caretook" on narrow screens.
+ * The full logo: the mark, "Caretook" in bold, and the tagline tucked just
+ * under it, smaller, at the body's weight. `header` fits the 64px bars;
+ * `hero` is home's h1 (the caller wraps it; the mark is hidden, so the
+ * heading's name is "Caretook Care, taken."). With `wordHiddenBelow`, the
+ * words are screen-reader text below that breakpoint (the mark stays), so a
+ * link around it keeps its name on narrow screens.
  */
-export function Wordmark({ wordHiddenBelow }: { wordHiddenBelow?: "sm" }) {
+export function FullLogo({
+  size = "header",
+  wordHiddenBelow,
+}: {
+  size?: keyof typeof SIZES;
+  wordHiddenBelow?: "sm";
+}) {
+  const s = SIZES[size];
   const hidden = wordHiddenBelow === "sm" ? "max-sm:sr-only" : "";
   return (
-    <span className="flex items-center gap-2">
-      <LogoMark className="size-8 shrink-0" />
-      <span className={`text-xl font-bold tracking-tight ${hidden}`}>Caretook</span>
+    <span className={`flex items-center ${s.gap}`} data-logo>
+      <LogoMark className={`${s.mark} shrink-0`} />
+      <span className={`flex flex-col ${hidden}`}>
+        <span className={`${s.name} leading-none font-bold tracking-tight`} data-logo-part="name">
+          {BRAND.name}
+        </span>{" "}
+        <span className={`${s.tagline} font-normal text-primary-ink`} data-logo-part="tagline">
+          {BRAND.tagline}
+        </span>
+      </span>
     </span>
   );
 }
