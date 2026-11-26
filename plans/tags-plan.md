@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 starting** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus): synced (up to date), B-548 claimed; worktrees tags-3/4/5 made and three opus agents spawned (2026-11-26), watch running. Then wave 4 (slice 6).
+**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 starting** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus): synced (up to date), B-548 claimed; all three merged (b71903f5, 998d10d8, 5708c180); wave CI run next. Slice 4's agent passed 230k context: a fix there goes to a fresh `--continue` agent. At landing fold into tags.md: `name_key` stays system-only (rename does two writes); a twin copies tags as the system; `link` returns an existing link before the rule (viewer replay); the Tag filter section exists twice (providers, medications) beside `lib/tags/tagFilter.ts`. Then wave 4 (slice 6).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -21,8 +21,8 @@
 | 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
 | 2     | 2    | landed      | b3fe1008, f71fed2a (491e3862, 5d091480) |
 | 3     | 3    | merged      | b71903f5 (2dfe5297)                     |
-| 4     | 3    | in progress |                                         |
-| 5     | 3    | handed off  | waits for 4 (b52ced9d)                  |
+| 4     | 3    | merged      | 998d10d8 (0bc2c990)                     |
+| 5     | 3    | merged      | 5708c180 (b52ced9d)                     |
 | 6     | 4    | not started |                                         |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
