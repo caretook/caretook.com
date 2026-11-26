@@ -273,7 +273,8 @@ export default defineConfig({
           ...tooling,
           root: "./scripts",
           include: [...PROJECT_TOOLING, "project/**/*.test.mjs", "hooks.test.mjs"],
-          exclude: PROJECT_UNIT,
+          // The runner's test is the browser harness's (tooling:browser).
+          exclude: [...PROJECT_UNIT, "project/browser-run.test.mjs"],
           testTimeout: 20_000,
           env: { CARETOOK_LOAD_GATE: "off" },
         },
@@ -305,7 +306,6 @@ export default defineConfig({
             "loops/check-times.test.mjs",
             "loops/check-plan.test.mjs",
             "loops/browser.test.mjs",
-            "project/browser-run.test.mjs",
           ],
           testTimeout: 20_000,
           // Off for every spawned script (they pass process.env on): new.sh and
