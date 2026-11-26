@@ -10,7 +10,7 @@
 
 **Models:** slice 1 opus.
 
-**Wave 1:** slice 1 worktree `tags-1` (slot 3) made, opus agent spawned 2026-11-25. B-548 claimed.
+**Wave 1:** slice 1 worktree `tags-1` (slot 3). First opus agent handed off c8980abb, 6fb4e555 (quick check passed) with the `roundtrip` E2E step missing (context limit); a second opus `--continue` agent is adding that step. Placeholder `docs/domain/tags.md` (libLayout.test needs it): replace at landing. B-548 claimed.
 
 | Slice | Wave | State       | Merge into `prd/tags` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------- |
