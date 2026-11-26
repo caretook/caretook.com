@@ -317,14 +317,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-867 | bug | staging | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
 | B-869 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
 | B-870 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
-| B-871 | bug | ready | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
-| B-872 | chore | ready | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
-| B-873 | change | ready | fixes-tooling | prd/fixes-tooling | Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks |
-| B-874 | change | ready | fixes-tooling | prd/fixes-tooling | Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start |
-| B-875 | change | ready | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
-| B-876 | change | ready | fixes-tooling | prd/fixes-tooling | Orchestrators rotate with a brief between waves once context passes ~120k |
-| B-877 | bug | ready | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
-| B-878 | change | ready | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
+| B-871 | bug | landed | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
+| B-872 | chore | landed | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
+| B-873 | change | landed | fixes-tooling | prd/fixes-tooling | Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks |
+| B-874 | change | landed | fixes-tooling | prd/fixes-tooling | Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start |
+| B-875 | change | landed | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
+| B-876 | change | landed | fixes-tooling | prd/fixes-tooling | Orchestrators rotate with a brief between waves once context passes ~120k |
+| B-877 | bug | landed | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
+| B-878 | change | landed | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
 | B-880 | chore | triaged | fixes-tooling |  | Planners get the context watch: add plan sessions to the context hook (data-rights peaked 256k, onboarding-2 214k) |
 | B-881 | chore | triaged | fixes-tooling |  | Long slice agents: the orchestrator splits a slice or hands it off past ~150k context, weighed against restart cost (orchestration-split-2 and tags slices ran 200-260k, 15-24M each) |
 | B-882 | chore | triaged | fixes-tooling |  | Model per role: Sonnet for slices whose plan spells out each edit, Haiku for reading check output (every slice runs on Opus now) |
@@ -2312,7 +2312,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-871 · bug · A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten)
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2322,7 +2322,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-872 · chore · Win back the app bundle bytes: trim under the old 406,187 B ceiling
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2331,7 +2331,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-873 · change · Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 41d36b6f
@@ -2342,7 +2342,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-874 · change · Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 87a787e1
@@ -2353,7 +2353,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-875 · change · Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 41d36b6f
@@ -2364,7 +2364,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-876 · change · Orchestrators rotate with a brief between waves once context passes ~120k
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 87a787e1
@@ -2375,7 +2375,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-877 · bug · Find why fixes-tooling slice agents end early and get continued
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2386,7 +2386,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-878 · change · Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
