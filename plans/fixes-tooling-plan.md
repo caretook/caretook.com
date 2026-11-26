@@ -22,7 +22,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | ----- | ----- | --------------------- | -------- |
 | 86    | B-903 | merged                | 71787805 |
 | 87    | B-810 | merged                | ac159a76 |
-| 88    | B-809 | started (opus)        |          |
+| 88    | B-809 | merged                | 5131f93b |
 | 89    | B-465 | started (opus)        |          |
 | 90    | B-431 | started (opus)        |          |
 | 91    | B-432 | waits for 90          |          |
