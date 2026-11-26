@@ -10,6 +10,7 @@ import { found, waitUntil } from "../../../../../test/found";
 import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_TIME_ZONE } from "../../../../../test/fixtures";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import * as periods from "./route";
 import {
   daysAgo,
@@ -277,6 +278,111 @@ describe("adding a period", () => {
     expect(local.map((r) => r.label).filter((l) => l?.startsWith("Tie"))).toEqual(["Tie A", "Tie B"]);
     // The earlier-created one has zero length and still shows.
     expect(listRows().find((r) => r.title === "Home · Tie A")?.dates).toMatch(/Less than a day$/);
+  });
+});
+
+// B-685: the ten types in two equal columns of five, plain text that wraps
+// rather than truncates, with one clear selected state.
+describe("the type choice", () => {
+  const options = () =>
+    [...(FORM()?.querySelectorAll<HTMLInputElement>('input[name="type"]') ?? [])].map((radio) => ({
+      radio,
+      box: radio.closest("label")!,
+    }));
+  const distinct = (values: number[]) => [...new Set(values.map(Math.round))];
+
+  for (const width of [360, 420, 1280]) {
+    test(`at ${width}: two equal columns of five, none truncated, one selected`, async () => {
+      await open({ url: `${PERIODS_URL}/new`, width });
+      await waitUntil(() => options().length === 10, "the ten types");
+      const all = options();
+      const group = FORM()!.querySelector<HTMLElement>('[role="radiogroup"]')!;
+      const labelId = group.getAttribute("aria-labelledby") ?? "";
+      expect(document.getElementById(labelId)?.textContent).toBe("Where is care now?*");
+
+      const rects = all.map((o) => o.box.getBoundingClientRect());
+      const lefts = distinct(rects.map((r) => r.left));
+      expect(lefts).toHaveLength(2);
+      expect(distinct(rects.map((r) => r.width))).toHaveLength(1);
+      // Five rows, each holding one option from each column, in the types' order.
+      const tops = distinct(rects.map((r) => r.top));
+      expect(tops).toHaveLength(5);
+      rects.forEach((r, i) => {
+        expect(Math.round(r.left)).toBe(lefts[i % 2]);
+        expect(Math.round(r.top)).toBe(tops[Math.floor(i / 2)]);
+      });
+      // The group fits the form: no option runs past its right edge.
+      const form = FORM()!.getBoundingClientRect();
+      expect(Math.max(...rects.map((r) => r.right))).toBeLessThanOrEqual(form.right + 0.5);
+
+      for (const { box, radio } of all) {
+        const text = box.querySelector("span")!;
+        expect(text.textContent).toBe(radio.getAttribute("aria-label"));
+        expect(getComputedStyle(text).textOverflow).not.toBe("ellipsis");
+        expect(box.scrollWidth, radio.value).toBeLessThanOrEqual(box.clientWidth);
+        expect(box.scrollHeight, radio.value).toBeLessThanOrEqual(box.clientHeight);
+        const t = text.getBoundingClientRect();
+        const b = box.getBoundingClientRect();
+        expect(t.right, radio.value).toBeLessThanOrEqual(b.right);
+        expect(t.left, radio.value).toBeGreaterThanOrEqual(b.left);
+      }
+
+      // One clear selected state: the chosen box alone changes its fill.
+      const fill = (el: HTMLElement) => getComputedStyle(el).backgroundColor;
+      const hospital = all.find((o) => o.radio.value === "hospital");
+      if (!hospital) throw new Error("no Hospital option");
+      const before = fill(hospital.box);
+      await userEvent.click(hospital.radio);
+      await expect.poll(() => hospital.radio.checked).toBe(true);
+      await expect.poll(() => fill(hospital.box)).not.toBe(before);
+      expect(all.filter((o) => fill(o.box) === fill(hospital.box))).toHaveLength(1);
+    });
+  }
+
+  test("arrow keys move the choice; Other makes the Label field required; the edit value is chosen", async () => {
+    await open({ url: `${PERIODS_URL}/new` });
+    await waitUntil(() => options().length === 10, "the ten types");
+    const labelText = () =>
+      FORM()?.querySelector<HTMLInputElement>('[name="label"]')?.labels?.[0]?.textContent ?? null;
+    expect(labelText()).toBe("Label");
+    await userEvent.click(await found(() => typeRadio("Hospice facility")));
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => typeRadio("Other")?.checked).toBe(true);
+    expect(document.activeElement).toBe(typeRadio("Other"));
+    await expect.poll(labelText).toBe("Label*");
+    await expect.element(page.getByRole("radio", { name: "Other" })).toBeChecked();
+  });
+
+  test("the edit sheet chooses the period's type", async () => {
+    await open({ url: `${PERIODS_URL}/${REHAB.id}/edit` });
+    await waitUntil(() => options().length === 10, "the ten types");
+    expect(
+      options()
+        .filter((o) => o.radio.checked)
+        .map((o) => o.radio.value),
+    ).toEqual(["rehab"]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add sheet marks the type and the start, and the label only for Other; no label says optional", async () => {
+    await open({ url: `${PERIODS_URL}/new` });
+    await waitUntil(() => !!FORM()?.querySelector('input[name="type"]'), "the form");
+    expect(requiredLabels(FORM())).toEqual(["Where is care now?", "Started"]);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => field("label")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>('input[name="type"][value="other"]')),
+    );
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Where is care now?", "Label", "Started"]);
+    await expect.poll(() => field("label")?.getAttribute("aria-required")).toBe("true");
+
+    await userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>('input[name="type"][value="hospital"]')),
+    );
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Where is care now?", "Started"]);
+    expect(saysOptional(FORM())).toBe(false);
   });
 });
 

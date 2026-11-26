@@ -22,7 +22,7 @@ import {
   Sheet,
   TabNav,
 } from "./index";
-import { DateTimeField } from "./date";
+import { DateTimeField, InlineCalendars } from "./date";
 import { buttonClass } from "./buttonClass";
 import { Tooltip } from "./tooltip";
 
@@ -712,6 +712,57 @@ describe("DateTimeField", () => {
       const onChange = await focused("2026-11-18T19:00:00.000Z", "dayPeriod");
       expect(await pressed(onChange, "{ArrowUp}")).toBe("2026-11-19T07:00:00.000Z");
       await expect.poll(shown).toEqual(["11", "PM"]);
+    });
+  });
+
+  describe("the calendar (B-691)", () => {
+    const pick = () => page.getByCss('[aria-label="Pick a date"]');
+    const grid = () => document.querySelector<HTMLElement>("[role=grid]");
+
+    test("in a form, it opens its own popover, outside the form", async () => {
+      await renderInRouter(
+        <form aria-label="Visit">
+          <DateTimeField label="When" name="when" defaultValue="2026-10-15T17:00:00.000Z" timeZone={ZONE} />
+        </form>,
+      );
+      await userEvent.click(pick());
+      await expect.poll(grid).not.toBeNull();
+      const dialog = (await found(grid)).closest("[role=dialog]");
+      expect(dialog).not.toBeNull();
+      expect((await found(() => document.querySelector("form"))).contains(dialog)).toBe(false);
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(grid).toBeNull();
+    });
+
+    test("inside InlineCalendars in a popover: inline, one at a time; Escape closes it, then the popover", async () => {
+      await renderInRouter(
+        <Popover label="Open times" dialogLabel="Times" trigger="Times">
+          <InlineCalendars className="space-y-2">
+            <DateTimeField label="Starts" defaultValue="2026-10-15T17:00:00.000Z" timeZone={ZONE} />
+            <DateTimeField label="Ends" defaultValue="2026-10-15T18:00:00.000Z" timeZone={ZONE} />
+          </InlineCalendars>
+        </Popover>,
+      );
+      await userEvent.click(page.getByRole("button", { name: "Open times" }));
+      const picks = page.getByCss('[aria-label="Pick a date"]');
+      const expanded = (n: number) => picks.nth(n).element().getAttribute("aria-expanded");
+      await expect.poll(() => picks.all().length).toBe(2);
+      await userEvent.click(picks.nth(0));
+      await expect.poll(grid).not.toBeNull();
+      expect(document.querySelectorAll("[role=dialog]")).toHaveLength(1);
+      expect(expanded(0)).toBe("true");
+      // A tap in the calendar is inside the popover: Next month keeps both open.
+      await userEvent.click(page.getByRole("button", { name: "Next month" }));
+      expect(document.querySelectorAll("[role=dialog]")).toHaveLength(1);
+      await userEvent.click(picks.nth(1));
+      await expect.poll(() => expanded(1)).toBe("true");
+      expect(expanded(0)).toBe("false");
+      expect(document.querySelectorAll("[role=grid]")).toHaveLength(1);
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(grid).toBeNull();
+      expect(document.querySelector("[role=dialog]")).not.toBeNull();
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
     });
   });
 

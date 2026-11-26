@@ -8,6 +8,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -38,7 +39,18 @@ import {
   takeLock,
   tidyDue,
 } from "./dispatch.mjs";
+import {
+  STUCK_OPTIONS,
+  STUCK_SESSION,
+  busyUnder,
+  onlyWaits,
+  stuckAnswer,
+  stuckClock,
+  stuckDecision,
+  stuckSettings,
+} from "./dispatch-stuck.mjs";
 import { createRequest } from "./session-requests.mjs";
+import "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -132,7 +144,10 @@ else if (a === "prd" && b === "set") {
   }
   const rows = JSON.parse(readFileSync(file, "utf8"));
   const row = rows.find((r) => r.topic === topic);
-  for (const w of kv) if (w.startsWith("flags=")) row.flags = w.slice(6).split(",").filter(Boolean);
+  for (const w of kv) {
+    if (w.startsWith("flags=")) row.flags = w.slice(6).split(",").filter(Boolean);
+    if (w.startsWith("flags+=")) row.flags = [...new Set([...(row.flags ?? []), ...w.slice(7).split(",")])];
+  }
   writeFileSync(file, JSON.stringify(rows));
 } else process.exit(2);
 `;
@@ -235,19 +250,27 @@ beforeAll(() => {
     "dispatch.mjs",
     "dispatch-pick.mjs",
     "dispatch-context.mjs",
+    "dispatch-stuck.mjs",
     "context.mjs",
+    "heartbeat.mjs",
     "keep-alive.mjs",
     "session-requests.mjs",
     "notices.mjs",
     "asks.mjs",
     "ask.mjs",
     "skeptics.mjs",
+    "doc.mjs",
     "sessions.mjs",
     "captain.mjs",
     "load-gate.mjs",
     "rotate.mjs",
     "open-session.mjs",
     "planner-model.mjs",
+    "config.mjs",
+    "drain.mjs",
+    "usage.mjs",
+    "land-journal.mjs",
+    "resume.mjs",
   ])
     copyFileSync(join(HERE, f), scripts(f));
   writeFileSync(scripts("new.sh"), NEW_SH);
@@ -285,6 +308,13 @@ beforeAll(() => {
     // Off unless a test turns it on, and never the machine's real processes.
     CARETOOK_KEEP_SESSIONS: "off",
     CARETOOK_PROCESS_FILE: join(root, "processes"),
+    // The drain: off unless a test turns it on; never the machine's own readings or landings.
+    CARETOOK_USAGE_WATCH: "off",
+    CARETOOK_USAGE_DIR: "",
+    CARETOOK_USAGE_DRAIN: "",
+    CARETOOK_USAGE_STOP: "",
+    CARETOOK_USAGE_STALE_MIN: "",
+    CARETOOK_LANDING_DIR: "",
     // Off unless a test turns it on; never the machine's own inbox folder or Claude Code files.
     CARETOOK_PICKUP_EVERY: "off",
     CARETOOK_INBOX_DIR: inboxDir,
@@ -736,7 +766,7 @@ describe("deaths and the reopen ask", () => {
     answer("a2", "hold the topic");
     const held = ok();
     expect(held).toContain('ask a2 answered "hold the topic": a flagged hold');
-    expect(calls("backlog")).toEqual(["prd set a flags=hold"]);
+    expect(calls("backlog")).toEqual(["prd set a flags+=hold"]);
     expect(held).toContain("a: on hold; its orchestrator isn't live (not reopened)");
     expect(openCalls()).toHaveLength(6);
     expect(ok()).not.toContain("filed ask");
@@ -798,7 +828,7 @@ describe("deaths and the reopen ask", () => {
 
     const held = ok();
     expect(held).toContain('ask a1 answered "hold the topic": a flagged hold');
-    expect(calls("backlog")).toEqual(["prd set a flags=hold", "prd set a flags=hold"]);
+    expect(calls("backlog")).toEqual(["prd set a flags+=hold", "prd set a flags+=hold"]);
     expect(held).toContain("a: on hold; its orchestrator isn't live (not reopened)");
     expect(dstate()).toMatchObject({ reopens: {}, asked: {} });
     expect(openCalls()).toHaveLength(3);
@@ -922,7 +952,9 @@ describe("the session-request tick", () => {
   });
 
   it("the opened line really starts a recorded session with the brief at the top", () => {
-    for (const f of ["session.sh", "prompt.sh", "lib.sh"]) copyFileSync(join(HERE, f), scripts(f));
+    for (const f of ["session.sh", "prompt.sh", "lib.sh", "config.mjs"])
+      copyFileSync(join(HERE, f), scripts(f));
+    cpSync(join(HERE, "prompts"), scripts("prompts"), { recursive: true });
     const seen = join(root, "claude-args");
     const stub = join(root, "bin", "claude-args");
     writeFileSync(stub, `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > ${seen}\n`);
@@ -1278,5 +1310,819 @@ describe("the pickup", () => {
     expect(ok(["--dry-run"], every)).toContain("pickup: would run pnpm prd dev-sync");
     expect(pickups()).toHaveLength(1);
     expect(dstate().lastPickup).toBeUndefined();
+  });
+});
+
+// ---- the stuck orchestrator (B-408) ------------------------------------------------
+
+describe("the stuck decision", () => {
+  const NOW = Date.parse("2027-01-15T12:00:00Z");
+  const LIMIT = 30 * 60_000;
+  const ago = (min) => new Date(NOW - min * 60_000).toISOString();
+  const sess = (extra = {}) => ({
+    name: "prd-x",
+    pid: 100,
+    kind: "prd",
+    topic: "x",
+    managed: true,
+    auto: true,
+    live: true,
+    ...extra,
+  });
+  const own = (extra = {}) => ({
+    session: "prd-x",
+    pid: 100,
+    agent: null,
+    lastStart: ago(41),
+    lastEnd: ago(40),
+    stoppedAt: ago(40),
+    running: {},
+    ...extra,
+  });
+  const agent = (extra = {}) => ({ ...own(), agent: "a1", stoppedAt: null, ...extra });
+  const decide = (facts = {}) =>
+    stuckDecision({ sessions: [sess()], heartbeats: [own()], limitMs: LIMIT, now: NOW, ...facts });
+  const asks = (facts) => decide(facts).filter((a) => a.type === "ask");
+
+  it("asks once about an orchestrator quiet for the limit, then waits on its question", () => {
+    const [a] = asks();
+    expect(a).toMatchObject({ session: "prd-x", pid: 100, topic: "x", since: Date.parse(ago(40)) });
+    expect(a.text).toMatch(/prd-x looks stuck: no tool call for 40m/);
+    expect(asks({ heartbeats: [own({ lastEnd: ago(29), stoppedAt: ago(29) })] })).toEqual([]);
+    const open = { id: "a1", topic: "x", kind: "question", session: STUCK_SESSION };
+    expect(decide({ entries: { "prd-x": { pid: 100, since: 0, askId: "a1" } }, asks: [open] })).toEqual([]);
+  });
+
+  it("asks about one whose only command is watch --wait (or ask --wait)", () => {
+    const waiting = (command) => own({ running: { t1: { tool: "Bash", at: ago(41), command } } });
+    expect(asks({ heartbeats: [waiting("pnpm prd watch x --wait --timeout 3600")] })).toHaveLength(1);
+    expect(asks({ heartbeats: [waiting("pnpm prd ask --wait a7")] })).toHaveLength(1);
+    expect(asks({ heartbeats: [waiting("pnpm test")] })).toEqual([]);
+    expect(onlyWaits("pnpm prd watch x --json")).toBe(false);
+  });
+
+  it("asks about one whose slice agent is hung: an old unfinished call is no recent heartbeat", () => {
+    const hung = agent({
+      lastStart: ago(90),
+      lastEnd: ago(95),
+      running: { t2: { tool: "Bash", at: ago(90) } },
+    });
+    expect(asks({ heartbeats: [own(), hung] })).toHaveLength(1);
+    // An open Agent call of its own is that agent's to speak for.
+    const call = own({ running: { t3: { tool: "Agent", at: ago(90) } } });
+    expect(asks({ heartbeats: [call, hung] })).toHaveLength(1);
+  });
+
+  it("asks about a watch action unhandled for the limit, though the orchestrator is active", () => {
+    const active = own({ lastEnd: ago(1), stoppedAt: ago(1) });
+    const watch = (since, marks = []) => ({
+      x: { state: { actions: { 2: { action: "restart", since } } }, marks },
+    });
+    const [a] = asks({ heartbeats: [active], watch: watch(ago(35)) });
+    expect(a.text).toContain("slice 2's watch action (restart) has waited 35m unhandled");
+    expect(asks({ heartbeats: [active], watch: watch(ago(20)) })).toEqual([]);
+    // A mark for that slice since the action handled it.
+    expect(asks({ heartbeats: [active], watch: watch(ago(35), [{ slice: "2", at: ago(30) }]) })).toEqual([]);
+    expect(asks({ heartbeats: [active], watch: watch(ago(35), [{ slice: "3", at: ago(30) }]) })).toHaveLength(
+      1,
+    );
+  });
+
+  it("asks nothing with a recent agent heartbeat, a running command or an open question", () => {
+    expect(asks({ heartbeats: [own(), agent({ lastStart: ago(5), lastEnd: ago(5) })] })).toEqual([]);
+    expect(asks({ running: new Set(["prd-x"]) })).toEqual([]);
+    expect(
+      asks({
+        heartbeats: [own({ running: { t1: { tool: "Bash", at: ago(41), command: "pnpm prd land x" } } })],
+      }),
+    ).toEqual([]);
+    const question = { id: "a4", topic: "x", kind: "question", session: "prd-x" };
+    expect(asks({ asks: [question] })).toEqual([]);
+    expect(asks({ asks: [{ ...question, answeredAt: ago(2), answer: "yes" }] })).toHaveLength(1);
+    expect(asks({ asks: [{ ...question, topic: "y" }] })).toHaveLength(1);
+  });
+
+  it("leaves alone a session with no heartbeat ever, or another pid's", () => {
+    expect(decide({ heartbeats: [] })).toEqual([]);
+    expect(decide({ heartbeats: [own({ pid: 99 })] })).toEqual([]);
+    expect(decide({ heartbeats: [agent()] })).toEqual([]);
+  });
+
+  it("ignores a session opened by hand, a planner, a dead or rotating one", () => {
+    for (const extra of [
+      { managed: false },
+      { auto: false },
+      { kind: "plan" },
+      { live: false },
+      { rotating: true },
+    ])
+      expect(decide({ sessions: [sess(extra)] })).toEqual([]);
+  });
+
+  it("a tick gap resets the clocks", () => {
+    const gap = stuckSettings({}).gapMs;
+    expect(gap).toBe(600_000);
+    expect(stuckSettings({}, 300).gapMs).toBe(900_000);
+    expect(stuckSettings({ CARETOOK_STUCK_MIN: "5" }).limitMs).toBe(300_000);
+    expect(stuckClock(undefined, NOW, gap)).toBeNull();
+    expect(stuckClock({ lastTickAt: NOW - 60_000 }, NOW, gap)).toBeNull();
+    expect(stuckClock({ lastTickAt: NOW - gap - 1 }, NOW, gap)).toBe(NOW);
+    expect(stuckClock({ lastTickAt: NOW - 60_000, clockFrom: NOW - 3_600_000 }, NOW, gap)).toBe(
+      NOW - 3_600_000,
+    );
+    expect(asks({ clockFrom: NOW - 10 * 60_000 })).toEqual([]);
+    const watch = { x: { state: { actions: { 2: { action: "nudge", since: ago(90) } } }, marks: [] } };
+    expect(asks({ heartbeats: [own({ lastEnd: ago(1) })], watch, clockFrom: NOW - 10 * 60_000 })).toEqual([]);
+    expect(asks({ clockFrom: NOW - 31 * 60_000 })).toHaveLength(1);
+  });
+
+  it("several going quiet together raise one report and no question", () => {
+    const y = sess({ name: "prd-y", pid: 200, topic: "y" });
+    const yBeat = own({ session: "prd-y", pid: 200, lastEnd: ago(50), stoppedAt: ago(50) });
+    const facts = { sessions: [sess(), y], heartbeats: [own(), yBeat] };
+    const out = decide(facts);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ type: "report", sessions: ["prd-x", "prd-y"] });
+    expect(out[0].text).toContain("went quiet together");
+    expect(decide({ ...facts, reported: [out[0].key] })).toEqual([]);
+    // Quiet far apart: each its own question.
+    const far = own({
+      session: "prd-y",
+      pid: 200,
+      lastEnd: ago(200),
+      stoppedAt: ago(200),
+      lastStart: ago(200),
+    });
+    expect(asks({ ...facts, heartbeats: [own(), far] }).map((a) => a.session)).toEqual(["prd-x", "prd-y"]);
+  });
+
+  it("each answer does what it says", () => {
+    expect(stuckAnswer(STUCK_OPTIONS[0])).toBe("rotate");
+    expect(stuckAnswer("1")).toBe("rotate");
+    expect(stuckAnswer(STUCK_OPTIONS[1])).toBe("leave");
+    expect(stuckAnswer("who knows")).toBe("leave");
+    const entry = (extra = {}) => ({ "prd-x": { pid: 100, since: 0, askId: "a1", ...extra } });
+    const q = (extra = {}) => [{ id: "a1", topic: "x", kind: "question", session: STUCK_SESSION, ...extra }];
+    expect(decide({ entries: entry(), asks: q({ answeredAt: ago(1), answer: STUCK_OPTIONS[0] }) })).toEqual([
+      { type: "answered", session: "prd-x", answer: "rotate", askId: "a1" },
+      { type: "rotate", session: "prd-x", pid: 100, topic: "x" },
+    ]);
+    expect(decide({ entries: entry(), asks: q({ answeredAt: ago(1), answer: STUCK_OPTIONS[1] }) })).toEqual([
+      { type: "answered", session: "prd-x", answer: "leave", askId: "a1" },
+    ]);
+    expect(decide({ entries: entry(), asks: q({ doneAt: ago(1) }) })).toEqual([
+      { type: "answered", session: "prd-x", answer: "leave", askId: "a1" },
+    ]);
+    expect(decide({ entries: entry({ answer: "leave" }) })).toEqual([]);
+    expect(decide({ entries: entry({ answer: "rotate", triedAt: NOW - 60_000 }) })).toEqual([]);
+    expect(decide({ entries: entry({ answer: "rotate", triedAt: NOW - LIMIT }) })).toEqual([
+      { type: "rotate", session: "prd-x", pid: 100, topic: "x" },
+    ]);
+    // The stall over: its entry clears and its open question is dismissed.
+    const active = own({ lastEnd: ago(1) });
+    expect(decide({ heartbeats: [active], entries: entry(), asks: q() })).toEqual([
+      { type: "clear", session: "prd-x", askId: "a1" },
+    ]);
+    expect(
+      decide({ sessions: [sess({ pid: 101 })], heartbeats: [], entries: entry({ answer: "leave" }) }),
+    ).toEqual([{ type: "clear", session: "prd-x", askId: null }]);
+  });
+
+  it("a paused dispatcher does nothing", () => {
+    expect(decide({ paused: true })).toEqual([]);
+  });
+
+  it("counts a pnpm prd command under the session as running, a wait not", () => {
+    const table = (args) =>
+      new Map([
+        [100, { ppid: 1, args: "claude pnpm prd land x" }],
+        [101, { ppid: 100, args: "bash -c x" }],
+        [102, { ppid: 101, args }],
+      ]);
+    expect(busyUnder(100, table("pnpm prd land x"))).toBe(true);
+    expect(busyUnder(100, table("bash scripts/loops/prd.sh check --quick"))).toBe(true);
+    expect(busyUnder(100, table("pnpm prd watch x --wait"))).toBe(false);
+    expect(busyUnder(100, table("pnpm prd ask --wait a3"))).toBe(false);
+    expect(busyUnder(100, table("sleep 60"))).toBe(false);
+  });
+});
+
+const ROTATE_SH = `#!/usr/bin/env bash
+echo "$*" >> "$STUB_STATE/rotate.calls"
+[[ ! -e $STUB_STATE/refuse ]] || { echo "rotate: plan has uncommitted changes" >&2; exit 1; }
+echo "rotating"
+`;
+
+describe("the stuck tick", () => {
+  let procs = [];
+  const heartbeats = () => join(loops, ".heartbeat");
+  const iso = (secs) => new Date(secs * 1000).toISOString();
+  /** A live, managed, run-through orchestrator on a real process. */
+  const liveOrchestrator = (script = "while :; do sleep 1; done", extra = {}) => {
+    const child = spawn("bash", ["-c", script], { detached: true, stdio: "ignore" });
+    procs.push(child);
+    mkdirSync(sessions, { recursive: true });
+    writeFileSync(
+      join(sessions, "prd-x.json"),
+      JSON.stringify({
+        pid: child.pid,
+        kind: "prd",
+        topic: "x",
+        managed: true,
+        auto: true,
+        started: new Date().toISOString(),
+        ...extra,
+      }),
+    );
+    return child.pid;
+  };
+  const beat = (pid, lastSecs, file = "session.json", extra = {}) => {
+    mkdirSync(join(heartbeats(), "prd-x"), { recursive: true });
+    writeFileSync(
+      join(heartbeats(), "prd-x", file),
+      JSON.stringify({
+        session: "prd-x",
+        pid,
+        agent: file === "session.json" ? null : file.replace(/\.json$/, ""),
+        lastStart: iso(lastSecs),
+        lastEnd: iso(lastSecs),
+        stoppedAt: null,
+        running: {},
+        ...extra,
+      }),
+    );
+  };
+  const stuckAsks = () =>
+    readdirSync(asks)
+      .map((f) => askFile(f.replace(/\.json$/, "")))
+      .filter((a) => a.session === STUCK_SESSION);
+  const tryAsks = () => (existsSync(asks) ? stuckAsks() : []);
+
+  beforeAll(() => writeFileSync(scripts("rotate.sh"), ROTATE_SH));
+  beforeEach(() => {
+    for (const d of [heartbeats(), join(loops, ".watch")]) rmSync(d, { recursive: true, force: true });
+  });
+  afterEach(() => {
+    for (const c of procs)
+      try {
+        process.kill(-c.pid, "SIGKILL");
+      } catch {
+        /* gone */
+      }
+    procs = [];
+  });
+
+  it("files one waiting question under its own session, pushes it, and asks once per stall", () => {
+    const pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    expect(ok()).toContain("stuck: prd-x asked (");
+    const [a] = stuckAsks();
+    expect(a).toMatchObject({ kind: "question", topic: "x", options: STUCK_OPTIONS, defaults: false });
+    expect(a.text).toContain("prd-x looks stuck");
+    expect(openCalls().filter((c) => c.includes(HELPER_SESSION))).toHaveLength(1);
+    expect(dstate().stuck.sessions["prd-x"]).toMatchObject({ pid, askId: a.id });
+    setClock(T0 + 60);
+    ok();
+    // Never defaults, however long it waits.
+    setClock(T0 + 24 * 3600);
+    writeFileSync(
+      join(loops, ".dispatch.json"),
+      JSON.stringify({ ...dstate(), stuck: { ...dstate().stuck, lastTickAt: (T0 + 24 * 3600 - 60) * 1000 } }),
+    );
+    ok();
+    expect(stuckAsks()).toHaveLength(1);
+    expect(askFile(a.id).answeredAt).toBeFalsy();
+  });
+
+  it('rotates mid-wave on "rotate it now"; a refusal files one report', () => {
+    const pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    ok();
+    writeFileSync(join(state, "refuse"), "");
+    answer(stuckAsks()[0].id, STUCK_OPTIONS[0]);
+    setClock(T0 + 60);
+    expect(ok()).toContain("stuck: rotating prd-x was refused");
+    setClock(T0 + 120);
+    ok();
+    expect(calls("rotate")).toEqual(["x --mid-wave --reason stuck"]);
+    const reports = stuckAsks().filter((a) => a.kind === "report");
+    expect(reports).toHaveLength(1);
+    expect(reports[0].text).toContain("its rotation was refused");
+    rmSync(join(state, "refuse"));
+    setClock(T0 + 60 + 30 * 60);
+    writeFileSync(
+      join(loops, ".dispatch.json"),
+      JSON.stringify({ ...dstate(), stuck: { ...dstate().stuck, lastTickAt: (T0 + 30 * 60) * 1000 } }),
+    );
+    expect(ok()).toContain("stuck: prd-x rotating");
+    expect(calls("rotate")).toHaveLength(2);
+    expect(stuckAsks().filter((a) => a.kind === "report")).toHaveLength(1);
+  });
+
+  it('"leave it" leaves that stall alone; a stall that ends clears it', () => {
+    const pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    ok();
+    answer(stuckAsks()[0].id, STUCK_OPTIONS[1]);
+    setClock(T0 + 60);
+    expect(ok()).toContain("means leave it for prd-x");
+    setClock(T0 + 120);
+    ok();
+    expect(calls("rotate")).toEqual([]);
+    expect(stuckAsks()).toHaveLength(1);
+    beat(pid, T0 + 100);
+    setClock(T0 + 180);
+    expect(ok()).toContain("stuck: prd-x cleared");
+    expect(dstate().stuck.sessions["prd-x"]).toBeUndefined();
+  });
+
+  it("asks about one whose only command under it is watch --wait; a pnpm prd command holds it", async () => {
+    const waiting = liveOrchestrator(`bash -c "while :; do sleep 1; done # pnpm prd watch x --wait"; true`);
+    beat(waiting, T0 - 40 * 60);
+    await until(() => {
+      try {
+        return execFileSync("pgrep", ["-P", String(waiting)], { encoding: "utf8" }).trim() !== "";
+      } catch {
+        return false;
+      }
+    });
+    expect(ok()).toContain("stuck: prd-x asked");
+    for (const c of procs) process.kill(-c.pid, "SIGKILL");
+    procs = [];
+    rmSync(join(loops, ".dispatch.json"), { force: true });
+    rmSync(asks, { recursive: true, force: true });
+    const landing = liveOrchestrator(`bash -c "while :; do sleep 1; done # pnpm prd land x"; true`);
+    beat(landing, T0 - 40 * 60);
+    await until(() => {
+      try {
+        return execFileSync("pgrep", ["-P", String(landing)], { encoding: "utf8" }).trim() !== "";
+      } catch {
+        return false;
+      }
+    });
+    expect(ok()).not.toContain("stuck:");
+    expect(tryAsks()).toEqual([]);
+  });
+
+  it("asks about a hung slice agent's session and a watch action left unhandled, from their files", () => {
+    const pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    beat(pid, T0 - 90 * 60, "a1.json", { running: { t1: { tool: "Bash", at: iso(T0 - 90 * 60) } } });
+    expect(ok()).toContain("stuck: prd-x asked");
+    rmSync(join(loops, ".dispatch.json"), { force: true });
+    rmSync(asks, { recursive: true, force: true });
+    beat(pid, T0 - 60);
+    mkdirSync(join(loops, ".watch", "x"), { recursive: true });
+    writeFileSync(
+      join(loops, ".watch", "x", "state.json"),
+      JSON.stringify({ actions: { 2: { action: "restart", since: iso(T0 - 35 * 60) } } }),
+    );
+    expect(ok()).toContain("stuck: prd-x asked");
+    expect(stuckAsks()[0].text).toContain("slice 2's watch action (restart)");
+  });
+
+  it("leaves alone a recent agent, no heartbeat ever, a session opened by hand, and a paused dispatcher", () => {
+    let pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    beat(pid, T0 - 5 * 60, "a1.json");
+    expect(ok()).not.toContain("stuck:");
+    rmSync(heartbeats(), { recursive: true, force: true });
+    expect(ok()).not.toContain("stuck:");
+    pid = liveOrchestrator(undefined, { managed: false });
+    beat(pid, T0 - 40 * 60);
+    expect(ok()).not.toContain("stuck:");
+    pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    ok(["--pause", "t"]);
+    setClock(T0 + 60);
+    expect(ok()).not.toContain("stuck:");
+    expect(tryAsks()).toEqual([]);
+    // A paused tick writes nothing, its clocks neither.
+    expect(dstate().stuck).toEqual({ lastTickAt: T0 * 1000, clockFrom: null });
+  });
+
+  it("a tick gap resets the clocks: the stall counts again from the wake", () => {
+    const pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    writeFileSync(
+      join(loops, ".dispatch.json"),
+      JSON.stringify({ stuck: { lastTickAt: (T0 - 3600) * 1000 } }),
+    );
+    expect(ok()).not.toContain("stuck:");
+    expect(dstate().stuck.clockFrom).toBe(T0 * 1000);
+    setClock(T0 + 29 * 60);
+    for (let t = 60; t <= 29 * 60; t += 290) {
+      setClock(T0 + t);
+      expect(ok()).not.toContain("stuck:");
+    }
+    setClock(T0 + 30 * 60);
+    expect(ok()).toContain("stuck: prd-x asked");
+  });
+
+  it("several going quiet together raise one report and no question", () => {
+    const pid = liveOrchestrator();
+    beat(pid, T0 - 40 * 60);
+    const child = spawn("bash", ["-c", "while :; do sleep 1; done"], { detached: true, stdio: "ignore" });
+    procs.push(child);
+    writeFileSync(
+      join(sessions, "prd-y.json"),
+      JSON.stringify({
+        pid: child.pid,
+        kind: "prd",
+        topic: "y",
+        managed: true,
+        auto: true,
+        started: new Date().toISOString(),
+      }),
+    );
+    mkdirSync(join(heartbeats(), "prd-y"), { recursive: true });
+    writeFileSync(
+      join(heartbeats(), "prd-y", "session.json"),
+      JSON.stringify({
+        session: "prd-y",
+        pid: child.pid,
+        agent: null,
+        lastEnd: iso(T0 - 45 * 60),
+        running: {},
+      }),
+    );
+    expect(ok()).toContain("stuck: reported prd-x, prd-y quiet together");
+    setClock(T0 + 60);
+    ok();
+    const all = stuckAsks();
+    expect(all).toHaveLength(1);
+    expect(all[0]).toMatchObject({ kind: "report" });
+    expect(all[0].text).toContain("prd-x, prd-y went quiet together");
+  });
+});
+
+describe("the drain", () => {
+  let procs = [];
+  const usageDir = () => join(loops, ".usage");
+  const on = { CARETOOK_USAGE_WATCH: "" };
+  /** A current reading (by the fake clock) of the 5-hour window, from a session of its own. */
+  const reading = (percent, resetSecs = T0 + 3600) => {
+    mkdirSync(usageDir(), { recursive: true });
+    writeFileSync(
+      join(usageDir(), "reader.json"),
+      JSON.stringify({
+        session: "reader",
+        windows: {
+          fiveHour: {
+            percent,
+            at: new Date(T0 * 1000).toISOString(),
+            resetsAt: new Date(resetSecs * 1000).toISOString(),
+          },
+        },
+      }),
+    );
+  };
+  const readingOf = (name) => JSON.parse(readFileSync(join(usageDir(), `${name}.json`), "utf8"));
+  /** A live session on a real process (a bash loop standing in for claude). */
+  const liveSession = (name, { managed = true, script = "while :; do sleep 0.2; done", ...extra } = {}) => {
+    const child = spawn("bash", ["-c", script], { detached: true, stdio: "ignore" });
+    procs.push(child);
+    mkdirSync(sessions, { recursive: true });
+    writeFileSync(
+      join(sessions, `${name}.json`),
+      JSON.stringify({ pid: child.pid, managed, started: new Date().toISOString(), ...extra }),
+    );
+    return child;
+  };
+  const gone = (child) => child.exitCode !== null || child.signalCode !== null;
+  const drainAsks = () =>
+    existsSync(asks)
+      ? readdirSync(asks)
+          .map((f) => askFile(f.replace(/\.json$/, "")))
+          .filter((a) => a.session === "dispatch-usage")
+      : [];
+
+  beforeEach(() => {
+    rmSync(usageDir(), { recursive: true, force: true });
+    rmSync(join(loops, ".landing"), { recursive: true, force: true });
+  });
+  afterEach(() => {
+    for (const c of procs)
+      try {
+        process.kill(-c.pid, "SIGKILL");
+      } catch {
+        /* gone */
+      }
+    procs = [];
+  });
+
+  it("draining: no start, plan or reopen, and --resume doesn't override it; CARETOOK_USAGE_WATCH=off does", () => {
+    reading(96);
+    worktree("d", "prd/d");
+    deadRecord("prd-d", { kind: "prd", topic: "d" });
+    setRows([
+      { topic: "a", state: "planned" },
+      { topic: "p", state: "to-write", waiting: 2 },
+      { topic: "d", state: "running" },
+    ]);
+    const out = ok(["--once"], on);
+    expect(out).toMatch(/^\S+Z nothing: usage is draining: 5h 96%, at or over the drain line 95% \(until /);
+    expect(out).toContain("  a: no start while usage is draining");
+    expect(out).toContain("  p: no plan while usage is draining");
+    expect(out).toContain("  d: its orchestrator died; not reopened while usage is draining");
+    expect(out).toContain("usage: now draining: 5h 96%");
+    ok(["--resume"]);
+    expect(ok(["--once"], on)).toMatch(/^\S+Z nothing: usage is draining/);
+    expect(calls("new")).toEqual([]);
+    expect(openCalls()).toEqual([]);
+    expect(dstate().drain).toMatchObject({ state: "draining" });
+    // Off: the reopen goes ahead.
+    expect(ok(["--once"])).toMatch(/^\S+Z reopen prd-d/);
+  });
+
+  it("draining ends nothing, and a session in a landing is never stopped", () => {
+    reading(96);
+    const s = liveSession("prd-x", { kind: "prd", topic: "x" });
+    const l = liveSession("prd-y", {
+      kind: "prd",
+      topic: "y",
+      script: "exec -a land.sh bash -c 'while :; do sleep 0.2; done'",
+    });
+    ok(["--once"], on);
+    expect(gone(s) || gone(l)).toBe(false);
+    expect(existsSync(join(usageDir(), "prd-x.json"))).toBe(false);
+  });
+
+  it("limited: ends each managed session (marked stalled), one in a landing only after it finishes; reports the hand-opened once", async () => {
+    reading(99);
+    const x = liveSession("prd-x", { kind: "prd", topic: "x" });
+    const kept = liveSession("backlog", { kind: "backlog" });
+    // The landing: a land.sh under the session (as `pnpm prd land` runs it), until a file says stop.
+    const stop = join(root, "landing-done");
+    rmSync(stop, { force: true });
+    writeFileSync(join(root, "land.sh"), `while [[ ! -e ${stop} ]]; do sleep 0.2; done\n`);
+    const y = liveSession("prd-y", {
+      kind: "prd",
+      topic: "y",
+      script: `bash ${join(root, "land.sh")}; while :; do sleep 0.2; done`,
+    });
+    const hand = liveSession("hotfix-h", { managed: false, kind: "hotfix" });
+    const landing = () =>
+      execFileSync("ps", ["-A", "-o", "args="], { encoding: "utf8" })
+        .split("\n")
+        .some((l) => l.trim() === `bash ${join(root, "land.sh")}`);
+    await until(landing);
+
+    const first = ok(["--once"], on);
+    expect(first).toMatch(/^\S+Z nothing: usage is limited: 5h 99%, at or over the stop line 98%/);
+    expect(first).toMatch(new RegExp(`usage limited: ended prd-x \\(pid ${x.pid}, TERM; marked stalled\\)`));
+    expect(first).toContain("usage limited: ended backlog");
+    expect(first).toContain(
+      "usage limited: prd-y left running (it runs a landing: ended once that finishes)",
+    );
+    expect(first).toContain("usage limited: reported hotfix-h (opened by hand, never ended)");
+    await until(() => gone(x) && gone(kept));
+    expect(readingOf("prd-x").stalled).toMatchObject({
+      error: "limited",
+      pid: x.pid,
+      resetsAt: new Date((T0 + 3600) * 1000).toISOString(),
+    });
+    expect(gone(y) || gone(hand)).toBe(false);
+    const [report] = drainAsks();
+    expect(report).toMatchObject({ kind: "report" });
+    expect(report.text).toContain("never ends one opened by hand: hotfix-h is still live");
+
+    // The next tick: the landing still runs, and the report isn't filed again.
+    setClock(T0 + 60);
+    expect(ok(["--once"], on)).toContain("prd-y left running");
+    expect(drainAsks()).toHaveLength(1);
+    expect(gone(y)).toBe(false);
+
+    // Its landing over, the session is ended; the hand-opened one never is.
+    writeFileSync(stop, "");
+    await until(() => !landing());
+    setClock(T0 + 120);
+    expect(ok(["--once"], on)).toMatch(new RegExp(`usage limited: ended prd-y \\(pid ${y.pid}`));
+    await until(() => gone(y));
+    expect(gone(hand)).toBe(false);
+    expect(drainAsks()).toHaveLength(1);
+  });
+
+  it("limited on overage, and a session that ignores TERM is killed a tick later", async () => {
+    reading(100);
+    const x = liveSession("prd-x", {
+      kind: "prd",
+      topic: "x",
+      script: "trap '' TERM; while :; do sleep 0.2; done",
+    });
+    expect(ok(["--once"], on)).toMatch(/usage limited: ended prd-x/);
+    setClock(T0 + 1);
+    expect(ok(["--once"], on)).toContain("prd-x left running (sent TERM; waiting for it to end)");
+    expect(gone(x)).toBe(false);
+    setClock(T0 + 60);
+    expect(ok(["--once"], on)).toContain(`usage limited: prd-x ignored TERM: killed it (pid ${x.pid})`);
+    await until(() => gone(x));
+  });
+
+  it("nothing opens a claude while limited: no reopen ask's helper, keep-alive, session request or probe", () => {
+    reading(99);
+    const claudeCalls = join(state, "claude.calls");
+    const claude = join(root, "claude-recording");
+    writeFileSync(claude, `#!/usr/bin/env bash\necho "$*" >> ${claudeCalls}\n`);
+    chmodSync(claude, 0o755);
+    worktree("d", "prd/d");
+    deadRecord("prd-d", { kind: "prd", topic: "d" });
+    setRows([{ topic: "d", state: "running" }]);
+    createRequest(join(loops, ".requests"), { name: "notes", now: T0 * 1000 });
+    const extra = { ...on, CARETOOK_CLAUDE_BIN: claude, CARETOOK_KEEP_SESSIONS: "" };
+    // Past the reopen limit: a normal tick would file an ask and open its helper.
+    writeFileSync(join(loops, ".dispatch.json"), JSON.stringify({ reopens: { "prd-d": 2 } }));
+    for (let t = 0; t < 3; t++) {
+      setClock(T0 + 60 * t);
+      ok(["--once"], extra);
+    }
+    expect(openCalls()).toEqual([]);
+    expect(existsSync(claudeCalls)).toBe(false);
+  });
+
+  it("an unknown reading doesn't drain, and files one report while sessions are live", () => {
+    liveSession("prd-x", { kind: "prd", topic: "x" });
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], on);
+    expect(out).toMatch(/^\S+Z start a:/);
+    expect(out).toContain("usage: reported an unknown reading");
+    setClock(T0 + 60);
+    expect(ok(["--once"], on)).not.toContain("reported an unknown reading");
+    const reports = drainAsks();
+    expect(reports).toHaveLength(1);
+    expect(reports[0].text).toContain("The usage reading is unknown");
+  });
+
+  describe("the resume after a limit", () => {
+    /** A stall whose reset passed a minute ago (by the fake clock). */
+    const stalled = (name, extra = {}) => {
+      mkdirSync(usageDir(), { recursive: true });
+      writeFileSync(
+        join(usageDir(), `${name}.json`),
+        JSON.stringify({
+          session: name,
+          windows: {},
+          stalled: {
+            at: new Date((T0 - 7200) * 1000).toISOString(),
+            error: "limited",
+            resetsAt: new Date((T0 - 60) * 1000).toISOString(),
+            pid: 999_999,
+            ...extra,
+          },
+        }),
+      );
+    };
+    const claimed = () => dstate().resume?.claimed ?? {};
+    const hasChild = (child) => {
+      try {
+        return execFileSync("pgrep", ["-P", String(child.pid)], { encoding: "utf8" }).trim() !== "";
+      } catch {
+        return false;
+      }
+    };
+
+    it("reopens a stalled managed session with --continue and the carry-on prompt, one per tick, never counted", () => {
+      reading(10);
+      worktree("a", "prd/a");
+      worktree("b", "prd/b");
+      deadRecord("prd-a", { kind: "prd", topic: "a" });
+      deadRecord("prd-b", { kind: "prd", topic: "b" });
+      stalled("prd-a");
+      stalled("prd-b");
+      setRows([
+        { topic: "a", state: "running" },
+        { topic: "b", state: "running" },
+        { topic: "n", state: "planned" },
+      ]);
+      // At the reopen limit: an ordinary reopen would be an ask.
+      writeFileSync(join(loops, ".dispatch.json"), JSON.stringify({ reopens: { "prd-a": 2 } }));
+      const first = ok(["--once"], on);
+      expect(first).toMatch(
+        /^\S+Z resume prd-a: stopped on a usage limit that has reset: --continue with the carry-on prompt \(not counted toward the reopen limit\)/,
+      );
+      expect(first).toContain("  n: waits a tick: the resume of prd-a goes first");
+      expect(first).toContain(
+        "  b: its orchestrator stopped on a usage limit: the resume brings it back (not counted)",
+      );
+      expect(first).toContain("resume: claimed prd-a (stalled on a limit, limited; its reset has passed)");
+      expect(first).toContain("resume: prd-b waits (one resume a tick: prd-a first)");
+      expect(openCalls()).toEqual([["a", "--background", "--carry-on"]]);
+      expect(calls("new")).toEqual([]);
+      expect(dstate().reopens).toEqual({ "prd-a": 2 });
+      expect(Object.keys(claimed())).toEqual(["prd-b"]);
+      expect(readingOf("prd-a").stalled).toBeUndefined();
+      expect(readingOf("prd-b").stalled).toBeUndefined();
+      expect(drainAsks()).toEqual([]);
+
+      // The next tick: prd-a is up; prd-b's turn, still uncounted.
+      liveSession("prd-a", { kind: "prd", topic: "a" });
+      setClock(T0 + 60);
+      expect(ok(["--once"], on)).toMatch(/^\S+Z resume prd-b:/);
+      expect(openCalls()).toEqual([
+        ["a", "--background", "--carry-on"],
+        ["b", "--background", "--carry-on"],
+      ]);
+      expect(claimed()).toEqual({});
+      // prd-b's resume added no count (prd-a's went with its recovery: live for REOPEN_RESET_MS).
+      expect(dstate().reopens?.["prd-b"]).toBeUndefined();
+
+      // Nothing left: the pick goes on as usual.
+      liveSession("prd-b", { kind: "prd", topic: "b" });
+      setClock(T0 + 120);
+      expect(ok(["--once"], on)).toMatch(/^\S+Z start n:/);
+    });
+
+    it("waits until the reset, and a tab that never opens keeps the claim", () => {
+      reading(10);
+      worktree("a", "prd/a");
+      deadRecord("prd-a", { kind: "prd", topic: "a" });
+      setRows([{ topic: "a", state: "running" }]);
+      stalled("prd-a", { resetsAt: new Date((T0 + 600) * 1000).toISOString() });
+      const before = ok(["--once"], on);
+      expect(before).toMatch(/^\S+Z nothing: usage is limited: stopped on a limit: prd-a/);
+      expect(openCalls()).toEqual([]);
+      setClock(T0 + 660);
+      const failed = ok(["--once"], { ...on, STUB_OPEN_FAIL: "--carry-on" });
+      expect(failed).toMatch(/^\S+Z resume prd-a:/);
+      expect(failed).toMatch(/prd-a: its tab never opened .*a later tick retries/);
+      expect(Object.keys(claimed())).toEqual(["prd-a"]);
+      setClock(T0 + 720);
+      expect(ok(["--once"], on)).toMatch(/^\S+Z resume prd-a:/);
+      expect(openCalls()).toHaveLength(2);
+      expect(dstate().reopens ?? {}).toEqual({});
+    });
+
+    it("leaves alone a session in a pnpm prd command or with a landing marker; ends a live one, then resumes it", async () => {
+      reading(10);
+      for (const t of ["a", "b", "c"]) worktree(t, `prd/${t}`);
+      setRows(["a", "b", "c"].map((topic) => ({ topic, state: "running" })));
+      const busy = liveSession("prd-a", {
+        kind: "prd",
+        topic: "a",
+        script: `bash -c "while :; do sleep 0.2; done # pnpm prd check x"; true`,
+      });
+      await until(() => hasChild(busy));
+      deadRecord("prd-b", { kind: "prd", topic: "b" });
+      mkdirSync(join(loops, ".landing"), { recursive: true });
+      writeFileSync(
+        join(loops, ".landing", "prd-b.json"),
+        JSON.stringify({ branch: "prd/b", path: "pr", step: "dev-sync", tip: "abc", pid: 999_999 }),
+      );
+      const idle = liveSession("prd-c", { kind: "prd", topic: "c" });
+      for (const n of ["prd-a", "prd-b", "prd-c"]) stalled(n, { pid: null });
+
+      const first = ok(["--once"], on);
+      expect(first).toContain("resume: prd-a waits (it runs a pnpm prd command)");
+      expect(first).toContain("resume: prd-b waits (it has a landing marker: a landing first)");
+      expect(first).toMatch(
+        new RegExp(`resume: ended prd-c \\(pid ${idle.pid}, TERM\\): resumed once it has ended`),
+      );
+      expect(openCalls()).toEqual([]);
+      await until(() => gone(idle));
+      expect(gone(busy)).toBe(false);
+
+      setClock(T0 + 60);
+      const second = ok(["--once"], on);
+      expect(second).toMatch(/^\S+Z resume prd-c:/);
+      expect(second).toContain("resume: prd-a waits (it runs a pnpm prd command)");
+      expect(second).toContain("resume: prd-b waits (it has a landing marker: a landing first)");
+      expect(openCalls()).toEqual([["c", "--background", "--carry-on"]]);
+      expect(gone(busy)).toBe(false);
+      expect(Object.keys(claimed()).sort()).toEqual(["prd-a", "prd-b"]);
+    });
+
+    it("a hand-opened session is only reported, once", () => {
+      reading(10);
+      worktree("h", "prd/h");
+      setRows([{ topic: "h", state: "running" }]);
+      const hand = liveSession("prd-h", { managed: false, kind: "prd", topic: "h" });
+      stalled("prd-h", { error: "rate_limit", pid: hand.pid });
+      const out = ok(["--once"], on);
+      expect(out).toContain("resume: reported prd-h (opened by hand, never resumed)");
+      setClock(T0 + 60);
+      expect(ok(["--once"], on)).not.toContain("resume:");
+      expect(openCalls()).toEqual([]);
+      expect(gone(hand)).toBe(false);
+      const reports = drainAsks();
+      expect(reports).toHaveLength(1);
+      expect(reports[0].text).toMatch(
+        /^prd-h stopped on a usage limit that has now reset\. .*never one opened by hand/,
+      );
+      expect(claimed()).toEqual({});
+    });
+
+    it("--dry-run claims, clears and opens nothing", () => {
+      reading(10);
+      worktree("a", "prd/a");
+      deadRecord("prd-a", { kind: "prd", topic: "a" });
+      setRows([{ topic: "a", state: "running" }]);
+      stalled("prd-a");
+      const out = ok(["--dry-run"], on);
+      expect(out).toMatch(/^resume prd-a:/);
+      expect(out).toContain("resume: would claim prd-a");
+      expect(openCalls()).toEqual([]);
+      expect(readingOf("prd-a").stalled).toBeTruthy();
+      expect(existsSync(join(loops, ".dispatch.json"))).toBe(false);
+    });
   });
 });

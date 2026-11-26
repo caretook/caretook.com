@@ -1,29 +1,32 @@
-import type { FilterMenuProps } from "~/components/ui";
+import type { FilterMenuProps, SearchFilterBarProps } from "~/components/ui";
 import type { TodoWho } from "~/lib/todos/todoList";
 
-import { useMemo } from "react";
-import { useLocation } from "react-router";
-import { FilterMenu, FilterMenuChips } from "~/components/ui";
-import { clearWho, DEFAULT_WHO, setWho, TODO_WHO, WHO_LABELS } from "~/lib/todos/todoList";
+import { clearWho, DEFAULT_WHO, setTodoQuery, setWho, TODO_WHO, WHO_LABELS } from "~/lib/todos/todoList";
 
 /**
- * The Todos tab's filter: a row under the tabs with the Filter button at its
- * right end, and the chip of the filter on beneath. One section, "Assigned
+ * The Todos tab's search and filter bar (the Planner's header puts it under
+ * the tabs): the search box, and the Filter menu with one section, "Assigned
  * to": Everyone (the default, no `?who=`: no count, no chip), Mine or
  * Unassigned (`?who=`, so a reload keeps it).
  */
-export function TodoFilterRow({ who }: { who: TodoWho }) {
-  const { search } = useLocation();
-  const filters = useMemo(() => todoFilterMenu(search, who), [search, who]);
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-end">
-        <FilterMenu {...filters} />
-      </div>
-      <FilterMenuChips {...filters} />
-    </div>
-  );
-}
+export const todoFilterBar = ({
+  who,
+  value,
+  urlQuery,
+  onChange,
+}: {
+  who: TodoWho;
+  value: string;
+  urlQuery: string;
+  onChange: (value: string) => void;
+}): SearchFilterBarProps => ({
+  searchLabel: "Search todos",
+  value,
+  urlQuery,
+  onChange,
+  withQuery: setTodoQuery,
+  filters: (search) => todoFilterMenu(search, who),
+});
 
 /** The Filter menu's data for the list: its one section and where Clear filters goes. */
 const todoFilterMenu = (search: string, who: TodoWho): FilterMenuProps => ({

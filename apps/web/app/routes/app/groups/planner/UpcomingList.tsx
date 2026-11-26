@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 import type { ActionResult } from "~/lib/core/api";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { UpcomingListData } from "./useUpcomingData";
@@ -54,7 +53,6 @@ export function UpcomingList({
   groupId,
   label,
   empty,
-  emptyMark,
   children,
   readOnly = false,
 }: {
@@ -63,8 +61,6 @@ export function UpcomingList({
   /** The list's name for screen readers ("Upcoming", "Past events"). */
   label: string;
   empty: string;
-  /** The section's icon and accent for an unfiltered empty list; without it, a quiet line. */
-  emptyMark?: SectionAccent;
   children?: ReactNode;
   /** Only the rows: no menus or filter links (the easy roles). */
   readOnly?: boolean;
@@ -142,14 +138,7 @@ export function UpcomingList({
       {(removeError || cancelling.error || scope.error) && (
         <Message tone="error">{removeError ?? cancelling.error ?? scope.error}</Message>
       )}
-      {data.sections.length === 0 &&
-        (emptyMark ? (
-          <EmptyState {...emptyMark} data-empty="">
-            {empty}
-          </EmptyState>
-        ) : (
-          <EmptyState data-empty="">{empty}</EmptyState>
-        ))}
+      {data.sections.length === 0 && <EmptyState data-empty="">{empty}</EmptyState>}
       {data.sections.map((section) => (
         <section key={section.key} aria-labelledby={`day-${section.key}`} data-day={section.key}>
           <h3

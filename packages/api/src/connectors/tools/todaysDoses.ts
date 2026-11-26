@@ -55,7 +55,7 @@ export const todaysDoses = defineTool({
   name: "todays_doses",
   title: "Today's doses",
   description:
-    "Today's medication doses in the care recipient's day, as the app's Today shows them: each round (pass) or time with its medications and their state (upcoming, due, overdue, given, skipped, refused), who logged the answered ones, yesterday's missed doses, and as-needed medications with today's count against their maximum.",
+    "Today's medication doses in the care recipient's day, as the app's Today shows them: each med time (such as Morning, with its id for give_pass) or medication's own time with its medications and their state (upcoming, due, overdue, given, skipped, refused), who logged the answered ones, yesterday's missed doses, and as-needed medications with today's count against their maximum.",
   scope: "read",
   input: z.object({}),
   annotations: READ_ANNOTATIONS,
@@ -112,6 +112,8 @@ export const todaysDoses = defineTool({
 
     const due = dueDoses({ medications, passes: passes.data, doses, changes, now: ctx.now, timeZone });
     const rounds = duePasses(due, passes.data).map((pass) => ({
+      // The med time's id, what give_pass takes; null for a medication's own time.
+      passId: pass.passId,
       name: passTitle(pass),
       time: pass.time,
       at: zonedIso(pass.at, timeZone),
@@ -129,7 +131,7 @@ export const todaysDoses = defineTool({
 
     const roundLine = (r: (typeof rounds)[number]) =>
       [
-        `${r.name ?? r.time} (${r.time}, ${r.state}):`,
+        `${r.name ?? r.time} (${r.time}, ${r.state}${r.passId ? `, id ${r.passId}` : ""}):`,
         ...r.slots.map(
           (s) =>
             `  - ${s.medication}${s.amount ? `, ${s.amount}` : ""}: ${s.dose ? `${doseText({ status: s.dose.status, amount: s.amount })} at ${s.dose.loggedAt}` : s.status}`,

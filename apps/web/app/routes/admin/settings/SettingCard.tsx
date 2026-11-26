@@ -96,13 +96,14 @@ function SettingForm({
         <ChoiceGroup
           name="value"
           label="Change to"
+          required
           options={SWITCH_OPTIONS}
           defaultValue={value ? "on" : "off"}
           error={issue("value")}
         />
       )}
       {form === "number" && (
-        <Field kind="input" label="Change to" error={issue("value")}>
+        <Field kind="input" label="Change to" required error={issue("value")}>
           {(control) => (
             <input
               {...control}
@@ -138,6 +139,7 @@ function SettingForm({
       <Field
         kind="input"
         label="Reason"
+        required
         help="Why you're changing it. Goes in the audit log."
         error={issue("reason")}
       >
@@ -176,6 +178,7 @@ function AnnouncementFields({
       <ChoiceGroup
         name="tone"
         label="Tone"
+        required
         options={TONE_OPTIONS}
         value={tone}
         onChange={setTone}
@@ -191,7 +194,12 @@ function AnnouncementFields({
           <p className="text-muted text-sm">No banner: saving clears it.</p>
         )}
       </div>
-      <Field kind="input" label="Ends (UTC)" help="Optional. It stops showing then." error={issue("endsAt")}>
+      <Field
+        kind="input"
+        label="Ends (UTC)"
+        help="It stops showing then. Empty keeps it up."
+        error={issue("endsAt")}
+      >
         {(control) => (
           <input
             {...control}

@@ -80,6 +80,12 @@ describe("splitting", () => {
     ["bp 130/85 and t: call the pharmacy then fax it", ["bp 130/85", "t: call the pharmacy then fax it"]],
     ["   ", []],
     [",,, ;", []],
+    // A repeat's weekdays are one part (B-254); what follows them splits as ever.
+    ["every mon, wed and fri walk the dog", ["every mon, wed and fri walk the dog"]],
+    ["walk the dog every Tue & Thu, gave metformin", ["walk the dog every Tue & Thu", "gave metformin"]],
+    ["bins out every monday and gave metformin", ["bins out every monday", "gave metformin"]],
+    ["every other week on mon + fri mow", ["every other week on mon + fri mow"]],
+    ["saw dr lee on mon, wed was fine", ["saw dr lee on mon", "wed was fine"]],
   ])("%s", (line, parts) => {
     expect(splitQuickEntry(line)).toEqual(parts);
   });
@@ -992,6 +998,14 @@ describe("passes", () => {
     ["gave all meds", MORNING],
     ["meds given", MORNING],
     ["gave her meds", MORNING],
+    // "Pass" is the code's word, "med time" the screen's (B-695): both still mean the slot.
+    ["gave evening pass", EVENING],
+    ["gave evening passes", EVENING],
+    ["gave evening med time", EVENING],
+    ["evening med time given", EVENING],
+    ["gave the pass", MORNING],
+    ["gave med time", MORNING],
+    ["gave the med times", MORNING],
   ])("%s", (line, passId) => {
     const r = top(line, withPasses);
     expect(r.kind).toBe("dose");
@@ -1040,6 +1054,8 @@ describe("passes", () => {
     expect(top("gave evening meds with applesauce", withPasses).kind).toBe("note");
     expect(top("evening", withPasses).kind).toBe("note");
     expect(top("gave meds", { passes: [] }).kind).toBe("note");
+    // "Time" is a med time only right after "med": alone it's another word.
+    expect(top("gave evening time", withPasses).kind).toBe("note");
   });
 
   test.each([
@@ -1088,6 +1104,31 @@ describe("symptoms", () => {
     const r = top(line);
     expect(r.kind).toBe("symptom");
     expect(action(r)).toMatchObject({ type: "logSymptom", name, severity, note });
+  });
+
+  describe("the group's catalog (symptom-catalog)", () => {
+    const symptoms = [{ name: "Nausea" }, { name: "Knee pain" }, { name: "Fall" }, { name: "SOB" }];
+
+    test.each([
+      ["nausea 3", "Nausea", 3],
+      ["NAUSEA 3/10", "Nausea", 3],
+      ["knee   PAIN 4", "Knee pain", 4],
+      ["sob 5", "SOB", 5],
+      // An incident's canonical name too.
+      ["fell in the hall", "Fall", null],
+      // Only the same key: a similar name stays as typed (its card asks).
+      ["knee pian 4", "Knee pian", 4],
+      ["back pain 8", "Back pain", 8],
+    ])("%s reads as %s", (line, name, severity) => {
+      const r = top(line, { symptoms });
+      expect(r.kind).toBe("symptom");
+      expect(action(r)).toMatchObject({ type: "logSymptom", name, severity });
+    });
+
+    test("without a catalog, the words as typed", () => {
+      expect(action(top("sob 5"))).toMatchObject({ name: "Sob" });
+      expect(action(top("sob 5", { symptoms: [] }))).toMatchObject({ name: "Sob" });
+    });
   });
 
   test("a symptom alone has a note as its alternative", () => {
@@ -1467,6 +1508,23 @@ describe("the vocabulary", () => {
         expect(top(`${phrase} the thing in the evening`).kind).toBe("todo");
         return;
       }
+      if (role === "newMedication" || role === "newProvider") {
+        // Opening a line, a card that opens the Add sheet ("started" needs a strength or form to lead).
+        const kind = role === "newMedication" ? "medication" : "provider";
+        const r = top(`${phrase} ${role === "newMedication" ? "Amlodipine 5 mg" : "Dr Kim"}`);
+        expect(r.kind).toBe(kind);
+        expect(r.actions).toEqual([]);
+        expect(r.newItem).toMatchObject({ kind, name: role === "newMedication" ? "Amlodipine" : "Dr Kim" });
+        return;
+      }
+      if (role === "repeatWord") {
+        // A repeating todo: "water the plants daily", "… every day".
+        const r = top(`water the plants ${phrase}${phrase === "every" ? " day" : ""}`);
+        expect(r.kind).toBe("todo");
+        expect(action(r)).toMatchObject({ title: "Water the plants" });
+        expect(action(r)).toHaveProperty("repeatRule", expect.stringMatching(/^FREQ=/));
+        return;
+      }
       if (role === "reportWord") {
         expect(top(`call the pharmacy ${phrase} in the evening`).kind).toBe("note");
         return;
@@ -1492,6 +1550,100 @@ describe("the vocabulary", () => {
     for (const e of QUICK_ENTRY_VOCABULARY) if (e.role === "symptomIncident") expect(e.name).toBeTruthy();
     const phrases = QUICK_ENTRY_VOCABULARY.map((e) => e.phrase);
     expect(new Set(phrases).size).toBe(phrases.length);
+  });
+});
+
+describe("new medications and providers (B-762)", () => {
+  const newItem = (line: string) => {
+    const parts = parse(line);
+    expect(parts).toHaveLength(1);
+    const r = parts[0]!.readings[0]!;
+    expect(r.actions).toEqual([]);
+    return r;
+  };
+
+  test('"new med lisinopril 10 mg tablet" is a new medication with its name, strength and form, not the current Lisinopril', () => {
+    const r = newItem("new med lisinopril 10 mg tablet");
+    expect(r.kind).toBe("medication");
+    expect(r.label).toBe("New medication");
+    expect(r.newItem).toEqual({
+      kind: "medication",
+      name: "Lisinopril",
+      strength: "10 mg",
+      form: "tablet",
+      directions: null,
+    });
+    // Nothing reads it as the group's Lisinopril.
+    for (const other of parse("new med lisinopril 10 mg tablet")[0]!.readings)
+      expect(JSON.stringify(other.actions)).not.toContain(LIS);
+  });
+
+  test('"add provider Dr Kim cardiology 555-0100" is a new provider with its name, specialty and phone', () => {
+    const r = newItem("add provider Dr Kim cardiology 555-0100");
+    expect(r.kind).toBe("provider");
+    expect(r.label).toBe("New provider");
+    expect(r.newItem).toEqual({
+      kind: "provider",
+      type: "clinician",
+      name: "Dr Kim",
+      specialty: "Cardiology",
+      practiceId: null,
+      phone: "555-0100",
+      address: null,
+    });
+  });
+
+  test.each([
+    [
+      "add medication amlodipine 5mg tablets once daily with food",
+      { name: "Amlodipine", strength: "5 mg", form: "tablet", directions: "once daily with food" },
+    ],
+    ["new med insulin glargine 100 units/ml", { name: "Insulin glargine", strength: "100 units/mL" }],
+    ["new med amoxicillin 250mg/5ml liquid", { name: "Amoxicillin", strength: "250 mg/5mL", form: "liquid" }],
+    ["started metformin 500 mg", { name: "Metformin", strength: "500 mg", form: null }],
+    ["new medication eye drops", { name: "Eye", form: "drops" }],
+    ["new med", { name: "", strength: null, form: null, directions: null }],
+  ])("%s", (line, draft) => {
+    const r = newItem(line);
+    expect(r.kind).toBe("medication");
+    expect(r.newItem).toMatchObject({ kind: "medication", ...draft });
+  });
+
+  test.each([
+    [
+      "add provider dr kim, heart doctor, (555) 555-0100, 12 Main St, Springfield",
+      {
+        name: "Dr Kim",
+        specialty: "Heart doctor",
+        phone: "(555) 555-0100",
+        address: "12 Main St, Springfield",
+      },
+    ],
+    ["new doctor Dr Patel at Riverside", { name: "Dr Patel", practiceId: RIVER, address: null }],
+    ["new doctor Dr Patel at 400 Example Ave", { practiceId: null, address: "400 Example Ave" }],
+    [
+      "add provider Example Pharmacy 555-0199",
+      { type: "pharmacy", name: "Example Pharmacy", phone: "555-0199" },
+    ],
+    ["new provider Lakeside Clinic", { type: "practice", name: "Lakeside Clinic" }],
+  ])("%s", (line, draft) => {
+    const r = newItem(line);
+    expect(r.kind).toBe("provider");
+    expect(r.newItem).toMatchObject({ kind: "provider", ...draft });
+  });
+
+  test('a line opening "new med" or "add provider" stays whole; "started" alone is offered, not first', () => {
+    expect(splitQuickEntry("add provider Dr Kim, cardiology, 555-0100")).toEqual([
+      "add provider Dr Kim, cardiology, 555-0100",
+    ]);
+    expect(splitQuickEntry("started metformin 500 mg, bp 130/85")).toEqual([
+      "started metformin 500 mg",
+      "bp 130/85",
+    ]);
+    expect(top("started physical therapy").kind).toBe("note");
+    expect(parse("started physical therapy")[0]!.readings.map((r) => r.kind)).toContain("medication");
+    expect(top("started coughing").kind).toBe("symptom");
+    expect(top("gave lisinopril").kind).toBe("dose");
   });
 });
 
@@ -1865,6 +2017,157 @@ describe("times", () => {
   test("in another zone, times are the recipient's", () => {
     const r = top("bp 120/80 at 7am", { timeZone: "America/New_York" });
     expect(when(r)).toBe(at("2026-11-19T12:00:00Z"));
+  });
+});
+
+describe("repeats (B-254)", () => {
+  type Repeating = {
+    title: string;
+    assigneeId: string | null;
+    dueOn: string;
+    dueTime: string | null;
+    repeatRule: string;
+  };
+  const todoOf = (r: QuickEntryReading): Repeating => {
+    const a = action(r);
+    if (a.type !== "addTodo") throw new Error(`not a todo: ${a.type}`);
+    return {
+      title: a.title,
+      assigneeId: a.assigneeId ?? null,
+      dueOn: a.dueOn!,
+      dueTime: a.dueTime ?? null,
+      repeatRule: a.repeatRule!,
+    };
+  };
+  const MONDAYS = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+
+  test.each<[string, Repeating]>([
+    // The item's line: no prefix, the first Monday ahead, the repeat's words out of the title.
+    [
+      "bins out every monday",
+      { title: "Bins out", assigneeId: null, dueOn: "2026-11-23", dueTime: null, repeatRule: MONDAYS },
+    ],
+    // With a time and a member.
+    [
+      "bins out every monday 7am for Sam",
+      { title: "Bins out", assigneeId: SAM, dueOn: "2026-11-23", dueTime: "07:00", repeatRule: MONDAYS },
+    ],
+    // Today included (Thursday), a day of the month, the phrase first.
+    [
+      "water plants every thursday",
+      {
+        title: "Water plants",
+        assigneeId: null,
+        dueOn: "2026-11-19",
+        dueTime: null,
+        repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=TH",
+      },
+    ],
+    [
+      "pay rent on the 1st of every month",
+      {
+        title: "Pay rent",
+        assigneeId: null,
+        dueOn: "2026-12-01",
+        dueTime: null,
+        repeatRule: "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=1",
+      },
+    ],
+    [
+      "every other day check the feeding tube at 9pm",
+      {
+        title: "Check the feeding tube",
+        assigneeId: null,
+        dueOn: "2026-11-19",
+        dueTime: "21:00",
+        repeatRule: "FREQ=DAILY;INTERVAL=2",
+      },
+    ],
+    // The weekday list as one part.
+    [
+      "walk the dog every mon, wed and fri",
+      {
+        title: "Walk the dog",
+        assigneeId: null,
+        dueOn: "2026-11-20",
+        dueTime: null,
+        repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR",
+      },
+    ],
+  ])("%s", (line, expected) => {
+    const parts = parse(line);
+    expect(parts).toHaveLength(1);
+    const r = parts[0]!.readings[0]!;
+    expect(r.kind).toBe("todo");
+    expect(todoOf(r)).toEqual(expected);
+    expect(blocking(r)).toEqual([]);
+    expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+    // The note stays one tap away, dated now with the whole line.
+    expect(action(parts[0]!.readings.find((x) => x.kind === "note")!)).toMatchObject({
+      text: line,
+      occurredAt: NOW.toISOString(),
+    });
+  });
+
+  test("todo: with a repeat", () => {
+    const readings = parse("todo: put the bins out every monday for Sam")[0]!.readings;
+    expect(readings.map((r) => r.label)).toEqual(["Todo", "Note"]);
+    expect(todoOf(readings[0]!)).toEqual({
+      title: "Put the bins out",
+      assigneeId: SAM,
+      dueOn: "2026-11-23",
+      dueTime: null,
+      repeatRule: MONDAYS,
+    });
+  });
+
+  test("a dose line stays a log, with no repeating todo", () => {
+    for (const line of ["gave tylenol every day", "gave tylenol every 4 hours"]) {
+      const readings = parse(line)[0]!.readings;
+      expect(readings[0]!.kind).toBe("dose");
+      expect(readings.map((r) => r.kind)).not.toContain("todo");
+    }
+    expect(top("dizzy every day").kind).toBe("symptom");
+    expect(top("bp 130/85 every monday").kind).toBe("vital");
+  });
+
+  test("a line that tells what happened, or adds a medication, keeps its repeat words", () => {
+    expect(parse("she was tired every day")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
+    expect(top("new med lisinopril 10 mg daily").kind).toBe("medication");
+  });
+
+  test("a provider's line stays an event first, saying it won't repeat; the repeating todo second", () => {
+    const readings = parse("appt dr lee every tuesday 2pm")[0]!.readings;
+    expect(readings.map((r) => r.kind).slice(0, 2)).toEqual(["event", "todo"]);
+    expect(action(readings[0]!)).toMatchObject({
+      type: "addEvent",
+      providerIds: [LEE],
+      occurredAt: at("2026-11-24T22:00:00Z"),
+      allDay: false,
+    });
+    expect(warnings(readings[0]!)).toEqual([
+      "Quick entry can't make a repeating event, so this is only the first one. Make it a todo to repeat it.",
+    ]);
+    expect(blocking(readings[0]!)).toEqual([]);
+    expect(todoOf(readings[1]!)).toMatchObject({
+      dueOn: "2026-11-24",
+      dueTime: "14:00",
+      repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=TU",
+    });
+    // A provider named alone does the same.
+    expect(
+      parse("dr lee every monday")[0]!
+        .readings.map((r) => r.kind)
+        .slice(0, 2),
+    ).toEqual(["event", "todo"]);
+  });
+
+  test("words that only look like a repeat read as before", () => {
+    expect(top("everyone was tired").kind).toBe("symptom");
+    expect(parse("everyone was tired")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
+    expect(top("call pharmacy every hour").kind).not.toBe("todo");
+    const todo = action(top("call pharmacy friday"));
+    expect(todo).not.toHaveProperty("repeatRule");
   });
 });
 

@@ -17,14 +17,17 @@ import {
   canChangeEntry,
   canLogEntry,
   isKnownReading,
+  isSymptomDetails,
   isTooFarAhead,
+  symptomTypeId,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { changedColumns } from "../core/changedColumns";
 import { isEntryKind } from "./entryDisplay";
+import { addSymptomTypeIn } from "./symptomTypes.sync";
 import { TIMELINE_KINDS } from "./timelineFilters";
-import { timelineEntries, todos } from "../sync/schema";
+import { timelineEntries } from "../sync/schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the
@@ -104,6 +107,8 @@ export type EntryRow = {
   series_id?: string | null;
   series_day?: string | null;
   series_detached?: number | null;
+  // A symptom's catalog row (symptom-catalog; optional: rows from before it synced).
+  symptom_type_id?: string | null;
 };
 
 /**
@@ -138,6 +143,7 @@ export const toTimelineEntry = (row: EntryRow): TimelineEntry | null => {
     seriesId: row.series_id ?? null,
     seriesDay: row.series_day ?? null,
     seriesDetached: row.series_detached === 1,
+    symptomTypeId: row.symptom_type_id ?? null,
   };
 };
 
@@ -165,6 +171,11 @@ export type EntryFilters = {
   match?: EntryCondition | null;
   /** Only entries with a reading of this vital type (`?vital=`, under the vital kind); none means every entry. */
   vital?: string | null;
+  /**
+   * Only symptoms of any of these catalog rows (`?symptom=`, under the symptom
+   * kind), by the stored `symptom_type_id`; none or empty means every entry.
+   */
+  symptoms?: readonly string[] | null;
 };
 
 /**
@@ -185,7 +196,7 @@ const VITAL_TYPE_SQL =
  */
 export const HISTORY_ENDS_SQL = `kind IN (${[...new Set(["note", ...FUTURE_KINDS])].map((k) => `'${k}'`).join(", ")})`;
 
-/** The conditions every window shares: one group, live entries, the kind, author and vital-type filters, the search. */
+/** The conditions every window shares: one group, live entries, the kind, author, vital-type and symptom-type filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
   const conditions = ["group_id = ?", "deleted_at IS NULL"];
   const params: unknown[] = [groupId];
@@ -206,6 +217,11 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
   if (filters.vital) {
     conditions.push(VITAL_TYPE_SQL);
     params.push(filters.vital);
+  }
+  if (filters.symptoms?.length) {
+    // The stored pointer only: SQLite can't derive a name's key or id, and a filter after loading would short a page.
+    conditions.push(`symptom_type_id IN (${filters.symptoms.map(() => "?").join(", ")})`);
+    params.push(...filters.symptoms);
   }
   if (filters.match) {
     conditions.push(`(${filters.match.sql})`);
@@ -325,13 +341,19 @@ export const pastEventsWindow = (
   limit: number,
   cutoff: string,
 ): LocalQuery => {
+  const from = pastEventsFrom(groupId, filters, cutoff);
+  return {
+    sql: `${from.sql} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
+    params: [...from.params, limit + 1],
+  };
+};
+
+/** `pastEventsWindow`'s rows, unordered and uncapped (the Past tab's text filter reads them all). */
+export const pastEventsFrom = (groupId: string, filters: EntryFilters, cutoff: string): LocalQuery => {
   const { conditions, params } = filterConditions(groupId, filters, ["event"]);
   conditions.push("occurred_at <= ?");
   params.push(toLocalTimestamp(cutoff));
-  return {
-    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
-    params: [...params, limit + 1],
-  };
+  return { sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")}`, params };
 };
 
 /** One group's entries under the filters, newest first (`entryWindow`). */
@@ -500,6 +522,21 @@ export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => (
   seriesDetached: content.seriesDetached ? 1 : 0,
 });
 
+/**
+ * A symptom's catalog row, derived from its name as the server derives it
+ * (`symptomTypeId`), so the local copy points where the server's will; null
+ * for every other kind. The server ignores the device's value (serverSet).
+ */
+export const symptomTypeColumn = (
+  groupId: string,
+  content: { kind: string; details?: TimelineEntryContent["details"] },
+) => ({
+  symptomTypeId:
+    content.kind === "symptom" && isSymptomDetails(content.details)
+      ? symptomTypeId(groupId, content.details.name)
+      : null,
+});
+
 /** The refusal when an entry of this kind is dated past now plus the device's skew (5 minutes). */
 export const futureRefusal = (kind: string, occurredAt: string, now = new Date()): ActionResult | null =>
   isTooFarAhead(kind, occurredAt, now, DEVICE_FUTURE_SKEW_MS)
@@ -520,18 +557,26 @@ export const createEntry = async (db: SyncDb, groupId: string, input: unknown): 
   if (future) return future;
 
   const now = nowTimestamp();
-  await db.drizzle.insert(timelineEntries).values({
-    id: crypto.randomUUID(),
-    groupId,
-    recipientId: group.recipient.id,
-    kind: parsed.data.kind,
-    ...contentColumns(parsed.data),
-    cancelledBy: parsed.data.cancelledAt ? db.userId : null,
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
+  const content = parsed.data;
+  const recipientId = group.recipient.id;
+  // A symptom's name joins the catalog in the same write, when it's new.
+  await db.drizzle.transaction(async (tx) => {
+    if (content.kind === "symptom" && isSymptomDetails(content.details))
+      await addSymptomTypeIn(tx, { groupId, name: content.details.name, userId: db.userId, now });
+    await tx.insert(timelineEntries).values({
+      id: crypto.randomUUID(),
+      groupId,
+      recipientId,
+      kind: content.kind,
+      ...contentColumns(content),
+      ...symptomTypeColumn(groupId, content),
+      cancelledBy: content.cancelledAt ? db.userId : null,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
   });
   return { ok: true };
 };
@@ -595,23 +640,34 @@ export const updateEntry = async (
   // Only what changed: the details rewritten unchanged would be re-sent and
   // overwrite a co-member's newer ones on the server.
   const changed = changedColumns(
-    { ...contentColumns(stored), cancelledBy: entry.cancelledBy },
-    { ...contentColumns(merged.data), cancelledBy },
+    { ...contentColumns(stored), cancelledBy: entry.cancelledBy, symptomTypeId: entry.symptomTypeId },
+    { ...contentColumns(merged.data), cancelledBy, ...symptomTypeColumn(entry.groupId, merged.data) },
     ["details"],
   );
   if (!Object.keys(changed).length) return { ok: true };
-  await db.drizzle
-    .update(timelineEntries)
-    .set({ ...changed, updatedAt: nowTimestamp(), updatedBy: db.userId })
-    .where(eq(timelineEntries.id, id));
+  const now = nowTimestamp();
+  // A symptom renamed to a new name adds it to the catalog in the same write.
+  await db.drizzle.transaction(async (tx) => {
+    if (changed.symptomTypeId && isSymptomDetails(merged.data.details))
+      await addSymptomTypeIn(tx, {
+        groupId: entry.groupId,
+        name: merged.data.details.name,
+        userId: db.userId,
+        now,
+      });
+    await tx
+      .update(timelineEntries)
+      .set({ ...changed, updatedAt: now, updatedBy: db.userId })
+      .where(eq(timelineEntries.id, id));
+  });
   return { ok: true };
 };
 
 /**
  * Soft delete, so the deletion syncs to everyone's devices. Deleting an
  * event that others were rescheduled to leaves them cancelled, with no
- * link, and its linked todos without their link (in the same local
- * transaction).
+ * link (in the same local transaction). Its todos keep their link rows,
+ * which readers skip while the entry is deleted.
  */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
@@ -636,11 +692,9 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
             isNull(timelineEntries.deletedAt),
           ),
         );
-      // Todos linked to it lose the link quietly (todos slice 3; the server does the same).
-      await tx
-        .update(todos)
-        .set({ eventId: null, updatedAt: now, updatedBy: db.userId })
-        .where(and(eq(todos.groupId, entry.groupId), eq(todos.eventId, id), isNull(todos.deletedAt)));
+      // Its todos stay, and so do their link rows (planner-3): readers join
+      // live entries, so the link just stops showing. The server clears an
+      // old client's `event_id` (`releaseEvent`).
     }
   });
   return { ok: true };

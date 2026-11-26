@@ -100,10 +100,15 @@ export const timelineEntries = sqliteTable(
     seriesId: text("series_id"),
     seriesDay: text("series_day"),
     seriesDetached: integer("series_detached"),
+    // A symptom's catalog row (symptom-catalog): symptomTypeId(group, name),
+    // written locally with the entry; the server derives its own copy.
+    symptomTypeId: text("symptom_type_id"),
   },
   (t) => [
     index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt),
     index("timeline_entry_series").on(t.seriesId),
+    // The symptom-type filter, and the types a group has entries of (symptom-catalog).
+    index("timeline_entry_group_symptom_type").on(t.groupId, t.symptomTypeId),
   ],
 );
 
@@ -508,6 +513,26 @@ export const symptomTypes = sqliteTable(
 );
 
 /**
+ * Which todos a note or event links (planner-3): entry ↔ todo links, many
+ * to many. The id comes from the pair (`entryTodoId`); unlinking deletes the
+ * row. Readers join live entries and todos.
+ */
+export const timelineEntryTodos = sqliteTable(
+  "timeline_entry_todo",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    entryId: text("entry_id"),
+    todoId: text("todo_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("timeline_entry_todo_entry").on(t.entryId), index("timeline_entry_todo_todo").on(t.todoId)],
+);
+
+/**
  * Local only (never synced, never uploaded; cleared with the local copy): one
  * row per change the server didn't save (sync-safety, B-285). `outcome` is
  * `refused` (a 4xx: the server's `code` and `issues`, JSON text) or
@@ -556,6 +581,7 @@ export const drizzleSchema = {
   conditionManagers,
   appointmentSeries,
   symptomTypes,
+  timelineEntryTodos,
   unsavedChanges,
 };
 

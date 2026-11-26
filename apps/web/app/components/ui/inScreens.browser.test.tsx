@@ -355,7 +355,7 @@ describe.each([
     await userEvent.click(must('[role="dialog"] button[type="submit"]'));
     const input = must<HTMLInputElement>('[role="dialog"] input[name="symptomName"]');
     await expect.poll(() => input.getAttribute("aria-invalid")).toBe("true");
-    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim()).toBe("Symptom");
+    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim()).toBe("Symptom*");
     expect(
       (input.getAttribute("aria-describedby") ?? "")
         .split(" ")
@@ -421,7 +421,7 @@ describe.each([
     }
   });
 
-  test("the entry page: its ⋯ has the row's items; the time chip's popover and the calendar inside it (Escape closes only the calendar)", async () => {
+  test("the entry page: its ⋯ has the row's items; the time chip's popover and its inline calendar (Escape closes only the calendar)", async () => {
     await open(`/app/groups/${TEST_GROUP.id}/entries/${NOTE.id}`, layout);
     const pageActions = () =>
       must('main header [data-region="actions"] button[aria-label^="Actions for this"]');
@@ -436,8 +436,16 @@ describe.each([
     await expect
       .poll(() => document.querySelector('[role="dialog"] [aria-label="Pick a date"]'))
       .not.toBeNull();
-    await overlay(PICK, { name: /\S/ });
+    // The calendar opens inline in the chip's panel (B-691): no second overlay.
+    const before = overlays().length;
+    await userEvent.click(PICK());
+    await expect.poll(() => document.querySelector('[role="grid"]')).not.toBeNull();
+    expect(overlays()).toHaveLength(before);
+    expect(top()?.contains(document.querySelector('[role="grid"]'))).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[role="grid"]')).toBeNull();
     expect(document.querySelector('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
+    await expect.poll(active).toBe(PICK());
     await userEvent.keyboard("{Escape}");
   });
 

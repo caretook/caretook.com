@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Collects the facts inventory.mjs classifies: every .loops worktree (git), its
-// stack and containers (docker), its dev server (lsof), the locks and their
-// holders, the dispatcher, which sessions it manages, the down record and
-// free disk. Read-only: it runs only git, `docker info|ps|inspect`, `lsof` and
+// stack and containers (the stack hooks), its dev server (lsof), the locks and their
+// holders, the dispatcher and its restart intent, which sessions it manages,
+// a running recover, migrates cut off, the down record and free disk. Read-only: it runs only git, the stack hooks' read-only forms (engine status, ready, test-db facts), `lsof` and
 // `df`, and writes nothing (git runs with --no-optional-locks, so not even the
 // index is refreshed).
 //
@@ -14,12 +14,16 @@
 // DIR defaults to the main checkout of the repo this file is in. Env: TRUNK
 // (dev), CARETOOK_LEASE_ROOT (DIR/.loops/.lease), CARETOOK_MIN_FREE_GB (10),
 // CARETOOK_FREE_GB (overrides the df reading, for tests), CARETOOK_SESSIONS_DIR
-// (DIR/.loops/.sessions).
+// (DIR/.loops/.sessions), CARETOOK_LANDING_DIR (DIR/.loops/.landing: the
+// landing journal).
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { DEFAULT_MIN_FREE_GB, formatInventory, inventory } from "./inventory.mjs";
+import { listRecords } from "./land-journal.mjs";
+import { branchKinds } from "./config.mjs";
+import { fact, runHook } from "./hooks.mjs";
 
 /** The backlog lock is stale after this long (backlog.mjs takes it over then too). */
 export const BACKLOG_LOCK_STALE_MS = 30_000;
@@ -35,11 +39,30 @@ const run = (
 const git = (/** @type {string} */ cwd, /** @type {string[]} */ args, /** @type {NodeJS.ProcessEnv} */ env) =>
   run("git", ["--no-optional-locks", "-C", cwd, ...args], env);
 const lines = (/** @type {string} */ s) => s.split("\n").filter(Boolean);
+/** A JSON object file's contents, or null (missing, unreadable, not an object). */
+const readObject = (/** @type {string} */ p) => {
+  try {
+    const v = JSON.parse(readFileSync(p, "utf8"));
+    return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+};
 const readOr = (/** @type {string} */ p, fallback = "") => {
   try {
     return readFileSync(p, "utf8");
   } catch {
     return fallback;
+  }
+};
+const files = (/** @type {string} */ p) => {
+  try {
+    return readdirSync(p, { withFileTypes: true })
+      .filter((d) => d.isFile())
+      .map((d) => d.name)
+      .sort();
+  } catch {
+    return [];
   }
 };
 const dirs = (/** @type {string} */ p) => {
@@ -73,9 +96,9 @@ export function pidAlive(/** @type {number|null|undefined} */ pid) {
 }
 
 /** lib.sh's parent_of: slice/<topic>/<n> → prd/<topic>, anything else → trunk. */
-export function parentOf(/** @type {string} */ branch, trunk = "dev") {
-  const m = /^slice\/([^/]+)\/[^/]+$/.exec(branch);
-  return m ? `prd/${m[1]}` : trunk;
+export function parentOf(/** @type {string} */ branch, trunk = branchKinds().trunk) {
+  const s = branchKinds().sliceOf(branch);
+  return s ? branchKinds().branch("prd", s.topic) : trunk;
 }
 
 /** stack-lib.sh's slice_merged: the slice's tip is a merge's second parent in its PRD branch. */
@@ -84,7 +107,7 @@ function sliceMerged(
   /** @type {string} */ branch,
   /** @type {NodeJS.ProcessEnv} */ env,
 ) {
-  if (!/^slice\/[^/]+\/[^/]+$/.test(branch)) return false;
+  if (!branchKinds().sliceOf(branch)) return false;
   const parent = parentOf(branch);
   const tip = git(dir, ["rev-parse", "HEAD"], env);
   if (!tip.ok || !git(dir, ["rev-parse", "--verify", "--quiet", parent], env).ok) return false;
@@ -93,33 +116,27 @@ function sliceMerged(
   return lines(merges).some((l) => l.split(" ").slice(1).includes(tip.out));
 }
 
-/** Container ids of a Compose project: running only, or all. */
-function containers(
-  /** @type {string} */ project,
-  all = false,
-  /** @type {NodeJS.ProcessEnv} */ env = process.env,
-) {
-  const r = run(
-    "docker",
-    ["ps", all ? "-aq" : "-q", "--filter", `label=com.docker.compose.project=${project}`],
-    env,
-  );
-  return r.ok ? lines(r.out) : [];
-}
-
-/** How long ago the newest container of a stopped project finished, in seconds. */
-function stoppedSecs(/** @type {string[]} */ ids, /** @type {NodeJS.ProcessEnv} */ env, now = Date.now()) {
-  if (!ids.length) return null;
-  const r = run("docker", ["inspect", "-f", "{{.State.Running}} {{.State.FinishedAt}}", ...ids], env);
-  if (!r.ok) return null;
-  let newest = 0;
-  for (const l of lines(r.out)) {
-    const [running, at] = l.split(" ");
-    if (running === "true") return null;
-    const t = Date.parse(at ?? "");
-    if (t > newest) newest = t;
-  }
-  return newest > 0 ? Math.max(0, Math.round((now - newest) / 1000)) : null;
+/**
+ * A worktree's stack facts from the stack hook (stackReady): its project,
+ * container counts and stopped-since. The hook prints ready= on every answer
+ * (exit 0 for yes, 1 for no); a call without it failed, so its project comes
+ * from stackStatus (env files, no engine) and `failed` says the rest is unknown.
+ * No stackReady hook (127) is a project without a stack, not a failure.
+ */
+function readyFacts(/** @type {string} */ dir, /** @type {NodeJS.ProcessEnv} */ env) {
+  const r = runHook("stackReady", [dir], { env });
+  const failed = r.status !== 127 && fact("ready", r.out) === "";
+  const out = failed ? runHook("stackStatus", [dir], { env }).out : r.out;
+  const [up, all] = failed ? [] : fact("containers", out).split("/").map(Number);
+  const secs = failed ? "" : fact("stopped_secs", out);
+  return {
+    stack: fact("project", out) || null,
+    up: up || 0,
+    all: all || 0,
+    stoppedSecs: secs === "" ? null : Number(secs),
+    webPort: Number(fact("web_port", out)) || null,
+    failed,
+  };
 }
 
 const listening = (/** @type {number} */ port, /** @type {NodeJS.ProcessEnv} */ env) =>
@@ -155,17 +172,26 @@ function leaseInfo(/** @type {string} */ file) {
 export function collectFacts({ main, env = process.env, now = Date.now() }) {
   const trunk = env.TRUNK || "dev";
   const loops = join(main, ".loops");
-  const dockerUp = run("docker", ["info"], env).ok;
+  // No stackEngine hook (127): a project with no engine to start, so it never
+  // "doesn't answer"; likewise no testDb hook is no test database to bring up.
+  const engine = runHook("stackEngine", ["status"], { env });
+  const dockerUp = engine.status === 127 || fact("running", engine.out) === "yes";
+
+  // Migrates recover's stack step started and never finished (.loops/.migrate/<name>,
+  // holding when it started): a crash cut them off.
+  const migrateDir = join(loops, ".migrate");
+  const migrating = new Map(files(migrateDir).map((n) => [n, readOr(join(migrateDir, n)).trim() || "?"]));
 
   const worktrees = [];
   for (const name of dirs(loops)) {
     const dir = join(loops, name);
     if (!existsSync(join(dir, ".git"))) continue;
     const branch = git(dir, ["branch", "--show-current"], env).out;
-    const stack = envGet(join(dir, ".env"), "CARETOOK_STACK") || null;
-    const port = Number(envGet(join(dir, "apps/web/.env"), "WEB_PORT")) || null;
-    const up = stack && dockerUp ? containers(stack, false, env) : [];
-    const all = stack && dockerUp ? containers(stack, true, env) : [];
+    const ready = readyFacts(dir, env);
+    const stack = ready.stack;
+    const port = ready.webPort;
+    const up = stack && dockerUp ? ready.up : 0;
+    const all = stack && dockerUp ? ready.all : 0;
     worktrees.push({
       name,
       branch,
@@ -173,11 +199,14 @@ export function collectFacts({ main, env = process.env, now = Date.now() }) {
       merged: sliceMerged(dir, branch, env),
       dirty: git(dir, ["status", "--porcelain"], env).out !== "",
       stack,
-      containersUp: up.length,
-      containersAll: all.length,
-      stoppedSecs: stack && dockerUp && up.length === 0 ? stoppedSecs(all, env, now) : null,
+      containersUp: up,
+      containersAll: all,
+      // With no containers left the hook gives the env file's age; the inventory wants none then.
+      stoppedSecs: stack && dockerUp && up === 0 && all > 0 ? ready.stoppedSecs : null,
       webPort: port,
       serverRunning: port ? listening(port, env) : false,
+      ...(ready.failed ? { stackFailed: true } : {}),
+      ...(migrating.has(name) ? { migrating: migrating.get(name) } : {}),
     });
   }
   const names = new Set(worktrees.map((w) => w.name));
@@ -215,6 +244,23 @@ export function collectFacts({ main, env = process.env, now = Date.now() }) {
       why: alive ? `the dispatcher, pid ${pid}, is running` : `the dispatcher's pid ${pid ?? "?"} is gone`,
     });
   }
+  // Migrate markers whose worktree is gone: nothing to rerun, so the marker is stale.
+  for (const [n, at] of migrating)
+    if (!names.has(n))
+      locks.push({
+        kind: "migrate",
+        path: join(migrateDir, n),
+        holder: n,
+        pid: null,
+        alive: false,
+        why: `a migrate of ${n} cut off at ${at}, and ${n} has no worktree now`,
+      });
+  // The dispatcher's restart intent (.loops/.dispatch-intent.json): recover writes it
+  // before clearing a stale lock and deletes it once the new dispatcher holds its lock.
+  const dispatchIntent = readObject(join(loops, ".dispatch-intent.json"));
+  // A running recover (.loops/.recover.lock, its pid): one at a time.
+  const recoverPid = Number(readOr(join(loops, ".recover.lock")).trim()) || null;
+  const recover = { running: pidAlive(recoverPid), pid: recoverPid };
   // The backlog lock: no pid; backlog.mjs takes over one older than 30 s.
   const common = git(main, ["rev-parse", "--git-common-dir"], env);
   if (common.ok) {
@@ -263,23 +309,8 @@ export function collectFacts({ main, env = process.env, now = Date.now() }) {
     }
   }
 
-  const testDbProject = env.CARETOOK_SHARED_TEST_PROJECT || "caretook-shared-test";
-  const testDbRunning =
-    dockerUp &&
-    run(
-      "docker",
-      [
-        "ps",
-        "-q",
-        "--filter",
-        `label=com.docker.compose.project=${testDbProject}`,
-        "--filter",
-        "label=com.docker.compose.service=postgres",
-        "--filter",
-        "status=running",
-      ],
-      env,
-    ).out !== "";
+  const testDb = runHook("testDb", ["facts"], { env });
+  const testDbRunning = testDb.status === 127 || (dockerUp && fact("running", testDb.out) === "yes");
 
   // Which session records the dispatcher manages (session.sh --managed).
   const sessionsDir = env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions");
@@ -300,11 +331,23 @@ export function collectFacts({ main, env = process.env, now = Date.now() }) {
       /* a record being written */
     }
 
+  // Landings cut off midway (land-journal.mjs): one record each.
+  const landings = listRecords(env.CARETOOK_LANDING_DIR || join(loops, ".landing")).map((r) => ({
+    branch: String(r.branch ?? ""),
+    path: String(r.path ?? ""),
+    step: String(r.step ?? ""),
+    at: String(r.at ?? ""),
+    file: r.file,
+  }));
+
   const min = Number(env.CARETOOK_MIN_FREE_GB);
   return {
+    landings,
     worktrees,
     locks,
     dispatcher,
+    dispatchIntent,
+    recover,
     managed,
     docker: { running: dockerUp },
     testDb: { running: testDbRunning },

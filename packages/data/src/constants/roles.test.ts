@@ -15,7 +15,7 @@ import {
 } from "./roles";
 
 describe("the group roles", () => {
-  it("are six, each with a label, a picker group and a description, in picker order", () => {
+  it("are six, each with a label, a picker group, a description and what it sees and changes, in picker order", () => {
     expect(GROUP_ROLES.map((r) => r.name)).toEqual([...GROUP_ROLE_NAMES]);
     expect(GROUP_ROLES.map((r) => [r.label, r.group])).toEqual([
       ["Owner", "regular"],
@@ -25,7 +25,9 @@ describe("the group roles", () => {
       ["Easy helper", "easier"],
       ["Easy viewer", "easier"],
     ]);
-    for (const role of GROUP_ROLES) expect(role.description.length).toBeGreaterThan(0);
+    for (const role of GROUP_ROLES)
+      for (const words of [role.description, role.sees, role.changes])
+        expect(words.length).toBeGreaterThan(0);
   });
 
   it("say who the easy roles are for only in their descriptions, never in their names", () => {

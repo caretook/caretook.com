@@ -151,3 +151,7 @@ export type * from "./assistantRequest/types";
 import * as symptomTypeModel from "./symptomType";
 export { symptomTypeModel };
 export type * from "./symptomType/types";
+
+import * as timelineEntryTodoModel from "./timelineEntryTodo";
+export { timelineEntryTodoModel };
+export type * from "./timelineEntryTodo/types";

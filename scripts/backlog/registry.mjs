@@ -1,5 +1,6 @@
-// The PRD registry: the "## PRDs" table in plans/backlog.md's preamble. Pure:
-// no git, no file system (backlog.mjs gathers the facts and writes).
+// The PRD registry: the "## PRDs" table in the backlog's preamble (the heading
+// and the backlog's path are the project config's, read once as this loads).
+// Pure: no git, no other file system (backlog.mjs gathers the facts and writes).
 //
 //   | PRD     | Flags          | After           | Hot files               | Doc and notes |
 //   | ------- | -------------- | --------------- | ----------------------- | ------------- |
@@ -14,7 +15,11 @@
 // "old": it is recognised and refused, never read as rows (it was converted
 // once, by hand-run tooling since removed).
 
+import { commandName, loadConfigOrExit } from "../loops/config.mjs";
 import { BacklogError } from "./format.mjs";
+
+// A broken config: one line named for the command that imported this, and exit 2.
+const { config } = loadConfigOrExit(commandName("backlog"));
 
 /** hold: waits on the user; done: finished; standing: never finishes, runs while it has waiting items; alone: nothing else runs beside it; design: its planner runs on Fable. */
 export const FLAGS = ["hold", "done", "standing", "alone", "design"];
@@ -23,7 +28,8 @@ export const STATES = ["to-write", "planned", "running", "idle", "hold", "done"]
 /** Item statuses that mean "still to do" for a topic (doctor's "waiting items"). */
 export const WAITING = ["inbox", "triaged", "in-progress"];
 
-export const SECTION = "## PRDs";
+export const SECTION = config.backlog.prdsHeading;
+const BACKLOG = config.paths.backlog;
 const HEADER = ["PRD", "Flags", "After", "Hot files", "Doc and notes"];
 const NONE = "—";
 
@@ -133,7 +139,7 @@ export function parseRegistry(preamble) {
 export function withRows(preamble, rows, opts = {}) {
   const lines = preamble.replace(/\r\n/g, "\n").split("\n");
   const at = locate(lines);
-  if (!at || at.tableStart < 0) throw new BacklogError(`plans/backlog.md has no "${SECTION}" table`);
+  if (!at || at.tableStart < 0) throw new BacklogError(`${BACKLOG} has no "${SECTION}" table`);
   const before =
     opts.intro === undefined
       ? lines.slice(0, at.tableStart)
@@ -149,7 +155,7 @@ export function rowsOf(preamble) {
     throw new BacklogError(
       `the PRD table is in the old prose form (PRD | Doc | Depends on | Hot files); the tooling reads only the registry's columns (${HEADER.join(" | ")})`,
     );
-  throw new BacklogError(`plans/backlog.md has no "${SECTION}" table`);
+  throw new BacklogError(`${BACKLOG} has no "${SECTION}" table`);
 }
 
 // ---- the worked-out state --------------------------------------------------------
@@ -206,7 +212,8 @@ function insert(rows, row, pos) {
 
 /**
  * Apply "key=value" pairs (flags, after, hot: comma-separated, — or empty
- * clears; notes: text) to a copy of `row`.
+ * clears; notes: text) to a copy of `row`. `flags+=a,b` adds flags and
+ * `flags-=a,b` removes them, keeping the others (a hold keeps `standing`).
  * @param {Row} row @param {string[]} pairs @returns {Row}
  */
 export function setRow(row, pairs) {
@@ -214,14 +221,21 @@ export function setRow(row, pairs) {
   for (const p of pairs) {
     const eq = p.indexOf("=");
     if (eq < 1) throw new BacklogError(`"${p}" isn't key=value`);
-    const key = p.slice(0, eq);
+    let key = p.slice(0, eq);
     const value = p.slice(eq + 1);
+    const op = /[+-]$/.test(key) ? key.slice(-1) : "";
+    if (op) {
+      key = key.slice(0, -1);
+      if (key !== "flags") throw new BacklogError(`"${p}": only flags takes += or -=`);
+    }
     if (key === "notes") r.notes = value.trim() === NONE ? "" : value.trim();
     else if (key === "flags") {
       const flags = [...new Set(parseList(value))];
       const bad = flags.filter((f) => !FLAGS.includes(f));
       if (bad.length) throw new BacklogError(`unknown flag ${bad.join(", ")} (flags: ${FLAGS.join(", ")})`);
-      r.flags = flags;
+      if (op === "+") r.flags = [...new Set([...r.flags, ...flags])];
+      else if (op === "-") r.flags = r.flags.filter((f) => !flags.includes(f));
+      else r.flags = flags;
     } else if (key === "after") {
       const after = [...new Set(parseList(value))];
       after.forEach(checkTopic);

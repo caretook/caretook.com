@@ -118,7 +118,7 @@ describe("backlog prd", () => {
   });
 
   it("sets a row in one commit, and standing gives planned with items", () => {
-    expect(cli(prd, "prd", "set", "fixes-x", "flags=standing", "hot=scripts/loops/,apps/web/x.ts")).toBe(
+    expect(cli(prd, "prd", "set", "fixes-x", "flags=standing", "hot=scripts/loops/,src/x.ts")).toBe(
       "updated fixes-x",
     );
     expect(lastMessage()).toMatch(/^chore\(backlog\): prd set fixes-x: flags=standing, hot=scripts\/loops\//);
@@ -128,9 +128,23 @@ describe("backlog prd", () => {
     expect(fixes).toMatchObject({
       state: "planned",
       flags: ["standing"],
-      hot: ["scripts/loops/", "apps/web/x.ts"],
+      hot: ["scripts/loops/", "src/x.ts"],
     });
     expect(cliFails(prd, "prd", "set", "fixes-x", "flags=paused").out).toContain("unknown flag paused");
+  });
+
+  it("holds and releases with flags+= and flags-=, keeping standing", () => {
+    const flags = () =>
+      JSON.parse(cli(prd, "prd", "list", "--json")).find((r) => r.topic === "fixes-x").flags;
+    cli(prd, "prd", "set", "fixes-x", "flags+=hold");
+    expect(flags()).toEqual(["standing", "hold"]);
+    expect(lastMessage()).toContain("prd set fixes-x: flags+=hold");
+    // Holding a held row changes nothing: no commit.
+    const head = git(main, "rev-parse", "HEAD");
+    cli(prd, "prd", "set", "fixes-x", "flags+=hold");
+    expect(git(main, "rev-parse", "HEAD")).toBe(head);
+    cli(prd, "prd", "set", "fixes-x", "flags-=hold");
+    expect(flags()).toEqual(["standing"]);
   });
 
   it("adds rows where it's told", () => {

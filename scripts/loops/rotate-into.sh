@@ -13,8 +13,8 @@
 # The main one (backlog) reopens under a new captain's name (captain.mjs): the
 # --captain its opener titled the tab with, else one drawn here, unlike the last.
 # The inbox session (its live record at that pid, too) reopens through `prd.sh
-# inbox` in its recorded directory, on its recorded model, in fast mode, with
-# no brief. The steps are otherwise the same:
+# inbox` in its recorded directory, on prd.sh's inbox model (Opus at low
+# effort; never the record's, which may be an older default), with no brief. The steps are otherwise the same:
 #
 # 1. Marks the record (.loops/.sessions/prd-<topic>.json) rotating, making one
 #    when there is none (a session started before session.sh), so an opener or
@@ -25,8 +25,8 @@
 # 3. Execs session.sh with the same name and the resume prompt (prompt.sh
 #    orchestrator <topic> --resume), plus --auto when the record or the plan's
 #    _Status_ says run-through, and --managed when the record is the
-#    dispatcher's: always a fresh session, never --continue. session.sh clears
-#    rotating as it starts.
+#    dispatcher's, and the record's --model when it has one: always a fresh
+#    session, never --continue. session.sh clears rotating as it starts.
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
@@ -112,13 +112,19 @@ fi
 
 cd "$dir"
 if [[ $kind == inbox ]]; then
-  # prd.sh inbox checks the bare directory, gives the fast settings and the prompt.
+  # prd.sh inbox checks the bare directory, gives its model, settings and prompt.
   args=(inbox)
   [[ -z $(field "$before" dir) ]] || args+=(--dir "$(field "$before" dir)")
-  [[ -z $(field "$before" model) ]] || args+=(--model "$(field "$before" model)")
   exec "$bin/prd.sh" "${args[@]}" ${managed:+--managed}
 fi
 if [[ $kind == backlog ]]; then
+  model=$(field "$before" model) remote=$(field "$before" remote)
+  if [[ $name == backlog ]]; then
+    # A new session, a new captain; with none drawn, Remote Control backlog rather than no session.
+    remote=${captain:-$(node "$bin/captain.mjs" next 2>/dev/null || echo backlog)}
+  fi
+  # The prompt names the captain (prompts/backlog.sh); none drawn, no line.
+  [[ $name != backlog || $remote == backlog ]] || export CARETOOK_CAPTAIN=$remote
   # The old session is gone, so a brief that went bad now costs the brief, never the session.
   prompt=""
   if [[ -n $brief ]]; then
@@ -130,15 +136,15 @@ if [[ $kind == backlog ]]; then
     fi
   fi
   [[ -n $prompt ]] || prompt=$("$bin/prompt.sh" backlog ${no_brief:+--no-brief})
-  model=$(field "$before" model) remote=$(field "$before" remote)
-  if [[ $name == backlog ]]; then
-    # A new session, a new captain; with none drawn, Remote Control backlog rather than no session.
-    remote=${captain:-$(node "$bin/captain.mjs" next 2>/dev/null || echo backlog)}
-  fi
+  unset CARETOOK_CAPTAIN
   args=()
   [[ -z $model ]] || args+=(--model "$model")
   args+=(--remote-control "${remote:-$name}" "$prompt")
   exec "$bin/session.sh" "$name" --kind backlog ${managed:+--managed} -- "${args[@]}"
 fi
-args=(--remote-control "$name" "$("$bin/prompt.sh" orchestrator "$topic" --resume ${auto:+--auto})")
+# The record's model carries over (a by-hand Fable orchestrator stays on Fable).
+model=$(field "$before" model)
+args=()
+[[ -z $model ]] || args+=(--model "$model")
+args+=(--remote-control "$name" "$("$bin/prompt.sh" orchestrator "$topic" --resume ${auto:+--auto})")
 exec "$bin/session.sh" "$name" ${auto:+--auto} ${managed:+--managed} -- "${args[@]}"

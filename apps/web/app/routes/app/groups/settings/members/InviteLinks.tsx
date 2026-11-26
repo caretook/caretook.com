@@ -31,6 +31,7 @@ import {
   linkStatusLine,
   shareLinkText,
 } from "./linkRules";
+import { RoleHelp } from "./RoleHelp";
 import { RoleOptions } from "./RoleOptions";
 
 // The Members page's invite links (owners and admins, online): "Create a
@@ -105,18 +106,22 @@ export function CreateLinkButton({
               Anyone with the link can ask to join. You or another owner or admin approves each request, and
               they see nothing until then.
             </p>
-            <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
-              {(control) => (
-                <select
-                  {...control}
-                  name="role"
-                  value={role}
-                  onChange={(event) => setRole(event.target.value)}
-                >
-                  <RoleOptions roles={roles} />
-                </select>
-              )}
-            </Field>
+            <div className="relative">
+              {/* Beside the label: the label is short, so the link fits on its line. */}
+              <RoleHelp className="absolute end-0 top-1.5" />
+              <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
+                {(control) => (
+                  <select
+                    {...control}
+                    name="role"
+                    value={role}
+                    onChange={(event) => setRole(event.target.value)}
+                  >
+                    <RoleOptions roles={roles} />
+                  </select>
+                )}
+              </Field>
+            </div>
             <Field
               kind="input"
               label="Works for (days)"

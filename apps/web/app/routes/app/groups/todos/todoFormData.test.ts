@@ -1,7 +1,7 @@
 import { ruleText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { choiceRule } from "../../../../lib/appointments/repeatChoice";
-import { initialRepeat, isFieldIssue, repeatOnDay, todoFromForm } from "./todoFormData";
+import { initialRepeat, isFieldIssue, prefillRepeat, repeatOnDay, todoFromForm } from "./todoFormData";
 
 const form = (entries: Record<string, string>) => {
   const f = new FormData();
@@ -23,6 +23,7 @@ describe("todoFromForm", () => {
           medicationId: "",
           eventId: "e1",
           repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
+          entryId: "n1",
         }),
       ),
     ).toEqual({
@@ -35,6 +36,7 @@ describe("todoFromForm", () => {
       medicationId: null,
       eventId: "e1",
       repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
+      entryId: "n1",
     });
     expect(todoFromForm(form({}))).toEqual({
       title: "",
@@ -46,6 +48,7 @@ describe("todoFromForm", () => {
       medicationId: null,
       eventId: null,
       repeatRule: null,
+      entryId: null,
     });
   });
 
@@ -88,5 +91,18 @@ describe("the repeat", () => {
     const weekly = initialRepeat({ repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO", dueOn: "2026-11-16" });
     expect(repeatOnDay(weekly, "2026-11-17")?.rule).toBe("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO");
     expect(repeatOnDay(null, "2026-11-17")).toBeNull();
+  });
+
+  it("starts a new todo from quick entry's repeat, ignoring one that doesn't parse (planner-3)", () => {
+    const weekly = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+    expect(prefillRepeat(weekly, "2026-11-23")).toMatchObject({
+      rule: weekly,
+      day: "2026-11-23",
+      choice: { preset: "weekly", weekdays: ["MO"] },
+    });
+    expect(prefillRepeat("FREQ=YEARLY", "2026-11-23")).toBeNull();
+    expect(prefillRepeat("every monday", "2026-11-23")).toBeNull();
+    expect(prefillRepeat(weekly, null)).toBeNull();
+    expect(prefillRepeat(null, "2026-11-23")).toBeNull();
   });
 });

@@ -216,7 +216,7 @@ export const scheduleChangeParts = (
   const now = byKey(after.slots);
   const passOf = new Map(passes.map((p) => [p.id, p]));
   const name = (slot: ScheduleSlot) =>
-    isPassSlot(slot) ? (passOf.get(slot.passId)?.name ?? "a pass") : clockTime(slot.time);
+    isPassSlot(slot) ? (passOf.get(slot.passId)?.name ?? "a med time") : clockTime(slot.time);
   // Passes in their order (unknown ones last), then times by time.
   const passRank = new Map(sortPasses(passes).map((p, index) => [p.id, index]));
   const rank = (slot: ScheduleSlot) =>
@@ -362,6 +362,38 @@ export const doseWarningText = (warning: DoseWarning, timeZone: string) =>
   warning.type === "alreadyGiven"
     ? `The ${clockTime(warning.time)} dose was already given at ${clockAt(warning.givenAt, timeZone)}.`
     : `${warning.count} of ${warning.max} already given today, the most a day.`;
+
+const TIMES_WORDS = ["", "once", "twice"];
+
+/** "twice", "3 times". */
+const timesWord = (n: number) => TIMES_WORDS[n] ?? `${n} times`;
+
+/**
+ * A slot given more than once, in words, or null when it was given once:
+ * "Given twice: 8:00 and 8:20" (each dose's time in the recipient's zone).
+ */
+export const extraDoseText = (
+  slot: Pick<DoseSlot, "dose" | "extra"> & { state: DoseSlot["state"] },
+  timeZone: string,
+) => {
+  if (slot.state !== "given" || !slot.dose || !slot.extra.length) return null;
+  const doses = [slot.dose, ...slot.extra].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  return `Given ${timesWord(doses.length)}: ${listText(doses.map((d) => clockAt(d.occurredAt, timeZone)))}`;
+};
+
+/**
+ * An as-needed day past its maximum, in words, or null within it: "Given 3
+ * times today (most 2 a day): 8:00, 12:00 and 16:00".
+ */
+export const overMaxText = (
+  item: { count: number; max: number | null; extra: readonly unknown[]; givenAt: readonly string[] },
+  timeZone: string,
+) =>
+  item.max === null || !item.extra.length
+    ? null
+    : `Given ${timesWord(item.count)} today (most ${item.max} a day): ${listText(
+        item.givenAt.map((at) => clockAt(at, timeZone)),
+      )}`;
 
 /** A due slot as a Due now item or Dose sheet choice: "Metformin 500 mg · 20:00 dose, overdue". */
 export const dueSlotLabel = (

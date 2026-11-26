@@ -304,15 +304,15 @@ function DraftRow({
             <legend className="min-w-0 flex-1 truncate font-medium">{name}</legend>
             {controls}
           </div>
-          <OutsideField entry={entry} field="name" label="Name" issues={issues} onEdit={onEdit} />
+          <OutsideField entry={entry} field="name" label="Name" issues={issues} onEdit={onEdit} required />
           <OutsideField
             entry={entry}
             field="relationship"
-            label="Relationship (optional)"
+            label="Relationship"
             issues={issues}
             onEdit={onEdit}
           />
-          <OutsideField entry={entry} field="phone" label="Phone" issues={issues} onEdit={onEdit} />
+          <OutsideField entry={entry} field="phone" label="Phone" issues={issues} onEdit={onEdit} required />
         </fieldset>
       )}
     </li>
@@ -331,18 +331,20 @@ function OutsideField({
   label,
   issues,
   onEdit,
+  required,
 }: {
   entry: Extract<DraftEntry, { kind: "outside" }>;
   field: "name" | "relationship" | "phone";
   label: string;
   issues: FieldIssue[];
   onEdit: (field: "name" | "relationship" | "phone", value: string) => void;
+  required?: boolean;
 }) {
   const path = outsideFieldName(entry.contact.id, field);
   const error = issues.find((issue) => issue.path === path)?.message;
   const value = entry.contact[field];
   return (
-    <Field kind="input" label={label} error={error}>
+    <Field kind="input" label={label} error={error} required={required}>
       {(control) => (
         <input
           {...control}

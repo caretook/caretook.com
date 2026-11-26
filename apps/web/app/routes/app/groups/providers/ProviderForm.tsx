@@ -1,5 +1,5 @@
-import type { ProviderType } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { NewProviderDraft, ProviderType } from "@caretook/data/schema";
+import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +25,17 @@ const NAME_PLACEHOLDER: Record<ProviderType, string> = {
   other: "e.g. Sam (neighbor)",
 };
 
+/** A provider phone's label choices (before Custom), from the labels people use. */
+const PHONE_LABELS = [
+  "Office",
+  "Mobile",
+  "Front desk",
+  "Nurse line",
+  "After hours",
+  "Refills",
+  "Fax",
+] as const;
+
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
 const TYPE_OPTIONS = PROVIDER_TYPES.map((t) => ({ value: t, label: PROVIDER_TYPE_META[t].label }));
@@ -39,20 +50,24 @@ export function ProviderForm({
   provider,
   initialType = "clinician",
   practices,
+  draft,
   onDone,
   onCancel,
   onDelete,
 }: {
   /** Editing this provider; omit to add one. */
   provider?: LocalProvider;
+  /** Adding: what the fields start with (quick entry's "add provider Dr Kim cardiology 555-0100"). */
+  draft?: Pick<NewProviderDraft, "name" | "specialty" | "practiceId" | "phone" | "address"> | null;
   initialType?: ProviderType;
   practices: LocalProvider[];
-  onDone: () => void;
+  /** After a save; adding one passes the new provider's id. The form itself never navigates. */
+  onDone: (id?: string) => void;
   onCancel: () => void;
   /** Editing: asks to delete the provider. */
   onDelete?: () => void;
 }) {
-  const fetcher = useFetcher<ActionResult>();
+  const fetcher = useFetcher<ActionResult | CreateResult>();
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<ProviderType>(provider?.type ?? initialType);
 
@@ -60,18 +75,18 @@ export function ProviderForm({
   const issues = result && !result.ok ? result.issues : [];
   const busy = fetcher.state !== "idle";
 
-  // A save closes the sheet; a refusal moves focus to the first field it's about.
-  const handled = useRef<ActionResult | undefined>(undefined);
+  // A save goes to `onDone`; a refusal moves focus to the first field it's about.
+  const handled = useRef<ActionResult | CreateResult | undefined>(undefined);
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data || handled.current === fetcher.data) return;
     handled.current = fetcher.data;
-    if (fetcher.data.ok) onDone();
+    if (fetcher.data.ok) onDone("id" in fetcher.data ? fetcher.data.id : undefined);
     else formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [fetcher.state, fetcher.data, onDone]);
 
   const choices = practices.filter((p) => p.id !== provider?.id);
   // A practice that's gone (deleted since) still shows, so saving doesn't drop it unasked.
-  const currentPractice = provider?.practiceId ?? "";
+  const currentPractice = provider?.practiceId ?? draft?.practiceId ?? "";
   const missingPractice = !!currentPractice && !choices.some((p) => p.id === currentPractice);
   const meta = SPECIALTY[type];
   const general = result && !result.ok && issues.length === 0 ? result.error : undefined;
@@ -87,28 +102,29 @@ export function ProviderForm({
         value={type}
         onChange={setType}
         error={issueFor(issues, "type")}
+        required
       />
 
-      <Field label="Name" kind="input" error={issueFor(issues, "name")}>
+      <Field label="Name" kind="input" error={issueFor(issues, "name")} required>
         {(control) => (
           <input
             {...control}
             name={FIELD.name}
             maxLength={PROVIDER_LIMITS.name}
-            defaultValue={provider?.name ?? ""}
+            defaultValue={provider?.name ?? draft?.name ?? ""}
             placeholder={NAME_PLACEHOLDER[type]}
             autoComplete="off"
           />
         )}
       </Field>
 
-      <Field label={`${meta.label} (optional)`} kind="input" error={issueFor(issues, "specialty")}>
+      <Field label={meta.label} kind="input" error={issueFor(issues, "specialty")}>
         {(control) => (
           <input
             {...control}
             name={FIELD.specialty}
             maxLength={PROVIDER_LIMITS.specialty}
-            defaultValue={provider?.specialty ?? ""}
+            defaultValue={provider?.specialty ?? draft?.specialty ?? ""}
             placeholder={meta.placeholder}
             autoComplete="off"
           />
@@ -116,7 +132,7 @@ export function ProviderForm({
       </Field>
 
       {hasPractice(type) && (
-        <Field label="Practice (optional)" kind="select" error={issueFor(issues, "practiceId")}>
+        <Field label="Practice" kind="select" error={issueFor(issues, "practiceId")}>
           {(control) => (
             <select {...control} name={FIELD.practiceId} defaultValue={currentPractice}>
               <option value="">None</option>
@@ -132,9 +148,13 @@ export function ProviderForm({
         </Field>
       )}
 
-      <PhoneFields initial={provider?.phones} issues={issues} />
+      <PhoneFields
+        initial={provider?.phones ?? (draft?.phone ? [{ label: "", number: draft.phone }] : undefined)}
+        issues={issues}
+        labelOptions={PHONE_LABELS}
+      />
 
-      <Field label="Email (optional)" kind="input" error={issueFor(issues, "email")}>
+      <Field label="Email" kind="input" error={issueFor(issues, "email")}>
         {(control) => (
           <input
             {...control}
@@ -148,19 +168,19 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label="Address (optional)" kind="textarea" error={issueFor(issues, "address")}>
+      <Field label="Address" kind="textarea" error={issueFor(issues, "address")}>
         {(control) => (
           <textarea
             {...control}
             name={FIELD.address}
             rows={2}
             maxLength={PROVIDER_LIMITS.address}
-            defaultValue={provider?.address ?? ""}
+            defaultValue={provider?.address ?? draft?.address ?? ""}
           />
         )}
       </Field>
 
-      <Field label="Website (optional)" kind="input" error={issueFor(issues, "website")}>
+      <Field label="Website" kind="input" error={issueFor(issues, "website")}>
         {(control) => (
           <input
             {...control}

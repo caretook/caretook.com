@@ -1,6 +1,6 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Toast } from "~/components/ui";
+import { dismissToast, toast } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   addedNoticeAt,
@@ -14,12 +14,12 @@ import {
 const noNotice = () => null;
 
 /**
- * After the Dose sheet's quick add: "Added Ibuprofen · Add details" once the
- * sheet has closed, for about 10 s or until the next navigation
- * (`lib/medications/addedNotice.ts`). Add details opens the new
- * medication's edit sheet, for its strength, directions and the rest. The
- * timeline mounts it beside its sheets. The last notice stays rendered
- * while the toast fades out.
+ * After the Dose sheet's quick add: the toast "Added Ibuprofen · Add details"
+ * once the sheet has closed, for about 10 s or until the next navigation
+ * (`lib/medications/addedNotice.ts` keeps that time, so the toast has none of
+ * its own). Add details opens the new medication's edit sheet, for its
+ * strength, directions and the rest. The timeline mounts it beside its
+ * sheets; it draws nothing itself.
  */
 export function AddedMedicationToast({ groupId }: { groupId: string }) {
   const notice = useSyncExternalStore(subscribeAddedNotice, addedNoticeSnapshot, noNotice);
@@ -38,22 +38,26 @@ export function AddedMedicationToast({ groupId }: { groupId: string }) {
     return () => clearTimeout(timer);
   }, [shown]);
 
-  // The last notice shown, kept for the toast's exit.
-  const [last, setLast] = useState(shown);
-  if (shown && shown !== last) setLast(shown);
+  // The toast, while the notice is shown: one per notice (its key).
+  const shownKey = shown?.key;
+  const medicationId = shown?.medicationId;
+  const text = shown ? addedNoticeText(shown) : null;
+  useEffect(() => {
+    if (!shownKey || !medicationId || !text) return;
+    const id = toast({
+      message: text,
+      action: {
+        label: "Add details",
+        onAction: () => {
+          clearAddedNotice(shownKey);
+          void navigate(appUrls.editMedication(groupId, medicationId, "list"));
+        },
+      },
+      timeout: null,
+      data: { "data-added-medication": medicationId },
+    });
+    return () => dismissToast(id);
+  }, [shownKey, medicationId, text, groupId, navigate]);
 
-  if (!last) return null;
-  return (
-    <div data-added-medication={shown ? last.medicationId : undefined}>
-      <Toast
-        open={!!shown}
-        message={addedNoticeText(last)}
-        actionLabel="Add details"
-        onAction={() => {
-          clearAddedNotice(last.key);
-          void navigate(appUrls.editMedication(groupId, last.medicationId, "list"));
-        }}
-      />
-    </div>
-  );
+  return null;
 }

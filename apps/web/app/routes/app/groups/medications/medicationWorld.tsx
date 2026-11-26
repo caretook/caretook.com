@@ -1,11 +1,13 @@
 import type { MedicationChangeDetails } from "@caretook/data/schema";
 import type { DeviceRoute } from "../../../../../test/device";
 
+import { zonedInstant } from "@caretook/data/schema";
 import { userEvent } from "vitest/browser";
-import { at, fx, medicationPass, TEST_GROUP } from "../../../../../test/fixtures";
+import { at, fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import * as medicationPage from "../medication/route";
+import * as doseSheet from "../timeline/new-dose/route";
 import * as allergiesSheet from "./allergies/route";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -243,7 +245,15 @@ export const MEDICATION_ROUTES: DeviceRoute[] = [
         module: scheduleTab,
         children: sheetsOver("schedule"),
       },
-      { path: "/app/groups/:groupId/medications/list", module: listTab, children: sheetsOver("list") },
+      {
+        path: "/app/groups/:groupId/medications/list",
+        module: listTab,
+        // The list's Log: the timeline's Dose sheet, over the list.
+        children: [
+          ...sheetsOver("list"),
+          { path: "/app/groups/:groupId/medications/list/dose", module: doseSheet },
+        ],
+      },
       {
         path: "/app/groups/:groupId/medications/passes",
         module: passesTab,
@@ -368,8 +378,12 @@ export const CHANGES_SQL =
 
 // --- A fixed clock (Today, the Dose sheet, the strip, Upcoming's passes) ------
 
-/** Wednesday Jun 9 2027, 10:00 in Los Angeles (the test browser's zone and the recipient's): the test clock's day (`TEST_NOW`), which the module-level fixtures are relative to. */
-export const CLOCK = new Date(2027, 5, 9, 10, 0);
+/**
+ * Wednesday Jun 9 2027, 10:00 in Los Angeles, the recipient's zone, where her passes' times are: the
+ * test clock's day (`TEST_NOW`), which the module-level fixtures are relative to. In the recipient's
+ * zone, not the device's, so her day reads the same with the device in New York (13:00 there).
+ */
+export const CLOCK = zonedInstant("2027-06-09", "10:00", TEST_TIME_ZONE);
 /** `HH:MM` on the fixed clock's day, `minutes` from 10:00 (negative is earlier). */
 export const clockAt = (minutes: number) => {
   const m = 10 * 60 + minutes;

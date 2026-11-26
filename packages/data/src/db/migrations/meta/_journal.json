@@ -309,6 +309,20 @@
       "when": 1795521525451,
       "tag": "0043_symptom_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795527391287,
+      "tag": "0044_symptom_entry_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795582730427,
+      "tag": "0045_entry_todos",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,9 @@
 // past its soft and hard limits.
 //
 // session.sh gives `prd` and `backlog` sessions context-settings.json, and the
-// inbox session inbox-settings.json (claude --settings), a PostToolUse hook that runs `context.mjs hook`. The hook reads the transcript
+// inbox session inbox-settings.json (claude --settings), hooks that run `context.mjs hook`
+// on PreToolUse, PostToolUse, PostToolUseFailure, SubagentStop and Stop. Every event
+// feeds the heartbeat (heartbeat.mjs); only PostToolUse is sized. The hook reads the transcript
 // it is handed, writes the size record and stays silent under the limit. Over
 // it, it adds a reminder to the agent's context. It never blocks a tool call
 // and any error in it is swallowed (exit 0, no output).
@@ -59,7 +61,9 @@ import {
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { recordHeartbeat } from "./heartbeat.mjs";
 import { defaultDir, isLive, processOf, readRecord, readRecords } from "./sessions.mjs";
+import { branchKinds } from "./config.mjs";
 
 const MIN_MS = 60_000;
 /** How much of a transcript's end is read first; it doubles until a usage is found. */
@@ -361,6 +365,14 @@ export function runHook(/** @type {string} */ raw, env = process.env, now = Date
   const session = readRecord(sessions, name);
   if (session?.pid !== pid) return "";
   const input = JSON.parse(raw);
+  try {
+    recordHeartbeat(input, env, now, session);
+  } catch {
+    /* the heartbeat never hurts the size watch */
+  }
+  // Only a finished call is sized; the other events are the heartbeat's alone.
+  const event = input?.hook_event_name;
+  if (event !== undefined && event !== "PostToolUse") return "";
   const dir = contextDirOf(sessions);
   const loop = Boolean(input.agent_id);
   const backlog = session.kind === "backlog";
@@ -403,8 +415,10 @@ export function runHook(/** @type {string} */ raw, env = process.env, now = Date
  */
 export function liveSizes(sessions, { limit = limitOf(), hardLimit = hardLimitOf(), now = Date.now() } = {}) {
   const dir = contextDirOf(sessions);
+  // Each process's start by its own ps call's clock: a `now` taken before every call
+  // would date the later ones earlier by however long the calls took under load.
   return readRecords(sessions)
-    .filter(({ record }) => isLive(record, processOf(record.pid ?? 0, now), now))
+    .filter(({ record }) => isLive(record, processOf(record.pid ?? 0), now))
     .map(({ name, record }) => {
       const size = sizeRecord(dir, name, record.pid ?? 0);
       const keep = size?.keep && Date.parse(size.keep.until) > now ? size.keep : null;
@@ -462,7 +476,7 @@ function cli(/** @type {string[]} */ args) {
     } catch {
       /* not in a repo: nothing to refuse on */
     }
-    if (branch.startsWith("slice/")) {
+    if (branchKinds().is(branch, "slice")) {
       console.error("context --keep is the orchestrator's: a loop hands off instead");
       return 1;
     }

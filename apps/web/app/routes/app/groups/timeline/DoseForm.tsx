@@ -135,6 +135,7 @@ export function DoseForm(props: Props) {
             <ChoiceGroup
               name="medicationId"
               label="Medication"
+              required
               options={options}
               value={choice}
               onChange={choose}
@@ -149,13 +150,14 @@ export function DoseForm(props: Props) {
       <ChoiceGroup
         name="status"
         label="Status"
+        required
         options={DOSE_STATUS_OPTIONS}
         value={status}
         onChange={chooseStatus}
         error={issueFor(issues, "details.status")}
       />
 
-      <Field label="Amount (optional)" kind="input" error={issueFor(issues, "details.amount")}>
+      <Field label="Amount" kind="input" error={issueFor(issues, "details.amount")}>
         {(control) => (
           <input
             {...control}
@@ -170,11 +172,12 @@ export function DoseForm(props: Props) {
       <DateTimeField
         name="occurredAt"
         label="When"
+        required
         defaultValue={entry?.occurredAt ?? draft?.occurredAt ?? props.initialAt ?? undefined}
         error={issueFor(issues, "occurredAt")}
       />
 
-      <Field label="Note (optional)" kind="textarea" error={issueFor(issues, "details.note")}>
+      <Field label="Note" kind="textarea" error={issueFor(issues, "details.note")}>
         {(control) => (
           <textarea
             {...control}

@@ -1,4 +1,5 @@
 import type { AuthUser } from "@caretook/data";
+import type { RateLimiter } from "../rateLimit";
 import type { Tool } from "./registry";
 
 import {
@@ -13,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
 import { createRateLimiter } from "../rateLimit";
+import { MCP_RATE_LIMIT } from "./http";
 import { defineTool, WRITE_ANNOTATIONS } from "./registry";
 import {
   connectAssistant,
@@ -197,15 +199,25 @@ describe("/mcp", () => {
       ).result.prompts.map((p) => p.name);
     expect(await names(writer.tokens.access_token)).toEqual([
       "catch_me_up",
-      "prepare_for_appointment",
+      "prepare_for_event",
       "weekly_summary",
       "log_what_happened",
     ]);
     expect(await names(reader.tokens.access_token)).toEqual([
       "catch_me_up",
-      "prepare_for_appointment",
+      "prepare_for_event",
       "weekly_summary",
     ]);
+    // Event everywhere (B-583): the old name has no alias.
+    expect(await names(writer.tokens.access_token)).not.toContain("prepare_for_appointment");
+    const old = (await (
+      await mcpPost(
+        handler,
+        writer.tokens.access_token,
+        rpc("prompts/get", { name: "prepare_for_appointment" }),
+      )
+    ).json()) as { error?: { code: number } };
+    expect(old.error).toBeDefined();
 
     const got = await mcpPost(
       handler,
@@ -390,11 +402,28 @@ describe("/mcp", () => {
   });
 
   it("allows 60 calls a minute per connection, then 429 with Retry-After", async () => {
-    const handler = handlerWith(60);
-    const w = await world();
+    // 60 calls through the whole stack (each verifies its token in the
+    // database) timed out under load (B-582). The first and the 60th go
+    // through /mcp; the 58 between are counted straight into the limiter
+    // under the key /mcp used, the connection's. The sliding window itself
+    // is rateLimit.int.test.ts's.
+    const keys: string[] = [];
+    const counting = createRateLimiter({ limit: MCP_RATE_LIMIT, windowMs: 60_000 });
+    const limiter: RateLimiter = {
+      hit: (key, now, limit) => {
+        keys.push(key);
+        return counting.hit(key, now, limit);
+      },
+      reset: counting.reset,
+    };
+    const handler = mcpHandler({ limiter, tools: TOOLS });
+    const w = await world({ signIn: ["owner"] });
     const { tokens } = await connectAssistant({ email: w.owner.user.email, groupId: w.group.id });
-    for (let i = 0; i < 60; i++)
-      expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(200);
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(200);
+    expect(keys).toHaveLength(1);
+    const [key] = keys as [string];
+    for (let i = 0; i < MCP_RATE_LIMIT - 2; i++) expect(await counting.hit(key)).toBe(true);
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(200);
     const over = await mcpPost(handler, tokens.access_token, rpc("ping"));
     expect(over.status).toBe(429);
     expect(over.headers.get("retry-after")).toBe("60");

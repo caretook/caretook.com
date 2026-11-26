@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { Highlight } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { entryMedication, medicationLabel } from "~/lib/medications/medicationEntries";
 
 /**
@@ -33,6 +34,8 @@ export function MedicationHeading({
 }) {
   // The easy roles can't open a medication's page: the name is text.
   const { id: groupId, easyRole } = useGroup();
+  // Its page's Back comes back here.
+  const linkState = useMedicationLinkState();
   if (standalone)
     return (
       <p className={`font-semibold break-words ${className}`} data-medication-entry data-pass-moved>
@@ -47,6 +50,7 @@ export function MedicationHeading({
       {medication && !medication.deletedAt && !easyRole ? (
         <Link
           to={appUrls.medication(groupId, medication.id)}
+          state={linkState}
           className="link link-hover relative z-10"
           data-medication={medication.id}
         >

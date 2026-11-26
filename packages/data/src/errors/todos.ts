@@ -35,4 +35,20 @@ export const TODOS_ERRORS = {
     message: "You can only complete or reopen todos assigned to you",
     statusCode: 403,
   },
+  "entryTodoService:invalid": {
+    message: "The todo link is invalid",
+    statusCode: 400,
+  },
+  "entryTodoService:entryNotFound": {
+    message: "That entry is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "entryTodoService:todoNotFound": {
+    message: "That todo is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "entryTodoService:immutable": {
+    message: "A link's entry and todo must be in its care group",
+    statusCode: 400,
+  },
 } as const;

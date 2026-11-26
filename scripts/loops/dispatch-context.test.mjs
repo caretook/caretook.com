@@ -29,6 +29,7 @@ import {
   runsPrdCommand,
 } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, MAX_REOPENS, pick } from "./dispatch-pick.mjs";
+import "./config-fixture.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MIN = 60_000;
@@ -430,20 +431,28 @@ describe("the tick", () => {
     for (const f of [
       "dispatch.mjs",
       "dispatch-context.mjs",
+      "dispatch-stuck.mjs",
       "dispatch-pick.mjs",
       "context.mjs",
+      "heartbeat.mjs",
       "keep-alive.mjs",
       "session-requests.mjs",
       "notices.mjs",
       "asks.mjs",
       "ask.mjs",
       "skeptics.mjs",
+      "doc.mjs",
       "sessions.mjs",
       "captain.mjs",
       "load-gate.mjs",
       "rotate.mjs",
       "open-session.mjs",
       "planner-model.mjs",
+      "config.mjs",
+      "drain.mjs",
+      "usage.mjs",
+      "land-journal.mjs",
+      "resume.mjs",
     ])
       copyFileSync(join(HERE, f), scripts(f));
     writeFileSync(scripts("open-session.sh"), OPEN_SH);
@@ -468,6 +477,10 @@ describe("the tick", () => {
       CARETOOK_CONTEXT_NUDGE_MIN: "",
       CARETOOK_CONTEXT_WATCH: "",
       CARETOOK_KEEP_SESSIONS: "off",
+      // The drain (drain.mjs): off, and never the machine's own readings or landings.
+      CARETOOK_USAGE_WATCH: "off",
+      CARETOOK_USAGE_DIR: "",
+      CARETOOK_LANDING_DIR: "",
       CARETOOK_PICKUP_EVERY: "off",
       CARETOOK_CLOCK_FILE: clock,
       STUB_STATE: stubs,

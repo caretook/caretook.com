@@ -13,7 +13,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { readPrecacheList } from "./manifest.mjs";
+import { OFFLINE_PAGE, readPrecacheList } from "./manifest.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const web = join(here, "../../apps/web");
@@ -23,7 +23,7 @@ const WORKER_SOURCES = ["serviceWorker.ts", "serviceWorkerCaches.ts", "serviceWo
 
 /**
  * The build version: a hash of the precache list (its files are content-hashed)
- * and the worker's own source, so an unchanged build keeps its version (and no
+ * and the worker's own source and offline page, so an unchanged build keeps its version (and no
  * update notice), and any change to what it serves or how makes a new one.
  */
 export function serviceWorkerVersion(list, sources) {
@@ -34,7 +34,11 @@ export function serviceWorkerVersion(list, sources) {
 
 export async function writeServiceWorker(clientDir) {
   const list = readPrecacheList(clientDir);
-  const sources = WORKER_SOURCES.map((f) => readFileSync(join(workerDir, f), "utf8"));
+  // The offline page isn't content-hashed: its text versions the worker too.
+  const sources = [
+    ...WORKER_SOURCES.map((f) => readFileSync(join(workerDir, f), "utf8")),
+    readFileSync(join(clientDir, OFFLINE_PAGE), "utf8"),
+  ];
   const version = serviceWorkerVersion(list, sources);
   // Vite is apps/web's dependency, not the repo root's.
   const vite = await import(pathToFileURL(createRequire(join(web, "package.json")).resolve("vite")).href);

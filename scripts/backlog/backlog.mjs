@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// The live backlog, on dev in the main checkout:
+// The live backlog, on dev in the main checkout (the paths, the trunk, the ids'
+// prefix and the PRD table's heading are the project config's; this repo's below):
 //   plans/inbox.md    the user's plain list: bullets under headings, no fields
 //   plans/backlog.md  the tracker: ids, status, PRD, owner, commit, notes
 //
@@ -39,6 +40,11 @@
 //                                            a look-alike (items, unfiled lines) stops it (exit 3)
 //   pnpm backlog inbox move <words…> <type>  an unfiled bullet (its words must find one) to another
 //                                            heading, on origin/dev; a filed one names its `set` line
+//   pnpm backlog inbox edit <words…> --to TEXT [--details TEXT]
+//                                            reword an unfiled bullet in place (--details replaces its
+//                                            detail lines, "" drops them); a filed one is refused
+//   pnpm backlog inbox remove <words…>       an unfiled bullet and its details out, on origin/dev;
+//                                            a filed one is refused
 //
 // The inbox commands write through the origin writer (scripts/backlog/origin.mjs):
 // a commit built on origin/dev's tip, changing only the inbox, pushed without
@@ -71,10 +77,11 @@
 //   pnpm backlog prd list [--json]           each topic with its worked-out state
 //   pnpm backlog prd add <topic> [--first|--last|--before T|--after T] [flags=… after=… hot=… notes=…]
 //   pnpm backlog prd set <topic> flags=… after=… hot=… notes=…   comma-separated; — clears
+//   pnpm backlog prd set <topic> flags+=hold | flags-=hold   adds or removes flags, keeping the others
 //   pnpm backlog prd move <topic> --first|--last|--before T|--after T
 //
 // Env: BACKLOG_BY (who's writing; default your branch, or git user.name on dev),
-// BACKLOG_BRANCH (default dev), BACKLOG_REMOTE (default origin).
+// BACKLOG_BRANCH (default the config's trunk), BACKLOG_REMOTE (default origin).
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -85,13 +92,19 @@ import * as edits from "./inbox-edit.mjs";
 import { mergeInbox } from "./inbox-merge.mjs";
 import { pushInboxEdit } from "./origin.mjs";
 import * as reg from "./registry.mjs";
+import { loadConfigOrExit } from "../loops/config.mjs";
 
-const TRUNK = process.env.BACKLOG_BRANCH ?? "dev";
+const { config } = loadConfigOrExit("backlog");
+const TRUNK = process.env.BACKLOG_BRANCH ?? config.branches.trunk;
 const REMOTE = process.env.BACKLOG_REMOTE ?? "origin";
-const REL = "plans/backlog.md";
-const INBOX_REL = "plans/inbox.md";
-const ARCHIVE_REL = "plans/backlog-archive.md";
-const QUARANTINE_REL = "scripts/ci/quarantine.txt";
+const REL = config.paths.backlog;
+const INBOX_REL = config.paths.inbox;
+const ARCHIVE_REL = config.paths.archive;
+/** CI's quarantine list, which `ci-file` commits with the backlog (null: the project has none). */
+const QUARANTINE_REL = config.paths.quarantine ?? null;
+const PREFIX = config.branches.prefixes;
+/** The lock and temporary files in the git dir carry the project's name. */
+const NAME = config.name;
 // Loaded only for ci-file: every other command works without scripts/ci/.
 const filing = process.argv[2] === "ci-file" ? await import("../ci/filing.mjs") : null;
 
@@ -123,7 +136,7 @@ const archiveFile = join(mainCheckout, ARCHIVE_REL);
 const gitDir = resolve(mainCheckout, git(mainCheckout, "rev-parse", "--git-dir"));
 const lockDir = join(
   resolve(mainCheckout, git(mainCheckout, "rev-parse", "--git-common-dir")),
-  "caretook-backlog.lock",
+  `${NAME}-backlog.lock`,
 );
 
 const today = () => {
@@ -285,7 +298,7 @@ function amendFacts(head, readHead, headRaw, commits) {
  */
 function commitContents(contents, w, readHead, commits) {
   const head = git(mainCheckout, "rev-parse", "HEAD");
-  const tmpIndex = join(gitDir, `caretook-backlog-index-${process.pid}`);
+  const tmpIndex = join(gitDir, `${NAME}-backlog-index-${process.pid}`);
   const env = { GIT_INDEX_FILE: tmpIndex };
   try {
     gitRaw(mainCheckout, ["read-tree", "HEAD"], { env });
@@ -414,7 +427,7 @@ function write(tool, describe, change, opts = {}) {
     );
 
     // The quarantine: committed from HEAD's copy; the working copy follows unless it has hand edits.
-    if (typeof ctx.quarantine === "string" && ctx.quarantine !== headText(QUARANTINE_REL)) {
+    if (QUARANTINE_REL && typeof ctx.quarantine === "string" && ctx.quarantine !== headText(QUARANTINE_REL)) {
       commit[QUARANTINE_REL] = ctx.quarantine;
       if (readText(join(mainCheckout, QUARANTINE_REL)) === headText(QUARANTINE_REL))
         disk[QUARANTINE_REL] = ctx.quarantine;
@@ -561,6 +574,7 @@ const originWrite = () => ({
   remote: REMOTE,
   trunk: TRUNK,
   rel: INBOX_REL,
+  name: NAME,
   backlogFiles: BACKLOG_FILES,
   withLock,
 });
@@ -602,17 +616,48 @@ function inboxAdd(args, opts) {
   pickup("an inbox push");
 }
 
+/**
+ * The one unfiled bullet `words` find in `t` (origin/dev's inbox), for move,
+ * edit and remove. A filed one (tagged on origin/dev, or only on local dev's
+ * copy, `localText`) throws `filed(entry, id)`; none, or several, throw why.
+ * @param {string} t @param {string | null} localText @param {string} words
+ * @param {(e: import("./format.mjs").InboxEntry, id: string) => Error} filed
+ */
+function findUnfiled(t, localText, words, filed) {
+  const key = (s) => s.replace(/\s+/g, " ").trim().toLowerCase();
+  const local = localText === null ? [] : fmt.parseInbox(localText);
+  const hits = edits.findEntries(t, words);
+  if (!hits.length) {
+    const there = localText === null ? [] : edits.findEntries(localText, words).filter((e) => e.id);
+    if (there.length === 1) throw filed(there[0], /** @type {string} */ (there[0].id));
+    const work = readText(inboxFile);
+    if (work !== null && edits.findEntries(work, words).length)
+      throw new fmt.BacklogError(
+        `"${words}" is only in your uncommitted ${INBOX_REL}, not on ${REMOTE}/${TRUNK}: change it there by hand`,
+      );
+    throw new fmt.BacklogError(`no inbox line on ${REMOTE}/${TRUNK} has "${words}"`);
+  }
+  if (hits.length > 1)
+    throw new fmt.BacklogError(
+      `"${words}" is in ${hits.length} inbox lines (${hits.map((e) => `"${fmt.titleFromBullet(e.text)}"`).join(", ")}): give more of its words`,
+    );
+  const e = hits[0];
+  if (e.id) throw filed(e, e.id);
+  const tagged = local.find((l) => l.id && key(l.text) === key(e.text));
+  if (tagged) throw filed(e, /** @type {string} */ (tagged.id));
+  return e;
+}
+
+/** A filed line's refusal: `then` says what to do instead. */
+const filedAs = (/** @type {{ text: string }} */ e, /** @type {string} */ id, /** @type {string} */ then) =>
+  new fmt.BacklogError(`"${fmt.titleFromBullet(e.text)}" is filed as ${id}: ${then}`);
+
 /** `inbox move <words…> <type>`. */
 function inboxMove(args) {
   const type = args.at(-1);
   const words = args.slice(0, -1).join(" ");
   if (!type || !words.trim()) throw new fmt.BacklogError("usage: inbox move <words…> <type>");
   fmt.checkType(type);
-  const key = (s) => s.replace(/\s+/g, " ").trim().toLowerCase();
-  const filed = (e, id) =>
-    new fmt.BacklogError(
-      `"${fmt.titleFromBullet(e.text)}" is filed as ${id}: change the item instead: pnpm backlog set ${id} type=${type}`,
-    );
   /** @type {{ text: string, from: string } | null} */
   let moved = null;
   const { commit } = pushInboxEdit({
@@ -625,26 +670,9 @@ function inboxMove(args) {
     },
     edit: (t, localText) => {
       moved = null;
-      const local = localText === null ? [] : fmt.parseInbox(localText);
-      const hits = edits.findEntries(t, words);
-      if (!hits.length) {
-        const there = localText === null ? [] : edits.findEntries(localText, words).filter((e) => e.id);
-        if (there.length === 1) throw filed(there[0], there[0].id);
-        const work = readText(inboxFile);
-        if (work !== null && edits.findEntries(work, words).length)
-          throw new fmt.BacklogError(
-            `"${words}" is only in your uncommitted ${INBOX_REL}, not on ${REMOTE}/${TRUNK}: move it there by hand`,
-          );
-        throw new fmt.BacklogError(`no inbox line on ${REMOTE}/${TRUNK} has "${words}"`);
-      }
-      if (hits.length > 1)
-        throw new fmt.BacklogError(
-          `"${words}" is in ${hits.length} inbox lines (${hits.map((e) => `"${fmt.titleFromBullet(e.text)}"`).join(", ")}): give more of its words`,
-        );
-      const e = hits[0];
-      if (e.id) throw filed(e, e.id);
-      const tagged = local.find((l) => l.id && key(l.text) === key(e.text));
-      if (tagged) throw filed(e, /** @type {string} */ (tagged.id));
+      const e = findUnfiled(t, localText, words, (x, id) =>
+        filedAs(x, id, `change the item instead: pnpm backlog set ${id} type=${type}`),
+      );
       if (e.type === type) return t;
       moved = { text: e.text, from: e.type };
       return edits.moveEntry(t, e.line, type);
@@ -653,6 +681,70 @@ function inboxMove(args) {
   if (!commit || !moved) return console.log(`already under ${type}: nothing to move`);
   const heading = edits.headingFor(showAt(commit, INBOX_REL) ?? "", type);
   console.log(`moved to ${heading} ${sayPushed(commit)}: ${fmt.titleFromBullet(moved.text)}`);
+  pickup("an inbox push");
+}
+
+/** `inbox edit <words…> --to TEXT [--details TEXT]`: reword an unfiled bullet in place. */
+function inboxEdit(args, opts) {
+  const words = args.join(" ");
+  const to = typeof opts.to === "string" ? opts.to : undefined;
+  const details = typeof opts.details === "string" ? opts.details : undefined;
+  if (!words.trim() || (to === undefined && details === undefined))
+    throw new fmt.BacklogError("usage: inbox edit <words…> --to TEXT [--details TEXT]");
+  if (to !== undefined) edits.addEntry("", "bug", to); // a bad line fails here, before any network
+  /** @type {{ was: string, now: string } | null} */
+  let changed = null;
+  const { commit } = pushInboxEdit({
+    ...originWrite(),
+    message: {
+      tool: "inbox edit",
+      ids: [],
+      text: `inbox: edit "${fmt.titleFromBullet(words)}"`,
+      lines: [`By: ${who()}`],
+    },
+    edit: (t, localText) => {
+      changed = null;
+      const e = findUnfiled(t, localText, words, (x, id) =>
+        filedAs(x, id, "change the item instead, in the backlog session"),
+      );
+      const out = edits.rewordEntry(t, e.line, to ?? e.text, details);
+      if (out !== t)
+        changed = { was: e.text, now: to === undefined ? e.text : to.replace(/\s+/g, " ").trim() };
+      return out;
+    },
+  });
+  if (!commit || !changed) return console.log("the line already says that: nothing to change");
+  const { was, now } = changed;
+  console.log(
+    `edited ${sayPushed(commit)}: ${was === now ? fmt.titleFromBullet(now) : `"${fmt.titleFromBullet(was)}" is now "${fmt.titleFromBullet(now)}"`}`,
+  );
+  pickup("an inbox push");
+}
+
+/** `inbox remove <words…>`: an unfiled bullet and its details. */
+function inboxRemove(args) {
+  const words = args.join(" ");
+  if (!words.trim()) throw new fmt.BacklogError("usage: inbox remove <words…>");
+  /** @type {string | null} */
+  let removed = null;
+  const { commit } = pushInboxEdit({
+    ...originWrite(),
+    message: {
+      tool: "inbox remove",
+      ids: [],
+      text: `inbox: remove "${fmt.titleFromBullet(words)}"`,
+      lines: [`By: ${who()}`],
+    },
+    edit: (t, localText) => {
+      const e = findUnfiled(t, localText, words, (x, id) =>
+        filedAs(x, id, "drop the item instead, in the backlog session"),
+      );
+      removed = e.text;
+      return edits.removeEntry(t, e.line);
+    },
+  });
+  if (!commit || removed === null) return console.log("nothing changed");
+  console.log(`removed ${sayPushed(commit)}: ${fmt.titleFromBullet(removed)}`);
   pickup("an inbox push");
 }
 
@@ -919,16 +1011,18 @@ function findings() {
 
 /** What stateOf needs, from dev and the worktrees. @param {import("./format.mjs").Item[]} items @returns {reg.Facts} */
 function registryFacts(items) {
+  const PLANS = `${config.paths.plans}/`;
   const plans = new Set(
-    (tryGit(mainCheckout, "ls-tree", "--name-only", TRUNK, "plans/") ?? "")
+    (tryGit(mainCheckout, "ls-tree", "--name-only", TRUNK, PLANS) ?? "")
       .split("\n")
-      .map((f) => /^plans\/(.+)-plan\.md$/.exec(f)?.[1])
+      .map((f) => (f.startsWith(PLANS) ? /^(.+)-plan\.md$/.exec(f.slice(PLANS.length))?.[1] : undefined))
       .filter(Boolean),
   );
   const worktrees = new Set(
-    [
-      ...git(mainCheckout, "worktree", "list", "--porcelain").matchAll(/^branch refs\/heads\/prd\/(.+)$/gm),
-    ].map((m) => m[1]),
+    [...git(mainCheckout, "worktree", "list", "--porcelain").matchAll(/^branch refs\/heads\/(.+)$/gm)]
+      .map((m) => m[1])
+      .filter((b) => b.startsWith(PREFIX.prd))
+      .map((b) => b.slice(PREFIX.prd.length)),
   );
   const waiting = new Map();
   for (const i of items)
@@ -1047,7 +1141,7 @@ function doctor(fix) {
 }
 
 const ids = (pos) => {
-  if (!pos.length) throw new fmt.BacklogError("which item? (B-n)");
+  if (!pos.length) throw new fmt.BacklogError(`which item? (${fmt.IDS.prefix}n)`);
   return [...new Set(pos.map(fmt.normId))];
 };
 /** "B-1: …", "B-1, B-2, B-3 +2: …" */
@@ -1078,7 +1172,10 @@ function main() {
       const [sub, ...args] = pos;
       if (sub === "add") return inboxAdd(args, opts);
       if (sub === "move") return inboxMove(args);
-      if (sub !== undefined) throw new fmt.BacklogError(`unknown inbox command "${sub}" (add, move)`);
+      if (sub === "edit") return inboxEdit(args, opts);
+      if (sub === "remove") return inboxRemove(args);
+      if (sub !== undefined)
+        throw new fmt.BacklogError(`unknown inbox command "${sub}" (add, move, edit, remove)`);
       const merged = mergedInbox(true);
       const pending = merged === null ? [] : fmt.newInboxEntries(merged);
       for (const e of pending) console.log(`${e.type.padEnd(8)}  ${e.text}`);
@@ -1138,7 +1235,7 @@ function main() {
       const at = pos.findIndex((p) => p.includes("="));
       const list = ids(at < 0 ? pos : pos.slice(0, at));
       const pairs = at < 0 ? [] : pos.slice(at);
-      if (!pairs.length) throw new fmt.BacklogError("usage: set B-n… key=value…");
+      if (!pairs.length) throw new fmt.BacklogError(`usage: set ${fmt.IDS.prefix}n… key=value…`);
       write("set", about(list, `set ${pairs.join(", ")}`), (b, c) => {
         for (const id of list) {
           const it = target(b, c, id, opts.archived);
@@ -1154,10 +1251,11 @@ function main() {
     case "note": {
       // The first word is the id; more ids follow only in the B-n form, so a note can start with a number.
       let n = 1;
-      while (n < pos.length && /^B-\d+$/i.test(pos[n])) n++;
+      while (n < pos.length && fmt.IDS.is(pos[n])) n++;
       const list = ids(pos.slice(0, n));
       const text = pos.slice(n).join(" ");
-      if (!text.trim()) throw new fmt.BacklogError("usage: note B-n [B-n…] <text…>");
+      if (!text.trim())
+        throw new fmt.BacklogError(`usage: note ${fmt.IDS.prefix}n [${fmt.IDS.prefix}n…] <text…>`);
       write("note", about(list, "note"), (b, c) => {
         for (const id of list) fmt.addNote(target(b, c, id, opts.archived), { text, ...ctx() });
       });
@@ -1166,7 +1264,9 @@ function main() {
     case "claim": {
       const owner = opts.as ?? myBranch();
       if (!owner || owner === TRUNK)
-        throw new fmt.BacklogError("claim from your prd/ or plan/ branch, or pass --as OWNER");
+        throw new fmt.BacklogError(
+          `claim from your ${PREFIX.prd} or ${PREFIX.plan} branch, or pass --as OWNER`,
+        );
       const list = ids(pos);
       write("claim", about(list, `claimed by ${owner}`), (b) => {
         const items = list.map((id) => fmt.find(b, id));
@@ -1227,6 +1327,8 @@ function main() {
         (b, c) => {
           refreshStatuses(b);
           const apply = /** @type {NonNullable<typeof filing>} */ (filing).applyFindings;
+          if (!QUARANTINE_REL)
+            throw new fmt.BacklogError("ci-file: the project config names no quarantine list");
           const r = apply(b, headText(QUARANTINE_REL), findings, {
             add: (f) =>
               fmt.add(b, {
@@ -1287,7 +1389,9 @@ try {
   if (e instanceof LookAlikeStop) {
     console.error("backlog: this looks like what's already filed or in the inbox; nothing was added:");
     for (const m of e.matches) console.error(`  ${lookAlikeLine(m)}`);
-    console.error("Note the existing item (pnpm backlog note B-<n> …), or rerun with --anyway.");
+    console.error(
+      `Note the existing item (pnpm backlog note ${fmt.IDS.prefix}<n> …), or rerun with --anyway.`,
+    );
     process.exit(3);
   }
   if (e instanceof fmt.BacklogError) {

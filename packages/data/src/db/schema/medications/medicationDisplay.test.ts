@@ -3,6 +3,8 @@ import {
   asNeededCountText,
   changeText,
   doseWarningText,
+  extraDoseText,
+  overMaxText,
   dueSlotLabel,
   missedText,
   slotStateText,
@@ -228,7 +230,7 @@ describe("change wording", () => {
       "14:00 amount 2 tablets → usual dose",
     );
     expect(scheduleChange(at({ passId: GONE }), at({ passId: MORNING }))).toBe(
-      "Added to Morning; removed from a pass",
+      "Added to Morning; removed from a med time",
     );
     // A switch to as needed reads as the whole schedule, before and after.
     expect(
@@ -316,6 +318,23 @@ describe("Today wording", () => {
         { medication: { name: "Lisinopril", strength: "10 mg" }, time: "20:00" },
       ]),
     ).toBe("Missed yesterday: Metformin 500 mg at 8:00 and Lisinopril 10 mg at 20:00");
+  });
+
+  it("words a double dose and an as-needed day past its maximum", () => {
+    const at = (occurredAt: string) => ({ id: occurredAt, occurredAt, details: {} as never });
+    const given = { state: "given" as const, dose: at("2026-11-19T16:00:00Z") };
+    expect(extraDoseText({ ...given, extra: [at("2026-11-19T16:20:00Z")] }, LA)).toBe(
+      "Given twice: 8:00 and 8:20",
+    );
+    expect(
+      extraDoseText({ ...given, extra: [at("2026-11-19T16:40:00Z"), at("2026-11-19T16:20:00Z")] }, LA),
+    ).toBe("Given 3 times: 8:00, 8:20 and 8:40");
+    expect(extraDoseText({ ...given, extra: [] }, LA)).toBeNull();
+    const givenAt = ["2026-11-19T16:00:00Z", "2026-11-19T20:00:00Z", "2026-11-20T00:00:00Z"];
+    expect(overMaxText({ count: 3, max: 2, extra: [givenAt[2]], givenAt }, LA)).toBe(
+      "Given 3 times today (most 2 a day): 8:00, 12:00 and 16:00",
+    );
+    expect(overMaxText({ count: 2, max: 2, extra: [], givenAt: givenAt.slice(0, 2) }, LA)).toBeNull();
   });
 
   it("words the warnings and due slots", () => {

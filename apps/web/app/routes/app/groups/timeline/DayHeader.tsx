@@ -11,14 +11,16 @@ import { useGroup } from "~/lib/app-shell/group";
 import { currentLineText, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
 import { useNow } from "~/lib/live-notes/editors.sync";
+import { CopyLinkButton } from "./CopyLinkButton";
 import { QuickAddMenu } from "./QuickAddMenu";
+import { dayLinkPath } from "./timelineLinks";
 import { dayKeyIn } from "./timelineDays";
 
 /**
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov
  * 16") on the left; on the right the care period that covers the day
- * (`DayPeriod`) and, last, the writers' + menu (`QuickAddMenu`: adds start on
- * that day). The heading names the section (`day-<key>`); the period isn't part of it.
+ * (`DayPeriod`), a copy-link button (the day's `?day=` link; not in easy
+ * mode) and, last, the writers' + menu (`QuickAddMenu`: adds start on that day). The heading names the section (`day-<key>`); the period isn't part of it.
  * Under them, `summary` (the day's `DaySummaryLine`), so it stays pinned with
  * its date while the day scrolls by. Easy mode shows the period too, in
  * larger type and without Change.
@@ -61,6 +63,7 @@ export function DayHeader({
               <DayPeriod groupId={groupId} dayKey={dayKey} periods={periods} at={newestAt} easy={easy} />
             )
           )}
+          {!easy && <CopyLinkButton path={dayLinkPath(groupId, dayKey)} label={`Copy link to ${label}`} />}
           {canWrite && !easy && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
         </div>
       </div>
@@ -96,7 +99,8 @@ function TodayPeriod({
  * zone (around midnight, Today can read a day ahead of the period's page); a
  * date before the start's shows the period with no number. No place: the line
  * stays short, and the period's page shows it. Nothing before the first
- * period. With `change`, writers get Change, which opens the add sheet.
+ * period. With `change`, writers get Change, which opens the add sheet: it
+ * comes first, [Change] [icon] [text], so the line's end doesn't move.
  */
 function DayPeriod({
   groupId,
@@ -125,14 +129,7 @@ function DayPeriod({
       className={`text-muted flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
       data-period-line={period.id}
     >
-      <Icon className={`${easy ? ICON_LG : ICON} shrink-0`} aria-hidden="true" />
-      <Link
-        to={appUrls.period(groupId, period.id)}
-        className="link-hover min-w-0 break-words"
-        data-period-current
-      >
-        {text}
-      </Link>
+      {/* Before the icon, so Today's text ends where the days' below do (B-618). */}
       {change && group.canWrite && (
         <Button
           to={appUrls.newPeriod(groupId)}
@@ -147,6 +144,14 @@ function DayPeriod({
           data-period-change=""
         />
       )}
+      <Icon className={`${easy ? ICON_LG : ICON} shrink-0`} aria-hidden="true" />
+      <Link
+        to={appUrls.period(groupId, period.id)}
+        className="link-hover min-w-0 break-words"
+        data-period-current
+      >
+        {text}
+      </Link>
     </p>
   );
 }

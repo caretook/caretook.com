@@ -20,6 +20,7 @@ import { withTransaction } from "../db";
 import {
   appendNoteSection,
   assistantActionZSchema,
+  BAD_TODO_LINK_ISSUES,
   conditionActionZSchema,
   canHaveNoteDocument,
   entryEditActionZSchema,
@@ -32,6 +33,7 @@ import {
   FUTURE_DATE_MESSAGE,
   givenAllWrites,
   isDoseDetails,
+  isSymptomDetails,
   isTooFarAhead,
   noteDocFromText,
   addDays,
@@ -53,8 +55,10 @@ import {
 } from "../models";
 import { rejectError } from "../permissions";
 import * as entryProviderService from "./entryProviderService";
+import * as entryTodoService from "./entryTodoService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as recipientConditionService from "./recipientConditionService";
+import * as symptomTypeService from "./symptomTypeService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
@@ -129,7 +133,8 @@ type ConditionPlan =
   | { type: "addCondition"; input: Parameters<typeof recipientConditionService.create>[1] }
   | { type: "updateCondition"; id: string; patch: Parameters<typeof recipientConditionService.update>[2] }
   | { type: "resolveCondition"; id: string };
-type TodoPlan = Parameters<typeof todoService.create>[1];
+/** A todo, and the event it's linked to: a link row, never `todo.event_id` (planner-3). */
+type TodoPlan = { input: Parameters<typeof todoService.create>[1]; entryId: string | null };
 type Plan =
   | { index: number; rows: (EntryPlan | LoggedDose)[] }
   | { index: number; todo: TodoPlan }
@@ -621,16 +626,35 @@ const planAction = async (
   )
     return planCondition(tx, setting, action);
   if (action.type === "givePass") return passDoses(ctx, tx, setting, action);
-  // Checked by todoService as it writes (the assignee, the links).
+  // Checked by todoService as it writes (the assignee, the other links);
+  // the event here, as todoService checked it (live, in the group, an event).
   if (action.type === "addTodo") {
-    const { type: _type, ...todo } = action;
-    return { groupId, recipientId, ...todo };
+    const { type: _type, eventId, ...todo } = action;
+    if (eventId) {
+      const event = await timelineEntryModel.getById(eventId, { ...ctx, tx });
+      if (isError(event)) return event;
+      if (event?.groupId !== groupId || event.kind !== "event")
+        return newError({
+          code: "todoService:badLink",
+          meta: { issues: [{ ...BAD_TODO_LINK_ISSUES.eventId }] },
+        });
+    }
+    return { input: { groupId, recipientId, ...todo }, entryId: eventId ?? null };
   }
 
   const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
   if (!content.success) return invalid(issuesOf(content.error));
   const refused = future(content.data.kind, content.data.occurredAt, setting.now);
   if (refused) return refused;
+
+  // A symptom named like a catalog row (any case or spacing) takes its
+  // spelling; a new name is added as it is when the entry is written
+  // (`timelineEntryService`), with no similar-name question: nobody is there to answer it.
+  if (content.data.kind === "symptom" && isSymptomDetails(content.data.details)) {
+    const type = await symptomTypeService.getByName({ ...ctx, tx }, groupId, content.data.details.name);
+    if (isError(type)) return type;
+    if (type) content.data.details = { ...content.data.details, name: type.name };
+  }
 
   if (action.type === "logDose") {
     const medication = await currentMedication(ctx, tx, groupId, action.medicationId);
@@ -780,9 +804,14 @@ export const run = (
         continue;
       }
       if ("todo" in plan) {
-        const todo = await todoService.create(inTx, plan.todo, { via });
+        const todo = await todoService.create(inTx, plan.todo.input, { via });
         if (isError(todo)) return at(todo, plan.index);
         if (!todo) return at(rejectError(ctx.authUser), plan.index);
+        if (plan.todo.entryId) {
+          const link = { groupId, entryId: plan.todo.entryId, todoId: todo.id };
+          const linked = await entryTodoService.linkIn(inTx, tx, link);
+          if (isError(linked)) return at(linked, plan.index);
+        }
         byAction.push([todo.id]);
         continue;
       }

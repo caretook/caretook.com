@@ -1,7 +1,8 @@
-// `pnpm prd ci`, the tiers and the verdict, against a fake git and gh: the ref
-// for each tier, reuse and re-push, the wait's exit codes, when the ref goes,
-// and what reads as unknown.
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+// `pnpm prd ci`, the tiers and the verdict file, against a fake git and gh: the
+// ref for each tier, reuse and re-push, the wait's exit codes, when the ref goes,
+// and what reads as unknown. The verdict is read only as a file; how the
+// project's CI builds one is its own test (verdict.test.mjs).
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,8 +19,10 @@ import {
   latestVerdict,
   verdictLines,
 } from "./ci.mjs";
-import { TIERS, ciRefName, jobsFor, narrowedJobs, parseCiRef, planOutputs } from "./tiers.mjs";
-import { buildVerdict, mergeSummaries, summarizeVitest } from "./verdict.mjs";
+import { isVerdict } from "./ci-runs.mjs";
+import { tierData } from "./tier-data.mjs";
+
+const { TIERS, ciRefName, jobsFor, narrowedJobs, parseCiRef } = tierData();
 
 const SHA = "a".repeat(40);
 const OTHER = "b".repeat(40);
@@ -113,185 +116,46 @@ describe("the tiers", () => {
       "integration",
       "components-1",
       "components-2",
+      "components-3",
     ]);
     expect(jobsFor("full")).toEqual({
-      jobs: ["static", "unit", "integration", "components-1", "components-2", "build"],
+      jobs: ["static", "unit", "integration", "components-1", "components-2", "components-3", "build"],
       ranTier: "full",
     });
     expect(jobsFor("candidate")).toEqual({
-      jobs: ["static", "unit", "integration", "components-1", "components-2", "build", "browser"],
+      jobs: [
+        "static",
+        "unit",
+        "integration",
+        "components-1",
+        "components-2",
+        "components-3",
+        "build",
+        "browser",
+      ],
       ranTier: "candidate",
     });
   });
-
-  it("start the browser job only on a candidate run", () => {
-    expect(planOutputs("ci/full/x")).toContain("candidate=false");
-    expect(planOutputs("ci/candidate/x")).toContain("candidate=true");
-    expect(planOutputs("ci/candidate/x", ["scripts/ci/ci.test.mjs"])).toContain("candidate=false");
-  });
-
-  it("read a browser suite that failed as file, and one that never started as infra", () => {
-    const needs = Object.fromEntries(
-      ["plan", ...jobsFor("candidate").jobs].map((job) => [job, { result: "success" }]),
-    );
-    const run = { commit: SHA, runId: "1", tier: "candidate" };
-    expect(buildVerdict({ ...run, needs }).kind).toBe("green");
-    const failed = (outputs) => ({ ...needs, browser: { result: "failure", outputs } });
-    const ran = buildVerdict({ ...run, needs: failed({ started: "true" }) });
-    expect(ran).toMatchObject({ kind: "file", failed: { jobs: ["browser"], unnamedJobs: ["browser"] } });
-    expect(buildVerdict({ ...run, needs: failed({}) }).kind).toBe("infra");
-  });
-
-  it("give the plan job no integration on a unit run", () => {
-    expect(planOutputs("ci/unit/x")).toEqual([
-      "tier=unit",
-      "static=true",
-      "unit=true",
-      "integration=false",
-      "components=false",
-      "full=false",
-      "candidate=false",
-      "release=false",
-      "components2=false",
-      "narrowed=false",
-    ]);
-    expect(planOutputs("ci/components/x")).toContain("components=true");
-    expect(planOutputs("ci/components/x")).toContain("full=false");
-    expect(planOutputs("ci/full/x")).toContain("full=true");
-    expect(() => planOutputs("dev")).toThrow(/not a ci/);
-  });
 });
 
-describe("the verdict", () => {
-  const ok = { result: "success" };
-  const base = { commit: SHA, runId: "1" };
+describe("a verdict file", () => {
+  const FIXTURES = new URL("./verdict.fixtures/", import.meta.url);
 
-  it("is green only when every job of the tier passed", () => {
-    const v = buildVerdict({
-      ...base,
-      tier: "unit",
-      needs: { plan: ok, static: ok, unit: ok, integration: { result: "skipped" } },
-    });
-    expect(v).toMatchObject({ version: 1, kind: "green", tier: "unit", ranTier: "unit", narrowed: false });
-  });
-
-  it("is file for a failed test job, naming the tests", () => {
-    const failures = JSON.stringify({
-      files: ["a.test.ts"],
-      tests: [{ file: "a.test.ts", name: "breaks" }],
-      truncated: false,
-    });
-    const v = buildVerdict({
-      ...base,
-      tier: "unit",
-      needs: { plan: ok, static: ok, unit: { result: "failure", outputs: { failures } } },
-    });
-    expect(v.kind).toBe("file");
-    expect(v.failed).toEqual({
-      jobs: ["unit"],
-      files: ["a.test.ts"],
-      tests: [{ job: "unit", file: "a.test.ts", name: "breaks" }],
-      truncated: false,
-      unnamedJobs: [],
-    });
-    expect(
-      buildVerdict({ ...base, tier: "unit", needs: { plan: ok, static: ok, unit: { result: "skipped" } } })
-        .kind,
-    ).toBe("infra");
-    expect(
-      buildVerdict({ ...base, tier: "static", needs: { plan: { result: "failure" } } }).failed.jobs,
-    ).toEqual(["plan", "static"]);
-  });
-
-  it("waits for every job the tier ran: a full run needs its components and build", () => {
-    const needs = {
-      plan: ok,
-      static: ok,
-      unit: ok,
-      integration: ok,
-      "components-1": ok,
-      "components-2": ok,
-      build: ok,
-    };
-    expect(buildVerdict({ ...base, tier: "full", needs })).toMatchObject({
-      kind: "green",
-      tier: "full",
-      ranTier: "full",
-    });
-    const noBuild = buildVerdict({
-      ...base,
-      tier: "full",
-      needs: { ...needs, build: { result: "failure", outputs: { started: "true" } } },
-    });
-    expect(noBuild).toMatchObject({ kind: "brake", failed: { jobs: ["build"] } });
-    const oneShard = { ...needs, "components-2": { result: "failure" } };
-    expect(buildVerdict({ ...base, tier: "components", needs: oneShard })).toMatchObject({
-      kind: "infra",
-      failed: { jobs: ["components-2"] },
-    });
-    const skipped = { ...needs, build: { result: "skipped" } };
-    expect(buildVerdict({ ...base, tier: "components", needs: skipped }).kind).toBe("green");
+  it("reads each fixture, and refuses another version or a missing field", () => {
+    const names = readdirSync(FIXTURES).filter((f) => f.endsWith(".json"));
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names)
+      expect(isVerdict(JSON.parse(readFileSync(new URL(name, FIXTURES), "utf8")))).toBe(true);
+    expect(isVerdict(green)).toBe(true);
+    expect(isVerdict({ ...green, version: 2 })).toBe(false);
+    expect(isVerdict({ ...green, kind: undefined })).toBe(false);
+    expect(isVerdict(null)).toBe(false);
   });
 
   it("still prints what an older verdict left out", () => {
     const old = { kind: "green", tier: "full", commit: SHA, runId: "1", ranTier: "integration" };
     const lines = verdictLines({ ...old, notBuilt: ["components", "full"] }).join("\n");
     expect(lines).toMatch(/not built yet, so not run: components, full/);
-  });
-
-  it("summarizes a Vitest report, an import failure included", () => {
-    const summary = summarizeVitest(
-      {
-        testResults: [
-          {
-            name: "/w/a.test.ts",
-            status: "failed",
-            assertionResults: [
-              { status: "failed", fullName: " a breaks " },
-              { status: "passed", fullName: "a works" },
-            ],
-          },
-          { name: "/w/b.test.ts", status: "failed", assertionResults: [] },
-          { name: "/w/c.test.ts", status: "passed", assertionResults: [{ status: "passed", fullName: "c" }] },
-        ],
-      },
-      "/w",
-    );
-    expect(summary).toEqual({
-      reported: true,
-      total: 3,
-      files: ["a.test.ts", "b.test.ts"],
-      tests: [{ file: "a.test.ts", name: "a breaks" }],
-      truncated: false,
-    });
-    expect(summarizeVitest(null, "/w").reported).toBe(false);
-  });
-});
-
-describe("a job's reports", () => {
-  const one = (/** @type {string} */ file) => ({
-    reported: true,
-    total: 1,
-    files: [file],
-    tests: [{ file, name: "breaks" }],
-    truncated: false,
-  });
-
-  it("merge into one summary", () => {
-    expect(mergeSummaries([one("a"), one("b")])).toEqual({
-      reported: true,
-      total: 2,
-      files: ["a", "b"],
-      tests: [
-        { file: "a", name: "breaks" },
-        { file: "b", name: "breaks" },
-      ],
-      truncated: false,
-    });
-  });
-
-  it("say so when one is missing", () => {
-    expect(mergeSummaries([one("a"), summarizeVitest(null, "/w")]).reported).toBe(false);
   });
 });
 
@@ -516,19 +380,6 @@ describe("a narrowed run", () => {
   it("starts only its files' jobs, the components in one", () => {
     expect(narrowedJobs(["a.test.ts", "b.browser.test.tsx"])).toEqual(["unit", "components-1"]);
     expect(narrowedJobs(["scripts/loops/browser.test.mjs"])).toEqual(["integration"]);
-    const plan = planOutputs("ci/full/x", ["a.int.test.ts"]);
-    expect(plan).toEqual([
-      "tier=full",
-      "static=false",
-      "unit=false",
-      "integration=true",
-      "components=false",
-      "full=false",
-      "candidate=false",
-      "release=false",
-      "components2=false",
-      "narrowed=true",
-    ]);
   });
 
   it("is never printed as the branch's verdict", () => {
@@ -681,6 +532,65 @@ describe("ci gate and ci file", () => {
     expect(await main([...gateArgs, "--peek"], w.io)).toBe(EXIT.file);
     expect(w.pushes()).toEqual([]);
     expect(w.calls.filter((c) => c.includes("--branch"))).toEqual([]);
+  });
+
+  it("ci gate after a dev sync requests a recheck at the tier dev brought and carries the wave's green", async () => {
+    const WAVE = "c".repeat(40);
+    const DEV = "d".repeat(40);
+    const wave = { ...green, commit: WAVE, runId: "6", ranTier: "components", tier: "components" };
+    const recheck = { ...green, runId: "8", ranTier: "integration", tier: "integration" };
+    const w = world({ verdict: recheck });
+    const { git, gh } = w.io;
+    w.io.git = (/** @type {string[]} */ args) => {
+      const line = `git ${args.join(" ")}`;
+      if (args[0] === "rev-list") return (w.calls.push(line), { ok: true, out: `${SHA}\n${WAVE}` });
+      if (args[0] === "diff" && args[3] === `${SHA}^1`)
+        return (w.calls.push(line), { ok: true, out: "packages/data/src/a.ts\nscripts/loops/lib.sh" });
+      if (args[0] === "diff") return (w.calls.push(line), { ok: true, out: "apps/web/b.ts" });
+      if (args[0] === "rev-parse" && args.at(-1) === `${SHA}^2`) return { ok: true, out: DEV };
+      if (args[0] === "merge-base") return (w.calls.push(line), { ok: args[2] === DEV });
+      return git(args);
+    };
+    w.io.gh = (/** @type {string[]} */ args) => {
+      if (args[1] === "list" && args.includes(WAVE))
+        return {
+          ok: true,
+          out: JSON.stringify([
+            {
+              ...running,
+              databaseId: 6,
+              headSha: WAVE,
+              headBranch: "ci/components/slice-t-2",
+              status: "completed",
+              conclusion: "success",
+            },
+          ]),
+        };
+      if (args[1] === "download" && args[2] === "6") {
+        writeFileSync(join(args[args.indexOf("--dir") + 1], "verdict.json"), JSON.stringify(wave));
+        return { ok: true, out: "" };
+      }
+      return gh(args);
+    };
+    const dir = mkdtempSync(join(tmpdir(), "ci-gate-"));
+    try {
+      const out = join(dir, "decision");
+      const args = ["gate", "slice/t/2", "--tier", "components", "--base", OTHER, "--out", out];
+      expect(await main(args, w.io)).toBe(EXIT.green);
+      expect(w.pushes()[0]).toContain(`${SHA}:refs/heads/ci/integration/slice-t-2`);
+      expect(w.lines.join("\n")).toContain("carrying its green, with a recheck at integration");
+      expect(readFileSync(out, "utf8")).toContain("ranTier=components (integration recheck)\n");
+      expect(readFileSync(out, "utf8")).toContain("run=8,6\n");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ci file --run takes a list and files each run's flakes", async () => {
+    const w = filingWorld(flaky);
+    expect(await main(["file", "slice/t/2", "--base", OTHER, "--run", "7,8"], w.io)).toBe(EXIT.green);
+    expect(w.calls.filter((c) => /^gh run download [78] /.test(c))).toHaveLength(2);
+    expect(w.filings).toHaveLength(2);
   });
 
   it("ci file --run reads that run, diffs against --base and pushes the quarantine", async () => {

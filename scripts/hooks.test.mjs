@@ -1,6 +1,6 @@
 // The .githooks protections, against a throwaway repo with a bare "origin".
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -49,6 +49,18 @@ beforeAll(() => {
   ok(repo, ["switch", "-q", "-c", "dev"]);
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+describe("the protected branches", () => {
+  // The hooks keep their own constant (they never read the tool's config), so
+  // this keeps it equal to risa.json's branches.protected.
+  it("are the project config's", () => {
+    const config = JSON.parse(readFileSync(new URL("../risa.json", import.meta.url), "utf8"));
+    const constant = /^PROTECTED_RE='\^\(([^)]*)\)\$'$/m.exec(
+      readFileSync(join(HOOKS, "protect.sh"), "utf8"),
+    );
+    expect(constant?.[1].split("|").sort()).toEqual([...config.branches.protected].sort());
+  });
+});
 
 describe("main and staging", () => {
   it("refuse commits, moves and pushes", () => {
@@ -141,5 +153,62 @@ describe("commit messages", () => {
     ok(repo, ["commit", "-q", "-m", "feat(z): slice 1"]);
     expect(ok(repo, ["log", "-1", "--format=%p"]).split(" ")).toHaveLength(2);
     ok(repo, ["switch", "-q", "dev"]);
+  });
+});
+
+describe("a slice's size at its merge", () => {
+  // The merge's stderr (where the hook warns) and its exit code.
+  const merge = (slice) => {
+    const r = spawnSync("git", ["-C", repo, "merge", "-q", "--no-ff", "-m", `feat(w): ${slice}`, slice], {
+      encoding: "utf8",
+      env: baseEnv,
+    });
+    return { code: r.status, err: r.stderr };
+  };
+  const sliceOf = (n, files) => {
+    ok(repo, ["switch", "-q", "prd/w"]);
+    ok(repo, ["switch", "-q", "-c", `slice/w/${n}`]);
+    for (let i = 0; i < files; i++) writeFileSync(join(repo, `w${n}-${i}.txt`), `${i}\n`);
+    ok(repo, ["add", "."]);
+    ok(repo, ["commit", "-q", "-m", `feat(w): slice ${n}`]);
+    ok(repo, ["switch", "-q", "prd/w"]);
+  };
+
+  beforeAll(() => {
+    ok(repo, ["switch", "-q", "dev"]);
+    ok(repo, ["switch", "-q", "-c", "prd/w"]);
+  });
+
+  it("warns once, and still merges, when a slice changes more than 12 files", () => {
+    sliceOf(1, 13);
+    const { code, err } = merge("slice/w/1");
+    expect(code).toBe(0);
+    expect(err.match(/warning: slice\/w\/1 changes 13 files \(over 12\)/g)).toHaveLength(1);
+    expect(err).toContain("about 8 files");
+    expect(ok(repo, ["log", "-1", "--format=%p"]).split(" ")).toHaveLength(2);
+  });
+
+  it("says nothing for a slice of 8 files", () => {
+    sliceOf(2, 8);
+    const { code, err } = merge("slice/w/2");
+    expect(code).toBe(0);
+    expect(err).not.toContain("warning");
+  });
+
+  it("counts only the slice's own files after it merged prd/ for a fix", () => {
+    sliceOf(3, 6);
+    // prd/ moves on by 13 files; the slice merges it back in, then adds one more file.
+    for (let i = 0; i < 13; i++) writeFileSync(join(repo, `p-${i}.txt`), `${i}\n`);
+    ok(repo, ["add", "."]);
+    ok(repo, ["commit", "-q", "-m", "feat(w): prd work"]);
+    ok(repo, ["switch", "-q", "slice/w/3"]);
+    ok(repo, ["merge", "-q", "--no-ff", "-m", "chore(w): merge prd/w for a fix", "prd/w"]);
+    writeFileSync(join(repo, "w3-fix.txt"), "fix\n");
+    ok(repo, ["add", "."]);
+    ok(repo, ["commit", "-q", "-m", "fix(w): slice 3"]);
+    ok(repo, ["switch", "-q", "prd/w"]);
+    const { code, err } = merge("slice/w/3");
+    expect(code).toBe(0);
+    expect(err).not.toContain("warning");
   });
 });

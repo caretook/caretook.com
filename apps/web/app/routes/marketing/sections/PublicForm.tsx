@@ -80,15 +80,16 @@ function FieldShell({
   kind,
   children,
 }: FieldProps & { kind: FieldKind; children: (control: FieldControl) => ReactNode }) {
-  const label = (
-    <>
-      {copy.label}
-      {!required && <span className="text-muted font-normal"> (optional)</span>}
-    </>
-  );
   return (
     <div data-field={name}>
-      <Field kind={kind} className="text-base" label={label} help={copy.hint} error={error}>
+      <Field
+        kind={kind}
+        className="text-base"
+        label={copy.label}
+        required={required}
+        help={copy.hint}
+        error={error}
+      >
         {(control) => children({ ...control, className: `${control.className} text-lg` })}
       </Field>
     </div>

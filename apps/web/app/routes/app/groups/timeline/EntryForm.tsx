@@ -12,11 +12,14 @@ import {
 } from "@caretook/data/schema";
 import { Field, FormFooter, Message } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
+import { useGroup } from "~/lib/app-shell/group";
 import { EntryKindPicker } from "./EntryKindPicker";
 import { FeelingFields } from "./FeelingFields";
 import { issueFor } from "./formIssues";
 import { SymptomFields } from "./SymptomFields";
+import { SymptomGate } from "./SymptomGate";
 import { useEntryFormSave } from "./useEntryFormSave";
+import { useSymptomGate } from "./useSymptomGate";
 import { VitalReadingsFields } from "./VitalReadingsFields";
 
 /** The latest time a symptom or vital can be given: now plus the device's skew, or a later stored time. */
@@ -35,6 +38,10 @@ const latestTime = (stored?: string) => {
  * `easy` is easy mode's variant (a tile's sheet): no kind picker or
  * notes, a symptom is the 0–10 feelings scale (`FeelingFields`), and vitals
  * are the fields for the one type it opened with.
+ *
+ * A symptom's name is checked against the group's catalog before it saves
+ * (`useSymptomGate`): an exact match takes the catalog's spelling, a similar
+ * one asks first ("Use <name>" or "Add new").
  */
 export function EntryForm({
   entry,
@@ -65,6 +72,12 @@ export function EntryForm({
   const { Form, formRef, resetKey, busy, result, issues } = useEntryFormSave({ adding: !entry, onDone });
   // Editing fills the form from the entry; a draft fills a new one the same way.
   const filled = entry ?? draft ?? undefined;
+  const { id: groupId } = useGroup();
+  const symptomGate = useSymptomGate({
+    groupId,
+    formRef,
+    storedName: entry && isSymptomDetails(entry.details) ? entry.details.name : undefined,
+  });
   const [kind, setKind] = useState<TimelineEntryKind>(filled?.kind ?? initialKind);
   // Symptoms and vitals can't be in the future: the picker stops at now
   // (with the device's few minutes of skew), or at the stored time if later.
@@ -77,7 +90,14 @@ export function EntryForm({
   );
 
   return (
-    <Form method="post" ref={formRef} className="space-y-1" noValidate>
+    <Form
+      method="post"
+      ref={formRef}
+      className="space-y-1"
+      noValidate
+      onSubmit={kind === "symptom" ? symptomGate.onSubmit : undefined}
+      onInput={symptomGate.onInput}
+    >
       <input type="hidden" name="intent" value={entry ? "update" : "create"} />
       <input type="hidden" name="units" value={JSON.stringify(units)} />
       {entry && <input type="hidden" name="id" value={entry.id} />}
@@ -123,8 +143,17 @@ export function EntryForm({
         />
       )}
 
+      {kind === "symptom" && symptomGate.gate && (
+        <SymptomGate
+          gate={symptomGate.gate}
+          onUse={symptomGate.use}
+          onAddNew={symptomGate.addNew}
+          size={easy ? "lg" : "md"}
+        />
+      )}
+
       {!easy && (
-        <Field label="Notes (optional)" kind="textarea" error={issueFor(issues, "body")}>
+        <Field label="Notes" kind="textarea" error={issueFor(issues, "body")}>
           {(control) => (
             <textarea
               {...control}
@@ -140,6 +169,7 @@ export function EntryForm({
       <DateTimeField
         name="occurredAt"
         label="When"
+        required
         defaultValue={filled?.occurredAt ?? initialAt ?? undefined}
         max={latest}
         error={issueFor(issues, "occurredAt")}

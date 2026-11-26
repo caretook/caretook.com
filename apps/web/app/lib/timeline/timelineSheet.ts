@@ -1,6 +1,7 @@
 // History state for a link that opens one of the timeline's sheets
 // (`timeline/new/…`, `timeline/:entryId/edit`) from a screen the user should
-// come back to: the timeline itself, or Upcoming. The sheet closes by going
+// come back to: the timeline itself, Upcoming, or the Medications list (its
+// Log, over which the Dose sheet sits: `medications/list/dose`). The sheet closes by going
 // back when it's there (`useCloseSheet`), else by replacing itself with the timeline.
 
 /** History state on a link that opens a sheet over the timeline. */

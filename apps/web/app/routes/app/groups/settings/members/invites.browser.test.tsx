@@ -1,14 +1,17 @@
 import type { DeviceRoute } from "../../../../../../test/device";
 import type { GroupRole } from "../../../../../../test/fixtures";
 
+import { GROUP_ROLES } from "@caretook/data/permissions";
 import { ATTESTATION_TEXT } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { apiCalls, refusal } from "../../../../../../test/api";
 import { renderWithDevice } from "../../../../../../test/device";
+import { getByCss } from "../../../../../../test/locators";
 import { TEST_GROUP } from "../../../../../../test/fixtures";
 import * as settingsLayout from "../layout/route";
 import * as members from "./route";
+import { labelled } from "../../../../../../test/required";
 
 // The Members page's invite controls (invites.mjs's screen steps 5, 7, 8 and
 // 9, on the test device): the Invite by email sheet (the roles offered, the
@@ -78,7 +81,7 @@ describe("the Invite by email sheet", () => {
     await open();
     await userEvent.click(inviteButton());
     await expect.element(page.getByRole("button", { name: "Send invitation" })).toBeVisible();
-    await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
+    await expect.element(page.getByLabelText(labelled("Email"))).toHaveValue("");
     const roles = [...sheet()!.querySelectorAll<HTMLOptionElement>('select[name="role"] option')];
     expect(roles.map((o) => o.value)).toEqual([
       "owner",
@@ -91,7 +94,7 @@ describe("the Invite by email sheet", () => {
     await expect
       .poll(() => sheet()?.querySelector<HTMLSelectElement>('select[name="role"]')?.value)
       .toBe("caretaker");
-    await expect.element(page.getByLabelText(ATTESTATION_TEXT)).not.toBeChecked();
+    await expect.element(page.getByLabelText(labelled(ATTESTATION_TEXT))).not.toBeChecked();
   });
 
   test("an admin can't offer the owner role", async () => {
@@ -111,19 +114,25 @@ describe("the Invite by email sheet", () => {
         ["Easier to use", ["Easy helper", "Easy viewer"]],
       ],
     );
-    await expect.element(page.getByText("Reads and writes care data.")).toBeVisible();
-    await userEvent.selectOptions(page.getByLabelText("Role"), "easy_helper");
+    // The chosen role's short line is the select's help (the guide's closed dialog repeats it).
+    const select = page.getByLabelText("Role");
     await expect
-      .element(
-        page.getByText(
-          /^For someone who isn't comfortable with apps .* can log care and tick their own todos/,
-        ),
-      )
-      .toBeVisible();
-    await userEvent.selectOptions(page.getByLabelText("Role"), "easy_viewer");
+      .element(select)
+      .toHaveAccessibleDescription(
+        "Adds and changes care information, but doesn't manage the group or its members.",
+      );
+    await userEvent.selectOptions(select, "easy_helper");
     await expect
-      .element(page.getByText(/^For someone who isn't comfortable with apps .* can read and tick/))
-      .toBeVisible();
+      .element(select)
+      .toHaveAccessibleDescription(
+        /^For someone who isn't comfortable with apps .* they log care and tick off todos/,
+      );
+    await userEvent.selectOptions(select, "easy_viewer");
+    await expect
+      .element(select)
+      .toHaveAccessibleDescription(
+        /^For someone who isn't comfortable with apps .* they read and tick off todos/,
+      );
   });
 
   test("Send invitation calls invite.createEmail with the role and the attestation, closes, and says to whom", async () => {
@@ -132,9 +141,9 @@ describe("the Invite by email sheet", () => {
       api: calls.record({ "invite.createEmail": () => ({ email: "avery.invited@example.com" }) }),
     });
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "  avery.invited@example.com ");
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "  avery.invited@example.com ");
     await userEvent.selectOptions(page.getByLabelText("Role"), "viewer");
-    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(ATTESTATION_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
     await expect
       .element(page.getByRole("status").getByText("Invitation sent to avery.invited@example.com."))
@@ -153,14 +162,12 @@ describe("the Invite by email sheet", () => {
   test("a refusal from the server is shown in the sheet, which stays open", async () => {
     await open({ api: { "invite.createEmail": () => refusal("careGroupInviteService:alreadyInvited") } });
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
-    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
+    await userEvent.click(page.getByLabelText(labelled(ATTESTATION_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
     await expect.element(page.getByRole("alert")).toBeVisible();
     expect(sheet()).not.toBeNull();
-    await expect
-      .element(page.getByLabelText("Email", { exact: true }))
-      .toHaveValue("avery.invited@example.com");
+    await expect.element(page.getByLabelText(labelled("Email"))).toHaveValue("avery.invited@example.com");
   });
 
   test("offline, the button is disabled and says it needs a connection", async () => {
@@ -319,7 +326,7 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
   test("Invite by email: a changed form asks, Discard closes, and the next open starts fresh and asks again", async () => {
     await open();
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
     await userEvent.selectOptions(page.getByLabelText("Role"), "viewer");
     await close();
     await expect.poll(asked).toBe(true);
@@ -327,9 +334,9 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
     await expect.poll(sheet).toBeNull();
 
     await userEvent.click(inviteButton());
-    await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
+    await expect.element(page.getByLabelText(labelled("Email"))).toHaveValue("");
     await expect.poll(() => roleValue(sheet())).toBe("caretaker");
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
     await close();
     await expect.poll(asked).toBe(true);
   });
@@ -345,8 +352,8 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
   test("Invite by email: a successful send closes without asking", async () => {
     await open({ api: { "invite.createEmail": () => ({ email: "avery.invited@example.com" }) } });
     await userEvent.click(inviteButton());
-    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
-    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.fill(page.getByLabelText(labelled("Email")), "avery.invited@example.com");
+    await userEvent.click(page.getByLabelText(labelled(ATTESTATION_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
     await expect.poll(sheet).toBeNull();
     expect(asked()).toBe(false);
@@ -380,5 +387,49 @@ describe("the invite sheets ask before losing changes (B-603)", () => {
     await userEvent.click(page.getByRole("button", { name: "Create link", exact: true }));
     await expect.poll(linkSheet).toBeNull();
     expect(asked()).toBe(false);
+  });
+});
+
+describe("What can each role do? (B-677)", () => {
+  // The sheet's own link (owners also have one above the members list).
+  const help = () => getByCss("form [data-role-help]");
+  const guide = () => page.getByRole("dialog", { name: "What can each role do?" });
+  const guideOpen = () => document.querySelector("dialog[data-role-guide]")?.hasAttribute("open");
+
+  /** The link beside Role opens every role with its description, what it sees and what it changes. */
+  const opensEveryRole = async () => {
+    await userEvent.click(help());
+    await expect.element(guide()).toBeVisible();
+    for (const role of GROUP_ROLES) {
+      const entry = getByCss(`[data-role-guide-role="${role.name}"]`, { within: guide() });
+      await expect.element(entry.getByText(role.label, { exact: true })).toBeVisible();
+      await expect.element(entry.getByText(role.description, { exact: true })).toBeVisible();
+      expect(entry.element().textContent).toContain(`Sees: ${role.sees}`);
+      expect(entry.element().textContent).toContain(`Changes: ${role.changes}`);
+    }
+  };
+
+  test("Invite by email: beside Role, it opens over the sheet, and Done returns focus to it with the sheet still open", async () => {
+    await open();
+    await userEvent.click(inviteButton());
+    // Beside the label: in the role field, just before it.
+    expect(sheet()?.querySelector('[data-role-help] ~ fieldset select[name="role"]')).not.toBeNull();
+    await opensEveryRole();
+    await userEvent.click(guide().getByRole("button", { name: "Done" }));
+    await expect.poll(guideOpen).toBe(false);
+    await expect.element(help()).toHaveFocus();
+    expect(sheet()).not.toBeNull();
+  });
+
+  test("Create a link: Escape closes only the dialog, returning focus to the link, and the sheet stays", async () => {
+    await open();
+    await userEvent.click(page.getByRole("button", { name: "Create a link" }));
+    await opensEveryRole();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(guideOpen).toBe(false);
+    await expect.element(help()).toHaveFocus();
+    expect(document.querySelector("[data-link-sheet]")).not.toBeNull();
+    // Nothing changed in the form, so closing the sheet still asks nothing.
+    expect(document.querySelector("dialog[open]")).toBeNull();
   });
 });

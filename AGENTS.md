@@ -8,16 +8,16 @@ The **core**: rules every session needs, and pointers to role and area docs (_Ar
 - **No new dependencies without the user's approval.** Pin approved ones exactly.
 - **Commit only when the user explicitly asks** ("run before committing" isn't asking). Exceptions: loops on their `slice/` branch; `pnpm backlog`; an orchestrator's `pnpm prd land` on the user's word (or landing mode). Never commit on `staging`/`main`.
 - **Small changes go straight onto `dev`** in the main checkout (docs, tooling, config, small fixes). Work needing a stack, running alongside other work, touching a running PRD's hot file or adding a migration is a PRD or fixes slice; a small fix in its own worktree is a [hotfix](docs/agents/hotfix.md). **Unsure? Ask.**
-- **Checks:** `pnpm check` before handing off. If every changed file is Markdown or tooling (`scripts/loops/`, `scripts/backlog/`, `.githooks/`), just `pnpm exec prettier --check <files>` and `pnpm test:tooling`. Any other file, even a comment: `pnpm check` (`pnpm prd check` in a worktree).
+- **Checks:** `pnpm check` before handing off. If every changed file is Markdown or tooling (`scripts/loops/`, `scripts/backlog/`, `scripts/project/`, `.githooks/`, `risa.json`), just `pnpm exec prettier --check <files>` and `pnpm test:tooling`. Any other file, even a comment: `pnpm check` (`pnpm prd check` in a worktree).
 - **Commit subjects are Conventional Commits**, merges included (the hook refuses others): `<type>(<scope>)!: <description>`. Types: `feat` (user-visible), `fix`, `docs` (plans, AGENTS.md, `docs/`), `test`, `refactor`, `perf`, `style`, `build`, `ci`, `chore` (tooling, syncs, backlog), `revert`. Scope: the PRD topic, else the area. Backlog ids in parentheses at the end; `!` and a `BREAKING CHANGE:` footer if breaking. A merge says what it brings: `feat(app-shell): theme choice (slice 2, B-8)`.
 - **All seed and test data is fictional.** No real health information, even anonymized.
-- **At landing:** an area's lasting decisions go into its area doc, process into the role doc, and only rules every session needs into this core. Delete what went stale.
+- **At landing:** an area's lasting decisions go into its area doc, process into the role's doc (the generic one, `scripts/loops/docs/`, when any repo would need it, else Caretook's file in `risa.json`'s `roles`), and only rules every session needs into this core. Delete what went stale.
 
 ## Branches and roles
 
 - `main` (live) and `staging` change only by PR on GitHub. `dev` is the trunk. `prd/<topic>` (an orchestrator's), `slice/<topic>/<n>` (a loop's), `plan/<topic>` (docs) and `hotfix/<name>` land in `dev` through `pnpm prd land`: `prd/` by a Codex-reviewed PR, a hotfix by PR or locally (ask).
 - **The main checkout is the user's and stays on `dev`.** Agents reach it only via `pnpm backlog`, `pnpm prd dev-sync` and `land`.
-- Each role has a doc in `docs/agents/`; your prompt names yours.
+- Each role has a doc (`pnpm prd doc <role> [section]`); your prompt names yours.
 
 ## Review guidelines
 
@@ -56,7 +56,7 @@ From the repo root, after `nvm use`: `pnpm dev`, `build`, `build:native`; `pnpm 
 
 A slice's `Reads` names its docs. A new area adds a doc and an entry.
 
-- **Roles:** [loop](docs/agents/loop.md), [orchestrator](docs/agents/orchestrator.md) (and the rules across PRDs), [planner](docs/agents/planner.md), [backlog](docs/agents/backlog.md), [inbox](docs/agents/inbox.md) (the bare inbox session), [hotfix](docs/agents/hotfix.md), [recovery](docs/agents/recovery.md), [machinery](docs/agents/machinery.md) (worktrees, leases, sessions, asks); [orchestration](docs/orchestration.md) (the human guide); [loops](docs/loops.md) (a stub). [layout](docs/layout.md): where code lives.
+- **Roles** (`pnpm prd doc <role>`; a `Reads` naming a role's file means this): loop, orchestrator (and the rules across PRDs), planner, backlog, inbox (the bare inbox session), hotfix, recovery, machinery (worktrees, leases, sessions, asks), project-config (`risa.json`), orchestration (the human guide); [loops](docs/loops.md) (a stub). [layout](docs/layout.md): where code lives.
 - **UI:** [components](docs/domain/components.md) (any UI, component tests), [ui-kit](docs/domain/ui-kit.md) (the `ui/` primitives), [app-shell](docs/domain/app-shell.md) (the `/app` frame, theme, group route, `appUrls`, settings), [marketing](docs/domain/marketing.md) (public pages).
 - **Features:** [timeline](docs/domain/timeline.md), [live-notes](docs/domain/live-notes.md), [care-groups](docs/domain/care-groups.md) (roles, permissions, invites), [calendars](docs/domain/calendars.md) (feed, reminders, Google), [providers](docs/domain/providers.md), [medications](docs/domain/medications.md), [appointments](docs/domain/appointments.md), [care-periods](docs/domain/care-periods.md), [todos](docs/domain/todos.md), [profiles](docs/domain/profiles.md), [search](docs/domain/search.md), [assistant](docs/domain/assistant.md) (quick entry), [connectors](docs/domain/connectors.md) (MCP for a member's own AI).
 - **Platform:** [api](docs/domain/api.md), [data-layer](docs/domain/data-layer.md), [sync](docs/domain/sync.md), [auth](docs/domain/auth.md), [notifications](docs/domain/notifications.md) (email), [admin](docs/domain/admin.md) (staff, `/admin`, audit), [security-headers](docs/domain/security-headers.md) (the CSP), [ops](ops/runbook.md) (deploys, secrets).

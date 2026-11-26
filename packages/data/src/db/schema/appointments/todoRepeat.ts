@@ -128,7 +128,6 @@ export const nextOccurrence = (
 /** A later row of a chain, as `isUntouchedNext` compares it. */
 export type ChainRow = Omit<RepeatingTodoFields, "groupId" | "recipientId"> & {
   id: string;
-  eventId: string | null;
   doneAt: string | null;
   deletedAt: string | null;
 };
@@ -136,8 +135,9 @@ export type ChainRow = Omit<RepeatingTodoFields, "groupId" | "recipientId"> & {
 /**
  * Whether `next` is still exactly what ticking `todo` made: open, live, and
  * every column as `todo`'s occurrence on its day would have it (so nobody
- * edited it). Reopening `todo` takes such a one away; one with notes is
- * touched too, which the caller checks (it needs the notes table).
+ * edited it). Reopening `todo` takes such a one away; one with notes or a
+ * link to a timeline entry (`timeline_entry_todo`) is touched too, which
+ * the caller checks (it needs those tables).
  */
 export const isUntouchedNext = (todo: RepeatingTodoFields, next: ChainRow) => {
   if (next.doneAt || next.deletedAt || !next.dueOn) return false;
@@ -151,7 +151,6 @@ export const isUntouchedNext = (todo: RepeatingTodoFields, next: ChainRow) => {
     made.dueTime === next.dueTime &&
     made.providerId === next.providerId &&
     made.medicationId === next.medicationId &&
-    next.eventId === null &&
     made.repeatRule === next.repeatRule &&
     made.repeatStartsOn === next.repeatStartsOn &&
     made.repeatId === next.repeatId

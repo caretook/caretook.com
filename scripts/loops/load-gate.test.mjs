@@ -1,6 +1,6 @@
 // The load gate: the pure decision (load-gate.mjs), its CLI, and the scripts
 // that wait on it or warn (new.sh slice, pnpm prd start, pnpm prd status)
-// against a throwaway repo with fake docker, pnpm, lsof and nvm, and a stubbed
+// against a throwaway repo with the stub stack hook and fake pnpm, lsof and nvm, and a stubbed
 // load (a file the tests write), so the real machine's load never matters.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
@@ -11,6 +11,7 @@ import {
   mkdtempSync,
   readdirSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -18,6 +19,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadGate, parseLoad, readLoadGate, sayGate, stateOf } from "./load-gate.mjs";
+import { stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 
@@ -124,29 +126,40 @@ const PLAN = `# Plan: T
 
 Stack: no · Reads: none · Tests: unit
 `;
-const FAKE_DOCKER = `#!/usr/bin/env bash
-case $1 in exec) [[ "$*" != *psql* ]] || echo 0 ;; esac
-exit 0
-`;
 
 describe("the scripts that wait or warn", () => {
   let root, main, loops, loadFile, env;
   const git = (cwd, ...a) =>
     execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
-  const run = (script, args, extra = {}) =>
-    new Promise((resolve) => {
-      const child = spawn("bash", [join(main, "scripts/loops", script), ...args], {
-        cwd: main,
-        env: { ...env, ...extra },
-      });
-      let out = "";
-      child.stdout.on("data", (d) => (out += d));
-      child.stderr.on("data", (d) => (out += d));
-      child.on("close", (status) => resolve({ status, out }));
+  // start: the script running, its output so far (out()) and its end (done).
+  const start = (script, args, extra = {}) => {
+    const child = spawn("bash", [join(main, "scripts/loops", script), ...args], {
+      cwd: main,
+      env: { ...env, ...extra },
     });
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const busy = () => writeFileSync(loadFile, "9 9 9\n");
-  const quiet = () => writeFileSync(loadFile, "1 1 1\n");
+    let out = "";
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (out += d));
+    const done = new Promise((resolve) => child.on("close", (status) => resolve({ status, out })));
+    return { out: () => out, done };
+  };
+  const run = (script, args, extra = {}) => start(script, args, extra).done;
+  // Wait on a state, never a fixed sleep (a loaded runner can take seconds to
+  // get a script as far as its first load read).
+  const until = async (ok, what, ms = 15_000) => {
+    for (const t0 = Date.now(); !ok(); await new Promise((r) => setTimeout(r, 50)))
+      if (Date.now() - t0 > ms) throw new Error(`timed out waiting for ${what}`);
+  };
+  // The fake load is replaced whole (write aside, then rename): a plain
+  // writeFileSync truncates first, and a script reading in that moment saw an
+  // empty file, read it as "can't read the load" (never busy) and went ahead
+  // ("load dropped to -"): B-744.
+  const setLoad = (text) => {
+    writeFileSync(`${loadFile}.tmp`, text);
+    renameSync(`${loadFile}.tmp`, loadFile);
+  };
+  const busy = () => setLoad("9 9 9\n");
+  const quiet = () => setLoad("1 1 1\n");
   const fresh = (name) => {
     rmSync(join(loops, name), { recursive: true, force: true });
     git(main, "worktree", "prune");
@@ -162,17 +175,16 @@ describe("the scripts that wait or warn", () => {
     const nvm = join(root, "nvm");
     mkdirSync(bin);
     mkdirSync(nvm);
-    writeFileSync(join(bin, "docker"), FAKE_DOCKER);
     writeFileSync(join(bin, "pnpm"), "#!/usr/bin/env bash\nexit 0\n");
     writeFileSync(join(bin, "lsof"), "#!/usr/bin/env bash\nexit 1\n");
-    for (const f of ["docker", "pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
+    for (const f of ["pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
     writeFileSync(join(nvm, "nvm.sh"), "nvm() { :; }\n");
     env = {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
+      SAMPLE_STACK_STATE: join(root, "stack-state"),
       NVM_DIR: nvm,
       TRUNK: "dev",
-      CARETOOK_SHARED_TEST_PORT: "",
       CARETOOK_FREE_GB: "100",
       CARETOOK_MIN_FREE_GB: "",
       CARETOOK_MAX_PRDS: "",
@@ -193,9 +205,11 @@ describe("the scripts that wait or warn", () => {
       git(main, "config", k, v);
     mkdirSync(join(main, "scripts/loops"), { recursive: true });
     for (const f of readdirSync(HERE).filter(
-      (f) => f.endsWith(".sh") || f === "slice-fields.mjs" || f === "load-gate.mjs",
+      (f) => f.endsWith(".sh") || f === "slice-fields.mjs" || f === "config.mjs" || f === "load-gate.mjs",
     ))
       copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
+    // The stack and test DB hooks: the sample project's stub.
+    env.RISA_CONFIG = stubHookConfig(main);
     writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\n.postgres/\n");
     mkdirSync(join(main, "plans"));
     writeFileSync(join(main, "plans/t-plan.md"), PLAN);
@@ -209,58 +223,78 @@ describe("the scripts that wait or warn", () => {
   });
   afterAll(() => rmSync(root, { recursive: true, force: true }));
 
+  // Each slice start cleans up in a finally: a leftover t-1 would fail every
+  // later start ("already exists"), so one failure took the whole block down.
   it("a slice start waits while busy and starts when the load drops", async () => {
     busy();
-    const done = run("new.sh", ["slice", "t", "1"]);
-    await sleep(1500);
-    expect(existsSync(join(loops, "t-1"))).toBe(false);
-    quiet();
-    const r = await done;
-    expect(r.status, r.out).toBe(0);
-    expect(r.out).toMatch(/machine is busy \(5-minute load 9, over 4\): waiting up to 600s before slice t-1/);
-    expect(r.out).toMatch(/load dropped to 1 \(threshold 4\) after \d+s: starting slice t-1/);
-    expect(existsSync(join(loops, "t-1"))).toBe(true);
-    fresh("t-1");
+    try {
+      const s = start("new.sh", ["slice", "t", "1"]);
+      await until(() => /waiting up to/.test(s.out()), "the busy line");
+      expect(existsSync(join(loops, "t-1"))).toBe(false);
+      quiet();
+      const r = await s.done;
+      expect(r.status, r.out).toBe(0);
+      expect(r.out).toMatch(
+        /machine is busy \(5-minute load 9, over 4\): waiting up to 600s before slice t-1/,
+      );
+      expect(r.out).toMatch(/load dropped to 1 \(threshold 4\) after \d+s: starting slice t-1/);
+      expect(existsSync(join(loops, "t-1"))).toBe(true);
+    } finally {
+      quiet();
+      fresh("t-1");
+    }
   });
 
   it("a slice start goes ahead after the bounded wait and says so", async () => {
     busy();
-    const r = await run("new.sh", ["slice", "t", "1"], { CARETOOK_LOAD_WAIT: "1" });
-    quiet();
-    expect(r.status, r.out).toBe(0);
-    expect(r.out).toMatch(
-      /Gave up waiting for the load after \d+s \(still 9, over 4\): starting slice t-1 anyway/,
-    );
-    expect(existsSync(join(loops, "t-1"))).toBe(true);
-    fresh("t-1");
+    try {
+      const r = await run("new.sh", ["slice", "t", "1"], { CARETOOK_LOAD_WAIT: "1" });
+      expect(r.status, r.out).toBe(0);
+      expect(r.out).toMatch(
+        /Gave up waiting for the load after \d+s \(still 9, over 4\): starting slice t-1 anyway/,
+      );
+      expect(existsSync(join(loops, "t-1"))).toBe(true);
+    } finally {
+      quiet();
+      fresh("t-1");
+    }
   });
 
   it("a slice start waits for nothing with CARETOOK_LOAD_GATE=off or CARETOOK_LEASES=off", async () => {
     busy();
-    for (const extra of [{ CARETOOK_LOAD_GATE: "off" }, { CARETOOK_LEASES: "off" }]) {
-      const t0 = Date.now();
-      const r = await run("new.sh", ["slice", "t", "1"], { ...extra, CARETOOK_LOAD_WAIT: "30" });
-      expect(r.status, r.out).toBe(0);
-      expect(r.out).not.toMatch(/busy/);
-      expect(Date.now() - t0).toBeLessThan(15_000);
-      fresh("t-1");
+    try {
+      for (const extra of [{ CARETOOK_LOAD_GATE: "off" }, { CARETOOK_LEASES: "off" }]) {
+        try {
+          const t0 = Date.now();
+          const r = await run("new.sh", ["slice", "t", "1"], { ...extra, CARETOOK_LOAD_WAIT: "30" });
+          expect(r.status, r.out).toBe(0);
+          expect(r.out).not.toMatch(/busy/);
+          expect(Date.now() - t0).toBeLessThan(15_000);
+        } finally {
+          fresh("t-1");
+        }
+      }
+    } finally {
+      quiet();
     }
-    quiet();
   });
 
   it("is off in the tooling tests' shared env (vitest.config.ts), so their slice starts never poll", async () => {
     expect(process.env.CARETOOK_LOAD_GATE).toBe("off");
     busy();
-    const t0 = Date.now();
-    const r = await run("new.sh", ["slice", "t", "1"], {
-      CARETOOK_LOAD_GATE: process.env.CARETOOK_LOAD_GATE,
-      CARETOOK_LOAD_WAIT: "30",
-    });
-    quiet();
-    expect(r.status, r.out).toBe(0);
-    expect(r.out).not.toMatch(/busy/);
-    expect(Date.now() - t0).toBeLessThan(15_000);
-    fresh("t-1");
+    try {
+      const t0 = Date.now();
+      const r = await run("new.sh", ["slice", "t", "1"], {
+        CARETOOK_LOAD_GATE: process.env.CARETOOK_LOAD_GATE,
+        CARETOOK_LOAD_WAIT: "30",
+      });
+      expect(r.status, r.out).toBe(0);
+      expect(r.out).not.toMatch(/busy/);
+      expect(Date.now() - t0).toBeLessThan(15_000);
+    } finally {
+      quiet();
+      fresh("t-1");
+    }
   });
 
   it("pnpm prd start only warns", async () => {

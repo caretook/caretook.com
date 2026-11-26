@@ -13,9 +13,11 @@ import { clockAt, clockMoment, CLOCK, DOSES_SQL } from "../medications/medicatio
 import * as newDose from "./new-dose/route";
 import * as timeline from "./route";
 import { TIMELINE_URL } from "./timelineWorld";
+import { deviceTime } from "../../../../../test/zone";
 
 // The Today card (timeline-ux slice 5, B-169) on a fixed clock: 10:00 on
-// Wed Jun 9 2027 in Los Angeles. Its rows (vitals, the next appointment,
+// Wed Jun 9 2027 in Los Angeles, the recipient's zone (passes read in hers,
+// events in the viewer's). Its rows (vitals, the next appointment,
 // the medications due and the todos) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
 // each ending in "See all ›" to its full view (vitals: Show all in place,
@@ -156,14 +158,18 @@ describe("the Today card's rows", () => {
     await expect.poll(() => CARD()?.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
   });
 
-  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the todo", async () => {
+  test("the rows' words: the latest readings with their time, the next appointment (+N more), the med time, the todo", async () => {
     await open([...EVERYTHING, fx.event({ title: "Dentist", occurredAt: clockMoment(26 * 60) })]);
     await expect.poll(shownRows).toHaveLength(4);
     expect(row("vitals")?.textContent).toMatch(/^Needs attention: Latest vitals: BP 130\/85 mmHg 2d ago/);
     const next = row("appointment")!.querySelector<HTMLAnchorElement>("a[data-next]")!;
-    expect(next.textContent).toBe("Next: Cardiology · Today 11:00 AM · +1 more");
+    // In the viewer's zone: 11:00 AM in Los Angeles, 2:00 PM in New York.
+    expect(next.textContent).toBe(
+      `Next: Cardiology · Today ${deviceTime(CLOCK.getTime() + 60 * 60_000)} · +1 more`,
+    );
     expect(next.getAttribute("href")).toBe(`/app/groups/${G}/entries/${CARDIOLOGY.id}`);
     expect(row("medications")?.textContent).toContain("Overdue: Late · 8:55 · 1 med · +1 more");
+    expect(CARD()?.textContent).not.toMatch(/\bpass/i);
     expect(row("todos")?.textContent).toMatch(/^Today: Pick up the walker/);
   });
 
@@ -369,6 +375,8 @@ describe("the appointment row", () => {
 
 describe("collapsing the card", () => {
   const expanded = () => toggle().getAttribute("aria-expanded");
+  const region = () => document.getElementById(toggle().getAttribute("aria-controls") ?? "")!;
+  const seconds = (list: string) => list.split(",").map((t) => parseFloat(t));
   const summary = () => CARD()?.querySelector<HTMLElement>("[data-today-summary]") ?? null;
   const part = (name: string) =>
     summary()?.querySelector<HTMLElement>(`[data-summary-part="${name}"]`) ?? null;
@@ -381,14 +389,49 @@ describe("collapsing the card", () => {
       .poll(() => summary()?.textContent)
       .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 todo today");
     expect(expanded()).toBe("false");
-    expect(document.getElementById(toggle().getAttribute("aria-controls") ?? "")?.hidden).toBe(true);
-    expect(row("vitals")?.checkVisibility()).toBe(false);
+    expect(region().hasAttribute("data-open")).toBe(false);
+    expect(row("vitals")?.checkVisibility({ visibilityProperty: true })).toBe(false);
 
     await userEvent.click(toggle());
     await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
     expect(summary()).toBeNull();
     await userEvent.click(toggle());
     await expect.poll(expanded).toBe("false");
+  });
+
+  test("its rows slide open and shut through Collapse, like a day's summary; closed, none takes focus", async () => {
+    await open(EVERYTHING);
+    await expect.poll(shownRows).toHaveLength(4);
+    // aria-controls names the collapsing region, which holds the rows.
+    expect(region().dataset.collapse).toBe("block");
+    expect(region().contains(row("vitals"))).toBe(true);
+    // The same slide and duration as the chevron that turns with it.
+    const chevron = toggle().querySelector("svg")!;
+    expect(seconds(getComputedStyle(region()).transitionDuration)).toContain(0.24);
+    expect(seconds(getComputedStyle(chevron).transitionDuration)).toContain(0.24);
+    const collapsedHeight = toggle().getBoundingClientRect().height;
+
+    // Closed: inert, and Tab from the toggle goes past every row.
+    expect(region().inert).toBe(true);
+    toggle().focus();
+    await userEvent.tab();
+    expect(region().contains(document.activeElement)).toBe(false);
+
+    await userEvent.click(toggle());
+    await expect.poll(() => region().hasAttribute("data-settled")).toBe(true);
+    expect(region().inert).toBe(false);
+    // The header line keeps its height as the summary goes.
+    expect(summary()).toBeNull();
+    expect(toggle().getBoundingClientRect().height).toBe(collapsedHeight);
+    toggle().focus();
+    await userEvent.tab();
+    expect(region().contains(document.activeElement)).toBe(true);
+
+    await userEvent.click(toggle());
+    await expect.poll(expanded).toBe("false");
+    expect(region().inert).toBe(true);
+    await expect.poll(() => row("vitals")?.checkVisibility({ visibilityProperty: true })).toBe(false);
+    expect(toggle().getBoundingClientRect().height).toBe(collapsedHeight);
   });
 
   test("on a narrow phone the counts stay whole; the rest is cut off", async () => {

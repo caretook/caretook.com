@@ -12,7 +12,7 @@ scripts/browser-checks/   Playwright Test specs (<check>.spec.mjs), run by pnpm 
 scripts/build/            build budget, check build and service worker scripts
 scripts/deploy/           deploy env check and smoke checks (pnpm deploy:env, deploy:smoke)
 ops/                      runbook.md (deploys, secrets), break-glass.md, data-copies.md
-scripts/loops/            check-areas.d/<area> + check-areas.mjs: which browser checks a changed file needs
+scripts/loops/            check-areas.d/<area> (+ scripts/project/check-areas.mjs): which browser checks a changed file needs
                           pnpm prd (prd.sh) → new/ls/rm/prompt/queue/serve/ready/land/browser (+ lib.sh): worktrees in .loops/, slot and browser leases, a Docker stack each
                           slice-fields.mjs: a slice's Stack, Reads and Tests from its plan
 scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses and renders)
@@ -47,7 +47,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes/dev/mail/, dev/ui/ (the UI gallery), app/routes/api/cron/outbox.ts, cron/calendar.ts   web only (the dev mailbox; the outbox sweep; the calendar cron)
   app/routes/api/calendar/feed.ts, api/google/, api/reminders/unsubscribe.ts   web only (the iCal feed, Google connect, reminder unsubscribe)
   app/.server/            data.ts, auth.ts, api.ts, notifications.ts, calendarFeed.ts, devUi.ts: the server-only doors
-  app/components/         shared by 2+ routes only, imported through each folder's index: brand/ (LogoMark, Wordmark),
+  app/components/         shared by 2+ routes only, imported through each folder's index: brand/ (LogoMark, FullLogo, BRAND),
                           ui/ (the primitives, listed in domain/components.md), ui/date/ (DateTimeField), ui/tooltip/,
                           ui/plain (the light entry), entry/ (EntryActions, KindIcon),
                           groups/ (NewGroupFields),

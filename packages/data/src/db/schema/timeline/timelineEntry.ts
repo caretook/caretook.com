@@ -28,6 +28,7 @@ import { isStartOfDay } from "../core/entryTiming";
 import { doseDetailsZSchema, medicationChangeEntryDetailsZSchema } from "../medications/medication";
 import { conditionChangeDetailsZSchema } from "../profiles/conditionChange";
 import { timeZoneZSchema } from "../core/timeZone";
+import { symptomTypeSchema } from "./symptomType";
 import { vitalDetailsZSchema } from "./vitals";
 
 export const TIMELINE_ENTRY_KINDS = [
@@ -140,6 +141,11 @@ export const timelineEntrySchema = pgTable(
     seriesId: uuid("series_id"),
     seriesDay: date("series_day", { mode: "string" }),
     seriesDetached: boolean("series_detached").notNull().default(false),
+    // A symptom's catalog row (symptom-catalog): symptomTypeId(group, details.name),
+    // derived by the server on every symptom write (a device's value is only its
+    // local copy). Null for other kinds, and for an old row until the backfill
+    // (`symptomTypeService.backfill`) fills it. `details.name` stays as written.
+    symptomTypeId: uuid("symptom_type_id"),
     ...timestamps,
     ...audits,
   },
@@ -178,6 +184,16 @@ export const timelineEntrySchema = pgTable(
     uniqueIndex("timeline_entry_series_day_unique")
       .on(t.seriesId, t.seriesDay)
       .where(sql`${t.deletedAt} IS NULL AND ${t.seriesId} IS NOT NULL`),
+    // A symptom's type, in the same group: never another group's catalog row.
+    foreignKey({
+      name: "timeline_entry_symptom_type_fk",
+      columns: [t.groupId, t.symptomTypeId],
+      foreignColumns: [symptomTypeSchema.groupId, symptomTypeSchema.id],
+    }),
+    // The symptom filter (one group's entries of some types), and the FK's checks.
+    index("timeline_entry_symptom_type_idx")
+      .on(t.groupId, t.symptomTypeId)
+      .where(sql`${t.symptomTypeId} IS NOT NULL`),
   ],
 );
 

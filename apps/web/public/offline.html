@@ -1,0 +1,120 @@
+<!doctype html>
+<!--
+  The offline page (B-788): the service worker precaches it and answers a page
+  load outside /app with it when the network fails (serviceWorkerRoutes.ts).
+  Static and self-contained: no scripts, inline styles only, nothing loaded.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="robots" content="noindex" />
+    <title>Offline · Caretook</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f8f8fc;
+        --text: #1d1b2e;
+        --muted: #55536a;
+        --brand: #432dd7;
+        --brand-text: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16151f;
+          --text: #ececf4;
+          --muted: #b0aec4;
+          --brand: #7c6cf0;
+          --brand-text: #0f0e17;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem 1rem;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          1.0625rem/1.5 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      main {
+        max-width: 26rem;
+        text-align: center;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        font-size: 1.25rem;
+      }
+      svg {
+        width: 2.25rem;
+        height: 2.25rem;
+      }
+      h1 {
+        margin: 1.5rem 0 0.5rem;
+        font-size: 1.75rem;
+        line-height: 1.2;
+      }
+      p {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+      }
+      a {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        background: var(--brand);
+        color: var(--brand-text);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      a:focus-visible {
+        outline: 3px solid var(--brand);
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14" fill="#432dd7" />
+          <path
+            d="M32 49C16 39 11 30 14 22.5 17 15.5 27 14.5 32 22c5-7.5 15-6.5 18 .5 3 7.5-2 16.5-18 26.5Z"
+            fill="none"
+            stroke="#e0e7ff"
+            stroke-width="4"
+            stroke-linejoin="round"
+          />
+          <path
+            d="m24 31.5 5.5 5.5L40 26.5"
+            fill="none"
+            stroke="#e0e7ff"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Caretook
+      </div>
+      <h1>You're offline</h1>
+      <p>Caretook works offline once you've signed in on this device. Open the app to see what's on it.</p>
+      <a href="/app">Open Caretook</a>
+    </main>
+  </body>
+</html>

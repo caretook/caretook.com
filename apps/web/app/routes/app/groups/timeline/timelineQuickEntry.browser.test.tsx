@@ -4,7 +4,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { symptomTypeId } from "@caretook/data/schema";
+import { at, fx, symptomType, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import * as entryRoute from "../entry/route";
@@ -116,6 +117,80 @@ describe("a bare number at the strength with a usual dose of several units (B-66
     await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
     await userEvent.click(page.getByRole("button", { name: `Edit "${LINE}"` }));
     await expect.element(page.getByRole("textbox", { name: /Amount/ })).toHaveValue("");
+  });
+});
+
+describe("symptoms and the group's catalog (symptom-catalog)", () => {
+  const CATALOG = [symptomType("Nausea"), symptomType("Knee pain")];
+  const typeId = (name: string) => symptomTypeId(TEST_GROUP.id, name);
+  const openWithCatalog = () => open({ fixtures: [METFORMIN, ...CATALOG] });
+  const gate = () => document.querySelector<HTMLElement>("[data-quick-card] [data-symptom-gate]");
+  const gateChoices = () =>
+    [...(gate()?.querySelectorAll("button") ?? [])].map((b) => b.textContent?.trim() ?? "");
+  const saved = (device: Awaited<ReturnType<typeof open>>) =>
+    device.query<{ name: string; symptom_type_id: string | null }>(
+      `SELECT json_extract(details, '$.name') AS name, symptom_type_id FROM timeline_entry
+        WHERE kind = 'symptom' AND deleted_at IS NULL`,
+    );
+  const catalogNames = async (device: Awaited<ReturnType<typeof open>>) =>
+    (await device.query<{ name: string }>("SELECT name FROM symptom_type ORDER BY name_key")).map(
+      (r) => r.name,
+    );
+  const queuedTypes = async (device: Awaited<ReturnType<typeof open>>) =>
+    (await device.queued()).filter((w) => w.type === "symptom_type").map((w) => [w.op, w.data?.name]);
+
+  test("an exact match takes the catalog's name and saves with no question", async () => {
+    const device = await openWithCatalog();
+    await type("KNEE   pain 4", ["symptom"]);
+    await waitUntil(() => cardWith("Knee pain 4"), "the catalog's spelling");
+    expect(gate()).toBeNull();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Knee pain", symptom_type_id: typeId("Knee pain") }]);
+    expect(await catalogNames(device)).toEqual(["Knee pain", "Nausea"]);
+    expect(await queuedTypes(device)).toEqual([]);
+  });
+
+  test('a similar name asks on its card; Save waits, and "Use <name>" saves that type', async () => {
+    const device = await openWithCatalog();
+    await type("knee pian 4", ["symptom"]);
+    await expect.poll(gateChoices).toEqual(["Use Knee pain", "Add new"]);
+    expect(gate()?.textContent).toContain("“Knee pian”");
+    // The box keeps focus while typing: the question doesn't take it.
+    await expect.element(box()).toHaveFocus();
+    expect(saveButton()?.disabled).toBe(true);
+
+    await userEvent.click(page.getByRole("button", { name: "Use Knee pain" }));
+    await expect.poll(gate).toBeNull();
+    expect(cardWith("Knee pain 4")).toBeTruthy();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Knee pain", symptom_type_id: typeId("Knee pain") }]);
+    expect(await catalogNames(device)).toEqual(["Knee pain", "Nausea"]);
+    expect(await queuedTypes(device)).toEqual([]);
+  });
+
+  test('"Add new" saves the name as typed, its catalog row in the same write', async () => {
+    const device = await openWithCatalog();
+    await type("knee pian 4", ["symptom"]);
+    await expect.poll(gateChoices).toEqual(["Use Knee pain", "Add new"]);
+    await userEvent.click(page.getByRole("button", { name: "Add new" }));
+    await expect.poll(gate).toBeNull();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Knee pian", symptom_type_id: typeId("Knee pian") }]);
+    expect(await catalogNames(device)).toEqual(["Knee pain", "Knee pian", "Nausea"]);
+    expect(await queuedTypes(device)).toEqual([["PUT", "Knee pian"]]);
+  });
+
+  test("a name like nothing in the catalog saves at once, adding its row", async () => {
+    const device = await openWithCatalog();
+    await type("hiccups 2", ["symptom"]);
+    expect(gate()).toBeNull();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Hiccups", symptom_type_id: typeId("Hiccups") }]);
+    expect(await catalogNames(device)).toEqual(["Hiccups", "Knee pain", "Nausea"]);
   });
 });
 
@@ -335,7 +410,7 @@ describe("Edit", () => {
     await expect.element(dialog.getByRole("spinbutton", { name: /Diastolic/ })).toHaveValue(85);
     await expect.element(dialog.getByRole("spinbutton", { name: /Heart rate/ })).toHaveValue(72);
     await expect
-      .element(dialog.getByRole("textbox", { name: "Notes (optional)" }))
+      .element(dialog.getByRole("textbox", { name: "Notes", exact: true }))
       .toHaveValue("after lunch");
     expect(cardKinds()).toEqual(["symptom"]);
   });
@@ -348,7 +423,7 @@ describe("Edit", () => {
     await expect.element(dialog).toBeVisible();
     await expect.element(dialog.getByRole("combobox", { name: "Symptom" })).toHaveValue("Nausea");
     await expect
-      .element(dialog.getByRole("textbox", { name: "Notes (optional)" }))
+      .element(dialog.getByRole("textbox", { name: "Notes", exact: true }))
       .toHaveValue("after breakfast");
   });
 
@@ -360,8 +435,12 @@ describe("Edit", () => {
     await expect.element(dialog).toBeVisible();
     await expect.poll(() => device.location()).toContain(`medication=${ACETAMINOPHEN.id}`);
     await expect.element(dialog.getByRole("radio", { name: "Refused" })).toBeChecked();
-    await expect.element(dialog.getByRole("textbox", { name: "Amount (optional)" })).toHaveValue("1 tablet");
-    await expect.element(dialog.getByRole("textbox", { name: "Note (optional)" })).toHaveValue("spat it out");
+    await expect
+      .element(dialog.getByRole("textbox", { name: "Amount", exact: true }))
+      .toHaveValue("1 tablet");
+    await expect
+      .element(dialog.getByRole("textbox", { name: "Note", exact: true }))
+      .toHaveValue("spat it out");
   });
 
   test("a note is saved and opens on its page, where it's written", async () => {
@@ -457,11 +536,13 @@ describe("the runner", () => {
       ids,
     );
     expect(ids.map((id) => rows.find((r) => r.id === id)?.kind)).toEqual(["note", "symptom"]);
-    // The entry is queued before its document and the document's text.
+    // The entry is queued before its document and the document's text; a
+    // new symptom name's catalog row before its entry (symptom-catalog).
     expect((await device.queued()).map((w) => w.type)).toEqual([
       "timeline_entry",
       "note_document",
       "note_update",
+      "symptom_type",
       "timeline_entry",
     ]);
   });
@@ -729,5 +810,67 @@ describe("go to a day", () => {
     await waitUntil(() => cards().length > 0, "the cards");
     expect(goCard()).toBeNull();
     expect(saveButton()?.textContent).toContain("Save");
+  });
+});
+
+describe("the card's reading is a button that saves (B-676)", () => {
+  const cardButton = (card: HTMLElement) => card.querySelector<HTMLButtonElement>("[data-quick-save-card]")!;
+
+  test("clicking a card's reading saves the whole line as Enter does, and its name says what it adds", async () => {
+    const device = await open();
+    await type("bp 130/85, gave metformin", ["vital", "dose"]);
+    const dose = page.getByRole("button", { name: "Add all 2, with Dose: Metformin 500 mg", exact: true });
+    await expect.element(dose).toBeEnabled();
+    await expect
+      .element(page.getByRole("button", { name: "Add all 2, with Vital: BP 130/85 mmHg", exact: true }))
+      .toBeVisible();
+
+    await userEvent.click(dose);
+    await expect.poll(status).toBe("Saved 2 entries");
+    expect(cards()).toEqual([]);
+    const kinds = await device.query<{ kind: string }>(
+      "SELECT kind FROM timeline_entry WHERE kind IN ('vital', 'dose') ORDER BY kind",
+    );
+    expect(kinds.map((k) => k.kind)).toEqual(["dose", "vital"]);
+    expect(device.location()).toBe(TIMELINE_URL);
+  });
+
+  test("a lone card's button is named Add and opens what it saved, as Enter does", async () => {
+    const device = await open();
+    await type("n: Grandma had a good day", ["note"]);
+    await userEvent.click(
+      page.getByRole("button", { name: "Add Note: Grandma had a good day", exact: true }),
+    );
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
+  });
+
+  test("a blocked card's button is disabled; Remove, Edit and the chips sit outside it and still work", async () => {
+    const device = await open();
+    await type("bp 1300/85, dizzy", ["vital", "symptom"]);
+    const blocked = cardWith("BP");
+    await waitUntil(() => !!blocked.querySelector("[data-quick-blocking]"), "the block");
+    // Save waits for every card, so both readings' buttons wait.
+    expect(cardButton(blocked).disabled).toBe(true);
+    expect(cardButton(cardWith("Dizzy")).disabled).toBe(true);
+
+    // None of the card's other buttons is inside its reading.
+    for (const card of cards()) expect(cardButton(card).querySelector("button, a, [role=button]")).toBeNull();
+
+    // The chips only switch the reading.
+    const chips = page.getByRole("list", { name: 'Other ways to save "dizzy"' });
+    await userEvent.click(chips.getByRole("button", { name: "Make it a note" }));
+    await waitUntil(() => cardKinds().join() === "vital,note");
+    expect(
+      await device.query("SELECT id FROM timeline_entry WHERE kind = 'note' AND body = 'dizzy'"),
+    ).toEqual([]);
+
+    // Remove drops the blocked card; the other's button now saves.
+    await userEvent.click(page.getByRole("button", { name: 'Remove "bp 1300/85"' }));
+    await waitUntil(() => cardKinds().join() === "note");
+    await expect.poll(() => cards().map((c) => cardButton(c).disabled)).toEqual([false]);
+
+    // Edit is its own button: a note's Edit saves it and opens its page.
+    await userEvent.click(page.getByRole("button", { name: 'Edit "dizzy"' }));
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
   });
 });

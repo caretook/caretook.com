@@ -12,6 +12,7 @@ import {
   assistantActionZSchema,
   encodeNoteDoc,
   entryProviderId,
+  isSymptomDetails,
   noteDocFromText,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
@@ -34,8 +35,17 @@ import {
 } from "../medications/medications.sync";
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
-import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
+import {
+  noteDocuments,
+  noteUpdates,
+  todos,
+  timelineEntries,
+  timelineEntryProviders,
+  timelineEntryTodos,
+} from "../sync/schema";
+import { entryTodoRow } from "../todos/entryTodos.sync";
 import { plannedTodo } from "../todos/todos.sync";
+import { addSymptomTypeIn } from "../timeline/symptomTypes.sync";
 import {
   contentColumns,
   forbidden,
@@ -44,6 +54,7 @@ import {
   invalid,
   nowTimestamp,
   readRows,
+  symptomTypeColumn,
 } from "../timeline/timeline.sync";
 
 // Carrying out assistant actions (quick entry's cards) on this device: every
@@ -56,8 +67,10 @@ import {
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
 // slots on its day, as one round. A todo (`addTodo`) is checked as
 // `createTodo` checks it (`plannedTodo`) and written in the same transaction;
-// it isn't an entry. A refused action refuses the batch, naming the action
-// it was.
+// it isn't an entry. Its `eventId` is written as a link row
+// (`timeline_entry_todo`), never `todo.event_id`. A symptom adds its name's catalog row when the group
+// has none (`addSymptomTypeIn`). A refused action refuses the batch, naming
+// the action it was.
 
 export type RunActionsResult =
   | {
@@ -73,8 +86,8 @@ type EntryInsert = typeof timelineEntries.$inferInsert;
 
 type Rows =
   | EntryRows
-  /** A todo (not an entry). */
-  | { todo: typeof todos.$inferInsert };
+  /** A todo (not an entry), and the entry it's linked to. */
+  | { todo: typeof todos.$inferInsert; link?: typeof timelineEntryTodos.$inferInsert };
 
 type EntryRows = {
   entry: EntryInsert;
@@ -83,6 +96,8 @@ type EntryRows = {
   /** A note's or event's live document: a note's text, with its providers mentioned. */
   document?: { text: string | null; mentions: NoteMention[] };
   providerIds?: string[];
+  /** A symptom's name, whose catalog row is added with it when the group has none. */
+  symptomName?: string;
 };
 
 const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -190,9 +205,12 @@ export const runActions = async (
     if (action.type === "addTodo") {
       if (!writer) return refuse("You don't have permission to do that.", index);
       const { type: _type, ...input } = action;
+      // Checked as before (a live event in the group), but the event is a
+      // link row, never the old `event_id` column (planner-3).
       const todo = await plannedTodo(db, groupId, input);
       if (!todo.ok) return refuse(todo.error, index, todo.issues);
-      planned.push({ todo: todo.row });
+      const link = input.eventId ? entryTodoRow(db, groupId, input.eventId, todo.row.id) : null;
+      planned.push({ todo: { ...todo.row, eventId: null }, ...(link && { link }) });
       continue;
     }
     const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
@@ -228,6 +246,7 @@ export const runActions = async (
         recipientId: group.recipient.id,
         kind: content.data.kind,
         ...contentColumns(content.data),
+        ...symptomTypeColumn(groupId, content.data),
         cancelledBy: null,
         deletedAt: null,
         ...audit,
@@ -238,6 +257,8 @@ export const runActions = async (
       ...(action.type === "addEvent" && { document: { text: null, mentions: [] } }),
       // An Easy helper's note keeps its mentions in the text, unlinked.
       providerIds: writer ? providerIds : [],
+      ...(content.data.kind === "symptom" &&
+        isSymptomDetails(content.data.details) && { symptomName: content.data.details.name }),
     });
   }
 
@@ -245,10 +266,13 @@ export const runActions = async (
     for (const rows of planned) {
       if ("todo" in rows) {
         await tx.insert(todos).values(rows.todo);
+        if (rows.link) await tx.insert(timelineEntryTodos).values(rows.link);
         continue;
       }
-      const { entry, more, document, providerIds } = rows;
+      const { entry, more, document, providerIds, symptomName } = rows;
       if (entry.kind === "dose") await claimDoseIds(tx, [entry, ...(more ?? [])]);
+      // A symptom's name joins the catalog in the same write, when it's new (as `createEntry`).
+      if (symptomName) await addSymptomTypeIn(tx, { groupId, name: symptomName, userId: db.userId, now });
       await tx.insert(timelineEntries).values(entry);
       for (const row of more ?? []) await tx.insert(timelineEntries).values(row);
       if (document) {
@@ -321,10 +345,10 @@ const passDoses = async (
   const rows = { recipient, medications, passes, doses, changes };
   const passRow = rows.passes.find((p) => p.id === action.passId);
   if (!passRow || passRow.deleted_at || passRow.group_id !== groupId)
-    return { ok: false, error: "That pass is gone. It may have been deleted.", issues: [] };
+    return { ok: false, error: "That med time is gone. It may have been deleted.", issues: [] };
   const due = toDueDoses(rows, at);
   const pass = duePasses(due, toPasses(rows.passes)).find((p) => p.passId === action.passId);
-  const name = passRow.name ?? "This pass";
+  const name = passRow.name ?? "This med time";
   if (!pass?.slots.length) return { ok: false, error: `${name} has no medications.`, issues: [] };
   const writes = givenAllWrites(pass, at).map((w) => ({ ...w, timeZone }));
   if (!writes.length) return { ok: false, error: `Nothing is left to give in ${name}.`, issues: [] };

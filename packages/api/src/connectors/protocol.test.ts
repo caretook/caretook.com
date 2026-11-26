@@ -232,7 +232,7 @@ describe("handleMcp's prompts (the real ones)", () => {
     }[];
     expect(prompts.map((p) => p.name)).toEqual([
       "catch_me_up",
-      "prepare_for_appointment",
+      "prepare_for_event",
       "weekly_summary",
       "log_what_happened",
     ]);
@@ -241,7 +241,7 @@ describe("handleMcp's prompts (the real ones)", () => {
       arguments: [{ name: "since", required: false }],
     });
     expect(prompts[0]?.arguments[0]?.description).toMatch(/start of today/);
-    expect(prompts[1]?.arguments).toMatchObject([{ name: "appointment", required: false }]);
+    expect(prompts[1]?.arguments).toMatchObject([{ name: "event", required: false }]);
     expect(prompts[2]?.arguments).toEqual([]);
     expect(prompts[3]?.arguments).toMatchObject([{ name: "account", required: true }]);
   });
@@ -251,7 +251,7 @@ describe("handleMcp's prompts (the real ones)", () => {
     expect(init.result?.instructions).not.toMatch(/task/i);
     const listed = await bodyOf(request(2, "prompts/list"));
     expect(JSON.stringify(listed.result)).not.toMatch(/task/i);
-    for (const name of ["catch_me_up", "prepare_for_appointment", "weekly_summary"]) {
+    for (const name of ["catch_me_up", "prepare_for_event", "weekly_summary"]) {
       expect(await textOf(name)).not.toMatch(/task/i);
     }
     const logging = await textOf("log_what_happened", { account: "Called the pharmacy." });
@@ -263,7 +263,7 @@ describe("handleMcp's prompts (the real ones)", () => {
     const body = await bodyOf(request(2, "prompts/list"), "read");
     expect((body.result?.prompts as { name: string }[]).map((p) => p.name)).toEqual([
       "catch_me_up",
-      "prepare_for_appointment",
+      "prepare_for_event",
       "weekly_summary",
     ]);
     const refused = await get("log_what_happened", { account: "Slept well" }, "read");
@@ -279,13 +279,13 @@ describe("handleMcp's prompts (the real ones)", () => {
     expect(await textOf("catch_me_up", { since: "  " })).toContain("since the start of today");
   });
 
-  it("prepare_for_appointment: the next one by default, or the one named", async () => {
-    const next = await textOf("prepare_for_appointment");
-    expect(next).toContain("the next appointment");
+  it("prepare_for_event: the next one by default, or the one named", async () => {
+    const next = await textOf("prepare_for_event");
+    expect(next).toContain("the next event");
     for (const tool of ["upcoming", "list_timeline", "latest_vitals", "list_medications"])
       expect(next).toContain(tool);
-    expect(await textOf("prepare_for_appointment", { appointment: "Dr. Lark on Tuesday" })).toContain(
-      'the appointment "Dr. Lark on Tuesday"',
+    expect(await textOf("prepare_for_event", { event: "Dr. Lark on Tuesday" })).toContain(
+      'the event "Dr. Lark on Tuesday"',
     );
   });
 

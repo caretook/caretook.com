@@ -11,11 +11,14 @@ import { useGroup } from "~/lib/app-shell/group";
 import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
 
 /**
- * One open dated todo on the Planner tab: its tick (for whoever may complete it:
- * writers, or the viewer it's assigned to; a todo icon otherwise), its time
- * (the due time, wall-clock in the recipient's zone, "All day", or
- * "Overdue") with the assignee under it, the title, and the due line when
- * it's overdue. The row opens the todo's page. Ticking completes it (Undo in the list's
+ * One open dated todo on the Planner tab, laid out like an event card
+ * (`UpcomingRow`, B-636): its tick on the left (for whoever may complete it:
+ * writers, or the viewer it's assigned to; a todo icon otherwise), where an
+ * event has its kind icon; then its time on one line (the due time,
+ * wall-clock in the recipient's zone, "All day", or "Overdue") with the
+ * repeat mark, the title under it, and the due line when it's overdue; the
+ * assignee pill on the right, at the bottom, where an event has its author.
+ * The row opens the todo's page. Ticking completes it (Undo in the list's
  * `TodoUndoStatus`), and it drops out. It's never an entry.
  */
 export function PlannerTodoRow({
@@ -43,7 +46,7 @@ export function PlannerTodoRow({
 
   return (
     <li
-      className="relative isolate flex items-start gap-2.5 px-3 py-2"
+      className="relative isolate grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-2.5 gap-y-1 px-3 py-2"
       data-planner-todo={todo.id}
       data-todo-state={state}
     >
@@ -53,51 +56,49 @@ export function PlannerTodoRow({
         aria-label={`Open todo ${title}, ${due}`}
         data-planner-todo-open
       />
-      {mayTick ? (
-        <span className="relative z-10 flex size-6 shrink-0 items-center justify-center">
+      <span className="relative z-10 flex size-6 shrink-0 items-center justify-center">
+        {mayTick ? (
           <TodoTick
             title={title}
             done={false}
             disabled={tick.busy}
             onChange={(done) => void (done ? tick.complete({ id: todo.id, title }) : tick.reopen(todo))}
           />
-        </span>
-      ) : (
-        <ListTodo className="text-muted mt-0.5 size-5 shrink-0" aria-hidden="true" />
-      )}
-      <div className="flex w-[5.5rem] shrink-0 flex-col items-start gap-1" data-when-column>
-        <span
-          className={`pt-0.5 text-sm tabular-nums ${overdue ? "text-error-ink font-semibold" : "text-muted"}`}
-          data-when
+        ) : (
+          <ListTodo className="text-muted size-5" aria-hidden="true" />
+        )}
+      </span>
+      <div className="min-w-0">
+        <p
+          className={`flex items-center gap-1 text-sm whitespace-nowrap tabular-nums ${overdue ? "text-error-ink font-semibold" : "text-muted"}`}
+          data-when-line
         >
-          {when}
-        </span>
-        {/* A long name wraps inside the narrow column rather than running into the title. */}
-        <Badge
-          icon={assignee.type === "name" ? UserRound : undefined}
-          className="h-auto max-w-full py-0.5 [&>svg]:shrink-0"
-          data-todo-assignee={assignee.type}
-        >
-          <span className="min-w-0 break-words">{assignee.label}</span>
-        </Badge>
-      </div>
-      <div className="min-w-0 flex-1 pt-0.5">
-        <p className="font-medium break-words" data-todo-title>
+          <span data-when>{when}</span>
+          <TodoRepeatMark todo={todo} />
+        </p>
+        <p className="font-semibold break-words" data-todo-title>
           {title}
         </p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm empty:hidden">
-          {overdue && due && (
-            <span className="text-error-ink" data-todo-due>
-              {due}
-            </span>
-          )}
-          <TodoRepeatMark todo={todo} className="text-muted" />
-        </p>
+        {overdue && due && (
+          <p className="text-error-ink text-sm" data-todo-due>
+            {due}
+          </p>
+        )}
         {tick.error && (
           <Message tone="error" className="relative z-10">
             {tick.error}
           </Message>
         )}
+      </div>
+      {/* A long name wraps inside the side column rather than squeezing the title. */}
+      <div className="flex max-w-[8rem] flex-col items-end" data-todo-side>
+        <Badge
+          icon={assignee.type === "name" ? UserRound : undefined}
+          className="mt-auto h-auto max-w-full py-0.5 [&>svg]:shrink-0"
+          data-todo-assignee={assignee.type}
+        >
+          <span className="min-w-0 break-words">{assignee.label}</span>
+        </Badge>
       </div>
     </li>
   );

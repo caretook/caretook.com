@@ -14,7 +14,6 @@ import {
   passMoved,
   passMovedId,
   passNameTaken,
-  reorderPasses,
   scheduleHasPass,
   sortPasses,
   TOO_MANY_PASSES_MESSAGE,
@@ -90,7 +89,7 @@ export const toPasses = (rows: PassRow[]) =>
 export const passesQuery = (groupId: string, { includeDeleted = false } = {}): LocalQuery => ({
   sql: `SELECT * FROM medication_pass
         WHERE group_id = ? ${includeDeleted ? "" : "AND deleted_at IS NULL"}
-        ORDER BY sort_order, time, name COLLATE NOCASE, id`,
+        ORDER BY time, name COLLATE NOCASE, id`,
   params: [groupId],
 });
 
@@ -137,11 +136,11 @@ export type PassWriteResult = { ok: true; id: string } | Refusal;
 const refuse = (error: string, issues: Refusal["issues"] = []): Refusal => ({ ok: false, error, issues });
 const invalid = (error: { issues: { path: PropertyKey[]; message: string }[] }): Refusal =>
   refuse(
-    "The pass is invalid",
+    "The med time is invalid",
     error.issues.map(({ path, message }) => ({ path: path.map(String).join("."), message })),
   );
 const nameTaken = refuse(PASS_NAME_TAKEN_ISSUE.message, [{ ...PASS_NAME_TAKEN_ISSUE }]);
-const passMissing = refuse("That pass is gone. It may have been deleted.");
+const passMissing = refuse("That med time is gone. It may have been deleted.");
 
 const canWrite = async (db: SyncDb, groupId: string) => {
   const group = await groupFor(db, groupId);
@@ -239,24 +238,6 @@ export const updatePass = async (
       });
   });
   return { ok: true, id };
-};
-
-/** Move a pass one place up or down the list (renumbering the sort orders that change). */
-export const movePass = async (db: SyncDb, id: string, direction: "up" | "down"): Promise<ActionResult> => {
-  const existing = await livePass(db, id);
-  if (!existing) return passMissing;
-  if (!(await canWrite(db, existing.groupId))) return forbidden;
-  const changes = reorderPasses(await groupPasses(db, existing.groupId), id, direction);
-  if (!changes.length) return { ok: true };
-  const now = nowTimestamp();
-  await db.drizzle.transaction(async (tx) => {
-    for (const { id: passId, sortOrder } of changes)
-      await tx
-        .update(medicationPasses)
-        .set({ sortOrder, updatedAt: now, updatedBy: db.userId })
-        .where(eq(medicationPasses.id, passId));
-  });
-  return { ok: true };
 };
 
 /**

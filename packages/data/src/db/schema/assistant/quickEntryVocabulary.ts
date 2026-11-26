@@ -18,6 +18,11 @@ import { foldSearchText } from "../search/search";
  * - `requestVerb`: opening a line, asks for something to be done ("call the pharmacy").
  * - `requestLead`: opening a line, the same whatever follows ("remember to …").
  * - `reportWord`: the line tells what happened, so an opening verb was a noun ("call was fine").
+ * - `newMedication`, `newProvider`: opening a line, a medication or provider to add ("new med
+ *   lisinopril 10 mg"): a card whose Save opens the Add sheet filled in, ahead of any loose match
+ *   to one the group has. With `wholeLine`, the line isn't split (its commas separate the fields).
+ * - `repeatWord`: opens a repeat ("every monday", "daily"): the line is a repeating todo, unless it
+ *   reads as a vital, dose or symptom. quickEntryRepeat.ts reads the words after it.
  */
 export type VocabularyRole =
   | "symptomIncident"
@@ -27,7 +32,10 @@ export type VocabularyRole =
   | "appointmentWord"
   | "requestVerb"
   | "requestLead"
-  | "reportWord";
+  | "reportWord"
+  | "newMedication"
+  | "newProvider"
+  | "repeatWord";
 
 export type VocabularyEntry = {
   /** One or more words, matched folded and in order ("passed out"). */
@@ -37,11 +45,15 @@ export type VocabularyEntry = {
   name?: string;
   /** Words that, right after the phrase, mean it isn't this ("fell asleep"). */
   unlessNext?: readonly string[];
+  /** A line opening with it is one part, whatever it says ("add provider Dr Kim, cardiology, 555-0100"). */
+  wholeLine?: boolean;
 };
 
 const ASLEEP = ["asleep"];
 /** "call from Dr. Lee" is a call that came in, not one to make. */
 const RECEIVED = ["from"];
+/** "every hour" is a dose's interval, not a todo's repeat. */
+const NOT_A_REPEAT = ["hour", "hours", "hr", "hrs", "h", "minute", "minutes", "min", "mins", "m"];
 
 export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   // Incidents tracked as symptoms.
@@ -140,6 +152,31 @@ export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   { phrase: "happened", role: "reportWord" },
   { phrase: "did", role: "reportWord" },
   { phrase: "didn't", role: "reportWord" },
+
+  // A medication or provider to add, when it opens the line: the Add sheet, filled in.
+  { phrase: "new med", role: "newMedication", wholeLine: true },
+  { phrase: "new meds", role: "newMedication", wholeLine: true },
+  { phrase: "new medication", role: "newMedication", wholeLine: true },
+  { phrase: "new medicine", role: "newMedication", wholeLine: true },
+  { phrase: "add med", role: "newMedication", wholeLine: true },
+  { phrase: "add medication", role: "newMedication", wholeLine: true },
+  { phrase: "add a medication", role: "newMedication", wholeLine: true },
+  { phrase: "add new med", role: "newMedication", wholeLine: true },
+  { phrase: "add new medication", role: "newMedication", wholeLine: true },
+  { phrase: "started", role: "newMedication" },
+  { phrase: "new provider", role: "newProvider", wholeLine: true },
+  { phrase: "new doctor", role: "newProvider", wholeLine: true },
+  { phrase: "add provider", role: "newProvider", wholeLine: true },
+  { phrase: "add a provider", role: "newProvider", wholeLine: true },
+  { phrase: "add new provider", role: "newProvider", wholeLine: true },
+  { phrase: "add doctor", role: "newProvider", wholeLine: true },
+  { phrase: "add a doctor", role: "newProvider", wholeLine: true },
+
+  // A repeat: a todo that comes back ("bins out every monday"). Appended by planner-3 (B-254).
+  { phrase: "every", role: "repeatWord", unlessNext: NOT_A_REPEAT },
+  { phrase: "daily", role: "repeatWord" },
+  { phrase: "weekly", role: "repeatWord" },
+  { phrase: "monthly", role: "repeatWord" },
 ];
 
 /** A word as the vocabulary compares it: folded, letters and digits only ("E.R." → "er"). */
@@ -177,4 +214,18 @@ export const findVocabulary = (
     }
   }
   return found.sort((a, b) => a.used[0]! - b.used[0]!);
+};
+
+/**
+ * The new-item phrase opening `words` (already `vocabularyWord`ed), if one
+ * does: "new med", "add provider", "started" (only a medication's name may
+ * follow it, so the parser asks for more). Longest phrase first.
+ */
+export const openingNewItem = (words: readonly string[]): VocabularyMatch | null => {
+  for (const row of ROWS) {
+    if (row.entry.role !== "newMedication" && row.entry.role !== "newProvider") continue;
+    if (row.words.every((w, k) => words[k] === w))
+      return { entry: row.entry, used: row.words.map((_, k) => k) };
+  }
+  return null;
 };

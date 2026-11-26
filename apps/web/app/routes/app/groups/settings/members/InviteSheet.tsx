@@ -8,6 +8,7 @@ import { Button, CheckField, Field, Message, Notice, Sheet } from "~/components/
 import { roleDescription } from "../groupSettings";
 import { emailInviteRoles } from "./invites";
 import { INVITES_UNAVAILABLE } from "./linkRules";
+import { RoleHelp } from "./RoleHelp";
 import { RoleOptions } from "./RoleOptions";
 
 // The Members page's Invite button (owners and admins) and its sheet: an
@@ -81,18 +82,22 @@ export function InviteButton({
             <Field kind="input" label="Email" error={issue("email")}>
               {(control) => <input {...control} type="email" name="email" autoComplete="off" required />}
             </Field>
-            <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
-              {(control) => (
-                <select
-                  {...control}
-                  name="role"
-                  value={role}
-                  onChange={(event) => setRole(event.target.value)}
-                >
-                  <RoleOptions roles={roles} />
-                </select>
-              )}
-            </Field>
+            <div className="relative">
+              {/* Beside the label: the label is short, so the link fits on its line. */}
+              <RoleHelp className="absolute end-0 top-1.5" />
+              <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
+                {(control) => (
+                  <select
+                    {...control}
+                    name="role"
+                    value={role}
+                    onChange={(event) => setRole(event.target.value)}
+                  >
+                    <RoleOptions roles={roles} />
+                  </select>
+                )}
+              </Field>
+            </div>
             <CheckField label={ATTESTATION_TEXT} name="attested" required error={issue("attested")} />
             {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
             <Button type="submit" variant="primary" block busy={busy} busyLabel="Sending…">

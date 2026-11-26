@@ -10,7 +10,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 
-import { canChangeEntry, parseSearch } from "@caretook/data/schema";
+import { canChangeEntry, canHaveNoteDocument, parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -29,6 +29,8 @@ import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope
 import { dayLabel, localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
+import { useSymptomFilterTypes } from "~/lib/timeline/symptomFilter.sync";
+import { clearSymptoms } from "~/lib/timeline/timelineFilters";
 import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/timeline/entryOpen";
@@ -50,6 +52,7 @@ import { dayKeyIn, withMarkers } from "./timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
+import { useOpenTodoCounts } from "./useOpenTodoCounts";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
@@ -72,10 +75,13 @@ const LIST_CLASS: Record<TimelineView, string> = {
 };
 
 /** The filters and search a list shows (the URL's), as `TimelineEntryList` takes them. */
+const NO_SYMPTOMS: readonly string[] = [];
+
 export type TimelineEntryListFilters = {
   kind: TimelineEntryKind | null;
   author: string | null;
   vital?: VitalType | null;
+  symptoms?: readonly string[];
   search?: { q: string; state: TimelineSearchState };
 };
 
@@ -89,7 +95,9 @@ export type TimelineEntryListFilters = {
  * helper, those of the entries they made), with one delete confirm for the whole list, and each day heading's + menu; a writer's list
  * always has a Today heading, so today's + is always there. With no filter or
  * search on and nothing logged today, that heading says so and offers "Add an
- * entry" (`onAddEntry`), in place of the empty timeline's line.
+ * entry" (`onAddEntry`), in place of the empty timeline's line. An empty
+ * list under the symptom-type filter names the chosen types and offers "Show
+ * all symptoms" (`clearSymptoms`).
  *
  * `easy` is easy mode's list: rows only, at the full timeline's type
  * scale (no zoom), with no filter links, no + menus and no care periods (markers or the day headers'
@@ -104,6 +112,7 @@ export function TimelineEntryList({
   kind,
   author,
   vital = null,
+  symptoms = NO_SYMPTOMS,
   search: searching = NO_SEARCH,
   easy = false,
   summaryMode = "highlights",
@@ -137,6 +146,8 @@ export function TimelineEntryList({
   author: string | null;
   /** The vital-type filter (`?vital=`), when it's on (the empty list names it). */
   vital?: VitalType | null;
+  /** The symptom-type filter's catalog ids (`?symptom=`), when it's on. */
+  symptoms?: readonly string[];
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
   /** Easy mode's list (above). */
@@ -175,6 +186,8 @@ export function TimelineEntryList({
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
   const group = useGroup();
+  // The open-todo marks: one live query for the group (none in easy mode).
+  const openTodos = useOpenTodoCounts(groupId, !easy);
   // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
   const mayChange = (createdBy: string | null) =>
     canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
@@ -234,7 +247,7 @@ export function TimelineEntryList({
   // above the screen (a kind icon or author tapped far down), bring it back,
   // before the end of a shorter list could load another page.
   const list = useRef<HTMLElement>(null);
-  const filterKey = `${kind}|${vital}|${author}|${searching.q}`;
+  const filterKey = `${kind}|${vital}|${symptoms.join(",")}|${author}|${searching.q}`;
   const lastFilter = useRef(filterKey);
   useLayoutEffect(() => {
     if (lastFilter.current === filterKey) return;
@@ -245,7 +258,14 @@ export function TimelineEntryList({
   // A jump lands on its day (only a jump: sheets and Back keep the scroll).
   const landed = useJumpLanding(list, !!data.jump, data.returning);
 
-  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q, vital);
+  // The symptom-type filter's names, for the empty list ("No pain or nausea …"), with a way back to every symptom.
+  const symptomTypes = useSymptomFilterTypes(groupId);
+  const symptomNames = symptoms.flatMap((id) => symptomTypes.find((t) => t.id === id)?.name ?? []);
+  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q, vital, symptomNames);
+  const clearSymptomsAction =
+    kind === "symptom" && symptoms.length > 0
+      ? { label: "Show all symptoms", to: { search: clearSymptoms(search) } }
+      : undefined;
   const announcement = searchAnnouncement({
     q: searching.q,
     state: searching.state,
@@ -291,6 +311,7 @@ export function TimelineEntryList({
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
         easy={easy}
+        openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}
       />
     );
   };
@@ -385,7 +406,9 @@ export function TimelineEntryList({
               {emptyText}
             </EmptyState>
           ) : (
-            <EmptyState data-empty="">{searchStateText(searching.state) ?? emptyText}</EmptyState>
+            <EmptyState data-empty="" action={clearSymptomsAction}>
+              {searchStateText(searching.state) ?? emptyText}
+            </EmptyState>
           ))}
         {adding && <QuickAddPrefetch groupId={groupId} />}
 

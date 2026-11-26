@@ -6,8 +6,10 @@ import {
   careGroupMemberService,
   conditionManagerId,
   entryProviderId,
+  entryTodoId,
   getDb,
   medicationConditionId,
+  symptomTypeId,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -241,6 +243,25 @@ const UPLOAD_CASES: Record<string, (ids: Ids) => CrudOp[]> = {
       deleteOp("condition_manager", link),
     ];
   },
+  // A new catalog name (rows are only ever added).
+  symptom_type: (ids) => [
+    putOp("symptom_type", symptomTypeId(ids.groupId, "Sore wrist"), {
+      group_id: ids.groupId,
+      name: "Sore wrist",
+      name_key: "sore wrist",
+      created_at: LATER,
+      updated_at: LATER,
+    }),
+  ],
+  // Which todos an entry links (planner-3): links are added and removed.
+  timeline_entry_todo: (ids) => [
+    putOp("timeline_entry_todo", entryTodoId(ids.bareEntry, ids.rows.todo!), {
+      group_id: ids.groupId,
+      entry_id: ids.bareEntry,
+      todo_id: ids.rows.todo,
+    }),
+    deleteOp("timeline_entry_todo", entryTodoId(ids.entry, ids.rows.todo!)),
+  ],
 };
 
 const BARE_GROUP = new Set(["care_recipient"]);
@@ -308,6 +329,11 @@ const groupWithRows = async ({ bare = false } = {}) => {
       condition_id: ids.condition,
       provider_id: ids.provider,
       ...audits,
+    }),
+    putOp("timeline_entry_todo", entryTodoId(ids.entry, ids.rows.todo!), {
+      group_id: ids.groupId,
+      entry_id: ids.entry,
+      todo_id: ids.rows.todo,
     }),
   ];
   const seeded = bare ? [] : await upload(owner, seed);

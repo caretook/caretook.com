@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import { addDays, localDate, todoSchema, userSchema } from "../schema";
+import { addDays, entryTodoId, localDate, timelineEntryTodoSchema, todoSchema, userSchema } from "../schema";
 import { nextTodoId } from "../schema/appointments/todoRepeat";
 import { appointmentIdIn } from "./appointments";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
@@ -237,10 +237,11 @@ export const seed = async () => {
   const idOf = (email: string | null) => (email ? (users.find((u) => u.email === email)?.id ?? null) : null);
   if (users.length < emails.length) return;
 
+  const rows = seedRows();
   await db
     .insert(todoSchema)
     .values(
-      seedRows().map(({ assignee, author, doneBy, ...row }) => ({
+      rows.map(({ assignee, author, doneBy, ...row }) => ({
         ...row,
         assigneeId: idOf(assignee),
         doneBy: idOf(doneBy),
@@ -249,4 +250,22 @@ export const seed = async () => {
       })),
     )
     .onConflictDoNothing({ target: todoSchema.id });
+
+  // Each seeded todo's event is also a link row (planner-3), as the migration's
+  // backfill makes for stored todos: the device reads links from rows.
+  const links = rows
+    .filter((row) => row.eventId)
+    .map((row) => ({
+      id: entryTodoId(row.eventId!, row.id),
+      groupId: row.groupId,
+      entryId: row.eventId!,
+      todoId: row.id,
+      createdBy: idOf(row.author)!,
+      updatedBy: idOf(row.author)!,
+    }));
+  if (links.length)
+    await db
+      .insert(timelineEntryTodoSchema)
+      .values(links)
+      .onConflictDoNothing({ target: timelineEntryTodoSchema.id });
 };

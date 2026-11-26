@@ -3,8 +3,12 @@ import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { pageHeader } from "../../../../../test/pageHeader";
 import { fx } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   dayAgo,
+  DOSES_SQL,
+  GROUP,
   LIST,
   LISINOPRIL,
   listNames,
@@ -28,7 +32,9 @@ import {
 // is offline throughout, so every screen here is the offline one too. The
 // section current in the tab bar and the header is frame.browser.test.tsx's;
 // the list's order and matching
-// rules are medicationList.test.ts's.
+// rules are medicationList.test.ts's. Log on a scheduled medication opens
+// the Dose sheet over the list, and closing or saving it comes back to the
+// list (B-783); the card's own Log controls are medicationCard.browser.test.tsx's.
 
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: MEDICATION_ROUTES, url: LIST, fixtures: world(), ...options });
@@ -99,7 +105,7 @@ describe("the list", () => {
     expect(badge("Oxybutynin")).toBeNull();
   });
 
-  test("at phone width the type badge sits at the row's right edge, and a long name wraps beside it", async () => {
+  test("at phone width the type badge sits at the name column's right edge (beside Log), and a long name wraps beside it", async () => {
     const longName = "Hydroxychloroquinesulfateextendedreleaseformulation with a very long descriptive name";
     await open({
       width: 320,
@@ -113,8 +119,14 @@ describe("the list", () => {
       const pill = row.querySelector("[data-medication-type]")!.getBoundingClientRect();
       const link = row.querySelector("[data-medication-name]")!.getBoundingClientRect();
       const rowBox = row.getBoundingClientRect();
-      const contentRight = rowBox.right - parseFloat(getComputedStyle(row).paddingRight);
-      expect(Math.abs(pill.right - contentRight)).toBeLessThanOrEqual(1);
+      const style = getComputedStyle(row);
+      // The text column ends at the row's content edge, or a gap before the
+      // card's actions (Log) when it has them.
+      const actions = row.querySelector("[data-card-actions]")?.getBoundingClientRect();
+      const columnRight = actions
+        ? actions.left - parseFloat(style.columnGap)
+        : rowBox.right - parseFloat(style.paddingRight);
+      expect(Math.abs(pill.right - columnRight)).toBeLessThanOrEqual(1);
       expect(link.right).toBeLessThanOrEqual(pill.left);
       expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
     }
@@ -260,6 +272,22 @@ describe("the list", () => {
     await expect.poll(device.location).toContain("/medications/schedule/new");
   });
 
+  test("the Print menu's item text fits inside the menu at phone width, and the menu stays on screen", async () => {
+    await open({ url: SCHEDULE });
+    await userEvent.click(page.getByRole("button", { name: "Print" }));
+    await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
+    const items = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role="menuitem"]')];
+    expect(items).toHaveLength(2);
+    for (const item of items) {
+      for (const text of item.querySelectorAll<HTMLElement>("span.truncate")) {
+        expect(text.scrollWidth, text.textContent ?? "").toBeLessThanOrEqual(text.clientWidth);
+      }
+    }
+    const box = document.querySelector<HTMLElement>('[role="menu"]')!.getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(0);
+    expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+  });
+
   test("a medication stopped on another device moves below the current ones", async () => {
     const device = await open();
     // Another device discontinued it: the row arrives changed.
@@ -272,5 +300,55 @@ describe("the list", () => {
       .poll(() => listNames(CURRENT))
       .toEqual(SEEDED_CURRENT.filter((n) => !n.startsWith("Lisinopril")));
     await expect.poll(() => listNames(STOPPED)).toContain("Lisinopril 10 mg");
+  });
+});
+
+describe("Log on a scheduled medication", () => {
+  const SHEET = () => page.getByRole("dialog", { name: "Log a dose" });
+  const SHEET_OPEN = () => !!document.querySelector('[role="dialog"]');
+  const lisinoprilLog = () =>
+    document.querySelector<HTMLElement>(`main li[data-medication-id="${LISINOPRIL.id}"] [data-log-dose]`);
+  const lisinoprilDoses = async (device: { query: <T>(sql: string) => Promise<T[]> }) =>
+    (await device.query<{ medicationId: string }>(DOSES_SQL)).filter((d) => d.medicationId === LISINOPRIL.id);
+
+  test("opens the Dose sheet on it over the list (search kept); Cancel and Escape close back onto the list", async () => {
+    const device = await open({ url: `${LIST}?q=lis` });
+    for (const close of [
+      () => userEvent.click(SHEET().getByRole("button", { name: "Cancel" })),
+      () => userEvent.keyboard("{Escape}"),
+    ]) {
+      await userEvent.click(await found(lisinoprilLog));
+      await expect.element(SHEET()).toBeVisible();
+      expect(device.location()).toBe(appUrls.medicationListDose(GROUP, LISINOPRIL.id, "?q=lis"));
+      // The list stays underneath, filtered as it was.
+      expect(listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
+      await close();
+      await expect.poll(() => !SHEET_OPEN() && device.location()).toBe(`${LIST}?q=lis`);
+      expect(listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
+    }
+  });
+
+  test("saving a dose from it logs the dose and returns to the list", async () => {
+    const device = await open();
+    const before = (await lisinoprilDoses(device)).length;
+    await userEvent.click(await found(lisinoprilLog));
+    await expect.element(SHEET()).toBeVisible();
+    await userEvent.click(SHEET().getByRole("button", { name: "Log dose" }));
+    await expect.poll(async () => (await lisinoprilDoses(device)).length).toBe(before + 1);
+    await expect.poll(() => !SHEET_OPEN() && device.location()).toBe(LIST);
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+  });
+
+  test("opened from a bookmark, it closes onto the list, search kept", async () => {
+    const device = await open({ url: appUrls.medicationListDose(GROUP, LISINOPRIL.id, "?q=lis") });
+    await expect.element(SHEET()).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => !SHEET_OPEN() && device.location()).toBe(`${LIST}?q=lis`);
+  });
+
+  test("a viewer opening it gets the list", async () => {
+    const device = await open({ role: "viewer", url: appUrls.medicationListDose(GROUP, LISINOPRIL.id) });
+    await expect.poll(() => device.location()).toBe(LIST);
+    expect(SHEET_OPEN()).toBe(false);
   });
 });

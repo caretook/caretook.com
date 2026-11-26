@@ -116,6 +116,15 @@ describe("daySummary", () => {
     expect(summaryText(summary.parts)).toBe("Pain 7 (new) · Nausea 3 · Ann");
   });
 
+  it('treats "Knee pain" and "knee pain" as one symptom, for highest severity and (new)', () => {
+    const day = [symptom(DAY, "Knee pain", 6), symptom("2026-11-18T19:00:00Z", "knee  pain", 3)];
+    // One part, its highest severity, named as last written; not new against "KNEE PAIN".
+    expect(summaryText(daySummary(day, [symptom(BEFORE, "KNEE PAIN")], context).parts)).toBe(
+      "knee pain 6 · Ann",
+    );
+    expect(summaryText(daySummary(day, [], context).parts)).toBe("knee pain 6 (new) · Ann");
+  });
+
   it("shows a symptom with no severity by name", () => {
     expect(summaryText(daySummary([symptom(DAY, "Dizzy")], [], context).parts)).toBe("Dizzy (new) · Ann");
   });

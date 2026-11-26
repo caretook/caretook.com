@@ -1,43 +1,25 @@
-# Loop handbook
-
-For a slice agent (a loop): one background agent working one slice of a PRD in `.loops/<topic>-<n>`, on `slice/<topic>/<n>`, run by the PRD's [orchestrator](orchestrator.md). The [rules across PRDs](orchestrator.md#rules-across-prds) (migrations, seeds, registries, hot files) bind you too.
-
-## Loop rules
+<!-- The whole handbook: `pnpm prd doc loop`. -->
 
 - Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24).
-- Read the docs your slice's `Reads` names (none given: no stack, nothing extra; [fields](planner.md#slice-fields)).
 - Your stack is your own: `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` use your ports. Never touch the main checkout, other worktrees or other Compose projects.
-- Run the dev server with `pnpm prd serve` (background; `WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
+- Serve with `pnpm prd serve` (`WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
 - Keep shared-file edits small. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
-- **Past 175k context** a hook asks you to judge ([the watch](machinery.md#the-context-watch)): continue or hand off, and say which in the hand-off. **Past 300k** hand off now: commit, start no check, name any unfinished fix.
-- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, below); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
-- **Your hand-off releases your stack** (`pnpm prd stack down`); then wait: the orchestrator may send back a failure from the wave's CI run.
-- **Bye** (a message of just 'bye'): your hand-off ready, your stack down, then `pnpm prd bye` (it only reports); send your orchestrator what it lists.
-- **A fix request is only:** `pnpm prd stack up` if the slice uses one; `git merge --no-ff -m "chore(<topic>): merge prd/<topic> for a fix" prd/<topic>`; a new commit; `pnpm prd check --quick "slice fix"`; `stack down`; a new hand-off line.
-
-## Hand-off
-
-Your final message:
-
-- what was built, grouped by area, with every shared-file edit called out;
-- each acceptance criterion, met or not, with evidence;
-- the `pnpm prd check` output, and the ■ lines of any browser check you ran;
-- anything skipped or surprising that later slices need;
-- the commit SHAs.
+- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, above); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 
 ## Your worktree and stack
 
-- A slice gets a stack only for `Stack: yes`. Stackless, a check still runs everything: integration tests use your own database, `caretook_test_<name>`, on the shared test Postgres (:5436, `pnpm prd test-db`), created on first use. **Never run `pnpm datastore:*:test` stackless**: with no root `.env` it hits the main checkout's test project. `pnpm prd stack up` adds a stack and `stack down` removes it (containers, data, env files, slot); tell your orchestrator.
-- **Slots and ports.** A stack leases the lowest free slot (1–19). Slot N in 1–9: web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80; slots 10–19 use 7(N−10) for 6N. Compose projects are `caretook-loopN`. The main checkout keeps 5173, 5434, 5435, 8080.
-- **Env files** (gitignored, written by `new.sh`): the root `.env` (Compose project and ports), `packages/data/.env` and `.env.test.local`, `apps/web/.env` (`WEB_PORT`, auth and PowerSync URLs), and `.env.loop` (`SLOT`, `BASE_BRANCH`, `BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`, `SEED_USER_PASSWORD`).
+- A slice gets a stack only for `Stack: yes`. Stackless, a check still runs everything: integration tests use your own database, `caretook_test_<name>`, on the shared test Postgres (:5436, `pnpm prd test-db`), created on first use. **Never run `pnpm datastore:*:test` stackless**: with no root `.env` it hits the main checkout's test project. `pnpm prd stack up` adds a stack, `stack down` removes it; tell your orchestrator.
+- **Slots and ports.** A stack leases the lowest free slot (1–19): slot N in 1–9 has web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80 (10–19: 7(N−10) for 6N); Compose projects `caretook-loopN`.
+- **Env files** (gitignored, by `new.sh`): the root `.env`, `packages/data/.env` and `.env.test.local`, `apps/web/.env`, and `.env.loop` (`SLOT`, `BASE_BRANCH`, `BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`, `SEED_USER_PASSWORD`).
 - Every port, Compose name and the PowerSync audience come from env. A new service, port or container name is configurable the same way; never a fixed name or port.
 
 ## Tests
 
-- **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `scripts:unit` (sync matrix, check-areas, checks, check-times, deploy, build); `tooling:unit` (loops, backlog, hooks; 20 s timeout; not in `pnpm test`: `pnpm test:tooling`); `tooling:browser` (the browser harness: `pnpm test:browser-harness`; `test:tooling` adds it only for a change to its paths); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup clears and migrates once per run, refuses any other host or port, and copies the database per worker ([data-layer](../domain/data-layer.md)); tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
+- **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `project:unit`, `core:unit` (sync matrix, check-areas, deploy, build; check-times, CI); `tooling:unit` and `project:tooling` (loops, backlog; hooks; 20 s; `pnpm test:tooling`); `tooling:browser` (browser harness: `pnpm test:browser-harness`; `test:tooling` adds it only for a change to its paths); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup migrates once per run, refuses other hosts or ports, copies the database per worker ([data-layer](../domain/data-layer.md)); tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
 - **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build.
 - A browser step that asserts pure logic goes once a unit test covers it, and one that asserts one device's screen once a component test does.
-- **Only your own tests.** While building: the test files you add or edit, plus `pnpm prd browser <check>` only for a spec you add or edit. **Before hand-off:** `pnpm prd check --quick "slice hand-off"` (the slice check: static, every unit test, your own integration and component files; never full). Never `--changed` or `--suite` (the orchestrator's). Never rerun a passed check or run two at once in one worktree.
+- **Tests don't race the machine:** wait on state, not a sleep; fake clocks take few steps (`CARETOOK_CLOCK_FILE`); fake pids are 99_999_999; a polled fake file is renamed in; a slow integration file shares a world per describe, cleaned per test.
+- **Only your own tests.** While building: the test files you add or edit, plus `pnpm prd browser <check>` only for a spec you add or edit. **Before hand-off:** `pnpm prd check --quick "slice hand-off"` (the slice check: static, every unit test, your own integration and component files; never full). Never `--changed` or `--suite`. Never rerun a passed check or run two at once.
 
 ## Browser checks
 
@@ -47,16 +29,16 @@ Your final message:
 - `roundtrip` (sheet entries converging across two devices, offline then reconnect, the viewer, reschedule, a series and its split, the sync matrix, removal, refused uploads, a connector write via `/mcp` with its tag); `phase2` (the timeline by sync, a server-linked provider, offline filtering); `live-notes` (documents across devices: typing, concurrent edits, offline, shared links).
 - `app-shell` (theme before first paint, sign-out, rename and members across devices, the details stream, `/admin`'s 404s and an audited banner); `invites` (account emails, email and link invites, join requests, access codes, through `/dev/mail.json`); `ui` (production CSS and the CSP: menu and sheet surfaces on a check build); `marketing` (the public site and headers).
 
-- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds a machine-wide `browser` lease (two at once; waits up to `CARETOOK_BROWSER_WAIT`), uses `.nvmrc`'s Node and the worktree's `.env.loop`, and logs to the worktree's git dir. Run long ones under `caffeinate -i`.
-- **`--changed`** runs what the diff needs (committed since the base, staged, unstaged, untracked), in manifest order, with a table; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list` (show only). **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (only tests tagged `@smoke`); `--verbose`; `--dev` (against the dev server).
-- **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`, which includes `series`), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production`, so Better Auth's rate limits are on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`, so the limits apply per device.
+- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds a machine-wide `browser` lease, logs to the worktree's git dir. Run long ones under `caffeinate -i`.
+- **`--changed`** runs what the diff needs; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list` (show only). **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (only tests tagged `@smoke`); `--verbose`; `--dev` (against the dev server).
+- **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`, the app writers; CI greps both out of production), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production`, so Better Auth's rate limits are on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`, so the limits apply per device.
 - **Limits, each a TIMEOUT:** silence (`CARETOOK_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`CARETOOK_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
 - **One automatic retry** when a failure looks like contention (load over 40, a timeout, a 401 or PSYNC_S2101), after waiting up to 5 minutes for the load to drop. A pass on the retry is **FLAKY** (passing, logged in `.loops/.browser-flakes.log`); a FLAKY lean-set step is a bug to file. Anything else is a real failure: debug it, and don't rerun by hand on top.
 - **Output is trimmed** to the ▶ and ■ lines, failures with their diagnostics, FLAKY lines and the table; the full log is named on the ■ line.
 
 ### Which checks a file needs
 
-`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/loops/check-areas.mjs resolve <file>…`).
+`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
 
 - A line is a bash-style glob (`*` also matches `/`), then checks as words, or `-` (none), `@suite` (the lean set) or `@self` (the check file itself; `- (deleted)` when deleted). `#` comments. The file a rule sits in, and its order, never matter: put it in the area that owns the path.
 - **The most specific rule wins** across all files: the longest literal prefix before the first wildcard, then fewer wildcards, then the longer glob; a remaining tie is an error.
@@ -68,12 +50,12 @@ Your final message:
 ### The manifest and the lean set
 
 - `scripts/loops/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
-- **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, written on one device, every streamed column compared on the other (server-set ones named); `sync-matrix.test.mjs` fails on a synced table with no row. Area checks don't assert "a second device sees X".
+- **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, each uploadable one by its app writer (`sync-writers.mjs`; a link table names its parent's) with uploads held, every streamed column compared on the other device (server-set ones named); `sync-matrix.test.mjs` fails on a table with no row or writer. Area checks don't assert "a second device sees X".
 - **Moving a check's screen steps to component tests:** write the tests, delete each covered step, keep only the flows; set it `e2e yes` if a flow is left, else delete it and its `check-areas.d/` rules.
 
 ### Writing a check
 
-- **Specs:** import `test` and `expect` from `fixtures.mjs`, never `@playwright/test`. `device(label, opts)` is a context with its own `x-forwarded-for` (420×900, America/Los_Angeles; call twice for two devices). `d.errors` fails on console errors and CSP violations; helpers: `signIn` (retries once on a token 401), `signOut`, `openDevFamily`, `psql`, `DEV_FAMILY`, `waitFor` (awaits, B-172), `localCopyHolds`, `assetsSettled`. One worker, no retries, traces of failures in the git dir; `reporter.mjs` prints the lines `browser.sh` reads; only `Timeout Nms` counts as contention. Tag the core path `@smoke`. Extra args to `pnpm prd browser` are file filters (no `-g`).
+- **Specs:** import `test` and `expect` from `fixtures.mjs`, never `@playwright/test`. `device(label, opts)`: a context with its own `x-forwarded-for` (420×900, America/Los_Angeles; twice for two devices). `d.errors` fails on console errors and CSP violations; helpers: `signIn` (retries once on a token 401), `signOut`, `openDevFamily`, `psql`, `DEV_FAMILY`, `waitFor` (awaits), `localCopyHolds`, `assetsSettled`. One worker, no retries, traces of failures in the git dir; only `Timeout Nms` counts as contention. Tag the core path `@smoke`. Extra args to `pnpm prd browser` are file filters (no `-g`).
 - **Offline:** `device(label, { offlineable: true })` and `d.offline(on)`, through the device's own proxy (`context.setOffline` alone leaves PowerSync connected; add it when the page reads `navigator.onLine`); `d.proxy.hold(port)` and `release()` hold one port's requests. On a check build, `await assetsSettled(page)` before going offline: prefetching route chunks cut mid-fetch reloads into chrome-error.
 - **Order-independent:** tag what the run makes, assert on your own entries (never global state or seed order), soft-delete what you made, restore seeds in `beforeAll`/`afterAll`. **member@ has two groups:** `signIn` goes on to Dev Family (`{ home: true }` stays put); use caretaker@ or viewer@ for a one-group user.
 - **Waits:** wait on the thing, never a fixed sleep; locators are strict (`.first()` when several match). `locator.click()` waits for the navigation it starts: for a click meant to land offline, `evaluate((el) => el.click())`. A tap while a menu is closing can be swallowed: retry the tap once (`live-notes`). Auth queues mail after responding, so "no mail" or "one email" needs a quiet window (`invites`' `mailSettled`), never "the outbox is empty now".

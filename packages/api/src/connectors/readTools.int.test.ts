@@ -7,6 +7,7 @@ import {
   careRecipientService,
   dueDoses,
   duePasses,
+  entryTodoService,
   medicationPassService,
   medicationService,
   memberSharingService,
@@ -381,14 +382,19 @@ describe("read tools", { timeout: 60_000 }, () => {
     ).toEqual([["20:00", "upcoming"]]);
   });
 
-  it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {
-    const now = new Date();
+  // On a fixed clock, so the doses written minutes before it are today in the
+  // recipient's zone at any hour the suite runs (B-642: on the real clock, a run
+  // from 00:00 to 00:10 Los Angeles put the given dose on yesterday). The doses
+  // are written through the model, as the service refuses a time ahead of the
+  // real clock.
+  const agreesWithTheCore = async (now: Date) => {
     const handler = handlerAt(now);
     const w = await world();
     const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
     const morning = passes.find((p) => p.name === "Morning")!;
     const evening = passes.find((p) => p.name === "Evening")!;
-    // Started days ago, so both slots are on today's schedule at any hour the test runs.
+    // Started days before the clock, so both slots are on its day's schedule.
+    const daysBefore = { changedAt: new Date(now.getTime() - 72 * 60 * 60_000).toISOString() };
     const aspirin = await addMedication(
       w.caretaker.ctx,
       w.group.id,
@@ -397,34 +403,38 @@ describe("read tools", { timeout: 60_000 }, () => {
         strength: null,
         schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
       },
-      { changedAt: hoursAgo(72) },
+      daysBefore,
     );
-    const pain = await addMedication(w.caretaker.ctx, w.group.id, {
-      name: "Ibuprofen",
-      strength: null,
-      schedule: { type: "asNeeded", maxPerDay: 3 },
-    });
+    const pain = await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      { name: "Ibuprofen", strength: null, schedule: { type: "asNeeded", maxPerDay: 3 } },
+      daysBefore,
+    );
     await addMedication(w.owner.ctx, w.second.group.id, { name: "Elsewhere" });
-    ok(
-      await addEntry(w.caretaker.ctx, w.group.id, {
-        kind: "dose",
-        occurredAt: new Date(now.getTime() - 10 * 60_000).toISOString(),
-        details: {
-          medicationId: aspirin.id,
-          status: "given",
-          amount: "1 tablet",
-          scheduledFor: "08:00",
-          passId: morning.id,
-        },
-      }),
-    );
-    ok(
-      await addEntry(w.caretaker.ctx, w.group.id, {
-        kind: "dose",
-        occurredAt: new Date(now.getTime() - 5 * 60_000).toISOString(),
-        details: { medicationId: pain.id, status: "given", amount: "1 tablet" },
-      }),
-    );
+    const addDose = async (minutesBefore: number, details: Record<string, unknown>) =>
+      ok(
+        await timelineEntryModel.create({
+          ...w.caretaker.ctx,
+          data: {
+            groupId: w.group.id,
+            recipientId: w.recipient.id,
+            kind: "dose",
+            occurredAt: new Date(now.getTime() - minutesBefore * 60_000).toISOString(),
+            timeZone: "America/Los_Angeles",
+            details: details as never,
+          },
+        }),
+      );
+    // Four and two minutes before the clock: today even at 00:05.
+    await addDose(4, {
+      medicationId: aspirin.id,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: "08:00",
+      passId: morning.id,
+    });
+    await addDose(2, { medicationId: pain.id, status: "given", amount: "1 tablet" });
     const token = await w.connect(w.viewer);
     const result = await callTool(handler, token, "todays_doses");
     const out = result.structuredContent as {
@@ -481,9 +491,64 @@ describe("read tools", { timeout: 60_000 }, () => {
     ]);
     expect(out.missed.length).toBe(due.missed.length);
     expect(JSON.stringify(result)).not.toContain("Elsewhere");
+  };
+
+  it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {
+    // 12:00 in Los Angeles.
+    await agreesWithTheCore(new Date("2030-06-12T19:00:00.000Z"));
   });
 
-  it("upcoming: appointments soonest first, in the offset, 30 days by default and 90 at most", async () => {
+  it("todays_doses: agrees with the core at 00:05 in the recipient's zone, the given dose still today", async () => {
+    // 00:05 in Los Angeles: a dose ten minutes before would be yesterday.
+    await agreesWithTheCore(new Date("2030-06-12T07:05:00.000Z"));
+  });
+
+  it("todays_doses: each med time carries its id, in the result and the text, and give_pass takes it", async () => {
+    // The real clock, as give_pass writes now.
+    const handler = handlerAt();
+    const w = await world();
+    const [morning, evening] = ok(
+      await medicationPassService.list(w.owner.ctx, { groupId: w.group.id }),
+    ).data;
+    // Started days ago, so Evening's slot is on today's schedule at any hour the test runs.
+    const daysAgo = { changedAt: hoursAgo(72) };
+    await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      {
+        name: "Metformin",
+        strength: "500 mg",
+        schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
+      },
+      daysAgo,
+    );
+    // A time of its own: a pass with no id.
+    await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      { name: "Aspirin", strength: null, schedule: { type: "scheduled", slots: [{ time: "13:00" }] } },
+      daysAgo,
+    );
+    const token = await w.connect(w.caretaker, "readWrite");
+    const result = await callTool(handler, token, "todays_doses");
+    const out = result.structuredContent as {
+      passes: { passId: string | null; name: string; time: string }[];
+    };
+    const byName = new Map(out.passes.map((p) => [p.name, p]));
+    expect(byName.get("Morning")?.passId).toBe(morning!.id);
+    expect(byName.get("Evening")?.passId).toBe(evening!.id);
+    expect(out.passes.find((p) => p.time === "13:00")?.passId).toBeNull();
+    const text = result.content[0]!.text;
+    expect(text).toContain(`Evening (20:00, `);
+    expect(text).toContain(`, id ${evening!.id}):`);
+    expect(text).toContain(`, id ${morning!.id}):`);
+
+    const pass = await callTool(handler, token, "give_pass", { passId: byName.get("Evening")!.passId });
+    expect(pass.isError).toBeUndefined();
+    expect(pass.structuredContent.entryIds).toHaveLength(1);
+  });
+
+  it("upcoming: events soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
     ok(
@@ -539,7 +604,7 @@ describe("read tools", { timeout: 60_000 }, () => {
       place: string | null;
     }[];
     expect(items.map((i) => i.title)).toEqual(["Dentist", "Cardiology"]);
-    expect(items.map((i) => i.kind)).toEqual(["appointment", "appointment"]);
+    expect(items.map((i) => i.kind)).toEqual(["event", "event"]);
     expect(items[1]?.place).toBe("Heart Clinic");
     for (const i of items) expect(i.startsAt).toMatch(OFFSET);
 
@@ -606,13 +671,13 @@ describe("read tools", { timeout: 60_000 }, () => {
       assignee?: { id: string | null; name: string | null } | null;
     }[];
     expect(items.map((i) => i.title)).toEqual(["Late call", "Dentist", "Weekly bins", "Order supplies"]);
-    expect(items.map((i) => i.kind)).toEqual(["todo", "appointment", "todo", "todo"]);
+    expect(items.map((i) => i.kind)).toEqual(["todo", "event", "todo", "todo"]);
     expect(items[0]).toMatchObject({ overdue: true, dueOn: day(-3) });
     expect(items[2]?.repeats).toMatch(/^Every Mon/);
     expect(items[3]).toMatchObject({ overdue: false, repeats: null, assignee: { id: w.viewer.user.id } });
     const text = res.content.map((c) => c.text).join("\n");
     expect(text).toMatch(/- overdue .* todo: Late call/);
-    expect(text).toMatch(/ appointment: Dentist/);
+    expect(text).toMatch(/ event: Dentist/);
     expect(text).toMatch(/ todo: Weekly bins \(repeats: Every Mon/);
     for (const hidden of ["Too far", "No day", "Done already", "Old reminder"])
       expect(JSON.stringify(res)).not.toContain(hidden);
@@ -673,6 +738,43 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(page3.structuredContent.todos).toHaveLength(1);
     expect(page3.structuredContent.nextCursor).toBeNull();
     expect(JSON.stringify([open, done, page, page2])).not.toContain("Elsewhere");
+  });
+
+  it("list_todos: eventId is the first linked event, linkedEntryIds every live linked entry (planner-3)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const entry = async (kind: string, title: string, occurredAt = hoursAgo(1)) =>
+      ok(await addEntry(w.caretaker.ctx, w.group.id, { kind, title, occurredAt }))!;
+    const note = await entry("note", "Call notes");
+    const visit = await entry("event", "Follow-up visit", hoursAhead(48));
+    const gone = await entry("event", "Cancelled visit", hoursAhead(72));
+    const linked = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Book a ride" }),
+    )!;
+    const lone = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Fax the form" }),
+    )!;
+    // The note first, then the event, then an event deleted after linking (its row stays, unread).
+    for (const entryId of [note.id, visit.id, gone.id])
+      ok(await entryTodoService.link(w.caretaker.ctx, { groupId: w.group.id, entryId, todoId: linked.id }));
+    ok(await timelineEntryService.remove(w.caretaker.ctx, gone.id));
+    const token = await w.connect(w.viewer);
+
+    const listed = await callTool(handler, token, "list_todos");
+    const byTitle = new Map(
+      (
+        listed.structuredContent.todos as {
+          title: string;
+          eventId: string | null;
+          linkedEntryIds: string[];
+        }[]
+      ).map((t) => [t.title, t]),
+    );
+    expect(byTitle.get("Book a ride")).toMatchObject({
+      eventId: visit.id,
+      linkedEntryIds: [note.id, visit.id],
+    });
+    expect(byTitle.get(lone.title)).toMatchObject({ eventId: null, linkedEntryIds: [] });
   });
 
   it("list_providers: current by default, practice and pharmacy phones kept, an 'other' contact's left out", async () => {

@@ -59,6 +59,18 @@ describe("emptyTimelineText", () => {
     expect(emptyTimelineText("vital", null, "low", "weight")).toBe("No weight readings match “low”.");
     expect(emptyTimelineText("symptom", null, null, "weight")).toBe("No symptoms on the timeline yet.");
   });
+  it("names the chosen symptom types", () => {
+    expect(emptyTimelineText("symptom", null, null, null, ["Pain"])).toBe("No pain on the timeline yet.");
+    expect(emptyTimelineText("symptom", null, null, null, ["Pain", "Nausea"])).toBe(
+      "No pain or nausea on the timeline yet.",
+    );
+    expect(emptyTimelineText("symptom", "Alex Rivera", null, null, ["Fall", "Knee pain", "Nausea"])).toBe(
+      "No fall, knee pain or nausea by Alex Rivera yet.",
+    );
+    expect(emptyTimelineText("symptom", null, "night", null, ["Nausea"])).toBe("No nausea match “night”.");
+    expect(emptyTimelineText("symptom", null, null, null, [])).toBe("No symptoms on the timeline yet.");
+    expect(emptyTimelineText("note", null, null, null, ["Nausea"])).toBe("No notes on the timeline yet.");
+  });
   it("no author name is no author filter", () => {
     expect(emptyTimelineText("event", null)).toBe("No events on the timeline yet.");
     expect(emptyTimelineText(null, null)).toBe("Nothing on the timeline yet.");

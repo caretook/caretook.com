@@ -1,138 +1,228 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+// The check plan's engine on the sample project's rules (sample-project/tools/):
+// this repo's own rules are its data, tested beside it (scripts/project/).
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { declaredStatus, keepsVerdict, planCheck, planToolingLint, proposeTier } from "./check-plan.mjs";
+import {
+  CheckPlanRulesError,
+  checkPlan,
+  checkPlanFor,
+  checkPlanRulesProblems,
+  parseArgs,
+} from "./check-plan.mjs";
+import { CONFIG_NAME, loadConfig } from "./config.mjs";
+import { SAMPLE_CONFIG } from "./sample-project/repo.mjs";
 
-const ROOT = join(import.meta.dirname, "../..");
+const HERE = import.meta.dirname;
+const CLI = join(HERE, "check-plan.mjs");
+const SAMPLE = loadConfig({ path: SAMPLE_CONFIG });
+const RULES = JSON.parse(readFileSync(join(SAMPLE.root, SAMPLE.config.paths.checkPlanRules), "utf8"));
+const plan = checkPlanFor(SAMPLE);
+const { planCheck, proposeTier, keepsVerdict, syncTier, declaredStatus, planToolingLint, riskyKind } = plan;
+
+/** The sample with CI's two lists set, as a project with them has. */
+const withLists = checkPlanFor({
+  ...SAMPLE,
+  config: {
+    ...SAMPLE.config,
+    paths: { ...SAMPLE.config.paths, brakeList: "ci/brakes.txt", quarantine: "ci/q.txt" },
+  },
+});
+
+describe("the sample's rules", () => {
+  it("load", () => {
+    expect(checkPlanRulesProblems(RULES, ["lint", "test", "e2e"])).toEqual([]);
+    expect(plan.PROPOSED_TIERS).toEqual(["none", "lint", "test", "e2e"]);
+  });
+
+  it("change the answers from this repo's", () => {
+    // The same diffs, another project's rules: its tiers, its paths, its reasons.
+    expect(proposeTier(["web/a.js"])).toEqual({ tier: "test", reason: "web code (web/a.js)" });
+    expect(checkPlan().proposeTier(["web/a.js"]).reason).toBe("a file no rule covers (web/a.js)");
+    expect(proposeTier(["lock.json"]).tier).toBe("e2e");
+    expect(checkPlan().proposeTier(["lock.json"]).tier).toBe("full");
+    expect(planCheck(["web/a.slow.test.js"], "slice").ownTests).toEqual(["web/a.slow.test.js"]);
+    expect(checkPlan().planCheck(["web/a.slow.test.js"], "slice").ownTests).toEqual([]);
+  });
+});
 
 describe("planCheck", () => {
-  it.each([
-    "packages/data/src/db/migrations/0042_x.sql",
-    "packages/data/scripts/seed.ts",
-    "powersync/sync-config.yaml",
-    "pnpm-lock.yaml",
-    "package.json",
-    "vitest.config.ts",
-  ])("a quick check on %s stays quick", (file) => {
-    expect(planCheck(["apps/web/app/a.ts", file], "quick")).toMatchObject({ mode: "quick" });
-    expect(planCheck(["apps/web/app/a.ts", file], "slice")).toMatchObject({ mode: "slice" });
+  it.each(["db/migrations/1.sql", "lock.json", "package.json"])("a quick check on %s stays quick", (file) => {
+    expect(planCheck(["web/a.js", file], "quick")).toMatchObject({ mode: "quick" });
+    expect(planCheck(["web/a.js", file], "slice")).toMatchObject({ mode: "slice" });
   });
 
-  it("keeps a plain app diff quick, with no test files of its own", () => {
-    const plan = planCheck(["apps/web/app/routes/a.tsx", "docs/x.md"], "quick");
-    expect(plan).toEqual({ mode: "quick", tooling: false, ownTests: [] });
+  it("keeps a plain diff quick, with no test files of its own", () => {
+    expect(planCheck(["web/a.js", "docs/x.md"], "quick")).toEqual({
+      mode: "quick",
+      tooling: false,
+      ownTests: [],
+    });
   });
 
-  it.each(["slice", "quick"])("names the diff's own integration and component tests (%s)", (asked) => {
-    const plan = planCheck(
-      [
-        "packages/api/src/syncTodos.int.test.ts",
-        "apps/web/app/routes/a.browser.test.tsx",
-        "apps/web/app/routes/a.tsx",
-        "apps/web/app/lib/a.test.ts",
-        "scripts/browser-checks/a.spec.mjs",
-        "packages/api/src/syncTodos.int.test.ts",
-      ],
-      asked,
-    );
-    expect(plan.mode).toBe(asked);
-    expect(plan.ownTests).toEqual([
-      "packages/api/src/syncTodos.int.test.ts",
-      "apps/web/app/routes/a.browser.test.tsx",
-    ]);
-  });
+  it.each(["slice", "quick"])(
+    "names the diff's own tests, once each, by the rules' pattern (%s)",
+    (asked) => {
+      const plan = planCheck(
+        ["server/a.slow.test.js", "web/a.js", "web/a.test.js", "server/a.slow.test.js"],
+        asked,
+      );
+      expect(plan).toEqual({ mode: asked, tooling: false, ownTests: ["server/a.slow.test.js"] });
+    },
+  );
 
   it("a full check names no test files", () => {
-    expect(planCheck(["apps/web/app/routes/a.browser.test.tsx"], "full").ownTests).toEqual([]);
+    expect(planCheck(["web/a.slow.test.js"], "full").ownTests).toEqual([]);
   });
 
   it.each([
-    "scripts/loops/prd.sh",
-    "scripts/backlog/b.mjs",
-    ".githooks/commit-msg",
-    "scripts/hooks.test.mjs",
-  ])("joins the tooling tests for %s", (file) => {
-    expect(planCheck([file], "slice").tooling).toBe(true);
-    expect(planCheck([file], "quick").tooling).toBe(true);
-    expect(planCheck([file], "full").tooling).toBe(true);
+    ["scripts/loops/prd.sh", "the core's own folder"],
+    ["scripts/backlog/b.mjs", "the core's own folder"],
+    ["tools/x.sh", "the config's paths.tooling"],
+    ["Makefile", "the rules' tooling"],
+  ])("joins the tooling tests for %s (%s)", (file) => {
+    for (const asked of /** @type {const} */ (["slice", "quick", "full"]))
+      expect(planCheck([file], asked).tooling).toBe(true);
   });
 
-  it("leaves the tooling tests out of an app diff", () => {
-    expect(planCheck(["apps/web/app/a.ts", "scripts/deploy/x.mjs"], "quick").tooling).toBe(false);
+  it("leaves the tooling tests out of other diffs", () => {
+    expect(planCheck(["web/a.js", "Makefile.local", "toolsx/a"], "quick").tooling).toBe(false);
   });
 
   it("handles an empty diff", () => {
-    expect(planCheck([], "slice")).toMatchObject({ mode: "slice", tooling: false, ownTests: [] });
-    expect(planCheck([], "quick")).toMatchObject({ mode: "quick", tooling: false, ownTests: [] });
-    expect(planCheck([], "full")).toMatchObject({ mode: "full", tooling: false });
+    expect(planCheck([], "slice")).toEqual({ mode: "slice", tooling: false, ownTests: [] });
+    expect(planCheck([], "full")).toEqual({ mode: "full", tooling: false, ownTests: [] });
   });
 });
 
 describe("proposeTier", () => {
   it.each([
-    [["docs/a.md", "plans/b.md", "AGENTS.md"], "none"],
-    [["scripts/loops/prd.sh", "scripts/backlog/b.mjs", ".githooks/commit-msg"], "none"],
-    [["packages/data/src/seed-notes.md"], "none"],
-    [["scripts/loops/browser.sh"], "integration"],
-    [["scripts/loops/lib.sh", "docs/a.md"], "integration"],
-    [["scripts/browser-checks/a.spec.mjs"], "integration"],
-    [["apps/web/app/a.tsx"], "components"],
-    [["packages/api/src/a.ts"], "integration"],
-    [["packages/api/src/a.ts", "apps/web/app/a.tsx"], "components"],
-    [["packages/data/src/db/migrations/0042_x.sql"], "full"],
-    [["packages/data/scripts/seed.ts"], "full"],
-    [["powersync/sync-config.yaml"], "full"],
-    [["pnpm-lock.yaml"], "full"],
-    [["apps/web/package.json"], "full"],
-    [["vitest.config.ts"], "full"],
-    [[".github/workflows/ci.yml"], "full"],
-    [["scripts/ci/ci.mjs"], "full"],
-    [["eslint.config.js"], "full"],
-    [["apps/web/app/a.tsx", "pnpm-lock.yaml"], "full"],
-    [[], "none"],
-  ])("%j proposes %s", (files, tier) => {
-    expect(proposeTier(files).tier).toBe(tier);
+    [["docs/a.md", "GUIDE.md"], "none", "docs and tooling only"],
+    [["db/fixtures-notes.md"], "none", "docs and tooling only"],
+    [["tools/x.sh", "Makefile", "scripts/loops/prd.sh"], "none", "docs and tooling only"],
+    [["server/a.js"], "lint", "server code (server/a.js)"],
+    [["web/a.js", "server/a.js"], "test", "web code (web/a.js)"],
+    [["tools/harness/run.sh"], "test", "the browser harness (tools/harness/run.sh)"],
+    [["e2e/a.spec.js"], "test", "the browser harness (e2e/a.spec.js)"],
+    [["scripts/loops/lib.sh"], "test", "the browser harness (scripts/loops/lib.sh)"],
+    [["db/migrations/1.sql"], "e2e", "a migration (db/migrations/1.sql)"],
+    [["db/seed/FIXTURES.js"], "e2e", "the fixtures (db/seed/FIXTURES.js)"],
+    [["web/package.json"], "e2e", "a package.json (web/package.json)"],
+    [["web/a.js", "lock.json"], "e2e", "the lockfile (lock.json)"],
+    [["other/a.js"], "e2e", "a file no rule covers (other/a.js)"],
+    [[], "none", "no changes"],
+  ])("%j proposes %s: %s", (files, tier, reason) => {
+    expect(proposeTier(files)).toEqual({ tier, reason });
   });
 
-  it("names the file behind the proposal", () => {
-    const { reason } = proposeTier(["docs/a.md", "packages/data/src/db/migrations/0042_x.sql"]);
-    expect(reason).toContain("a migration");
-    expect(reason).toContain("0042_x.sql");
+  it("checks the suite's rules before the tier by path", () => {
+    expect(proposeTier(["web/package.json"]).tier).toBe("e2e");
+  });
+
+  // A changed file named as a tooling folder is a symlink or gitlink in its place:
+  // not in the folder, so not tooling (the old patterns wanted the slash too).
+  it.each(["scripts/loops", "scripts/backlog", "tools"])(
+    "a file at the folder path %s isn't tooling",
+    (file) => {
+      expect(proposeTier([file])).toEqual({ tier: "e2e", reason: `a file no rule covers (${file})` });
+      expect(proposeTier([`${file}/x.sh`]).tier).not.toBe("e2e");
+    },
+  );
+});
+
+describe("reading the tier data", () => {
+  it("waits until it is asked for: a broken tier file fails no import, and the CLI says so in one line", () => {
+    const root = mkdtempSync(join(tmpdir(), "check-plan-tiers-"));
+    try {
+      const config = JSON.parse(readFileSync(SAMPLE_CONFIG, "utf8"));
+      for (const rel of [config.paths.checkPlanRules, config.paths.tierData]) {
+        mkdirSync(dirname(join(root, rel)), { recursive: true });
+        copyFileSync(join(SAMPLE.root, rel), join(root, rel));
+      }
+      writeFileSync(join(root, config.paths.tierData), "not json");
+      writeFileSync(join(root, CONFIG_NAME), JSON.stringify(config));
+      const env = { ...process.env, RISA_CONFIG: join(root, CONFIG_NAME) };
+      const load = spawnSync("node", ["--input-type=module", "-e", `await import(${JSON.stringify(CLI)})`], {
+        encoding: "utf8",
+        env,
+      });
+      expect(load.stderr).toBe("");
+      expect(load.status).toBe(0);
+      const r = spawnSync("node", [CLI, "--mode", "slice"], { input: "web/a.js\n", encoding: "utf8", env });
+      expect(r.status).toBe(2);
+      expect(r.stdout).toBe("");
+      expect(r.stderr).toMatch(/^check-plan: .*tiers\.json: can't read the tier data/);
+      expect(r.stderr.trim().split("\n")).toHaveLength(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
-describe("keepsVerdict", () => {
+describe("keepsVerdict and syncTier", () => {
   it.each([
     [["docs/a.md"], true],
-    [["scripts/loops/prd.sh", "plans/a.md"], true],
-    [["scripts/ci/quarantine.txt", "scripts/ci/brake-list.txt"], true],
-    [["scripts/loops/browser.sh"], false],
-    [["scripts/ci/ci.mjs"], false],
-    [["apps/web/app/a.tsx"], false],
-  ])("%j: %s", (files, kept) => {
+    [["tools/x.sh", "work/plans/a.md"], true],
+    [["tools/harness/run.sh"], false],
+    [["web/a.js"], false],
+  ])("keepsVerdict %j: %s", (files, kept) => {
     expect(keepsVerdict(files)).toBe(kept);
+  });
+
+  it("keeps a verdict over CI's two lists, when the config names them", () => {
+    expect(withLists.keepsVerdict(["ci/q.txt", "ci/brakes.txt"])).toBe(true);
+    expect(keepsVerdict(["ci/q.txt"])).toBe(false);
+  });
+
+  it.each([
+    [["docs/a.md", "tools/x.sh"], [], "none"],
+    [["tools/harness/run.sh", "work/backlog.md"], ["web/a.js"], "none"],
+    [["tools/harness/run.sh"], ["tools/harness/run.sh"], "test"],
+    [["server/a.js"], [], "lint"],
+    [["lock.json"], [], "e2e"],
+  ])("syncTier: brought %j, the branch touched %j: %s", (brought, touched, tier) => {
+    expect(syncTier(brought, touched).tier).toBe(tier);
+  });
+
+  it("syncTier counts CI's two lists for nothing", () => {
+    expect(withLists.syncTier(["ci/q.txt"], []).tier).toBe("none");
   });
 });
 
 describe("declaredStatus", () => {
   it.each([
-    ["components", undefined, "ok"],
-    ["components", "components", "ok"],
-    ["components", "full", "ok"],
-    ["components", "integration", "below"],
-    ["components", "none", "refused"],
+    ["test", undefined, "ok"],
+    ["test", "e2e", "ok"],
+    ["test", "lint", "below"],
+    ["test", "none", "refused"],
     ["none", "none", "ok"],
-    ["none", "unit", "ok"],
   ])("proposal %s, declared %s: %s", (proposed, declared, status) => {
     expect(declaredStatus(proposed, declared)).toBe(status);
   });
 });
 
+describe("riskyKind", () => {
+  it.each([
+    ["db/migrations/1.sql", "a migration"],
+    ["web/package.json", "a package.json"],
+    ["web/tsconfig.json", "a TypeScript config"],
+    ["web/a.js", null],
+    ["db/fixtures.md", null],
+  ])("%s: %s", (file, kind) => {
+    expect(riskyKind(file)).toBe(kind);
+  });
+
+  it("leaves CI's two lists off", () => {
+    expect(withLists.riskyKind("ci/q.txt")).toBeNull();
+    expect(withLists.isCiList("ci/brakes.txt")).toBe(true);
+  });
+});
+
 describe("proposeTier on a package.json's contents", () => {
   const manifest = (fields) => `${JSON.stringify({ name: "a", version: "1.0.0", ...fields }, null, 2)}\n`;
-  const plan = (file, base, head, others = []) =>
+  const propose = (file, base, head, others = []) =>
     proposeTier([...others, file], new Map([[file, { base, head }]]));
 
   it.each([
@@ -141,8 +231,8 @@ describe("proposeTier on a package.json's contents", () => {
     ["removed", manifest({ scripts: { dev: "vite" } }), manifest({})],
     ["a lifecycle hook", manifest({ scripts: {} }), manifest({ scripts: { postinstall: "node x.mjs" } })],
   ])("a scripts-only change asks for nothing: %s", (_, base, head) => {
-    expect(plan("package.json", base, head).tier).toBe("none");
-    expect(plan("packages/data/package.json", base, head).tier).toBe("none");
+    expect(propose("package.json", base, head).tier).toBe("none");
+    expect(propose("web/package.json", base, head).tier).toBe("none");
   });
 
   it.each([
@@ -163,89 +253,136 @@ describe("proposeTier on a package.json's contents", () => {
     ["an unparseable base", "{ nope", manifest({})],
     ["an unparseable head", manifest({}), "{ nope"],
     ["a manifest that isn't an object", "[]", "[]"],
-  ])("proposes full: %s", (_, base, head) => {
-    const forced = plan("apps/web/package.json", base, head);
-    expect(forced.tier).toBe("full");
-    expect(forced.reason).toContain("a package.json");
+  ])("asks for the suite: %s", (_, base, head) => {
+    expect(propose("web/package.json", base, head)).toEqual({
+      tier: "e2e",
+      reason: "a package.json (web/package.json)",
+    });
   });
 
-  it("proposes full for a package.json whose contents it wasn't given", () => {
-    expect(proposeTier(["package.json"], new Map()).tier).toBe("full");
+  it("asks for the suite for a package.json whose contents it wasn't given", () => {
+    expect(proposeTier(["package.json"], new Map()).tier).toBe("e2e");
   });
 
-  it("a scripts-only change beside a lockfile change still proposes full", () => {
-    const forced = plan("package.json", manifest({}), manifest({ scripts: { a: "x" } }), ["pnpm-lock.yaml"]);
-    expect(forced.tier).toBe("full");
-    expect(forced.reason).toContain("the lockfile");
+  it("a scripts-only change beside a lockfile change still asks for the suite", () => {
+    const forced = propose("package.json", manifest({}), manifest({ scripts: { a: "x" } }), ["lock.json"]);
+    expect(forced).toEqual({ tier: "e2e", reason: "the lockfile (lock.json)" });
   });
 
   it("one scripts-only package.json doesn't excuse another that changed more", () => {
     const packages = new Map([
       ["package.json", { base: manifest({}), head: manifest({ scripts: { a: "x" } }) }],
-      ["apps/web/package.json", { base: manifest({}), head: manifest({ private: true }) }],
+      ["web/package.json", { base: manifest({}), head: manifest({ private: true }) }],
     ]);
-    const forced = proposeTier(["package.json", "apps/web/package.json"], packages);
-    expect(forced.tier).toBe("full");
-    expect(forced.reason).toContain("apps/web/package.json");
+    expect(proposeTier(["package.json", "web/package.json"], packages).reason).toContain("web/package.json");
   });
 });
 
 describe("planToolingLint", () => {
-  it("lints and formats the changed tooling files of a tooling-only diff", () => {
-    const plan = planToolingLint([
-      "scripts/loops/prd.sh",
-      "scripts/backlog/b.mjs",
-      ".githooks/commit-msg",
-      "scripts/hooks.test.mjs",
-      "scripts/loops/README.md",
-    ]);
-    expect(plan.eslint).toEqual(["scripts/backlog/b.mjs", "scripts/hooks.test.mjs"]);
-    expect(plan.prettier).toEqual([
-      "scripts/loops/prd.sh",
-      "scripts/backlog/b.mjs",
-      ".githooks/commit-msg",
-      "scripts/hooks.test.mjs",
-    ]);
-  });
-
-  it("puts no lint step on a Markdown-only diff", () => {
-    expect(planToolingLint(["docs/agents/loop.md", "scripts/loops/notes.md", "AGENTS.md"])).toEqual({
-      eslint: [],
-      prettier: [],
+  it("lints and formats the changed tooling files", () => {
+    expect(
+      planToolingLint([
+        "scripts/loops/prd.sh",
+        "scripts/backlog/b.mjs",
+        "tools/a.mjs",
+        "Makefile",
+        "tools/a.md",
+      ]),
+    ).toEqual({
+      eslint: ["scripts/backlog/b.mjs", "tools/a.mjs"],
+      prettier: ["scripts/loops/prd.sh", "scripts/backlog/b.mjs", "tools/a.mjs", "Makefile"],
     });
   });
 
-  it("leaves app files to pnpm check", () => {
-    expect(planToolingLint(["apps/web/app/a.ts", "scripts/deploy/x.mjs"]).prettier).toEqual([]);
+  it("puts no lint step on a Markdown-only diff, and leaves other files to the check", () => {
+    expect(planToolingLint(["GUIDE.md", "scripts/loops/notes.md"])).toEqual({ eslint: [], prettier: [] });
+    expect(planToolingLint(["web/a.js"]).prettier).toEqual([]);
   });
 });
 
-describe("check-plan.mjs CLI", () => {
+describe("the rules file", () => {
+  it.each([
+    [(r) => delete r.ownTests, "ownTests: missing"],
+    [(r) => delete r.suite, "suite: missing"],
+    [(r) => (r.nope = 1), "nope: unknown key"],
+    [(r) => (r.ownTests = "("), "ownTests: not a regular expression"],
+    [(r) => (r.suite.tier = "full"), "suite.tier: not a tier (lint, test, e2e)"],
+    [(r) => (r.suite.rules[0].flags = "g"), "suite.rules.0.match: flags: must be some of i, m, s, u"],
+    [(r) => (r.suite.rules[0].why = ""), "suite.rules.0.why: must be one line of text"],
+    [(r) => (r.suite.rules[0].tier = "e2e"), "suite.rules.0.tier: unknown key"],
+    [(r) => delete r.byPath[0].tier, "byPath.0.tier: not a tier"],
+    [(r) => (r.browserHarness.paths = ["/abs"]), "browserHarness.paths.0: must be a path"],
+    [(r) => (r.tooling = "Makefile"), "tooling: must be a list of paths"],
+    [(r) => (r.reachesCode = {}), "reachesCode: must be a list of { match, why }"],
+  ])("names what is wrong: %s", (change, problem) => {
+    const rules = structuredClone(RULES);
+    change(rules);
+    expect(checkPlanRulesProblems(rules, ["lint", "test", "e2e"]).join("\n")).toContain(problem);
+  });
+
+  it("refuses a config that names no rules file, or one that won't load", () => {
+    const paths = SAMPLE.config.paths;
+    const without = {
+      ...SAMPLE,
+      config: { ...SAMPLE.config, paths: { ...paths, checkPlanRules: undefined } },
+    };
+    expect(() => checkPlanFor(without)).toThrow(/sets no paths\.checkPlanRules/);
+    const missing = {
+      ...SAMPLE,
+      config: { ...SAMPLE.config, paths: { ...paths, checkPlanRules: "nope.json" } },
+    };
+    expect(() => checkPlanFor(missing)).toThrow(CheckPlanRulesError);
+  });
+
+  it("a project with no browser harness never needs it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "check-plan-rules-"));
+    try {
+      const { browserHarness: _, ...rest } = RULES;
+      writeFileSync(join(dir, "rules.json"), JSON.stringify(rest));
+      copyFileSync(join(SAMPLE.root, SAMPLE.config.paths.tierData), join(dir, "tiers.json"));
+      const bare = checkPlanFor({
+        config: {
+          ...SAMPLE.config,
+          paths: { ...SAMPLE.config.paths, checkPlanRules: "rules.json", tierData: "tiers.json" },
+        },
+        root: dir,
+      });
+      expect(bare.needsBrowserHarness(["scripts/loops/browser.sh", "tools/harness/a"])).toBe(false);
+      expect(bare.proposeTier(["scripts/loops/lib.sh"]).tier).toBe("none");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("check-plan.mjs CLI, on the sample project", () => {
+  const env = { ...process.env, RISA_CONFIG: SAMPLE_CONFIG };
   const cli = (mode, files) =>
-    spawnSync("node", [join(ROOT, "scripts/loops/check-plan.mjs"), "--mode", mode], {
-      input: files.join("\n"),
-      encoding: "utf8",
-    }).stdout.split("\n");
+    spawnSync("node", [CLI, "--mode", mode], { input: files.join("\n"), encoding: "utf8", env }).stdout.split(
+      "\n",
+    );
 
   it("a quick check asked on a migration diff stays quick", () => {
-    const [mode, tooling, own] = cli("quick", ["packages/data/src/db/migrations/0009_a.sql"]);
-    expect([mode, tooling, own]).toEqual(["quick", "0", ""]);
+    expect(cli("quick", ["db/migrations/1.sql"]).slice(0, 3)).toEqual(["quick", "0", ""]);
   });
 
   it("a quick check on a tooling diff joins the tooling tests and lists the diff's own test files", () => {
-    const [mode, tooling, own] = cli("quick", ["scripts/loops/prd.sh", "packages/api/src/a.int.test.ts"]);
-    expect([mode, tooling, own]).toEqual(["quick", "1", "packages/api/src/a.int.test.ts"]);
+    expect(cli("quick", ["tools/x.sh", "web/a.slow.test.js"]).slice(0, 3)).toEqual([
+      "quick",
+      "1",
+      "web/a.slow.test.js",
+    ]);
   });
 
-  it("a slice check asked on a migration diff stays a slice check", () => {
-    expect(cli("slice", ["packages/data/src/db/migrations/0009_a.sql"])[0]).toBe("slice");
+  it("says 2 when the browser harness joins", () => {
+    expect(cli("slice", ["tools/harness/run.sh"]).slice(0, 2)).toEqual(["slice", "2"]);
   });
 
   it("an unknown mode is a full check", () => {
-    expect(cli("other", ["apps/web/app/a.ts"])[0]).toBe("full");
+    expect(cli("other", ["web/a.js"])[0]).toBe("full");
   });
 
-  it("--propose reads --base and --head from git, and without them any package.json proposes full", () => {
+  it("--propose reads --base and --head from git, and without them any package.json asks for the suite", () => {
     const repo = mkdtempSync(join(tmpdir(), "check-plan-"));
     const git = (...args) =>
       execFileSync("git", ["-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.com", ...args], {
@@ -259,35 +396,205 @@ describe("check-plan.mjs CLI", () => {
       return git("rev-parse", "HEAD");
     };
     const withRefs = (base, head, file) =>
-      spawnSync(
-        "node",
-        [
-          join(ROOT, "scripts/loops/check-plan.mjs"),
-          "--propose",
-          "--repo",
-          repo,
-          "--base",
-          base,
-          "--head",
-          head,
-        ],
-        { input: file, encoding: "utf8" },
-      ).stdout.split("\n")[0];
+      spawnSync("node", [CLI, "--propose", "--repo", repo, "--base", base, "--head", head], {
+        input: file,
+        encoding: "utf8",
+        env,
+      }).stdout.split("\n")[0];
     try {
       git("init", "-q");
-      const file = "packages/a/package.json";
+      const file = "web/package.json";
       const first = commit(file, '{"name":"a","scripts":{"x":"1"}}\n');
       const scripts = commit(file, '{"name":"a","scripts":{"x":"2"}}\n');
       const version = commit(file, '{"name":"a","version":"2.0.0","scripts":{"x":"2"}}\n');
       expect(withRefs(first, scripts, file)).toBe("none");
-      expect(withRefs(scripts, version, file)).toBe("full");
-      const bare = spawnSync("node", [join(ROOT, "scripts/loops/check-plan.mjs"), "--propose"], {
-        input: file,
-        encoding: "utf8",
-      });
-      expect(bare.stdout.split("\n")[0]).toBe("full");
+      expect(withRefs(scripts, version, file)).toBe("e2e");
+      // With --base the diff is its own: what's piped in doesn't count.
+      expect(withRefs(first, scripts, "")).toBe("none");
+      expect(withRefs(first, first, file)).toBe("none");
+      const bare = spawnSync("node", [CLI, "--propose"], { input: file, encoding: "utf8", env });
+      expect(bare.stdout.split("\n")[0]).toBe("e2e");
     } finally {
       rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * Runs the CLI with stdin left open (never written or closed), as a terminal's would be.
+   * @param {string[]} args
+   * @returns {Promise<{ code: number | null, stdout: string, stderr: string }>}
+   */
+  const openStdin = (args) =>
+    new Promise((resolve, reject) => {
+      const child = spawn("node", [CLI, ...args], { stdio: ["pipe", "pipe", "pipe"], env });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (d) => (stdout += d));
+      child.stderr.on("data", (d) => (stderr += d));
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new Error(`check-plan.mjs ${args.join(" ")} waited on stdin`));
+      }, 10_000);
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        child.stdin.destroy();
+        resolve({ code, stdout, stderr });
+      });
+    });
+
+  it("--base dev alone exits 2 at once with usage, stdin left open", async () => {
+    const r = await openStdin(["--base", "dev"]);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain("give --mode or --propose");
+    expect(r.stderr).toContain("usage: check-plan.mjs");
+    expect(r.stdout).toBe("");
+  });
+
+  it.each([[["--propose", "--nope"]], [["--mode", "quick", "--verbose"]], [["--propose", "--base"]]])(
+    "%j exits 2 at once with stdin left open",
+    async (args) => {
+      const r = await openStdin(args);
+      expect(r.code).toBe(2);
+      expect(r.stderr).toContain("usage: check-plan.mjs");
+    },
+  );
+
+  it("--propose --base on a repo with changes computes the diff itself, stdin left open", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "check-plan-"));
+    const git = (...args) =>
+      execFileSync("git", ["-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.com", ...args], {
+        encoding: "utf8",
+      }).trim();
+    try {
+      git("init", "-q", "-b", "trunk");
+      writeFileSync(join(repo, "README.md"), "a\n");
+      git("add", ".");
+      git("commit", "-qm", "base");
+      git("checkout", "-qb", "work");
+      mkdirSync(join(repo, "web"), { recursive: true });
+      writeFileSync(join(repo, "web/a.js"), "export {};\n");
+      git("add", ".");
+      git("commit", "-qm", "web");
+      const r = await openStdin(["--propose", "--repo", repo, "--base", "trunk"]);
+      expect(r.code).toBe(0);
+      expect(r.stdout.split("\n").slice(0, 3)).toEqual(["test", "web code (web/a.js)", "ok"]);
+      const declared = await openStdin([
+        "--propose",
+        "--repo",
+        repo,
+        "--base",
+        "trunk",
+        "--head",
+        "work",
+        "--declared",
+        "lint",
+      ]);
+      expect(declared.stdout.split("\n")[2]).toBe("below");
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a declared tier the project doesn't have", () => {
+    const r = spawnSync("node", [CLI, "--propose", "--declared", "full"], {
+      input: "",
+      encoding: "utf8",
+      env,
+    });
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("unknown tier full (none, lint, test, e2e)");
+  });
+
+  it("--propose with a base git can't resolve exits 1", () => {
+    const r = spawnSync("node", [CLI, "--propose", "--repo", HERE, "--base", "no-such-ref-x"], {
+      input: "",
+      encoding: "utf8",
+      env,
+    });
+    expect(r.status).toBe(1);
+  });
+
+  it("--propose without --base still reads the changed files from stdin (propose_tier's old way)", () => {
+    const r = spawnSync("node", [CLI, "--propose"], {
+      input: "server/a.js\ndocs/x.md\n",
+      encoding: "utf8",
+      env,
+    });
+    expect(r.status).toBe(0);
+    expect(r.stdout.split("\n").slice(0, 3)).toEqual(["lint", "server code (server/a.js)", "ok"]);
+  });
+});
+
+describe("parseArgs", () => {
+  it("takes --mode with prd check's refs", () => {
+    expect(parseArgs(["--mode", "slice", "--repo", "d", "--base", "b", "--head", "HEAD"])).toEqual({
+      ok: true,
+      propose: false,
+      opts: { mode: "slice", repo: "d", base: "b", head: "HEAD" },
+    });
+  });
+
+  it.each([
+    [[], "give --mode or --propose"],
+    [["--base", "dev"], "give --mode or --propose"],
+    [["--propose", "--mode", "quick"], "don't go together"],
+    [["--propose", "--frobnicate"], "unknown argument --frobnicate"],
+    [["--propose", "dev"], "unknown argument dev"],
+    [["--mode"], "--mode needs a value"],
+    [["--propose", "--base", "--head", "x"], "--base needs a value"],
+    [["--propose", "--head", "x"], "--head needs --base"],
+  ])("%j is refused: %s", (argv, error) => {
+    const r = parseArgs(argv);
+    expect(r.ok).toBe(false);
+    expect(r.ok ? "" : r.error).toContain(error);
+  });
+});
+
+describe("proposedTiers and tierRank", () => {
+  it("read the config and tier data once, however often they are asked", () => {
+    const dir = mkdtempSync(join(tmpdir(), "check-plan-tiers-"));
+    try {
+      const raw = JSON.parse(readFileSync(SAMPLE_CONFIG, "utf8"));
+      const config = join(dir, CONFIG_NAME);
+      writeFileSync(config, JSON.stringify(raw));
+      mkdirSync(dirname(join(dir, raw.paths.tierData)), { recursive: true });
+      copyFileSync(join(SAMPLE.root, raw.paths.tierData), join(dir, raw.paths.tierData));
+      // The second ask comes after both files are gone: only a kept answer gives it.
+      const code = `const m = await import(${JSON.stringify(CLI)});
+        const first = [m.proposedTiers(), m.tierRank(m.proposedTiers().at(-1))];
+        const fs = await import("node:fs");
+        fs.rmSync(${JSON.stringify(dir)}, { recursive: true, force: true });
+        console.log(JSON.stringify([first, [m.proposedTiers(), m.tierRank(m.proposedTiers().at(-1))]]));`;
+      const r = spawnSync("node", ["--input-type=module", "-e", code], {
+        encoding: "utf8",
+        env: { ...process.env, RISA_CONFIG: config },
+      });
+      expect(r.stderr).toBe("");
+      const [first, second] = JSON.parse(r.stdout);
+      expect(first[0][0]).toBe("none");
+      expect(first[1]).toBeGreaterThan(0);
+      expect(second).toEqual(first);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("checkPlanFor's repo", () => {
+  it("tells a tooling folder from a file in the repo it is given, not the config's root", () => {
+    const dir = mkdtempSync(join(tmpdir(), "check-plan-repo-"));
+    try {
+      mkdirSync(join(dir, "extra-tools"));
+      const project = {
+        config: { ...SAMPLE.config, paths: { ...SAMPLE.config.paths, tooling: ["extra-tools"] } },
+        root: SAMPLE.root,
+      };
+      // A change named as the folder itself (a gitlink) is tooling only when the path isn't a folder there.
+      const file = "extra-tools";
+      expect(checkPlanFor(project, { repo: dir }).planCheck([file], "full").tooling).toBe(false);
+      expect(checkPlanFor(project).planCheck([file], "full").tooling).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

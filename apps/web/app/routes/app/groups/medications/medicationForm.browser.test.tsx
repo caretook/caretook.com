@@ -1,9 +1,13 @@
+import type { DeviceRoute } from "../../../../../test/device";
+
+import { useLayoutEffect } from "react";
+import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx } from "../../../../../test/fixtures";
+import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
   CHANGES_SQL,
   daysAgo,
@@ -24,6 +28,7 @@ import {
   pageAction,
   pickerChip,
   pickProvider,
+  SCHEDULE,
   SEEDED_CURRENT,
   SHEET,
   submit,
@@ -32,13 +37,19 @@ import {
   openAddMedication,
 } from "./medicationWorld";
 import { pickTime } from "../../../../../test/timeSelect";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import { currentHourTime } from "~/lib/core/timeOfDay";
+import { medicationNameSuggestions } from "~/lib/medications/medicationNames";
+import { medicationNamesQuery } from "~/lib/medications/medications.sync";
+import * as medicationPage from "../medication/route";
 
 // Adding, editing, stopping, restarting and deleting a medication
 // (medications.mjs's add, edit, status, offline form and viewer form steps):
 // the add sheet over the list with name suggestions, the passes and
 // validation on the fields, a new prescriber added inline and written with
-// the medication in one transaction, the edit sheet from the page and back,
+// the medication in one transaction, a save opening the new medication's
+// page with Back to the tab it opened over, Cancel and Escape closing onto
+// that tab, the edit sheet from the page and back,
 // a refill edit writing no change entry and a dose change writing one, the
 // status actions on the page and in the edit sheet with their entries, Delete
 // behind its confirm, and a viewer with no controls whose sheet URLs show the
@@ -65,20 +76,44 @@ const LOSARTAN_STARTED = fx.medicationChange({
 });
 const TITLE = "Losartan 25 mg";
 
+/** Back (history −1), as the browser's button does, from a medication's page. */
+let back = () => {};
+function BackProbe() {
+  const navigate = useNavigate();
+  useLayoutEffect(() => {
+    back = () => void navigate(-1);
+  }, [navigate]);
+  return null;
+}
+type PageProps = Parameters<typeof medicationPage.default>[0];
+function PageWithBack(props: PageProps) {
+  const Page = medicationPage.default;
+  return (
+    <>
+      <BackProbe />
+      <Page {...props} />
+    </>
+  );
+}
+const ROUTES: DeviceRoute[] = MEDICATION_ROUTES.map((r) =>
+  r.module === medicationPage ? { ...r, module: { ...medicationPage, default: PageWithBack } } : r,
+);
+
 const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({
-    route: MEDICATION_ROUTES,
+    route: ROUTES,
     url,
     fixtures: [world(), LOSARTAN, LOSARTAN_STARTED],
     role: "caretaker",
     ...options,
   });
 
+/** The name's suggestions, as listed under it (a popover, outside the form). */
 const suggestions = () =>
-  [...(FORM()?.querySelectorAll("[data-name-suggestions] button") ?? [])].map((b) => b.textContent?.trim());
+  [...document.querySelectorAll('[role="listbox"] [role="option"]')].map((o) => o.textContent?.trim());
 const suggestion = (text: string) =>
-  [...(FORM()?.querySelectorAll<HTMLButtonElement>("[data-name-suggestions] button") ?? [])].find(
-    (b) => b.textContent?.trim() === text,
+  [...document.querySelectorAll<HTMLElement>('[role="listbox"] [role="option"]')].find(
+    (o) => o.textContent?.trim() === text,
   );
 const scheduleType = (value: "scheduled" | "asNeeded") =>
   FORM()!.querySelector<HTMLInputElement>(`input[name="scheduleType"][value="${value}"]`)!;
@@ -95,6 +130,20 @@ const changes = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
   }));
 /** The header's `+`, Medication, once the list is up (the first render can come before the loader's data). */
 const openAddSheet = openAddMedication;
+/** A save from the add sheet: the row is local at once, and its page opens in the sheet's place. Its id. */
+const savedOpens = async (device: Awaited<ReturnType<typeof open>>, name: string) => {
+  const made = () =>
+    device.query<{ id: string }>("SELECT id FROM medication WHERE name = ?", [name]).then((r) => r[0]?.id);
+  await expect.poll(made).toBeDefined();
+  const id = (await made())!;
+  await expect.poll(() => !SHEET() && device.location()).toBe(medicationUrl(id));
+  return id;
+};
+/** The page's Back link (the first link on it): its label and where it goes. */
+const pageBack = () => {
+  const link = document.querySelector<HTMLAnchorElement>("main a");
+  return link ? { label: link.textContent?.trim(), href: link.getAttribute("href") } : null;
+};
 const badge = () =>
   document.querySelector<HTMLElement>('main header [data-region="title"] .badge')?.textContent ?? null;
 
@@ -108,7 +157,7 @@ describe("adding", () => {
     await userEvent.fill(await found(() => field("name")), "lis");
     await waitUntil(() => !!suggestion("Lisinopril"), "the suggestion");
     await userEvent.click(await found(() => suggestion("Lisinopril")));
-    await waitUntil(() => !FORM()?.querySelector("[data-name-suggestions]"), "the chips to go");
+    await waitUntil(() => !document.querySelector('[role="listbox"]'), "the list to close");
     expect(["name", "strength", "dose", "reason"].map((n) => field(n)!.value)).toEqual([
       "Lisinopril",
       "",
@@ -116,6 +165,7 @@ describe("adding", () => {
       "",
     ]);
 
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     const passes = [...FORM()!.querySelectorAll("[data-pass-slot]")].map((li) =>
       li.querySelector("label")?.textContent?.trim(),
     );
@@ -130,9 +180,48 @@ describe("adding", () => {
     expect(suggestions()).toEqual([]);
   });
 
+  test("the name suggests only once typed: nothing on focus; one letter lists the group's names, then common ones; a partial name never fills; a pick fills the full name only", async () => {
+    const device = await open(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    const name = () => field("name");
+    await userEvent.click(await found(name));
+    await expect.poll(() => name()?.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+
+    await userEvent.keyboard("l");
+    const { sql, params } = medicationNamesQuery(TEST_GROUP.id);
+    const used = await device.query<{ name: string }>(sql, params);
+    const expected = medicationNameSuggestions("l", used);
+    // The group's own (in the order they were last saved), then the curated list.
+    expect(new Set(expected.slice(0, 3))).toEqual(new Set(["Latanoprost", "Lisinopril", "Losartan"]));
+    expect(expected.indexOf("Labetalol")).toBeGreaterThan(2);
+    await expect.poll(suggestions).toEqual(expected);
+
+    // Look-alikes are listed in full; leaving a partial name keeps it as typed.
+    await userEvent.fill(await found(name), "hydr");
+    await expect.poll(suggestions).toEqual(expect.arrayContaining(["Hydralazine", "Hydroxyzine"]));
+    await userEvent.keyboard("{Tab}");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+    expect(name()?.value).toBe("hydr");
+
+    await userEvent.click(await found(name));
+    await userEvent.keyboard("ox");
+    await userEvent.click(await found(() => suggestion("Hydroxyzine")));
+    await expect.poll(() => name()?.value).toBe("Hydroxyzine");
+    expect(["strength", "dose", "directions"].map((n) => field<HTMLInputElement>(n)?.value ?? "")).toEqual([
+      "",
+      "",
+      "",
+    ]);
+
+    await userEvent.fill(await found(name), "");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+  });
+
   test("validation shows on the fields: a name, each time once (focus on the name), and an as-needed maximum in range", async () => {
     await open(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
@@ -151,8 +240,39 @@ describe("adding", () => {
     await expect.poll(() => errorOf("maxPerDay")).toBe("At most 24 a day");
   });
 
+  test("a new medication starts on As needed, with the choice visible, and saves as needed without touching it", async () => {
+    const device = await open(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    expect(scheduleType("asNeeded").checked).toBe(true);
+    expect(scheduleType("scheduled").checked).toBe(false);
+    expect(scheduleType("asNeeded").checkVisibility({ visibilityProperty: true })).toBe(true);
+    expect(FORM()?.querySelector("[data-schedule-passes]")).toBeNull();
+    expect(field("maxPerDay")).not.toBeNull();
+
+    await userEvent.fill(await found(() => field("name")), "Albuterol");
+    await userEvent.click(submit());
+    const id = await savedOpens(device, "Albuterol");
+    expect(JSON.parse(String((await medication(device, id)).schedule))).toEqual({ type: "asNeeded" });
+  });
+
+  test("switching a new medication to At set times offers the usual starting slots: the passes, none ticked, no time of its own", async () => {
+    await open(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
+    await waitUntil(() => !!FORM()?.querySelector("[data-schedule-passes]"), "the passes");
+    const names = [...(FORM()?.querySelectorAll("[data-pass-slot]") ?? [])].map((li) =>
+      li.querySelector("label")?.textContent?.trim(),
+    );
+    expect(names).toEqual(["Morning 8:00", "Evening 20:00"]);
+    expect(FORM()?.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked')).toHaveLength(0);
+    expect(times()).toHaveLength(0);
+    expect(scheduleType("scheduled").checked).toBe(true);
+  });
+
   test("a new time row starts at the current hour in the recipient's zone, not the device's", async () => {
     await open(`${LIST}/new`, { fixtures: [fx.recipient({ timeZone: "Asia/Tokyo" })] });
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     await waitUntil(() => times().length === 1, "the first row");
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "the new row");
@@ -160,10 +280,11 @@ describe("adding", () => {
     expect(times()[1]?.value).toBe(currentHourTime("Asia/Tokyo"));
   });
 
-  test("saving with a new prescriber closes the sheet and lists it at once; the prescriber, the medication and its Started entry are one local write, queued in that order", async () => {
+  test("saving with a new prescriber opens the new medication's page; the prescriber, the medication and its Started entry are one local write, queued in that order; Back goes to the list, where it is, not the form", async () => {
     const device = await open(LIST);
     await openAddSheet();
     await userEvent.fill(await found(() => field("name")), "Sertraline");
+    await userEvent.click(await found(() => scheduleType("scheduled")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
@@ -178,9 +299,9 @@ describe("adding", () => {
     const before = (await device.queued()).length;
     await userEvent.click(submit());
 
-    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
-    await device.settle();
-    expect(listNames("Current medications")).toContain("Sertraline 25 mg");
+    const id = await savedOpens(device, "Sertraline");
+    await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Sertraline 25 mg");
+    expect(pageBack()).toEqual({ label: "Medications", href: LIST });
     const [made] = await device.query<{ id: string; schedule: string; prescriber: string; type: string }>(
       "SELECT m.id, m.schedule, p.name AS prescriber, p.type FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = 'Sertraline'",
     );
@@ -192,25 +313,47 @@ describe("adding", () => {
     expect((await changes(device, made?.id ?? "")).map((c) => c.change)).toEqual(["started"]);
     const queued = (await device.queued()).slice(before).map((w) => `${w.op} ${w.type}`);
     expect(queued).toEqual(["PUT provider", "PUT medication", "PUT timeline_entry"]);
+    expect(made?.id).toBe(id);
+
+    // The page replaced the sheet's entry: Back is the list, with no form.
+    back();
+    await expect.poll(() => device.location()).toBe(LIST);
+    await expect.poll(() => listNames("Current medications")).toContain("Sertraline 25 mg");
+    expect(FORM()).toBeNull();
   });
 
-  test("its page's history says Started", async () => {
-    const device = await open(`${LIST}/new`);
-    await waitUntil(() => !!FORM(), "the add sheet");
+  test("over Schedule, a save opens the page, whose history says Started; its Back names Schedule, and Back goes there", async () => {
+    const device = await open(SCHEDULE);
+    await openAddSheet();
+    expect(device.location()).toBe(`${SCHEDULE}/new`);
     await userEvent.fill(await found(() => field("name")), "Sertraline");
-    await userEvent.click(scheduleType("asNeeded"));
     await userEvent.click(submit());
-    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
-    await device.settle();
-    await userEvent.click(
-      await found(() =>
-        [...document.querySelectorAll<HTMLElement>("main [data-medication-name]")].find(
-          (a) => a.textContent === "Sertraline",
-        ),
-      ),
-    );
+
+    await savedOpens(device, "Sertraline");
     await waitUntil(() => historyTexts().length > 0, "the history");
     expect(historyTexts()).toEqual(["Started"]);
+    expect(pageBack()).toEqual({ label: "Schedule", href: SCHEDULE });
+    back();
+    await expect.poll(() => !SHEET() && device.location()).toBe(SCHEDULE);
+    expect(FORM()).toBeNull();
+  });
+
+  test("Cancel and Escape close onto the list it opened over, adding nothing", async () => {
+    const device = await open(LIST);
+    await openAddSheet();
+    await userEvent.fill(await found(() => field("name")), "Sertraline");
+    await userEvent.click(
+      await found(() =>
+        [...FORM()!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Cancel"),
+      ),
+    );
+    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
+
+    await openAddSheet();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
+    expect(await device.query("SELECT id FROM medication WHERE name = 'Sertraline'")).toEqual([]);
+    expect(await device.queued()).toEqual([]);
   });
 });
 
@@ -227,6 +370,7 @@ describe("editing", () => {
     await openEdit(device);
     expect(field("name")?.value).toBe("Losartan");
     expect(field("dose")?.value).toBe("1 tablet");
+    expect(scheduleType("scheduled").checked).toBe(true);
     expect(times().map((t) => t.value)).toEqual(["08:00", "20:00"]);
     expect(pickerChip("prescriber")).toBe("Dr. Mira Lark");
     expect(SHEET()?.querySelector("[data-status-now]")?.textContent?.trim()).toBe("Current: taken now");
@@ -290,28 +434,15 @@ describe("the type", () => {
     expect(summaryShown()).toBe(false);
 
     await userEvent.fill(await found(() => field("name")), "Sertraline");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.click(submit());
-    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
-    const [made] = await device.query<{ id: string; type: string }>(
-      "SELECT id, type FROM medication WHERE name = 'Sertraline'",
-    );
-    expect(made?.type).toBe("prescription");
+    const id = await savedOpens(device, "Sertraline");
+    expect(await typeOf(device, id)).toBe("prescription");
   });
 
   test("Over the counter folds Prescriber, Refills left and Rx number into Prescription details; pharmacy, last filled and quantity stay; what's typed is saved", async () => {
     const device = await openWith(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Loratadine");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.click(typeRadio("otc"));
 
     await expect.poll(() => detailsOpen()).toBe(false);
@@ -339,7 +470,7 @@ describe("the type", () => {
     await userEvent.click(typeRadio("otc"));
     await userEvent.click(submit());
 
-    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
+    await savedOpens(device, "Loratadine");
     const [made] = await device.query<{ type: string; rx_number: string }>(
       "SELECT type, rx_number FROM medication WHERE name = 'Loratadine'",
     );
@@ -350,11 +481,6 @@ describe("the type", () => {
     await openWith(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Loratadine");
-    await userEvent.click(
-      await found(() =>
-        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
-      ),
-    );
     await userEvent.click(typeRadio("otc"));
     await userEvent.click(await found(toggle));
     await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
@@ -403,6 +529,38 @@ describe("the type", () => {
     await device.settle();
     expect(await typeOf(device, FOLIC.id)).toBe("supplement");
     expect(await changes(device, FOLIC.id)).toEqual([]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add sheet marks exactly the name, the type and the schedule, as needed or at set times, and no label says optional", async () => {
+    await open(LIST);
+    await openAddSheet();
+    await found(() => FORM());
+    const expected = ["Name", "Type", "Schedule"];
+    expect(requiredLabels(FORM())).toEqual(expected);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => field("name")?.getAttribute("aria-required")).toBe("true");
+    await expect.poll(() => field("strength")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.click(await found(() => scheduleType("scheduled")));
+    await waitUntil(() => !!FORM()?.querySelector("[data-schedule-times]"), "the times");
+    expect(requiredLabels(FORM())).toEqual(expected);
+    expect(saysOptional(FORM())).toBe(false);
+  });
+
+  test("Discontinue marks the reason and the day; Mark completed only the day", async () => {
+    await open(medicationUrl(LOSARTAN.id));
+    await pageAction(TITLE, "Discontinue…");
+    await waitUntil(() => !!OPEN_DIALOG()?.querySelector("[data-discontinue-form]"), "the dialog");
+    expect(requiredLabels(OPEN_DIALOG())).toEqual(["Why was it stopped?", "Stopped on"]);
+    expect(saysOptional(OPEN_DIALOG())).toBe(false);
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !OPEN_DIALOG(), "the dialog to close");
+
+    await pageAction(TITLE, "Mark completed");
+    await waitUntil(() => !!dialogButton("Mark completed"), "the dialog");
+    expect(requiredLabels(OPEN_DIALOG())).toEqual(["Stopped on"]);
   });
 });
 

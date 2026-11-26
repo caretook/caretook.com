@@ -93,17 +93,15 @@ export function PeriodForm({
       <ChoiceGroup<CarePeriodType | "">
         name={FIELD.type}
         label="Where is care now?"
+        layout="grid"
         options={TYPE_OPTIONS}
         value={type}
         onChange={setType}
         error={issueFor(issues, FIELD.type)}
+        required
       />
 
-      <Field
-        label={type === "other" ? "Label" : "Label (optional)"}
-        kind="input"
-        error={issueFor(issues, FIELD.label)}
-      >
+      <Field label="Label" kind="input" error={issueFor(issues, FIELD.label)} required={type === "other"}>
         {(control) => (
           <input
             {...control}
@@ -122,7 +120,7 @@ export function PeriodForm({
         error={issueFor(issues, FIELD.placeProviderId)}
       />
 
-      <Field label="Room or bed (optional)" kind="input" error={issueFor(issues, FIELD.placeDetail)}>
+      <Field label="Room or bed" kind="input" error={issueFor(issues, FIELD.placeDetail)}>
         {(control) => (
           <input
             {...control}
@@ -144,6 +142,7 @@ export function PeriodForm({
           max={max}
           timeZone={timeZone}
           error={issueFor(issues, FIELD.startedAt)}
+          required
         />
         <CheckField
           className="mt-2"

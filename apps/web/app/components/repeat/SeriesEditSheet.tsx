@@ -96,7 +96,7 @@ export function SeriesEditSheet({
           save();
         }}
       >
-        <Field label="Title" kind="input" error={missingTitle ? "Enter a title" : undefined}>
+        <Field label="Title" kind="input" required={event} error={missingTitle ? "Enter a title" : undefined}>
           {(control) => (
             <input
               {...control}
@@ -118,6 +118,7 @@ export function SeriesEditSheet({
           <div className="flex flex-wrap gap-2">
             <TimeSelect
               label={event ? "Starts" : "At"}
+              required
               name="startTime"
               className="min-w-0 flex-1"
               value={startTime}
@@ -125,7 +126,7 @@ export function SeriesEditSheet({
             />
             {event && (
               <TimeSelect
-                label="Ends (optional)"
+                label="Ends"
                 name="endTime"
                 optional
                 className="min-w-0 flex-1"
@@ -136,7 +137,7 @@ export function SeriesEditSheet({
           </div>
         )}
         {event && (
-          <Field label="Place (optional)" kind="input">
+          <Field label="Place" kind="input">
             {(control) => (
               <input
                 {...control}

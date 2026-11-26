@@ -16,12 +16,15 @@ import {
 } from "~/components/entry";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { formatTime, formatTimeInZone } from "~/lib/core/format";
+import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
-import { actionsLabel } from "./entryLabels";
+import { CopyLinkButton } from "./CopyLinkButton";
+import { actionsLabel, entryLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
+import { OpenTodosMark } from "./OpenTodosMark";
 import { ASIDE_CLASS } from "./layout";
+import { entryLinkPath } from "./timelineLinks";
 
 /** What a row or card shows and does: the same for both. */
 export type EntryViewProps = {
@@ -50,6 +53,8 @@ export type EntryViewProps = {
   search?: ParsedSearch;
   /** Easy mode: the kind icon and the author aren't filters (rows only). */
   easy?: boolean;
+  /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
+  openTodos?: number;
 };
 
 /**
@@ -72,6 +77,7 @@ export function TimelineEntryRow({
   providers,
   search,
   easy,
+  openTodos,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -107,10 +113,12 @@ export function TimelineEntryRow({
                 <ViaTag via={entry.via} />
               </p>
             )}
+            <OpenTodosMark count={openTodos} />
           </>
         }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
+      {!easy && <EntryCopyLink entry={entry} />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
         {(onDelete || canHaveNoteDocument(entry.kind)) && (
@@ -138,6 +146,16 @@ export function TimelineEntryRow({
         )}
       </div>
     </li>
+  );
+}
+
+/** An entry's copy-link button (rows and cards): its page, or its day for a kind without one. */
+export function EntryCopyLink({ entry }: { entry: TimelineEntry }) {
+  return (
+    <CopyLinkButton
+      path={entryLinkPath(entry, localTimeZone())}
+      label={`Copy link to ${entryLabel(entry)}`}
+    />
   );
 }
 

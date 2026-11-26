@@ -33,7 +33,8 @@ const TYPE_OPTIONS = [
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
 /**
- * The schedule: at set times every day (in the recipient's time zone) or as
+ * The schedule: a new medication starts as needed (an existing one keeps its
+ * own); at set times every day (in the recipient's time zone) or as
  * needed (with an optional most-in-a-day). At set times is the group's passes
  * to tick (Morning, Evening…), each with an amount when it differs from the
  * usual dose, plus times of their own ("Add another time"), each with its
@@ -59,7 +60,7 @@ export function ScheduleFields({
   /** "Times are Los Angeles time", when the device is in another zone. */
   zoneNote: string | null;
 }) {
-  const [type, setType] = useState<ScheduleType>(initial?.type ?? "scheduled");
+  const [type, setType] = useState<ScheduleType>(initial?.type ?? "asNeeded");
   const [start] = useState(() => initialSlots(initial, passes));
   const [ticked, setTicked] = useState(start.passes);
   // Each row keeps its key as rows come and go, so typing stays in its field.
@@ -85,6 +86,7 @@ export function ScheduleFields({
         value={type}
         onChange={setType}
         error={issueFor(issues, "schedule")}
+        required
       />
       {type === "scheduled" ? (
         <>
@@ -102,14 +104,14 @@ export function ScheduleFields({
           >
             <div className="flex items-baseline justify-between gap-2">
               <span id={`${id}-passes`} className="fieldset-legend">
-                Passes
+                Med times
               </span>
               <Link to={passesHref} className={`${LINK} text-sm`} data-manage-passes>
-                Manage passes
+                Manage med times
               </Link>
             </div>
             {live.length === 0 ? (
-              <EmptyState>No passes yet. Add Morning or Evening on Passes.</EmptyState>
+              <EmptyState>No med times yet. Add Morning or Evening on Med times.</EmptyState>
             ) : (
               <ul className="space-y-1.5">
                 {live.map((pass) => {
@@ -260,7 +262,7 @@ export function ScheduleFields({
         </>
       ) : (
         <Field
-          label="Most in a day (optional)"
+          label="Most in a day"
           help="Logging past it shows a warning, never a block."
           error={issueFor(issues, "schedule.maxPerDay")}
         >

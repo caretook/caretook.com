@@ -113,7 +113,7 @@ describe("the form's Repeat", () => {
     await expect.element(repeat).toBeDisabled();
     await expect.element(dialog.getByText("Choose a due day to repeat")).toBeInTheDocument();
 
-    await userEvent.fill(dialog.getByLabelText("Due (optional)"), monday);
+    await userEvent.fill(dialog.getByLabelText("Due", { exact: true }), monday);
     await expect.element(repeat).toBeEnabled();
     await userEvent.click(repeat);
     const sheet = page.getByRole("dialog", { name: "Repeat" });
@@ -126,9 +126,9 @@ describe("the form's Repeat", () => {
       .toBeInTheDocument();
 
     // Clearing the day clears the repeat; setting it again starts from none.
-    await userEvent.clear(dialog.getByLabelText("Due (optional)"));
+    await userEvent.clear(dialog.getByLabelText("Due", { exact: true }));
     await expect.element(dialog.getByRole("button", { name: "Repeat: Doesn't repeat" })).toBeDisabled();
-    await userEvent.fill(dialog.getByLabelText("Due (optional)"), monday);
+    await userEvent.fill(dialog.getByLabelText("Due", { exact: true }), monday);
     await userEvent.click(dialog.getByRole("button", { name: "Repeat: Doesn't repeat" }));
     await userEvent.selectOptions(sheet.getByRole("combobox", { name: "Repeat" }), "weekly");
     await userEvent.click(sheet.getByRole("button", { name: "Done" }));

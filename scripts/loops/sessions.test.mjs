@@ -7,6 +7,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -30,6 +31,7 @@ import {
   START_SLACK_MS,
   writeRecord,
 } from "./sessions.mjs";
+import "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -225,6 +227,7 @@ beforeAll(() => {
   for (const f of [
     "prd.sh",
     "lib.sh",
+    "config.mjs",
     "session.sh",
     "sessions.mjs",
     "captain.mjs",
@@ -234,6 +237,7 @@ beforeAll(() => {
     "inbox-settings.json",
   ])
     copyFileSync(join(HERE, f), scripts(f));
+  cpSync(join(HERE, "prompts"), scripts("prompts"), { recursive: true });
   mkdirSync(join(main, "scripts/backlog"));
   for (const f of ["registry.mjs", "format.mjs"])
     copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
@@ -576,7 +580,7 @@ describe("the inbox session", () => {
     run("prd.sh", ["inbox", ...args], { CARETOOK_INBOX_DIR: inboxDir(), ...extra });
   beforeEach(() => rmSync(home(), { recursive: true, force: true }));
 
-  it("starts in its own directory outside the repository, creating it, on Opus in fast mode", () => {
+  it("starts in its own directory outside the repository, creating it, on Opus at low effort", () => {
     const r = inbox();
     expect(r.status).toBe(0);
     expect(r.stderr).toContain(`Made ${inboxDir()} for the inbox session.`);
@@ -589,7 +593,7 @@ describe("the inbox session", () => {
       exit: 0,
     });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
-    // One settings file, and it is the one holding both the context hook and fastMode.
+    // One settings file, and it is the one holding the context hook and the effort.
     expect(args.filter((a) => a === "--settings")).toHaveLength(1);
     expect(args.slice(0, 6)).toEqual([
       "--settings",
@@ -604,7 +608,7 @@ describe("the inbox session", () => {
     expect(inbox().stderr).not.toContain("Made ");
   });
 
-  it("--model overrides Opus; the fast settings stay", () => {
+  it("--model overrides Opus; the low-effort settings stay", () => {
     expect(inbox(["--model", "sonnet"]).status).toBe(0);
     expect(record("inbox")).toMatchObject({ kind: "inbox", model: "sonnet" });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
@@ -631,10 +635,10 @@ describe("the inbox session", () => {
     expect(readFileSync(join(state, "hook"), "utf8").trim()).toBe(`inbox ${scripts("context.mjs")}`);
   });
 
-  it("the settings file holds the context hook and fastMode, and nothing else", () => {
-    const fast = JSON.parse(readFileSync(join(HERE, "inbox-settings.json"), "utf8"));
+  it("the settings file holds the context hook, low effort and fast mode off, and nothing else", () => {
+    const own = JSON.parse(readFileSync(join(HERE, "inbox-settings.json"), "utf8"));
     const context = JSON.parse(readFileSync(join(HERE, "context-settings.json"), "utf8"));
-    expect(fast).toEqual({ ...context, fastMode: true });
+    expect(own).toEqual({ ...context, fastMode: false, effortLevel: "low" });
   });
 
   it("refuses a directory inside a repository or under a CLAUDE.md or AGENTS.md", () => {

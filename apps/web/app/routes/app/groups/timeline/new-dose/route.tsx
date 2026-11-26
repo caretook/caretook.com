@@ -24,6 +24,7 @@ import { useMemberNames } from "~/lib/care-groups/memberNames.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { doseFromForm, doseSheetOptions, NEW_MEDICATION_OPTION, quickAddFromForm } from "../doseFormData";
 import { DoseForm } from "../DoseForm";
+import { doseSheetHome } from "~/lib/medications/medicationSheets";
 import { useCloseSheet } from "../sheet";
 import { newDoseGuard } from "../sheetGuard";
 
@@ -36,7 +37,9 @@ import { newDoseGuard } from "../sheetGuard";
 // given first), and asking before logging a second dose for a slot or one
 // past an as-needed maximum. Its last choice, "+ New medication", adds a
 // medication (name, dose and type) with the dose; with no current
-// medications that's the form. A viewer lands on the timeline.
+// medications that's the form. A viewer lands on the timeline. The
+// Medications list mounts it too (`medications/list/dose`, its Log), over
+// the list, which it then closes and sends a viewer back to.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -47,11 +50,13 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     readRows<MedicationNameRow>(db, medicationNamesQuery(params.groupId)),
   ]);
   const choices = toDoseChoices(choiceRows);
+  const url = new URL(request.url);
   const decision = newDoseGuard({
     groupId: group.id,
-    search: new URL(request.url).search,
+    search: url.search,
     canLog: group.canLog,
     choiceIds: choices.map((c) => c.id),
+    home: doseSheetHome(group.id, url.pathname, url.search),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
   return { choices, due, names, ...decision.sheet };
@@ -84,10 +89,10 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
 
 export default function NewDoseSheet({ loaderData, params }: Route.ComponentProps) {
   const { choices, names, medicationId, slot, passId } = loaderData;
-  const close = useCloseSheet();
   const group = useGroup();
   // Opened from quick entry's Edit: the card's status, amount, note and time, filled in.
   const location = useLocation();
+  const close = useCloseSheet(doseSheetHome(params.groupId, location.pathname, location.search));
   const draft = doseDraftFrom(location.state);
   const nameOf = useMemberNames(params.groupId, group.userId);
   const [marking, setMarking] = useState<Marking | null>(null);

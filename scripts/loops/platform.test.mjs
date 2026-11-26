@@ -5,8 +5,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { checkProjects } from "./check-tooling.mjs";
 import { toolingProjects } from "./tooling-tests.mjs";
-import { needsBrowserHarness } from "./check-plan.mjs";
+import { checkPlanFor } from "./check-plan.mjs";
+import { loadConfig } from "./config.mjs";
+import { SAMPLE_CONFIG } from "./sample-project/repo.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 let dir, file;
@@ -74,36 +77,54 @@ describe("load_avg", () => {
   });
 });
 
+// On the sample project: its config names the projects, its rules what the harness
+// tests (this repo's answers: scripts/project/check-plan-rules.test.mjs).
 describe("what pnpm test:tooling runs", () => {
-  const BASE = ["tooling:unit", "scripts:unit"];
-  const WITH = [...BASE, "tooling:browser"];
+  const sample = loadConfig({ path: SAMPLE_CONFIG });
+  const opts = { config: sample.config, plan: checkPlanFor(sample) };
+  const BASE = ["tools:unit"];
+  const WITH = [...BASE, "tools:browser"];
 
-  it.each([
-    "scripts/loops/browser.sh",
-    "scripts/loops/browser.test.mjs",
-    "scripts/loops/lib.sh",
-    "scripts/loops/lease.sh",
-    "scripts/loops/serve.sh",
-    "scripts/loops/checks",
-    "scripts/loops/check-areas.mjs",
-    "scripts/loops/check-areas.d/timeline",
-    "scripts/browser-checks/fixtures.mjs",
-  ])("adds the browser harness for %s", (f) => {
-    expect(needsBrowserHarness([f])).toBe(true);
-    expect(toolingProjects(["docs/x.md", f])).toEqual(WITH);
-  });
+  it.each(["scripts/loops/browser.sh", "scripts/loops/lib.sh", "tools/harness/run.sh", "e2e/a.spec.js"])(
+    "adds the browser harness for %s",
+    (f) => {
+      expect(toolingProjects(["docs/x.md", f], [], opts)).toEqual(WITH);
+    },
+  );
 
-  it.each([
-    "scripts/loops/land.sh",
-    "scripts/loops/checks.mjs",
-    "scripts/backlog/backlog.mjs",
-    ".githooks/commit-msg",
-  ])("skips it for %s", (f) => {
-    expect(toolingProjects([f])).toEqual(BASE);
+  it.each(["scripts/loops/land.sh", "tools/x.sh", "web/a.js"])("skips it for %s", (f) => {
+    expect(toolingProjects([f], [], opts)).toEqual(BASE);
   });
 
   it("runs it when the base can't be determined, or files are named", () => {
-    expect(toolingProjects(null)).toEqual(WITH);
-    expect(toolingProjects([], ["scripts/loops/lease.test.mjs"])).toEqual(WITH);
+    expect(toolingProjects(null, [], opts)).toEqual(WITH);
+    expect(toolingProjects([], ["scripts/loops/lease.test.mjs"], opts)).toEqual(WITH);
+  });
+
+  it("runs no harness a config doesn't name, and nothing for a config with no projects", () => {
+    const { browserHarness: _, ...tooling } = sample.config.testProjects;
+    expect(
+      toolingProjects(null, [], { ...opts, config: { ...sample.config, testProjects: tooling } }),
+    ).toEqual(BASE);
+    // As the check's tooling step (check-tooling.mjs's checkProjects): none named, none run.
+    expect(
+      toolingProjects(null, ["a.test.mjs"], {
+        ...opts,
+        config: { ...sample.config, testProjects: undefined },
+      }),
+    ).toEqual([]);
+    expect(checkProjects({ ...sample.config, testProjects: undefined }, true)).toBeNull();
+  });
+});
+
+describe("lib.sh under CDPATH", () => {
+  it("resolves its own folder once, sourced by a relative path", () => {
+    // A CDPATH that matches the relative folder makes `cd` print it.
+    const r = spawnSync("bash", ["-c", 'source scripts/loops/lib.sh && printf "%s|" "$loops_lib_dir"'], {
+      cwd: join(HERE, "..", ".."),
+      encoding: "utf8",
+      env: { ...process.env, CDPATH: join(HERE, "..", "..") },
+    });
+    expect(r.stdout).toBe(`${HERE}|`);
   });
 });

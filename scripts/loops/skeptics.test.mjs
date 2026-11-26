@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  SLICE_SIZE_RULE,
   SkepticError,
   VERDICTS,
   checkRecord,
@@ -247,6 +248,56 @@ describe("the checker", () => {
   });
 });
 
+describe("a stall verdict", () => {
+  const stall = (over = {}) =>
+    recordVerdict(dir, {
+      kind: "stall",
+      verdict: "restart",
+      why: "quiet an hour, its stop recorded",
+      topic: "t",
+      slice: "4",
+      askerClass: "defaults",
+      now: NOW,
+      ...over,
+    });
+  const wantStall = (over = {}) => wantAsk({ question: "Slice 4 has stalled twice: restart it?", ...over });
+
+  it("records restart, leave or ask, bound to its slice and class", () => {
+    expect(VERDICTS.stall).toEqual(["restart", "leave", "ask"]);
+    for (const verdict of VERDICTS.stall)
+      expect(stall({ verdict })).toMatchObject({ kind: "stall", slice: "4" });
+    expect(() => stall({ verdict: "go" })).toThrow(/answers restart, leave or ask/);
+    expect(() => stall({ slice: null })).toThrow(/names its slice/);
+    expect(() => stall({ askerClass: null })).toThrow(/--defaults, or --waits/);
+    expect(() => stall({ question: Q })).toThrow(/no question/);
+    expect(() => ask({ slice: "4" })).toThrow(/only a stall verdict names a slice/);
+  });
+
+  it("refuses restart or leave on a never-list step: only ask", () => {
+    expect(() => stall({ askerClass: "waits" })).toThrow(
+      /never list is the user's: a stall skeptic can only ask/,
+    );
+    expect(() => stall({ askerClass: "waits", verdict: "leave" })).toThrow(/can only ask/);
+    expect(stall({ askerClass: "waits", verdict: "ask" })).toMatchObject({
+      verdict: "ask",
+      askerClass: "waits",
+    });
+  });
+
+  it("lets an ask take its ask verdict on a question naming the slice", () => {
+    expect(check(stall({ verdict: "ask" }), wantStall())).toEqual({ ok: true });
+    expect(check(stall({ verdict: "ask" }), wantStall({ question: "Restart t-4?" }))).toEqual({ ok: true });
+    expect(check(stall({ verdict: "ask" }), wantStall({ question: "Restart slice 5?" })).reason).toMatch(
+      /name "slice 4"/,
+    );
+    expect(check(stall(), wantStall()).reason).toMatch(/stall restart: act on it/);
+    expect(check(stall({ verdict: "leave" }), wantStall()).reason).toMatch(/stall leave/);
+    const never = stall({ verdict: "ask", askerClass: "waits" });
+    expect(check(never, wantStall()).reason).toMatch(/takes --waits/);
+    expect(check(never, wantStall({ askerClass: "waits" }))).toEqual({ ok: true });
+  });
+});
+
 describe("the brief", () => {
   const rules = () => readRules(REPO);
   const preferencesNever = () =>
@@ -265,6 +316,7 @@ describe("the brief", () => {
     ["ask", ["decide <option>", "**ask**", "always ask"]],
     ["land", ["**go**", "**no**"]],
     ["plan", ["**go**", "**send-back**", "once more", "a slice too big"]],
+    ["stall", ["**restart**", "**leave**", "**ask**", "restarted once", "never resets, cleans or removes"]],
   ])("the %s brief has the evidence, the never list and its verdict words", (kind, words) => {
     const brief = skepticBrief(kind, { evidence: "EVIDENCE-LINE", rules: rules() });
     expect(brief).toContain("EVIDENCE-LINE");
@@ -274,9 +326,19 @@ describe("the brief", () => {
     for (const word of words) expect(brief).toContain(word);
   });
 
+  it("the plan brief carries the slice-size cap; the others don't", () => {
+    const brief = (kind) => skepticBrief(kind, { evidence: "x", rules: rules() });
+    expect(brief("plan")).toContain(SLICE_SIZE_RULE);
+    expect(SLICE_SIZE_RULE).toContain("more than about 8 files, or more than one running topic's hot file");
+    expect(SLICE_SIZE_RULE).toContain("split it into slices that each land on their own");
+    for (const kind of ["ask", "land"]) expect(brief(kind)).not.toContain(SLICE_SIZE_RULE);
+  });
+
   it("refuses an empty evidence or another kind", () => {
     expect(() => skepticBrief("ask", { evidence: " \n", rules: rules() })).toThrow(/empty/);
-    expect(() => skepticBrief("other", { evidence: "x", rules: rules() })).toThrow(/ask, land or plan/);
+    expect(() => skepticBrief("other", { evidence: "x", rules: rules() })).toThrow(
+      /ask, land, plan or stall/,
+    );
   });
 
   it("refuses docs that lost the never list", () => {
@@ -286,9 +348,15 @@ describe("the brief", () => {
     writeFileSync(join(docs, "docs/agents/preferences.md"), "# Preferences\n");
     writeFileSync(join(docs, "docs/agents/planner.md"), "## What to ask\n\nx\n\n## The skeptic pass\n\ny\n");
     writeFileSync(join(docs, "plans/fixes-rules.md"), "# Rules\n\nz\n");
-    expect(() => readRules(docs)).toThrow(/no never list/);
+    const config = {
+      paths: { plans: "plans", preferences: "docs/agents/preferences.md" },
+      roles: { planner: { replacement: "docs/agents/planner.md" } },
+    };
+    expect(() => readRules(docs, config)).toThrow(/no never list/);
     rmSync(join(docs, "plans/fixes-rules.md"));
-    expect(() => readRules(docs)).toThrow(/fixes-rules/);
+    expect(() => readRules(docs, config)).toThrow(/fixes-rules/);
+    writeFileSync(join(docs, "plans/fixes-rules.md"), "# Rules\n\nz\n");
+    expect(() => readRules(docs, { ...config, paths: { plans: "plans" } })).toThrow(/names none/);
   });
 });
 

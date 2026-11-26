@@ -1,11 +1,15 @@
 // tooling-tests.mjs: the tests `pnpm test:tooling` runs, after its lint. Always
-// tooling:unit and scripts:unit; the browser harness test (tooling:browser) too
-// when the change touches what it tests (check-plan.mjs), when the check's base
-// can't be found, or when files are named on the command line (they filter).
+// the Vitest projects the config's testProjects.tooling names; the browser harness
+// test's (testProjects.browserHarness) too when the change touches what it tests
+// (check-plan.mjs), when the check's base can't be found, or when files are named
+// on the command line (they filter). The check's own tooling step (check-hook.sh)
+// is check-tooling.mjs: the same projects, under the check's rerun rules. No
+// testProjects.tooling in the config: the project has none, so both run nothing.
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { needsBrowserHarness } from "./check-plan.mjs";
+import { checkPlan } from "./check-plan.mjs";
+import { branchKinds, loadConfig } from "./config.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const git = (root, ...args) => spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
@@ -19,7 +23,7 @@ const lines = (r) => r.stdout.split("\n").filter(Boolean);
  */
 export function changedSinceBase(root) {
   const branch = git(root, "branch", "--show-current").stdout.trim();
-  const asked = branch.startsWith("slice/") ? "slice" : "quick";
+  const asked = branchKinds().is(branch, "slice") ? "slice" : "quick";
   const found = spawnSync(
     "bash",
     ["-c", 'source "$1/lib.sh" && check_base "$2" "$3"', "tooling-tests", HERE, root, asked],
@@ -34,14 +38,23 @@ export function changedSinceBase(root) {
 }
 
 /**
- * The Vitest projects for this run.
+ * The Vitest projects for this run: none when the config names no tooling tests.
  * @param {string[] | null} changed the changed files, null when unknown
  * @param {string[]} [named] files named on the command line
+ * @param {{ config?: Record<string, any>, plan?: import("./check-plan.mjs").CheckPlan }} [opts]
+ *   the project's config and check plan (default: this repo's)
  * @returns {string[]}
  */
-export function toolingProjects(changed, named = []) {
-  const projects = ["tooling:unit", "scripts:unit"];
-  if (named.length || changed === null || needsBrowserHarness(changed)) projects.push("tooling:browser");
+export function toolingProjects(changed, named = [], { config = loadConfig().config, plan } = {}) {
+  const { tooling, browserHarness } = config.testProjects ?? {};
+  // None in the config: the project has no tooling tests, as for the check's step.
+  if (!tooling) return [];
+  const projects = [...tooling];
+  if (
+    browserHarness &&
+    (named.length || changed === null || (plan ?? checkPlan()).needsBrowserHarness(changed))
+  )
+    projects.push(browserHarness);
   return projects;
 }
 
@@ -49,7 +62,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const named = process.argv.slice(2);
   const root = spawnSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).stdout.trim();
   const projects = toolingProjects(root ? changedSinceBase(root) : null, named);
-  if (!projects.includes("tooling:browser"))
+  if (!projects.length) {
+    console.log("test:tooling: the config names no tooling tests (testProjects.tooling): nothing to run");
+    process.exit(0);
+  }
+  const harness = loadConfig().config.testProjects?.browserHarness;
+  if (harness && !projects.includes(harness))
     console.log("test:tooling: the browser harness test is skipped (nothing it tests changed)");
   const r = spawnSync(
     join(root, "node_modules/.bin/vitest"),

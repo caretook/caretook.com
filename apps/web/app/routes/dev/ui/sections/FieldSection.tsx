@@ -9,6 +9,14 @@ export function FieldSection() {
           {(control) => <input {...control} defaultValue="Rosa Delgado" />}
         </Field>
       </Example>
+      <Example label="Required: a * after the label; the others say nothing">
+        <Field kind="input" label="Name" required className="w-full">
+          {(control) => <input {...control} />}
+        </Field>
+        <Field kind="input" label="Nickname" className="w-full">
+          {(control) => <input {...control} />}
+        </Field>
+      </Example>
       <Example label="With an error, and with a warning">
         <Field kind="input" label="Email" error="Enter an email address." className="w-full">
           {(control) => <input {...control} type="email" />}

@@ -1,7 +1,9 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
+import type { SyncDb } from "~/lib/sync";
 
+import { NOTE_DOCUMENT_KINDS } from "@caretook/data/schema";
 import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
 import { TODO_PREFILL_PARAMS } from "~/lib/todos/urls";
@@ -9,6 +11,7 @@ import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { sessionContext } from "~/lib/auth/session";
 import { createTodo } from "~/lib/todos/todos.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { TodoForm } from "../TodoForm";
 import { todoFromForm } from "../todoFormData";
 import {
@@ -24,7 +27,26 @@ import { newTodoGuard } from "~/lib/todos/todoSheets";
 // start with a due day (`?dueOn=`), from quick entry's Edit a title, an
 // assignee and a time, and from a provider's, medication's or appointment's
 // page its link (`?providerId=`, `?medicationId=`, `?eventId=`). A viewer
-// lands on the list.
+// lands on the list. `?entryId=` (planner-3) links any live note or event:
+// an event's shows in the picker, a note's is a hidden field, and an id
+// that's neither is ignored. Either is saved as a link row with the todo.
+
+type EntryPrefill = { eventId: string | null; entryId: string | null };
+
+/** The link prefills: `eventId` as given (else `entryId` when it's a live event), and `entryId` when it's a live note or event. */
+const entryPrefill = async (db: SyncDb, groupId: string, query: URLSearchParams): Promise<EntryPrefill> => {
+  const eventId = query.get(TODO_PREFILL_PARAMS.eventId);
+  const entryId = query.get(TODO_PREFILL_PARAMS.entryId);
+  const [entry] = entryId
+    ? await readRows<{ id: string; kind: string | null }>(db, {
+        sql: "SELECT id, kind FROM timeline_entry WHERE id = ? AND group_id = ? AND deleted_at IS NULL",
+        params: [entryId, groupId],
+      })
+    : [];
+  if (entry?.kind === "event" && !eventId) return { eventId: entry.id, entryId: null };
+  const linkable = !!entry && (NOTE_DOCUMENT_KINDS as readonly (string | null)[]).includes(entry.kind);
+  return { eventId, entryId: linkable ? entry.id : null };
+};
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -35,12 +57,12 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
   const { db } = context.get(sessionContext);
-  const eventId = new URL(request.url).searchParams.get(TODO_PREFILL_PARAMS.eventId);
+  const entry = await entryPrefill(db, group.id, new URL(request.url).searchParams);
   const [memberRows, linkRows] = await Promise.all([
     loadMembers(db, group.id),
-    loadLinkChoices(db, group.id, eventId),
+    loadLinkChoices(db, group.id, entry.eventId),
   ]);
-  return { memberRows, linkRows };
+  return { memberRows, linkRows, entry };
 }
 
 /** A local write; the list's live query shows it, and PowerSync uploads it. */
@@ -80,7 +102,9 @@ export default function NewTodoSheet({ loaderData, params }: Route.ComponentProp
           dueTime: dueTime && /^\d{2}:\d{2}$/.test(dueTime) ? dueTime : null,
           providerId: query.get(TODO_PREFILL_PARAMS.providerId),
           medicationId: query.get(TODO_PREFILL_PARAMS.medicationId),
-          eventId: query.get(TODO_PREFILL_PARAMS.eventId),
+          eventId: loaderData.entry.eventId,
+          entryId: loaderData.entry.entryId,
+          repeatRule: query.get(TODO_PREFILL_PARAMS.repeatRule),
         }}
         links={links}
         zoneNote={scheduleZoneNote(

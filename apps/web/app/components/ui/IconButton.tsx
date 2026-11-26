@@ -13,7 +13,9 @@ import { Button } from "./Button";
  * to it. With `to` instead of `onPress` it's a link that looks the same
  * (loaded ahead with `prefetch="render"`, so it opens offline too).
  * `size="md"` is the larger button with a larger icon (a page header's menu
- * button); the default is small.
+ * button); the default is small. `count` shows a badge at its corner (a list
+ * tool's Filter: put the count in `label` too), `haspopup` says it opens a
+ * dialog, and `data-*` attributes reach the element.
  */
 export function IconButton({
   label,
@@ -27,6 +29,9 @@ export function IconButton({
   to,
   size = "sm",
   className,
+  count,
+  haspopup,
+  ...data
 }: {
   label: string;
   icon: LucideIcon;
@@ -36,6 +41,11 @@ export function IconButton({
   size?: "sm" | "md";
   /** Classes for the button (the outer element), such as `join-item`. */
   className?: string;
+  /** A count badge at its corner; none at 0. */
+  count?: number;
+  /** It opens a dialog (`aria-haspopup`). */
+  haspopup?: "dialog";
+  [attr: `data-${string}`]: string | undefined;
 } & (
   | {
       onPress: () => void;
@@ -65,7 +75,9 @@ export function IconButton({
         size={size}
         icon={icon}
         label={label}
+        count={count}
         className={className}
+        {...data}
       />
     );
   return (
@@ -80,7 +92,10 @@ export function IconButton({
       expanded={expanded}
       controls={controls}
       ref={ref}
+      count={count}
+      aria-haspopup={haspopup}
       className={className}
+      {...data}
     />
   );
 }

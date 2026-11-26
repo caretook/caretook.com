@@ -2,13 +2,15 @@ import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
+import { useState } from "react";
+import { useLocation } from "react-router";
 import { TodoUndoStatus } from "~/components/todos";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { sessionContext } from "~/lib/auth/session";
 import { loadUpcoming } from "./loadUpcoming";
 import { PlannerHeader } from "./PlannerHeader";
-import { emptyUpcomingText, parseUpcomingFilters } from "./upcomingFilters";
+import { upcomingFilterBar } from "./plannerFilters";
+import { emptyUpcomingText, onlyQueryChanged, parseUpcomingFilters, plannerQueryOf } from "./upcomingFilters";
 import { UpcomingList } from "./UpcomingList";
 import { useUpcomingData } from "./useUpcomingData";
 
@@ -17,7 +19,8 @@ import { useUpcomingData } from "./useUpcomingData";
 // todos merged in by day, read from the device's local
 // copy (live, so it works offline and follows other members' changes). What
 // counts as upcoming is worked out from the clock (`lib/appointments/upcoming`), never
-// stored. `?kind=event` (events only), `?show=todos` (todos only) and `?author=` filter it.
+// stored. `?kind=event` (events only), `?show=todos` (todos only), `?author=`
+// and the search box's `?q=` filter it.
 // For the easy roles it's the list alone, read-only: no Add, tabs, filters
 // or row menus (they tick only their own todos).
 
@@ -31,9 +34,15 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   return { ...filters, ...(await loadUpcoming(db, params.groupId, filters)) };
 }
 
-/** The live queries follow every change; only a new filter or another page reruns the loader. */
-export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+/** The live queries follow every change and the text; only a new filter or another page reruns the loader. */
+export function shouldRevalidate({
+  formMethod,
+  currentUrl,
+  nextUrl,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
   if (formMethod) return false;
+  if (onlyQueryChanged(currentUrl, nextUrl)) return false;
   return defaultShouldRevalidate;
 }
 
@@ -41,7 +50,17 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
   const { kind, author, show, todosOnly } = loaderData;
   const { groupId } = params;
   const { easyRole } = useGroup();
-  const data = useUpcomingData({ groupId, filters: { kind, author }, todosOnly, initial: loaderData });
+  // The box filters as you type; the URL follows (see `SearchFilterBar`). The easy roles have no box.
+  const urlQuery = plannerQueryOf(useLocation().search);
+  const [typed, setText] = useState(urlQuery);
+  const text = easyRole ? "" : typed;
+  const data = useUpcomingData({
+    groupId,
+    filters: { kind, author },
+    todosOnly,
+    q: text,
+    initial: loaderData,
+  });
   const authorName = author ? data.nameOf(author) : null;
 
   return (
@@ -51,10 +70,11 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
       ) : (
         <PlannerHeader
           view="upcoming"
-          show={show}
-          author={
-            author && authorName ? { userId: author, name: authorName, image: data.imageOf(author) } : null
-          }
+          bar={upcomingFilterBar(
+            { value: text, urlQuery, onChange: setText },
+            show,
+            author && authorName ? { userId: author, name: authorName, image: data.imageOf(author) } : null,
+          )}
         />
       )}
       {/* Undo after ticking a todo in the list. */}
@@ -63,8 +83,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         data={data}
         groupId={groupId}
         label="Upcoming"
-        empty={emptyUpcomingText(show, authorName)}
-        emptyMark={show === "all" && !author ? sectionAccent("planner", { easy: easyRole }) : undefined}
+        empty={emptyUpcomingText(show, authorName, text)}
         readOnly={easyRole}
       />
     </Page>

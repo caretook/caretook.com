@@ -34,6 +34,7 @@ export function ScheduleFields({
   onChange,
   startLabel,
   pickDay = false,
+  onDayPick,
   moveStart = withStart,
 }: {
   kind: "note" | "event";
@@ -45,6 +46,8 @@ export function ScheduleFields({
   startLabel?: string;
   /** Open the calendar first, and start at the current hour once a day is picked. */
   pickDay?: boolean;
+  /** A day was picked in the start field's calendar (after `onChange`; typing doesn't count). */
+  onDayPick?: () => void;
   /** How a new start applies (the reschedule sheet keeps the event's length). */
   moveStart?: (schedule: Schedule, occurredAt: string, timeZone: string) => Schedule;
 }) {
@@ -79,8 +82,10 @@ export function ScheduleFields({
         }
         minuteStep={minuteStep}
         calendarOpen={pickDay && version === 0}
+        onCalendarPick={onDayPick}
         max={past ? now.toISOString() : undefined}
         error={futureError ?? undefined}
+        required
         // A moved start can move the end too: remount the end field to show it.
         onChange={(iso) => {
           const next = moveStart(schedule, iso, timeZone);

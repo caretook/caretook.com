@@ -4,6 +4,7 @@ import * as settingsLayout from "~/routes/app/groups/settings/layout/route";
 import * as members from "~/routes/app/groups/settings/members/route";
 import { TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
 import { emergencyNames, NORA_ID, openProfile, RITA, rowsFor, SAM, sheetUrl } from "./profileWorld";
 
 // The emergency list (profiles.mjs's slice 5 steps): the card for each role,
@@ -161,6 +162,18 @@ describe("the owner's sheet", () => {
     expect(device.calls.of("careGroup.setPrimaryContact")).toEqual([
       { groupId: TEST_GROUP.id, userId: SAM.id },
     ]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("an outside contact marks its name and phone, not its relationship; no label says optional", async () => {
+    await openProfile({ url: sheetUrl("emergency") });
+    await expect.poll(draft).toEqual([ME, SAM.name, "Nora Example"]);
+    expect(requiredLabels(form())).toEqual(["Name", "Phone"]);
+    expect(saysOptional(form())).toBe(false);
+
+    await userEvent.click(getByCss(`${FORM} [data-add-outside]`));
+    await expect.poll(() => requiredLabels(form())).toEqual(["Name", "Phone", "Name", "Phone"]);
   });
 });
 

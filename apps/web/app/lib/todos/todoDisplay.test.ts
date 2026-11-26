@@ -1,47 +1,10 @@
 import { nextOccurrence } from "@caretook/data/series";
 import { describe, expect, it } from "vitest";
-import { todoRepeatLine } from "./todoDisplay";
 import { todoSections } from "./todoList";
 
 const LA = "America/Los_Angeles";
 // Friday 2026-11-20, 12:00 in Los Angeles.
 const NOW = Date.UTC(2026, 10, 20, 20, 0);
-
-describe("todoRepeatLine", () => {
-  const line = (repeatRule: string | null, repeatStartsOn = "2026-11-16") =>
-    todoRepeatLine({ repeatRule, repeatStartsOn });
-
-  it("says each pattern", () => {
-    expect(line("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO")).toBe("Repeats weekly on Monday");
-    expect(line("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TH")).toBe("Repeats every 2 weeks on Monday and Thursday");
-    expect(line("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR")).toBe(
-      "Repeats weekly on Monday, Wednesday and Friday",
-    );
-    expect(line("FREQ=DAILY;INTERVAL=1")).toBe("Repeats daily");
-    expect(line("FREQ=DAILY;INTERVAL=3")).toBe("Repeats every 3 days");
-    expect(line("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=18")).toBe("Repeats monthly on the 18th");
-    expect(line("FREQ=MONTHLY;INTERVAL=1;BYDAY=-1FR")).toBe("Repeats monthly on the last Friday");
-    expect(line("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1")).toBe("Repeats monthly on the last day");
-    expect(line("FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1")).toBe("Repeats every 2 months on the last day");
-    expect(line("FREQ=MONTHLY;INTERVAL=3;BYDAY=2TU")).toBe("Repeats every 3 months on the 2nd Tuesday");
-  });
-
-  it("says how it ends, with the year only when it's another year's", () => {
-    expect(line("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20261221")).toBe(
-      "Repeats weekly on Monday · until Dec 21",
-    );
-    expect(line("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20270201")).toBe(
-      "Repeats weekly on Monday · until Feb 1, 2027",
-    );
-    expect(line("FREQ=DAILY;INTERVAL=1;COUNT=10")).toBe("Repeats daily · 10 times");
-    expect(line("FREQ=DAILY;INTERVAL=1;COUNT=1")).toBe("Repeats daily · 1 time");
-  });
-
-  it("is null for a todo that doesn't repeat, and 'Repeats' for a rule it can't read", () => {
-    expect(line(null)).toBeNull();
-    expect(line("FREQ=YEARLY")).toBe("Repeats");
-  });
-});
 
 describe("where the next occurrence sorts", () => {
   const weekly = {

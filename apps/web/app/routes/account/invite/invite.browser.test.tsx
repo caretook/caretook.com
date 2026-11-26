@@ -12,6 +12,7 @@ import { apiCalls, refusal } from "../../../../test/api";
 import { renderWithDevice } from "../../../../test/device";
 import { found } from "../../../../test/found";
 import * as invite from "./route";
+import { labelled } from "../../../../test/required";
 
 // `/invite/:token` (invites.mjs's screen steps 5 to 8, 10 and 11, on the test
 // device): what each invite state says (and that an unusable one names
@@ -57,7 +58,7 @@ const signedIn = (email: string): Api => ({
 
 const open = (api: Api) => renderWithDevice({ route: ROUTES, url: PATH, role: null, api });
 const heading = () => page.getByRole("heading", { level: 1 });
-const field = (label: string) => page.getByLabelText(label, { exact: true });
+const field = (label: string) => page.getByLabelText(labelled(label));
 const legalBox = () => page.getByRole("checkbox", { name: /18 or older/ });
 const form = (name: string) => document.querySelector<HTMLFormElement>(`[data-invite-form="${name}"]`);
 
@@ -283,7 +284,7 @@ describe("the consent form", () => {
     expect(consent.textContent).toContain("Grandma Pat's care group shares:");
     for (const item of SHARED_WITH_MEMBERS) expect(consent.textContent).toContain(item);
     expect(consent.textContent).toContain(ATTESTATION_TEXT);
-    await expect.element(page.getByLabelText(CONSENT_TEXT)).not.toBeChecked();
+    await expect.element(page.getByLabelText(labelled(CONSENT_TEXT))).not.toBeChecked();
     await expect.element(page.getByRole("button", { name: "Join the care group" })).toBeVisible();
     expect(form("signUp")).toBeNull();
     expect(form("decline")).not.toBeNull();
@@ -307,7 +308,7 @@ describe("the consent form", () => {
         ...signedIn("anyone@example.com"),
       }),
     );
-    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(CONSENT_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Ask to join" }));
     await expect.poll(device.location).toBe("/app");
     expect(calls.of("invite.accept")).toEqual([{ token: TOKEN, consent: true }]);
@@ -337,7 +338,7 @@ describe("the consent form", () => {
       }),
     );
     await expect.element(legalBox()).not.toBeChecked();
-    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(CONSENT_TEXT)));
     await userEvent.click(page.getByRole("button", { name: button }));
     expect(calls.of("invite.accept")).toEqual([]);
     await userEvent.click(legalBox());
@@ -361,11 +362,11 @@ describe("the consent form", () => {
         ...signedIn("anyone@example.com"),
       }),
     );
-    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(CONSENT_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Ask to join" }));
     await expect.element(legalBox()).toBeVisible();
     await expect.element(page.getByText(LEGAL_REQUIRED_MESSAGE)).toBeVisible();
-    await expect.element(page.getByLabelText(CONSENT_TEXT)).toBeChecked();
+    await expect.element(page.getByLabelText(labelled(CONSENT_TEXT))).toBeChecked();
     await userEvent.click(legalBox());
     await userEvent.click(page.getByRole("button", { name: "Ask to join" }));
     await expect.poll(device.location).toBe("/app");
@@ -378,7 +379,7 @@ describe("the consent form", () => {
       "invite.accept": () => refusal("careGroupInviteService:unusable"),
       ...signedIn(emailInvite.email),
     });
-    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(CONSENT_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Join the care group" }));
     await expect.element(page.getByRole("alert")).toBeVisible();
   });
@@ -393,7 +394,7 @@ describe("the consent form", () => {
         ),
       ...signedIn(emailInvite.email),
     });
-    await userEvent.click(page.getByLabelText(CONSENT_TEXT));
+    await userEvent.click(page.getByLabelText(labelled(CONSENT_TEXT)));
     await userEvent.click(page.getByRole("button", { name: "Join the care group" }));
     await expect.poll(device.location).toBe(`/sign-in?redirectTo=${encodeURIComponent(PATH)}`);
   });

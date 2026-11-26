@@ -5,13 +5,14 @@
 //
 //   --json   the lists as JSON ({ safe, ask, kept }); nothing changes
 //   --facts  the raw facts as JSON
-//   --yes    remove the safe ones (rm.sh, test-db.sh drop-db, git fetch --prune,
-//            docker volume rm, deleting tickets, logs and ended records,
+//   --yes    remove the safe ones (rm.sh, the testDb hook's drop-db, git fetch
+//            --prune, the stackLeftovers hook's remove, deleting tickets, logs and ended records,
 //            pnpm backlog archive for finished items), then
 //            file the ask list with `pnpm prd ask --report` (none when it's empty)
 //
-// Reading runs git, `docker info|volume ls`, `lsof` (processes' working
-// directories and listening ports), `ps`, `test-db.sh list` and the backlog's
+// Reading runs git, the hooks' read-only forms (stackEngine status, stackReady,
+// testDb facts and orphans, stackLeftovers), `lsof` (processes' working
+// directories and listening ports), `ps` and the backlog's
 // `list --json` and `prd list --json`; it writes nothing. The main checkout is
 // the repo this file is in. Env: TRUNK (dev), CARETOOK_SESSIONS_DIR,
 // CARETOOK_ASKS_DIR, CARETOOK_LEASE_ROOT.
@@ -22,7 +23,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { describeRun, isTopicRun, outstandingRuns } from "../ci/outstanding.mjs";
 import { collectFacts, parentOf } from "./inventory-facts.mjs";
 import { isLive, processOf, readRecords } from "./sessions.mjs";
-import { formatTidy, reportText, testDbOwner, tidy } from "./tidy.mjs";
+import { formatTidy, reportText, tidy } from "./tidy.mjs";
+import { factList, runHook } from "./hooks.mjs";
+import { branchKinds } from "./config.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -169,7 +172,6 @@ export function collectTidyFacts({
   const trunk = env.TRUNK || "dev";
   const loops = join(main, ".loops");
   const base = collectFacts({ main, env, now });
-  const dockerUp = !!base.docker?.running;
 
   // Tips that landed: a merged (non-first) parent of a merge commit on dev.
   const landedTips = new Set(
@@ -212,10 +214,10 @@ export function collectTidyFacts({
   const byName = new Map(worktrees.map((w) => [w.name, w]));
 
   // A merged slice stays until its wave lands and no run of its topic is out.
-  const merged = worktrees.filter((w) => w.merged && /^slice\/[^/]+\/[^/]+$/.test(w.branch));
+  const merged = worktrees.filter((w) => w.merged && branchKinds().sliceOf(w.branch));
   const runs = merged.length ? outstanding() : [];
   for (const w of merged) {
-    const topic = w.branch.split("/")[1] ?? "";
+    const topic = branchKinds().sliceOf(w.branch)?.topic ?? "";
     const out = runs?.filter((r) => isTopicRun(r.name, topic)) ?? [];
     const held =
       runs === null
@@ -253,7 +255,7 @@ export function collectTidyFacts({
   );
   // Unreadable is null, never "no PRD is running": their finished items stay.
   const prdWorktrees = listedWorktrees.ok
-    ? [...checkedOut].filter((b) => b.startsWith("prd/")).map((b) => b.slice("prd/".length))
+    ? [...checkedOut].flatMap((b) => branchKinds().nameOf(b, "prd") ?? [])
     : null;
   const branches = lines(git(main, ["for-each-ref", "--format=%(refname:short)", "refs/heads"]).out).map(
     (name) => {
@@ -288,34 +290,24 @@ export function collectTidyFacts({
       ageSecs: ageSecs(l.path, now),
     }));
 
-  // The owner comes from the name alone: list's "(worker copy …)" label is a
-  // guess that a topic ending -w<n> fails (B-440).
+  // The hooks decide what's left over: test databases no worktree owns (by name
+  // alone, B-440), and the stack's data no worktree's stack uses.
   const names = worktrees.map((w) => w.name);
-  const testDbs = lines(run("bash", [join(HERE, "test-db.sh"), "list"], { cwd: main, env }).out)
-    .map((l) => /^caretook_(test|tw)_[a-z0-9_]+/.exec(l)?.[0])
-    .filter((db) => !!db)
-    .map((db) => ({ db, worktree: testDbOwner(db, names) }));
-
-  const usedProjects = [
-    "caretook",
-    env.CARETOOK_SHARED_TEST_PROJECT || "caretook-shared-test",
-    ...worktrees.flatMap((w) => (w.stack ? [w.stack, `${w.stack}-test`] : [])),
-  ];
-  const volumes = dockerUp
-    ? lines(
-        run("docker", [
-          "volume",
-          "ls",
-          "--filter",
-          "dangling=true",
-          "--format",
-          '{{.Name}}\t{{.Label "com.docker.compose.project"}}',
-        ]).out,
-      ).map((l) => {
-        const [name, project = ""] = l.split("\t");
-        return { name, project };
-      })
-    : [];
+  const testDbOrphans = factList("orphan", runHook("testDb", ["orphans", ...names], { env }).out);
+  // Only when every stack is known: a failed stackReady could drop a stack in
+  // use from the projects, and a failed listing may be partial.
+  const projects = worktrees.flatMap((w) => (w.stack ? [w.stack] : []));
+  const unknownStacks = base.worktrees.filter((w) => w.stackFailed).map((w) => w.name);
+  const left = unknownStacks.length ? null : runHook("stackLeftovers", projects, { env });
+  const volumesSkipped = unknownStacks.length
+    ? `the stackReady hook failed for ${unknownStacks.join(", ")}, so which stacks are in use is unknown`
+    : left && !left.ok && left.status !== 127
+      ? `the stackLeftovers hook failed${left.err ? ` (${left.err.split("\n")[0]})` : ""}`
+      : undefined;
+  const volumes = (left?.ok ? factList("volume", left.out) : []).map((l) => {
+    const [name, , ...why] = l.split(" ");
+    return { name, why: why.join(" ") };
+  });
 
   const hangs = join(loops, ".browser-hangs");
   const hangLogs = existsSync(hangs)
@@ -345,9 +337,9 @@ export function collectTidyFacts({
     ciRefs,
     quarantineDone: collectQuarantineDone(main),
     locks,
-    testDbs,
+    testDbOrphans,
     volumes,
-    usedProjects,
+    ...(volumesSkipped ? { volumesSkipped } : {}),
     hangLogs,
     // --all: a plain list leaves out live and dropped items, which are what gets archived.
     items: allItems && allItems.filter((/** @type {{ archived?: boolean }} */ i) => !i.archived),
@@ -376,6 +368,12 @@ function act(/** @type {ReturnType<typeof tidy>["safe"]} */ safe, /** @type {str
   };
   const sh = (/** @type {string[]} */ args) =>
     spawnSync(args[0], args.slice(1), { cwd: main, stdio: ["ignore", "inherit", "inherit"] }).status === 0;
+  const hook = (/** @type {string} */ name, /** @type {string[]} */ args) => {
+    const r = runHook(name, args);
+    if (r.out) console.log(r.out);
+    if (r.err) console.error(r.err);
+    return r.ok;
+  };
   for (const f of safe) {
     const label = `${f.kind} ${f.target}`;
     switch (f.kind) {
@@ -383,7 +381,7 @@ function act(/** @type {ReturnType<typeof tidy>["safe"]} */ safe, /** @type {str
         step(label, () => sh(["bash", join(HERE, "rm.sh"), f.target]));
         break;
       case "test-db":
-        step(label, () => sh(["bash", join(HERE, "test-db.sh"), "drop-db", f.target]));
+        step(label, () => hook("testDb", ["drop-db", f.target]));
         break;
       case "remote":
         if (!pruned) {
@@ -437,7 +435,7 @@ function act(/** @type {ReturnType<typeof tidy>["safe"]} */ safe, /** @type {str
         );
         break;
       case "volume":
-        step(label, () => sh(["docker", "volume", "rm", f.target]));
+        step(label, () => hook("stackLeftovers", ["remove", "volume", f.target]));
         break;
       case "record":
       case "hang-log":

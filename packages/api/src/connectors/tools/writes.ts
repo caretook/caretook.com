@@ -234,7 +234,7 @@ const medicationNames = (ctx: ToolContext, medicationId: string) => async () => 
 export const logDose = defineTool({
   name: "log_dose",
   title: "Log a medication dose",
-  description: `Record one dose of a current medication as ${DOSE_STATUSES.join(", ")}, with an optional amount ("1 tablet") and note. Use a medication's id from the medication list. A dose near a scheduled time counts for that slot: repeating the same status, amount and note adds nothing, while a different amount or note records a separate dose. To mark a whole medication round given, use give_pass instead. Ask the member before calling.`,
+  description: `Record one dose of a current medication as ${DOSE_STATUSES.join(", ")}, with an optional amount ("1 tablet") and note. Use a medication's id from the medication list. A dose near a scheduled time counts for that slot: repeating the same status, amount and note adds nothing, while a different amount or note records a separate dose. To mark a whole med time given, use give_pass instead. Ask the member before calling.`,
   scope: "readWrite",
   input: z.object({
     ...shapeOf(logDoseActionZSchema),
@@ -252,13 +252,13 @@ export const logDose = defineTool({
 
 export const givePass = defineTool({
   name: "give_pass",
-  title: "Give a medication round",
+  title: "Give a med time",
   description:
-    "Mark a medication round (a pass, such as Morning or Evening) given: one dose for each medication in it that nothing has answered yet that day, as the app's Given all does. Doses already logged are left alone. Use a pass's id from today's doses. Ask the member before calling.",
+    "Mark a med time (a named time of day for medications, such as Morning or Evening) given: one dose for each medication in it that nothing has answered yet that day, as the app's Given all does. Doses already logged are left alone. Use a med time's id from today's doses. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(givePassActionZSchema),
-    passId: givePassActionZSchema.shape.passId.describe("The pass's id."),
+    passId: givePassActionZSchema.shape.passId.describe("The med time's id."),
     occurredAt: when,
   }),
   annotations: WRITE_ANNOTATIONS,
@@ -278,7 +278,7 @@ export const addNote = defineTool({
   name: "add_note",
   title: "Add a note",
   description:
-    "Add a note to the timeline, for what has happened (a note can't be in the future: use add_todo with a due day for something to do later, or add_event for an appointment): plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
+    "Add a note to the timeline, for what has happened (a note can't be in the future: use add_todo with a due day for something to do later, or add_event for an event or appointment ahead): plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(addNoteActionZSchema),
@@ -297,9 +297,9 @@ export const addNote = defineTool({
 
 export const addEvent = defineTool({
   name: "add_event",
-  title: "Add an event or appointment",
+  title: "Add an event",
   description:
-    "Add an event to the timeline: something that happened, or an appointment ahead (a future time is fine). Optionally all day, an end time, a place and providers (ids from the provider directory). Ask the member before calling.",
+    "Add an event to the timeline: something that happened, or an event ahead such as an appointment (a future time is fine). Optionally all day, an end time, a place and providers (ids from the provider directory). Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(addEventActionZSchema),
@@ -333,7 +333,10 @@ export const addTodo = defineTool({
     "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
-    ...(({ assigneeId: _assigneeId, ...rest }) => rest)(shapeOf(addTodoActionZSchema)),
+    // No repeat yet (B-253): a `repeatRule` sent is dropped with the other unknown keys.
+    ...(({ assigneeId: _assigneeId, repeatRule: _repeatRule, ...rest }) => rest)(
+      shapeOf(addTodoActionZSchema),
+    ),
     assignee: z.string().trim().min(1).max(120).optional().describe("The member to do it, by name."),
   }),
   annotations: WRITE_ANNOTATIONS,

@@ -1,6 +1,7 @@
 import type { Search } from "../core/urls";
 
 import { groupHome, searchString, segment } from "../core/urls";
+import { DOSE_MEDICATION_PARAM, withoutSheetParams } from "../timeline/urls";
 
 /** The tabs a medication sheet opens over: Schedule (today's doses) and the list. */
 export type MedicationTab = "schedule" | "list";
@@ -29,11 +30,20 @@ export const medicationUrls = {
   /** The edit sheet for one medication, over a tab, carrying the tab's search. */
   editMedication: (groupId: string, medicationId: string, tab: MedicationTab, search?: Search) =>
     `${medicationsBase(groupId)}/${tab}/${segment(medicationId)}/edit${searchString(search)}`,
+  /**
+   * The Dose sheet over the list (its Log on a scheduled medication), starting
+   * on that medication and carrying the list's search; it closes back onto the list.
+   */
+  medicationListDose: (groupId: string, medicationId: string, search?: Search) => {
+    const params = withoutSheetParams(search);
+    params.set(DOSE_MEDICATION_PARAM, medicationId);
+    return `${medicationsBase(groupId)}/list/dose${searchString(params)}`;
+  },
   /** The Passes tab: the group's medication passes (Morning, Evening…), with the medications in each. */
   medicationPasses: (groupId: string) => `${medicationsBase(groupId)}/passes`,
   /** The add-pass sheet, over the Passes tab (writers, while the group has room for one). */
   newPass: (groupId: string) => `${medicationsBase(groupId)}/passes/new`,
-  /** The allergies sheet over a tab (writers), carrying the tab's search. */
+  /** The old allergies sheet over a tab: it redirects to the profile's (`profileAllergies`). */
   medicationAllergies: (groupId: string, tab: MedicationTab, search?: Search) =>
     `${medicationsBase(groupId)}/${tab}/allergies${searchString(search)}`,
   /** The weekly bedside sheet, starting on `start` ("YYYY-MM-DD"; none is this week). */

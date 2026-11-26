@@ -12,6 +12,13 @@ describe("dayKeyIn", () => {
     expect(dayKeyIn("2026-11-18T02:00:00Z", LA)).toBe("2026-11-17");
     expect(dayKeyIn("2026-11-18T02:00:00Z", "UTC")).toBe("2026-11-18");
   });
+
+  it("keeps each zone's formatter apart", () => {
+    expect(dayKeyIn("2026-11-18T02:00:00Z", "UTC")).toBe("2026-11-18");
+    expect(dayKeyIn("2026-11-18T02:00:00Z", LA)).toBe("2026-11-17");
+    expect(dayKeyIn("2026-11-18T12:00:00Z", "Asia/Tokyo")).toBe("2026-11-18");
+    expect(dayKeyIn("2026-11-18T16:00:00Z", "Asia/Tokyo")).toBe("2026-11-19");
+  });
 });
 
 describe("dayStartAt", () => {

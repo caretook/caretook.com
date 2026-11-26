@@ -5,6 +5,8 @@ import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { at, condition, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
+import { requiredLabels, saysOptional } from "../../../../../test/required";
+import { conditionSuggestions } from "~/lib/profiles/conditionSuggestions";
 import { JUNE, openProfile, PROFILE_URL } from "./profileWorld";
 
 // The recipient's conditions on the profile (conditions slice 1): the card
@@ -143,6 +145,42 @@ describe("adding", () => {
     expect((await device.query<{ at: string | null }>(NO_KNOWN_SQL, [TEST_RECIPIENT.id]))[0]?.at).toBeNull();
   });
 
+  test("the name suggests only once typed: nothing on focus, the first letter filters, clearing closes it", async () => {
+    await open("caretaker", { url: `${PROFILE_URL}/conditions/new` });
+    const listed = () =>
+      [...document.querySelectorAll('[role="listbox"] [role="option"]')].map((o) => o.textContent?.trim());
+    await userEvent.click(await found(nameInput));
+    await expect.poll(() => nameInput()?.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+
+    await userEvent.keyboard("d");
+    const expected = conditionSuggestions("d", []);
+    expect(expected.length).toBeGreaterThan(0);
+    expect(expected).not.toEqual(conditionSuggestions("", []));
+    await expect.poll(listed).toEqual(expected);
+
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
+    expect(nameInput()?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("a provider picker on the same form still opens its list on focus", async () => {
+    const lee = fx.provider({ name: "Dr. Mei Lee", specialty: "Cardiology" });
+    await open("caretaker", { fixtures: [lee], url: `${PROFILE_URL}/conditions/new` });
+    await userEvent.click(
+      await found(() =>
+        FORM()?.querySelector<HTMLInputElement>('[data-provider-picker=diagnosedBy] input[role="combobox"]'),
+      ),
+    );
+    await expect
+      .poll(() =>
+        [...document.querySelectorAll('[role="listbox"] [role="option"]')].map(
+          (o) => o.firstElementChild?.textContent,
+        ),
+      )
+      .toContain("Dr. Mei Lee");
+  });
+
   test("with free text, as past, and the group's own names suggested first", async () => {
     const device = await open("caretaker", { fixtures: [HBP], url: `${PROFILE_URL}/conditions/new` });
     await userEvent.click(await found(nameInput));
@@ -182,6 +220,30 @@ describe("adding", () => {
     await expect.poll(() => field("sinceYear")?.getAttribute("aria-invalid")).toBe("true");
     await expect.element(page.getByText("Enter the year too")).toBeInTheDocument();
     expect(await device.query(ROWS_SQL)).toEqual([]);
+  });
+});
+
+describe("required fields (B-801)", () => {
+  test("the add form marks the name, and the year only while a month is chosen; no label says optional", async () => {
+    await open("owner", { url: `${PROFILE_URL}/conditions/new` });
+    await found(FORM);
+    expect(requiredLabels(FORM())).toEqual(["Condition"]);
+    expect(saysOptional(FORM())).toBe(false);
+    await expect.poll(() => nameInput()?.getAttribute("aria-required")).toBe("true");
+    await expect.poll(() => field("sinceYear")?.hasAttribute("aria-required")).toBe(false);
+
+    await userEvent.selectOptions(await found(() => field("sinceMonth") as HTMLSelectElement), "June");
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Condition", "Since: year"]);
+    await expect.poll(() => field("sinceYear")?.getAttribute("aria-required")).toBe("true");
+
+    await userEvent.selectOptions(field("sinceMonth") as HTMLSelectElement, "No month");
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Condition"]);
+  });
+
+  test("editing one with a month starts with the year marked", async () => {
+    await open("owner", { url: `${PROFILE_URL}/conditions/${PNEUMONIA.id}/edit`, fixtures: recorded });
+    await found(FORM);
+    await expect.poll(() => requiredLabels(FORM())).toEqual(["Condition", "Since: year"]);
   });
 });
 

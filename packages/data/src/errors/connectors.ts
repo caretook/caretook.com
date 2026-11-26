@@ -73,15 +73,15 @@ export const CONNECTORS_ERRORS = {
     statusCode: 404,
   },
   "assistantActionService:passGone": {
-    message: "That pass is gone. It may have been deleted.",
+    message: "That med time is gone. It may have been deleted.",
     statusCode: 404,
   },
   "assistantActionService:passEmpty": {
-    message: "That pass has no medications.",
+    message: "That med time has no medications.",
     statusCode: 409,
   },
   "assistantActionService:nothingLeft": {
-    message: "Nothing is left to give in that pass today.",
+    message: "Nothing is left to give in that med time today.",
     statusCode: 409,
   },
   // Edits (connectors-2): an entry not in the group reads the same as one that doesn't exist.

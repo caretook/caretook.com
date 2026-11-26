@@ -8,9 +8,14 @@
 // couldn't load) leaves the failure unknown: it is never assigned, and never green.
 import { dirname } from "node:path";
 
+import { backlogIds } from "../loops/config.mjs";
 import { findingKey, keyMark } from "./filing.mjs";
-import { isQuarantined } from "./lists.mjs";
-import { TIERS, fileTier, isBrowserCheckFile } from "./tiers.mjs";
+import { isQuarantined } from "./ci-lists.mjs";
+import { ciFailureTopic } from "./release.mjs";
+import { ciTiers } from "./tier-data.mjs";
+
+/** A dev-brake notice: its item and key. */
+const BRAKE_NOTICE = new RegExp(`^dev brake ${backlogIds().lookupPattern} \\[ci-key ([^\\]]+)\\]`);
 
 /** The whole tier a failed check job needs on dev. */
 const CHECK_JOB_TIER = /** @type {const} */ ({ static: "static", build: "full" });
@@ -46,7 +51,7 @@ export function verdictFailures(v) {
   const explained = (/** @type {string} */ job) =>
     jobs.includes(job) ||
     tests.some((t) => t.job === job) ||
-    files.some((f) => job.startsWith(isBrowserCheckFile(f) ? "browser" : fileTier(f))) ||
+    files.some((f) => job.startsWith(ciTiers().isBrowserCheckFile(f) ? "browser" : ciTiers().fileTier(f))) ||
     flakeExplains(job);
   const unnamed = (v.failed?.jobs ?? []).some((/** @type {string} */ job) => !explained(job));
   return {
@@ -58,7 +63,7 @@ export function verdictFailures(v) {
 }
 
 const higher = (/** @type {string} */ a, /** @type {string} */ b) =>
-  TIERS.indexOf(/** @type {any} */ (a)) >= TIERS.indexOf(/** @type {any} */ (b)) ? a : b;
+  ciTiers().TIERS.indexOf(/** @type {any} */ (a)) >= ciTiers().TIERS.indexOf(/** @type {any} */ (b)) ? a : b;
 
 /**
  * The run dev needs: the failed files at their highest tier, or the whole tier
@@ -72,11 +77,14 @@ export function devRunPlan(failures, onDev) {
   const files = all.filter(onDev);
   const absent = all.filter((f) => !onDev(f));
   if (!files.length && !failures.jobs.length) return { run: null, absent };
-  let tier = /** @type {string} */ (TIERS[0]);
-  for (const f of files) tier = higher(tier, fileTier(f));
+  let tier = /** @type {string} */ (ciTiers().TIERS[0]);
+  for (const f of files) tier = higher(tier, ciTiers().fileTier(f));
   for (const job of failures.jobs)
     tier = higher(tier, CHECK_JOB_TIER[/** @type {keyof typeof CHECK_JOB_TIER} */ (job)] ?? "full");
-  return { run: { tier, files, whole: failures.jobs.length > 0 || files.some(isBrowserCheckFile) }, absent };
+  return {
+    run: { tier, files, whole: failures.jobs.length > 0 || files.some(ciTiers().isBrowserCheckFile) },
+    absent,
+  };
 }
 
 /**
@@ -166,18 +174,21 @@ const title = (/** @type {string} */ text) => {
 };
 
 /**
- * One `fixes-bug` finding per dev failure.
+ * One finding per dev failure, in the config's CI failure topic (release.mjs's ciFailureTopic).
  * @param {Placed[]} failures
- * @param {{ branch: string, url?: string }} from
+ * @param {{ branch: string, url?: string, topic?: string }} from
  */
-export const devFindings = (failures, { branch, url }) =>
-  failures.map((f) => ({
+export const devFindings = (failures, { branch, url, topic }) => {
+  if (!failures.length) return [];
+  const prd = topic ?? ciFailureTopic();
+  return failures.map((f) => ({
     key: f.key,
     title: title(`CI: ${label(f)} fails on dev`),
-    prd: "fixes-bug",
+    prd,
     note: `Fails on dev too${f.brake ? " (a brake)" : ""}; found by ${branch}${url ? ` in ${url}` : ""}.`,
     quarantine: null,
   }));
+};
 
 /**
  * The board's line for a dev brake.
@@ -190,8 +201,7 @@ export function brakeNotice(id, f) {
 }
 
 /** The key a dev-brake notice carries, or null for any other notice. */
-export const noticeKey = (/** @type {string} */ text) =>
-  /^dev brake B-\d+ \[ci-key ([^\]]+)\]/.exec(text)?.[1] ?? null;
+export const noticeKey = (/** @type {string} */ text) => BRAKE_NOTICE.exec(text)?.[1] ?? null;
 
 /**
  * Sort a verdict's flakes: a file the branch touched is the branch's and nothing
@@ -217,7 +227,7 @@ export function sortFlakes(flaky, touched, { branch, url }) {
       title: title(`CI flake: ${label(t)}`),
       prd: "fixes-tooling",
       note: `Flaked (passed on its rerun)${t.brake ? "; on the brake list, so not quarantined" : ""}${
-        isBrowserCheckFile(t.file)
+        ciTiers().isBrowserCheckFile(t.file)
           ? "; a browser check is filed, never quarantined"
           : t.name
             ? ""

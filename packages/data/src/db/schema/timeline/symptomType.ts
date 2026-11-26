@@ -1,7 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "../core/columns";
 
-import { index, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { careGroupSchema } from "../care-groups/careGroup";
 import { audits, timestamps } from "../core/columns";
@@ -32,7 +32,6 @@ export const symptomTypeSchema = pgTable(
     unique("symptom_type_group_id_name_key_unique").on(t.groupId, t.nameKey),
     // For entries' composite foreign key (group, type): never another group's type.
     unique("symptom_type_group_id_id_unique").on(t.groupId, t.id),
-    index("symptom_type_group_idx").on(t.groupId),
   ],
 );
 
@@ -54,3 +53,20 @@ export const symptomTypeRow = (groupId: string, name: string) => ({
   name: symptomName(name),
   nameKey: symptomKey(name),
 });
+
+/**
+ * A device's new catalog row (its `symptom_type` upload): the group and the
+ * name; the id, when given, must be the one derived from them, so a device
+ * can't hold a row under an id the server would never write.
+ */
+export const symptomTypeAddZSchema = z
+  .strictObject({
+    id: z.uuid().optional(),
+    groupId: z.uuid(),
+    name: symptomTypeNameZSchema,
+  })
+  .refine((v) => !v.id || v.id.toLowerCase() === symptomTypeId(v.groupId, v.name), {
+    path: ["id"],
+    error: "The id must be the one derived from the group and the name",
+  });
+export type SymptomTypeAddInput = z.input<typeof symptomTypeAddZSchema>;

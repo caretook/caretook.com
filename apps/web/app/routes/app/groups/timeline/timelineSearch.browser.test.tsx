@@ -105,6 +105,14 @@ describe("searching the timeline", () => {
     expect(vitals()).toBe(vitalsBefore);
   });
 
+  test('the field\'s placeholder is the shared "Type to search" and its accessible name stays "Search entries"', async () => {
+    const device = await open();
+    await openField();
+    const box = device.screen.getByRole("searchbox", { name: "Search entries" });
+    await expect.element(box).toBeVisible();
+    expect(field()?.placeholder).toBe("Type to search");
+  });
+
   test("the magnifier is the field's toggle: it opens the field focused; Escape closes it, focus back on the magnifier; the magnifier closes it too", async () => {
     const device = await open();
     const box = () => device.screen.getByRole("searchbox", { name: "Search entries" });

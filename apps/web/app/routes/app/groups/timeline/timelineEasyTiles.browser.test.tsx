@@ -156,7 +156,7 @@ describe("each tile's sheet saves an entry, offline", () => {
     const scale = sheet.getByRole("radiogroup", { name: "How she feels" });
     expect(scale.getByRole("radio").elements()).toHaveLength(11);
     expect(sheet.getByRole("button", { name: /^Vitals|^Symptom$/ }).elements()).toHaveLength(0);
-    expect(sheet.getByRole("textbox", { name: "Notes (optional)" }).elements()).toHaveLength(0);
+    expect(sheet.getByRole("textbox", { name: "Notes", exact: true }).elements()).toHaveLength(0);
     // The radio itself is hidden under its face; a tap lands on the face.
     await userEvent.click(scale.getByRole("radio", { name: "4, unwell" }), { force: true });
     await expect.element(scale.getByRole("radio", { name: "4, unwell" })).toBeChecked();

@@ -16,9 +16,10 @@
 //     many conversations, so --continue could resume the wrong one), on its
 //     recorded model.
 //   - the inbox session, always fresh through `prd.sh inbox` (which checks its
-//     bare directory and gives it the fast settings), in its recorded directory
-//     on its recorded model:
-//       cd <main> && <this checkout>/scripts/loops/prd.sh inbox --dir <dir> --model <m> [--managed]
+//     bare directory and gives it its settings), in its recorded directory, on
+//     prd.sh's inbox model (Opus at low effort) whatever the record says, so
+//     a record from an older default never holds it there:
+//       cd <main> && <this checkout>/scripts/loops/prd.sh inbox --dir <dir> [--managed]
 //
 // Run-through (--auto) is the plan's _Status_ saying so, or the session's last
 // record having been run-through (carried over to the new record); a run-through
@@ -33,7 +34,12 @@
 // The session names stay prd-<topic> and plan-<topic>, so Remote Control still
 // reaches them.
 //
-// CLI: node open-session.mjs <worktree dir>  → JSON {session, kind, topic, mode, auto, managed, command}
+// --carry-on (the dispatcher's resume after a usage limit, resume.mjs): a continued
+// prd or plan session gets the carry-on prompt (carryOnPrompt) as its first message,
+// since a bare --continue would sit idle at its prompt; a fresh one has its resume
+// prompt already.
+//
+// CLI: node open-session.mjs <worktree dir> [--carry-on]  → JSON {session, kind, topic, mode, auto, managed, command}
 //      (the main backlog session's adds title: its captain, the tab's title and Remote Control name)
 //      node open-session.mjs --main <name> <main checkout>   the same, for a backlog, recovery or inbox record
 // Env: CARETOOK_CLAUDE_PROJECTS (tests: in place of ~/.claude/projects);
@@ -48,6 +54,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { CAPTAIN_SESSION, pickCaptain } from "./captain.mjs";
 import { plannerModelFor } from "./planner-model.mjs";
 import { isLive, processOf, readRecord } from "./sessions.mjs";
+import { branchKinds } from "./config.mjs";
 
 /** Claude Code's projects folder name for a working directory. */
 export const projectFolder = (/** @type {string} */ dir) => dir.replace(/[^A-Za-z0-9]/g, "-");
@@ -124,9 +131,20 @@ export function inboxUntrusted(
 }
 
 /**
+ * The first message of a session continued after a usage limit (--carry-on). Pure.
+ * @param {"prd" | "plan" | "hotfix"} kind @param {string} topic
+ */
+export function carryOnPrompt(kind, topic) {
+  const head = "This session stopped on a usage limit, and the limit has now reset.";
+  if (kind === "plan")
+    return `${head} Check what you had written against git (git status, git log), then carry on with the plan for ${topic} where you left off.`;
+  return `${head} If \`pnpm prd land\` was cut off, run \`pnpm prd land --resume <branch>\` first. Reconcile your plan's _Status_ with git (slice worktrees, slice branches ahead of ${branchKinds().branch("prd", topic)}, merges already in), respawn any slice agents that stopped (\`pnpm prd prompt slice ${topic} <n> --continue\`), and carry on in your recorded landing mode.`;
+}
+
+/**
  * @param {{ dir: string, branch: string, conversation: boolean, runThrough: boolean,
  *   record?: { auto?: boolean, managed?: boolean, rotating?: boolean, model?: string } | null, wrapper?: string,
- *   plannerModel?: string }} w
+ *   plannerModel?: string, carryOn?: boolean }} w
  * @returns {{ session: string, kind: "prd" | "plan" | "hotfix", topic: string, mode: "continue" | "fresh", auto: boolean,
  *   managed: boolean, command: string }}
  */
@@ -138,14 +156,16 @@ export function chooseCommand({
   record = null,
   wrapper = ownSessionSh,
   plannerModel = DEFAULT_MODEL,
+  carryOn = false,
 }) {
-  const m = /^(prd|plan|hotfix)\/(.+)$/.exec(branch);
-  if (!m)
+  const kindOf = branchKinds().kindOf(branch);
+  const name = kindOf && kindOf !== "slice" ? branchKinds().nameOf(branch, kindOf) : null;
+  if (!kindOf || !name)
     throw new Error(
-      `${dir} is on ${branch || "no branch"}: only prd/, plan/ and hotfix/ worktrees have sessions`,
+      `${dir} is on ${branch || "no branch"}: only ${branchKinds().prefixes.prd}, ${branchKinds().prefixes.plan} and ${branchKinds().prefixes.hotfix} worktrees have sessions`,
     );
-  const kind = /** @type {"prd" | "plan" | "hotfix"} */ (m[1]);
-  const topic = m[2];
+  const kind = /** @type {"prd" | "plan" | "hotfix"} */ (kindOf);
+  const topic = name;
   const session = `${kind}-${topic}`;
   const auto = statusAuto || record?.auto === true;
   const managed = record?.managed === true;
@@ -166,7 +186,7 @@ export function chooseCommand({
       mode: "continue",
       auto,
       managed,
-      command: `${wrap}${modelArg}--continue --remote-control ${session}`,
+      command: `${wrap}${modelArg}--continue --remote-control ${session}${carryOn && kind !== "hotfix" ? ` ${sh(carryOnPrompt(kind, topic))}` : ""}`,
     };
   const prompt =
     kind === "prd"
@@ -187,7 +207,8 @@ export function chooseCommand({
 
 /**
  * A backlog, recovery or inbox session's command: always fresh, under its own
- * name, on its recorded model; the main checkout, or the inbox's own directory.
+ * name; the main checkout on its recorded model, or the inbox's own directory
+ * on prd.sh's inbox model.
  * The main backlog session (backlog) comes back under a new captain's name
  * (captain.mjs: CAPTAIN, else one unlike its record's remote), which is also
  * its tab's `title`; every other one keeps its recorded Remote Control name.
@@ -201,7 +222,6 @@ export function chooseMainCommand({ name, main, record, wrapper = ownSessionSh, 
   if (!role)
     throw new Error(`open: ${name} is a ${kind || "kindless"} record, not a backlog, recovery or inbox one`);
   const managed = record.managed === true;
-  const model = record.model ?? (kind === "recovery" ? null : DEFAULT_MODEL);
   if (kind === "inbox")
     return {
       session: name,
@@ -211,9 +231,10 @@ export function chooseMainCommand({ name, main, record, wrapper = ownSessionSh, 
       auto: false,
       managed,
       command:
-        `cd ${sh(main)} && ${sh(join(dirname(wrapper), "prd.sh"))} inbox --dir ${sh(inboxDir ?? inboxDirOf(record))} ` +
-        `--model ${sh(/** @type {string} */ (model))}${managed ? " --managed" : ""}`,
+        `cd ${sh(main)} && ${sh(join(dirname(wrapper), "prd.sh"))} inbox --dir ${sh(inboxDir ?? inboxDirOf(record))}` +
+        `${managed ? " --managed" : ""}`,
     };
+  const model = record.model ?? (kind === "recovery" ? null : DEFAULT_MODEL);
   const captained = kind === "backlog" && name === CAPTAIN_SESSION;
   const remote = captained ? (captain ?? pickCaptain(record.remote)) : record.remote || name;
   return {
@@ -226,7 +247,7 @@ export function chooseMainCommand({ name, main, record, wrapper = ownSessionSh, 
     managed,
     command:
       `cd ${sh(main)} && ${sh(wrapper)} ${sh(name)} --kind ${kind}${managed ? " --managed" : ""} -- ` +
-      `${model ? `--model ${sh(model)} ` : ""}--remote-control ${sh(remote)} "$(scripts/loops/prompt.sh ${role})"`,
+      `${model ? `--model ${sh(model)} ` : ""}--remote-control ${sh(remote)} "$(${captained ? `CARETOOK_CAPTAIN=${sh(remote)} ` : ""}scripts/loops/prompt.sh ${role})"`,
   };
 }
 
@@ -264,6 +285,7 @@ export function chooseFor(
   /** @type {string} */ dir,
   projects = defaultProjects(),
   sessions = process.env.CARETOOK_SESSIONS_DIR || join(dirname(dir), ".sessions"),
+  { carryOn = false } = {},
 ) {
   const branch = execFileSync("git", ["-C", dir, "branch", "--show-current"], { encoding: "utf8" }).trim();
   const kind = branch.split("/")[0];
@@ -278,6 +300,7 @@ export function chooseFor(
     runThrough: existsSync(plan) && runThrough(readFileSync(plan, "utf8")),
     record,
     plannerModel: kind === "plan" ? plannerModelFor(topic, mainOf(dir)) : DEFAULT_MODEL,
+    carryOn,
   });
 }
 
@@ -286,12 +309,19 @@ const defaultProjects = () => process.env.CARETOOK_CLAUDE_PROJECTS || join(homed
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const dir = process.argv[2];
   const onMain = dir === "--main";
-  if (!dir || (onMain && !(process.argv[3] && process.argv[4]))) {
-    console.error("usage: open-session.mjs <worktree dir> | --main <name> <main checkout>");
+  const carryOn = !onMain && process.argv[3] === "--carry-on";
+  if (!dir || (onMain && !(process.argv[3] && process.argv[4])) || (!onMain && process.argv[3] && !carryOn)) {
+    console.error("usage: open-session.mjs <worktree dir> [--carry-on] | --main <name> <main checkout>");
     process.exit(2);
   }
   try {
-    console.log(JSON.stringify(onMain ? chooseMainFor(process.argv[3], process.argv[4]) : chooseFor(dir)));
+    console.log(
+      JSON.stringify(
+        onMain
+          ? chooseMainFor(process.argv[3], process.argv[4])
+          : chooseFor(dir, undefined, undefined, { carryOn }),
+      ),
+    );
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
     process.exit(1);

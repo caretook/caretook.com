@@ -8,7 +8,7 @@ import { CalendarClock, ListTodo } from "lucide-react";
 import { Link } from "react-router";
 import { RepeatMark } from "~/components/entry";
 import { TodoRepeatMark } from "~/components/todos";
-import { Chevron } from "~/components/ui";
+import { Chevron, Collapse } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
 import { nextEventTitle, nextStripText } from "~/lib/appointments/upcomingLabels";
@@ -57,7 +57,8 @@ function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySumma
  * vitals row instead shows all its readings in place when they don't fit,
  * B-186). Its header collapses it to one line ("3 overdue · 2 due soon · BP
  * 130/85 mmHg · 1 event"): collapsed on every load, a tap opening it for the
- * page view. Viewers see it too (without Given all). The whole card hides
+ * page view, its rows sliding open and shut (`Collapse`, the chevron turning,
+ * like a day's summary). Viewers see it too (without Given all). The whole card hides
  * once every row is known to be empty.
  */
 export function TodayCard({
@@ -104,77 +105,75 @@ export function TodayCard({
           {collapsed && <SummaryLine summary={today.summary} />}
         </button>
       </h2>
-      <ul
-        id="today-card-rows"
-        hidden={collapsed}
-        className="divide-base-300 border-base-300 divide-y border-t"
-      >
-        {today.vitals.length > 0 && (
-          <TodayRow
-            row="vitals"
-            status={status.vitals}
-            Icon={VitalsIcon}
-            iconClass="text-secondary"
-            expandable
-          >
-            <span className="sr-only">Latest vitals: </span>
-            {today.vitals.map(({ reading, occurredAt }, i) => (
-              <span key={reading.type} title={VITALS[reading.type].label} data-vital={reading.type}>
-                {i > 0 && <span className="text-faint"> · </span>}
-                <span className="font-semibold tabular-nums">{formatReading(reading, units)}</span>{" "}
-                <time dateTime={occurredAt} className="text-faint text-xs">
-                  {formatAgo(occurredAt)}
-                </time>
-              </span>
-            ))}
-          </TodayRow>
-        )}
-        {next.next && nextText && (
-          <TodayRow
-            row="appointment"
-            status={status.appointment}
-            Icon={CalendarClock}
-            seeAll={appUrls.planner(groupId)}
-            seeAllLabel="See all in Planner"
-          >
-            <Link
-              to={appUrls.entry(groupId, next.next.id)}
-              className="link-hover"
-              aria-label={`${nextText}: open ${nextTitle(next.next)}`}
-              data-next={next.next.id}
-            >
-              {nextText}
-            </Link>
-            <RepeatMark seriesId={next.next.seriesId} className="text-muted ms-1" />
-          </TodayRow>
-        )}
-        <TodayMedicationsRow
-          groupId={groupId}
-          canWrite={canWrite}
-          medications={today.medications}
-          status={status.medications}
-        />
-        {!todos.ready ? (
-          <TodayRowSkeleton row="todos" />
-        ) : (
-          todo && (
+      <Collapse open={!collapsed} id="today-card-rows">
+        <ul className="divide-base-300 border-base-300 divide-y border-t">
+          {today.vitals.length > 0 && (
             <TodayRow
-              row="todos"
-              status={status.todos}
-              Icon={ListTodo}
-              stale={!todos.fresh}
-              seeAll={appUrls.todos(groupId, { who: todoStripWho(todo.strip) })}
-              seeAllLabel="See all todos"
+              row="vitals"
+              status={status.vitals}
+              Icon={VitalsIcon}
+              iconClass="text-secondary"
+              expandable
             >
-              <span title={todo.text} data-todo={todo.strip.todo.id} data-todo-state={todo.strip.state}>
-                <span className="font-semibold">{todo.lead}:</span> {todo.title}
-                <TodoRepeatMark todo={todo.strip.todo} className="text-muted ms-1" />
-                {todo.rest && <span> · {todo.rest}</span>}
-              </span>
+              <span className="sr-only">Latest vitals: </span>
+              {today.vitals.map(({ reading, occurredAt }, i) => (
+                <span key={reading.type} title={VITALS[reading.type].label} data-vital={reading.type}>
+                  {i > 0 && <span className="text-faint"> · </span>}
+                  <span className="font-semibold tabular-nums">{formatReading(reading, units)}</span>{" "}
+                  <time dateTime={occurredAt} className="text-faint text-xs">
+                    {formatAgo(occurredAt)}
+                  </time>
+                </span>
+              ))}
             </TodayRow>
-          )
-        )}
-      </ul>
+          )}
+          {next.next && nextText && (
+            <TodayRow
+              row="appointment"
+              status={status.appointment}
+              Icon={CalendarClock}
+              seeAll={appUrls.planner(groupId)}
+              seeAllLabel="See all in Planner"
+            >
+              <Link
+                to={appUrls.entry(groupId, next.next.id)}
+                className="link-hover"
+                aria-label={`${nextText}: open ${nextTitle(next.next)}`}
+                data-next={next.next.id}
+              >
+                {nextText}
+              </Link>
+              <RepeatMark seriesId={next.next.seriesId} className="text-muted ms-1" />
+            </TodayRow>
+          )}
+          <TodayMedicationsRow
+            groupId={groupId}
+            canWrite={canWrite}
+            medications={today.medications}
+            status={status.medications}
+          />
+          {!todos.ready ? (
+            <TodayRowSkeleton row="todos" />
+          ) : (
+            todo && (
+              <TodayRow
+                row="todos"
+                status={status.todos}
+                Icon={ListTodo}
+                stale={!todos.fresh}
+                seeAll={appUrls.todos(groupId, { who: todoStripWho(todo.strip) })}
+                seeAllLabel="See all todos"
+              >
+                <span title={todo.text} data-todo={todo.strip.todo.id} data-todo-state={todo.strip.state}>
+                  <span className="font-semibold">{todo.lead}:</span> {todo.title}
+                  <TodoRepeatMark todo={todo.strip.todo} className="text-muted ms-1" />
+                  {todo.rest && <span> · {todo.rest}</span>}
+                </span>
+              </TodayRow>
+            )
+          )}
+        </ul>
+      </Collapse>
     </section>
   );
 }

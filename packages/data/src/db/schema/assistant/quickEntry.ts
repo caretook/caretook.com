@@ -1,6 +1,7 @@
 import type { ActionKind, AssistantAction } from "./assistantActions";
 import type { DoseStatus } from "../medications/medication";
 import type { ProviderType } from "../providers/provider";
+import type { NewItemDraft } from "./quickEntryNewItem";
 import type { ResolvedTime, TimeDirection, TimeSpec } from "./quickEntryTime";
 import type { VocabularyMatch, VocabularyRole } from "./quickEntryVocabulary";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
@@ -8,10 +9,13 @@ import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } fr
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
 import { findTime, periodUnderway, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
 import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
+import { readRepeat } from "./quickEntryRepeat";
+import { keepsNewItemLine, readNewItem } from "./quickEntryNewItem";
 import { foldSearchText } from "../search/search";
 import { TODO_LIMITS } from "../todos/todo";
 import { localTime } from "../todos/todoRules";
 import { TIMELINE_LIMITS } from "../timeline/timelineEntry";
+import { similarSymptoms } from "../timeline/symptomCatalog";
 import {
   BP_ORDER_MESSAGE,
   fieldRange,
@@ -88,6 +92,8 @@ export type QuickEntryContext = {
   passes?: readonly QuickEntryPass[];
   /** The group's members, whom a todo's "for Sam" or "@Sam" can name. */
   members?: readonly QuickEntryMember[];
+  /** The group's symptom catalog: a symptom named like one of them takes its spelling. */
+  symptoms?: readonly { name: string }[];
 };
 
 /** A member of the group, as a todo's assignee. */
@@ -96,8 +102,11 @@ export type QuickEntryMember = { id: string; name: string };
 /** Something to show on a card. A blocking one stops that card from saving. */
 export type QuickEntryWarning = { message: string; blocking: boolean };
 
+/** What a card can be: an action's kind, or a medication or provider to add (no action: Save opens its Add sheet). */
+export type QuickEntryKind = ActionKind | NewItemDraft["kind"];
+
 export type QuickEntryReading = {
-  kind: ActionKind;
+  kind: QuickEntryKind;
   /** The kind as a word, for the card and its alternative chips ("Vital", "Note"). */
   label: string;
   actions: AssistantAction[];
@@ -108,18 +117,22 @@ export type QuickEntryReading = {
   asksAmount?: boolean;
   /** One answer to `asksAmount`, as its chip says it ("2 tablets"). */
   amountChoice?: string;
+  /** A medication or provider to add ("new med lisinopril 10 mg"): no actions; Save opens its Add sheet with this. */
+  newItem?: NewItemDraft;
 };
 
 export type QuickEntryPart = { text: string; readings: QuickEntryReading[] };
 export type QuickEntryResult = { parts: QuickEntryPart[] };
 
-export const KIND_LABELS: Record<ActionKind, string> = {
+export const KIND_LABELS: Record<QuickEntryKind, string> = {
   vital: "Vital",
   symptom: "Symptom",
   dose: "Dose",
   note: "Note",
   event: "Event",
   todo: "Todo",
+  medication: "New medication",
+  provider: "New provider",
 };
 
 /** Kind prefixes: `v: …` is always a vital. */
@@ -363,6 +376,7 @@ const GENERIC_MEDS_WORDS = [
   "everything",
   "round",
   "pass",
+  "passes",
 ];
 const GENERIC_MEDS = new Set([
   ...GENERIC_MEDS_WORDS,
@@ -374,6 +388,10 @@ const GENERIC_MEDS = new Set([
   "dose",
   "doses",
 ]);
+
+/** "Med time(s)", the visible name for a pass: "time" after one of these words. */
+const MED_TIME_LEADS = new Set(["med", "meds", "medication", "medications"]);
+const MED_TIME_WORDS = new Set(["time", "times"]);
 
 /** Words for trouble that a "no" can open a phrase about, beside the symptom words: "no problems when…". */
 const TROUBLE_WORDS = new Set([
@@ -955,6 +973,8 @@ type PartState = {
   providers: NameMatch<QuickEntryProvider>[];
   /** Those named clearly enough to make the part about them (an event, or a note with a contact verb). */
   naming: NameMatch<QuickEntryProvider>[];
+  /** The repeat the line says ("every monday"), as RRULE text: its todo repeats. Its words aren't free. */
+  repeatRule?: string;
 };
 
 const roleIdx = (s: PartState, ...roles: VocabularyRole[]) =>
@@ -1450,7 +1470,12 @@ const passReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     .filter((m): m is { pass: QuickEntryPass; used: number[] } => !!m)
     .sort((a, b) => b.used.length - a.used.length)[0];
   const others = rest.filter((i) => !named?.used.includes(i) && !FILLER.has(s.tokens[i]!.w));
-  if (!others.every((i) => GENERIC_MEDS.has(s.tokens[i]!.w))) return [];
+  // "Med time" is the screen's word for a pass: "time" counts only right after "med" ("gave evening med time").
+  const medTime = (i: number) =>
+    MED_TIME_WORDS.has(s.tokens[i]!.w) &&
+    MED_TIME_LEADS.has(s.tokens[i - 1]?.w ?? "") &&
+    others.includes(i - 1);
+  if (!others.every((i) => GENERIC_MEDS.has(s.tokens[i]!.w) || medTime(i))) return [];
   const generic = others.length > 0;
   if (!named && !generic) return [];
   if (!inherited && !forced && !(named && generic)) return [];
@@ -1533,12 +1558,17 @@ const onlyMedicationWords = (s: PartState, idx: readonly number[]) => {
 
 const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const at = s.time.past.at;
+  // The catalog's spelling for a name it has (same key: case and spaces), else the words as typed.
+  const named = (name: string) => {
+    const typed = capitalize(truncate(name, TIMELINE_LIMITS.symptomName));
+    return similarSymptoms(typed, s.context.symptoms ?? []).exact?.name ?? typed;
+  };
   const make = (name: string, severity: number | null, note: string | null, confidence: number) =>
     reading(
       "symptom",
       {
         type: "logSymptom",
-        name: capitalize(truncate(name, TIMELINE_LIMITS.symptomName)),
+        name: named(name),
         severity,
         note,
         occurredAt: at.toISOString(),
@@ -1968,11 +1998,22 @@ const todoReading = (s: PartState, confidence: number): QuickEntryReading => {
       providerId: null,
       medicationId: null,
       eventId: null,
+      ...(s.repeatRule ? { repeatRule: s.repeatRule } : {}),
     },
     confidence,
     warnings,
   );
 };
+
+/** A medication or provider to add: no actions; its card's Save opens the Add sheet filled in. */
+const newItemReading = (draft: NewItemDraft, confidence: number): QuickEntryReading => ({
+  kind: draft.kind,
+  label: KIND_LABELS[draft.kind],
+  actions: [],
+  confidence,
+  warnings: [],
+  newItem: draft,
+});
 
 const DETECTORS: Record<
   Exclude<ActionKind, "note">,
@@ -2139,6 +2180,44 @@ const isSatAfterMember = (tokens: readonly Token[], context: QuickEntryContext, 
   });
 };
 
+/** A log reading this sure, the repeat's words aside, keeps the line a log ("gave tylenol every day"). */
+const LOG_FIRST = 0.5;
+
+/** On an event quick entry makes from a line with a repeat: it makes only the first. */
+export const REPEATING_EVENT_MESSAGE =
+  "Quick entry can't make a repeating event, so this is only the first one. Make it a todo to repeat it.";
+
+/** An event this sure (an appointment word, a provider named) stays first over the repeating todo. */
+const EVENT_FIRST = 0.8;
+
+/**
+ * A line with a repeat ("bins out every monday"): a repeating todo first,
+ * due on the rule's first day; an event first instead when the line names a
+ * provider or an appointment word, saying it won't repeat; then any weak
+ * log reading, the note (dated now) and an event. Null when the line reads
+ * as a vital, dose, pass or symptom: it stays one.
+ */
+const repeatReadings = (s: PartState): QuickEntryReading[] | null => {
+  const found = [
+    ...vitalReadings(s, false),
+    ...passReadings(s, false),
+    ...doseReadings(s, false),
+    ...symptomReadings(s, false),
+  ];
+  if (found.some((r) => r.confidence >= LOG_FIRST)) return null;
+  const logs = found.map((r) => ({ ...r, confidence: Math.min(r.confidence, ASKED_FOR_CONFIDENCE) }));
+  const events = eventReadings(s, false);
+  const event = events.find((r) => r.confidence >= EVENT_FIRST);
+  if (event) event.warnings.push({ message: REPEATING_EVENT_MESSAGE, blocking: false });
+  return [
+    todoReading(s, event ? EVENT_FIRST - 0.05 : 0.85),
+    ...events,
+    ...logs,
+    noteReading(s, 0.35, { now: true }),
+    ...(events.length ? [] : [eventFromText(s, 0.2)]),
+  ];
+};
+
 const parsePart = (
   text: string,
   context: QuickEntryContext,
@@ -2161,8 +2240,8 @@ const parsePart = (
       ? ""
       : t.w,
   );
-  const wordsLeft = (found: ReturnType<typeof findTime>) => {
-    const free = tokens.map((_, i) => i).filter((i) => !found?.used.has(i));
+  const wordsLeft = (found: ReturnType<typeof findTime>, taken: ReadonlySet<number> = new Set()) => {
+    const free = tokens.map((_, i) => i).filter((i) => !found?.used.has(i) && !taken.has(i));
     const vocab = findVocabulary(
       tokens.map((t) => vocabularyWord(t.w)),
       (i) => free.includes(i),
@@ -2170,24 +2249,61 @@ const parsePart = (
     return { free, vocab };
   };
   // "tomorrow morning", "next friday morning": a part of day on a request; a report or event keeps its day.
-  const requested =
-    forced === null || forced === "todo" ? findTime(timeWords, { periodAfterDay: true }) : null;
-  const time = requested && asksForAction(wordsLeft(requested)) ? requested : findTime(timeWords);
-  const { free, vocab } = wordsLeft(time);
-  const providers = matchProviders(context, tokens, free);
-  const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
-  const s: PartState = {
-    text: body,
-    tokens,
-    time: timeOf(time?.spec ?? null, context),
-    free,
-    context,
-    previousDose,
-    claimed: new Set(),
-    vocab,
-    providers,
-    naming: providers.filter((m) => namesClearly(m, tokens, verb)),
+  const partTime = (words: readonly string[], taken?: ReadonlySet<number>) => {
+    const requested = forced === null || forced === "todo" ? findTime(words, { periodAfterDay: true }) : null;
+    return requested && asksForAction(wordsLeft(requested, taken)) ? requested : findTime(words);
   };
+  const stateOf = (spec: TimeSpec | null, { free, vocab }: ReturnType<typeof wordsLeft>): PartState => {
+    const providers = matchProviders(context, tokens, free);
+    const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
+    return {
+      text: body,
+      tokens,
+      time: timeOf(spec, context),
+      free,
+      context,
+      previousDose,
+      claimed: new Set(),
+      vocab,
+      providers,
+      naming: providers.filter((m) => namesClearly(m, tokens, verb)),
+    };
+  };
+  const time = partTime(timeWords);
+  const plain = stateOf(time?.spec ?? null, wordsLeft(time));
+
+  // "bins out every monday 7am": the repeat's words are out of the time
+  // phrase and the title; its first day is the due day, at the time said.
+  const repeatState = (): PartState | null => {
+    const today = localDate(context.now, context.timeZone);
+    const words = tokens.map((t) => t.w);
+    const found = readRepeat(words, today);
+    if (!found) return null;
+    const rest = partTime(
+      timeWords.map((w, i) => (found.used.has(i) ? "" : w)),
+      found.used,
+    );
+    const said = rest && !("relativeMinutes" in rest.spec) ? rest.spec : null;
+    // "every monday from dec 1": the first one on or after that day.
+    const from = said?.day
+      ? localDate(
+          resolveTime(said, { now: context.now, timeZone: context.timeZone, direction: "future" }).at,
+          context.timeZone,
+        )
+      : today;
+    const repeat = from === today ? found : (readRepeat(words, today, { from }) ?? found);
+    const offset = Math.round((Date.parse(repeat.firstDay) - Date.parse(today)) / 86_400_000);
+    const spec: TimeSpec = {
+      day: { offset },
+      ...(said?.clock ? { clock: said.clock } : {}),
+      ...(said?.period ? { period: said.period } : {}),
+    };
+    return { ...stateOf(spec, wordsLeft(rest, found.used)), repeatRule: repeat.rule };
+  };
+  // A medication or provider to add ("new med lisinopril 10 mg daily") keeps its words.
+  const newItem = forced === null ? readNewItem(body, context.providers) : null;
+  const repeated = (forced === null && !newItem) || forced === "todo" ? repeatState() : null;
+  const s = forced === "todo" && repeated ? repeated : plain;
   // A note incident ("911", "the ER"), or a contact verb with a provider
   // ("called Dr. Lee"), makes a note first.
   const noteFirst = hasRole(s, "noteIncident") || (hasRole(s, "contactVerb") && s.naming.length > 0);
@@ -2213,7 +2329,9 @@ const parsePart = (
       });
     readings.push(fallback);
   } else {
+    // "new med lisinopril 10 mg", "add provider Dr Kim": ahead of any loose match to what the group has.
     readings = [
+      ...(newItem ? [newItemReading(newItem.draft, newItem.confidence)] : []),
       ...vitalReadings(s, false),
       ...passReadings(s, false),
       ...doseReadings(s, false),
@@ -2230,6 +2348,11 @@ const parsePart = (
           ? { ...r, confidence: Math.min(r.confidence, ASKED_FOR_CONFIDENCE) }
           : r,
       );
+    // A repeat makes a repeating todo, unless the line tells what happened.
+    if (repeated && !hasRole(s, "reportWord", "visitVerb", "contactVerb")) {
+      const made = repeatReadings(repeated);
+      if (made) readings = made;
+    }
   }
   readings.sort((a, b) => b.confidence - a.confidence);
   return { text: body, readings };
@@ -2243,17 +2366,42 @@ const parsePart = (
  * A line's parts: split on commas, semicolons, new lines and "and" (not a
  * comma inside a number, "1,000"). A line that starts with `n:` or `e:` is
  * one note or event, whatever it says. A todo keeps its "and" ("todo: pick
- * up milk and bread") up to the next comma, semicolon or line.
+ * up milk and bread") up to the next comma, semicolon or line, and a repeat
+ * its weekdays ("every mon, wed and fri").
  */
 const SOFT_SPLIT = /\s*(?:\band\b|\bthen\b|&|\+)\s*/i;
 const SOFT_SPLIT_START = /^\s*(?:\band\b|\bthen\b|&|\+)\s*/i;
 const TODO_AFTER_SOFT = /\s*(?:\band\b|\bthen\b|&|\+)\s*(?=(?:t|task|todo|to-do|to do)\s*:|todo\b)/i;
 
+const DAY_WORD = String.raw`(?:mon(?:day)?|tue(?:s(?:day)?)?|wed(?:s|nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)s?\b`;
+const DAY_LINK = String.raw`(?:\s*,\s*(?:(?:and|or)\s+|[&+]\s*)?|\s+(?:and|or)\s+|\s*[&+]\s*|\s+)`;
+/** A repeat's weekday list: "every mon, wed and fri", "every other week on tue & thu". */
+const REPEAT_DAYS = new RegExp(
+  String.raw`\b(?:every|weekly)\b(?:\s+(?:other|second|\d+|weeks?|on))*\s+${DAY_WORD}(?:${DAY_LINK}${DAY_WORD})+`,
+  "gi",
+);
+/** What the splitter would split a weekday list on, hidden while it splits (private-use characters). */
+const LIST_MASKS: [string, string][] = [
+  [",", "\uE000"],
+  ["&", "\uE002"],
+  ["+", "\uE003"],
+];
+/** "and" keeps its letters (and case), broken by a mark so the soft split misses it. */
+const AND_MARK = "\uE001";
+const maskList = (list: string) =>
+  LIST_MASKS.reduce((text, [was, mask]) => text.replaceAll(was, mask), list).replace(
+    /\b(a)(nd)\b/gi,
+    `$1${AND_MARK}$2`,
+  );
+const unmask = (text: string) =>
+  LIST_MASKS.reduce((t, [was, mask]) => t.replaceAll(mask, was), text).replaceAll(AND_MARK, "");
+
 export const splitQuickEntry = (text: string): string[] => {
   const line = text.trim();
   if (!line) return [];
-  if (/^[ne]:/i.test(line)) return [line];
-  return line
+  if (/^[ne]:/i.test(line) || keepsNewItemLine(line)) return [line];
+  const masked = line.replace(REPEAT_DAYS, maskList);
+  return masked
     .split(/\s*(?:;|\n|(?<!\d),|,(?!\d))\s*/)
     .flatMap((piece) => {
       // From a todo's prefix on, the piece is the todo.
@@ -2262,7 +2410,7 @@ export const splitQuickEntry = (text: string): string[] => {
       const tail = todo < 0 ? [] : [piece.slice(todo).replace(SOFT_SPLIT_START, "")];
       return [...(head ? head.split(SOFT_SPLIT) : []), ...tail];
     })
-    .map((p) => p.trim())
+    .map((p) => unmask(p).trim())
     .filter((p) => /[\p{L}\p{N}]/u.test(p));
 };
 

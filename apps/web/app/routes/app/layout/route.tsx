@@ -2,14 +2,15 @@ import type { Route } from "./+types/route";
 
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
 import { Search } from "lucide-react";
-import { Wordmark } from "~/components/brand";
+import { FullLogo } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
-import { Button, IconButton } from "~/components/ui";
+import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { isFirstSyncPending } from "~/lib/sync/firstSync";
 import { requireSession, sessionContext } from "~/lib/auth/session";
 import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
+import { OfflineBanner } from "./OfflineBanner";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
 import { UpdateNotice } from "./UpdateNotice";
@@ -46,7 +47,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - `announcement`: staff's banner (`Announcement`), when there is one;
  * - the outlet;
  * - `TabBar` (phones) under the outlet, on group routes;
- * - `update`: "A new version is ready" (`UpdateNotice`), when a new service worker waits.
+ * - the toast region (`ToastRegion`, every screen's toasts), and `UpdateNotice`,
+ *   which toasts "A new version is ready" when a new service worker waits.
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in easy mode
@@ -66,7 +68,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
           <Link to={appUrls.home()} className="shrink-0 rounded-field">
-            <Wordmark wordHiddenBelow={groupId ? "sm" : undefined} />
+            <FullLogo wordHiddenBelow={groupId ? "sm" : undefined} />
           </Link>
           {groupFrame && <GroupMenu groupId={groupFrame} />}
         </div>
@@ -88,11 +90,11 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       <div data-region="announcement" className="print:hidden">
         <Announcement pathname={pathname} />
       </div>
+      <OfflineBanner />
       <Outlet />
       {groupFrame && <TabBar groupId={groupFrame} pathname={pathname} />}
-      <div data-region="update">
-        <UpdateNotice />
-      </div>
+      <UpdateNotice />
+      <ToastRegion />
     </>
   );
 }

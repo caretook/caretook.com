@@ -8,6 +8,7 @@ import { useLayoutEffect } from "react";
 import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { ToastRegion } from "~/components/ui";
 import { sessionContext } from "~/lib/auth/session";
 import { installTestDatabase } from "~/lib/sync";
 import { searchIndexSettled } from "~/lib/search/search.sync";
@@ -147,6 +148,13 @@ export type DeviceOptions = {
    * this; `api` is what answers their calls. `device.connect()` changes it.
    */
   connected?: boolean;
+  /**
+   * The app starting (B-806): the /app middleware waits on this before the
+   * session is set, as `requireSession` waits on the server and the database
+   * open; `fallback` (root.tsx's `HydrateFallback`) shows meanwhile. Pair it
+   * with `settle: false`.
+   */
+  starting?: { until: Promise<unknown>; fallback: ComponentType };
 };
 
 export type Device = {
@@ -233,6 +241,17 @@ function FirstLoad() {
   return null;
 }
 
+/** The app's own first-load fallback, counted as `FirstLoad` is. */
+const startingFallback = (Fallback: ComponentType) =>
+  function Starting() {
+    return (
+      <>
+        <FirstLoad />
+        <Fallback />
+      </>
+    );
+  };
+
 type StubRoute = Parameters<typeof createRoutesStub>[0][number];
 
 /** A server-only export the test didn't stand in for: fail loudly, naming the route. */
@@ -297,14 +316,24 @@ const outsideApp = (route: DeviceRoute): StubRoute => {
   };
 };
 
-/** The /app route's component: the location probe, then the real frame or a bare outlet. */
+/**
+ * The /app route's component: the location probe, then the real frame or a
+ * bare outlet with the frame's toast region (so a screen's toasts show).
+ */
 const withProbe =
   (Frame: RouteModule["default"] | null) =>
   // The stub passes route component props (loaderData, params, matches) through.
   (props: object) => (
     <>
       <LocationProbe />
-      {Frame ? <Frame {...props} /> : <Outlet />}
+      {Frame ? (
+        <Frame {...props} />
+      ) : (
+        <>
+          <Outlet />
+          <ToastRegion />
+        </>
+      )}
     </>
   );
 
@@ -358,10 +387,18 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
       {
         id: "app",
         path: "/app",
-        middleware: [({ context: ctx }, next) => (ctx.set(sessionContext, { user, db }), next())],
+        middleware: [
+          options.starting
+            ? async ({ context: ctx }, next) => {
+                await options.starting?.until;
+                ctx.set(sessionContext, { user, db });
+                return next();
+              }
+            : ({ context: ctx }, next) => (ctx.set(sessionContext, { user, db }), next()),
+        ],
         loader: () => ({ user }),
         Component: withProbe(options.frame ? (appLayout.default as RouteModule["default"]) : null),
-        HydrateFallback: FirstLoad,
+        HydrateFallback: options.starting ? startingFallback(options.starting.fallback) : FirstLoad,
         ErrorBoundary: appLayout.ErrorBoundary,
         children: [
           ...inApp,

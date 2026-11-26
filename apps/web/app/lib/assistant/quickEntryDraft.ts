@@ -1,4 +1,13 @@
-import type { ActionOf, DoseStatus, SymptomDetails, VitalDetails } from "@caretook/data/schema";
+import type {
+  ActionOf,
+  DoseStatus,
+  NewMedicationDraft,
+  NewProviderDraft,
+  SymptomDetails,
+  VitalDetails,
+} from "@caretook/data/schema";
+
+import { MEDICATION_FORMS, PROVIDER_TYPES } from "@caretook/data/schema";
 
 // What quick entry's Edit hands the usual sheets: a draft in history state
 // (never in the URL), which the add sheet and the Dose sheet start from.
@@ -86,5 +95,42 @@ export const eventDraftFrom = (state: unknown): EventDraft | null => {
     place: typeof place === "string" && place.trim() ? place : null,
     providerIds: [...providerIds],
     timeZone,
+  };
+};
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+const textOrNull = (value: unknown) => (typeof value === "string" && value.trim() ? value : null);
+const oneOf = <T extends string>(options: readonly T[], value: unknown): T | null =>
+  (options as readonly unknown[]).includes(value) ? (value as T) : null;
+
+/**
+ * The Add medication sheet's draft from its history state, if quick entry
+ * opened it ("new med lisinopril 10 mg tablet"): name, strength, form and
+ * directions (anything malformed is dropped). The sheet saves as it always does.
+ */
+export const medicationDraftFrom = (state: unknown): NewMedicationDraft | null => {
+  const draft = draftOf<Record<string, unknown>>(state);
+  if (!draft || typeof draft !== "object" || draft.kind !== "medication") return null;
+  return {
+    kind: "medication",
+    name: text(draft.name),
+    strength: textOrNull(draft.strength),
+    form: oneOf(MEDICATION_FORMS, draft.form),
+    directions: textOrNull(draft.directions),
+  };
+};
+
+/** The Add provider sheet's draft from its history state, if quick entry opened it ("add provider Dr Kim cardiology"). */
+export const providerDraftFrom = (state: unknown): NewProviderDraft | null => {
+  const draft = draftOf<Record<string, unknown>>(state);
+  if (!draft || typeof draft !== "object" || draft.kind !== "provider") return null;
+  return {
+    kind: "provider",
+    type: oneOf(PROVIDER_TYPES, draft.type) ?? "clinician",
+    name: text(draft.name),
+    specialty: textOrNull(draft.specialty),
+    practiceId: textOrNull(draft.practiceId),
+    phone: textOrNull(draft.phone),
+    address: textOrNull(draft.address),
   };
 };

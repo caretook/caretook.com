@@ -29,7 +29,7 @@ import {
 // in basicsFormData.test.ts and detailsFormData.test.ts, and a demotion
 // losing the details row for real is app-shell.mjs's step 4.
 
-const WRITER_SECTIONS = ["basics", "conditions", "note", "contact", "insurance", "emergency"];
+const WRITER_SECTIONS = ["basics", "allergies", "conditions", "note", "contact", "insurance", "emergency"];
 const NEEDS_CONNECTION = "Needs a connection to edit.";
 
 const h1 = () => document.querySelector("main [data-profile-header] h1")?.textContent?.trim();
@@ -134,7 +134,7 @@ describe("the page by role", () => {
   test("a viewer: the basics and note, no Edit or Print, no writers' cards, the caretakers line, and no details row", async () => {
     const device = await openProfile({ role: "viewer" });
     await expect.poll(h1).toBe("Grandma June");
-    expect(sections()).toEqual(["basics", "conditions", "note"]);
+    expect(sections()).toEqual(["basics", "allergies", "conditions", "note"]);
     expect(basicsLines().codeStatus).toBe("DNR");
     await expect.element(getByCss("main [data-note]")).toHaveTextContent(JUNE.notes);
     await expect.element(getByCss("main [data-edit-basics]")).not.toBeInTheDocument();
@@ -189,7 +189,7 @@ describe("the page by role", () => {
     await device.sync(membership("viewer"));
     await device.unsync([recipientDetails()]);
     await device.settle();
-    expect(sections()).toEqual(["basics", "conditions", "note"]);
+    expect(sections()).toEqual(["basics", "allergies", "conditions", "note"]);
     await expect.element(getByCss("main [data-viewer-more]")).toBeInTheDocument();
     await expect.element(getByCss("main [data-edit-basics]")).not.toBeInTheDocument();
 
@@ -358,6 +358,9 @@ describe("the Contact sheet", () => {
       ...document.querySelectorAll<HTMLInputElement>('[role=dialog] [name="phoneNumber"]'),
     ];
     expect(numbers().map((n) => n.value)).toEqual(["(555) 010-7100"]);
+    // The recipient's labels stay free text (only a provider's are a select).
+    expect(document.querySelector('[role=dialog] [name="phoneLabel"]')?.tagName).toBe("INPUT");
+    expect(document.querySelector("[role=dialog] [data-phone-label]")).toBeNull();
     await expect.element(field("email")).toHaveValue(DETAILS.email);
     await expect.element(field("address")).toHaveValue(DETAILS.address);
 

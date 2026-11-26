@@ -6,7 +6,7 @@ import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { Pencil } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { AllergiesRegion, MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
@@ -14,6 +14,7 @@ import { BackLink, Button, Message, Notice, Page, Section } from "~/components/u
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
+import { medicationOriginFromState } from "~/lib/medications/medicationOrigin";
 import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
 import { sessionContext } from "~/lib/auth/session";
@@ -30,6 +31,7 @@ import {
 } from "~/lib/medications/medications.sync";
 import { loadMedication } from "./loadMedication";
 import { MedicationDetails, MedicationRefills } from "./MedicationDetails";
+import { MedicationExtraDoses } from "./MedicationExtraDoses";
 import { MedicationHeader } from "./MedicationHeader";
 import { MedicationHistory } from "./MedicationHistory";
 import { MedicationProviders } from "./MedicationProviders";
@@ -87,6 +89,10 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const listUrl = appUrls.medicationList(groupId);
+  // Back goes where the page was opened from (Schedule, the timeline, a
+  // search…, with its filters), else the list. A delete still goes to the list.
+  const location = useLocation();
+  const back = medicationOriginFromState(groupId, location.state as unknown);
 
   // The medication, live: other members' edits, and deletion.
   const query = medicationQuery(medicationId);
@@ -117,7 +123,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   return (
     <Page bands>
       <Section>
-        <BackLink to={listUrl} label="Medications" />
+        <BackLink to={back.url} label={back.label} />
 
         <MedicationHeader
           medication={medication}
@@ -149,6 +155,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
             )
           }
         />
+        {!deleted && <MedicationExtraDoses groupId={groupId} medicationId={medicationId} />}
       </Section>
 
       {deleted ? (

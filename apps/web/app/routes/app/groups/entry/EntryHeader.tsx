@@ -1,5 +1,5 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
@@ -132,11 +132,17 @@ export function EntryTime({
 export function EntryTitle({
   value,
   placeholder,
+  required,
+  inputRef,
   onCommit,
   onTextChange,
 }: {
   value: string | null;
   placeholder: string;
+  /** It must be filled (a draft event's): `aria-required` (the label is hidden, so no `*`). */
+  required?: boolean;
+  /** The input, for the page to focus. */
+  inputRef?: Ref<HTMLInputElement>;
   /** Called with the trimmed text when it differs from `value`. */
   onCommit: (title: string) => void;
   /** Called with the field's text as it's typed (before it's committed). */
@@ -160,10 +166,11 @@ export function EntryTitle({
   };
 
   return (
-    <Field label="Title" labelHidden>
+    <Field label="Title" labelHidden required={required}>
       {(control) => (
         <input
           {...control}
+          ref={inputRef}
           type="text"
           value={text}
           maxLength={TIMELINE_LIMITS.title}

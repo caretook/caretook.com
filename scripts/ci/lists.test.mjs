@@ -167,10 +167,10 @@ describe("the Vitest setup", () => {
 
   it("is in every project of the real config, so a local check skips them too", () => {
     const text = readFileSync(join(root, "vitest.config.ts"), "utf8");
-    expect(text).toContain("].map(withQuarantine)");
+    expect(text).toMatch(/\]\s*(\.map\(\w+\)\s*)*\.map\(withQuarantine\),/);
     const listed = execFileSync(
       "pnpm",
-      ["exec", "vitest", "list", "--filesOnly", "--project", "scripts:unit"],
+      ["exec", "vitest", "list", "--filesOnly", "--project", "project:unit"],
       {
         cwd: root,
         encoding: "utf8",

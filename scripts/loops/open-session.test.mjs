@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  carryOnPrompt,
   chooseCommand,
   chooseMainCommand,
   inboxDirOf,
@@ -28,6 +29,7 @@ import {
   runThrough,
 } from "./open-session.mjs";
 import { CAPTAINS } from "./captain.mjs";
+import "./config-fixture.mjs";
 
 const SESSION_SH = "/o/scripts/loops/session.sh";
 const W = `cd /w/.loops/t && ${SESSION_SH} prd-t`;
@@ -128,6 +130,7 @@ beforeAll(() => {
   for (const f of [
     "prd.sh",
     "lib.sh",
+    "config.mjs",
     "open-session.sh",
     "open-session.mjs",
     "planner-model.mjs",
@@ -181,7 +184,7 @@ describe("backlog, recovery and hotfix sessions", () => {
       title: "Pike",
       mode: "fresh",
       managed: true,
-      command: `cd /m && ${wrapper} backlog --kind backlog --managed -- --model sonnet --remote-control Pike "$(scripts/loops/prompt.sh backlog)"`,
+      command: `cd /m && ${wrapper} backlog --kind backlog --managed -- --model sonnet --remote-control Pike "$(CARETOOK_CAPTAIN=Pike scripts/loops/prompt.sh backlog)"`,
     });
   });
 
@@ -240,21 +243,22 @@ describe("backlog, recovery and hotfix sessions", () => {
     );
   });
 
-  it("the inbox session reopens through prd.sh inbox in its recorded directory, on its recorded model", () => {
+  it("the inbox session reopens through prd.sh inbox in its recorded directory, on prd.sh's model", () => {
     const prd = wrapper.replace(/session\.sh$/, "prd.sh");
+    // A record from the old default (Sonnet) passes no --model: prd.sh's Opus at low effort takes over.
     const record = { kind: "inbox", model: "sonnet", managed: true, dir: "/h/.caretook/inbox" };
     expect(chooseMainCommand({ name: "inbox", main: "/m", wrapper, record })).toMatchObject({
       session: "inbox",
       kind: "inbox",
       mode: "fresh",
       managed: true,
-      command: `cd /m && ${prd} inbox --dir /h/.caretook/inbox --model sonnet --managed`,
+      command: `cd /m && ${prd} inbox --dir /h/.caretook/inbox --managed`,
     });
-    // No directory or model recorded: the default directory, on Opus; by hand stays by hand.
+    // No directory or model recorded: the default directory; by hand stays by hand.
     expect(
       chooseMainCommand({ name: "inbox", main: "/m", wrapper, record: { kind: "inbox" }, inboxDir: "/d" })
         .command,
-    ).toBe(`cd /m && ${prd} inbox --dir /d --model opus`);
+    ).toBe(`cd /m && ${prd} inbox --dir /d`);
   });
 
   it("the inbox directory is the record's, else CARETOOK_INBOX_DIR, else ~/.caretook/inbox", () => {
@@ -315,7 +319,9 @@ describe("backlog, recovery and hotfix sessions", () => {
     expect(out).toContain(`cd ${main} && `);
     const captain = /^backlog as ([A-Za-z]+) /m.exec(out)?.[1];
     expect(CAPTAINS).toContain(captain);
-    expect(out).toContain(`--model sonnet --remote-control ${captain} "$(scripts/loops/prompt.sh backlog)"`);
+    expect(out).toContain(
+      `--model sonnet --remote-control ${captain} "$(CARETOOK_CAPTAIN=${captain} scripts/loops/prompt.sh backlog)"`,
+    );
     expect(out).not.toContain("--continue");
     rmSync(folder, { recursive: true });
   });
@@ -456,6 +462,32 @@ describe("choosing the command", () => {
       managed: true,
       command: `cd /w/.loops/plan-u && ${SESSION_SH} plan-u --auto --managed -- --model opus --remote-control plan-u "$(scripts/loops/prompt.sh plan u --auto)"`,
     });
+  });
+
+  it("--carry-on: a continued prd or plan session gets the carry-on prompt; a fresh one keeps its resume prompt", () => {
+    const choose = (branch, conversation, record = { managed: true }) =>
+      chooseCommand({
+        dir: `/w/.loops/${branch.replace("/", "-").replace(/^prd-/, "")}`,
+        branch,
+        conversation,
+        runThrough: false,
+        record,
+        wrapper: SESSION_SH,
+        carryOn: true,
+      });
+    expect(choose("prd/t", true).command).toBe(
+      `${W} --managed -- --continue --remote-control prd-t '${carryOnPrompt("prd", "t").replace(/'/g, "'\\''")}'`,
+    );
+    expect(carryOnPrompt("prd", "t")).toMatch(
+      /usage limit, and the limit has now reset\. .*pnpm prd land --resume/,
+    );
+    expect(choose("plan/u", true).command).toContain(
+      `--continue --remote-control plan-u '${carryOnPrompt("plan", "u")}'`,
+    );
+    expect(choose("prd/t", false).command).toBe(
+      `${W} --managed -- --remote-control prd-t "$(scripts/loops/prompt.sh orchestrator t --resume)"`,
+    );
+    expect(choose("prd/t", true, { managed: true, rotating: true }).mode).toBe("fresh");
   });
 
   it("names an absolute session.sh outside the worktree, the opener's own by default", () => {
@@ -606,6 +638,21 @@ describe("pnpm prd open", () => {
         '--model opus --remote-control plan-v "$(scripts/loops/prompt.sh plan v --auto)"',
       ),
     );
+  });
+
+  it("--carry-on reaches the opener's choice: the saved conversation continues with the carry-on prompt", () => {
+    writeRecord("plan-v", { pid: 1, auto: true, managed: true, ended: "2026-11-21T00:00:00Z" });
+    saveConversation("plan-v");
+    try {
+      ok(["plan-v", "--carry-on"]);
+      expect(tabCommand()).toContain(
+        "--continue --remote-control plan-v 'This session stopped on a usage limit",
+      );
+      ok(["plan-v"]);
+      expect(tabCommand()).toMatch(/--continue --remote-control plan-v$/);
+    } finally {
+      rmSync(join(projects, projectFolder(join(loops, "plan-v"))), { recursive: true, force: true });
+    }
   });
 
   it("reopens a design row's planner on Fable, fresh or continued, and any other on opus", () => {

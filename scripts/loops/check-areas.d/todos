@@ -11,3 +11,7 @@ apps/web/app/components/todos/           -
 packages/data/src/db/seeds/todos.ts      -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/todos/                  -
+# Which todos a note or event links (planner-3): the link table and the
+# device module; a link reaching a second device is roundtrip's sync matrix (6b).
+packages/data/src/db/schema/todos/entryTodo.ts roundtrip
+apps/web/app/lib/todos/entryTodos.sync.ts roundtrip

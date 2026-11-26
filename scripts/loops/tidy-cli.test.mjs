@@ -1,7 +1,7 @@
 // pnpm prd tidy (tidy-cli.mjs) against a throwaway repo and .loops with these
-// scripts copied in, and fake docker, lsof, osascript, pnpm, nvm and backlog:
-// nothing here touches real containers, volumes, sessions, the asks queue, a
-// real claude or GitHub.
+// scripts copied in, the stack hooks on the sample project's stub, and fake
+// lsof, osascript, pnpm, nvm and backlog: nothing here touches real containers,
+// volumes, sessions, the asks queue, a real claude or GitHub.
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
@@ -21,6 +21,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { collectTidyFacts, processCwds } from "./tidy-cli.mjs";
 import { tidy as sortFacts } from "./tidy.mjs";
+import { stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -40,17 +41,11 @@ Stack: no · Reads: none · Tests: unit
 Stack: no · Reads: none · Tests: unit
 `;
 
-// A running shared test Postgres (container c1) whose databases are
-// FAKE_DBS (only for the listing query), and FAKE_VOLUMES as the dangling volumes.
-const FAKE_DOCKER = `#!/usr/bin/env bash
-echo "docker $*" >> "$FAKE_LOG"
-case "$1 $2" in
-  "ps -q") [[ "$*" == *caretook-shared-test* && "$*" == *postgres* ]] && echo c1 ;;
-  "exec c1") [[ "$*" == *psql* && "$*" == *LIKE* ]] && printf '%s\\n' $FAKE_DBS ;;
-  "volume ls") printf '%s\\n' "$FAKE_VOLUMES" ;;
-esac
-exit 0
-`;
+// The stub stack hook's state (stack-hook.sh): an orphan test database and the
+// stack's leftovers (one volume, and an image tidy leaves to reclaim).
+const ORPHANS = "sample_test_gone\n";
+const LEFTOVERS =
+  "volume=sample-loop9_data 300 dangling; no worktree uses sample-loop9\nimage=img1 900 dangling image\n";
 // The backlog's list --json and prd list --json: nothing finished, no rows.
 const FAKE_BACKLOG = 'console.log("[]");\n';
 
@@ -82,13 +77,12 @@ beforeAll(() => {
   const nvm = join(root, "nvm");
   mkdirSync(bin);
   mkdirSync(nvm);
-  writeFileSync(join(bin, "docker"), FAKE_DOCKER);
   writeFileSync(join(bin, "pnpm"), '#!/usr/bin/env bash\necho "pnpm $*" >> "$FAKE_LOG"\n');
   writeFileSync(join(bin, "osascript"), '#!/usr/bin/env bash\necho "osascript $*" >> "$FAKE_LOG"\n');
   writeFileSync(join(bin, "claude"), '#!/usr/bin/env bash\necho "claude $*" >> "$FAKE_LOG"\n');
   // No process listens or works anywhere.
   writeFileSync(join(bin, "lsof"), "#!/usr/bin/env bash\nexit 1\n");
-  for (const f of ["docker", "pnpm", "osascript", "claude", "lsof"]) chmodSync(join(bin, f), 0o755);
+  for (const f of ["pnpm", "osascript", "claude", "lsof"]) chmodSync(join(bin, f), 0o755);
   writeFileSync(join(nvm, "nvm.sh"), "nvm() { :; }\n");
   env = {
     ...process.env,
@@ -102,11 +96,12 @@ beforeAll(() => {
     CARETOOK_SESSIONS_DIR: sessions,
     CARETOOK_SESSION: "",
     CARETOOK_LEASE_ROOT: leases,
-    CARETOOK_SHARED_TEST_PORT: "",
-    CARETOOK_SHARED_TEST_PROJECT: "",
-    FAKE_DBS: "caretook_test_t_3 caretook_test_gone",
-    FAKE_VOLUMES: "caretook-loop9_data\tcaretook-loop9\nother_db\tother",
+    SAMPLE_STACK_STATE: join(root, "stack-state"),
+    SAMPLE_STACK_LOG: log,
   };
+  mkdirSync(env.SAMPLE_STACK_STATE);
+  writeFileSync(join(env.SAMPLE_STACK_STATE, "testdb-orphans"), ORPHANS);
+  writeFileSync(join(env.SAMPLE_STACK_STATE, "leftovers"), LEFTOVERS);
 
   execFileSync("git", ["init", "-q", "-b", "dev", main]);
   for (const [k, v] of [
@@ -119,8 +114,9 @@ beforeAll(() => {
   mkdirSync(join(main, "scripts/backlog"), { recursive: true });
   for (const f of readdirSync(HERE).filter((f) => /\.(sh|mjs)$/.test(f) && !f.endsWith(".test.mjs")))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
+  env.RISA_CONFIG = stubHookConfig(main);
   mkdirSync(join(main, "scripts/ci"), { recursive: true });
-  for (const f of ["outstanding.mjs", "tiers.mjs"])
+  for (const f of ["outstanding.mjs", "tier-data.mjs", "tiers.json"])
     copyFileSync(join(HERE, "../ci", f), join(main, "scripts/ci", f));
   writeFileSync(join(main, "scripts/backlog/backlog.mjs"), FAKE_BACKLOG);
   writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\nnode_modules/\n");
@@ -196,10 +192,10 @@ describe("tidy (no --yes)", () => {
       /^ {2}branch +slice\/t\/9 \(no worktree, not merged into prd\/t: kept, never deleted\)$/m,
     );
     expect(out).toMatch(/^Kept:\n {2}worktree +t-2 \(.*uncommitted changes\)$/m);
-    expect(out).toMatch(/^ {2}test-db +caretook_test_gone \(no worktree owns it\)$/m);
-    expect(out).toMatch(/^ {2}volume +caretook-loop9_data \(dangling; no worktree uses caretook-loop9\)$/m);
+    expect(out).toMatch(/^ {2}test-db +sample_test_gone \(no worktree owns it\)$/m);
+    expect(out).toMatch(/^ {2}volume +sample-loop9_data \(dangling; no worktree uses sample-loop9\)$/m);
     expect(out).toMatch(/^ {2}hang-log +.*t-ui-1\.log \(30 days old\)$/m);
-    expect(out).not.toMatch(/t-3 \(|caretook_test_t_3|other_db/);
+    expect(out).not.toMatch(/t-3 \(|img1/);
     expect(out).toMatch(/Nothing changed\. pnpm prd tidy --yes removes the safe ones\./);
 
     for (const n of ["t-1", "t-2", "t-3"]) expect(existsSync(join(loops, n))).toBe(true);
@@ -207,7 +203,9 @@ describe("tidy (no --yes)", () => {
     expect(existsSync(join(sessions, "prd-gone.json"))).toBe(true);
     expect(filedAsks()).toEqual([]);
     expect(existsSync(join(loops, ".browser-hangs", "t-ui-1.log"))).toBe(true);
-    expect(readFileSync(log, "utf8")).not.toMatch(/dropdb|volume rm/);
+    // The hooks were asked with every worktree's name; nothing was removed.
+    expect(readFileSync(log, "utf8")).toMatch(/^test-db orphans t-1 t-2 t-3$/m);
+    expect(readFileSync(log, "utf8")).not.toMatch(/drop-db|leftovers remove/);
   });
 
   it("--json gives the same lists", () => {
@@ -298,6 +296,31 @@ describe("a failed process inspection", () => {
   });
 });
 
+describe("a failed stack hook", () => {
+  it("skips the stack's leftovers, keeps them as unchecked and lists the rest", () => {
+    const before = existsSync(log) ? readFileSync(log, "utf8").length : 0;
+    const facts = collectTidyFacts({ main, env: { ...env, SAMPLE_STACK_FAIL: "ready:t-3" } });
+    expect(facts.volumes).toEqual([]);
+    expect(facts.volumesSkipped).toMatch(/the stackReady hook failed for t-3/);
+    const lists = sortFacts(facts);
+    expect(lists.safe.some((f) => f.kind === "volume")).toBe(false);
+    expect(lists.kept).toContainEqual(
+      expect.objectContaining({ kind: "volume", why: expect.stringMatching(/^not checked: /) }),
+    );
+    // The leftovers weren't even asked for: nothing could be removed on their word.
+    const calls = readFileSync(log, "utf8").slice(before);
+    expect(calls).toMatch(/^stack status t-3$/m);
+    expect(calls).not.toMatch(/^stack leftovers/m);
+    expect(lists.safe).toContainEqual(expect.objectContaining({ kind: "test-db" }));
+  });
+
+  it("a failed leftovers listing gives none, and says so", () => {
+    const facts = collectTidyFacts({ main, env: { ...env, SAMPLE_STACK_FAIL: "leftovers:." } });
+    expect(facts.volumes).toEqual([]);
+    expect(facts.volumesSkipped).toMatch(/the stackLeftovers hook failed \(stack-hook\.sh: leftovers failed/);
+  });
+});
+
 describe("tidy --yes", () => {
   it("removes the merged slice worktree, the dead lease and the ended record; keeps the rest; files one report", () => {
     const out = ok(["--yes"]);
@@ -322,11 +345,12 @@ describe("tidy --yes", () => {
     expect(ask.text).toMatch(/branch slice\/t\/9: no worktree, not merged/);
     expect(out).not.toMatch(/^Now send a PushNotification/m);
 
-    // Through the (fake) Docker: the orphan database and the dangling volume only.
+    // Through the (stub) hooks: the orphan database and the dangling volume only.
     const calls = readFileSync(log, "utf8");
-    expect(calls).toMatch(/^docker exec c1 dropdb -U caretook --if-exists --force caretook_test_gone$/m);
-    expect(calls).not.toMatch(/dropdb .*caretook_test_t_3/);
-    expect(calls.match(/^docker volume rm .*/gm)).toEqual(["docker volume rm caretook-loop9_data"]);
+    expect(calls.match(/^test-db drop-db .*/gm)).toEqual(["test-db drop-db sample_test_gone"]);
+    expect(calls.match(/^stack leftovers remove .*/gm)).toEqual([
+      "stack leftovers remove volume sample-loop9_data",
+    ]);
     expect(existsSync(join(loops, ".browser-hangs", "t-ui-1.log"))).toBe(false);
     expect(calls).not.toMatch(/^claude /m);
   });
@@ -341,6 +365,31 @@ describe("tidy --yes", () => {
   });
 });
 
+// Four items: B-1 (the running topic t) and B-2 (another topic) landed at sha,
+// B-3 dropped, B-4 still waiting.
+const backlogFixture = (sha) => {
+  const items = [
+    ["B-1", "Running topic landed", "landed", "t", sha],
+    ["B-2", "Finished elsewhere", "landed", "other", sha],
+    ["B-3", "Dropped from the running topic", "dropped", "t", ""],
+    ["B-4", "Still waiting", "triaged", "other", ""],
+  ];
+  const row = ([id, title, status, prd]) => `| ${id} | bug | ${status} | ${prd} |  | ${title} |`;
+  const item = ([id, title, status, prd, commit]) =>
+    `### ${id} · bug · ${title}\n\n- status: ${status}\n- prd: ${prd}\n- owner:\n- commit:${commit ? ` ${commit}` : ""}\n`;
+  return [
+    "# Backlog\n\n## Summary\n",
+    "<!-- Generated by `pnpm backlog` on every write: don't edit this table by hand. -->\n",
+    [
+      "| Id | Type | Status | PRD | Owner | Title |",
+      "| -- | ---- | ------ | --- | ----- | ----- |",
+      ...items.map(row),
+    ].join("\n") + "\n",
+    "## Items\n",
+    items.map(item).join("\n"),
+  ].join("\n");
+};
+
 // Last: it swaps the fake backlog for the real one.
 describe("tidy archives finished items", () => {
   const backlogFile = () => join(main, "plans/backlog.md");
@@ -352,6 +401,10 @@ describe("tidy archives finished items", () => {
       env,
     }).trim();
 
+  // The backlog is written as the real CLI leaves it, in one commit, not built
+  // with six CLI writes: each is a node start and about twenty git processes
+  // (about 0.5 s alone, several seconds at load 40), which pushed this hook past
+  // its 10 s (B-461, B-732). The tests below still run the real backlog.mjs.
   beforeAll(() => {
     for (const f of [
       "backlog.mjs",
@@ -363,16 +416,21 @@ describe("tidy archives finished items", () => {
       "registry.mjs",
     ])
       copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
-    writeFileSync(backlogFile(), "# Backlog\n\n## Items\n");
+    const sha = git(main, "rev-parse", "--short", "HEAD");
+    writeFileSync(backlogFile(), backlogFixture(sha));
     git(main, "add", "scripts/backlog", "plans/backlog.md");
     git(main, "commit", "-q", "-m", "chore: the real backlog");
-    const sha = git(main, "rev-parse", "--short", "HEAD");
-    real("add", "bug", "Running topic landed", "--prd", "t"); // B-1
-    real("add", "bug", "Finished elsewhere", "--prd", "other"); // B-2
-    real("add", "bug", "Dropped from the running topic", "--prd", "t", "--anyway"); // B-3
-    real("add", "bug", "Still waiting", "--prd", "other"); // B-4
-    real("set", "B-1", "B-2", `commit=${sha}`, "status=ready");
-    real("set", "B-3", "status=dropped");
+  });
+
+  it("the fixture is what the backlog tool would write", () => {
+    // Its own normalised copy, with the statuses it works out from git.
+    expect(real("doctor")).toBe("backlog ok");
+    expect(JSON.parse(real("list", "--all", "--json")).map((i) => [i.id, i.status, i.prd])).toEqual([
+      ["B-1", "landed", "t"],
+      ["B-2", "landed", "other"],
+      ["B-3", "dropped", "t"],
+      ["B-4", "triaged", "other"],
+    ]);
   });
 
   it("--json only lists: the running topic's item kept, nothing written", () => {

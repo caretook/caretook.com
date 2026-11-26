@@ -54,5 +54,7 @@ apps/web/app/routes/app/groups/settings/  app-shell
 # The service worker (lib/app-shell/serviceWorker*.ts; B-144) serves every /app
 # page load and the assets: the lean set.
 apps/web/app/lib/app-shell/serviceWorker* @suite
+# The offline page it answers a failed page load outside /app with (B-788).
+apps/web/public/offline.html             layout-offline
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/app-shell/              -
