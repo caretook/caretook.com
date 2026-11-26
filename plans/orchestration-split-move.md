@@ -5,6 +5,7 @@
 ## Before
 
 - All three stage-1 topics are in `dev`; the boundary lint passes with only the named residual list.
+- **The core's tests stand alone** (`orchestration-split-4`, B-929): `node scripts/loops/standalone.mjs --root sample`, `--root project` and `--root none` each pass, nothing failed or hung.
 - **Hooks run from the project, not the tool's checkout** (B-846): today `stack_hook` (`lib.sh`) and `hooks.mjs` run a hook from the top of the checkout the tool's files are in, which is Caretook's until the move. Risa's copy must run it from the configured project's root (the repo the command runs for), or every stack and test-db hook misses its scripts. Change it in step 2's layout commit, with a test on the sample project from outside it.
 - **The removal commit is rehearsed in the move, at step 4b**, not before it: Caretook's CI test step needs Risa's pushed `v0.1.0` (step 4) to go green (decided 2026-11-26).
 - `pnpm prd dispatch --pause`; every PRD, slice, plan and hotfix worktree landed or removed (`pnpm prd status` shows none); no managed sessions (the backlog captain, the inbox session and every helper closed; the dispatcher paused, so its keep-alive reopens none); no open asks that need the tooling. Save `pnpm prd status` and `pnpm prd dispatch --dry-run` output to compare.
