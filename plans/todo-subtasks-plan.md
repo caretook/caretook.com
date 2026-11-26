@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 3 landed, wave 4 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 4 running (slice 4).** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 4 (2026-11-26):** resumed after an interruption (no landing journal; no slice in flight). Ingest: nothing new for this topic; doctor's 3 findings are other topics'. Sync: up to date with dev. Worktree `.loops/todo-subtasks-4` (slot 3) made; slice 4 agent (opus) spawned, with slice 2/3's notes (`rollUp(tx, parentId, actorId, at?)`). Watch running. Gate: `roundtrip` per the plan.
 
 **Wave 3 landed** in `dev` as 9e36c09d through PR #221, tier `full` (run 45836811361 on 12fd15ff, green), **without Codex (out of credits)**. to-test `to-test/2026-11-26-0923-todo-subtasks.md`. **Next:** wave 4 (slice 4, the device rollup; gate `roundtrip` per the plan), from a fresh session after rotation.
 
@@ -20,8 +22,8 @@
 | ----- | ---- | -------------- | ---------------------------------------------- |
 | 1     | 1    | landed (opus)  | ffdfad37 (c6274c06, 6aaf82f4)                  |
 | 2     | 2    | landed (opus)  | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
-| 3     | 3    | running (opus) |                                                |
-| 4     | 4    | planned        |                                                |
+| 3     | 3    | landed (opus)  | 12fd15ff (181f873c)                            |
+| 4     | 4    | running (opus) |                                                |
 | 5     | 5    | planned        |                                                |
 | 6     | 6    | planned        |                                                |
 
