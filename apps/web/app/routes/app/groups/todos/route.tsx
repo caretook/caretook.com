@@ -3,12 +3,15 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
+import type { TagRow } from "~/lib/tags/tags.sync";
 
 import { useCallback, useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import { TodoUndoStatus, useTodoTick } from "~/components/todos";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
+import { tagFilterOf } from "~/lib/tags/tagFilter";
+import { tagsQuery } from "~/lib/tags/tags.sync";
 import { todosQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { emptyTodosText, todoQueryOf, whoOf } from "~/lib/todos/todoList";
@@ -36,10 +39,12 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     readRows<TodoRow>(db, todosQuery(params.groupId)),
     readRows<MemberRow>(db, membersQuery(params.groupId)),
   ]);
-  const who = whoOf(new URL(request.url).search);
+  const search = new URL(request.url).search;
+  const who = whoOf(search);
+  const tag = tagFilterOf(search, await readRows<TagRow>(db, tagsQuery(params.groupId)));
   const doneRows = await readRows<TodoRow>(
     db,
-    todosQuery(params.groupId, { done: true, who, userId: group.userId, limit: DONE_PAGE }),
+    todosQuery(params.groupId, { done: true, who, userId: group.userId, tagId: tag?.id, limit: DONE_PAGE }),
   );
   return { openRows, doneRows, memberRows };
 }
@@ -72,16 +77,23 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
     (todo: LocalTodo, done: boolean) => void (done ? complete(todo) : reopen(todo)),
     [complete, reopen],
   );
-  const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy };
+  const tagsOf = useCallback((todoId: string) => list.tagsOf.get(todoId), [list.tagsOf]);
+  const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy, tagsOf };
 
   return (
     <Page>
-      <PlannerHeader bar={todoFilterBar({ who: list.who, value: text, urlQuery, onChange: setText })} />
+      <PlannerHeader
+        bar={todoFilterBar({ who: list.who, tags: list.tags, value: text, urlQuery, onChange: setText })}
+      />
 
       <TodoUndoStatus groupId={params.groupId} />
       {error && <Message tone="error">{error}</Message>}
 
-      <TodoSections sections={list.sections} empty={emptyTodosText(list.who, text)} {...row} />
+      <TodoSections
+        sections={list.sections}
+        empty={emptyTodosText(list.who, text, list.tag?.name)}
+        {...row}
+      />
       <DoneTodos todos={list.done} more={list.moreDone} onMore={list.showMoreDone} {...row} />
 
       {/* The add and edit sheets render here, over the list. */}

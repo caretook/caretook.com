@@ -8,12 +8,16 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
+  BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
+  canHaveSubtask,
   completionOnly,
   isTodoCompleter,
   isTodoWriter,
   localDate,
+  MAX_TODO_DEPTH,
+  REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
   TODO_LIMITS,
   todoContentOf,
@@ -41,6 +45,7 @@ import { isSystemUser, rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { linkIn, unlinkIn } from "./entryTodoService";
+import { copyLinks } from "./recordTagService";
 
 // Todos: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,
@@ -193,6 +198,9 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
     ? await todoModel.restore(id, content, tx)
     : await todoModel.create({ ...system(tx), data: next });
   if (isError(written)) return written;
+  // Its tags come along (tags PRD), with the ids the device's twin writes.
+  const tagged = await copyLinks(tx, "todo", todo.id, id);
+  if (tagged) return tagged;
   return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? next.id;
 };
 
@@ -238,6 +246,65 @@ const isTouched = async (tx: Tx, todoId: string) => {
   const notes = await hasNotes(tx, todoId);
   if (isError(notes) || notes) return notes;
   return hasEntryLinks(tx, todoId);
+};
+
+// ---------------------------------------------------------------------------
+// Subtasks (todo-subtasks): a subtask is a todo with a parent, set on create
+// only. The parent must be live, in the group, not repeating, and leave the
+// subtask within `MAX_TODO_DEPTH` (todoTree.ts); a subtask never repeats,
+// nor does a todo with live subtasks.
+// ---------------------------------------------------------------------------
+
+const badParent = () =>
+  newError({ code: "todoService:badParent", meta: { issues: [{ ...BAD_PARENT_ISSUE }] } });
+
+const repeatWithSubtasks = () =>
+  newError({ code: "todoService:repeatWithSubtasks", meta: { issues: [{ ...REPEAT_WITH_SUBTASKS_ISSUE }] } });
+
+/**
+ * `todo`'s ancestors, its parent first, deleted ones included (they still
+ * count for depth). Stops past `MAX_TODO_DEPTH`: enough to refuse.
+ */
+const ancestorsOf = async (tx: Tx, todo: Todo) => {
+  const chain: Todo[] = [];
+  let parentId = todo.parentId;
+  while (parentId && chain.length < MAX_TODO_DEPTH) {
+    const parent = await todoModel.getById(parentId, { ...system(tx), includeDeleted: true });
+    if (isError(parent)) return parent;
+    if (!parent) break;
+    chain.push(parent);
+    parentId = parent.parentId;
+  }
+  return chain;
+};
+
+/** A new subtask's parent must be able to take one (`canHaveSubtask`). Read as the actor. */
+const checkParent = async (ctx: ServiceContext, tx: Tx, groupId: string, parentId: string | null) => {
+  if (!parentId) return null;
+  const parent = await todoModel.getById(parentId, { ...ctx, tx });
+  if (isError(parent)) return parent;
+  if (parent?.groupId !== groupId) return badParent();
+  const ancestors = await ancestorsOf(tx, parent);
+  if (isError(ancestors)) return ancestors;
+  return canHaveSubtask(ancestors, parent) ? null : badParent();
+};
+
+/** Whether the todo has a live subtask. */
+const hasLiveSubtasks = async (tx: Tx, todo: Todo) => {
+  const child = await todoModel.get({
+    ...system(tx),
+    filter: { groupId: { type: "eq", value: todo.groupId }, parentId: { type: "eq", value: todo.id } },
+  });
+  if (isError(child)) return child;
+  return !!child;
+};
+
+/** A new rule on a subtask, or on a todo with live subtasks, is refused. */
+const checkRepeatInTree = async (tx: Tx, todo: Todo) => {
+  if (todo.parentId) return repeatWithSubtasks();
+  const hasSubtasks = await hasLiveSubtasks(tx, todo);
+  if (isError(hasSubtasks)) return hasSubtasks;
+  return hasSubtasks ? repeatWithSubtasks() : null;
 };
 
 // ---------------------------------------------------------------------------
@@ -291,7 +358,8 @@ export type TodoWriteOptions = { via?: string | null };
 
 /**
  * Add a todo. `id` may come from an offline device; creating one that
- * exists returns it (a replay). Writers only.
+ * exists returns it (a replay). Writers only. `parentId` makes it a
+ * subtask (`checkParent`), which never repeats.
  */
 export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWriteOptions = {}) =>
   withTransaction(async (tx) => {
@@ -321,6 +389,9 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
     if (assignee) return assignee;
     const links = await checkLinks(ctx, tx, data.groupId, data);
     if (links) return links;
+    const parent = await checkParent(ctx, tx, data.groupId, data.parentId);
+    if (parent) return parent;
+    if (data.parentId && data.repeatRule) return repeatWithSubtasks();
 
     const id = data.id ?? randomUUID();
     const created = await todoModel.create({
@@ -344,7 +415,8 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
 /**
  * Edit a todo's content: title, assignee, due and links. The group and
  * recipient are fixed; the merged todo must be valid; a changed assignee
- * must be a member and a changed link live in the group. Viewers and the
+ * must be a member and a changed link live in the group. The parent never
+ * changes, and a new rule is refused in a tree. Viewers and the
  * easy roles are refused (`completionOnly`):
  * they only complete and reopen.
  */
@@ -380,6 +452,10 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
       eventId: changed(merged.data.eventId, existing.eventId),
     });
     if (links) return links;
+    if (merged.data.repeatRule && merged.data.repeatRule !== existing.repeatRule) {
+      const tree = await checkRepeatInTree(tx, existing);
+      if (tree) return tree;
+    }
 
     const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
     // An old client's changed event moves its link row (the mirror).

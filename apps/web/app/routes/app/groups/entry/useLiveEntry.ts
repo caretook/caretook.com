@@ -56,6 +56,8 @@ export type LiveEntry = {
     seriesDay: string | null;
     /** Changed on its own: later series edits leave it as it is. */
     seriesDetached: boolean;
+    /** Who made it (null while it's a draft): who may tag it (`canTagRecord`). */
+    createdBy: string | null;
   };
   /** Whether the entry is stored (false while it's a draft). */
   stored: boolean;
@@ -381,6 +383,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     seriesId: live?.seriesId ?? null,
     seriesDay: live?.seriesDay ?? null,
     seriesDetached: !!live?.seriesDetached,
+    createdBy: live?.createdBy ?? null,
   };
 
   /** The back link's target: a new event saved from the Planner by its time now, else where it was opened from. */

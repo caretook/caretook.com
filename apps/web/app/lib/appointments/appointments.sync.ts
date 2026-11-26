@@ -18,7 +18,9 @@ import {
   timelineEntries,
   timelineEntryProviders,
   timelineEntryTodos,
+  recordTags,
 } from "../sync/schema";
+import { recordTagRow } from "../tags/tags.sync";
 import {
   contentColumns,
   forbidden,
@@ -70,6 +72,7 @@ const refuse = (error: string): RescheduleResult => ({ ok: false, error, issues:
  * its live todos' links moved over, open and done (planner-3: the old
  * event's link rows deleted, `entryTodoId(newId, todoId)` ones made; the
  * server's unlink clears an old client's `event_id` with them);
+ * copies of its tags (`recordTagRow`, derived ids; the old event keeps its own);
  * then the old event cancelled (now, unless it already was, keeping its
  * reason) with `rescheduled_to` the new one. The old document is left as it
  * was. Writers only, events only, and not one already rescheduled.
@@ -164,6 +167,10 @@ export const rescheduleEvent = async (
           WHERE l.entry_id = ? ORDER BY l.created_at, l.id`,
     params: [id],
   });
+  const tagLinks = await readRows<{ tag_id: string }>(db, {
+    sql: "SELECT tag_id FROM record_tag WHERE entry_id = ? ORDER BY created_at, id",
+    params: [id],
+  });
 
   const now = nowTimestamp();
   const audit = { createdAt: now, updatedAt: now, createdBy: db.userId, updatedBy: db.userId };
@@ -216,6 +223,9 @@ export const rescheduleEvent = async (
         todoId,
         ...audit,
       });
+    }
+    for (const { tag_id: tagId } of tagLinks) {
+      await tx.insert(recordTags).values(recordTagRow(db, old.groupId, tagId, "entry", newId));
     }
     await tx
       .update(timelineEntries)

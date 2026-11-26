@@ -190,18 +190,20 @@ describe("migration 0032_todos", () => {
         "SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname = 'todo_event_fk'",
       );
       expect(def).toContain("ON DELETE SET NULL (event_id)");
-      expect(
-        (
-          await client.query("SELECT indexname FROM pg_indexes WHERE tablename = 'todo' ORDER BY indexname")
-        ).rows.map((r: { indexname: string }) => r.indexname),
-        // `todo_group_repeat_idx` is 0033_todo_repeats' (planner-2), run after this one.
-      ).toEqual([
-        "todo_group_assignee_idx",
-        "todo_group_due_idx",
-        "todo_group_id_id_unique",
-        "todo_group_repeat_idx",
-        "todo_pkey",
-      ]);
+      // Every index is todo's by name; later migrations add more (0033's
+      // `todo_group_repeat_idx`, todo-subtasks' `todo_group_parent_idx`).
+      const indexes = (
+        await client.query("SELECT indexname FROM pg_indexes WHERE tablename = 'todo' ORDER BY indexname")
+      ).rows.map((r: { indexname: string }) => r.indexname);
+      expect(indexes.every((name) => name.startsWith("todo_"))).toBe(true);
+      expect(indexes).toEqual(
+        expect.arrayContaining([
+          "todo_group_assignee_idx",
+          "todo_group_due_idx",
+          "todo_group_id_id_unique",
+          "todo_pkey",
+        ]),
+      );
       expect(
         await one(
           "SELECT count(*)::int AS n FROM pg_publication_tables WHERE pubname = 'powersync' AND tablename = 'todo'",

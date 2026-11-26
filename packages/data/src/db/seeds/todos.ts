@@ -16,6 +16,9 @@ import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 // (todos slice 3), by their seeds' keys. Then (planner-2) the todo that
 // replaced the pharmacy reminder, and a weekly repeating todo: last week's,
 // done, and the open one it made (its id is `nextTodoId` of the chain).
+// Then (todo-subtasks) a todo with three subtasks: one done; one done by its
+// own done subtask; and viewer@'s, the only open one, so ticking it finishes
+// the parent (the `roundtrip` check).
 //
 // Their own ids (…3f1d2be0… Dev Family's, …3f1d2be1… Dev Family 2's),
 // following list order: append only.
@@ -48,6 +51,8 @@ export type SeedTodo = {
    * takes its id from the chain (`nextTodoId`), not the list.
    */
   repeatsWeekly?: true | { after: string };
+  /** A subtask (todo-subtasks): its parent's title, an earlier todo in the same group. */
+  parent?: string;
 };
 
 export const DEV_FAMILY_TODOS: SeedTodo[] = [
@@ -146,6 +151,41 @@ export const DEV_FAMILY_TODOS: SeedTodo[] = [
     author: "member@example.com",
     repeatsWeekly: { after: "Put the bins out" },
   },
+  // A todo with subtasks (todo-subtasks), the parent open while one is.
+  {
+    title: "Get ready for the hospital stay",
+    dueIn: 5,
+    assignee: "member@example.com",
+    author: "member@example.com",
+  },
+  {
+    title: "Pack an overnight bag",
+    assignee: "caretaker@example.com",
+    author: "member@example.com",
+    doneDaysAgo: 1,
+    doneBy: "caretaker@example.com",
+    parent: "Get ready for the hospital stay",
+  },
+  {
+    title: "Sort out the admission paperwork",
+    author: "member@example.com",
+    doneDaysAgo: 2,
+    doneBy: "member@example.com",
+    parent: "Get ready for the hospital stay",
+  },
+  {
+    title: "Copy the insurance card",
+    author: "member@example.com",
+    doneDaysAgo: 2,
+    doneBy: "member@example.com",
+    parent: "Sort out the admission paperwork",
+  },
+  {
+    title: "Charge the phone and tablet",
+    assignee: "viewer@example.com",
+    author: "member@example.com",
+    parent: "Get ready for the hospital stay",
+  },
 ];
 
 export const SECOND_GROUP_TODOS: SeedTodo[] = [
@@ -201,6 +241,14 @@ export const seedRows = (now = Date.now()) => {
         repeatRule: `FREQ=WEEKLY;INTERVAL=1;BYDAY=${weekday}`,
       };
     };
+    /** A subtask's parent: the id of the earlier todo with its title. */
+    const parentOf = (todo: SeedTodo, index: number) => {
+      if (!todo.parent) return null;
+      const parentIndex = todos.findIndex((t) => t.title === todo.parent);
+      if (parentIndex < 0 || parentIndex >= index)
+        throw new Error(`Seed subtask has no earlier parent: ${todo.title}`);
+      return id(parentIndex);
+    };
     return todos.map((todo, index) => {
       const chain = chainOf(todo, index);
       const dueOn = dueOf(todo);
@@ -221,6 +269,7 @@ export const seedRows = (now = Date.now()) => {
         repeatRule: chain?.repeatRule ?? null,
         repeatStartsOn: chain?.repeatStartsOn ?? null,
         repeatId: chain?.repeatId ?? null,
+        parentId: parentOf(todo, index),
         author: todo.author,
       };
     });

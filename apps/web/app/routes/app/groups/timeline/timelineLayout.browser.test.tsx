@@ -118,7 +118,7 @@ describe("row taps", () => {
     await userEvent.keyboard("{Escape}");
   });
 
-  test("More and Less toggle long text without opening it; ⋯ on a note is Print and Delete", async () => {
+  test("More and Less toggle long text without opening it; ⋯ on a note is Tags, Print and Delete", async () => {
     const device = await openTimeline();
     await ready();
     await waitUntil(() => !!button("More"), "More");
@@ -131,7 +131,7 @@ describe("row taps", () => {
 
     await userEvent.click(await found(() => actionsOf(rowOf("Note")!)));
     await waitUntil(() => menuItems().length > 0, "the menu");
-    expect(menuItems()).toEqual(["Print", "Delete"]);
+    expect(menuItems()).toEqual(["Tags", "Print", "Delete"]);
     expect(device.location()).toBe(TIMELINE_URL);
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !document.querySelector("[role=menu]"));

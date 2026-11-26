@@ -5,11 +5,15 @@ import {
   onlyQueryChanged,
   parsePastFilters,
   parseUpcomingFilters,
+  pastTagChip,
   setShow,
   tabSearch,
+  upcomingFilterSections,
 } from "./upcomingFilters";
 
 const A = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c00a1";
+const T = "6f1c1d1e-0000-4000-8000-000000000001";
+const URGENT = { id: T, name: "Urgent" };
 
 describe("parseUpcomingFilters", () => {
   it("reads events only (?kind=event), todos only (?show=todos) and the author", () => {
@@ -18,14 +22,23 @@ describe("parseUpcomingFilters", () => {
       author: A,
       show: "event",
       todosOnly: false,
+      tag: null,
     });
     expect(parseUpcomingFilters(`?show=todos&author=${A}`)).toEqual({
       kind: null,
       author: A,
       show: "todos",
       todosOnly: true,
+      tag: null,
     });
-    expect(parseUpcomingFilters("")).toEqual({ kind: null, author: null, show: "all", todosOnly: false });
+    expect(parseUpcomingFilters("")).toEqual({
+      kind: null,
+      author: null,
+      show: "all",
+      todosOnly: false,
+      tag: null,
+    });
+    expect(parseUpcomingFilters(`?tag=${T}`).tag).toBe(T);
   });
 
   it("reads a kind Upcoming doesn't list as All", () => {
@@ -41,7 +54,12 @@ describe("parseUpcomingFilters", () => {
 
 describe("parsePastFilters", () => {
   it("keeps only the author (Past lists events)", () => {
-    expect(parsePastFilters(`?kind=note&show=todos&author=${A}`)).toEqual({ kind: null, author: A });
+    expect(parsePastFilters(`?kind=note&show=todos&author=${A}`)).toEqual({
+      kind: null,
+      author: A,
+      tag: null,
+    });
+    expect(parsePastFilters(`?tag=${T}`).tag).toBe(T);
   });
 });
 
@@ -61,14 +79,24 @@ describe("tabSearch", () => {
       kind: "event",
       show: null,
       author: A,
+      tag: null,
     });
-    expect(tabSearch(`?show=todos&author=${A}`, "planner")).toEqual({ kind: null, show: "todos", author: A });
+    expect(tabSearch(`?show=todos&author=${A}`, "planner")).toEqual({
+      kind: null,
+      show: "todos",
+      author: A,
+      tag: null,
+    });
     expect(tabSearch(`?kind=event&show=todos&author=${A}`, "past")).toEqual({
       kind: null,
       show: null,
       author: A,
+      tag: null,
     });
-    expect(tabSearch("?kind=vital", "planner")).toEqual({ kind: null, show: null, author: null });
+    expect(tabSearch("?kind=vital", "planner")).toEqual({ kind: null, show: null, author: null, tag: null });
+    // The tag goes to both tabs.
+    expect(tabSearch(`?tag=${T}`, "planner").tag).toBe(T);
+    expect(tabSearch(`?show=todos&tag=${T}`, "past")).toMatchObject({ show: null, tag: T });
   });
 });
 
@@ -98,5 +126,34 @@ describe("onlyQueryChanged", () => {
     expect(onlyQueryChanged(url("/p?q=ey"), url("/p?q=eye"))).toBe(true);
     expect(onlyQueryChanged(url("/p?q=eye"), url("/p?author=a&q=eye"))).toBe(false);
     expect(onlyQueryChanged(url("/p?q=eye"), url("/p/past?q=eye"))).toBe(false);
+  });
+});
+
+describe("the Planner's filter options (tags)", () => {
+  it("Upcoming has Show alone without tags, and Show then Tag with them", () => {
+    expect(upcomingFilterSections("", "all", []).map((s) => s.id)).toEqual(["show"]);
+    const sections = upcomingFilterSections(`?kind=event&tag=${T}`, "event", [URGENT]);
+    expect(sections.map((s) => [s.id, s.current])).toEqual([
+      ["show", "event"],
+      ["tag", T],
+    ]);
+    expect(sections[1]!.options.map((o) => [o.label, o.search])).toEqual([
+      ["Any", "?kind=event"],
+      ["Urgent", `?kind=event&tag=${T}`],
+    ]);
+    // Show's choices keep the tag.
+    expect(sections[0]!.options.find((o) => o.id === "todos")?.search).toBe(`?show=todos&tag=${T}`);
+  });
+
+  it("Past carries the tag as a chip, and none without one", () => {
+    expect(pastTagChip(`?author=${A}&tag=${T}`, URGENT)).toEqual([
+      { id: "tag", label: "Urgent", name: "Urgent: clear this filter", search: `?author=${A}` },
+    ]);
+    expect(pastTagChip("", null)).toEqual([]);
+  });
+
+  it("empty states name the tag", () => {
+    expect(emptyUpcomingText("all", null, "", "Urgent")).toBe("No upcoming events or todos tagged “Urgent”.");
+    expect(emptyPastText(null, "", "Urgent")).toBe("No past events tagged “Urgent”.");
   });
 });

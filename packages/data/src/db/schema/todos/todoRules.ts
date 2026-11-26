@@ -169,6 +169,7 @@ const NON_DONE_FIELDS = [
   "repeatRule",
   "repeatStartsOn",
   "repeatId",
+  "parentId",
 ] as const;
 
 const normalize = (value: unknown) => (value === undefined || value === "" ? null : value);

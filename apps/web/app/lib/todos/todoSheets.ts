@@ -1,3 +1,4 @@
+import { TAG_PARAM } from "@caretook/data/schema";
 import { appUrls } from "../app-shell/appUrls";
 
 // The todo list's sheet routes (`todos/new`, `todos/:todoId/edit`): which
@@ -43,10 +44,16 @@ export const editTodoGuard = <T extends { groupId: string; deletedAt: string | n
   return { sheet: todo };
 };
 
-/** The list's own search (its chip), without a sheet's prefills. */
+/** The list's own search (its filters: `?who=` and `?tag=`), without a sheet's prefills. */
 export const listSearch = (search: string) => {
-  const who = new URLSearchParams(search).get("who");
-  return who ? `?who=${encodeURIComponent(who)}` : "";
+  const params = new URLSearchParams(search);
+  const out = new URLSearchParams();
+  for (const key of ["who", TAG_PARAM]) {
+    const value = params.get(key);
+    if (value) out.set(key, value);
+  }
+  const text = out.toString();
+  return text ? `?${text}` : "";
 };
 
 /** Whether a navigation only opened or closed a sheet over the list (its loader needn't run). */

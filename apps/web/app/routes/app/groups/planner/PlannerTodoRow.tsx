@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { PlannerTodo } from "~/lib/todos/plannerTodos";
 
@@ -26,6 +27,7 @@ export function PlannerTodoRow({
   nameOf,
   timeZone,
   now,
+  tags,
 }: {
   item: PlannerTodo<LocalTodo>;
   /** A member's name ("you" for me). */
@@ -33,6 +35,8 @@ export function PlannerTodoRow({
   /** The recipient's zone. */
   timeZone: string;
   now: Date;
+  /** Its tags' chips (tags PRD). */
+  tags?: ReactNode;
 }) {
   const group = useGroup();
   const { todo, state } = item;
@@ -79,6 +83,7 @@ export function PlannerTodoRow({
         <p className="font-semibold break-words" data-todo-title>
           {title}
         </p>
+        {tags}
         {overdue && due && (
           <p className="text-error-ink text-sm" data-todo-due>
             {due}

@@ -2,6 +2,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ProviderTypeIcon } from "~/components/providers";
+import { TagChips } from "~/components/tags";
 import { Badge, ListRow, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
@@ -9,14 +10,17 @@ import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 /**
  * A provider in the directory: what they are and the badges. The name is a
  * link stretched over the row, so the whole row is one target that opens their
- * page, where the contact links sit beside the notes (B-422).
+ * page, where the contact links sit beside the notes (B-422). Its tags show
+ * as chips (two, then "+N"; tags PRD) for every role.
  */
 export function ProviderListItem({
   provider,
   practiceName,
+  tags,
 }: {
   provider: LocalProvider;
   practiceName: string | null;
+  tags?: readonly { id: string; name: string }[];
 }) {
   const past = provider.status === "past";
   const details = [PROVIDER_TYPE_META[provider.type].label, provider.specialty, practiceName].filter(Boolean);
@@ -47,6 +51,7 @@ export function ProviderListItem({
           )}
         </p>
         <p className="text-muted truncate text-sm">{details.join(" · ")}</p>
+        <TagChips tags={tags} className="mt-0.5" />
       </div>
     </ListRow>
   );

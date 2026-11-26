@@ -14,6 +14,7 @@ import { Field } from "~/components/ui";
  *   [icon] [title ............] [editors] [actions]
  *          [time] [via]
  *          [repeat .........]
+ *          [tags ...........]
  *          [with ...........]
  *          [suggestion .....]
  *          [place ..........]
@@ -24,6 +25,7 @@ import { Field } from "~/components/ui";
  * - `repeat`: how it repeats (`EntryRepeat`: a series visit's rule, a new entry's Repeat button).
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
+ * - `tags`: its tags (chips, every role; tags PRD).
  * - `with`: the providers it was with (notes and events).
  * - `suggestion`: an offer drawn from the entry (an event's care period).
  * - `place`: where an event is (an appointment's address).
@@ -41,6 +43,7 @@ export function EntryHeader({
   place,
   via,
   repeat,
+  tags,
 }: {
   kind: TimelineEntryKind;
   title: ReactNode;
@@ -53,6 +56,8 @@ export function EntryHeader({
   place?: ReactNode;
   /** How it repeats (a series visit's rule, or a new entry's Repeat button). */
   repeat?: ReactNode;
+  /** Its tags' chips. */
+  tags?: ReactNode;
 }) {
   return (
     <header className="flex items-start gap-3">
@@ -70,6 +75,11 @@ export function EntryHeader({
         {repeat && (
           <div data-region="repeat" className="pt-0.5 empty:hidden">
             {repeat}
+          </div>
+        )}
+        {tags && (
+          <div data-region="tags" className="pt-1 empty:hidden">
+            {tags}
           </div>
         )}
         {withRegion && (
