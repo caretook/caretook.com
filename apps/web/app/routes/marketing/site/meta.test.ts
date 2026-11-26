@@ -74,13 +74,20 @@ describe("the share image", () => {
 
   it("has the lockup as its alt text", () => {
     expect(DEFAULT_OG_IMAGE.alt).toBe(`${name}. ${tagline} ${descriptor}`);
-    expect(DEFAULT_OG_IMAGE.alt).toBe("Caretook. Care, taken. The free care notebook for families.");
+    expect(DEFAULT_OG_IMAGE.alt).toBe(
+      "Caretook. Care, taken. The free care notebook for families, built by caregivers who've been there.",
+    );
   });
 
   it("is drawn from an SVG source that says the same words", () => {
     const svg = publicFile(DEFAULT_OG_IMAGE.path.replace(/\.png$/, ".svg")).toString("utf8");
     const words = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
-    expect(words.slice(0, 3)).toEqual([name, tagline, descriptor]);
+    // The descriptor is too long for one line: it's drawn as two, between the
+    // tagline and the site's address.
+    expect(words.slice(0, 2)).toEqual([name, tagline]);
+    expect(words.slice(2, -1)).toHaveLength(2);
+    expect(words.slice(2, -1).join(" ")).toBe(descriptor);
+    expect(words.at(-1)).toBe("caretook.com");
     expect(svg).toContain(`viewBox="0 0 ${DEFAULT_OG_IMAGE.width} ${DEFAULT_OG_IMAGE.height}"`);
   });
 

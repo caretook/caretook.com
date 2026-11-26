@@ -17,7 +17,7 @@ export const DEFAULT_OG_IMAGE = {
   path: "/og-default.png",
   width: 1200,
   height: 630,
-  alt: "Caretook. Care, taken. The free care notebook for families.",
+  alt: "Caretook. Care, taken. The free care notebook for families, built by caregivers who've been there.",
 };
 export const LOGO_PATH = "/icons/icon-512.png";
 
