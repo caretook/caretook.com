@@ -1,14 +1,14 @@
 import type { SyncDb } from "~/lib/sync";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
-import type { TodoRow } from "~/lib/todos/todos.sync";
+import type { SubtaskProgressRow, TodoRow } from "~/lib/todos/todos.sync";
 import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 
 import { data } from "react-router";
 import { medicationQuery } from "~/lib/medications/medications.sync";
 import { providerQuery } from "~/lib/providers/providers.sync";
-import { subtasksQuery, todoQuery, toTodo } from "~/lib/todos/todos.sync";
+import { subtaskProgressQuery, subtasksQuery, todoQuery, toTodo } from "~/lib/todos/todos.sync";
 import { todoEntriesQuery, todoEntryDocumentsQuery } from "~/lib/todos/entryTodos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 
@@ -23,7 +23,7 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
   const todo = todoRows[0] ? toTodo(todoRows[0]) : null;
   if (!todo || todo.groupId !== groupId || todo.deletedAt) throw data("Not found", { status: 404 });
   const none = Promise.resolve([]);
-  const [memberRows, [doc], provider, medication, entries, documents, parentRows, subtaskRows] =
+  const [memberRows, [doc], provider, medication, entries, documents, parentRows, subtaskRows, progressRows] =
     await Promise.all([
       readRows<MemberRow>(db, membersQuery(groupId)),
       readRows<{ id: string; snapshot: string | null }>(db, {
@@ -36,6 +36,7 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
       readRows<NoteDocRow>(db, todoEntryDocumentsQuery(todoId)),
       todo.parentId ? readRows<TodoRow>(db, todoQuery(todo.parentId)) : Promise.resolve<TodoRow[]>([]),
       readRows<TodoRow>(db, subtasksQuery(todoId)),
+      readRows<SubtaskProgressRow>(db, subtaskProgressQuery(groupId)),
     ]);
   const updates = doc
     ? await readRows<{ id: string; data: string | null }>(db, {
@@ -48,9 +49,10 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
     // Starting rows for the live queries (stable, so they don't reset each render).
     todoRows,
     memberRows,
-    // Its tree (todo-subtasks): the parent's row, and its live subtasks.
+    // Its tree (todo-subtasks): the parent's row, its live subtasks, and the group's progress per parent.
     parentRows,
     subtaskRows,
+    progressRows,
     linkRows: { provider, medication, entries, documents },
     hasDocument: !!doc,
     initial: { snapshot: doc?.snapshot ?? null, updates },

@@ -4,7 +4,11 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 5 landing, wave 6 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 6 running.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 6 (2026-11-26):** resumed after an interruption (no landing journal; nothing in flight). Ingest: nothing new for this topic. Sync: up to date. Worktree `.loops/todo-subtasks-6` made (no stack); slice 6 agent (opus) spawned with slices 1–5's notes (progress via `subtaskProgressQuery` + `progressByParent`). Watch running. Slice 6 handed off (7dd65f43; quick check passed, 16/16 in todoSubtasks.browser.test), merged at a3beb2d6. Notes: `TodoTick` takes optional `progress` (`waitsOnSubtasks`, `TodoTickProgress`); Mark done disabled with a note; delete confirm counts descendants; `TodoForm` `repeatable`. Only the todo page feeds progress so far: the lists are `todo-subtasks-2`'s. Gate green: `components` run 45859672477 on fb3e6433 (quarantined timelineJumpPaging failed, not blocking). Slice 6 worktree removed. Sync: no merge needed. Docs folded (todos.md, 10,235 B). PR #225; Codex out of credits: landing `--no-review`. `prd browser --changed`: none needed. Next: land, then `pnpm prd rm todo-subtasks`.
+
+**Wave 5 landed** in `dev` as b391574 through PR #224, tier `components` (run 45850909018 on 85c8e905, green), **without Codex (out of credits)**. to-test `to-test/2026-11-26-1048-todo-subtasks.md`. **Next:** wave 6 (slice 6; stack no), from a fresh session after rotation.
 
 **Wave 5 (2026-11-26):** resumed after an interruption (no landing journal; no slice in flight). Ingest: nothing new for this topic. Sync: no merge needed (dev's changes share no file). Worktree `.loops/todo-subtasks-5` made (no stack); slice 5 agent (opus) spawned with slices 1–4's notes. Watch running. Slice 5 handed off (89b93a7d; quick check passed, 12/12 own component tests), merged at d5d2fd62. Notes: `useTodoSubtasks` (todoQuery parent + subtasksQuery), `TodoSubtasks` band, `TodoParentLink`; `TodoUndoStatus` got an optional `todoIds` filter (Status band's Undo now only its own tick). Docs folded (todos.md, trimmed to 10,238 B). Gate green: `components` run 45849486916 on dff7fc77. Slice 5 worktree removed. `prd sync` merged dev (85c8e905, tooling); `components` rerun on the synced tip running. Rerun green on 85c8e905 (quarantined timelineJumpPaging failed, not blocking). PR #224; Codex out of credits: landing `--no-review`. `prd browser --changed`: none needed. **Next:** wave 6 (slice 6, the parent's tick, delete and form; stack no), from a fresh session.
 
@@ -18,14 +22,14 @@
 
 **Wave 1 landed** in `dev` as 1b34ce24 through PR #214, tier `full` (run 45797912432 on 39c49a52: brake, every failure dev's: boundary.test B-865/B-866, build budget B-868, landed `--fixes B-868`), **without Codex (out of credits)**. Slice 1 merged ffdfad37 plus fix 12904700 (todoRename's exact index list). Migration `0047_todo_subtasks`; `parent_id` already in the `todo` stream (rolesSql needs it; device schema is slice 3). Browser lean set 10/11; session-end fails on dev too: filed B-869. to-test `to-test/2026-11-26-0600-todo-subtasks.md`. Docs: todos.md _Subtasks_ (trimmed to stay under budget). Slice 1 worktree removed.
 
-| Slice | Wave | State          | Merge into `prd/todo-subtasks` (slice commits) |
-| ----- | ---- | -------------- | ---------------------------------------------- |
-| 1     | 1    | landed (opus)  | ffdfad37 (c6274c06, 6aaf82f4)                  |
-| 2     | 2    | landed (opus)  | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
-| 3     | 3    | landed (opus)  | 12fd15ff (181f873c)                            |
-| 4     | 4    | merged (opus)  | 2d91a3d8 (6a757463, 88ee2c9c)                  |
-| 5     | 5    | started (opus) |                                                |
-| 6     | 6    | planned        |                                                |
+| Slice | Wave | State         | Merge into `prd/todo-subtasks` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | landed (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
+| 2     | 2    | landed (opus) | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
+| 3     | 3    | landed (opus) | 12fd15ff (181f873c)                            |
+| 4     | 4    | landed (opus) | 2d91a3d8 (6a757463, 88ee2c9c)                  |
+| 5     | 5    | landed (opus) | d5d2fd62 (89b93a7d)                            |
+| 6     | 6    | merged (opus) | a3beb2d6 (7dd65f43)                            |
 
 **Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 

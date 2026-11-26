@@ -42,7 +42,8 @@ export type TodoFormPrefill = {
 /**
  * Add or edit a todo: the title, who does it, an optional due day with an
  * optional time (both in the recipient's zone), how it repeats (once it
- * has a day: planner-2), and optional links to a
+ * has a day: planner-2; none for a subtask or a todo with subtasks:
+ * todo-subtasks), and optional links to a
  * provider, an appointment and a medication. Posts to its sheet
  * route's clientAction, which writes on the device; the shared Zod schema's
  * messages show on the fields.
@@ -55,6 +56,7 @@ export function TodoForm({
   prefill,
   links,
   zoneNote,
+  repeatable = true,
   onDone,
   onCancel,
 }: {
@@ -70,6 +72,8 @@ export function TodoForm({
   links: LinkChoices;
   /** "Times are Los Angeles time", when the device is elsewhere. */
   zoneNote: string | null;
+  /** False for a subtask or a todo with subtasks: no Repeat (todo-subtasks). */
+  repeatable?: boolean;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -165,13 +169,15 @@ export function TodoForm({
         />
       </div>
 
-      <TodoRepeat
-        day={day}
-        dueTime={time}
-        draft={repeat}
-        onChange={setRepeat}
-        error={issueFor(issues, FIELD.repeatRule)}
-      />
+      {repeatable && (
+        <TodoRepeat
+          day={day}
+          dueTime={time}
+          draft={repeat}
+          onChange={setRepeat}
+          error={issueFor(issues, FIELD.repeatRule)}
+        />
+      )}
 
       {!todo && prefill?.entryId && <input type="hidden" name={FIELD.entryId} value={prefill.entryId} />}
 

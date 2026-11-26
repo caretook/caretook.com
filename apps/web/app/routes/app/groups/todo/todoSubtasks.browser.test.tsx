@@ -6,14 +6,17 @@ import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
-import { removeTodo } from "~/lib/todos/todos.sync";
+import { completeTodo, removeTodo } from "~/lib/todos/todos.sync";
 import * as todoRoute from "./route";
+import * as editSheet from "../todos/edit/route";
 import * as todosRoute from "../todos/route";
 
 // The todo page's Subtasks band (todo-subtasks slice 5): the live subtasks
 // with their ticks and progress, writers' inline add (gone at the depth
 // limit and on a repeating todo), the rollup showing on the parent's page,
-// and a subtask's "Part of" link up. The tree rules themselves are
+// and a subtask's "Part of" link up; a parent's tick and Mark done waiting
+// on its subtasks, the delete confirm's count and the edit form's Repeat
+// (slice 6). The tree rules themselves are
 // todoSubtasks.sync's and todoTree's tests.
 
 const BASE = "/app/groups/:groupId/todos";
@@ -157,5 +160,124 @@ describe("a subtask's page", () => {
     ]);
     await expect.element(page.getByRole("heading", { name: "Not found" })).toBeVisible();
     expect(document.body.textContent).not.toMatch(/Label the boxes/);
+  });
+});
+
+// A party to plan: "Send the invites" has two of three done; "Book the hall" has none of its own.
+const PARTY = todo({ id: id(20), title: "Plan the party" });
+const INVITES = todo({ id: id(21), title: "Send the invites", parentId: id(20), createdAt: hoursAgo(30) });
+const HALL = todo({ id: id(22), title: "Book the hall", parentId: id(20), createdAt: hoursAgo(20) });
+const card = (n: number, title: string, done: boolean) =>
+  todo({
+    id: id(22 + n),
+    title,
+    parentId: id(21),
+    createdAt: hoursAgo(10 - n),
+    ...(done ? { doneAt: hoursAgo(2), doneBy: TEST_USER.id } : {}),
+  });
+const LAST_CARD = card(3, "Post the last card", false);
+const CAKE = todo({ id: id(30), title: "Order the cake" });
+const party = () => [
+  PARTY,
+  INVITES,
+  HALL,
+  card(1, "Write the cards", true),
+  card(2, "Buy stamps", true),
+  LAST_CARD,
+  CAKE,
+];
+
+const openParty = (todoId: string) =>
+  renderWithDevice({ route: ROUTES, url: pageOf(todoId), role: "caretaker", fixtures: party() });
+
+describe("a parent's tick", () => {
+  test("waits on an open subtask with its n of m, and turns once all are done; a plain tick is as before", async () => {
+    const device = await openParty(PARTY.id);
+    await expect.element(heading("Plan the party")).toBeInTheDocument();
+    const list = subtasks("Plan the party");
+    const invites = list.getByRole("checkbox", { name: "“Send the invites”: 2 of 3 subtasks done" });
+    await expect.element(invites).toBeDisabled();
+    await expect
+      .element(getByCss(`[data-subtask="${INVITES.id}"] [data-tick-progress]`))
+      .toHaveTextContent("2 of 3");
+
+    const hall = list.getByRole("checkbox", { name: "Mark “Book the hall” done" });
+    await expect.element(hall).toBeEnabled();
+    expect(document.querySelector(`[data-subtask="${HALL.id}"] [data-tick-progress]`)).toBeNull();
+
+    expect((await completeTodo(device.db, LAST_CARD.id)).ok).toBe(true);
+    await device.settle();
+    const done = list.getByRole("checkbox", { name: "Reopen “Send the invites”" });
+    await expect.element(done).toBeEnabled();
+    await expect.element(done).toBeChecked();
+    expect(document.querySelector(`[data-subtask="${INVITES.id}"] [data-tick-progress]`)).toBeNull();
+  });
+
+  test("the page's Mark done waits too, and its last subtask's tick completes it", async () => {
+    await openParty(INVITES.id);
+    await expect.element(heading("Send the invites")).toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: "Mark “Send the invites” done" })).toBeDisabled();
+    await expect
+      .poll(() => document.querySelector("[data-completion-progress]")?.textContent)
+      .toContain("2 of 3");
+
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Post the last card” done" }));
+    await expect.element(page.getByRole("button", { name: "Reopen “Send the invites”" })).toBeEnabled();
+    await expect.element(getByCss("[data-completion-progress]")).not.toBeInTheDocument();
+  });
+});
+
+describe("deleting a parent", () => {
+  /** The open confirm's words, once Delete is asked from the page's ⋯. */
+  const askDelete = async (title: string) => {
+    await expect.element(heading(title)).toBeInTheDocument();
+    await userEvent.click(page.getByRole("button", { name: `Actions for ${title}` }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Delete" }));
+    await expect.element(page.getByRole("dialog", { name: "Delete this todo?" })).toBeVisible();
+    return document.querySelector("dialog[open]")?.textContent ?? "";
+  };
+
+  test("the confirm names every subtask that goes with it", async () => {
+    await openParty(PARTY.id);
+    // Its two subtasks and the invites' three.
+    expect(await askDelete("Plan the party")).toContain("its 5 subtasks");
+  });
+
+  test("a subtask with its own counts its own", async () => {
+    await openParty(INVITES.id);
+    expect(await askDelete("Send the invites")).toContain("its 3 subtasks");
+  });
+
+  test("a todo with no subtasks names none", async () => {
+    await openParty(HALL.id);
+    expect(await askDelete("Book the hall")).not.toContain("subtask");
+  });
+});
+
+describe("the edit form's Repeat", () => {
+  const EDIT_ROUTES: DeviceRoute[] = [
+    { path: BASE, module: todosRoute, children: [{ path: `${BASE}/:todoId/edit`, module: editSheet }] },
+  ];
+  const repeatOf = async (todoId: string) => {
+    await renderWithDevice({
+      route: EDIT_ROUTES,
+      url: `${pageOf(todoId)}/edit`,
+      role: "caretaker",
+      fixtures: party(),
+    });
+    await expect.element(page.getByRole("textbox", { name: "Todo" })).toBeVisible();
+    return document.querySelector("[data-todo-form] [data-todo-repeat]");
+  };
+
+  test("is gone on a subtask", async () => {
+    expect(await repeatOf(LAST_CARD.id)).toBeNull();
+  });
+
+  test("is gone on a todo with subtasks", async () => {
+    expect(await repeatOf(PARTY.id)).toBeNull();
+  });
+
+  test("shows on a plain todo", async () => {
+    expect(await repeatOf(CAKE.id)).not.toBeNull();
   });
 });
