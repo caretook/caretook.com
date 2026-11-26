@@ -217,7 +217,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-543 | question | in-progress | orchestration-split | prd/orchestration-split-2 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-545 | chore | triaged | fixes-tooling |  | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
-| B-548 | feature | in-progress | tags | prd/tags | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
+| B-548 | feature | ready | tags | prd/tags | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
@@ -1265,10 +1265,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-548 · feature · Group-wide tags on every record (entries, todos, providers, medications, events), filterable
 
-- status: in-progress
+- status: ready
 - prd: tags
 - owner: prd/tags
-- commit:
+- commit: 93f3e6ae
 
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): first version is one shared tag list per care group, on all records (timeline entries, todos, providers, medications, events), with a tag filter on each list and in search. Triage: new topic tags (a new table and join rows, sync streams, every list's filter); big, wants a PRD. Overlaps planner-3's todo schema and search.
 - 2026-11-22 (Robert Bo Davis): User 2026-11-22, corrects the answer to a69: Easy helpers can rename only tags they created. Owners, admins and caretakers can rename any tag. Only owners can delete a tag.
