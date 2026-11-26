@@ -13,7 +13,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
-**Idle after wave 16** (landed 3dd61650, 2026-11-26; history has it). No triaged fixes-bug items are ready. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 17 (numbered from `status-trim --next`) from new triaged items (B-750 only once its notes name files; B-752 once B-753 lands). Standing topic: never `pnpm prd rm fixes-bug`.
+**Idle after wave 16** (landed 3dd61650, 2026-11-26; history has it). No triaged fixes-bug items are ready. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 17 (numbered from `status-trim --next`) from new triaged items (B-750 only once its notes name files; B-752 once B-753 lands). 2026-11-26: re-checked (synced, inbox empty, nothing ready); lane freed with `pnpm prd rm fixes-bug` (standing, so the row stays and the dispatcher restarts it once items wait), at the backlog session's request.
 
 ## Wave 1
 
