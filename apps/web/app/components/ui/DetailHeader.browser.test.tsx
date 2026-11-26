@@ -66,8 +66,9 @@ describe("DetailHeader", () => {
     const box = header.getBoundingClientRect();
     const h1 = header.querySelector("h1")!.getBoundingClientRect();
     const actions = region("actions")!.getBoundingClientRect();
+    const titleBox = region("title")!.getBoundingClientRect();
     expect(h1.right).toBeLessThanOrEqual(actions.left);
-    expect(region("title")!.getBoundingClientRect().right).toBeLessThanOrEqual(actions.left);
+    expect(titleBox.right).toBeLessThanOrEqual(actions.left);
     expect(actions.right).toBeLessThanOrEqual(box.right);
     expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(375);
