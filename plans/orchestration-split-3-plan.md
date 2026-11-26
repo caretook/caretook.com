@@ -10,16 +10,16 @@
 
 **2026-11-26, wave 1 started** (orchestrator on Opus): B-543 claimed for prd/orchestration-split-3. Worktrees `orchestration-split-3-1` (stack, slot 3) and `orchestration-split-3-2` (no stack) made; both slices spawned on **opus** (slice 1 judged opus-enough, not Fable: the gate split is mechanical extraction with tests to hold it). Wave 1 lands only when no other PRD, plan or hotfix worktree is open (open now: todo-subtasks-2, plan/self-recovery-2, plan/symptom-catalog-2).
 
-| Slice | Wave | State          | Merge into `prd/orchestration-split-3` |
-| ----- | ---- | -------------- | -------------------------------------- |
-| 1     | 1    | running (opus) |                                        |
-| 2     | 1    | running (opus) |                                        |
-| 3     | 2    | planned        |                                        |
-| 6     | 2    | planned        |                                        |
-| 8     | 3    | planned        |                                        |
-| 7     | 3    | planned        |                                        |
-| 4     | 4    | planned        |                                        |
-| 5     | 5    | planned        |                                        |
+| Slice | Wave | State                                                      | Merge into `prd/orchestration-split-3` |
+| ----- | ---- | ---------------------------------------------------------- | -------------------------------------- |
+| 1     | 1    | running (opus)                                             |                                        |
+| 2     | 1    | handed off 3ee6fbb1, reviewed; merges after 1 (plan order) |                                        |
+| 3     | 2    | planned                                                    |                                        |
+| 6     | 2    | planned                                                    |                                        |
+| 8     | 3    | planned                                                    |                                        |
+| 7     | 3    | planned                                                    |                                        |
+| 4     | 4    | planned                                                    |                                        |
+| 5     | 5    | planned                                                    |                                        |
 
 ## Architectural decisions
 
