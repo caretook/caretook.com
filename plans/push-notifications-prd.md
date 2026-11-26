@@ -1,6 +1,6 @@
-# PRD: Calendars 3: reminders as browser push
+# PRD: Push notifications: reminders as browser push
 
-Backlog: B-377 (push notifications for event reminders). Topic `calendars-3`, after `calendars-2`.
+Backlog: B-377 (push notifications for event reminders). Topic `push-notifications`, after `calendars-2`.
 
 ## Decisions
 
