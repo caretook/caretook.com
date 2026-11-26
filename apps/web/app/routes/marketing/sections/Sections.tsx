@@ -48,6 +48,9 @@ export function CtaLink({
 /** On the accent band, a call to action stands on the page's colour. */
 export const CTA_ON_ACCENT = "bg-base-100 text-base-content";
 
+/** Both hero buttons share one row from 360 px up: smaller on a phone, never wrapping their label. */
+const HERO_CTA = "whitespace-nowrap max-sm:h-11 max-sm:min-h-0 max-sm:px-3 max-sm:text-sm";
+
 export function Hero({ content }: { content: HeroContent }) {
   return (
     <section aria-labelledby="hero-heading" className="bg-base-200">
@@ -78,9 +81,9 @@ export function Hero({ content }: { content: HeroContent }) {
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-base-content/80 sm:text-xl">
           {content.lead}
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <CtaLink cta={content.primary} variant="primary" />
-          {content.secondary && <CtaLink cta={content.secondary} variant="ghost" />}
+        <div className="mt-8 flex flex-nowrap gap-3">
+          <CtaLink cta={content.primary} variant="primary" className={HERO_CTA} />
+          {content.secondary && <CtaLink cta={content.secondary} variant="ghost" className={HERO_CTA} />}
         </div>
       </div>
     </section>

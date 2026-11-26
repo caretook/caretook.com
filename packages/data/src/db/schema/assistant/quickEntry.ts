@@ -30,8 +30,8 @@ import {
 // each with its readings ranked best first. Pure and client-safe; nothing is
 // saved here. English only.
 //
-// Rules, in order, per part: a kind prefix (`n:` `e:` `s:` `v:` `d:`) forces
-// a kind; otherwise vitals (a keyword and a number, or a bare `n/n`), doses
+// Rules, in order, per part: a kind prefix (`n:` `e:` `s:` `v:` `d:`, or a
+// kind word: "note", "add event") forces a kind; otherwise vitals (a keyword and a number, or a bare `n/n`), doses
 // (give/gave/skip/refuse and a medication), symptoms (a phrase and 0–10 or
 // `n/10`, a symptom word, or an incident: "fell"), events (`appt`, a named
 // provider, or a time ahead), then a note. The words that pick a kind live
@@ -41,7 +41,7 @@ import {
 // part's time, in the recipient's zone; which way an ambiguous one reads is
 // the reading's: ahead for events and todos (back after a visit verb:
 // "saw Dr. Lee friday"), back for the rest, notes included. A todo is asked
-// for (`t:`, `task:`, `todo:`: its "for Sam" or "@Sam" names a member, and
+// for (`t:`, `task:`, `todo`, "add to-do": its "for Sam" or "@Sam" names a member, and
 // its time phrase is the due day), or is what a note that says a time ahead
 // becomes ("call the pharmacy tomorrow"): notes are past-only.
 
@@ -135,11 +135,38 @@ export const KIND_LABELS: Record<QuickEntryKind, string> = {
   provider: "New provider",
 };
 
-/** Kind prefixes: `v: …` is always a vital. */
-const PREFIXES: Record<string, ActionKind> = { n: "note", e: "event", s: "symptom", v: "vital", d: "dose" };
+/** Kind prefixes: `v: …` is always a vital, `t: …` a todo. */
+const PREFIXES: Record<string, ActionKind> = {
+  n: "note",
+  e: "event",
+  s: "symptom",
+  v: "vital",
+  d: "dose",
+  t: "todo",
+  note: "note",
+  event: "event",
+  task: "todo",
+  todo: "todo",
+  "to-do": "todo",
+  "to do": "todo",
+};
 
-/** A todo's prefix: `t:`, `task:`, `todo:` (or `todo` alone, `to-do:`). */
-const TODO_PREFIX = /^\s*(?:(?:t|task|todo|to-do|to do)\s*:|todo\b)\s*/i;
+/**
+ * A kind cue at the start of a line: a letter prefix (`n:`, `t:`), or a kind
+ * word with or without its colon (`todo`, `to-do`, `to do`, `task`, `note`,
+ * `event`), after an `add` or not ("add todo call the pharmacy", "add an event
+ * dentist friday"). An `add` without a kind word isn't one ("add salt to diet").
+ */
+const KIND_CUE =
+  /^\s*(?:(?:add\s+(?:an?\s+)?)?(task|todo|to-do|to\s+do|note|event)(?=\s|:|$)\s*:?|([nesvdt])\s*:)\s*/i;
+
+/** The kind a line's cue asks for, and the cue's length (its words leave the text). */
+const kindCue = (text: string): { kind: ActionKind; length: number } | null => {
+  const m = KIND_CUE.exec(text);
+  if (!m) return null;
+  const word = (m[1] ?? m[2]!).toLowerCase().replace(/\s+/g, " ");
+  return { kind: PREFIXES[word]!, length: m[0].length };
+};
 
 // ---------------------------------------------------------------------------
 // Words
@@ -2223,10 +2250,9 @@ const parsePart = (
   context: QuickEntryContext,
   previousDose: DoseStatus | null,
 ): QuickEntryPart => {
-  const todoPrefix = TODO_PREFIX.exec(text);
-  const prefix = todoPrefix ?? /^\s*([nesvd]):\s*/i.exec(text);
-  const forced = todoPrefix ? "todo" : prefix ? PREFIXES[prefix[1]!.toLowerCase()]! : null;
-  const body = prefix ? text.slice(prefix[0].length).trim() : text.trim();
+  const cue = kindCue(text);
+  const forced = cue?.kind ?? null;
+  const body = text.slice(cue?.length ?? 0).trim();
   const tokens = tokenize(body);
   // A fraction that is a dose's amount is hidden from the date finder; a line forced to another kind keeps it.
   const readsAmounts = forced === null || forced === "dose";
@@ -2364,8 +2390,8 @@ const parsePart = (
 
 /**
  * A line's parts: split on commas, semicolons, new lines and "and" (not a
- * comma inside a number, "1,000"). A line that starts with `n:` or `e:` is
- * one note or event, whatever it says. A todo keeps its "and" ("todo: pick
+ * comma inside a number, "1,000"). A line that starts with `n:` or `e:` (or
+ * "note", "add event") is one note or event, whatever it says. A todo keeps its "and" ("todo: pick
  * up milk and bread") up to the next comma, semicolon or line, and a repeat
  * its weekdays ("every mon, wed and fri").
  */
@@ -2399,13 +2425,14 @@ const unmask = (text: string) =>
 export const splitQuickEntry = (text: string): string[] => {
   const line = text.trim();
   if (!line) return [];
-  if (/^[ne]:/i.test(line) || keepsNewItemLine(line)) return [line];
+  const cue = kindCue(line)?.kind;
+  if (cue === "note" || cue === "event" || keepsNewItemLine(line)) return [line];
   const masked = line.replace(REPEAT_DAYS, maskList);
   return masked
     .split(/\s*(?:;|\n|(?<!\d),|,(?!\d))\s*/)
     .flatMap((piece) => {
       // From a todo's prefix on, the piece is the todo.
-      const todo = TODO_PREFIX.test(piece) ? 0 : piece.search(TODO_AFTER_SOFT);
+      const todo = kindCue(piece)?.kind === "todo" ? 0 : piece.search(TODO_AFTER_SOFT);
       const head = todo < 0 ? piece : piece.slice(0, todo);
       const tail = todo < 0 ? [] : [piece.slice(todo).replace(SOFT_SPLIT_START, "")];
       return [...(head ? head.split(SOFT_SPLIT) : []), ...tail];

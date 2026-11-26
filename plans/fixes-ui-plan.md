@@ -21,10 +21,25 @@ Notes for every wave:
 
 **Previous hand-over:** wave 15 landed 2026-11-25 as dev 2584a81 through PR #203, `--no-review` (Codex out of credits), CI integration green (run 45750856542, de32eac7), landed on an unsynced tip (dev shared no file); to-test/2026-11-25-2254-fixes-ui.md. Slice 85 (B-857, quick entry previews say Event; sonnet). Docs folded into assistant.md (trimmed to stay under budget). Slice worktree removed.
 
-**Next session:** `pnpm backlog ingest` and `list`. Nothing triaged and waiting. Still held: B-694 (the user approves each form live), B-325 (Capacitor). No slice in flight.
+**Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Landing:** CI components green on 200c4c14 (run 45879574428; quarantined emergency.browser failed, not ours). Docs folded (5ef43e2c). Synced (no-op). PR #231 open; Codex review waiting; `browser --changed --base dev` (layout-offline, first-sync, ui, marketing) running. Then land with `--tier components`.
+
+**Unparked:** split stage 1c wave 1 landed as dev 00c60f0c; synced (76b8ad63). New browser.sh (hooks.browser, scripts/project/browser-run.sh).
+
+To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait in /app; brand/LoadingMark shared with AppLoading; 92). medications.md line 10 (PrintAllergies tops only the list print; the weekly sheet has G/S/R marks; 94). providers.md: Condensed rows (default, `providersView`) carry one main contact action, overriding B-422's "rows carry no contact details", which now holds for Full (93). 91 kept B-618's order and tightened the Change button's gap (14 to 8 px): say so in the report. assistant.md Todos bullet: kind words todo/to-do/to do/task/note/event, colon optional, optional leading `add`; `add` without one stays text (88). sync.md/app-shell.md: the offline banner's grace is 10 s when the browser is offline, 30 s when online but unsynced, 90 s on dev (89). Lesson: 93 ran to 13 files; split such items. app-shell.md line 7 (OfflineBanner is a kit Notice overlaid under the header, not in flow) and ui-kit.md (Notice takes role="none") (90). Browser checks the wave needs: ui, marketing, first-sync.
+
+| Slice | Item         | State  | Merge    |
+| ----- | ------------ | ------ | -------- |
+| 86    | B-885        | merged | 39d0e40d |
+| 87    | B-897, B-900 | merged | bc45cde9 |
+| 88    | B-902        | merged | 8df165c5 |
+| 89    | B-904        | merged | 59623a1e |
+| 90    | B-905        | merged | 26b57cd9 |
+| 91    | B-906        | merged | 1fdf6bb0 |
+| 92    | B-908        | merged | e29899de |
+| 93    | B-909        | merged | 54443809 |
+| 94    | B-916        | merged | f1180db4 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1244,3 +1259,118 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/
 
 - [ ] Unit test: "appointment with Dr. Lee tomorrow 3pm" previews the title "Event with <provider>"; "dental cleaning appt friday" previews "Dental cleaning"; a bare "appointment tomorrow" previews "Event".
 - [ ] No test, browser check or screen still expects an "Appointment" title from quick entry.
+
+## Wave 16 (written 2026-11-26 by the orchestrator, from the triaged fixes-ui items)
+
+Slices 86–94. Slice 90 is blocked by 89 (same file, `OfflineBanner.tsx`); the others are independent. Still held: B-694, B-325.
+
+## Slice 86: The front page's hero buttons sit side by side on a phone (B-885)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: component
+
+**Problem.** On a phone the front page hero's two call-to-action buttons wrap onto two lines (`apps/web/app/routes/marketing/home/`, `routes/marketing/sections/Sections.tsx`).
+
+**Build.** The two buttons fit side by side at 360 px wide and up (shorter padding or size on small screens, `flex-nowrap`, no text wrapping inside a button); the wider layout is unchanged. Don't change the copy.
+
+**Acceptance criteria.**
+
+- [ ] Component test at a 360 px viewport: the hero's two buttons share one row (same top) and neither label wraps.
+
+## Slice 87: Quick entry's suggestion popovers don't overlap; Tab completes one suggestion (B-897, B-900)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/components.md · Tests: component
+
+**Problem.** In quick entry (`components/quick-entry/`: `QuickEntryBox.tsx`, `QuickEntryCompletions.tsx`, `QuickEntrySuggestions.tsx`), the medication autocomplete popover covers the event suggestion box (B-897). Tab does nothing useful in the autocomplete (B-900).
+
+**Build.** The autocomplete opens **above** the input and the suggestion box stays **below**, so neither covers the other (keep it on screen near the top edge: flip below only when there's no room above, and then the suggestion box still isn't covered). Tab: with exactly one autocomplete suggestion, Tab completes it and keeps focus in the input; with several, Tab moves focus into the suggestion list (the first item) so arrows and Enter pick one; with none, Tab moves on as usual. Escape still closes the list.
+
+**Acceptance criteria.**
+
+- [ ] Component test: typing a medication name with the event suggestion showing, the autocomplete's box sits above the input and doesn't intersect the suggestion box.
+- [ ] Component test: one suggestion, Tab completes it and focus stays in the input; several, Tab focuses the first suggestion; none, Tab leaves the input.
+
+## Slice 88: Quick entry reads type words without a colon and 'add' as a cue (B-902)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit (`packages/data`)
+
+**Problem.** The parser (`packages/data/src/db/schema/assistant/quickEntry.ts`) only takes a kind from prefixes like `t:`, `task:`, `todo`, `to-do:`, `to do:`. "to-do call the pharmacy", "add todo …", "add note …", "add event …" don't pick their kind.
+
+**Build.** A leading type word picks its kind with or without a colon (`todo`, `to-do`, `to do`, `task`, `note`, `event`, and whichever other kind words the parser already knows). A leading `add` followed by a type word is a cue: both words are dropped and the kind is set. `add` not followed by a type word stays part of the text ("add salt to diet" is not a kind cue and keeps its words). Don't misread a type word that is the start of ordinary text when the existing rules already treat it as text (keep every existing test green; if one conflicts with this item, follow the item and note it in the hand-off). Update the prefixes list in `docs/domain/assistant.md`'s wording only through the hand-off (loops don't edit docs: say what changed).
+
+**Acceptance criteria.**
+
+- [ ] Unit tests: "to-do call the pharmacy", "todo call the pharmacy", "add todo call the pharmacy", "add to-do call the pharmacy" each parse as a to-do titled "Call the pharmacy" (or the parser's usual casing); "add note slept well" is a note; "add event dentist friday 3pm" is an event; "add salt to diet" keeps "add" in its text and isn't given a kind by the cue.
+
+## Slice 89: The offline banner no longer shows at random while online (B-904)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** After B-840's 10 s grace (`routes/app/layout/OfflineBanner.tsx`), the banner still appears at random while online, mostly on local dev.
+
+**Build.** Find the cause first, on the dev stack: log what flips the status the banner reads (PowerSync `connected`, `navigator.onLine`, or whatever it uses) with timestamps and reasons. Leads: a cold dev load (Vite unbundled modules, the PowerSync worker and WASM) taking over 10 s to connect; dev server restarts or HMR reloads; the local PowerSync container closing streams, or the 5-minute token refresh (`auth.ts`) leaving `connected` false longer than a retry. Fix the cause. If it is dev-only and not reachable in production, widen the grace on dev only (by `import.meta.env.DEV`), and say so. The banner should mean "you're offline", so prefer `navigator.onLine` plus a failed reconnect over a single PowerSync disconnect if that's the cause. Remove the logging before hand-off (or leave it behind a dev-only flag). The hand-off names the cause found.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `offlineBanner.browser.test.tsx`) covering the cause found: e.g. a stream that drops and reconnects within the grace, or a token refresh, never shows the banner; a real offline still shows it after the grace.
+
+## Slice 90: The offline banner is a kit banner and doesn't shift the page (B-905)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component · Blocked by: slice 89
+
+**Problem.** `OfflineBanner.tsx` is a hand-rolled `<p>` in the page flow under the header, so it pushes the page down when it opens.
+
+**Build.** Build it from the kit: `ui/Notice` if it fits, else a banner variant added to `ui/` (and to the `/dev/ui` gallery), per ui-kit.md. Show it without moving content: overlaid just under the header (absolutely or fixed positioned within the frame), never covering the header, the tab bar or an open sheet. Keep its live region (`role="status"` or what it has), `print:hidden`, and slice 89's timing.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the banner renders through the kit component; showing it doesn't change the main content's top offset (measure before and after); it doesn't overlap the header.
+
+## Slice 91: Today's add-care-period button sits next to the care period (B-906)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/care-periods.md · Tests: component
+
+**Problem.** On the timeline's Today header (`routes/app/groups/timeline/DayHeader.tsx`), the add-a-care-period icon sits far from the care period display.
+
+**Build.** Put the button right beside the care period display (a small gap, one group), at every width; nothing else on the header moves. Keep its label and hit size.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `timelineCarePeriods.browser.test.tsx`): the button's left edge is within a few pixels (say 16 px) of the care period display's right edge, at phone and desktop widths.
+
+## Slice 92: One standard full-page loader inside the app frame (B-908)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** In-app full-page loads use `ui/Loading`'s small inline spinner (`components/shell/FirstSyncPending.tsx`: "Getting your care groups…"), not the app loader's look (`brand/AppLoading.tsx`).
+
+**Build.** A `ui/` page loader with AppLoading's look (the mark, spinner and message, centred in the content area), shown inside the `/app` frame under the header, with a custom message. Optional, configurable "Go back" button to cancel a load, and a watcher that after a configurable threshold (default about 10 s) shows a "this is taking a while" prompt with Go back. Go back uses history when there is any, else the groups list (`appUrls`). Reuse AppLoading's styles (share them, don't copy); AppLoading itself stays root's script-free HydrateFallback. Add it to the `/dev/ui` gallery. Move FirstSyncPending onto it. The other `ui/Loading` uses (home route, RemindMeSheet, VisitPrepSheet, GoogleCard) are inline or in sheets: move only the home route if it's a full-page load, leave the rest.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the loader shows its message; the slow prompt appears only after the threshold (fake timers); Go back navigates back, or to the groups list with no history. No exact-wording asserts.
+- [ ] FirstSyncPending renders through the new loader (its test updated).
+
+## Slice 93: Providers list: Condensed and Full layouts, sharing the timeline's control (B-909)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/providers.md, docs/domain/timeline.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: unit, component
+
+**Problem.** The timeline has a Condensed/Full layout choice (the Layout section of `routes/app/groups/timeline/TimelineViewMenu.tsx`, saved as `userPreferences.timelineView` through `useTimelineView` and `saveSettings`); the providers list has none.
+
+**Build.** Lift the layout items and their icons (lucide `List` for Condensed, `LayoutList` for Full) into one shared piece in `components/` (or `ui/` if it's generic) used by both the timeline's menu and the providers list. Add a separate optional `providersView` key to `userPreferencesZSchema` (`packages/data/src/db/schema/app-shell/userPreferences.ts`; jsonb, no migration; same values as `TIMELINE_VIEWS`, default Condensed), with a resolver like `resolveTimelineView`, and a hook like `useTimelineView`. The providers list (`routes/app/groups/providers/`: `ProviderListItem.tsx`, `DirectoryResults.tsx`) gets a dense one-line row for Condensed (name, specialty, the main contact action) and today's fuller item for Full. The timeline's behaviour is unchanged. The user's choice (2026-11-26): separate settings. If this runs past 12 files, hand off what's done and say so.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: `providersView` parses, and resolves to Condensed when unset; the timeline's key is unaffected.
+- [ ] Component test: the providers list shows Condensed rows by default; choosing Full switches to the fuller items and saves `providersView`; the timeline's menu still shows its layout choice through the shared piece.
+
+## Slice 94: The printed weekly sheet marks a dose given, skipped or refused (B-916)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: unit, component
+
+**Problem.** The weekly medication sheet (`routes/app/groups/medications/print/week/`: `weeklySheet.ts`, `WeeklyChart.tsx`, `route.tsx`) only leaves room to mark a dose given.
+
+**Build.** Each slot gets three small marks to circle or tick: G (given), S (skipped), R (refused), with a legend on the sheet saying what each means, so the paper matches the app's dose states and an AI can read a photo of it (clear, separate boxes). Drop PrintAllergies and PrintConditions from the weekly sheet (they stay on the medication list print) and use the room for the marks. Keep it on one page at the sizes it fits today.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`weeklySheet.test.ts`) or component test: each slot has the three marks; the legend is present; the weekly sheet no longer renders allergies or conditions, and the medication list print still does (`print.browser.test.tsx`).

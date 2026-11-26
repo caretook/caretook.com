@@ -1,7 +1,15 @@
 import type { PrintMedicationInput, PrintRecipient } from "../printSheet";
 
+import { DOSE_STATUSES } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
-import { AS_NEEDED_LINES, parseWeekStart, thisWeekStart, weekLabel, weeklySheet } from "./weeklySheet";
+import {
+  AS_NEEDED_LINES,
+  DOSE_MARKS,
+  parseWeekStart,
+  thisWeekStart,
+  weekLabel,
+  weeklySheet,
+} from "./weeklySheet";
 
 const ZONE = "America/Los_Angeles";
 // 10:00 on Wednesday, Nov 18, 2026 in Los Angeles (18:00 UTC).
@@ -246,5 +254,16 @@ describe("the header", () => {
     const s = sheet([]);
     expect(s.recipient).toEqual({ name: "Patricia Example (Grandma Pat)", dateOfBirth: "Mar 14, 1941" });
     expect([s.groupName, s.printedOn]).toEqual(["Dev Family", "Nov 18, 2026"]);
+  });
+});
+
+describe("the dose marks", () => {
+  it("are G, S and R, one for each of the app's dose states, in its order, each with what it means", () => {
+    expect(DOSE_MARKS.map((m) => [m.mark, m.state, m.label])).toEqual([
+      ["G", "given", "Given"],
+      ["S", "skipped", "Skipped"],
+      ["R", "refused", "Refused"],
+    ]);
+    expect(DOSE_MARKS.map((m) => m.state)).toEqual([...DOSE_STATUSES]);
   });
 });

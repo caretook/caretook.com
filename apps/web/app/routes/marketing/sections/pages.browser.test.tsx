@@ -55,6 +55,27 @@ test.each([420, 1280])(
   },
 );
 
+test("at 360 the hero's two buttons share one row and neither label wraps", async () => {
+  const { screen } = await openMarketing("/", { width: 360 });
+  const { primary, secondary } = homeContent.hero;
+  await expect.element(screen.getByRole("heading", { level: 1 })).toBeVisible();
+  const hero = document.querySelector("#hero-heading")?.closest("section");
+  const buttons = [primary.label, secondary?.label ?? ""].map((label) => {
+    const link = [...(hero?.querySelectorAll("a") ?? [])].find((a) => a.textContent === label);
+    if (!link) throw new Error(`no hero button ${label}`);
+    return link;
+  });
+  const [a, b] = buttons.map((el) => el.getBoundingClientRect());
+  expect(a?.top, "same top").toBe(b?.top);
+  for (const el of buttons) {
+    const line = parseFloat(getComputedStyle(el).lineHeight);
+    const text = Math.max(...[...el.getClientRects()].map((r) => r.height));
+    expect(text, "one line of text").toBeLessThan(line * 2 + 24);
+    expect(el.scrollWidth, "label fits").toBeLessThanOrEqual(el.clientWidth);
+  }
+  expect(scrollsSideways(), "no horizontal scroll").toBe(false);
+});
+
 test("the inner pages keep their own heading as the h1, with no lockup", async () => {
   const { screen } = await openMarketing("/features");
   await expect.element(screen.getByRole("heading", { level: 1 })).toBeVisible();

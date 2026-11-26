@@ -28,6 +28,10 @@ export const TIMELINE_VIEWS = ["rows", "cards"] as const;
 export type TimelineView = (typeof TIMELINE_VIEWS)[number];
 export const DEFAULT_TIMELINE_VIEW: TimelineView = "rows";
 
+/** How the providers list shows each provider: a dense row, or the fuller item. Its own setting, same choices. */
+export type ProvidersView = TimelineView;
+export const DEFAULT_PROVIDERS_VIEW: ProvidersView = "rows";
+
 /** The line under each timeline day: nothing, only what stands out, or everything. */
 export const DAY_SUMMARY_MODES = ["off", "highlights", "full"] as const;
 export type DaySummaryMode = (typeof DAY_SUMMARY_MODES)[number];
@@ -39,6 +43,7 @@ export const MAX_SETUP_DISMISSED = 500;
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
   timelineView: z.enum(TIMELINE_VIEWS).optional(),
+  providersView: z.enum(TIMELINE_VIEWS).optional(),
   /** Easy mode: your own choice, easy or full (easyMode.ts). */
   easyMode: z.enum(EASY_MODE_SETTINGS).optional(),
   daySummary: z.enum(DAY_SUMMARY_MODES).optional(),
@@ -55,6 +60,9 @@ export const resolveUnits = (prefs: UserPreferences | null | undefined): UnitCho
 
 export const resolveTimelineView = (prefs: UserPreferences | null | undefined): TimelineView =>
   prefs?.timelineView ?? DEFAULT_TIMELINE_VIEW;
+
+export const resolveProvidersView = (prefs: UserPreferences | null | undefined): ProvidersView =>
+  prefs?.providersView ?? DEFAULT_PROVIDERS_VIEW;
 
 /** Anything but a known setting (a stored `group` from before the easy roles) reads as the default. */
 export const resolveEasyModeSetting = (prefs: UserPreferences | null | undefined): EasyModeSetting => {
