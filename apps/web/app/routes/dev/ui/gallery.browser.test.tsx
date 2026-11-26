@@ -62,4 +62,20 @@ describe("the UI gallery", () => {
     await userEvent.click(motion.getByRole("button", { name: "Toast" }));
     await expect.element(page.getByRole("alertdialog", { name: "Added Ibuprofen" })).toBeVisible();
   });
+
+  test("the FormTabs section switches in place, and Save jumps to the tab with the missing field", async () => {
+    const { screen } = await open();
+    const section = screen.getByRole("region", { name: "FormTabs", exact: true });
+    const tabs = section.getByRole("tablist", { name: "Example medication sections" });
+    await expect
+      .element(tabs.getByRole("tab", { name: "Essentials" }))
+      .toHaveAttribute("aria-selected", "true");
+    await userEvent.click(tabs.getByRole("tab", { name: "Details", exact: false }));
+    await expect.element(section.getByRole("textbox", { name: "Directions" })).toBeVisible();
+    await userEvent.click(section.getByRole("button", { name: "Save" }));
+    await expect
+      .element(tabs.getByRole("tab", { name: "Refills, has an error" }))
+      .toHaveAttribute("aria-selected", "true");
+    await expect.element(section.getByRole("textbox", { name: "Rx number" })).toHaveFocus();
+  });
 });
