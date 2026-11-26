@@ -4,11 +4,17 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started. Starts after `symptom-catalog`.
+**Where it stands:** wave 1 starting (2026-11-25). `symptom-catalog` is done.
+
+**Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+**Models:** slice 1 opus.
+
+**Wave 1:** slice 1 worktree `tags-1` (slot 3) made, opus agent spawned 2026-11-25. B-548 claimed.
 
 | Slice | Wave | State       | Merge into `prd/tags` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------- |
-| 1     | 1    | not started |                                       |
+| 1     | 1    | started     |                                       |
 | 2     | 2    | not started |                                       |
 | 3     | 3    | not started |                                       |
 | 4     | 3    | not started |                                       |
