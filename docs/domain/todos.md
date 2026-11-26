@@ -38,7 +38,7 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tas
 - ✅ **Service:** a bad parent (missing, deleted, other group, repeating, too deep) is `todoService:badParent`; a rule on a subtask or a parent is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
 - ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`): after a child's create, complete, reopen or remove, up to the top, as the system with the actor as `done_by` (a viewer's last subtask can do it). A hand reopen reopens only that todo. `complete` with an open subtask: `todoService:openSubtasks`. `remove` cascades to live descendants, then rolls up; returns `{ ids }`.
 - ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants in its transaction. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. "Not saved" names the three. Rollup: `planRollup` writes the chain in the change's transaction, flagged `ROLLUP_METADATA`; `todoOp` sends it to `rollUpUploaded` (any member; server rows decide). Only the server refuses a hand tick of a parent with open subtasks.
-- ✅ **The page:** a Subtasks band under Details (`TodoSubtasks`): "n of m done", ticks; writers' "Add subtask" (not at the depth limit or on a repeat). "Part of <parent>" links up. `TodoUndoStatus`'s `todoIds` keeps each band's Undo to its own ticks.
+- ✅ **The page:** a Subtasks band under Details (`TodoSubtasks`): "n of m done", ticks; writers' "Add subtask" (not at the depth limit or on a repeat). "Part of <parent>" links up. `TodoUndoStatus`'s `todoIds`: each band's Undo is its own.
 
 ## On the device (`lib/todos/todos.sync.ts`)
 
