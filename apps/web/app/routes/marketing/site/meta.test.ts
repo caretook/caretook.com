@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { BRAND } from "~/components/brand";
+import { BRAND } from "../../../components/brand/name";
 
 import { content as about } from "../about/content";
 import { content as contact } from "../contact/content";

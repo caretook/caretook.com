@@ -1,4 +1,4 @@
-import { BRAND } from "~/components/brand";
+import { BRAND } from "../../../components/brand/name";
 
 import type {
   CtaBandContent,

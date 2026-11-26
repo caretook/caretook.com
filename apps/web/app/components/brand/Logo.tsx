@@ -1,3 +1,5 @@
+import { BRAND } from "./name";
+
 /**
  * The draft Caretook mark (a heart with a check, in a rounded square) and
  * wordmark, drawn inline so it follows the theme's primary color. The same
@@ -27,9 +29,6 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** The name and tagline, in one place: the logo, the hero, page titles and the share image use them. */
-export const BRAND = { name: "Caretook", tagline: "Care, taken." } as const;
-
 const SIZES = {
   header: { gap: "gap-2", mark: "size-9", name: "text-xl", tagline: "-mt-px text-xs leading-none" },
   hero: {
@@ -44,7 +43,8 @@ const SIZES = {
  * The full logo: the mark, "Caretook" in bold, and the tagline tucked just
  * under it, smaller, at the body's weight. `header` fits the 64px bars;
  * `hero` is home's h1 (the caller wraps it; the mark is hidden, so the
- * heading's name is "Caretook Care, taken."). With `wordHiddenBelow`, the
+ * heading's name is "Caretook Care, taken."). In `header` the tagline is
+ * hidden from screen readers, so the link around it is named "Caretook". With `wordHiddenBelow`, the
  * words are screen-reader text below that breakpoint (the mark stays), so a
  * link around it keeps its name on narrow screens.
  */
@@ -64,7 +64,11 @@ export function FullLogo({
         <span className={`${s.name} leading-none font-bold tracking-tight`} data-logo-part="name">
           {BRAND.name}
         </span>{" "}
-        <span className={`${s.tagline} font-normal text-primary-ink`} data-logo-part="tagline">
+        <span
+          className={`${s.tagline} font-normal text-primary-ink`}
+          aria-hidden={size === "header" ? true : undefined}
+          data-logo-part="tagline"
+        >
           {BRAND.tagline}
         </span>
       </span>

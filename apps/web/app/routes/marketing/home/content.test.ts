@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BRAND } from "~/components/brand";
+import { BRAND } from "../../../components/brand/name";
 import { MARKETING_ICONS } from "../sections/icons";
 import { MARKETING_LINKS } from "../site/pages";
 import { homeContent } from "./content";
