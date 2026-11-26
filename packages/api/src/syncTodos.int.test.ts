@@ -609,18 +609,13 @@ describe("sync.upload: the device's rollup (todo-subtasks)", () => {
           }),
         },
       ];
-      const [first, second] =
-        order === "the tick first"
-          ? [
-              [viewer, ticked],
-              [owner, added],
-            ]
-          : [
-              [owner, added],
-              [viewer, ticked],
-            ];
-      for (const [who, ops] of [first, second] as const) {
-        expect((await upload(who.api, ops)).every((r) => r.status === "applied")).toBe(true);
+      const devices = [
+        { api: viewer.api, ops: ticked },
+        { api: owner.api, ops: added },
+      ];
+      if (order === "the new subtask first") devices.reverse();
+      for (const { api, ops } of devices) {
+        expect((await upload(api, ops)).every((r) => r.status === "applied")).toBe(true);
       }
       expect(await doneOf(owner.ctx, top)).toEqual({ doneAt: null, doneBy: null });
     });
