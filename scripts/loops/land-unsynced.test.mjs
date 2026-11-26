@@ -16,6 +16,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { brakeNotice } from "../ci/blame.mjs";
 import { createNotice, withdrawNotice } from "./notices.mjs";
 import { FIXTURE_CONFIG } from "./config-fixture.mjs";
+import { sharedNames } from "./config.mjs";
 import { root, repo, git, commit, landWith, branch, GH_CI, useLandRepo } from "./land-fixture.mjs";
 
 useLandRepo();
@@ -29,11 +30,11 @@ describe("land.sh on an unsynced tip", () => {
   const env = () => ({
     GH_CI: join(root, "gh-ci.mjs"),
     GH_CI_FIXTURE: join(root, "fixture.json"),
-    CARETOOK_CI_POLL: "0",
-    CARETOOK_LEASE_ROOT: join(root, "leases"),
-    CARETOOK_LEASE_POLL: "1",
-    CARETOOK_NOTICES_DIR: join(root, "notices"),
-    CARETOOK_LOAD_GATE: "off",
+    RISA_CI_POLL: "0",
+    RISA_LEASE_ROOT: join(root, "leases"),
+    RISA_LEASE_POLL: "1",
+    RISA_NOTICES_DIR: join(root, "notices"),
+    RISA_LOAD_GATE: "off",
     PNPM_LOG: join(root, "pnpm.log"),
   });
   const go = (extra = {}, ...args) => landWith({ ...env(), ...extra }, "--no-review", "--by-user", ...args);
@@ -58,7 +59,7 @@ describe("land.sh on an unsynced tip", () => {
     const dev = git("rev-parse", "dev");
     inWt("merge", "--no-commit", "--no-ff", "-q", dev);
     writeFileSync(
-      join(inWt("rev-parse", "--absolute-git-dir"), "caretook-unsynced-merge"),
+      join(inWt("rev-parse", "--absolute-git-dir"), sharedNames().unsyncedMerge),
       `${tip} ${dev} 999999\nnever\n`,
     );
   };
@@ -88,7 +89,7 @@ exit 0
     const r = go();
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(steps()).toEqual(["typegen", "typecheck"]);
-    const kinds = readFileSync(process.env.CARETOOK_RUN_LOG, "utf8")
+    const kinds = readFileSync(process.env.RISA_RUN_LOG, "utf8")
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l))
@@ -181,10 +182,10 @@ exit 0
     expect(steps()).toEqual([]);
   });
 
-  it("keeps the drift refusal with --fixes and with CARETOOK_UNSYNCED=off", () => {
+  it("keeps the drift refusal with --fixes and with RISA_UNSYNCED=off", () => {
     started();
     toDev({ "apps/web/dev.ts": "d" });
-    const refused = [go({}, "--fixes", "B-9"), go({ CARETOOK_UNSYNCED: "off" })];
+    const refused = [go({}, "--fixes", "B-9"), go({ RISA_UNSYNCED: "off" })];
     for (const r of refused) {
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("has moved since");
@@ -352,7 +353,7 @@ exit 0
     it("lands on an unreadable board, and says so", () => {
       drifted();
       writeFileSync(join(root, "a-file"), "x");
-      const r = go({ CARETOOK_NOTICES_DIR: join(root, "a-file", "notices") });
+      const r = go({ RISA_NOTICES_DIR: join(root, "a-file", "notices") });
       landed(r);
       expect(r.stderr).toContain("couldn't read the dev-brake notices");
     });
@@ -420,7 +421,7 @@ exit 0
           ...process.env,
           ...env(),
           PATH: `${join(root, "bin")}:${process.env.PATH}`,
-          CARETOOK_PR_THROWAWAY: "1",
+          RISA_PR_THROWAWAY: "1",
           PR_HEAD: git("rev-parse", "prd/throwaway-x"),
           PNPM_HANG: hung,
         },
@@ -431,7 +432,7 @@ exit 0
     child.kill("SIGTERM");
     await gone;
     await expect
-      .poll(() => existsSync(join(inWt("rev-parse", "--absolute-git-dir"), "caretook-unsynced-merge")), {
+      .poll(() => existsSync(join(inWt("rev-parse", "--absolute-git-dir"), sharedNames().unsyncedMerge)), {
         timeout: 5_000,
       })
       .toBe(false);
@@ -498,7 +499,7 @@ exit 0
     started();
     toDev({ "apps/web/dev.ts": "d" });
     leftover();
-    const marker = join(inWt("rev-parse", "--absolute-git-dir"), "caretook-unsynced-merge");
+    const marker = join(inWt("rev-parse", "--absolute-git-dir"), sharedNames().unsyncedMerge);
     writeFileSync(marker, `${"0".repeat(40)} ${"1".repeat(40)} 999999\nnever\n`);
     const r = go();
     expect(r.stderr).toContain("isn't the landing's temporary one");

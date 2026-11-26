@@ -102,7 +102,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 **Four PRDs run at once,** or `pnpm prd dispatch --cap <n>`; running ones finish.
 
-**The dispatcher:** `pnpm prd dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `pnpm prd notices` lists heads-ups. `CARETOOK_UNSYNCED=off` stops unsynced landings.
+**The dispatcher:** `pnpm prd dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `pnpm prd notices` lists heads-ups. `RISA_UNSYNCED=off` stops unsynced landings.
 
 ### After a restart, a crash or a usage limit
 

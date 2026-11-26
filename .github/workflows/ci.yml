@@ -36,7 +36,7 @@ defaults:
     shell: bash
 
 env:
-  CARETOOK_LEASES: "off"
+  RISA_LEASES: "off"
 
 jobs:
   plan:
@@ -150,7 +150,7 @@ jobs:
         name: Unit tests
         # The lease tests take real leases in their own temp directories.
         env:
-          CARETOOK_LEASES: ""
+          RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --time-gate --project data:unit --project web:unit --project notifications:unit
           --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --shard=1/2
@@ -160,7 +160,7 @@ jobs:
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
-          CARETOOK_LEASES: ""
+          RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
           --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
@@ -198,7 +198,7 @@ jobs:
         name: Unit tests
         # The lease tests take real leases in their own temp directories.
         env:
-          CARETOOK_LEASES: ""
+          RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --time-gate --project data:unit --project web:unit --project notifications:unit
           --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --shard=2/2
@@ -259,7 +259,7 @@ jobs:
         name: Browser tooling test
         if: ${{ !cancelled() }}
         env:
-          CARETOOK_LEASES: ""
+          RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --project tooling:browser
           --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
@@ -275,7 +275,7 @@ jobs:
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
-          CARETOOK_LEASES: ""
+          RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --quarantine --project tooling:browser
           --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
