@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands:** waves 1–3 landed in `dev` (2026-11-26). **Wave 4:** slice 6 handed off (a5b63301, quick check green) and merged as 004f99fe; gate: `pnpm prd ci run components` on that tip. Then PR, review, land, `pnpm backlog done B-548`, docs fold (timeline.md: `?tag=` in `timelineFilters`, `summariesOff` includes the tag; search.md: a tag with no text skips the index, the page listens to `record_tag`), `pnpm prd rm tags`. Slice 6's agent passed its soft context limit (196k): a CI fix goes to a fresh `--continue` agent.
+**Where it stands:** all four waves landed in `dev` (2026-11-26); **the PRD is done**, B-548 marked done. Last: land this docs commit (docs only, no review), file the report, `pnpm prd rm tags`, `pnpm prd end`.
+
+**Wave 4 landed** in `dev` as 8e8c60c through PR #212, tier `components` (run 45788376503 green on 93f3e6ae), **without Codex (out of credits)**. Slice 6 merged as 004f99fe (a5b63301). No browser checks (the slice touches no browser-suite area beyond components). to-test `to-test/2026-11-26-0411-tags.md`. Docs: tags.md _Screens_ gains the timeline filter and search (timeline.md is at its budget).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
