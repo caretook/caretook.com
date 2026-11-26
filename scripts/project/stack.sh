@@ -27,7 +27,8 @@
 #                            its facts; no stack: nothing
 #   stack.sh start DIR       start a stopped stack, wait for its Postgres
 #                            (CARETOOK_RECOVER_PG_SECS, 60) and migrate, retried
-#                            once, never seeding (pnpm prd recover); its facts
+#                            once, never seeding (pnpm prd recover); its facts,
+#                            and migrating=yes once it gets to the migrate
 #   stack.sh engine [status|start]   running=yes|no and name=Docker; start
 #                            opens Docker Desktop and waits for it
 #                            (CARETOOK_DOCKER_WAIT_SECS, 180)
@@ -61,7 +62,7 @@ while (($#)); do
     *) if [[ -z $dir ]]; then dir=$1; else rest+=("$1"); fi; shift ;;
   esac
 done
-usage() { sed -n '2,46p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
+usage() { sed -n '2,47p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
 need_dir() { [[ -n $dir && -d $dir ]] || die "stack.sh $cmd: no worktree at ${dir:-(none given)}"; }
 name=$(basename "${dir:-.}")
 # The base a rewritten .env.loop gets: the one given, else its own.
@@ -139,6 +140,8 @@ case $cmd in
     # Quiet, as recover prints: only its own lines go to stderr.
     (cd "$dir" && docker compose up -d --wait) </dev/null >/dev/null 2>&1 || die "compose up failed"
     wait_for_pg "$dir" "$proj"
+    # The core's migrate marker counts a failure only from here on.
+    echo "migrating=yes"
     if ! migrate "$dir"; then
       echo "migrate failed; retrying once" >&2
       sleep 3
