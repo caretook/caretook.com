@@ -4,11 +4,11 @@
 
 ## Status
 
-**Where it stands (2026-11-25): planned, held** (`hold` on its row: the user asked for smaller slices after two skeptic send-backs; lift with `pnpm backlog prd set todo-subtasks flags-=hold`). Runs after `tags`. The lists (Todos tab, Planner, Today card, Easy view) are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): running, wave 1.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Hold lifted; `tags` landed (dev 923875d3). The lists (Todos tab, Planner, Today card, Easy view) are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
 
 | Slice | Wave | State   | Merge into `prd/todo-subtasks` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
+| 1     | 1    | started (opus) |                                                |
 | 2     | 2    | planned |                                                |
 | 3     | 3    | planned |                                                |
 | 4     | 4    | planned |                                                |
