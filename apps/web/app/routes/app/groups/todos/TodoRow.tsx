@@ -1,10 +1,11 @@
+import type { TodoTickProgress } from "~/components/todos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { TagChips } from "~/components/tags";
-import { TodoRepeatMark, TodoTick } from "~/components/todos";
+import { TodoPartOf, TodoProgressMark, TodoRepeatMark, TodoTick } from "~/components/todos";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -15,7 +16,8 @@ import { todoPageState } from "~/lib/todos/todoSheets";
  * One todo: its tick (for whoever may complete it), the title (opening the
  * todo's page, for everyone), the due line (red when overdue) or the done
  * line, the repeat mark when it repeats, the assignee chip, and its tags'
- * chips (`tagsOf`; tags PRD).
+ * chips (`tagsOf`; tags PRD). A parent shows "n of m done" (its tick waits
+ * on open subtasks); a listed subtask "Part of <parent>" (todo-subtasks-2).
  */
 export function TodoRow({
   todo,
@@ -25,6 +27,8 @@ export function TodoRow({
   onTick,
   busy,
   tagsOf,
+  progressOf,
+  parentOf,
 }: {
   todo: LocalTodo;
   nameOf: (userId: string) => string;
@@ -34,6 +38,10 @@ export function TodoRow({
   busy: boolean;
   /** A todo's tags (the list's one query), for its chips. */
   tagsOf?: (todoId: string) => readonly { id: string; name: string }[] | undefined;
+  /** A parent's subtask progress (the list's one progress query). */
+  progressOf?: (todoId: string) => TodoTickProgress | undefined;
+  /** A subtask's parent, for "Part of". */
+  parentOf?: (parentId: string) => { id: string; title: string } | undefined;
 }) {
   const group = useGroup();
   const { search } = useLocation();
@@ -41,6 +49,8 @@ export function TodoRow({
   const state = todoState(todo, now, timeZone);
   const assignee = assigneeLabel(todo, nameOf);
   const line = todo.doneAt ? doneText(todo, nameOf, now, timeZone) : dueText(todo, now, timeZone);
+  const progress = progressOf?.(todo.id);
+  const parent = todo.parentId ? parentOf?.(todo.parentId) : undefined;
 
   return (
     <li className="flex items-start gap-3 py-2.5" data-todo={todo.id} data-todo-state={state}>
@@ -49,6 +59,8 @@ export function TodoRow({
           title={todo.title}
           done={!!todo.doneAt}
           disabled={busy}
+          progress={progress}
+          showCount={false}
           onChange={(done) => onTick(todo, done)}
         />
       ) : (
@@ -71,6 +83,7 @@ export function TodoRow({
             </span>
           )}
           <TodoRepeatMark todo={todo} className="text-muted" />
+          <TodoProgressMark progress={progress} className="text-muted" />
           <Badge
             icon={assignee.type === "name" ? UserRound : undefined}
             className="whitespace-nowrap"
@@ -80,6 +93,7 @@ export function TodoRow({
           </Badge>
           <ViaTag via={todo.via} />
         </p>
+        <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
         <TagChips tags={tagsOf?.(todo.id)} className="mt-1" />
       </div>
     </li>

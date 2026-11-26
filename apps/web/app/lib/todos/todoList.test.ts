@@ -90,6 +90,25 @@ describe("todoSections", () => {
   it("is empty with nothing open", () => {
     expect(todoSections([], NOW, LA)).toEqual([]);
   });
+
+  it("drops an undated, unassigned subtask and keeps a dated or assigned one (todo-subtasks-2)", () => {
+    const sections = todoSections(
+      [
+        todo("parent", { parentId: null }),
+        todo("plain-step", { parentId: "parent" }),
+        todo("blank-name-step", { parentId: "parent", assigneeName: "  " }),
+        todo("dated-step", { parentId: "parent", dueOn: "2026-11-21" }),
+        todo("mine-step", { parentId: "parent", assigneeId: ME }),
+        todo("named-step", { parentId: "parent", assigneeName: "Aunt May" }),
+      ],
+      NOW,
+      LA,
+    );
+    expect(sections.map((s) => [s.label, s.todos.map((t) => t.id).sort()])).toEqual([
+      ["Tomorrow", ["dated-step"]],
+      ["No due date", ["mine-step", "named-step", "parent"]],
+    ]);
+  });
 });
 
 describe("the quick text filter", () => {
