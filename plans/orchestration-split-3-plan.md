@@ -14,7 +14,7 @@
 
 **Wave 3 landed 2026-11-26 as 7d4201a2** (PR #233, `--no-review`: Codex out of credits; integration CI 45887954631 green on 54579af8; unsynced tip, dev's 2 commits shared no file). Slices 8 and 7 on opus; worktrees removed. Docs folded: `project-config.md` (the machine config, `claude.configDir`, `tool.self`). Carried for later: the dispatcher's keep-alive and session requests ignore the work switch; the drain reads only its own env's Claude account; `CARETOOK_CLAUDE_PROJECTS`/`CARETOOK_CLAUDE_CONFIG` live in `host.mjs` for slice 4; at the last landing the machinery doc gains the machine config and host's Claude section, and Risa's `risa.json` sets `tool.self` at the move. B-543 stays in progress until slice 5 lands.
 
-**Wave 4 started 2026-11-26:** fixes-ui parked at prd/fixes-ui 2d267e50 (backlog session caretook-com-6d; message it when wave 4 lands so it releases fixes-ui); run past the open-worktree gate on the user's standing decision of 2026-11-26. Dispatcher paused; `pnpm prd sync` needed no merge; slice 4 worktree made, agent spawned on opus.
+**Wave 4 started 2026-11-26:** fixes-ui parked at prd/fixes-ui 2d267e50 (backlog session caretook-com-6d; message it when wave 4 lands so it releases fixes-ui); run past the open-worktree gate on the user's standing decision of 2026-11-26. Dispatcher paused; `pnpm prd sync` needed no merge; slice 4 on opus, handed off (quick check on f1594bff), merged as d5ea9c23; full CI requested. Slice 4 renamed `BROWSER_SUITE`, `BROWSER_SUITE_CAP`, `BROWSER_RESULTS`, `CI_POLL` to `RISA_*` against the PRD's _Decisions_ keep-list (an assumed row: only core files read them now), and split `CHECK_RERUN_MAX` into `RISA_` (core tooling step) and `CARETOOK_` (Caretook's body); fold into the PRD's list at the last landing. Its 108 `app-path` lint findings in core tests are left for slice 5 or the move. Tell the user at the resume: `CARETOOK_*` tool knobs set in shells or sessions are now ignored (e.g. `RISA_MAX_PRDS`).
 
 **Next: wave 4** (slice 4, the `RISA_*` rename; opus for the script, sonnet candidate once it's reviewed). It runs with the dispatcher paused (`pnpm prd dispatch --pause`) and no other worktree of any kind open (_How to run this plan_); check `pnpm prd status` first and coordinate with the backlog session if any is open. First `pnpm prd sync`. Tier: full. After it, ask the user to move `~/.caretook/inbox` to `~/.risa/inbox` and trust the new folder before resuming the dispatcher.
 
@@ -26,7 +26,7 @@
 | 6     | 2    | landed  | 6b1ba139 (dev ea90230)                 |
 | 8     | 3    | landed  | 09f81cfd (dev 7d4201a2)                |
 | 7     | 3    | landed  | 94a42c1a (dev 7d4201a2)                |
-| 4     | 4    | running |                                        |
+| 4     | 4    | merged  | d5ea9c23                               |
 | 5     | 5    | planned |                                        |
 
 ## Architectural decisions
