@@ -111,7 +111,8 @@ describe("FormTabs", () => {
         .map((t) => t.tabIndex),
     ).toEqual([-1, -1, 0]);
     await userEvent.keyboard("{Home}");
-    await expect.element(page.getByRole("textbox", { name: "Rx number" })).not.toBeVisible();
+    await expect.element(tab("Essentials")).toHaveAttribute("aria-selected", "true");
+    await expect.element(page.getByRole("textbox", { name: "Rx number" })).not.toBeInTheDocument();
 
     // The value typed on Refills survived and submits from Essentials.
     await expect
