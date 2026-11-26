@@ -485,6 +485,14 @@ describe("sending failures back", () => {
     expect(out).toContain('git merge --no-ff -m "chore(T): merge prd/T for a fix" prd/T');
     expect(out).toContain('`pnpm prd check --quick "slice fix"`');
   });
+
+  it("the slice's prompt points to the handbook's rule on batching reads and edits (B-873)", () => {
+    for (const out of [ok("slice", "T", "1"), ok("slice", "T", "1", "--continue")]) {
+      expect(out).toContain(
+        "- **Batch your turns:** independent reads, greps, commands and edits go in one turn, and a file under about 400 lines is read whole, not in `sed -n` chunks (your handbook's _Reads and turns_).",
+      );
+    }
+  });
 });
 
 describe("waiting on a check", () => {
