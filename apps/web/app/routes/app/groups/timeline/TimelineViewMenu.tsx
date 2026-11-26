@@ -1,12 +1,8 @@
 import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
 
-import { Eye, LayoutList, List } from "lucide-react";
+import { Eye } from "lucide-react";
+import { layoutSection } from "~/components/settings";
 import { CIRCLE, ICON, Menu } from "~/components/ui";
-
-const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
-  { id: "rows", label: "Condensed", icon: List },
-  { id: "cards", label: "Full", icon: LayoutList },
-];
 
 const MODE_ITEMS: { id: DaySummaryMode; label: string; description: string }[] = [
   { id: "highlights", label: "Highlights", description: "What stands out" },
@@ -14,12 +10,12 @@ const MODE_ITEMS: { id: DaySummaryMode; label: string; description: string }[] =
   { id: "off", label: "Off", description: "No summaries" },
 ];
 
-const isView = (id: string): id is TimelineView => VIEW_ITEMS.some((v) => v.id === id);
 const isMode = (id: string): id is DaySummaryMode => MODE_ITEMS.some((m) => m.id === id);
 
 /**
  * The full timeline's "View options" (an eye icon), at the right end of the
- * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Condensed or Full, one choice) and Day summaries (Highlights,
+ * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Condensed or Full, one choice:
+ * the shared `layoutSection`, which the providers list uses too) and Day summaries (Highlights,
  * Full or Off, the viewer's setting: `useDaySummaryMode`). Easy mode's
  * toggle is the page header's button (`EasyModeToggle`), not here.
  */
@@ -43,13 +39,7 @@ export function TimelineViewMenu({
       className={CIRCLE}
       width="md"
       items={[
-        {
-          type: "section",
-          id: "layout",
-          title: "Layout",
-          items: VIEW_ITEMS,
-          selection: { selected: view, onChange: (id) => isView(id) && onViewChange(id) },
-        },
+        layoutSection(view, onViewChange),
         {
           type: "section",
           id: "day-summaries",
