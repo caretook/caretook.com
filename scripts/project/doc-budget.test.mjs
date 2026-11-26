@@ -1,7 +1,15 @@
 // The doc budget guard (doc-budget.mjs): measuring, warn mode and land mode,
 // against a throwaway git repo.
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -181,5 +189,32 @@ describe("plan status warnings", () => {
     const rows = registryRows(backlog);
     expect(rows).not.toBeNull();
     expect(rows?.length).toBeGreaterThan(0);
+  });
+});
+
+// Exit 1 is a breach and only that (land.sh refuses with "grows a doc"): a budgets
+// file that doesn't load is exit 2 in land mode and a skipped warning in warn mode.
+describe("a budgets file that doesn't load", () => {
+  let dir;
+  beforeAll(() => {
+    dir = realpathSync(mkdtempSync(join(tmpdir(), "doc-budget-broken-")));
+    for (const f of ["doc-budget.mjs", "risa.mjs", "status-trim.mjs"])
+      copyFileSync(new URL(`./${f}`, import.meta.url), join(dir, f));
+    writeFileSync(join(dir, "doc-budget.config.mjs"), 'throw new Error("a broken budgets file");\n');
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const cli = (...argv) =>
+    spawnSync("node", [join(dir, "doc-budget.mjs"), ...argv, "--repo", dir], { encoding: "utf8" });
+
+  it("exits 2 in land mode, never 1", () => {
+    const r = cli("land", "HEAD");
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("doc budget: can't measure (the budgets didn't load: a broken budgets file)");
+  });
+
+  it("skips in warn mode and exits 0", () => {
+    const r = cli("warn");
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain("doc budget: skipped (the budgets didn't load: a broken budgets file)");
   });
 });
