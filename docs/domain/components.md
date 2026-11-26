@@ -5,8 +5,8 @@
 - **`ui/`** holds the primitives, the only importers of `react-aria-components`; what's there, which to use and their contracts are in [ui-kit](ui-kit.md). **The guard** (`caretook/no-kit-classes` and a restricted import; lists in `scripts/eslint/kit-guard.mjs`) fails lint on React Aria or a raw `btn`, `card`, `badge` or `alert` class outside `ui/`, marketing, printed sheets and `/dev/ui`. `KIT_CLASSES_NOT_SWEPT` holds only `ui-kit-5`'s group.
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and the Planner: `RepeatMark`, `SeriesScopeDialog`, `RemindMeSheet`), `groups/`, `medications/`, `notes/` (the Tiptap editor), `providers/` (contact pieces and the provider pickers, [providers](providers.md)), `quick-entry/`, `repeat/` (`RepeatField`, `RepeatSheet`, `SeriesEditSheet`), `schedule/`, `settings/`, `shell/`, `todos/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it; a route never imports another route's folder. An index brings its whole chunk: keep heavy pieces out of indexes light routes use.
-- **A component lives beside its route** until a second route needs it (then its feature folder or `ui/`).
-- `components/todos/`: what the todo list and the todo page share (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`).
+- **A component lives beside its route** until a second route needs it (then a feature folder or `ui/`).
+- `components/todos/`: what todo screens share (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`, `TodoTreeMarks`).
 
 ## Rules
 
