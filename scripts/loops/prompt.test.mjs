@@ -232,7 +232,11 @@ describe("orchestrator", () => {
         "After a landing and its docs (not the last one), start no new slice; once the slices in flight are merged, commit _Status_ and run `pnpm prd rotate`; with none in flight, rotate at once.",
       );
       expect(out).toContain("`pnpm prd rotate --mid-wave`");
-      expect(out).toContain("**past the context limit** (160k tokens; a hook reminds you)");
+      expect(out).toContain("**past the hard context limit** (225k tokens; a hook reminds you)");
+      expect(out).toContain(
+        "**Past the soft limit** (120k tokens; a hook reminds you) rotate unasked between waves only: at the next wave boundary write _Status_ as the brief, commit it and run `pnpm prd rotate`, never `--mid-wave` for it.",
+      );
+      expect(out).not.toContain("160k");
       expect(out).toContain('`pnpm prd rotate --mid-wave --reason "context"`');
       expect(out).toContain('`pnpm prd context --keep "<why>"` and write the reason in _Status_');
       expect(out).toContain("only on the user's word");
@@ -485,6 +489,14 @@ describe("sending failures back", () => {
     expect(out).toContain('git merge --no-ff -m "chore(T): merge prd/T for a fix" prd/T');
     expect(out).toContain('`pnpm prd check --quick "slice fix"`');
   });
+
+  it("the slice's prompt points to the handbook's rule on batching reads and edits (B-873)", () => {
+    for (const out of [ok("slice", "T", "1"), ok("slice", "T", "1", "--continue")]) {
+      expect(out).toContain(
+        "- **Batch your turns:** independent reads, greps, commands and edits go in one turn, and a file under about 400 lines is read whole, not in `sed -n` chunks (your handbook's _Reads and turns_).",
+      );
+    }
+  });
 });
 
 describe("waiting on a check", () => {
@@ -493,6 +505,16 @@ describe("waiting on a check", () => {
       expect(out).toContain("`pnpm prd wait check`");
       expect(out).toContain("never `pgrep -f`");
     }
+  });
+});
+
+describe("helpers", () => {
+  it("the slice prompt hands long exploration and long check output to a helper", () => {
+    const out = ok("slice", "T", "1");
+    expect(out).toContain(
+      "**Past about 10 reads into unfamiliar code, hand the exploration to one Explore helper**",
+    );
+    expect(out).toContain("long check output goes to a haiku helper too");
   });
 });
 

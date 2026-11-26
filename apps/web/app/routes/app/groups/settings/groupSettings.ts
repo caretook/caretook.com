@@ -4,7 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { GROUP_ROLES, GROUP_ROLE_NAMES, hasPermission } from "@caretook/data/permissions";
 import type { EasyTile, EasyTiles } from "@caretook/data/schema";
 
-import { careGroupInsertZSchema, careRecipientProfileZSchema, EASY_TILE_COUNT } from "@caretook/data/schema";
+import { careGroupNameZSchema, careRecipientProfileZSchema, EASY_TILE_COUNT } from "@caretook/data/schema";
 import { tileFromKey, tileKey } from "../../../../lib/assistant/easyTiles";
 
 // The pure parts of group settings (`./route.tsx`): who may
@@ -68,7 +68,7 @@ const failure = (
 
 /** A submitted group name: trimmed, or the name field's error. */
 export const parseGroupName = (values: { name: string }): Parsed<{ name: string }> => {
-  const parsed = careGroupInsertZSchema.pick({ name: true }).safeParse(values);
+  const parsed = careGroupNameZSchema.safeParse(values);
   if (parsed.success) return { ok: true, data: parsed.data };
   return failure(parsed.error.issues, values, "Check the care group's name.");
 };

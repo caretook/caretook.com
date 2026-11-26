@@ -82,6 +82,6 @@ export type CareGroupMemberInsert = Omit<InferInsertModel<CareGroupMemberSchema>
 export type CareGroupMemberUpdate = Partial<CareGroupMemberInsert>;
 export type CareGroupMember = CareGroupMemberSelect;
 
-export const careGroupMemberSelectZSchema = createSelectSchema(careGroupMemberSchema);
-export const careGroupMemberInsertZSchema = createInsertSchema(careGroupMemberSchema);
-export const careGroupMemberUpdateZSchema = createUpdateSchema(careGroupMemberSchema);
+export const careGroupMemberSelectZSchema = /* @__PURE__ */ createSelectSchema(careGroupMemberSchema);
+export const careGroupMemberInsertZSchema = /* @__PURE__ */ createInsertSchema(careGroupMemberSchema);
+export const careGroupMemberUpdateZSchema = /* @__PURE__ */ createUpdateSchema(careGroupMemberSchema);
