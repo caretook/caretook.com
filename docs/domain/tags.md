@@ -1,6 +1,6 @@
 # Tags
 
-One shared tag list per care group; tags go on timeline entries (events included), todos, providers and medications. PRD: [`tags-prd`](../../plans/tags-prd.md). ✅ data and sync (wave 1); 🟡 the picker, chips, filters, rename and delete (later waves).
+One shared tag list per care group; tags go on timeline entries (events included), todos, providers and medications. PRD: [`tags-prd`](../../plans/tags-prd.md). ✅ data and sync (wave 1); ✅ tagging timeline entries and events (wave 2); 🟡 rename and delete, todos, providers and medications, the timeline and search filters (later waves).
 
 ## Data
 
@@ -14,6 +14,14 @@ One shared tag list per care group; tags go on timeline entries (events included
 - Both tables are in the `care_groups` stream for every role and the device schema (`tags`, `recordTags`). Upload: `tag` PUT → `create` (PATCH and DELETE read-only until slice 3); `record_tag` has its own small handler: PUT → link with null targets as null, DELETE → unlink, PATCH `sync:readOnlyTable`.
 - Device module `lib/tags/tags.sync.ts` (`caretookModules.tags`): `tagsQuery`, `recordTagsQuery`, `groupRecordTagsQuery` (live records only); `createTag` reuses a local tag with the same key, else takes `nextTagId`; `tagRecord`/`untagRecord` check `canTagRecord` first.
 - `roundtrip` covers two offline devices adding the same tag to one entry; the sync matrix has device rows for both tables.
+
+## Screens
+
+- **Picker** (`components/tags/`): `useTagPicker` (an `ask`/`sheet` pair, like `useRemindMe`) opens `TagPickerSheet`: a filter box, one toggle per tag (tags or untags at once), and for loggers `Add "<name>"`; Enter adds the typed name or applies the tag it names exactly. Matching and exact-name reuse live in `lib/tags/tagPicker.ts` (folded through `tagKey` only). Live data: `useGroupTags`, `useRecordTags`, `useGroupRecordTags` (one query per list, mapped by record).
+- **Tags in ⋯:** after Edit, on every entry kind (change entries included), offered by `canTagRecord`; the entry page needs `createdBy` for it. Planner rows get it in slice 4.
+- **Chips** (`TagChips`): on timeline rows and cards, two then "+N" (`ROW_CHIPS`), for every role and in the easy view; the entry page shows them all, since a viewer has no other way to see the rest.
+- **`EntryFilters.tag`** (`timeline.sync.ts`): a `record_tag` subquery ANDed before `match`, in every window, link and medication query.
+- **Reschedule** copies the old event's tags to the new one in its one transaction, with derived link ids; the cancelled event keeps its own.
 
 ## Limits
 
