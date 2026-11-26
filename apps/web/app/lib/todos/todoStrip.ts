@@ -1,6 +1,6 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
 
-import { todoState } from "@caretook/data/schema";
+import { listsOnItsOwn, todoState } from "@caretook/data/schema";
 
 // The timeline's todo strip: one line, there while the group has open todos
 // overdue or due today. Which todo it names (`todoStrip`) and what it says
@@ -25,9 +25,10 @@ export type TodoStrip<T extends TodoRuleFields = TodoRuleFields> = {
 /**
  * The todo the strip names, from the group's open todos in `todoOrder`: the
  * first overdue one (mine first), else the first due today (mine first).
- * Null when nothing is overdue or due today.
+ * Null when nothing is overdue or due today. A subtask counts only if it
+ * lists on its own (`listsOnItsOwn`; todo-subtasks-2).
  */
-export function todoStrip<T extends TodoRuleFields>(
+export function todoStrip<T extends TodoRuleFields & { parentId?: string | null }>(
   todos: readonly T[],
   now: Date | number,
   timeZone: string,
@@ -36,6 +37,7 @@ export function todoStrip<T extends TodoRuleFields>(
   const overdue: T[] = [];
   const today: T[] = [];
   for (const todo of todos) {
+    if (!listsOnItsOwn(todo)) continue;
     const state = todoState(todo, now, timeZone);
     if (state === "overdue") overdue.push(todo);
     else if (state === "today") today.push(todo);
