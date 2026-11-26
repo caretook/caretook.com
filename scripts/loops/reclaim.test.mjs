@@ -101,9 +101,9 @@ beforeAll(() => {
     NVM_DIR: nvm,
     FAKE_LOG: log,
     TRUNK: "dev",
-    CARETOOK_FREE_GB: "42",
-    CARETOOK_MIN_FREE_GB: "",
-    CARETOOK_LEASE_ROOT: join(root, "leases"),
+    RISA_FREE_GB: "42",
+    RISA_MIN_FREE_GB: "",
+    RISA_LEASE_ROOT: join(root, "leases"),
     SAMPLE_STACK_STATE: join(root, "stack-state"),
     SAMPLE_STACK_LOG: log,
   };
@@ -119,7 +119,7 @@ beforeAll(() => {
     git(main, "config", k, v);
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
   for (const f of readdirSync(HERE).filter(
-    (f) => f.endsWith(".sh") || f === "slice-fields.mjs" || f === "config.mjs",
+    (f) => f.endsWith(".sh") || ["slice-fields.mjs", "config.mjs", "host.mjs"].includes(f),
   ))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   config = stubHookConfig(main);
@@ -270,7 +270,7 @@ describe("reclaim --yes", () => {
     expect(existsSync(join(loops, "t-5", "work-5.txt"))).toBe(true);
     expect(readFileSync(join(loops, "t-5", "work-5.txt"), "utf8")).toMatch(/not committed/);
 
-    // Only the dangling caretook-loop volume nobody uses, the anonymous one and the image.
+    // Only the dangling sample-loop volume nobody uses, the anonymous one and the image.
     expect(removals()).toEqual([
       "stack leftovers remove volume sample-loop9_data",
       "stack leftovers remove volume abc123",

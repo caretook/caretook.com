@@ -90,7 +90,7 @@ const fixture = () => {
     NVM_DIR: nvm,
     FAKE_LOG: log,
     TRUNK: "dev",
-    CARETOOK_GC_STOPPED_HOURS: "",
+    RISA_GC_STOPPED_HOURS: "",
     SAMPLE_STACK_STATE: join(root, "stack-state"),
     SAMPLE_STACK_LOG: log,
   };
@@ -117,7 +117,9 @@ echo "$?" > "$STUB_STATE/code"
     git(main, "config", k, v);
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
   for (const f of readdirSync(HERE).filter(
-    (f) => f.endsWith(".sh") || ["slice-fields.mjs", "config.mjs", "run-log.mjs", "sessions.mjs"].includes(f),
+    (f) =>
+      f.endsWith(".sh") ||
+      ["slice-fields.mjs", "config.mjs", "run-log.mjs", "sessions.mjs", "host.mjs"].includes(f),
   ))
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   env.RISA_CONFIG = stubHookConfig(main, { copy: true });
@@ -241,7 +243,7 @@ describe("new.sh by a relative path, as pnpm prd runs it", () => {
 describe("the run log", () => {
   it("records a slice's start at new.sh and its end at rm.sh", () => {
     const runLog = join(root, "run-log.jsonl");
-    const opts = { env: { CARETOOK_RUN_LOG: runLog } };
+    const opts = { env: { RISA_RUN_LOG: runLog } };
     ok("new.sh", ["slice", "t", "6"], opts);
     ok("rm.sh", ["t-6"], opts);
     const events = read(runLog)

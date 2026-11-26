@@ -1,4 +1,4 @@
-// The browser-check manifest (scripts/loops/checks) against the file → check
+// The browser-check manifest (scripts/project/checks) against the file → check
 // map (check-areas.d/) and the checks on disk.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

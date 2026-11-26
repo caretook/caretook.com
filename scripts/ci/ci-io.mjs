@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
+import { gh } from "../loops/host.mjs";
 import { createNotice, listNotices, withdrawNotice } from "../loops/notices.mjs";
 
 /** The workflow's name. Runs are filtered by it: `gh run list --workflow` 404s until ci.yml is on the default branch. */
@@ -86,7 +87,7 @@ function statusCache() {
 }
 
 function noticeBoard() {
-  const dir = process.env.CARETOOK_NOTICES_DIR || join(mainCheckout(), ".loops", ".notices");
+  const dir = process.env.RISA_NOTICES_DIR || join(mainCheckout(), ".loops", ".notices");
   return {
     list: () => listNotices(dir),
     post: (/** @type {string} */ text) => {
@@ -127,15 +128,15 @@ async function askTerminal(/** @type {string} */ question) {
 /** @returns {Io} */
 export const realIo = () => ({
   git: (args, input) => command("git", args, input),
-  gh: (args, timeoutMs) => command("gh", args, undefined, timeoutMs),
+  gh: (args, timeoutMs) => gh(args, { timeout: timeoutMs }),
   fileFindings,
   board: noticeBoard,
   cache: statusCache,
-  session: () => process.env.CARETOOK_SESSION_NAME ?? "",
+  session: () => process.env.RISA_SESSION_NAME ?? "",
   terminal: () => !!process.stdin.isTTY && !!process.stdout.isTTY,
   ask: askTerminal,
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now: () => Date.now(),
   log: (line) => console.log(line),
-  pollMs: Number(process.env.CARETOOK_CI_POLL || 15) * 1000,
+  pollMs: Number(process.env.RISA_CI_POLL || 15) * 1000,
 });

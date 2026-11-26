@@ -25,15 +25,15 @@
 //   - keep-alive (keep-alive.mjs), beside the pick and outside the PRD slots:
 //     a fresh managed backlog session, and the inbox session (once its folder
 //     is trusted), through the opener when none is live, or its own question
-//     after three quick deaths. CARETOOK_KEEP_SESSIONS=off;
+//     after three quick deaths. RISA_KEEP_SESSIONS=off;
 //   - session requests (session-requests.mjs), after the keep-alive and before
 //     starts: the oldest pending one opens backlog-<name>, or is refused, with a
-//     notice either way. CARETOOK_MAX_BACKLOG_SESSIONS (4);
+//     notice either way. RISA_MAX_BACKLOG_SESSIONS (4);
 //   - ask: a reopen question filed with `pnpm prd ask` (session "dispatch"),
 //     then a one-shot helper session (haiku, Remote Control, in a background
 //     tab) whose prompt is "send this PushNotification, then pnpm prd end"; a
 //     helper that can't start is ignored (the ask's own macOS notification and
-//     CARETOOK_ASK_NOTIFY still fire). Its answer is acted on in a later tick:
+//     RISA_ASK_NOTIFY still fire). Its answer is acted on in a later tick:
 //     "reopen again" resets the count, "hold the topic" flags the row `hold`.
 // The session record (managed, auto) is written before a new session's tab
 // opens, so a tab that opens but never starts is reopened like a dead session.
@@ -44,13 +44,13 @@
 //
 // Each tick also follows up on managed orchestrators, backlog and inbox sessions that
 // stay over the context limit (dispatch-context.mjs): a nudge, a defaulting
-// question, the rotation. CARETOOK_CONTEXT_NUDGE_MIN (15); CARETOOK_CONTEXT_WATCH=off stops it.
+// question, the rotation. RISA_CONTEXT_NUDGE_MIN (15); RISA_CONTEXT_WATCH=off stops it.
 //
 // Each tick also catches a stuck managed, run-through orchestrator (dispatch-stuck.mjs):
 // one question per stall that never defaults ("rotate it now", the mid-wave
-// rotation, or "leave it"). CARETOOK_STUCK_MIN (30); CARETOOK_STUCK_WATCH=off stops it.
+// rotation, or "leave it"). RISA_STUCK_MIN (30); RISA_STUCK_WATCH=off stops it.
 //
-// Every CARETOOK_PICKUP_EVERY seconds (300; `off` never), on a tick that isn't
+// Every RISA_PICKUP_EVERY seconds (300; `off` never), on a tick that isn't
 // paused, it runs the pickup (`pnpm prd dev-sync`), so lines pushed to
 // origin/dev reach the main checkout; a failed or refused one logs one line and
 // the tick carries on.
@@ -60,14 +60,14 @@
 // couldn't open sessions); --dry-run works anywhere.
 //
 // Each tick first takes the drain decision (drain.mjs) from the usage readings
-// (usage.mjs, .loops/.usage/): draining (CARETOOK_USAGE_DRAIN, 85%) holds starts,
+// (usage.mjs, .loops/.usage/): draining (RISA_USAGE_DRAIN, 85%) holds starts,
 // plans, reopens and the keep-alive (--resume doesn't override it); limited
-// (CARETOOK_USAGE_STOP, 98%, overage, or a session stopped on a limit) also ends
+// (RISA_USAGE_STOP, 98%, overage, or a session stopped on a limit) also ends
 // each managed session not running a landing (marked stalled; KILL a tick later if
 // it ignored TERM), files one report naming the live hand-opened ones, and opens no
 // claude at all: no helper, session request, context or stuck follow-up. An
-// unknown reading never drains; with a session live past CARETOOK_USAGE_STALE_MIN,
-// it files one report per incident. CARETOOK_USAGE_WATCH=off turns it off.
+// unknown reading never drains; with a session live past RISA_USAGE_STALE_MIN,
+// it files one report per incident. RISA_USAGE_WATCH=off turns it off.
 //
 // Then, before the pick, the resume after a limit (resume.mjs): each managed orchestrator
 // or planner marked stalled whose reset has passed is claimed (its mark cleared), so the
@@ -91,10 +91,10 @@
 // keepAlive: each kept kind's quick deaths, last open, open ask and stop),
 // .dispatch.log (each acting tick, and each idle one whose lines changed).
 //
-// Env: CARETOOK_MAX_PRDS (4; a stored --cap, .loops/.prd-cap, wins over it), CARETOOK_MAX_PLANNERS (1), CARETOOK_FIXES_MIN (3):
-// the pick's caps; CARETOOK_LOAD_* (load-gate.mjs); CARETOOK_SESSIONS_DIR,
-// CARETOOK_ASKS_DIR; CARETOOK_ITERM_APP (the host layer's, host.mjs: where iTerm2 is);
-// CARETOOK_CLAUDE_BIN (the helper's claude); CARETOOK_CLOCK_FILE (tests: epoch
+// Env: RISA_MAX_PRDS (4; a stored --cap, .loops/.prd-cap, wins over it), RISA_MAX_PLANNERS (1), RISA_FIXES_MIN (3):
+// the pick's caps; RISA_LOAD_* (load-gate.mjs); RISA_SESSIONS_DIR,
+// RISA_ASKS_DIR; RISA_ITERM_APP (the host layer's, host.mjs: where iTerm2 is);
+// RISA_CLAUDE_BIN (the helper's claude; its config folder: host.mjs); RISA_CLOCK_FILE (tests: epoch
 // seconds standing in for the clock).
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -127,13 +127,14 @@ import {
 } from "./dispatch-stuck.mjs";
 import { LIMITED_ERROR, drainDecision, drainSettings, landingUnder, limitActions } from "./drain.mjs";
 import { heartbeatDirOf, readHeartbeats } from "./heartbeat.mjs";
+import { workSwitch } from "./machine.mjs";
 import { listRecords as listLandings } from "./land-journal.mjs";
 import { landedTopics } from "./landed.mjs";
 import { briefProblem } from "./rotate.mjs";
 import { START_GRACE_MS, clearKeepStops, keepAliveDecision, keepAnswerAction } from "./keep-alive.mjs";
 import { readLoadGate } from "./load-gate.mjs";
 import { createNotice } from "./notices.mjs";
-import { canOpenTabs, itermApp } from "./host.mjs";
+import { canOpenTabs, claudeBin, claudeChoiceFor, claudeEnvPrefix, claudeName, itermApp } from "./host.mjs";
 import { inboxDirOf, inboxUntrusted } from "./open-session.mjs";
 import { plannerModel } from "./planner-model.mjs";
 import {
@@ -153,7 +154,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** How often an idle tick runs `pnpm prd tidy --yes`. */
 export const TIDY_EVERY_MS = 6 * 3600_000;
-/** How often the pickup (`pnpm prd dev-sync`) runs by default, in seconds (CARETOOK_PICKUP_EVERY). */
+/** How often the pickup (`pnpm prd dev-sync`) runs by default, in seconds (RISA_PICKUP_EVERY). */
 export const PICKUP_EVERY_S = 300;
 /** The longest a pickup may take before the tick gives up on it (a hung fetch). */
 export const PICKUP_TIMEOUT_MS = 120_000;
@@ -174,7 +175,7 @@ export function answerAction(/** @type {string | null | undefined} */ answer) {
   return null;
 }
 
-/** The pickup's period in ms from CARETOOK_PICKUP_EVERY (seconds), or null when it is off. */
+/** The pickup's period in ms from RISA_PICKUP_EVERY (seconds), or null when it is off. */
 export function pickupEvery(/** @type {string | undefined} */ value) {
   if (value === "off") return null;
   const n = Number(value);
@@ -218,13 +219,25 @@ export function sessionLine(
 
 /** The helper's whole prompt: push LINE, then end. */
 export const helperPrompt = (/** @type {string} */ line) =>
-  `You are a one-shot helper for the Caretook dispatcher. Do exactly two things and nothing else: ` +
+  `You are a one-shot helper for the dispatcher. Do exactly two things and nothing else: ` +
   `call the PushNotification tool once with this text: ${JSON.stringify(line)}. ` +
   `Then run \`pnpm prd end\` in Bash (it ends this session and closes its tab).`;
 
-/** The helper's tab command. */
-export const helperLine = (/** @type {{ main: string, claude: string, line: string }} */ h) =>
-  `cd ${sh(h.main)} && ${sh(h.claude)} --model haiku --remote-control ${HELPER_SESSION} ${sh(helperPrompt(h.line))}`;
+/**
+ * The helper's claude: claudeBin, after the Claude config folder it gets for MAIN's
+ * repo (host.mjs; its role is `helper`). The sessions the dispatcher starts get theirs
+ * from session.sh.
+ */
+const helperClaude = (/** @type {string} */ main, /** @type {NodeJS.ProcessEnv} */ env) => ({
+  claude: claudeBin(env),
+  prefix: claudeEnvPrefix(claudeChoiceFor({ main, role: "helper", env })),
+});
+
+/** The helper's tab command; PREFIX (host.mjs claudeEnvPrefix) sets its claude's config folder. */
+export const helperLine = (
+  /** @type {{ main: string, claude: string, line: string, prefix?: string }} */ h,
+) =>
+  `cd ${sh(h.main)} && ${h.prefix ?? ""}${sh(h.claude)} --model haiku --remote-control ${HELPER_SESSION} ${sh(helperPrompt(h.line))}`;
 
 // ---- files -----------------------------------------------------------------------
 
@@ -305,16 +318,14 @@ export function pathsOf(/** @type {string} */ main, env = process.env) {
     lock: join(loops, ".dispatch.lock"),
     state: join(loops, ".dispatch.json"),
     log: join(loops, ".dispatch.log"),
-    sessions: env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions"),
-    asks: env.CARETOOK_ASKS_DIR || join(loops, ".asks"),
-    requests: env.CARETOOK_REQUESTS_DIR || join(loops, ".requests"),
-    notices: env.CARETOOK_NOTICES_DIR || join(loops, ".notices"),
+    sessions: env.RISA_SESSIONS_DIR || join(loops, ".sessions"),
+    asks: env.RISA_ASKS_DIR || join(loops, ".asks"),
+    requests: env.RISA_REQUESTS_DIR || join(loops, ".requests"),
+    notices: env.RISA_NOTICES_DIR || join(loops, ".notices"),
     cap: join(loops, ".prd-cap"),
-    watch: env.CARETOOK_WATCH_DIR || join(loops, ".watch"),
-    usage:
-      env.CARETOOK_USAGE_DIR ||
-      join(dirname(env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions")), ".usage"),
-    landing: env.CARETOOK_LANDING_DIR || join(loops, ".landing"),
+    watch: env.RISA_WATCH_DIR || join(loops, ".watch"),
+    usage: env.RISA_USAGE_DIR || join(dirname(env.RISA_SESSIONS_DIR || join(loops, ".sessions")), ".usage"),
+    landing: env.RISA_LANDING_DIR || join(loops, ".landing"),
   };
 }
 
@@ -333,12 +344,12 @@ export function storedCap(/** @type {string} */ file) {
   return n >= 1 && n <= MAX_CAP ? n : null;
 }
 
-/** The PRD cap and what set it: the stored --cap, else CARETOOK_MAX_PRDS, else 4. */
+/** The PRD cap and what set it: the stored --cap, else RISA_MAX_PRDS, else 4. */
 export function prdCapOf(/** @type {string} */ file, env = process.env) {
   const stored = storedCap(file);
   if (stored !== null) return { cap: stored, from: "pnpm prd dispatch --cap" };
-  const fromEnv = positive(env.CARETOOK_MAX_PRDS, 0);
-  return fromEnv ? { cap: fromEnv, from: "CARETOOK_MAX_PRDS" } : { cap: 4, from: "default" };
+  const fromEnv = positive(env.RISA_MAX_PRDS, 0);
+  return fromEnv ? { cap: fromEnv, from: "RISA_MAX_PRDS" } : { cap: 4, from: "default" };
 }
 
 /** @typedef {{ paused?: { at: string, why: string } | null, reopens?: Record<string, number>,
@@ -473,8 +484,8 @@ const releaseLock = (/** @type {string} */ lock) => {
 // ---- facts -----------------------------------------------------------------------
 
 const nowOf = (env = process.env) => {
-  if (env.CARETOOK_CLOCK_FILE) {
-    const s = Number(readFileSync(env.CARETOOK_CLOCK_FILE, "utf8").trim());
+  if (env.RISA_CLOCK_FILE) {
+    const s = Number(readFileSync(env.RISA_CLOCK_FILE, "utf8").trim());
     if (Number.isFinite(s)) return s * 1000;
   }
   return Date.now();
@@ -562,10 +573,12 @@ export function gather(/** @type {ReturnType<typeof pathsOf>} */ p, env = proces
       paused: Boolean(state.paused),
       caps: {
         prds: prdCapOf(p.cap, env).cap,
-        planners: positive(env.CARETOOK_MAX_PLANNERS, 1),
-        fixesMin: positive(env.CARETOOK_FIXES_MIN, 3),
+        planners: positive(env.RISA_MAX_PLANNERS, 1),
+        fixesMin: positive(env.RISA_FIXES_MIN, 3),
       },
       now: nowOf(env),
+      // The work switch (machine.mjs): off, nothing starts or is planned here.
+      work: workSwitch({ main: p.main, env }),
     },
   };
 }
@@ -578,12 +591,12 @@ function contextStep(
   /** @type {ReturnType<typeof gather>} */ g,
   /** @type {{ dryRun: boolean, env: NodeJS.ProcessEnv, out: (l: string) => void }} */ { dryRun, env, out },
 ) {
-  if (env.CARETOOK_CONTEXT_WATCH === "off") return false;
+  if (env.RISA_CONTEXT_WATCH === "off") return false;
   const now = g.facts.now;
   const dir = contextDirOf(p.sessions);
   // The follow-up starts at the hard limit; the hook alone handles the soft one.
   const limit = hardLimitOf(env);
-  const waitMs = positive(env.CARETOOK_CONTEXT_NUDGE_MIN, 15) * 60_000;
+  const waitMs = positive(env.RISA_CONTEXT_NUDGE_MIN, 15) * 60_000;
   const entries = readState(p.state).context ?? {};
   const sessions = g.records.map((r) => ({
     name: r.name,
@@ -645,7 +658,7 @@ function contextStep(
   const askTool = (/** @type {string[]} */ args) =>
     run("node", [join(HERE, "ask.mjs"), ...args], {
       cwd: p.main,
-      env: { ...env, CARETOOK_ASKS_DIR: p.asks },
+      env: { ...env, RISA_ASKS_DIR: p.asks },
     });
   const lastLine = (/** @type {{ out: string, err: string }} */ r) =>
     (r.err || r.out).split("\n").pop() ?? "";
@@ -706,7 +719,7 @@ function contextStep(
         [
           join(HERE, "open-session.sh"),
           "--command",
-          helperLine({ main: p.main, claude: env.CARETOOK_CLAUDE_BIN || "claude", line: push }),
+          helperLine({ main: p.main, ...helperClaude(p.main, env), line: push }),
           "--title",
           HELPER_SESSION,
           "--background",
@@ -803,7 +816,7 @@ function stuckStep(
     every,
   },
 ) {
-  if (env.CARETOOK_STUCK_WATCH === "off") return false;
+  if (env.RISA_STUCK_WATCH === "off") return false;
   const now = g.facts.now;
   const { limitMs, gapMs } = stuckSettings(env, every);
   const prev = readState(p.state).stuck ?? {};
@@ -880,7 +893,7 @@ function stuckStep(
   const askTool = (/** @type {string[]} */ args) =>
     run("node", [join(HERE, "ask.mjs"), ...args], {
       cwd: p.main,
-      env: { ...env, CARETOOK_ASKS_DIR: p.asks },
+      env: { ...env, RISA_ASKS_DIR: p.asks },
     });
   const lastLine = (/** @type {{ out: string, err: string }} */ r) =>
     (r.err || r.out).split("\n").pop() ?? "";
@@ -938,7 +951,7 @@ function stuckStep(
         [
           join(HERE, "open-session.sh"),
           "--command",
-          helperLine({ main: p.main, claude: env.CARETOOK_CLAUDE_BIN || "claude", line: push }),
+          helperLine({ main: p.main, ...helperClaude(p.main, env), line: push }),
           "--title",
           HELPER_SESSION,
           "--background",
@@ -974,11 +987,10 @@ function stuckStep(
   return acted;
 }
 
-/** Every process's command line, or null when they can't be read. CARETOOK_PROCESS_FILE stands in (tests). */
+/** Every process's command line, or null when they can't be read. RISA_PROCESS_FILE stands in (tests). */
 export function processLines(env = process.env) {
   try {
-    if (env.CARETOOK_PROCESS_FILE)
-      return readFileSync(env.CARETOOK_PROCESS_FILE, "utf8").split("\n").filter(Boolean);
+    if (env.RISA_PROCESS_FILE) return readFileSync(env.RISA_PROCESS_FILE, "utf8").split("\n").filter(Boolean);
     return [...processTable().values()].map((r) => r.args);
   } catch {
     return null;
@@ -1041,9 +1053,9 @@ function requestStep(
     processes: processLines(env),
     starting: [...starting, ...opening],
     paused: Boolean(state.paused),
-    max: positive(env.CARETOOK_MAX_BACKLOG_SESSIONS, DEFAULT_MAX_BACKLOG_SESSIONS),
+    max: positive(env.RISA_MAX_BACKLOG_SESSIONS, DEFAULT_MAX_BACKLOG_SESSIONS),
     now,
-    claude: basename(env.CARETOOK_CLAUDE_BIN || "claude"),
+    claude: claudeName(env),
   });
   if (d.action === "none") {
     if (dryRun && d.why !== "no pending request") out(`session request: waits (${d.why})`);
@@ -1134,7 +1146,7 @@ function drainStep(
     const r = run(
       "node",
       [join(HERE, "ask.mjs"), "ask", "--topic", "dispatch", "--report", text, "--session", DRAIN_SESSION],
-      { cwd: p.main, env: { ...env, CARETOOK_ASKS_DIR: p.asks } },
+      { cwd: p.main, env: { ...env, RISA_ASKS_DIR: p.asks } },
     );
     if (!r.ok) out(`usage: filing the report failed: ${(r.err || r.out).split("\n").pop()}`);
     return r.ok;
@@ -1253,7 +1265,7 @@ function fileReport(
   const r = run(
     "node",
     [join(HERE, "ask.mjs"), "ask", "--topic", "dispatch", "--report", text, "--session", DRAIN_SESSION],
-    { cwd: p.main, env: { ...env, CARETOOK_ASKS_DIR: p.asks } },
+    { cwd: p.main, env: { ...env, RISA_ASKS_DIR: p.asks } },
   );
   if (!r.ok) out(`resume: filing the report failed: ${(r.err || r.out).split("\n").pop()}`);
   return r.ok;
@@ -1540,7 +1552,7 @@ export function tick(
 
   // The pickup: lines pushed to origin/dev reach the main checkout. Beside the
   // pick, never in its way: a failure is one line.
-  const everyMs = pickupEvery(env.CARETOOK_PICKUP_EVERY);
+  const everyMs = pickupEvery(env.RISA_PICKUP_EVERY);
   if (pickupDue(g.state, now, { paused: facts.paused, everyMs })) {
     if (dryRun) out("pickup: would run pnpm prd dev-sync");
     else {
@@ -1582,7 +1594,7 @@ export function tick(
   // The inbox session waits until its folder is trusted (Claude Code's own files, only read).
   /** @type {Record<string, string>} */
   const unready = {};
-  if (env.CARETOOK_KEEP_SESSIONS !== "off") {
+  if (env.RISA_KEEP_SESSIONS !== "off") {
     const why = inboxUntrusted(inboxDirOf(records.find((r) => r.name === "inbox")?.record, env));
     if (why) unready.inbox = why;
   }
@@ -1593,9 +1605,9 @@ export function tick(
     keep: readState(p.state).keepAlive ?? {},
     // Draining or limited holds it like a pause: a kept session is a reopen.
     paused: facts.paused || drain.state !== "normal",
-    off: env.CARETOOK_KEEP_SESSIONS === "off",
+    off: env.RISA_KEEP_SESSIONS === "off",
     now,
-    claude: basename(env.CARETOOK_CLAUDE_BIN || "claude"),
+    claude: claudeName(env),
   });
   for (const d of keepDecisions)
     if (dryRun || d.action !== "none")
@@ -1684,7 +1696,7 @@ export function tick(
       for (const o of d.options ?? []) args.push("--option", o);
       const r = run("node", [join(bin, "ask.mjs"), ...args], {
         cwd: p.main,
-        env: { ...env, CARETOOK_ASKS_DIR: p.asks },
+        env: { ...env, RISA_ASKS_DIR: p.asks },
       });
       const id = r.ok ? r.out.split("\n")[0].trim() : "";
       if (!/^a\d+$/.test(id)) {
@@ -1704,7 +1716,7 @@ export function tick(
           .find((l) => l.startsWith("Now send a PushNotification: "))
           ?.slice("Now send a PushNotification: ".length) ?? `${d.kind}: ${d.text}`;
       const helper = openTab(
-        helperLine({ main: p.main, claude: env.CARETOOK_CLAUDE_BIN || "claude", line: push }),
+        helperLine({ main: p.main, ...helperClaude(p.main, env), line: push }),
         HELPER_SESSION,
       );
       if (!helper.ok) out(`  ${HELPER_SESSION} didn't start (ignored): ${result(helper)}`);
@@ -1796,7 +1808,7 @@ export function tick(
       for (const o of choice.options ?? []) args.push("--option", o);
       const r = run("node", [join(bin, "ask.mjs"), ...args], {
         cwd: p.main,
-        env: { ...env, CARETOOK_ASKS_DIR: p.asks },
+        env: { ...env, RISA_ASKS_DIR: p.asks },
       });
       const id = r.ok ? r.out.split("\n")[0].trim() : "";
       if (!/^a\d+$/.test(id)) {
@@ -1813,7 +1825,7 @@ export function tick(
           ?.slice("Now send a PushNotification: ".length) ?? `${topic}: ${choice.text}`;
       out(`  filed ask ${id}`);
       const helper = openTab(
-        helperLine({ main: p.main, claude: env.CARETOOK_CLAUDE_BIN || "claude", line: push }),
+        helperLine({ main: p.main, ...helperClaude(p.main, env), line: push }),
         HELPER_SESSION,
       );
       out(

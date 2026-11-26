@@ -50,10 +50,10 @@
 //       pass, and refused for any commit reachable from staging or main.
 //
 // An infra verdict is rerun once (--failed). A whole-tier run's final verdict is
-// written as the commit status caretook-ci/<tier>; a narrowed run gets none.
+// written as the commit status <name>-ci/<tier> (the project's name); a narrowed run gets none.
 //
 // A cancelled run, a run with no verdict and an unreachable GitHub read as
-// unknown, never green. Env: CARETOOK_CI_POLL (seconds between polls, 15).
+// unknown, never green. Env: RISA_CI_POLL (seconds between polls, 15).
 //
 // Where each part lives (open just the one you change; this file is the CLI,
 // main's dispatch, and the names other modules import from it):

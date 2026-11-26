@@ -6,7 +6,7 @@
 //   pnpm prd session requests [--json]     pending ones, then those settled in the last day
 //
 // One JSON file per request in the main checkout's .loops/.requests
-// (CARETOOK_REQUESTS_DIR): { id, kind, name, session (backlog-<name>), remote
+// (RISA_REQUESTS_DIR): { id, kind, name, session (backlog-<name>), remote
 // (`backlog - <name>`), model, brief, from, requestedAt, state (pending, opened
 // or refused), why, noticeFailed (why the requester's notice couldn't post),
 // doneAt }. Ids are r1, r2, … and never reused: the high-water mark is
@@ -17,7 +17,7 @@
 //
 // requestDecision is pure: the facts in, what this tick does with the oldest
 // pending request out; dispatch.mjs gathers and acts. The limit
-// (CARETOOK_MAX_BACKLOG_SESSIONS, 4) counts every live backlog-kind session:
+// (RISA_MAX_BACKLOG_SESSIONS, 4) counts every live backlog-kind session:
 // recorded, rotating within the grace, opened by hand (a claude process under a
 // backlog Remote Control name), or just opened and not up yet.
 import {
@@ -36,6 +36,7 @@ import { CAPTAINS, CAPTAIN_SESSION } from "./captain.mjs";
 import { ROTATING_GRACE_MS } from "./dispatch-pick.mjs";
 import { START_GRACE_MS } from "./keep-alive.mjs";
 import { MAX_TEXT, oneLine, raiseSeq, readSeq } from "./notices.mjs";
+import { CLAUDE } from "./host.mjs";
 import {
   ancestorClaude,
   claudeName,
@@ -197,7 +198,7 @@ export function settleRequest(
  * The session name behind a claude process's backlog Remote Control name, or
  * null. A captain's name (captain.mjs) is the main session's: `backlog`.
  */
-export function backlogRemoteOf(/** @type {string} */ args, /** @type {string} */ claude = "claude") {
+export function backlogRemoteOf(/** @type {string} */ args, /** @type {string} */ claude = CLAUDE) {
   if (!runs(args, claude)) return null;
   if (CAPTAINS.some((c) => new RegExp(`(?:^|\\s)--remote-control[ =]${c}(?=\\s|$)`).test(args)))
     return CAPTAIN_SESSION;
@@ -252,7 +253,7 @@ export function requestDecision({
   paused = false,
   max = DEFAULT_MAX_BACKLOG_SESSIONS,
   now,
-  claude = "claude",
+  claude = CLAUDE,
 }) {
   const pending = requests.filter((r) => r.state === "pending");
   if (!pending.length) return { action: "none", why: "no pending request" };
@@ -350,8 +351,8 @@ const USAGE =
   "usage: pnpm prd session request backlog <name> [--brief <file>] [--model <m>] | pnpm prd session requests [--json]";
 
 async function cli(/** @type {string[]} */ argv) {
-  const dir = process.env.CARETOOK_REQUESTS_DIR;
-  if (!dir) throw new RequestError("CARETOOK_REQUESTS_DIR isn't set (run this through pnpm prd)");
+  const dir = process.env.RISA_REQUESTS_DIR;
+  if (!dir) throw new RequestError("RISA_REQUESTS_DIR isn't set (run this through pnpm prd)");
   const [cmd, ...rest] = argv;
   if (cmd === "requests") {
     if (rest.length > 1 || (rest[0] && rest[0] !== "--json")) throw new RequestError(USAGE);
@@ -384,7 +385,7 @@ async function cli(/** @type {string[]} */ argv) {
     const why = briefProblem(brief);
     if (why) throw new RequestError(why);
   }
-  const r = createRequest(dir, { name, brief, model, from: callerName(process.env.CARETOOK_SESSIONS_DIR) });
+  const r = createRequest(dir, { name, brief, model, from: callerName(process.env.RISA_SESSIONS_DIR) });
   console.log(r.id);
   console.error(
     `Requested \`${r.remote}\`: the dispatcher's next tick opens it and posts the outcome (pnpm prd notices).`,

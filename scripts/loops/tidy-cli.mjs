@@ -15,8 +15,8 @@
 // testDb facts and orphans, stackLeftovers), `lsof` (processes' working
 // directories and listening ports), `ps` and the backlog's
 // `list --json` and `prd list --json`; it writes nothing. The main checkout is
-// the repo this file is in. Env: TRUNK (dev), CARETOOK_SESSIONS_DIR,
-// CARETOOK_ASKS_DIR, CARETOOK_LEASE_ROOT.
+// the repo this file is in. Env: TRUNK (dev), RISA_SESSIONS_DIR,
+// RISA_ASKS_DIR, RISA_LEASE_ROOT.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -26,7 +26,8 @@ import { collectFacts, parentOf } from "./inventory-facts.mjs";
 import { isLive, processOf, readRecords } from "./sessions.mjs";
 import { formatTidy, reportText, tidy } from "./tidy.mjs";
 import { factList, runHook } from "./hooks.mjs";
-import { branchKinds } from "./config.mjs";
+import { branchKinds, loadConfig } from "./config.mjs";
+import { gh as hostGh } from "./host.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -93,7 +94,7 @@ export const unknownProcesses = (
 export function collectCiRefs(
   /** @type {string} */ main,
   /** @type {number} */ now,
-  gh = (/** @type {string[]} */ args) => run("gh", args, { cwd: main, timeout: 15_000 }),
+  gh = (/** @type {string[]} */ args) => hostGh(args, { cwd: main, timeout: 15_000 }),
 ) {
   const listed = run("git", ["-C", main, "ls-remote", "origin", "refs/heads/ci/*"], { timeout: 15_000 });
   if (!listed.ok) return [];
@@ -127,7 +128,9 @@ export function collectCiRefs(
  * unreadable lists nothing, so tidy never removes an entry on a guess.
  */
 export function collectQuarantineDone(/** @type {string} */ main) {
-  const text = git(main, ["show", "HEAD:scripts/ci/quarantine.txt"]);
+  const list = loadConfig().config.paths.quarantine;
+  if (!list) return [];
+  const text = git(main, ["show", `HEAD:${list}`]);
   const listed = run(process.execPath, [join(HERE, "../backlog/backlog.mjs"), "list", "--all", "--json"], {
     cwd: main,
     timeout: 15_000,
@@ -167,7 +170,7 @@ export function collectTidyFacts({
   outstanding = () =>
     outstandingRuns({
       git: (args) => git(main, args),
-      gh: (args) => run("gh", args, { cwd: main, timeout: 15_000 }),
+      gh: (args) => hostGh(args, { cwd: main, timeout: 15_000 }),
     }),
 } = {}) {
   const trunk = env.TRUNK || "dev";
@@ -231,7 +234,7 @@ export function collectTidyFacts({
     if (held) Object.assign(w, { held });
   }
 
-  const sessionsDir = env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions");
+  const sessionsDir = env.RISA_SESSIONS_DIR || join(loops, ".sessions");
   const sessions = readRecords(sessionsDir).map(({ name, record }) => {
     const m = /^(prd|plan|hotfix)-(.+)$/.exec(name);
     const worktree = m ? (m[1] === "prd" ? m[2] : `${m[1]}-${m[2]}`) : null;
@@ -552,7 +555,7 @@ function main() {
         stdio: ["ignore", "inherit", "inherit"],
         env: {
           ...process.env,
-          CARETOOK_ASKS_DIR: process.env.CARETOOK_ASKS_DIR || join(mainDir, ".loops/.asks"),
+          RISA_ASKS_DIR: process.env.RISA_ASKS_DIR || join(mainDir, ".loops/.asks"),
         },
       },
     );

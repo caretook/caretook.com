@@ -18,7 +18,7 @@
 # shellcheck source=lib.sh
 declare -F env_get >/dev/null || source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-unsynced_marker() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/caretook-unsynced-merge"; }
+unsynced_marker() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/$project_name-unsynced-merge"; }
 
 # unsynced_started PID → when that process started, or nothing.
 unsynced_started() { ps -p "$1" -o lstart= 2>/dev/null | xargs; }
@@ -69,7 +69,7 @@ unsynced_verdict() {
 # and `ready` share this, so a skipped sync never blocks the next step.
 unsynced_safe() {
   local go
-  [[ ${CARETOOK_UNSYNCED:-} != off ]] || return 1
+  [[ ${RISA_UNSYNCED:-} != off ]] || return 1
   IFS=$'\t' read -r go _ <<< "$(unsynced_verdict "$2" "$1")"
   [[ $go == go ]]
 }
@@ -114,7 +114,7 @@ unsynced_dev_brake() {
         if (hit) console.log(hit.text);
       })
       .catch(() => process.exit(3));
-  ' "$here/../ci/blame.mjs" "$here/notices.mjs" "${CARETOOK_NOTICES_DIR:-$loops/.notices}" 2>/dev/null) || rc=$?
+  ' "$here/../ci/blame.mjs" "$here/notices.mjs" "${RISA_NOTICES_DIR:-$loops/.notices}" 2>/dev/null) || rc=$?
   if ((rc != 0)); then
     unread+=("couldn't read the dev-brake notices")
   elif [[ -n $out ]]; then
@@ -166,7 +166,7 @@ unsynced_typecheck() {
   wt=$(basename "$dir")
   gd=$(git -C "$dir" rev-parse --absolute-git-dir)
   marker=$(unsynced_marker "$dir")
-  log=$gd/caretook-unsynced.log
+  log=$gd/$project_name-unsynced.log
   for kind in check browser; do
     if ! "$(dirname "${BASH_SOURCE[0]}")/lease.sh" wait "$kind" --worktree "$wt" --timeout 0 >/dev/null 2>&1; then
       echo "$wt holds a $kind lease" >&2

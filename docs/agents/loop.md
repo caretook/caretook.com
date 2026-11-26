@@ -18,7 +18,7 @@
 - **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `project:unit`, `core:unit` (sync matrix, check-areas, deploy, build; check-times, CI); `tooling:unit` and `project:tooling` (loops, backlog; hooks; 20 s; `pnpm test:tooling`); unit projects: `CARETOOK_UNIT_WORKERS` (cores/2, max 4); `tooling:browser` (`pnpm test:browser-harness`; `test:tooling` adds it only for a change to its paths); `integration` (every `*.int.test.ts` on the test Postgres; migrated once per run, other hosts or ports refused, a database copy per worker ([data-layer](../domain/data-layer.md)); fixtures: `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
 - **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build.
 - A browser step that asserts pure logic or one device's screen goes once a unit or component test covers it.
-- **Tests don't race the machine:** wait on state, not a sleep; fake clocks take few steps (`CARETOOK_CLOCK_FILE`); fake pids are 99_999_999; a polled fake file is renamed in; a slow integration file shares a world per describe.
+- **Tests don't race the machine:** wait on state, not a sleep; fake clocks take few steps (`RISA_CLOCK_FILE`); fake pids are 99_999_999; a polled fake file is renamed in; a slow integration file shares a world per describe.
 - **Only your own tests.** While building: the test files you add or edit, plus `pnpm prd browser <check>` only for a spec you add or edit. **Before hand-off:** `pnpm prd check --quick "slice hand-off"` (static, every unit test, your own integration and component files). Never `--changed` or `--suite`. Never rerun a passed check or run two at once.
 
 ## Browser checks
@@ -32,13 +32,13 @@
 - **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds the machine-wide `browser` lease and logs to the git dir.
 - **`--changed`** runs what the diff needs; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list`. **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (`@smoke` tests only); `--verbose`; `--dev` (the dev server).
 - **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`; CI greps both out of production), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production` turns Better Auth's rate limits on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`.
-- **Limits, each a TIMEOUT:** silence (`CARETOOK_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`CARETOOK_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
+- **Limits, each a TIMEOUT:** silence (`RISA_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`RISA_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
 - **One automatic retry** when a failure looks like contention (load over 40, a timeout, a 401 or PSYNC_S2101), after waiting up to 5 minutes for the load to drop. A pass on the retry is **FLAKY** (passing, logged in `.loops/.browser-flakes.log`); a FLAKY lean-set step is a bug to file. Anything else is real: no rerun by hand.
 - **Output is trimmed** to the ▶ and ■ lines, failures, FLAKY lines and the table; the ■ line names the full log.
 
 ### Which checks a file needs
 
-`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
+`scripts/project/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
 
 - A line is a bash-style glob (`*` also matches `/`), then checks as words, or `-` (none), `@suite` (the lean set) or `@self` (the check file itself; `- (deleted)` when deleted). `#` comments. Neither the file a rule sits in nor its order matters: put it in the area that owns the path.
 - **The most specific rule wins** across all files: the longest literal prefix before the first wildcard, then fewer wildcards, then the longer glob; a remaining tie is an error.
@@ -49,7 +49,7 @@
 
 ### The manifest and the lean set
 
-- `scripts/loops/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
+- `scripts/project/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
 - **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, each uploadable one by its app writer (`sync-writers.mjs`; a link table names its parent's) with uploads held, every streamed column compared on the other device (server-set ones named); `sync-matrix.test.mjs` fails on a table with no row or writer.
 - **Moving a check's screen steps to component tests:** write them, delete each covered step; `e2e yes` if a flow is left, else delete the check and its `check-areas.d/` rules.
 

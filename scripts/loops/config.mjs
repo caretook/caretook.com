@@ -70,6 +70,7 @@ const TYPES = {
     ok: (v) => typeof v === "string" && ID_PREFIX.test(v),
     want: "an id prefix (capitals: B, RISA)",
   },
+  flag: { ok: (v) => typeof v === "boolean", want: "true or false" },
   version: {
     ok: (v) => typeof v === "string" && /^\d+\.\d+\.\d+([-+][\w.-]+)?$/.test(v),
     want: "a version (1.2.3)",
@@ -90,6 +91,8 @@ export const SHAPE = [
   // What the tool's own commands are called here.
   ["tool.prd", "command"],
   ["tool.backlog", "command"],
+  // True only in the tool's own repo: its work switch is off by default (machine.mjs).
+  ["tool.self", "flag?"],
   // Paths, from the repo's root.
   ["paths.backlog", "path"],
   ["paths.inbox", "path"],
@@ -174,6 +177,9 @@ export const SHAPE = [
   ["hooks.docBudget", "command?"],
   // How to try a landing and what the main checkout needs after one (ready.sh, land.sh).
   ["hooks.landing", "command?"],
+  // The Claude Code config folder this project's sessions use (absolute, or ~/…; none: Claude
+  // Code's default). RISA_CLAUDE_CONFIG_DIR and the machine config come first (host.mjs).
+  ["claude.configDir", "text?"],
   // The boundary lint: the project's own folders, which no core file may name.
   ["boundary.appPaths", "path[]?"],
 ];
@@ -495,6 +501,31 @@ function makeBranches(config) {
  */
 export function toolCommands(config = loadConfig().config) {
   return { prd: config.tool.prd, backlog: config.tool.backlog };
+}
+
+/**
+ * The names other worktrees, the watchdog and GitHub share, built from the project's
+ * name so they keep their values whatever the tool is called: an unsynced worktree,
+ * the loaded launchd job and the commit statuses already posted still match. lib.sh,
+ * recover.sh and unsynced.sh build the same from `config get name`.
+ * @param {Record<string, any>} [config] a valid config (default: this repo's)
+ */
+export function sharedNames(config = loadConfig().config) {
+  const name = config.name;
+  return {
+    /** pnpm backlog's lock, in the main checkout's git dir */
+    backlogLock: `${name}-backlog.lock`,
+    /** the commit a worktree's check passed on, in its git dir */
+    checked: `${name}-checked`,
+    /** the inbox merge's scratch file, in the git dir */
+    inboxMerged: `${name}-inbox-merged`,
+    /** an unsynced landing's merge marker, in the worktree's git dir */
+    unsyncedMerge: `${name}-unsynced-merge`,
+    /** the watchdog's launchd job */
+    launchdLabel: `com.${name}.prd-watchdog`,
+    /** the commit status a CI verdict is posted under (`<context>/<tier>`) */
+    ciContext: `${name}-ci`,
+  };
 }
 
 /** Whether this file is the script Node was started on (through any symlink). */
