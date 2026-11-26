@@ -1,7 +1,10 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { FilterExtraChip, FilterSection } from "../../../../components/ui/filterModel";
 import type { TimelineFilters } from "../../../../lib/timeline/timelineFilters";
 
+import { TAG_PARAM, tagFromParams } from "@caretook/data/schema";
 import { matchingText } from "../../../../lib/core/textFilter";
+import { setTagFilter, tagFilterSection } from "../../../../lib/tags/tagFilter";
 import {
   AUTHOR_PARAM,
   KIND_PARAM,
@@ -10,8 +13,9 @@ import {
 } from "../../../../lib/timeline/timelineFilters";
 
 // Upcoming's and Past's filters: the timeline's `?kind=event` and `?author=`
-// (read and changed through `lib/timeline/timelineFilters`) and, for todos
-// only, `?show=todos`.
+// (read and changed through `lib/timeline/timelineFilters`), for todos
+// only, `?show=todos`, and the tag (`?tag=`, events and todos alike; tags
+// PRD: a section on Upcoming, a chip carried to Past).
 // Pure, so web:unit tests it.
 
 /** What Upcoming lists: everything (default), events only, or todos only. */
@@ -42,18 +46,67 @@ type UpcomingFilters = Pick<TimelineFilters, "author">;
  */
 export const parseUpcomingFilters = (
   search: string,
-): UpcomingFilters & { kind: TimelineEntryKind | null; show: UpcomingShow; todosOnly: boolean } => {
+): UpcomingFilters & {
+  kind: TimelineEntryKind | null;
+  show: UpcomingShow;
+  todosOnly: boolean;
+  /** `?tag=` as written: whether the group has it is the screen's to check (`activeTag`). */
+  tag: string | null;
+} => {
   const { kind, author } = parseFilters(search);
-  const todosOnly = new URLSearchParams(search).get(SHOW_PARAM) === "todos";
+  const params = new URLSearchParams(search);
+  const todosOnly = params.get(SHOW_PARAM) === "todos";
   const show: UpcomingShow = todosOnly ? "todos" : kind === "event" ? "event" : "all";
-  return { kind: show === "event" ? "event" : null, author, show, todosOnly };
+  return { kind: show === "event" ? "event" : null, author, show, todosOnly, tag: tagFromParams(params) };
 };
 
-/** The Past tab's filters: past events only, so just the author. */
-export const parsePastFilters = (search: string): UpcomingFilters & { kind: null } => ({
+/** The Past tab's filters: past events only, so the author and the tag. */
+export const parsePastFilters = (search: string): UpcomingFilters & { kind: null; tag: string | null } => ({
   kind: null,
   author: parseFilters(search).author,
+  tag: tagFromParams(new URLSearchParams(search)),
 });
+
+type Named = { id: string; name: string };
+
+/**
+ * Upcoming's Filter menu sections: Show (All, Events, Todos), then Tag
+ * when the group has tags (`tagFilterSection`).
+ */
+export const upcomingFilterSections = (
+  search: string,
+  show: UpcomingShow,
+  tags: readonly Named[],
+): FilterSection[] => {
+  const tag = tagFilterSection(search, tags);
+  return [
+    {
+      id: "show",
+      title: "Show",
+      current: show,
+      defaultId: "all",
+      options: UPCOMING_SHOWS.map((s) => ({
+        id: s,
+        label: UPCOMING_SHOW_LABELS[s],
+        search: setShow(search, s),
+      })),
+    },
+    ...(tag ? [tag] : []),
+  ];
+};
+
+/** Past's tag chip (carried from Upcoming; Past has no Tag section): the tag's name, ✕ drops `?tag=`. */
+export const pastTagChip = (search: string, tag: Named | null): FilterExtraChip[] =>
+  tag
+    ? [
+        {
+          id: "tag",
+          label: tag.name,
+          name: `${tag.name}: clear this filter`,
+          search: setTagFilter(search, null),
+        },
+      ]
+    : [];
 
 /** `search` showing `show`: the other choice's parameter goes, the rest is kept. */
 export const setShow = (search: string, show: UpcomingShow) => {
@@ -69,8 +122,8 @@ export const setShow = (search: string, show: UpcomingShow) => {
 };
 
 /**
- * The search a link carries to the Planner tab (Upcoming: what it shows and
- * the author) or to Past (the author only), never anything else.
+ * The search a link carries to the Planner tab (Upcoming: what it shows, the
+ * author and the tag) or to Past (the author and the tag), never anything else.
  */
 export const tabSearch = (search: string, tab: "planner" | "past") => {
   const { show, author } = parseUpcomingFilters(search);
@@ -78,19 +131,27 @@ export const tabSearch = (search: string, tab: "planner" | "past") => {
     [KIND_PARAM]: tab === "planner" && show === "event" ? "event" : null,
     [SHOW_PARAM]: tab === "planner" && show === "todos" ? "todos" : null,
     [AUTHOR_PARAM]: author,
+    [TAG_PARAM]: tagFromParams(new URLSearchParams(search)),
   };
 };
 
 /** What an empty Upcoming list says, naming what is on (the author, the search box's text). */
-export const emptyUpcomingText = (show: UpcomingShow, authorName?: string | null, q = "") => {
+export const emptyUpcomingText = (
+  show: UpcomingShow,
+  authorName?: string | null,
+  q = "",
+  tagName?: string | null,
+) => {
   const what = show === "event" ? "events" : show === "todos" ? "todos" : "events or todos";
-  return `No upcoming ${what}${authorName ? ` by ${authorName}` : ""}${matchingText(q)}.`;
+  return `No upcoming ${what}${authorName ? ` by ${authorName}` : ""}${tagged(tagName)}${matchingText(q)}.`;
 };
 
+const tagged = (tagName?: string | null) => (tagName ? ` tagged “${tagName}”` : "");
+
 /** What an empty Past tab says, naming what is on. */
-export const emptyPastText = (authorName?: string | null, q = "") =>
-  authorName || q.trim()
-    ? `No past events${authorName ? ` by ${authorName}` : ""}${matchingText(q)}.`
+export const emptyPastText = (authorName?: string | null, q = "", tagName?: string | null) =>
+  authorName || q.trim() || tagName
+    ? `No past events${authorName ? ` by ${authorName}` : ""}${tagged(tagName)}${matchingText(q)}.`
     : "No past events yet.";
 
 /** The search box's text from the URL (`?q=`, the timeline's parameter), normalized. */

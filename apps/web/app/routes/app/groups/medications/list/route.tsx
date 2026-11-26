@@ -2,9 +2,11 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 
+import { activeTag } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import { AllergiesRegion } from "~/components/medications";
+import { useGroupRecordTags, useGroupTags } from "~/components/tags";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { loadAllergies, useAllergies } from "~/lib/medications/allergies.sync";
@@ -21,8 +23,8 @@ import { MedicationList } from "../MedicationList";
 // Shared by web + native. The Medications page's list tab: the recipient's
 // allergies, then the group's medications, read from the device's local copy
 // (live, so it works offline and follows other members' changes). Search
-// (`?q=`), the status (`?status=`) and the type (`?type=`) live in the URL
-// (the search box, then one Filter menu for status and type);
+// (`?q=`), the status (`?status=`), the type (`?type=`) and a tag (`?tag=`)
+// live in the URL (the search box, then one Filter menu for the rest);
 // the list is filtered and ordered on the device
 // (`lib/medications/medicationList.ts`). The header above it is the layout's.
 
@@ -69,12 +71,17 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
   const { state: allergies } = useAllergies(params.groupId, loaderData.allergies);
   // Today's doses, for an as-needed Log's "Log anyway?" (read as Schedule does).
   const { due, ready: dueReady } = useDueDoses(params.groupId);
+  // Tags (tags PRD): the rows' chips, and the filter (an unknown or deleted tag is none).
+  const tags = useGroupTags(params.groupId);
+  const recordTags = useGroupRecordTags(params.groupId, "medication");
+  const tag = activeTag(filters.tag ?? null, tags)?.id ?? null;
 
   // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
-    () => medicationList(medications, { q: text, status: filters.status, type: filters.type }),
-    [medications, text, filters.status, filters.type],
+    () =>
+      medicationList(medications, { q: text, status: filters.status, type: filters.type, tag }, recordTags),
+    [medications, text, filters.status, filters.type, tag, recordTags],
   );
 
   return (
@@ -87,6 +94,8 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
         onChange={setText}
         status={filters.status}
         type={filters.type}
+        tag={tag}
+        tags={tags}
       />
 
       <MedicationList
@@ -98,6 +107,8 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
         type={filters.type}
         due={due}
         dueReady={dueReady}
+        tagged={!!tag}
+        recordTags={recordTags}
       />
 
       {/* The add, edit and allergies sheets render here, over the list. */}

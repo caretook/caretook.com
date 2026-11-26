@@ -20,8 +20,9 @@
 # on the app by hand. The mode is kept in <worktree>/.serve-mode, so --restart
 # keeps it; pass --dev to switch back.
 set -euo pipefail
-# shellcheck source=lib.sh
-source "$(dirname "$0")/lib.sh"
+# Caretook's own: it sources no core file.
+# shellcheck source=stack-facts.sh
+source "$(dirname "$0")/stack-facts.sh"
 
 name="" mode=start kind=""
 for a in "$@"; do

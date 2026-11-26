@@ -1,11 +1,19 @@
 import {
   Ban,
   Bot,
+  CalendarClock,
+  CalendarDays,
   Clock,
   EyeOff,
   HeartPulse,
+  IdCard,
+  ListTodo,
+  MapPin,
   NotebookPen,
   Pill,
+  Plug,
+  Printer,
+  Search,
   ShieldCheck,
   Smartphone,
   Stethoscope,
@@ -13,6 +21,7 @@ import {
   UserPlus,
   Users,
   WifiOff,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +44,15 @@ export const MARKETING_ICONS = {
   offline: WifiOff,
   medications: Pill,
   providers: Stethoscope,
+  quickEntry: Zap,
+  todos: ListTodo,
+  planner: CalendarClock,
+  calendars: CalendarDays,
+  print: Printer,
+  carePeriods: MapPin,
+  search: Search,
+  profile: IdCard,
+  assistant: Plug,
 } as const satisfies Record<string, LucideIcon>;
 
 export type MarketingIconName = keyof typeof MARKETING_ICONS;

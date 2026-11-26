@@ -131,3 +131,48 @@ describe("endSession: the server ended the session", () => {
     expect(sync.closeSync).toHaveBeenCalledWith({ keep: true });
   });
 });
+
+describe("a fresh session's background recheck finds it ended (B-869)", () => {
+  const TIMELINE = "https://caretook.invalid/app/groups/g1/timeline";
+  const FILTERED = `${TIMELINE}?kind=symptom`;
+  const signInBackTo = (path: string) => `/sign-in?${new URLSearchParams({ redirectTo: path }).toString()}`;
+
+  /** Signed in and confirmed 5 minutes ago (fresh, due a recheck), on the timeline; the recheck's answer held. */
+  const freshOnTimeline = async () => {
+    const location = { href: TIMELINE, assign: vi.fn(), reload: vi.fn() };
+    vi.stubGlobal("window", { location });
+    auth.getSession.mockResolvedValueOnce({ data: { user: { ...USER, emailVerified: true } }, error: null });
+    await requireSession(new Request(TIMELINE));
+    localStorage.setItem(`caretook:session-confirmed:${USER.id}`, String(Date.now() - 5 * 60 * 1000));
+    let answer = (_: unknown) => undefined as void;
+    auth.getSession.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    const ended = async () => {
+      answer({ data: null, error: null });
+      await vi.waitFor(() => expect(location.assign).toHaveBeenCalled());
+    };
+    return { location, ended };
+  };
+
+  it("goes ahead without waiting for the server", async () => {
+    const { location, ended } = await freshOnTimeline();
+    const session = await requireSession(new Request(FILTERED));
+    expect(session.user.id).toBe(USER.id);
+    expect(location.assign).not.toHaveBeenCalled();
+    await ended();
+  });
+
+  it("answering before the navigation has changed the address: sign-in comes back to where it was going", async () => {
+    const { location, ended } = await freshOnTimeline();
+    await requireSession(new Request(FILTERED));
+    await ended();
+    expect(location.assign).toHaveBeenCalledWith(signInBackTo("/app/groups/g1/timeline?kind=symptom"));
+  });
+
+  it("answering once the user has moved on: sign-in comes back to where they are now", async () => {
+    const { location, ended } = await freshOnTimeline();
+    await requireSession(new Request(FILTERED));
+    location.href = "https://caretook.invalid/app/groups/g1/todos";
+    await ended();
+    expect(location.assign).toHaveBeenCalledWith(signInBackTo("/app/groups/g1/todos"));
+  });
+});

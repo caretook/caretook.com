@@ -4,16 +4,29 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started. Starts after `symptom-catalog`.
+**Where it stands:** all four waves landed in `dev` (2026-11-26); **the PRD is done**, B-548 marked done. Last: land this docs commit (docs only, no review), file the report, `pnpm prd rm tags`, `pnpm prd end`.
 
-| Slice | Wave | State       | Merge into `prd/tags` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------- |
-| 1     | 1    | not started |                                       |
-| 2     | 2    | not started |                                       |
-| 3     | 3    | not started |                                       |
-| 4     | 3    | not started |                                       |
-| 5     | 3    | not started |                                       |
-| 6     | 4    | not started |                                       |
+**Wave 4 landed** in `dev` as 8e8c60c through PR #212, tier `components` (run 45788376503 green on 93f3e6ae), **without Codex (out of credits)**. Slice 6 merged as 004f99fe (a5b63301). No browser checks (the slice touches no browser-suite area beyond components). to-test `to-test/2026-11-26-0411-tags.md`. Docs: tags.md _Screens_ gains the timeline filter and search (timeline.md is at its budget).
+
+**Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+**Models:** slices 1–5 opus (slice 4's fix too); slice 6 opus.
+
+**Wave 2 landed** in `dev` as ae9f865 through PR #209, tier `components` (run 45768746414 green on e24fefd8), **without a Codex review (out of credits)**. Slice 2 merged as b3fe1008 (491e3862) plus a test-expectation fix f71fed2a (5d091480): the first gate failed on inScreens and plannerEvents tests that listed the ⋯ items without Tags. Browser checks: the changed set only (phase2, roundtrip, live-notes), no `--suite` (the user asks before any). Report a257; to-test `to-test/2026-11-26-0146-tags.md`. Docs: tags.md _Screens_. Filed B-864 (fx.tag fixture id from raw name).
+**Wave 3 landed** in `dev` as acc5137 through PR #210, tier `components` (run 45784057054 green on c7ecb8b4), **without Codex (out of credits)**. Merges b71903f5 (slice 3), 998d10d8 + c5ec876e (slice 4), 5708c180 (slice 5). Browser: roundtrip, live-notes. Report a259; to-test `to-test/2026-11-26-0344-tags.md`. First run 45780323886 braked on two slice-4 test expectations (the viewer replay of an existing link, now an identical-row no-op; the Planner ⋯ list gaining Tags); fix 26a8ed64 merged again. Slice 4's agent passed 230k context, so a fresh `--continue` agent fixed it. todos.md is over budget (10.2 KB): slice 4's todo decisions live in tags.md.
+
+**Wave 1 landed** as 465efcf (PR #206, tier full), without Codex. Filed B-862 (roundtrip cleanup gap).
+
+**Lessons:** brief agents to keep context lean (slice 1 ran out; slice 2 passed its soft limit but finished). A new ⋯ item breaks `inScreens` and other component tests that list menu items: tell wave 3+ agents to grep the tests for the menu they change and update them in the slice. Slice 4 adds Tags to the Planner's ⋯ (`UpcomingList`) and chips there.
+
+| Slice | Wave | State  | Merge into `prd/tags` (slice commits)   |
+| ----- | ---- | ------ | --------------------------------------- |
+| 1     | 1    | landed | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
+| 2     | 2    | landed | b3fe1008, f71fed2a (491e3862, 5d091480) |
+| 3     | 3    | landed | b71903f5 (2dfe5297)                     |
+| 4     | 3    | landed | 998d10d8, c5ec876e (0bc2c990, 26a8ed64) |
+| 5     | 3    | landed | 5708c180 (b52ced9d)                     |
+| 6     | 4    | merged | 004f99fe (a5b63301)                     |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
 

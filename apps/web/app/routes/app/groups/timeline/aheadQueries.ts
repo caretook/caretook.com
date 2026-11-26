@@ -8,7 +8,7 @@ import { upcomingQuery } from "../../../../lib/timeline/timeline.sync";
 // all-day item today, is in both, by design.) Pure, so web:unit tests it.
 
 /**
- * The entries ahead (the whole group: it ignores the kind and author
+ * The entries ahead (the whole group: it ignores the kind, author and tag
  * filters, but not the search), at `cutoff` (`historyCutoff`).
  */
 export const aheadQueries = (

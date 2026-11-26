@@ -2,6 +2,7 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import { TagChips } from "~/components/tags";
 import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
@@ -12,7 +13,7 @@ import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
 import { CANCELLED_TEXT, CancelledBadge, EntryCopyLink } from "./TimelineEntryRow";
 
-/** One entry as a compact card: the body's first line beside the time, all its text, then who wrote it. */
+/** One entry as a compact card: the body's first line beside the time, all its text (a note's or event's formatted), then who wrote it. */
 export function TimelineEntryCard({
   entry,
   authorName,
@@ -25,8 +26,11 @@ export function TimelineEntryCard({
   onRemind,
   liveLabel,
   providers,
+  richText,
   search,
   openTodos,
+  tags,
+  onTags,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -41,6 +45,7 @@ export function TimelineEntryCard({
         entry={entry}
         units={units}
         providers={providers}
+        richText={richText}
         search={search}
         className={`space-y-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         aside={
@@ -56,6 +61,7 @@ export function TimelineEntryCard({
           <>
             {cancelled && <CancelledBadge label={cancelled} />}
             <OpenTodosMark count={openTodos} />
+            <TagChips tags={tags} />
             <p className="text-faint inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
               <ViaTag via={entry.via} className="ml-1.5" />
@@ -65,11 +71,12 @@ export function TimelineEntryCard({
         }
       />
       <EntryCopyLink entry={entry} />
-      {(onDelete || canHaveNoteDocument(entry.kind)) && (
+      {(onDelete || onTags || canHaveNoteDocument(entry.kind)) && (
         <EntryActions
           kind={entry.kind}
           label={actionsLabel(entry)}
           onEdit={onEdit}
+          onTags={onTags}
           cancel={cancel}
           onRemind={onRemind}
           printHref={

@@ -36,4 +36,4 @@ export const daySummaryQuery = (
 
 /** Summaries are hidden (and not read) while any filter or search is on. */
 export const summariesOff = (filters: EntryFilters) =>
-  !!(filters.kind || filters.author || filters.vital || filters.match);
+  !!(filters.kind || filters.author || filters.vital || filters.tag || filters.match);

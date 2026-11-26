@@ -9,8 +9,7 @@
 //   node check-tooling.mjs [--harness] [--state DIR] [--rerun-max N]
 //
 // No tooling tests in the config (testProjects.tooling unset): the project has
-// none, so the step runs nothing and passes (tooling-tests.mjs, asked by hand to
-// run tests it can't name, refuses instead).
+// none, so the step runs nothing and passes (tooling-tests.mjs too).
 import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -37,6 +36,57 @@ export function failedFiles(text, cwd) {
     .filter((/** @type {any} */ r) => r?.status === "failed" && typeof r.name === "string")
     .map((/** @type {any} */ r) => (isAbsolute(r.name) ? relative(cwd, r.name) : r.name));
   return [...new Set(names)].sort();
+}
+
+/**
+ * A Vitest JSON report's slowest test files, by each file's start and end time,
+ * slowest first, names relative to cwd; none from an unreadable report. The core's
+ * copy of the project's check-failed.mjs's.
+ * @param {string} text
+ * @param {string} cwd
+ * @param {number} [n]
+ * @returns {{ name: string, seconds: number }[]}
+ */
+export function slowestFiles(text, cwd, n = 10) {
+  let report;
+  try {
+    report = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(report?.testResults)) return [];
+  return report.testResults
+    .filter(
+      (/** @type {any} */ r) =>
+        typeof r?.name === "string" &&
+        Number.isFinite(r.startTime) &&
+        Number.isFinite(r.endTime) &&
+        r.endTime >= r.startTime,
+    )
+    .map((/** @type {any} */ r) => ({
+      name: isAbsolute(r.name) ? relative(cwd, r.name) : r.name,
+      seconds: Math.round((r.endTime - r.startTime) / 100) / 10,
+    }))
+    .sort((a, b) => b.seconds - a.seconds || a.name.localeCompare(b.name))
+    .slice(0, n);
+}
+
+/**
+ * Whether a Vitest run's output reports an unhandled error: only the runner's own
+ * report line (`Vitest caught N unhandled error(s) during the test run`, or a
+ * collection's `There were unhandled errors during test collection`), at a line's
+ * start, colours stripped, so a test's title that says "unhandled error" (a `✓`
+ * line, its file and describe first) never counts. The core's copy of the
+ * project's check-failed.mjs's.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function unhandledError(text) {
+  // eslint-disable-next-line no-control-regex -- the colour codes themselves
+  const plain = text.replace(/\x1b\[[0-9;]*m/g, "");
+  return /^(Vitest caught \d+ unhandled errors? during the test run|There were unhandled errors during test collection)/m.test(
+    plain,
+  );
 }
 
 /**
@@ -84,7 +134,9 @@ export function checkProjects(config, harness) {
  * failed run reruns only its failed files, once, one at a time; a pass there
  * passes the step and names them as flakes. No rerun after an unhandled error (no
  * file owns it) or past `rerunMax` failed files. With a state directory, writes
- * `step` (tooling) and adds to `failed` and `flaky`, as the project's check does.
+ * `step` (tooling) and adds to `failed` and `flaky`, as the project's check does,
+ * and to `times` (`<seconds> tooling`, the rerun included) and `slowest` (the
+ * first run's ten slowest files, `<seconds> <file>` lines).
  * @param {{ root: string, projects: string[], state?: string, rerunMax?: number, vitest?: string }} opts
  * @returns {Promise<number>} the step's exit code
  */
@@ -102,6 +154,7 @@ export async function toolingStep({ root, projects, state = "", rerunMax = 20, v
       return []; // no report: the run died before writing one
     }
   };
+  const started = Date.now();
   try {
     if (state) writeFileSync(join(state, "step"), "tooling\n");
     const first = join(work, "first.json");
@@ -110,13 +163,27 @@ export async function toolingStep({ root, projects, state = "", rerunMax = 20, v
       ["run", ...flags, "--reporter=default", "--reporter=json", `--outputFile.json=${first}`],
       root,
     );
+    if (state) {
+      let text = "";
+      try {
+        text = readFileSync(first, "utf8");
+      } catch {
+        // no report: no slowest files
+      }
+      appendFileSync(
+        join(state, "slowest"),
+        slowestFiles(text, root)
+          .map((f) => `${f.seconds} ${f.name}\n`)
+          .join(""),
+      );
+    }
     if (run.code === 0) return 0;
     const failed = reported(first);
     if (!failed.length) {
       console.log("tooling failed with no test file to rerun");
       return run.code;
     }
-    if (/Unhandled (Error|Rejection)|unhandled error/.test(run.out)) {
+    if (unhandledError(run.out)) {
       console.log("tooling: an unhandled error, so no rerun");
       record("failed", failed);
       return run.code;
@@ -157,6 +224,7 @@ export async function toolingStep({ root, projects, state = "", rerunMax = 20, v
     console.log(`tooling: failed again: ${still.join(" ")}`);
     return rerun.code;
   } finally {
+    if (state) appendFileSync(join(state, "times"), `${Math.round((Date.now() - started) / 1000)} tooling\n`);
     rmSync(work, { recursive: true, force: true });
   }
 }

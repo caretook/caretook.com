@@ -22,5 +22,6 @@ export * from "./notifications";
 export * from "./profiles";
 export * from "./providers";
 export * from "./search";
+export * from "./tags";
 export * from "./todos";
 export * from "./timeline";

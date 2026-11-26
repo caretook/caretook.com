@@ -8,17 +8,31 @@
 //       its plan's _Status_ passes 6 KB (trim it: `pnpm prd status-trim`).
 //   node scripts/project/doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]
 //       Exits 1 if any doc is over budget AND bigger than at <base>, naming
-//       each with its size, budget and base size. --head measures that ref
+//       each with its size, budget and base size; 2 when it can't measure. --head measures that ref
 //       instead of the working tree (land.sh passes the branch being landed).
+//       Exit 1 is a breach and only that: any other failure (the budgets file
+//       that doesn't load, an uncaught error) exits 2.
 //
 // A doc over budget that didn't grow (or shrank) never blocks anything.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BUDGETS } from "./doc-budget.config.mjs";
 import { readRisa } from "./risa.mjs";
 import { STATUS_WARN_BYTES, statusBytes } from "./status-trim.mjs";
+
+// The budgets, loaded here so a file that doesn't load is this command's own error (exit 2 in land
+// mode, a skipped warning in warn mode), never Node's exit 1, which land.sh reads as a breach.
+/** @type {{ pattern: string, bytes: number, landExempt?: boolean }[]} */
+let BUDGETS = [];
+/** @type {unknown} */
+let budgetsError = null;
+try {
+  ({ BUDGETS } = await import("./doc-budget.config.mjs"));
+} catch (e) {
+  budgetsError = e;
+}
+const firstLine = (/** @type {unknown} */ e) => (e instanceof Error ? e.message : String(e)).split("\n")[0];
 
 /** The budget in bytes for a repo-relative path, or null if it has none. */
 export function budgetFor(path, budgets = BUDGETS) {
@@ -62,7 +76,10 @@ export function measure(sizes, baseSizes = {}, budgets = BUDGETS) {
 const git = (repo, ...args) =>
   execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
-const isDoc = (p) => p === "AGENTS.md" || p.startsWith("docs/");
+// What is measured: docs/ and each file a budget names by its exact path (AGENTS.md, the
+// core's generic role docs until the move).
+const exactPaths = () => BUDGETS.map((e) => e.pattern).filter((p) => !p.endsWith("/*.md"));
+const isDoc = (p) => p.startsWith("docs/") || exactPaths().includes(p);
 
 /** { path: bytes } for the docs in the working tree, or at `ref`. */
 export function docSizes(repo, ref = null) {
@@ -81,9 +98,9 @@ export function docSizes(repo, ref = null) {
       else if (budgetFor(p) !== null) sizes[p] = statSync(join(repo, p)).size;
     }
   };
-  if (budgetFor("AGENTS.md") !== null) {
+  for (const p of exactPaths().filter((p) => !p.startsWith("docs/"))) {
     try {
-      sizes["AGENTS.md"] = statSync(join(repo, "AGENTS.md")).size;
+      sizes[p] = statSync(join(repo, p)).size;
     } catch {
       /* absent */
     }
@@ -187,6 +204,14 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
   };
   const repo = opt("--repo") ?? process.cwd();
   const head = opt("--head");
+  if (budgetsError && mode === "warn") {
+    out(`doc budget: skipped (the budgets didn't load: ${firstLine(budgetsError)})`);
+    return 0;
+  }
+  if (budgetsError) {
+    err(`doc budget: can't measure (the budgets didn't load: ${firstLine(budgetsError)})`);
+    return 2;
+  }
   if (mode === "warn") {
     try {
       const over = measure(docSizes(repo, head)).filter((r) => r.status !== "within");
@@ -213,10 +238,17 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
       err("usage: doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]");
       return 2;
     }
-    const baseSizes = docSizes(repo, base);
-    const grown = measure(docSizes(repo, head), baseSizes).filter(
-      (r) => r.status === "grown" && !isLandExempt(r.path),
-    );
+    // Exit 1 means a breach and only that: a budget that can't measure exits 2.
+    let grown;
+    try {
+      const baseSizes = docSizes(repo, base);
+      grown = measure(docSizes(repo, head), baseSizes).filter(
+        (r) => r.status === "grown" && !isLandExempt(r.path),
+      );
+    } catch (e) {
+      err(`doc budget: can't measure (${e instanceof Error ? e.message.split("\n")[0] : e})`);
+      return 2;
+    }
     if (!grown.length) return 0;
     err(`doc budget: this landing grows ${grown.length} doc(s) that are over budget; trim them first:`);
     for (const r of grown) err(line(r));
@@ -226,4 +258,12 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
   return 2;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(run(process.argv.slice(2)));
+if (import.meta.url === `file://${process.argv[1]}`) {
+  let code = 2;
+  try {
+    code = run(process.argv.slice(2));
+  } catch (e) {
+    console.error(`doc budget: failed (${firstLine(e)})`);
+  }
+  process.exit(code);
+}

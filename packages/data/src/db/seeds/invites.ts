@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { hashInviteToken } from "../../models/careGroupInvite/careGroupInviteModel";
 import { sealLinkToken } from "../../utils/linkToken";
@@ -97,7 +97,12 @@ export const seed = async () => {
         ...sentBy,
       },
     ])
-    .onConflictDoNothing({ target: careGroupInviteSchema.id });
+    // Reseal on every run, so a reseed fixes a link sealed with another key
+    // (staging's seed once used the dev key: B-830). Nothing else changes.
+    .onConflictDoUpdate({
+      target: careGroupInviteSchema.id,
+      set: { tokenCiphertext: sql`excluded.token_ciphertext` },
+    });
 
   await db
     .insert(careGroupJoinRequestSchema)

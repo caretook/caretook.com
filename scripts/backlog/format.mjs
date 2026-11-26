@@ -14,9 +14,11 @@
 //      - commit: 1a2b3c4
 //
 //      Free notes (any Markdown) until the next item.
-import { backlogIds, loadConfig } from "../loops/config.mjs";
+import { backlogIds, commandName, loadConfigOrExit } from "../loops/config.mjs";
 
-const { config } = loadConfig();
+// A broken config is one line, named for the command that imported this (`backlog:` for the
+// CLI), and exit 2 (this loads first, before any command).
+const { config } = loadConfigOrExit(commandName("backlog"));
 /** The id form (prefix and pattern), from the project config. */
 export const IDS = backlogIds(config);
 
@@ -303,7 +305,8 @@ const HEADING_TYPES = [
   [/feature|idea|request/i, "feature"],
 ];
 const BULLET = /^[-*+] +(.*\S)\s*$/;
-const TAG = new RegExp(`\\s\\((${IDS.pattern})\\)\\s*$`);
+/** A line's tag: its id, a former one too (read as its own: normalize). */
+const TAG = new RegExp(`\\s\\((${IDS.lookupPattern})\\)\\s*$`);
 const TITLE_MAX = 100;
 
 /** @param {string} heading */
@@ -341,7 +344,7 @@ export function parseInbox(text) {
         type,
         text: tag ? b[1].slice(0, tag.index).trim() : b[1],
         details: "",
-        id: tag?.[1] ?? null,
+        id: tag?.[1] ? IDS.normalize(tag[1]) : null,
       };
       entries.push(cur);
       return;
@@ -483,7 +486,7 @@ export function similarItems(text, items) {
       };
     })
     .filter((m) => m.score >= SIMILAR_THRESHOLD)
-    .sort((a, b) => b.score - a.score || Number(a.id.slice(2)) - Number(b.id.slice(2)))
+    .sort((a, b) => b.score - a.score || IDS.num(a.id) - IDS.num(b.id))
     .slice(0, SIMILAR_MAX);
 }
 

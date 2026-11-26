@@ -13,10 +13,12 @@ import {
   newError,
   noteDocumentService,
   OWN_DOSE_COPY_METADATA,
+  recordTagService,
   providerService,
   recipientAllergyService,
   recipientConditionService,
   symptomTypeService,
+  tagService,
   timelineEntryService,
   todoService,
   UNDO_NEXT_METADATA,
@@ -513,6 +515,60 @@ const symptomType: UploadEntry = {
   },
 };
 
+// tag: a group's shared tags (tags). A device adds one (PUT) under the id it
+// derives from the group, the name and a counter; a replay, or another
+// device's PUT of that id, returns the one tag, even renamed. A name another
+// tag holds is `tagService:nameTaken`. Loggers only. A PATCH of `name` is a
+// rename (the server derives `name_key`; the device's is ignored): an Easy
+// helper's of a tag someone else created is `permissions:unauthorized`, as
+// `softDelete`'s refused own-row update. A DELETE is an owner's hard delete
+// (links cascade); a deleted tag's is a replay.
+const tagColumns = columnsOf({ fixed: ["group_id"], content: ["name"], serverSet: ["name_key"] });
+const tagKnown = new Set(Object.values(tagColumns).flat());
+
+const tag: UploadEntry = {
+  columns: tagColumns,
+  handle: async (ctx, op) => {
+    if (op.op === "DELETE") {
+      const res = await tagService.remove(ctx, op.id);
+      return isError(res) && res.code === "tagService:notFound" ? applied : outcome(res);
+    }
+    const data = op.data ?? {};
+    if (op.op === "PATCH") {
+      const unknown = Object.keys(data).filter((c) => !tagKnown.has(c));
+      if (unknown.length > 0)
+        return newError({ code: "sync:unknownColumn", meta: { table: op.table, columns: unknown } });
+      if ("group_id" in data) return newError({ code: "tagService:immutable" });
+      if (!("name" in data)) return applied;
+      return outcome(await tagService.rename(ctx, op.id, text(data.name) ?? ""));
+    }
+    const of = (column: string) => text(data[column]) ?? "";
+    return outcome(await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name") }));
+  },
+};
+
+// record_tag: which records carry which tags (tags). Like `linkTable`, but
+// with one column per target type, of which a link sets exactly one: a
+// null or missing target passes as null, so the service refuses none or two.
+const RECORD_TAG_TARGETS = words("entry_id todo_id provider_id medication_id");
+
+const recordTag: UploadEntry = {
+  columns: columnsOf({ fixed: ["group_id", "tag_id", ...RECORD_TAG_TARGETS] }),
+  handle: async (ctx, op) => {
+    if (op.op === "PATCH") return readOnly("record_tag", op.op);
+    if (op.op === "DELETE") return outcome(await recordTagService.unlink(ctx, op.id));
+    const targets = RECORD_TAG_TARGETS.map((c): [string, string | null] => [camel(c), text(op.data?.[c])]);
+    return outcome(
+      await recordTagService.link(ctx, {
+        id: op.id,
+        groupId: text(op.data?.group_id) ?? "",
+        tagId: text(op.data?.tag_id) ?? "",
+        ...Object.fromEntries(targets),
+      }),
+    );
+  },
+};
+
 // care_recipient: read-only, except "No known allergies" and "No known
 // conditions": a PATCH of only one of them sets or clears it.
 const NO_KNOWN = {
@@ -593,6 +649,8 @@ export const UPLOAD_REGISTRY: ReadonlyMap<string, UploadEntry> = new Map([
   ["appointment_series", appointmentSeries],
   ["symptom_type", symptomType],
   ["timeline_entry_todo", entryTodo],
+  ["tag", tag],
+  ["record_tag", recordTag],
 ]);
 
 /** One op through its table's handler; any other table is read-only. */

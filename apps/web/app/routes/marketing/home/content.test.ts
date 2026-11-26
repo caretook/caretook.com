@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { BRAND } from "../../../components/brand/name";
 import { MARKETING_ICONS } from "../sections/icons";
 import { MARKETING_LINKS } from "../site/pages";
 import { homeContent } from "./content";
@@ -15,9 +16,22 @@ describe("homeContent", () => {
     expect(homeContent.meta.description.length).toBeLessThanOrEqual(200);
   });
 
-  it("has one h1 (the hero heading) and a lead", () => {
-    expect(nonEmpty(homeContent.hero.heading)).toBe(true);
+  it("leads with the lockup: the descriptor with the founder clause, and a lead", () => {
+    expect(homeContent.hero.lockup).toEqual({
+      descriptor: "A care notebook for families, made by caregivers who've been there.",
+    });
+    expect("heading" in homeContent.hero).toBe(false);
     expect(nonEmpty(homeContent.hero.lead)).toBe(true);
+  });
+
+  it("carries the tagline in its title and the descriptor's first clause in its description", () => {
+    expect(homeContent.meta.title).toBe(`${BRAND.name}: ${BRAND.tagline}`);
+    // The founder clause stays out of the description: with it, the description
+    // would pass the search length the first test holds it to.
+    const [first = ""] = homeContent.hero.lockup.descriptor.split(",");
+    expect(first).toBe("A care notebook for families");
+    // The description says "The free care notebook…": the clause past its article.
+    expect(homeContent.meta.description).toContain(first.replace(/^A /, ""));
   });
 
   it("offers both calls to action: the waitlist and an access code", () => {
@@ -31,7 +45,7 @@ describe("homeContent", () => {
     homeContent.helps,
     homeContent.steps,
     homeContent.promise,
-    homeContent.earlyAccess,
+    homeContent.price,
     homeContent.waitlist,
   ];
 
@@ -57,6 +71,15 @@ describe("homeContent", () => {
     for (const step of homeContent.steps.items) {
       expect(nonEmpty(step.title) && nonEmpty(step.body)).toBe(true);
     }
+  });
+
+  it("picks four or five things it helps with, medications among them, and nothing as coming", () => {
+    const { items } = homeContent.helps;
+    expect(items.length).toBeGreaterThanOrEqual(4);
+    expect(items.length).toBeLessThanOrEqual(5);
+    expect(items.map((i) => i.icon)).toContain("medications");
+    expect(homeContent.hero.lead).toMatch(/medications/);
+    expect(homeContent.hero.lead).not.toMatch(/\bsoon\b/i);
   });
 
   it("keeps the privacy promise: no ads, not sold, no trackers, no AI training, deletion", () => {

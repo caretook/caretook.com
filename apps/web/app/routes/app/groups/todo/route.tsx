@@ -2,10 +2,11 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 
-import { canCompleteTodo } from "@caretook/data/schema";
+import { canCompleteTodo, canTagRecord } from "@caretook/data/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
+import { TagChips, useRecordTags, useTagPicker } from "~/components/tags";
 import { useTodoTick } from "~/components/todos";
 import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -103,6 +104,11 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
     if (deleted && removedHere.current) void navigate(listUrl, { replace: true });
   }, [deleted, navigate, listUrl]);
 
+  // Tags (tags PRD): every chip for every role; Tags in ⋯ for a writer.
+  const tags = useRecordTags("todo", todoId);
+  const tagPicker = useTagPicker();
+  const mayTag = canTagRecord(group.role, { target: "todo", createdBy: todo.createdBy }, group.userId);
+
   return (
     <Page bands data-todo-page={todoId}>
       <Section>
@@ -125,10 +131,17 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
                 busy={tick.busy}
                 onReopen={() => void tick.reopen(todo)}
                 onDelete={deleting}
+                onTags={
+                  mayTag
+                    ? () => tagPicker.ask({ target: "todo", recordId: todoId, label: todo.title })
+                    : undefined
+                }
               />
             )
           }
+          tags={!deleted && tags.length > 0 && <TagChips tags={tags} max={null} />}
         />
+        {tagPicker.sheet}
       </Section>
 
       {deleted ? (

@@ -3,6 +3,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
+import { TagChips } from "~/components/tags";
 import { TodoRepeatMark, TodoTick } from "~/components/todos";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -13,7 +14,8 @@ import { todoPageState } from "~/lib/todos/todoSheets";
 /**
  * One todo: its tick (for whoever may complete it), the title (opening the
  * todo's page, for everyone), the due line (red when overdue) or the done
- * line, the repeat mark when it repeats, and the assignee chip.
+ * line, the repeat mark when it repeats, the assignee chip, and its tags'
+ * chips (`tagsOf`; tags PRD).
  */
 export function TodoRow({
   todo,
@@ -22,6 +24,7 @@ export function TodoRow({
   timeZone,
   onTick,
   busy,
+  tagsOf,
 }: {
   todo: LocalTodo;
   nameOf: (userId: string) => string;
@@ -29,6 +32,8 @@ export function TodoRow({
   timeZone: string;
   onTick: (todo: LocalTodo, done: boolean) => void;
   busy: boolean;
+  /** A todo's tags (the list's one query), for its chips. */
+  tagsOf?: (todoId: string) => readonly { id: string; name: string }[] | undefined;
 }) {
   const group = useGroup();
   const { search } = useLocation();
@@ -75,6 +80,7 @@ export function TodoRow({
           </Badge>
           <ViaTag via={todo.via} />
         </p>
+        <TagChips tags={tagsOf?.(todo.id)} className="mt-1" />
       </div>
     </li>
   );

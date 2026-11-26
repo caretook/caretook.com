@@ -40,7 +40,7 @@ pnpm prd <command>
     plan <topic> [--open] [${backlog_id_prefix}n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
-                              (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
+                              (on opus, a \`design\` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next; its Remote Control
                               name and tab title are a captain's, a new one each session; its record stays backlog)
     inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
@@ -49,19 +49,20 @@ pnpm prd <command>
                               Remote Control "inbox", opened in its own directory outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
                               the dispatcher keeps it open once you have opened it by hand and trusted the folder
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
-    hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
+    hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on ${hotfix_prefix}<name> from dev, for a fix
                               outside any PRD (reused if it exists); --open starts its session here
                               (on opus; --model <m> for another model)
                               (prompt hotfix <name> ["<the fix>"] is that session's first prompt)
-                              (pnpm prd check there, then pnpm prd land hotfix/<name> on your word)
+                              (pnpm prd check there, then pnpm prd land ${hotfix_prefix}<name> on your word)
     stack up|down [name]      add or remove a worktree's dev stack (slot, env files, Compose, seed)
     rm <name> [--force]       remove a worktree, its stack, its test database and, if merged, its branch
+                              (from inside a ${prd_prefix} or ${plan_prefix} worktree, by its own session: then ends it)
     gc [--list|--yes]         merged slice worktrees and stacks stopped over a day: list, ask, remove
     reclaim [--list|--yes]    disk: merged worktrees, dangling Docker volumes and images, check builds and
                               Vite caches, with sizes; frees them after a yes
     tidy [--yes] [--json]     leftovers sorted into safe (merged slice and landed plan worktrees, dead tickets,
                               orphan test databases, stale remote refs, dangling caretook volumes, old hang
-                              logs, ended records, finished items whose topic has no prd/ worktree) and ask
+                              logs, ended records, finished items whose topic has no ${prd_prefix} worktree) and ask
                               (finished-looking live sessions, branches without a worktree, registry rows
                               that look done); --yes removes the safe
                               ones and files the ask list as one report (prompt tidy: the haiku brief)
@@ -89,7 +90,7 @@ pnpm prd <command>
                               backlog and recovery sessions (main checkout) always open fresh
                               (--background: iTerm2 stays where it is and the selected tab stays selected)
     end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
-                              orchestrator or planner, after pnpm prd rm); its tab closes
+                              session; pnpm prd rm ends a finished orchestrator or planner itself); its tab closes
     bye [--dry-run] [--json]  a session's hand-over check, when the user says just "bye": clean (no uncommitted or
                               unpushed work, worktree, branch, stack, server, running lease, background job or open
                               question of its own left), it prints the hand-off line, releases its leases and ends the
@@ -107,6 +108,9 @@ pnpm prd <command>
     session request backlog <name> [--brief <file>] [--model <m>]   ask the dispatcher for another backlog
                               session, backlog-<name> (Remote Control "backlog - <name>"); the outcome is a notice
     session requests [--json] the pending requests, and those settled in the last day
+
+    doc <role> [section]      a role's doc as its sessions read it (the generic doc, then the project's
+                              additions; or its replacement), or one section of it; no role: the roles
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
     ask --topic <t> --question <text> --skeptic <id> [--option <a>]… [--recommend <a|n> --defaults|--waits]
@@ -153,12 +157,12 @@ pnpm prd <command>
                               .loops/.check-times.log, and record that
                               this commit passed; --quick: typecheck, lint, format, every unit test, and the
                               integration and component test files the diff adds or edits, recorded with its
-                              reason. On a slice/ branch that is all (the slice check, against its prd/
-                              branch). On a prd/ or hotfix/ branch it adds the integration tests related to
+                              reason. On a ${slice_prefix} branch that is all (the slice check, against its ${prd_prefix}
+                              branch). On a ${prd_prefix} or ${hotfix_prefix} branch it adds the integration tests related to
                               the diff since the last full pass, and a diff touching a migration, seeds, the
                               sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
                               check; the tooling tests join when the diff touches the tooling
-                              (docs and tooling-only changes need neither: docs/agents/orchestrator.md, _The check gate_)
+                              (docs and tooling-only changes need neither: prd doc orchestrator "The check gate")
     status-trim [topic] [--dry-run] [--next]   keep the plan's _Status_ short (after each landing): move the
                               hand-offs but the latest, and a fixes plan's landed waves (their paragraphs and
                               table rows), to plans/<topic>-history.md, newest first; --next: the next slice number
@@ -190,15 +194,15 @@ pnpm prd <command>
   Land
     land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes ${backlog_id_prefix}n,…] [--no-review] [--local]
                               [--force] [--skeptic <id>… | --by-user]
-                              merge prd/<topic> into dev (only when the dev keeper says so) through its
+                              merge ${prd_prefix}<topic> into dev (only when the dev keeper says so) through its
                               PR: merged on GitHub once its head is the local tip and Codex's verdict is
                               clean and the CI gate passes, then dev-sync (--tier: the tier to wait for, by
                               default the diff's proposal; below it needs --why; --fixes: the dev brake
                               this landing fixes; --force (skip the gate) and --no-review (skip the verdict)
                               need a land skeptic's go for this tip or --by-user; out of credits needs neither;
                               --local: a local merge, the fallback, on their word)
-    land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
-    land plan/<topic>         a plan branch: always a local merge
+    land ${hotfix_prefix}<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
+    land ${plan_prefix}<topic>         a plan branch: always a local merge
     land --resume <branch>    a landing cut off midway: finish it if it merged, else undo it (land again);
                               exit 3 asks (an unknown state, or a merge that isn't its own)
     review <topic|branch> [--json] [--wait [min]] [--again] [--resolve <threadId>]
@@ -206,9 +210,9 @@ pnpm prd <command>
                               stale) and its findings; --again asks Codex again, --resolve closes a declined
                               thread, --wait polls until Codex answers on the head (exit 0/1/2, 4 out of credits, 75 timed out);
                               a clean verdict carries over a plain dev merge
-    pr <topic|hotfix/name> [-m subject] [--tier <t> [--why "<reason>"]]   push dev (fast-forward only) and the branch, then open its PR into
+    pr <topic|${hotfix_prefix}name> [-m subject] [--tier <t> [--why "<reason>"]]   push dev (fast-forward only) and the branch, then open its PR into
                               dev, or update the open one (title: the landing subject; body: backlog items,
-                              the check pass); plan/ branches are refused
+                              the check pass); ${plan_prefix} branches are refused
     dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
                               it): fast-forward, replay unshared backlog commits, or merge; never stops on the inbox
 
@@ -265,7 +269,8 @@ case $cmd in
       --check-log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" \
       --flake-log "${CARETOOK_BROWSER_FLAKES:-$loops/.browser-flakes.log}" "$@" ;;
   land) exec "$bin/land.sh" "$@" ;;
-  serve) exec "$bin/serve.sh" "$@" ;;
+  # The project's dev server and test database, through the config's hooks.
+  serve) stack_hook serve "$@"; exit $? ;;
   browser) exec "$bin/browser.sh" "$@" ;;
   rm) exec "$bin/rm.sh" "$@" ;;
   stack) exec "$bin/stack.sh" "$@" ;;
@@ -278,8 +283,9 @@ case $cmd in
     [[ ${1:-} == "" || ${1:-} == -* ]] || { kind=$1; shift; }
     exec "$bin/lease.sh" wait "$kind" "$@"
     ;;
-  test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
+  test-db | testdb) stack_hook testDb "$@"; exit $? ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
+  doc) exec node "$bin/doc.mjs" "$@" ;;
   queue) exec node "$bin/queue.mjs" "$@" ;;
   status-trim)
     t=""
@@ -348,7 +354,11 @@ case $cmd in
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
-      case $a in --open) open=1 ;; "$backlog_id_prefix"[0-9]*) items+=("$a") ;; *) die "plan: unknown argument $a" ;; esac
+      case $a in
+        --open) open=1 ;;
+        "$backlog_id_prefix"[0-9]* | "${backlog_former_prefix:-$backlog_id_prefix}"[0-9]*) items+=("$(backlog_id_normalize "$a")") ;;
+        *) die "plan: unknown argument $a" ;;
+      esac
     done
     dir=$loops/plan-$topic
     [[ -d $dir ]] || "$bin/new.sh" plan "$topic"
@@ -470,8 +480,14 @@ case $cmd in
       [[ $(git -C "$dir" branch --show-current) == "$slice_prefix"* ]] && asked=slice
     fi
     base=$(check_base "$dir" "$asked")
-    { read -r pmode; read -r ptooling; read -r pown; } < <(
-      git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD)
+    # A plan that fails (its line is above) or gives no mode runs no check.
+    changed=$(git -C "$dir" diff --name-only "$base" HEAD) ||
+      die "check: git couldn't list the changes since $base, so no check ran"
+    plan=$(node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD <<< "$changed") ||
+      die "check: the check plan (check-plan.mjs) failed, so no check ran"
+    pmode="" ptooling="" pown=""
+    { read -r pmode || true; read -r ptooling || true; read -r pown || true; } <<< "$plan"
+    [[ -n $pmode ]] || die "check: the check plan (check-plan.mjs) gave no mode, so no check ran"
     rm -f "$record"
     # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
     # wave of loops finishing together doesn't run every pnpm check at once.

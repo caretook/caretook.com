@@ -1,12 +1,18 @@
 // The core's tier data reader, on a sample project's data: what it answers, and
 // every shape it refuses.
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { CONFIG_NAME, configPath } from "../loops/config.mjs";
 import { TierDataError, tierData, tierDataProblems, tiersFrom } from "./tier-data.mjs";
+
+const HERE = new URL(".", import.meta.url).pathname;
+/** This repo's config, whose tier data path a test points at a broken file. */
+const FIXTURE_CONFIG = configPath();
 
 /** A sample project's tiers: three, other names, another ref prefix. */
 const SAMPLE = {
@@ -59,6 +65,12 @@ describe("tiersFrom", () => {
     expect(t.fileGroup("x.slowXtest.js")).toBe("fast");
   });
 
+  it("puts a file name with a newline in a group too, never a TypeError", () => {
+    expect(t.fileGroup("lib/a\nb.test.js")).toBe("fast");
+    expect(t.fileGroup("lib/a\nb.slow.test.js")).toBe("slow");
+    expect(t.fileTier("lib/a\nb.test.js")).toBe("tests");
+  });
+
   it("names a browser check's spec and knows one", () => {
     expect(t.browserCheckFile("sign-in")).toBe("e2e/sign-in.spec.ts");
     expect(t.isBrowserCheckFile("e2e/sign-in.spec.ts")).toBe(true);
@@ -81,6 +93,14 @@ describe("tiersFrom", () => {
     expect(t.parseCiRef("runs/ci/nope/x")).toBeNull();
     expect(t.parseCiRef("ci/tests/x")).toBeNull();
     expect(t.parseCiRef("runsXci/tests/x")).toBeNull();
+  });
+
+  it("gives the time gates, their defaults when the data has none", () => {
+    expect(t.GATES.quietLoadPerCore).toBe(1);
+    expect(t.GATES.measures.unit).toEqual({ aim: 300, cutoff: 360, armed: false });
+    const g = tiersFrom({ ...SAMPLE, gates: { measures: { unit: { armed: true } } } }).GATES;
+    expect(g.measures.unit).toEqual({ aim: 300, cutoff: 360, armed: true });
+    expect(g.measures.quick.armed).toBe(false);
   });
 
   it("can't be changed by its callers", () => {
@@ -115,6 +135,16 @@ describe("tierDataProblems", () => {
     ],
     ["a marker with a `*`", (d) => (d.narrowedFile = "*.json"), "narrowedFile: must be a path"],
     ["a prefix with no slash", (d) => (d.refPrefix = "ci"), "refPrefix: must be a ref prefix"],
+    [
+      "a gate's aim above its cutoff",
+      (d) => (d.gates = { measures: { unit: { aim: 400, cutoff: 300 } } }),
+      "gates.measures.unit.aim: 400 s is above its cutoff (300 s)",
+    ],
+    [
+      "a gate for an unknown measure",
+      (d) => (d.gates = { measures: { e2e: {} } }),
+      "gates.measures.e2e: unknown measure",
+    ],
   ])("refuses %s", (_what, change, problem) => {
     const problems = tierDataProblems(changed(change));
     expect(problems.join("\n")).toContain(problem);
@@ -130,6 +160,32 @@ describe("tierDataProblems", () => {
     const bad = changed((d) => (delete d.jobs, (d.refPrefix = "x")));
     expect(() => tiersFrom(bad, "t.json")).toThrow(TierDataError);
     expect(() => tiersFrom(bad, "t.json")).toThrow("t.json: jobs: missing\nt.json: refPrefix: must be");
+  });
+});
+
+describe("tierDataOrExit", () => {
+  it("gives a command one line and exit 2 for a broken tier file when it first reads it, never a stack", () => {
+    const root = mkdtempSync(join(tmpdir(), "tier-data-exit-"));
+    try {
+      writeFileSync(join(root, "broken.json"), JSON.stringify({ ...SAMPLE, tiers: [] }));
+      const config = JSON.parse(readFileSync(FIXTURE_CONFIG, "utf8"));
+      config.paths = { ...config.paths, tierData: "broken.json" };
+      writeFileSync(join(root, CONFIG_NAME), JSON.stringify(config));
+      const node = (/** @type {string} */ code) =>
+        spawnSync("node", ["--input-type=module", "-e", code], {
+          encoding: "utf8",
+          env: { ...process.env, RISA_CONFIG: join(root, CONFIG_NAME) },
+        });
+      const at = JSON.stringify(HERE + "ci-args.mjs");
+      // The CI modules read the tier data when first used, not at import.
+      expect(node(`await import(${at})`)).toMatchObject({ status: 0, stderr: "" });
+      const r = node(`const m = await import(${at}); m.parseRunArgs(["unit"]);`);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/^ci: .*broken\.json: tiers: must be a list/);
+      expect(r.stderr).not.toMatch(/\n\s+at /);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
@@ -159,5 +215,9 @@ describe("tierData", () => {
 
   it("reads this repo's, through its config", () => {
     expect(tierData().TIERS.length).toBeGreaterThan(0);
+    // Its gates: the three measures, each with its aim under its cutoff.
+    const { measures } = tierData().GATES;
+    expect(Object.keys(measures)).toEqual(["unit", "components", "quick"]);
+    for (const m of Object.values(measures)) expect(m.aim).toBeLessThanOrEqual(m.cutoff);
   });
 });

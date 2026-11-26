@@ -19,7 +19,8 @@
 // A fresh session (confirmed within 15 minutes, B-136) doesn't hold up
 // navigation: the session ended elsewhere is found by the background
 // recheck (due once the confirmation is a minute old), which wipes the
-// device and goes to sign-in from wherever the navigation had got to.
+// device and goes to sign-in from wherever the navigation had got to (the
+// check holds the server's answer until the new page shows).
 //
 // The session ends here with a change still waiting to upload (sync-safety
 // slice 4, B-290): the cache cookie is dropped so the upload is refused, as
@@ -215,21 +216,33 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await page.evaluate(() => localStorage.setItem("caretook:recentLines:x:y", JSON.stringify(["bp 120/80"])));
   // Fresh, but due a recheck (confirmed 5 minutes ago): an in-app navigation
   // goes ahead at once, and the background recheck finds the session gone.
-  // A tab-lived flag records whether the filtered timeline was ever shown.
+  // The recheck's answer is held until the filtered timeline shows, so "went
+  // ahead without waiting" is what's asserted, not a race between the
+  // navigation's loaders and a local round trip (B-869). An answer that does
+  // come first, mid-navigation, is a unit test (lib/auth/session.test.ts).
   await page.evaluate(setConfirmed, 5 * 60 * 1000);
-  await page.evaluate(() => {
-    sessionStorage.removeItem("caretook-check:went-ahead");
-    setInterval(() => {
-      if (location.search.includes("kind=symptom") && document.querySelector("main ol > li"))
-        sessionStorage.setItem("caretook-check:went-ahead", "1");
-    }, 5);
+  const GET_SESSION = (url) => url.pathname === "/api/auth/get-session";
+  let release;
+  const released = new Promise((resolve) => (release = resolve));
+  let held = 0;
+  await page.route(GET_SESSION, async (route) => {
+    held++;
+    await released;
+    await route.continue();
   });
   await expect(symptomChip).toBeVisible({ timeout: 5000 });
-  await symptomChip.click();
+  try {
+    await symptomChip.click();
+    await test.step("fresh session: the navigation went ahead without waiting for the server", async () => {
+      await page.waitForURL((url) => url.searchParams.get("kind") === "symptom", { timeout: 10_000 });
+      await expect(page.locator("main ol > li").first()).toBeVisible({ timeout: 10_000 });
+      expect(held, "the recheck asked the server, still unanswered").toBeGreaterThan(0);
+    });
+  } finally {
+    release();
+  }
   await page.waitForURL((url) => url.pathname === "/sign-in", { timeout: 20_000 });
-  await test.step("fresh session: the navigation went ahead without waiting for the server", async () => {
-    expect(await page.evaluate(() => sessionStorage.getItem("caretook-check:went-ahead"))).toBe("1");
-  });
+  await page.unroute(GET_SESSION);
   await test.step("fresh session ended elsewhere: the background recheck goes to sign-in, back to where it was", () => {
     expect(new URL(page.url()).searchParams.get("redirectTo")).toContain("kind=symptom");
   });

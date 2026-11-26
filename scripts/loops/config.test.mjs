@@ -19,6 +19,7 @@ import {
   CONFIG_NAME,
   ConfigError,
   backlogIds,
+  branchKinds,
   SHAPE,
   configPath,
   configProblems,
@@ -238,6 +239,101 @@ describe("backlogIds", () => {
       risa.is("XRISA-1"),
     ]).toEqual([true, true, false, false, false]);
     expect(new RegExp(`\\((${risa.pattern})\\)`).exec("a line (RISA-9)")?.[1]).toBe("RISA-9");
+    expect(risa.formerPrefix).toBeNull();
+    expect(risa.lookupPattern).toBe(risa.pattern);
+  });
+
+  it("reads a former prefix's ids as its own, and makes none with it", () => {
+    const risa = backlogIds(
+      changed((c) => {
+        c.backlog.idPrefix = "RISA";
+        c.backlog.formerIdPrefix = "B";
+      }),
+    );
+    expect(risa).toMatchObject({ prefix: "RISA-", pattern: "RISA-\\d+", formerPrefix: "B-" });
+    expect(["B-772", "b-772", "RISA-772", "772"].map(risa.normalize)).toEqual(Array(4).fill("RISA-772"));
+    expect([risa.is("B-1"), risa.is("b-1"), risa.is("XB-1"), risa.is("B-")]).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(risa.num("B-9")).toBe(9);
+    expect(risa.id(9)).toBe("RISA-9");
+    expect("B-1 RISA-2 XB-3 C-4".match(new RegExp(`\\b${risa.lookupPattern}\\b`, "g"))).toEqual([
+      "B-1",
+      "RISA-2",
+    ]);
+  });
+
+  it("allows the prefixes the loader allows, and refuses the rest with one clear line", () => {
+    const line = "backlog.idPrefix: must be an id prefix (capitals: B, RISA)";
+    for (const p of ["B", "RISA", "R2"]) {
+      const c = changed((c) => {
+        c.backlog.idPrefix = p;
+        c.backlog.zoneOverflowItem = `${p}-750`;
+      });
+      expect(configProblems(c), p).toEqual([]);
+      expect(backlogIds(c).id(1)).toBe(`${p}-1`);
+    }
+    for (const p of ["b", "2R", "B-", "RI SA", ""]) {
+      const c = changed((c) => (c.backlog.idPrefix = p));
+      expect(configProblems(c), p).toEqual([line]);
+      expect(() => backlogIds(c), p).toThrow(new ConfigError([line]));
+    }
+    expect(configProblems(changed((c) => (c.backlog.zoneOverflowItem = "R2X-750")))).toEqual([]);
+    expect(configProblems(changed((c) => (c.backlog.zoneOverflowItem = "2R-750")))).toEqual([
+      "backlog.zoneOverflowItem: must be a backlog id (B-12)",
+    ]);
+    expect(configProblems(changed((c) => (c.backlog.formerIdPrefix = c.backlog.idPrefix)))).toEqual([
+      "backlog.formerIdPrefix: must differ from backlog.idPrefix",
+    ]);
+    expect(configProblems(changed((c) => (c.backlog.formerIdPrefix = "b")))).toEqual([
+      "backlog.formerIdPrefix: must be an id prefix (capitals: B, RISA)",
+    ]);
+    expect(() => backlogIds(changed((c) => (c.backlog.formerIdPrefix = "b-")))).toThrow(
+      "backlog.formerIdPrefix: must be an id prefix",
+    );
+  });
+});
+
+describe("branchKinds", () => {
+  it("reads this repo's branches, and another's prefixes", () => {
+    const here = branchKinds();
+    expect(here.prefixes).toEqual(loadConfig({ path: FILE }).config.branches.prefixes);
+    const other = branchKinds(
+      changed((c) => {
+        c.branches.trunk = "trunk";
+        c.branches.protected = ["live"];
+        c.branches.prefixes = { prd: "topic/", slice: "part/", plan: "draft/", hotfix: "quick/" };
+      }),
+    );
+    expect(["topic/x", "part/x/2", "draft/x", "quick/x", "prd/x", "trunk"].map(other.kindOf)).toEqual([
+      "prd",
+      "slice",
+      "plan",
+      "hotfix",
+      null,
+      null,
+    ]);
+    expect([other.is("part/x/2", "slice"), other.is("slice/x/2", "slice")]).toEqual([true, false]);
+    expect(other.branch("prd", "x")).toBe("topic/x");
+    expect(other.branch("slice", "x", 2)).toBe("part/x/2");
+    expect([other.sliceOf("part/x/2"), other.sliceOf("part/x"), other.sliceOf("part/x/2/3")]).toEqual([
+      { topic: "x", n: "2" },
+      null,
+      null,
+    ]);
+    expect(["part/x/2", "topic/y", "quick/z/w", "slice/q/1", undefined].map(other.topicOf)).toEqual([
+      "x",
+      "y",
+      "z",
+      "",
+      "",
+    ]);
+    expect([other.parentOf("part/x/2"), other.parentOf("topic/x")]).toEqual(["topic/x", "trunk"]);
+    expect([other.nameOf("quick/a/b", "hotfix"), other.nameOf("topic/a", "hotfix")]).toEqual(["a/b", null]);
+    expect(other.kept).toEqual(["trunk", "live"]);
   });
 });
 
@@ -284,10 +380,10 @@ describe("config get", () => {
   });
 
   it("fails in bash, with a line, on a key with no value", () => {
-    const r = bash('config_get hooks.stackUp; echo "rc=$?"; v=$(config_get paths.nope) || echo "none"');
+    const r = bash('config_get hooks.browser; echo "rc=$?"; v=$(config_get paths.nope) || echo "none"');
     expect(r.stdout).toBe("rc=1\nnone\n");
     expect(r.stderr).toBe(
-      `${CONFIG_NAME}: no value for hooks.stackUp\n${CONFIG_NAME}: no value for paths.nope\n`,
+      `${CONFIG_NAME}: no value for hooks.browser\n${CONFIG_NAME}: no value for paths.nope\n`,
     );
   });
 
@@ -299,7 +395,7 @@ describe("config get", () => {
     expect(bash('echo "$trunk"', { RISA_CONFIG: sample }).stdout).toBe("trunk\n");
   });
 
-  it("takes lib.sh's other names from the config: prefixes, protected branches, files, exempt paths", () => {
+  it("takes lib.sh's other names from the config: prefixes, files, exempt paths", () => {
     const sample = join(tmp, "names.json");
     writeFileSync(
       sample,
@@ -322,8 +418,6 @@ describe("config get", () => {
         "parent_of topic/x",
         "pr_branch x",
         "land_dir draft/y",
-        "is_protected live && echo live",
-        "is_protected main || echo main-free",
         'echo "${backlog_files[*]}|${ci_lists[*]}"',
         'printf \'a\\ntodo/in.md\\nlists/q.txt\\n\' | not_files "${backlog_files[@]}" "${ci_lists[@]}"',
         'for f in tools/a.sh acme.json acmexjson toolsx/a scripts/loops/x.sh docs/a.md app.ts; do grep -qE "$exempt_re" <<< "$f" && echo "exempt $f"; done',
@@ -338,8 +432,6 @@ describe("config get", () => {
         "dev",
         "topic/x",
         "$loops/plan-y",
-        "live",
-        "main-free",
         "todo/list.md todo/in.md todo/old.md|lists/q.txt",
         "a",
         "exempt tools/a.sh",
@@ -348,6 +440,41 @@ describe("config get", () => {
         "exempt docs/a.md",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("names a branch after its kind's prefix, and reads ids of a former prefix, in bash", () => {
+    const sample = join(tmp, "branch-name.json");
+    writeFileSync(
+      sample,
+      JSON.stringify(
+        changed((c) => {
+          c.branches.prefixes = { prd: "topic/", slice: "part/", plan: "draft/", hotfix: "quick/" };
+          Object.assign(c.backlog, { idPrefix: "RISA", formerIdPrefix: "B", zoneOverflowItem: "RISA-750" });
+        }),
+      ),
+    );
+    const r = bash(
+      [
+        "for b in topic/x part/x/2 draft/y quick/topic/z other/w; do branch_name $b; done",
+        "for i in B-7 RISA-8 C-9 B-x; do backlog_id_normalize $i; done",
+        'for i in B-7 RISA-8 C-9; do [[ $i =~ ^$backlog_id_re$ ]] && echo "id $i"; done',
+        'grep -qE "^$(re_escape "a.b+(c)/[d]|e")$" <<< "a.b+(c)/[d]|e" && echo "escaped"',
+        'grep -qE "^$(re_escape "a.b")$" <<< "axb" || echo "only itself"',
+      ].join("; "),
+      { RISA_CONFIG: sample },
+    );
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toBe(
+      [
+        ...["x", "x/2", "y", "topic/z", "other/w"],
+        ...["RISA-7", "RISA-8", "C-9", "B-x", "id B-7", "id RISA-8"],
+        ...["escaped", "only itself", ""],
+      ].join("\n"),
+    );
+    // With no former prefix, only the current one is an id, and nothing is rewritten.
+    expect(bash('backlog_id_normalize B-7; [[ A-7 =~ ^$backlog_id_re$ ]] || echo "not A-7"').stdout).toBe(
+      "B-7\nnot A-7\n",
     );
   });
 
@@ -422,6 +549,20 @@ describe("commands through the config", () => {
     expect(r.stderr).toBe(`${CONFIG_NAME}: no value for commands.hooksInstall\n`);
   });
 
+  it("runs the command in a subshell: a cd or exit in it leaves the caller as it was", () => {
+    const moved = join(tmp, "moved.json");
+    writeFileSync(
+      moved,
+      JSON.stringify(
+        changed((c) => {
+          c.commands.install = "cd /; exit 3";
+        }),
+      ),
+    );
+    const r = bash('run_project install; echo "rc=$? $PWD"', { RISA_CONFIG: moved });
+    expect(r.stdout).toBe(`rc=3 ${ROOT}\n`);
+  });
+
   it("runs a hook from the top of the checkout it is called in, with its arguments and stdin", () => {
     const hooked = join(tmp, "hooks.json");
     writeFileSync(
@@ -442,6 +583,18 @@ describe("commands through the config", () => {
     );
     expect(r.stdout).toBe(`${repo}\nin\nresolve|x y|rc=127\n`);
     expect(r.stderr).toBe(`${CONFIG_NAME}: no value for hooks.docBudget\n`);
+  });
+
+  it("runs the landing hook for the reports, and prints nothing when the config sets none", () => {
+    const hooked = join(tmp, "landing.json");
+    writeFileSync(hooked, JSON.stringify(changed((c) => (c.hooks = { landing: "printf '%s|'" }))));
+    const none = join(tmp, "no-landing.json");
+    writeFileSync(none, JSON.stringify(changed((c) => (c.hooks = {}))));
+    const script = 'landing_hook try "/m"; echo "rc=$?"';
+    expect(bash(script, { RISA_CONFIG: hooked }).stdout).toBe("try|/m|rc=0\n");
+    const r = bash(script, { RISA_CONFIG: none });
+    expect(r.stdout).toBe("rc=0\n");
+    expect(r.stderr).toBe("");
   });
 
   it("finds the repo's main checkout and its .loops, from the main checkout and from a worktree", () => {

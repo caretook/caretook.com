@@ -1,9 +1,10 @@
-import { EmptyState, List, ListRow, Notice, Page, PageHeader } from "~/components/ui";
+import { EmptyState, List, ListRow, Loading, Notice, Page, PageHeader } from "~/components/ui";
+import type { MouseEvent } from "react";
 import type { Route } from "./+types/route";
 
 import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
-import { redirect, useLocation } from "react-router";
+import { redirect, useLocation, useNavigation } from "react-router";
 import { FirstSyncPending } from "~/components/shell";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { cameFromLostGroup } from "~/lib/app-shell/group";
@@ -46,10 +47,28 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
   return withdrawRequest(requestId);
 }
 
+/**
+ * Where a pending navigation away from this page is going (a tapped group's
+ * first load can be slow), else null. The page's own reloads (after a
+ * withdraw) don't count.
+ */
+function useLeavingTo(pathname: string): string | null {
+  const navigation = useNavigation();
+  const target = navigation.location?.pathname;
+  return navigation.state !== "idle" && target && target !== pathname ? target : null;
+}
+
 export default function AppHome({ loaderData }: Route.ComponentProps) {
   const query = myGroupsQuery(loaderData.userId);
   const groups = useLiveQuery<GroupRow>(query.sql, query.params, loaderData.rows).map(toMyGroup);
-  const lostGroup = cameFromLostGroup(useLocation().state);
+  const location = useLocation();
+  const lostGroup = cameFromLostGroup(location.state);
+  const leavingTo = useLeavingTo(location.pathname);
+  // While a choice opens, it says so and no choice starts another navigation
+  // (a tap or Enter on a row is swallowed; focus stays where it was).
+  const stopWhileLeaving = leavingTo
+    ? (event: MouseEvent<HTMLDivElement>) => event.preventDefault()
+    : undefined;
   if (!loaderData.synced) return <FirstSyncPending />;
   return (
     <Page>
@@ -63,14 +82,28 @@ export default function AppHome({ loaderData }: Route.ComponentProps) {
       {groups.length === 0 ? (
         <EmptyState>You're not in a care group yet. Ask someone in the group to invite you.</EmptyState>
       ) : (
-        <List>
-          {groups.map((group) => (
-            <ListRow key={group.id} to={appUrls.timeline(group.id)}>
-              <span className="block font-semibold">{group.recipient?.displayName ?? group.name}</span>
-              <span className="text-muted block text-sm">{group.name}</span>
-            </ListRow>
-          ))}
-        </List>
+        <div aria-busy={leavingTo ? true : undefined} onClickCapture={stopWhileLeaving}>
+          <List>
+            {groups.map((group) => {
+              const home = appUrls.groupHome(group.id);
+              // Its timeline, or wherever the group's loaders send it on.
+              const opening = !!leavingTo && (leavingTo === home || leavingTo.startsWith(`${home}/`));
+              return (
+                <ListRow
+                  key={group.id}
+                  to={appUrls.timeline(group.id)}
+                  data-group-choice={group.id}
+                  data-opening={opening ? "" : undefined}
+                  className={leavingTo && !opening ? "opacity-60" : ""}
+                  trailing={opening && <Loading label="Opening…" />}
+                >
+                  <span className="block font-semibold">{group.recipient?.displayName ?? group.name}</span>
+                  <span className="text-muted block text-sm">{group.name}</span>
+                </ListRow>
+              );
+            })}
+          </List>
+        </div>
       )}
       <NewGroupLink />
     </Page>

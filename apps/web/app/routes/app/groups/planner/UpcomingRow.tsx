@@ -44,6 +44,7 @@ export function UpcomingRow({
   contacts,
   rescheduledTo,
   menu,
+  tags,
   readOnly = false,
 }: {
   entry: TimelineEntry;
@@ -57,6 +58,8 @@ export function UpcomingRow({
   rescheduledTo?: RescheduledTarget;
   /** The entry's ⋯ menu (Print for viewers; more for writers). */
   menu?: ReactNode;
+  /** Its tags' chips (tags PRD). */
+  tags?: ReactNode;
   /** No filter links (the easy roles' Planner has no filters). */
   readOnly?: boolean;
 }) {
@@ -110,6 +113,7 @@ export function UpcomingRow({
             {place.from && <span className="text-faint"> · from {place.from}</span>}
           </p>
         )}
+        {tags}
         {cancelled && (
           <p className="text-sm" data-cancelled-label>
             <Badge tone={STATUS_TONE.past}>{cancelled}</Badge>

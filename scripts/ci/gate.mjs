@@ -2,12 +2,10 @@
 // Pure: `ci gate` (ci.mjs) finds the verdict, runs blame when it's needed, and
 // acts on what this returns. The code is the verdict kind's exit code, 0 to land.
 import { label } from "./blame.mjs";
-import { PROPOSED_TIERS, tierRank } from "../loops/check-plan.mjs";
-import { tierData } from "./tier-data.mjs";
+import { proposedTiers, tierRank } from "../loops/check-plan.mjs";
+import { ciTiers } from "./tier-data.mjs";
 
-const { TIERS } = tierData();
-
-const CODE = { land: 0, brake: 1, branch: 2, infra: 4, unknown: 5 };
+const CODE = { land: 0, brake: 1, branch: 2, infra: 4, unknown: 5, time: 6 };
 
 /**
  * A whole-tier verdict that ran this tier or higher, and not a proof run's. `ranTier`,
@@ -17,8 +15,8 @@ const CODE = { land: 0, brake: 1, branch: 2, infra: 4, unknown: 5 };
  */
 export function verdictMeets(v, tier) {
   if (!v || v.narrowed || v.forcedFlake || typeof v.ranTier !== "string") return false;
-  const ran = TIERS.indexOf(v.ranTier);
-  const needed = TIERS.indexOf(/** @type {any} */ (tier));
+  const ran = ciTiers().TIERS.indexOf(v.ranTier);
+  const needed = ciTiers().TIERS.indexOf(/** @type {any} */ (tier));
   return ran >= 0 && needed >= 0 && ran >= needed;
 }
 
@@ -61,7 +59,7 @@ export const carries = (v, touched) =>
 
 /**
  * @typedef {{ verdict: any, run: any }} Found
- * @typedef {{ verdict: any, run: any, carried: Found | null, need: string }} Walked
+ * @typedef {{ verdict: any, run: any, carried: Found | null, need: string, why?: string }} Walked
  */
 
 /**
@@ -72,6 +70,9 @@ export const carries = (v, touched) =>
  * blame, and the tip needs a recheck at the tier the syncs brought (syncTier),
  * found on a commit no newer sync follows. A sync that brought the tier or more asks
  * for the tier itself on the tip, as before.
+ * A verdict on an ancestor counts only when it carries (green, or a flake outside the
+ * branch's files): a failing one asks for a fresh run on the tip, with `why`, since the
+ * commits since may be its fix.
  * `need` is the tier to request when `verdict` is null.
  * @param {{ commits: string[], tier: string, touched: string[],
  *   verdictAt: (sha: string, tier: string) => Found | null,
@@ -96,12 +97,18 @@ export function walkVerdicts({ commits, tier, touched, verdictAt, changeOf }) {
     steps.push({ sha, rank: tierRank(change) });
   }
   if (!base) return none;
+  if (steps.length && !carries(base.verdict, touched))
+    return {
+      ...none,
+      why:
+        `the ${base.verdict.kind} verdict on ${String(base.verdict.commit).slice(0, 8)} is not carried ` +
+        `past the ${steps.length} commit${steps.length === 1 ? "" : "s"} since: a fresh run on the tip`,
+    };
   const demand = Math.max(0, ...steps.map((s) => s.rank));
   if (!demand) return { ...base, carried: null, need: tier };
   // Never above the declared tier: dev's own landing vouched for its files alone.
   if (demand >= tierRank(tier)) return none;
-  const need = /** @type {string} */ (PROPOSED_TIERS[demand]);
-  if (!carries(base.verdict, touched)) return none;
+  const need = /** @type {string} */ (proposedTiers()[demand]);
   const newest = steps.findIndex((s) => s.rank > 0);
   for (const { sha } of steps.slice(0, newest + 1)) {
     const found = verdictAt(sha, need);
@@ -159,6 +166,11 @@ export function decideGate({ verdict, tier, branch, touched, blamed = null, fixe
   if (verdict.kind === "green") return land([`green at ${verdict.ranTier}`]);
   if (verdict.kind === "infra")
     return refuse(CODE.infra, [`infra: the run died before its tests. Retry: ${retry}`]);
+  // Never blamed, never a flake: the tests passed and a timed step ran past its armed cutoff.
+  if (verdict.kind === "time")
+    return refuse(CODE.time, [
+      `time: past an armed cutoff in ${(verdict.time?.jobs ?? []).join(", ") || "a timed step"}; its tests passed. Trim the step, then: ${retry}`,
+    ]);
   if (!["flake", "file", "brake"].includes(verdict.kind))
     return refuse(CODE.unknown, [`an unknown verdict (${verdict.kind}). Retry: ${retry}`]);
 

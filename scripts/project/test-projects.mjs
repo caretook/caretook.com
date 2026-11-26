@@ -43,3 +43,40 @@ export function misplaced(tracked, byFile, owners) {
     if (!known.has(file)) wrong.push(`${file}: listed, but not a tracked test`);
   return wrong;
 }
+
+/**
+ * The guards a quick check must always run: tests that read source by path, so
+ * `vitest --changed` can't select them (B-370). A new synced table or stream
+ * column passes the check with its guard never run otherwise.
+ */
+export const QUICK_GUARDS = [
+  "scripts/project/sync-matrix.test.mjs",
+  "packages/data/src/db/roles/rolesSql.test.ts",
+];
+
+/**
+ * The Vitest projects every slice and quick check runs: check-body.sh's `unit=(…)` line.
+ * @param {string} body check-body.sh's text
+ * @returns {string[]}
+ */
+export function quickProjects(body) {
+  const line = /^unit=\((.*)\)$/m.exec(body);
+  if (!line) throw new Error("check-body.sh: no unit=(…) line");
+  return [...(line[1] ?? "").matchAll(/--project\s+(\S+)/g)].map((m) => String(m[1]));
+}
+
+/**
+ * The guards outside every project a quick check runs, one line each.
+ * @param {string[]} guards the guard files
+ * @param {Map<string, string[]>} byFile each listed file's projects
+ * @param {string[]} projects the quick check's projects
+ * @returns {string[]}
+ */
+export function guardsOutside(guards, byFile, projects) {
+  return guards.flatMap((file) => {
+    const in_ = byFile.get(file) ?? [];
+    return in_.some((p) => projects.includes(p))
+      ? []
+      : [`${file}: in ${in_.join(", ") || "no project"}, none of which a quick check runs`];
+  });
+}

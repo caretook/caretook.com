@@ -2,11 +2,20 @@
 // copied in: the plain prompts, the resume and continue variants, and the
 // every-step _Status_ rule. Nothing here starts a session.
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import "./config-fixture.mjs";
+import { FIXTURE_CONFIG } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -193,7 +202,10 @@ describe("orchestrator", () => {
         "when `add` stops on a look-alike (exit 3), `note` the item it names if that covers the finding, or rerun with `--anyway` if it doesn't",
       );
       expect(out).toContain("Reply on every thread before resolving it");
-      expect(out).toContain("resolve each answered thread");
+      expect(out).toContain(
+        "resolve each answered thread that is declined or current (`review --resolve <threadId>`",
+      );
+      expect(out).toContain("an outdated one stops blocking once Codex's state on the head is clean");
       expect(out).toContain("`review --again` until clean");
       expect(out).toContain("After about three rounds, ask the user");
       expect(out).toContain(
@@ -225,7 +237,7 @@ describe("orchestrator", () => {
       expect(out).toContain('`pnpm prd context --keep "<why>"` and write the reason in _Status_');
       expect(out).toContain("only on the user's word");
       expect(out).toMatch(
-        /When the last wave has landed, run `pnpm prd rm T`, then `cd \S+ && pnpm prd end`/,
+        /When the last wave has landed, run `pnpm prd rm T` from this worktree as your last step: once it has removed the worktree it ends this session/,
       );
     }
   });
@@ -404,7 +416,7 @@ describe("slice", () => {
       );
       expect(out).toContain("### Slice 4: A new fix (B-40)");
       expect(out).toContain("New fix text.");
-      expect(out).toContain("docs/agents/loop.md");
+      expect(out).toContain("`pnpm prd doc loop`");
       for (const other of ["first wave's intro", "Old fix text", "Slice 5", "Another fix text", "| Slice |"])
         expect(out).not.toContain(other);
     }
@@ -495,6 +507,23 @@ describe("plan and backlog", () => {
     expect(ok("backlog")).toContain("You are the new backlog/inbox planning agent.");
   });
 
+  it("plan reads a former id prefix's ids as the current prefix's", () => {
+    const config = JSON.parse(readFileSync(FIXTURE_CONFIG, "utf8"));
+    Object.assign(config.backlog, { idPrefix: "RISA", formerIdPrefix: "B", zoneOverflowItem: "RISA-750" });
+    const file = join(root, "former-prefix.json");
+    writeFileSync(file, JSON.stringify(config));
+    const run = (/** @type {string[]} */ ...ids) =>
+      spawnSync("bash", [join(main, "scripts/loops/prompt.sh"), "plan", "T", ...ids], {
+        cwd: main,
+        encoding: "utf8",
+        env: { ...process.env, RISA_CONFIG: file },
+      });
+    const r = run("B-1", "RISA-2");
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toContain("(RISA-1 RISA-2)");
+    expect(run("C-1").stderr).toContain("plan takes --auto and RISA-<n> ids, not C-1");
+  });
+
   it("backlog without a dispatcher: as before, it prints start commands for the user", () => {
     const text = ok("backlog", "--guide");
     expect(text).not.toContain(".queue");
@@ -538,13 +567,15 @@ describe("plan and backlog", () => {
     }
   });
 
-  it("plan adds its registry row through pnpm backlog prd and ends with pnpm prd end", () => {
+  it("plan adds its registry row through pnpm backlog prd and ends with pnpm prd rm", () => {
     const plan = ok("plan", "T");
     expect(plan).toContain("`pnpm backlog prd add T`");
     expect(plan).toContain("`pnpm backlog prd set T after=<topic> hot=<path prefixes>`");
-    expect(plan.indexOf("`pnpm prd rm plan-T`")).toBeLessThan(plan.indexOf("&& pnpm prd end`"));
-    // rm deleted the worktree: end runs from the main checkout
-    expect(plan).toMatch(/`cd \S+ && pnpm prd end`/);
+    // rm, run from the worktree, ends the session itself (B-812): it's the last step, after the report.
+    expect(plan).toMatch(
+      /how to start it, then `pnpm prd rm plan-T`, your last step: run from this worktree, `rm` ends this session/,
+    );
+    expect(plan).not.toContain("&& pnpm prd end`");
     expect(plan.trimEnd()).toMatch(/Start by summarising[^]*$/);
   });
 
@@ -621,14 +652,15 @@ describe("plan and backlog", () => {
       );
       expect(plan).toContain("The tool, never you, puts the recommendation in place of an answer");
       expect(plan).not.toContain("wait for it however long it takes");
-      // After the landing: the report, then rm, then end.
+      // After the landing: the report, then rm, which ends the session (B-812).
       const land = plan.indexOf("`pnpm prd land plan/T -m");
       const report = plan.indexOf('`pnpm prd ask --topic T --report "<text>"`');
       const rm = plan.indexOf("`pnpm prd rm plan-T`");
       expect(land).toBeGreaterThan(0);
       expect(report).toBeGreaterThan(land);
       expect(rm).toBeGreaterThan(report);
-      expect(plan.indexOf("&& pnpm prd end`")).toBeGreaterThan(rm);
+      expect(plan).toContain("Then `pnpm prd rm plan-T`, your last step: run from this worktree");
+      expect(plan).not.toContain("&& pnpm prd end`");
       expect(plan).toContain("`pnpm backlog prd set T flags+=hold`");
       expect(plan).not.toContain("flags=");
     }
@@ -772,17 +804,17 @@ describe("bye", () => {
     "then run `pnpm prd bye`. Clean, it ends this session: say nothing after it. Otherwise ask the user about each open thing it lists, one at a time (finish it, hand it off or drop it), then run it again.";
 
   it.each([
-    ["orchestrator", ["orchestrator", "T"], "orchestrator.md"],
-    ["orchestrator --auto", ["orchestrator", "T", "--auto"], "orchestrator.md"],
-    ["orchestrator --resume", ["orchestrator", "T", "--resume"], "orchestrator.md"],
-    ["plan", ["plan", "T"], "planner.md"],
-    ["plan --auto", ["plan", "T", "--auto"], "planner.md"],
-    ["hotfix", ["hotfix", "x", "the fix"], "hotfix.md"],
-    ["backlog", ["backlog"], "backlog.md"],
-    ["recover", ["recover"], "recovery.md"],
+    ["orchestrator", ["orchestrator", "T"], "orchestrator"],
+    ["orchestrator --auto", ["orchestrator", "T", "--auto"], "orchestrator"],
+    ["orchestrator --resume", ["orchestrator", "T", "--resume"], "orchestrator"],
+    ["plan", ["plan", "T"], "planner"],
+    ["plan --auto", ["plan", "T", "--auto"], "planner"],
+    ["hotfix", ["hotfix", "x", "the fix"], "hotfix"],
+    ["backlog", ["backlog"], "backlog"],
+    ["recover", ["recover"], "recovery"],
   ])("%s: a message of just 'bye' runs pnpm prd bye after its doc's own checks", (_, args, doc) => {
     const text = ok(...args);
-    expect(text).toContain(`${BYE} docs/agents/${doc} names under _Bye_, ${AFTER}`);
+    expect(text).toContain(`${BYE} \`pnpm prd doc ${doc}\` names under _Bye_, ${AFTER}`);
     expect(text.match(/just 'bye'/g)).toHaveLength(1);
   });
 
@@ -791,7 +823,7 @@ describe("bye", () => {
     ["slice --continue", ["slice", "T", "1", "--continue"]],
   ])("%s: bye only reports, and the open things go to the orchestrator", (_, args) => {
     expect(ok(...args)).toContain(
-      "- **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.",
+      "- **A message of just 'bye'**: first the checks `pnpm prd doc loop` names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.",
     );
   });
 
@@ -801,6 +833,26 @@ describe("bye", () => {
       `- **Just 'bye':** with every idea added, run \`pnpm -s -C ${main} prd bye\` and say nothing after; if it lists open things, ask about each, then rerun it.`,
     );
     expect(text).not.toContain("_Bye_");
+  });
+
+  it.each([
+    ["orchestrator", ["orchestrator", "T"], "orchestrator"],
+    ["plan", ["plan", "T"], "planner"],
+    ["hotfix", ["hotfix", "x", "the fix"], "hotfix"],
+    ["backlog", ["backlog"], "backlog"],
+    ["recover", ["recover"], "recovery"],
+  ])("%s: a role the config names no doc for is still the doc command (its generic doc)", (_, args, role) => {
+    const config = JSON.parse(readFileSync(FIXTURE_CONFIG, "utf8"));
+    delete config.roles;
+    const file = join(root, "no-roles.json");
+    writeFileSync(file, JSON.stringify(config));
+    const r = spawnSync("bash", [join(main, "scripts/loops/prompt.sh"), ...args], {
+      cwd: main,
+      encoding: "utf8",
+      env: { ...process.env, RISA_CONFIG: file },
+    });
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toContain(`${BYE} \`pnpm prd doc ${role}\` names under _Bye_, ${AFTER}`);
   });
 
   it("the briefs that aren't a role get none", () => {
@@ -866,7 +918,8 @@ describe("hotfix", () => {
     expect(text).toContain(`Your worktree is ${loops}/hotfix-trim, on branch hotfix/trim (from dev)`);
     expect(text).toContain("**Ask the user before every step that takes time or changes shared state**");
     expect(text).toContain("Background agents are allowed");
-    expect(text).toContain("docs/agents/hotfix.md");
+    expect(text).toContain("`pnpm prd doc hotfix`");
+    expect(text).toContain("into its file, docs/agents/hotfix.md.");
     expect(text).toContain('**"PR or local?"**');
     expect(text).toContain("`pnpm prd land hotfix/trim --pr` or `--local`");
     expect(text).toContain("`pnpm prd pr hotfix/trim`");
@@ -897,6 +950,7 @@ describe("fix categories", () => {
     expect(text).toContain("append one slice per waiting item");
     expect(text).toContain("plans/fixes-rules.md");
     expect(text).toContain("there's no plans/fixes-bug-prd.md: the plan is the whole spec");
+    expect(text).toContain("slice table keeps its header and separator with no slice in flight"); // B-807
     expect(ok("orchestrator", "T")).not.toContain("append one slice per waiting item");
   });
 });

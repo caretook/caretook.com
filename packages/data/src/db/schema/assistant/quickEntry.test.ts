@@ -1155,7 +1155,7 @@ describe("events", () => {
     expect(r.kind).toBe("event");
     expect(action(r)).toEqual({
       type: "addEvent",
-      title: "Appointment with Dr. Sandra Lee",
+      title: "Event with Dr. Sandra Lee",
       occurredAt: at("2026-11-24T22:00:00Z"), // next Tuesday, 14:00 PST
       allDay: false,
       place: null,
@@ -1182,9 +1182,10 @@ describe("events", () => {
     });
   });
 
-  test("an appointment's other words name it", () => {
+  test("an appointment's other words name it, alone", () => {
+    expect(action(top("dental cleaning appt friday"))).toMatchObject({ title: "Dental cleaning" });
     expect(action(top("cardiology appt dec 3 at 10am with dr lee"))).toMatchObject({
-      title: "Cardiology appointment",
+      title: "Cardiology",
       occurredAt: at("2026-12-03T18:00:00Z"),
       providerIds: [LEE],
     });
@@ -1199,12 +1200,18 @@ describe("events", () => {
 
   test("an appointment with no time is now, with a warning; with a provider it's all day today", () => {
     const r = top("appointment");
-    expect(action(r)).toMatchObject({ occurredAt: NOW.toISOString(), allDay: false, providerIds: [] });
+    expect(action(r)).toMatchObject({
+      title: "Event",
+      occurredAt: NOW.toISOString(),
+      allDay: false,
+      providerIds: [],
+    });
     expect(warnings(r)).toEqual(["No time given, so it's set to now. Edit it to choose when."]);
     expect(blocking(r)).toEqual([]);
     // Changed (quick-entry): a provider's event with no time is all day today, like "Dr. Elena Alvarez".
     const withLee = top("appointment with dr lee");
     expect(action(withLee)).toMatchObject({
+      title: "Event with Dr. Sandra Lee",
       occurredAt: at("2026-11-19T08:00:00Z"),
       allDay: true,
       providerIds: [LEE],

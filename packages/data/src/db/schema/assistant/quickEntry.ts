@@ -1727,10 +1727,10 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const named = (s.naming[0] ?? providers[0])?.item.name;
   const title = keyword
     ? titleWords
-      ? `${capitalize(titleWords)} appointment`
+      ? capitalize(titleWords)
       : named
-        ? `Appointment with ${named}`
-        : "Appointment"
+        ? `Event with ${named}`
+        : "Event"
     : capitalize(titleWords || named || s.text);
 
   const warnings: QuickEntryWarning[] = [];

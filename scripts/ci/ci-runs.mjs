@@ -7,10 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { EXIT, RUN_FIELDS, WORKFLOW_NAME, exitFor } from "./ci-io.mjs";
-import { tierData } from "./tier-data.mjs";
-import { isVerdict } from "./verdict.mjs";
-
-const { TIERS, ciRefName, parseCiRef } = tierData();
+import { ciTiers } from "./tier-data.mjs";
 
 /**
  * @typedef {import("./ci-io.mjs").Io} Io
@@ -26,6 +23,7 @@ const COMMIT_STATE = /** @type {Record<string, string>} */ ({
   flake: "success",
   file: "failure",
   brake: "failure",
+  time: "failure",
 });
 
 /** The remote SHA of a ref: a string (empty when absent), or null when unreachable. */
@@ -45,7 +43,26 @@ export function listRuns(/** @type {Io} */ io, /** @type {string[]} */ filter) {
   }
 }
 
-/** The verdict artifact of a run, or null. */
+/** The verdict file's version this reader knows. The project's CI writes the file. */
+export const VERDICT_VERSION = 1;
+
+/**
+ * Whether a parsed verdict file is one this reader knows: its version, and the
+ * fields every reader of it needs.
+ * @param {unknown} v
+ */
+export function isVerdict(v) {
+  const o = /** @type {Record<string, unknown> | null} */ (v);
+  return (
+    !!o &&
+    o.version === VERDICT_VERSION &&
+    typeof o.commit === "string" &&
+    typeof o.tier === "string" &&
+    typeof o.kind === "string"
+  );
+}
+
+/** The verdict artifact of a run (its `verdict.json`), or null. */
 export function readVerdict(
   /** @type {Io} */ io,
   /** @type {number} */ runId,
@@ -87,6 +104,10 @@ export function verdictLines(/** @type {any} */ v) {
     lines.push(`  flaky${t.brake ? " (brake list)" : ""}: ${t.file}${t.name ? `: ${t.name}` : ""}`);
   if (v.infra?.notRun?.length) lines.push(`  browser checks not run: ${v.infra.notRun.join(", ")}`);
   else if (v.infra?.jobs?.length) lines.push(`  died before any test: ${v.infra.jobs.join(", ")}`);
+  for (const t of v.time?.breaches ?? [])
+    lines.push(
+      `  time: ${t.job} (${t.measure}) ${t.seconds} s, ${t.verdict}${t.verdict === "warn" && !t.armed ? ", not armed" : ""}`,
+    );
   if (v.browser?.length) {
     const count = (/** @type {string} */ result) =>
       v.browser.filter((/** @type {{ result: string }} */ c) => c.result === result).length;
@@ -188,7 +209,7 @@ async function awaitRun(
  * @param {Io} io
  */
 export async function requestRun({ tier, branch, sha, waitMin, onVerdict }, io) {
-  const ref = ciRefName(tier, branch);
+  const ref = ciTiers().ciRefName(tier, branch);
   const at = remoteSha(io, ref);
   if (at === null) return unknown(io, "GitHub can't be reached");
   const before = listRuns(io, ["--branch", ref]);
@@ -247,7 +268,7 @@ export function findVerdict({ sha, accept = () => true }, io) {
   const runs = listRuns(io, ["--commit", sha]);
   if (runs === null) return null;
   const ours = runs
-    .filter((r) => r.headSha === sha && parseCiRef(r.headBranch ?? ""))
+    .filter((r) => r.headSha === sha && ciTiers().parseCiRef(r.headBranch ?? ""))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const going = ours.find((r) => r.status !== "completed");
   if (going) io.log(`a run is going: ${going.url ?? going.databaseId} (${going.headBranch})`);
@@ -273,11 +294,11 @@ export function findVerdict({ sha, accept = () => true }, io) {
 export function findTipVerdict({ sha, tier }, io) {
   const runs = listRuns(io, ["--commit", sha]);
   if (runs === null) return null;
-  const needed = TIERS.indexOf(/** @type {any} */ (tier));
+  const needed = ciTiers().TIERS.indexOf(/** @type {any} */ (tier));
   const ours = runs
     .filter((r) => {
-      const ref = parseCiRef(r.headBranch ?? "");
-      return r.headSha === sha && !!ref && TIERS.indexOf(/** @type {any} */ (ref.tier)) >= needed;
+      const ref = ciTiers().parseCiRef(r.headBranch ?? "");
+      return r.headSha === sha && !!ref && ciTiers().TIERS.indexOf(/** @type {any} */ (ref.tier)) >= needed;
     })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const going = ours.find((r) => r.status !== "completed") ?? null;

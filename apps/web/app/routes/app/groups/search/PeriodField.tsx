@@ -18,12 +18,14 @@ export function PeriodField({
   groupId,
   q,
   all,
+  tag,
   choices,
   current,
 }: {
   groupId: string;
   q: string;
   all: SearchItemType | null;
+  tag: string | null;
   choices: readonly PeriodChoice[];
   current: PeriodChoice | null;
 }) {
@@ -41,7 +43,7 @@ export function PeriodField({
           data-search-period
           onChange={(e) => {
             const period = e.currentTarget.value || null;
-            void navigate(appUrls.search(groupId, q, { all, period }), {
+            void navigate(appUrls.search(groupId, q, { all, period, tag }), {
               replace: true,
               preventScrollReset: true,
             });

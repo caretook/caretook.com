@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
 import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 import { parseQuarantine, quarantineMode } from "./scripts/ci/lists.mjs";
+import { DurationSequencer } from "./scripts/ci/shard-sequencer.mjs";
 import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 
 // Vitest projects:
@@ -18,8 +20,9 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //   whose each file is; scripts/project/test-projects.test.mjs keeps every one
 //   in exactly one owner's project). Caretook's, `pnpm test:project`:
 //   project:unit    the ones `pnpm test` keeps: the check manifest's and areas'
-//                   guards, the sync matrix, Caretook's CI jobs, the deploy, the
-//                   build and the local lint rules
+//                   guards, the sync matrix (quick-guards keeps it and rolesSql
+//                   in projects every quick check runs), Caretook's CI jobs, the
+//                   deploy, the build and the local lint rules
 //   project:tooling the rest (the hooks, the check's body, the doc budget, …),
 //                   run by `pnpm test:tooling`, not `pnpm test`
 //   The core's (the tool that moves out):
@@ -44,9 +47,11 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //                React dedupes), and the test device (apps/web/test/device.tsx),
 //                a local-only PowerSync database with fixtures. Chromium comes
 //                from `pnpm test:components:install` (once per machine).
-// Caretook's tooling tests by name, wherever they sit (scripts/loops, scripts/ci
-// or scripts/project), so a slice moving one into scripts/project/ changes nothing
-// here. PROJECT_UNIT: the ones `pnpm test` runs; PROJECT_TOOLING: the ones it doesn't.
+// Caretook's tooling tests that sit among the core's files, by name. PROJECT_UNIT: the
+// ones `pnpm test` runs, matched in scripts/loops, scripts/ci or scripts/project, so a
+// slice moving one into scripts/project/ changes nothing here. PROJECT_TOOLING: the ones
+// it doesn't, still in scripts/loops (the rest of scripts/project/ joins project:tooling
+// by its folder).
 const PROJECT_UNIT = [
   "sync-matrix",
   "check-areas",
@@ -56,12 +61,15 @@ const PROJECT_UNIT = [
   "env",
   "lists",
   "release-jobs",
+  "shards",
   "test-job",
   "tiers",
   "verdict",
   "zones",
+  "quick-guards",
+  "unit-workers",
 ].map((name) => `{loops,ci,project}/${name}.test.mjs`);
-const PROJECT_TOOLING = ["check-body", "doc-budget", "fixes-plans", "lint-heap", "workspace-config"].map(
+const PROJECT_TOOLING = ["fixes-plans", "lint-heap", "workspace-config"].map(
   (name) => `loops/${name}.test.mjs`,
 );
 
@@ -80,6 +88,28 @@ const freePort = () =>
 // Integration workers, each on its own database (packages/data/test/globalSetup.ts).
 const integrationWorkers = intWorkers(process.env.CARETOOK_INT_WORKERS);
 if (integrationWorkers === undefined) throw new Error("CARETOOK_INT_WORKERS must be a number from 1 to 16");
+
+// The unit projects' workers (CARETOOK_UNIT_WORKERS): Vitest's default is cores − 1,
+// so two overlapping checks ran ~18 test processes on 10 cores (B-542). Half the
+// cores, at most 4, unless set (1 to 64). The tooling projects keep the default.
+const MAX_UNIT_WORKERS = 64;
+export const unitWorkers = (
+  value: string | undefined,
+  cores = availableParallelism(),
+): number | undefined => {
+  if (value === undefined || value.trim() === "") return Math.max(1, Math.min(4, Math.floor(cores / 2)));
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_UNIT_WORKERS ? n : undefined;
+};
+const unitWorkerCount = unitWorkers(process.env.CARETOOK_UNIT_WORKERS);
+if (unitWorkerCount === undefined) throw new Error("CARETOOK_UNIT_WORKERS must be a number from 1 to 64");
+// The unit projects: one group (Vitest runs the projects that share a
+// sequence.groupOrder on one pool, so they must share maxWorkers too).
+const unit = { maxWorkers: unitWorkerCount };
+// The tooling projects: Vitest's default workers, in a group of their own (3, after
+// integration) so a run with every project doesn't put two caps in one group.
+// `pnpm test:tooling` and the check's tooling step run them alone.
+const tooling = { sequence: { groupOrder: 3 } };
 
 // Quarantined tests are skipped in every project (scripts/ci/quarantine.txt), or
 // alone are run under CARETOOK_QUARANTINE=run. Handed over by `provide` so the
@@ -110,11 +140,17 @@ const inNodeZone = <P extends { test: { env?: Record<string, string>; browser?: 
 // and `web:components:ny` (NY_INCLUDE, in the second zone). The device's zone is
 // the browser context's; the recipient's is the fixtures' (TEST_TIME_ZONE).
 const COMPONENT_FILES = ["app/**/*.browser.test.tsx", "test/**/*.browser.test.tsx"];
+// The second zone's every-run files: the ones written to test the zones apart, which
+// build their moments with apps/web/test/zone.ts (zones.test.mjs keeps this list and
+// those imports the same). The release tier's zone-components jobs run every
+// component file in the second zone (B-772).
 const NY_INCLUDE = [
-  "app/routes/app/groups/timeline/**/*.browser.test.tsx",
-  "app/routes/app/groups/medications/**/*.browser.test.tsx",
-  "app/routes/app/groups/medication/**/*.browser.test.tsx",
-  "app/routes/app/groups/planner/**/*.browser.test.tsx",
+  "app/routes/app/groups/medications/today.browser.test.tsx",
+  "app/routes/app/groups/planner/plannerEvents.browser.test.tsx",
+  "app/routes/app/groups/planner/plannerSeries.browser.test.tsx",
+  "app/routes/app/groups/timeline/timelineHeader.browser.test.tsx",
+  "app/routes/app/groups/timeline/timelineZones.browser.test.tsx",
+  "app/routes/app/groups/timeline/todayCard.browser.test.tsx",
 ];
 const componentsProject = (name: string, zone: string, port: number, include = COMPONENT_FILES) => ({
   extends: "./apps/web/vite.config.ts",
@@ -174,10 +210,13 @@ const componentsProject = (name: string, zone: string, port: number, include = C
 
 export default defineConfig({
   test: {
+    // `--shard` balances files by their past seconds (scripts/ci/shards.mjs), not by count.
+    sequence: { sequencer: DurationSequencer },
     projects: [
       {
         test: {
           name: "data:unit",
+          ...unit,
           root: "./packages/data",
           include: ["src/**/*.test.ts"],
           exclude: ["src/**/*.int.test.ts"],
@@ -186,17 +225,20 @@ export default defineConfig({
       {
         // Pure apps/web logic (app/**/*.test.ts): no PowerSync, no React Router
         // plugin (apps/web's vite.config.ts isn't loaded), so tests import
-        // relatively, not through "~/".
+        // relatively, not through "~/". Plus the test harness's own Node
+        // parts (test/*.test.ts: the browser lease helper).
         test: {
           name: "web:unit",
+          ...unit,
           root: "./apps/web",
-          include: ["app/**/*.test.ts"],
+          include: ["app/**/*.test.ts", "test/**/*.test.ts"],
         },
       },
       {
         // @caretook/notifications' pure parts: templates, links, allowlist.
         test: {
           name: "notifications:unit",
+          ...unit,
           root: "./packages/notifications",
           include: ["src/**/*.test.ts"],
           exclude: ["src/**/*.int.test.ts"],
@@ -207,6 +249,7 @@ export default defineConfig({
         // no db call (host.ts, the /rpc handler's CORS answer).
         test: {
           name: "server:unit",
+          ...unit,
           include: ["packages/auth/src/**/*.test.ts", "packages/api/src/**/*.test.ts"],
           exclude: ["**/*.int.test.ts"],
         },
@@ -215,6 +258,7 @@ export default defineConfig({
         // Caretook's tooling tests the default run keeps.
         test: {
           name: "project:unit",
+          ...unit,
           root: "./scripts",
           include: [...PROJECT_UNIT, "deploy/**/*.test.mjs", "build/**/*.test.mjs", "eslint/**/*.test.mjs"],
           testTimeout: 20_000,
@@ -225,6 +269,7 @@ export default defineConfig({
         // tooling:unit below (the same timeout and load gate, for the same reasons).
         test: {
           name: "project:tooling",
+          ...tooling,
           root: "./scripts",
           include: [...PROJECT_TOOLING, "project/**/*.test.mjs", "hooks.test.mjs"],
           exclude: PROJECT_UNIT,
@@ -236,6 +281,7 @@ export default defineConfig({
         // The core's tooling tests the default run keeps.
         test: {
           name: "core:unit",
+          ...unit,
           root: "./scripts",
           include: ["loops/check-times.test.mjs", "loops/check-plan.test.mjs", "ci/**/*.test.mjs"],
           exclude: PROJECT_UNIT,
@@ -249,6 +295,7 @@ export default defineConfig({
         // project out; `pnpm test:tooling` runs it.
         test: {
           name: "tooling:unit",
+          ...tooling,
           root: "./scripts",
           include: ["loops/**/*.test.mjs", "backlog/**/*.test.mjs"],
           exclude: [
@@ -268,6 +315,7 @@ export default defineConfig({
       {
         test: {
           name: "tooling:browser",
+          ...tooling,
           root: "./scripts",
           include: ["loops/browser.test.mjs"],
           testTimeout: 20_000,
@@ -275,8 +323,8 @@ export default defineConfig({
         },
       },
       componentsProject("web:components", testZone(), await freePort()),
-      // The second zone, every day: the screens where a zone mistake misdates care
-      // data (the timeline, doses, events) with the device in New York and the
+      // The second zone, every run: the tests that set the zones apart (the timeline,
+      // doses, events), with the device in New York and the
       // recipient's fixtures still in Los Angeles (B-372). Its own project, since
       // one project's browser instances can't have different provider settings;
       // its own port, since the two run at once. A New York-only skip names its
@@ -296,7 +344,7 @@ export default defineConfig({
           // Points each worker at its own database, `<name>_w<VITEST_POOL_ID>`.
           setupFiles: ["./packages/data/test/setup.ts"],
           // Files in parallel, one per worker database. Its own maxWorkers needs
-          // a group of its own: after web:components (1), last as before, so
+          // a group of its own: after web:components (1), before the tooling (3), so
           // the databases' load doesn't overlap Chromium's.
           maxWorkers: integrationWorkers,
           sequence: { groupOrder: 2 },

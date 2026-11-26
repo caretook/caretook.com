@@ -14,14 +14,17 @@ export type PageMeta = {
 
 export type Cta = { label: string; href: string };
 
-export type HeroContent = {
-  eyebrow?: string;
-  /** The page's only `h1`. */
-  heading: string;
-  lead: string;
-  primary: Cta;
-  secondary?: Cta;
-};
+/**
+ * The lockup home's hero leads with: the full logo (`FullLogo`, the name and
+ * tagline from `BRAND`) as the `h1`, then one descriptor line.
+ */
+export type HeroLockup = { descriptor: string };
+
+type HeroCopy = { eyebrow?: string; lead: string; primary: Cta; secondary?: Cta };
+
+/** A hero leads with either home's lockup or the page's own `h1` heading. */
+export type HeroContent = HeroCopy &
+  ({ lockup: HeroLockup; heading?: never } | { lockup?: never; heading: string });
 
 export type FeatureItem = { icon: MarketingIconName; title: string; body: string };
 

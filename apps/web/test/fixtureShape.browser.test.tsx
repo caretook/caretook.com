@@ -14,8 +14,10 @@ import {
   newId,
   pgJson,
   recipientDetails,
+  recordTag,
   series,
   symptomType,
+  tag,
   todo,
   TEST_USER,
 } from "./fixtures";
@@ -61,6 +63,8 @@ const DEFAULTS: Record<string, Fixture[]> = {
   appointment_series: [series()],
   symptom_type: [symptomType()],
   timeline_entry_todo: [entryTodo(entryId, newId())],
+  tag: [tag()],
+  record_tag: [recordTag(tag().id, entryId)],
 };
 
 /** Synced tables with a server schema but no builder, each with why. */

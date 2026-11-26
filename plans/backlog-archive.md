@@ -311,8 +311,10 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-324 | change | dropped | fixes-bug |  | Health data in page titles and URLs: entry, medication, provider and todo names in document.title and searches in ?q= persist in browser history after the sign-out wipe |
 | B-326 | chore | staging | fixes-nit | prd/fixes-nit | Docs drift: layout.md omits many folders and calls the Playwright specs 'headless Chrome checks'; five area docs name old *.mjs check files; AGENTS.md marks Playwright and print CSS as proposed; sync-config.yaml cites a pnpm powersync:restart that doesn't exist; .env.example lacks BETTER_AUTH_SECRETS; AGENTS.md omits the /series client-safe export |
 | B-341 | chore | landed | test-gates | prd/test-gates | CI: a workflow on PRs into dev that runs format, lint, typecheck, unit and integration tests (today no workflow runs any test) |
+| B-342 | bug | staging | fixes-ui | prd/fixes-ui | The Postgres pool has no error listener: a dropped idle connection crashes the function; 10 clients with a 2 s wait time out under a burst of uploads |
 | B-359 | feature | landed | onboarding | prd/onboarding | Record terms, privacy and 18+ acceptance at sign-up and invite accept (no /terms or /privacy link outside the marketing pages; the terms require 18+) |
 | B-360 | change | landed | onboarding | prd/onboarding | The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout |
+| B-370 | chore | landed | test-time-gates |  | Quick check always runs the guards that read source by path (scripts/loops/sync-matrix.test.mjs, rolesSql.test.ts): vitest --changed can't select them |
 | B-371 | chore | landed | test-health-2 | prd/test-health-2 | Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only) |
 | B-372 | chore | landed | test-health-2 | prd/test-health-2 | A second time zone in tests: device, recipient and seed are all America/Los_Angeles in 106 of 113 component test files, while 29 production call sites read the device's zone |
 | B-373 | chore | landed | test-health-2 | prd/test-health-2 | Role coverage gaps: a removed member writing or reading a care table, staff support on care tables, non-member writes through sync upload on 10 of 15 tables, and a real every-procedure unauthenticated sweep |
@@ -352,6 +354,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-414 | feature | staging | ui-kit-2 | prd/ui-kit-2 | animations are cool. add some to actions, hovers, etc... be classy about it. For instance the… |
 | B-415 | feature | staging | ui-kit-2 | prd/ui-kit-2 | choose a more modern font set. |
 | B-416 | bug | staging | fixes-ui | prd/fixes-ui | owner pill on planner/planner list should be below time/date field. Too busy under title. |
+| B-417 | feature | landed | marketing-2 | prd/marketing-2 | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
 | B-419 | bug | staging | ui-kit-2 | prd/ui-kit-2 | on providers page, import from another group is too wordy. Import icon is fine. It is for power… |
 | B-420 | bug | staging | ui-kit-2 | prd/ui-kit-2 | planner add button can just be a plus icon. Maybe wait on button component. every main page header… |
@@ -643,16 +646,48 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-774 | chore | staging | fixes-tooling | hotfix/sync-shared | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
 | B-775 | chore | dropped | fixes-tooling |  | Sync dev before a wave's CI run, not after, so a wave that needs a sync runs its tier once (2026-11-24: test-health-2, sync-safety, symptom-catalog, fixes-bug each ran twice, test-health-2 slice 5 three times) |
 | B-777 | bug | staging | fixes-ui | prd/fixes-ui | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
+| B-779 | bug | staging | fixes-bug | prd/fixes-bug | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
+| B-781 | chore | landed | test-time-gates |  | Count check budget and silence stops apart in pnpm prd check --times and pnpm prd metrics |
 | B-783 | bug | staging | fixes-ui | prd/fixes-ui | Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list |
 | B-784 | change | staging | fixes-ui | prd/fixes-ui | Passes tab: the pass cards show no double-dose warning, unlike Today and the medication page |
 | B-786 | change | landed | self-recovery | prd/self-recovery | The watchdog's own limited rule (limitedOf in watchdog.mjs) should use the drain's readDrain/probeAllowed (drain.mjs) so the two never disagree |
+| B-787 | bug | staging | fixes-bug | prd/fixes-bug | Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try |
 | B-788 | change | staging | fixes-ui | prd/fixes-ui | Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker |
+| B-792 | bug | staging | fixes-bug | prd/fixes-bug | Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs |
 | B-793 | bug | staging | fixes-ui | prd/fixes-ui | Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun) |
 | B-800 | change | landed | fixes-ui | prd/fixes-ui | Required asterisks, part 3: timeline entry, dose, todo, dialog, group, admin and marketing forms mark required fields and drop (optional) labels |
 | B-801 | change | landed | fixes-ui | prd/fixes-ui | Required asterisks, part 2: medication, provider, profile and care period forms mark required fields and drop (optional) labels |
 | B-803 | change | landed | fixes-ui | prd/fixes-ui | Mobile nav footer needs work: thinner vertically, slightly transparent with a blur overlay. |
 | B-804 | feature | landed | fixes-ui | prd/fixes-ui | Need a banner (or permanent toast) while in offline mode. |
+| B-805 | question | landed | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
 | B-806 | change | landed | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
+| B-817 | bug | staging | fixes-ui | prd/fixes-ui | Mobile bottom nav renders dark in light mode |
+| B-818 | bug | landed | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
+| B-819 | change | landed | fixes-ui | prd/fixes-ui | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
+| B-821 | change | landed | orchestration-split | prd/orchestration-split | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
+| B-822 | chore | landed | orchestration-split | prd/orchestration-split | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
+| B-823 | chore | landed | orchestration-split | prd/orchestration-split | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
+| B-825 | chore | landed | orchestration-split | prd/orchestration-split | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
+| B-826 | chore | landed | orchestration-split | prd/orchestration-split | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
+| B-827 | chore | landed | orchestration-split | prd/orchestration-split | No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files |
+| B-828 | bug | staging | fixes-ui | prd/fixes-ui | Switching between submenus and group settings sometimes loads slowly with no feedback |
+| B-830 | bug | landed | fixes-bug | prd/fixes-bug | Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY |
+| B-832 | chore | landed | orchestration-split | prd/orchestration-split | Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops |
+| B-833 | change | landed | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
+| B-834 | chore | landed | orchestration-split | prd/orchestration-split | Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack |
+| B-835 | chore | landed | orchestration-split | prd/orchestration-split | Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws |
+| B-838 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
+| B-840 | bug | landed | fixes-bug | prd/fixes-bug | Offline banner flashes too often when the connection hasn't actually dropped |
+| B-842 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
+| B-843 | bug | landed | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
+| B-844 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
+| B-846 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
+| B-847 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
+| B-848 | bug | landed | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
+| B-849 | change | landed | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
+| B-850 | change | landed | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
+| B-856 | bug | dropped | marketing |  | Marketing pages have no light mode (dark only) |
+| B-857 | change | landed | fixes-ui | prd/fixes-ui | Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537) |
 
 ## Items
 
@@ -4020,6 +4055,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (Robert Bo Davis): Moved from hosting to test-gates (2026-11-22): CI full check on PRs into and pushes to dev is test-gates' first tier.
 - 2026-11-22 (plan/test-gates): Planned in plans/test-gates-prd.md and plans/test-gates-plan.md (6 slices, 5 waves; 2026-11-22).
 
+### B-342 · bug · The Postgres pool has no error listener: a dropped idle connection crashes the function; 10 clients with a 2 s wait time out under a burst of uploads
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: dc2e5fc4
+
+- 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/client.ts:22-27. Fix idea: pool.on('error', logError), attachDatabasePool from @vercel/functions (already a dependency), a longer queue wait. High.
+- 2026-11-25 (Robert Bo Davis): Moved from hosting to fixes-bug (backlog session, 2026-11-25): a small fix testers would hit as random errors on staging; wanted before the user's live alpha-tester call on 2026-11-26.
+- 2026-11-25 (Robert Bo Davis): Moved from hosting to fixes-bug (backlog session, 2026-11-25): a small fix testers would hit as random errors on staging; wanted before the user's live alpha-tester call on 2026-11-26.
+- 2026-11-25 (Robert Bo Davis): Pre-call run 2026-11-25 (the user's choice): one fixes-ui wave of only B-342, B-817, B-828; B-342 moved from fixes-bug for it. Must land and remove its worktree before orchestration-split wave 6 lands (about 2 to 2.5 h).
+
 ### B-359 · feature · Record terms, privacy and 18+ acceptance at sign-up and invite accept (no /terms or /privacy link outside the marketing pages; the terms require 18+)
 
 - status: landed
@@ -4039,6 +4086,20 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Also absent and untracked: an accessibility statement, app-store prerequisites, an ownership-transfer flow (careGroupMemberService.ts:173 says the last owner 'must hand over ownership first').
 - 2026-11-22 (plan/onboarding): Planned in onboarding (2026-11-22): installable, opens /app standalone. The accessibility statement, app-store prerequisites and ownership transfer are filed as their own items.
+
+### B-370 · chore · Quick check always runs the guards that read source by path (scripts/loops/sync-matrix.test.mjs, rolesSql.test.ts): vitest --changed can't select them
+
+- status: landed
+- prd: test-time-gates
+- owner:
+- commit: 4dbb7499
+
+- 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. prd.sh:212. A new synced table or stream column passes a quick check with its guard never run. Overlaps B-272.
+- 2026-11-21 (prd/test-health): test-health orchestrator (2026-11-22): check-speed's always-run list landed; verify whether sync-matrix.test.mjs and rolesSql.test.ts are in it before working this (may be done or a one-line add).
+- 2026-11-22 (prd/test-health): test-health ended 2026-11-22 (landed 2e526422) without slicing this; proposed for fixes-tooling
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 6 (check flow). After agent-autonomy, which holds the check scripts. Confirm B-574 and B-576 still happen before fixing them: test-gates wave 4 gave lint 6 GB.
+- 2026-11-25 (Robert Bo Davis): Moved to test-time-gates (user, 2026-11-26): the test runtime gate runs first, before the other fixes
+- 2026-11-25 (plan/test-time-gates): Planned 2026-11-25 in plans/test-time-gates-prd.md and -plan.md (6 slices). B-781, B-370: slices 2-3. B-837: gates in slices 1, 2, 4, unit armed in 6. B-772: balanced shards in slice 5. B-837 and B-772 stay open for test-time-gates-2 (component fallback, quick check trim, arming components and quick).
 
 ### B-371 · chore · Device-to-server round trip per table through the app's own writers, comparing column values on the second device (today: hand-written INSERTs, id only, browser suite only)
 
@@ -4490,6 +4551,19 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-21 (Robert Bo Davis): Triage: a small layout fix on one screen, so the standing UI fixes topic (fixes-ui).
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: checked against dev, still present and not yet fixed.
+
+### B-417 · feature · We are getting close to feature complete. We need another marketing content pass that updates copy…
+
+- status: landed
+- prd: marketing-2
+- owner: prd/marketing-2
+- commit: fdafec95
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos.
+- 2026-11-21 (Robert Bo Davis): Triage: marketing topic (on hold). A copy and layout pass for the new features plus a design refresh; no screenshots or videos, so it does not wait on B-40.
+- 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): before launch, the marketing language should cover connecting your own Claude or ChatGPT (the connectors / MCP connect guide under Settings → Devices and Group settings → Assistants).
+- 2026-11-25 (Robert Bo Davis): From the user (backlog session, 2026-11-25): the content pass follows plans/marketing-prd.md, Messaging update (2026-11-25): the 'Care, taken.' lockup in the hero; 'Free for families' with the essentials free, always, and early families grandfathered; a founder story on About once the user gives the facts; claims discipline; stays caretook.com.
+- 2026-11-25 (plan/marketing-2): Planned 2026-11-25 as marketing-2 (copy part only: the new language, today's features, the approved founder story). The visual refresh is a separate item under marketing.
 
 ### B-418 · bug · Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone
 
@@ -7517,6 +7591,27 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (Robert Bo Davis): Offline is a hard requirement: a dropped connection blanks the page in the browser and the installed PWA. Wrong behaviour, so fixes-bug; may grow into its own PRD if the app has no offline shell.
 - 2026-11-24 (Robert Bo Davis): User 2026-11-24: into the running fixes-ui PRD's next wave (it owns lib/app-shell/, where the service worker lives). Not a missing offline shell: the worker exists (serviceWorker*.ts, /sw.js), so find why an /app navigation offline renders blank (shell not cached, a route chunk missing from the cache, or the stale-CSP note in app-shell.md). Needs an offline browser check.
 
+### B-779 · bug · Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top
+
+- status: staging
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 9f675672
+
+- 2026-11-24 (prd/fixes-ui): From fixes-ui slice 47 (b154ba6f, B-736): in a test world with no entries for today, a direct ?day= load ends with the heading ~160px down instead of under 40px; something above the list (likely the setup or Today card) grows after the landing scroll. With today's entries it lands correctly. Proposed by the fixes-ui orchestrator, for user review.
+- 2026-11-25 (slice/fixes-bug/69): Fixed in slice/fixes-bug/69 (6bf0cecd): the late card was InviteSomeoneCard (no other member in the world), not today's entries; the landing now holds its target by measurement (ResizeObserver) until the reader scrolls/taps/types.
+
+### B-781 · chore · Count check budget and silence stops apart in pnpm prd check --times and pnpm prd metrics
+
+- status: landed
+- prd: test-time-gates
+- owner:
+- commit: 4dbb7499
+
+- 2026-11-24 (prd/worker-watch): From worker-watch slice 2 (5310ab85): check-run.sh logs a 16th field (budget|silence) and exits 124 on a breach; --times and metrics still count these as plain failures. Proposed by the worker-watch orchestrator; user reviews.
+- 2026-11-25 (Robert Bo Davis): Moved to test-time-gates (user, 2026-11-26): the test runtime gate runs first, before the other fixes
+- 2026-11-25 (plan/test-time-gates): Planned 2026-11-25 in plans/test-time-gates-prd.md and -plan.md (6 slices). B-781, B-370: slices 2-3. B-837: gates in slices 1, 2, 4, unit armed in 6. B-772: balanced shards in slice 5. B-837 and B-772 stay open for test-time-gates-2 (component fallback, quick check trim, arming components and quick).
+
 ### B-783 · bug · Medications list: Log on a scheduled medication opens the Dose sheet over the timeline, so closing it lands on the timeline instead of the list
 
 - status: staging
@@ -7544,6 +7639,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-24 (prd/self-recovery): From self-recovery wave 2: slices 4 and 5 ran side by side; both use CARETOOK_USAGE_STOP 98 and overage, but limitedOf also counts a stall that still holds. Fits slice 6 (resume after a limit) or a fixes-tooling item.
 
+### B-787 · bug · Service worker install is all-or-nothing over ~530 files (addAll): one failed fetch on a flaky mobile network leaves the device with no offline worker until the next try
+
+- status: staging
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 9f675672
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). Consider caching in batches or retrying failed entries.
+
 ### B-788 · change · Offline page loads outside /app (/, /sign-in) show the browser's offline page; consider an offline fallback page from the service worker
 
 - status: staging
@@ -7552,6 +7656,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: a17eff6a
 
 - 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 59 (B-777). In-app redirects to sign-in are client-side and fine; only a direct offline load of / or /sign-in is affected.
+
+### B-792 · bug · Connectors: todays_doses doesn't return a med time's id, so a member's AI can't find the passId give_pass needs
+
+- status: staging
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 9f675672
+
+- 2026-11-24 (prd/fixes-ui): Found in fixes-ui slice 65 (B-695): give_pass's description says to use a med time's id from today's doses, but each todays_doses passes entry (name, time, at, state, slots) has no id.
 
 ### B-793 · bug · Staging candidate braked: roundtrip's 'add: shows on this device at once' takes just over its 2 s budget (2007 ms, 2069 ms on rerun)
 
@@ -7602,6 +7715,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-24 (Robert Bo Davis): The header already shows a sync status; this asks for a clearer, persistent offline cue (banner or sticky toast) while offline. Keep it clear of the bottom nav (B-803).
 
+### B-805 · question · Can the PWA sync in the background after offline work, or does the user have to open it to sync?
+
+- status: landed
+- prd: sync-safety-2
+- owner:
+- commit: c79b3ee4
+
+- 2026-11-24 (Robert Bo Davis): Likely answer: iOS installed PWAs have no Background Sync (WebKit), so pending uploads wait until the app is opened. Chrome/Android has the Background Sync API, but PowerSync's upload queue runs in the page, so today it waits too. Options: sync on open/focus (now), a service-worker sync on Android only, or native (Capacitor) background tasks later.
+- 2026-11-25 (plan/sync-safety-2): Answered in plans/sync-safety-2 (2026-11-25): no background upload; queued changes upload while the app is open, on open and on reconnect. iOS has no Background Sync and PowerSync's queue runs in the page; native background tasks wait for Capacitor. Written into docs/domain/sync.md; done at the plan's landing.
+
 ### B-806 · change · Need a loader screen for loading in offline mode.
 
 - status: landed
@@ -7610,3 +7733,264 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: c6fa22eb
 
 - 2026-11-24 (prd/fixes-ui): Orchestrator triage 2026-11-25: look and flow (fixes-ui). Starting the app offline shows a blank page while it loads (root HydrateFallback returns null; the /app layout waits on the local database). A branded loading screen there: the blank cold start B-325 names, without its native safe-area half. Wave 12 slice 75, beside B-804 (offline banner).
+
+### B-817 · bug · Mobile bottom nav renders dark in light mode
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: ee6117ca
+
+- 2026-11-25 (Robert Bo Davis): User report 2026-11-25. Bottom-nav siblings already shipped: B-763 (floats too high on iOS PWA), B-664 (rides up with keyboard). Triage: fixes-ui, a theme/look fix.
+- 2026-11-25 (Robert Bo Davis): The user's call (2026-11-25): a light, slightly translucent bar matching the page in light mode; dark mode unchanged. Today's near-black light-mode surface is deliberate (--tab-bar-surface in apps/web/app/app.css). Idea, not scheduled (decide later): sit the bar about 0.75rem into the iPhone bottom safe area (calc(var(--tab-bar-inset) - 0.75rem), ~22px from the edge vs ~38px now, after B-763); other phones unchanged. Tradeoff: Apple asks controls to stay out of the home-indicator strip.
+- 2026-11-25 (Robert Bo Davis): Also (the user, 2026-11-25): the bar's glass isn't transparent enough in dark mode. Today --tab-bar-glass mixes the surface at 85% in both themes (app.css); lower it in dark (text keeps 4.5:1 over busy content).
+- 2026-11-25 (Robert Bo Davis): Wanted before the user's live alpha-tester call on 2026-11-26 (backlog session, 2026-11-25), with B-342 in fixes-bug. Starts only if the user opens a lane; fixes-ui stays on hold until then.
+- 2026-11-25 (Robert Bo Davis): Pre-call run 2026-11-25 (the user's choice): one fixes-ui wave of only B-342, B-817, B-828; B-342 moved from fixes-bug for it. Must land and remove its worktree before orchestration-split wave 6 lands (about 2 to 2.5 h).
+
+### B-818 · bug · watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited')
+
+- status: landed
+- prd: fixes-tooling
+- owner:
+- commit: 2c40ee7b
+
+- 2026-11-25 (prd/orchestration-split): From orchestration-split slice 1 (2026-11-25): agent shells inherit CARETOOK_USAGE_WATCH=off from the orchestrator session, so the slice check failed twice on this test until the variable was unset. The test should clear the variable (or pass its own env).
+- 2026-11-25 (prd/orchestration-split-2): Seen 2026-11-25 on orchestration-split-2's slice checks (slice 4, and the base e512f067): the split week starts every slice worktree with CARETOOK_USAGE_WATCH=off, so every slice check's tooling step fails on this one test until it's fixed or the week ends.
+
+### B-819 · change · Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped)
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: cf023ddf
+
+- 2026-11-25 (Robert Bo Davis): User report 2026-11-25: the first load after picking can be slow and feels like nothing happens. Either option is fine with them: a loading page right away, or block re-taps and show a loading message in the tapped button. Triage: fixes-ui, flow feedback; no data change.
+
+### B-821 · change · Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 62d096d3
+
+- 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: normalize('B-772') under prefix RISA says no item; backlog.test.mjs asserts B-2 is note text under RISA. Additive; needs an owner before the move (runbook step 3).
+
+### B-822 · chore · Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 62d096d3
+
+- 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: format.mjs:486 Number(a.id.slice(2)) is NaN for RISA- (use IDS.num); config.mjs:62 item type [A-Z]+-\d+ rejects a digit prefix idPrefix allows and isn't checked against idPrefix; format.mjs:19 throws a Node stack at import, not a backlog: line. None change B- today.
+
+### B-823 · chore · Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 62d096d3
+
+- 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: a changed prefix would split behaviour, so slice 4's sample project can't vary it. Slice 3 owns ready.sh; rm.sh and the rest have no slice yet.
+- 2026-11-25 (prd/orchestration-split): Wave 3: slice 3 takes the prefixes in the six files it owns (lib.sh, prd.sh, unsynced.sh, land.sh, new.sh, ready.sh); rm.sh and the rest stay open.
+
+### B-825 · chore · doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 73b63660
+
+- 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. scripts/project/doc-budget.mjs:102.
+
+### B-826 · chore · run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 73b63660
+
+- 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. lib.sh:70-75; today's values are harmless.
+
+### B-827 · chore · No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 73b63660
+
+- 2026-11-25 (prd/orchestration-split): Wave 3 Fable skeptic (2026-11-25), not a blocker. From slices 3 and 9's hand-offs; also the stale comment at scripts/browser-checks/sync-matrix.mjs:11 naming the old sync-matrix test path. Needs a slice before the move.
+
+### B-828 · bug · Switching between submenus and group settings sometimes loads slowly with no feedback
+
+- status: staging
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: ee6117ca
+
+- 2026-11-25 (prd/orchestration-split): From the inbox: It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
+- 2026-11-25 (Robert Bo Davis): Triage: fixes-ui (flow feedback: show a pending state on navigation). Also worth having before alpha testers.
+- 2026-11-25 (Robert Bo Davis): Wanted before the user's live alpha-tester call on 2026-11-26 (backlog session, 2026-11-25), with B-342 in fixes-bug. Starts only if the user opens a lane; fixes-ui stays on hold until then.
+- 2026-11-25 (Robert Bo Davis): Pre-call run 2026-11-25 (the user's choice): one fixes-ui wave of only B-342, B-817, B-828; B-342 moved from fixes-bug for it. Must land and remove its worktree before orchestration-split wave 6 lands (about 2 to 2.5 h).
+
+### B-830 · bug · Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY
+
+- status: landed
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 9dd61dda
+
+- 2026-11-25 (Robert Bo Davis): User report 2026-11-25 with screenshot: Members page, Invite links, the seeded Viewer link (made by Dev Member) shows 'Couldn't load this link. Reload the page to try again.', Copy and Share disabled. Cause: seed-staging.yml (and reset-staging.yml's seed step) pass only APP_ENV, DATABASE_URL and SEED_USER_PASSWORD, so seeds/invites.ts sealLinkToken uses linkToken.ts's DEV_KEY; the staging server opens with the real INVITE_LINK_KEY, so careGroupInviteService.copyLink returns linkKeyMissing. Fix: pass INVITE_LINK_KEY from the staging environment's secrets to both Actions' seed step, then reseed or reset staging. Consider making the seed refuse to seal with the dev key when APP_ENV is staging, so a missing key fails loudly. Links made by hand on staging are not affected (inferred from code, not checked).
+
+### B-832 · chore · Wave 4 skeptic's code follow-ups for the split: unquoted role_doc fallback in five prompts, tier data read at check-plan import, a TypeError on a newline in a file name, the sample repo copying all of scripts/loops
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 73b63660
+
+- 2026-11-25 (prd/orchestration-split): Fable skeptic on wave 4 (2026-11-25), none blocking. (1) $(bye_line $(role_doc <role>)) is unquoted at prompts/orchestrator.sh:38, hotfix.sh:16, backlog.sh:59, recover.sh:17, plan.sh:38: shared.sh's fallback 'the <role> role's doc' word-splits, so bye_line prints 'the checks the names under _Bye_'; no test covers the fallback (every role is set today). (2) check-plan.mjs:73 reads risa.json and tiers.json at import: a broken tiers.json fails every importer at load (tooling-lint, gate, ci-gate, dev-brought) with a TierDataError. (3) scripts/ci/tier-data.mjs:150 groupOf throws a TypeError for a file name with a newline, where the old code answered unit. (4) sample-project/repo.mjs:31 copies all of scripts/loops, tests and goldens included, twice per golden test run: time only.
+
+### B-833 · change · Quick entry tips' examples should use the group's own provider and medication
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4f356153
+
+- 2026-11-25 (Robert Bo Davis): Triage: fixes-ui (wording in the quick entry tips: the example names one of the group's own providers, falling back to a fictional one). Say 'event', not 'appointment' (B-537).
+- 2026-11-25 (Robert Bo Davis): Widened (the user, 2026-11-25): the medication example too. In quickEntryCopy.ts's QUICK_ENTRY_EXAMPLES, 'appt Dr Lee Friday 2pm' names one of the group's providers and 'gave metformin' one of the group's medications, each falling back to the fictional default when the group has none. The box's accessible description (QUICK_ENTRY_RULES) reads the same lines. Say 'event', not 'appt' (B-537).
+
+### B-834 · chore · Wave 5 skeptic's code follow-ups for the split: the check plan's under() matches a path equal to a folder name (a symlink or gitlink replacing scripts/loops would propose none), prd.sh's check case carries on with an empty mode when check-plan.mjs throws, and a bad tier file fails CI commands with a bare stack
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 73b63660
+
+- 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 5 (go, 2026-11-25). 1: check-plan.mjs under() should refuse or tier-up an exact match on a folder path (old regexes needed a trailing slash). 2: prd.sh:473 should die when the mode read from check-plan.mjs is empty. 3: PROPOSED_TIERS/tierRank read the tier data at import (check-plan.mjs:357); give the error a clear line (see B-832). Also for the move runbook: re-home scripts/project/check-plan-rules.test.mjs to run through the risa CLI instead of dropping it, and decide in slice 11 whether tooling-tests.mjs throwing on an unset testProjects.tooling is right.
+
+### B-835 · chore · Wave 6 skeptic's follow-ups for the split: land.sh reads any docBudget hook failure as a budget breach and a mistyped hooks key skips the budget silently, no test joins a built release verdict to releasePasses at tier release, the core hardcodes prd fixes-bug in release.mjs and blame.mjs, vitest.config.ts keeps a stale loops/check-body entry and check-plan.mjs:11 a stale comment, check-tooling.mjs passes on an unset testProjects.tooling while tooling-tests.mjs throws
+
+- status: landed
+- prd: orchestration-split
+- owner: prd/orchestration-split
+- commit: 73b63660
+
+- 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 6 (2026-11-25, go) and slices 8 and 11's hand-offs. For the late follow-up slice with B-821 to B-834. Also: the check's body still names core:unit and the !tooling:* exclusions (pnpm test's set, until the move), so the hook contract's 'runs no tooling test of the tool's' is not yet true for Caretook.
+
+### B-838 · chore · Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers
+
+- status: landed
+- prd: orchestration-split-2
+- owner: prd/orchestration-split-2
+- commit: d9a5f958
+
+- 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 7 (2026-11-25, go, no blocker); none changes Caretook's behaviour today. (1) scripts/ci/verdict.fixtures/*.json: nothing ties the ten fixtures to verdict.mjs's buildVerdict (they match today), and VERDICT_VERSION lives in ci-runs.mjs:48 and verdict.mjs:29. (2) Former id prefix, when set (Risa only): format.mjs:307, inbox-merge.mjs:25, inbox-edit.mjs:20 (inbox tags), land.sh:115 (--fixes), prd.sh:351, prompts/plan.sh:9, ci-args.mjs:10, ci-lists.mjs:17, blame.mjs:18 still match the current prefix only; an ingest of a line tagged (B-772) under RISA is untested. (3) tidy-cli.mjs:219 w.branch.split('/')[1] beside sliceOf. (4) pr.sh:50 strips the prd and hotfix prefixes in turn. (5) ls.sh:83 puts the prefix in a grep -E pattern unescaped. (6) format.mjs:20 and registry.mjs:21 run loadConfigOrExit('backlog') at import, and planner-model.mjs:8 imports registry.mjs: open-session.mjs prints a backlog: line and exits 2 on a broken config. (7) outstanding.mjs:66 isTopicRun assumes prd-<topic> and slice-<topic>-<n> ref names; prd.sh's help text names prd/ and the rest. Also: Risa's counter starting above Caretook's highest id is not built (runbook step 3).
+
+### B-840 · bug · Offline banner flashes too often when the connection hasn't actually dropped
+
+- status: landed
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 9dd61dda
+
+- 2026-11-25 (Robert Bo Davis): From the inbox: Needs a longer timeout before marking the site as offline.
+- 2026-11-25 (Robert Bo Davis): Triage: wrong behaviour (the banner shows while the connection is up). Check what drives the offline flag (PowerSync status vs navigator.onLine) and add a short grace period before showing it.
+
+### B-842 · chore · Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command
+
+- status: landed
+- prd: orchestration-split-2
+- owner: prd/orchestration-split-2
+- commit: d9a5f958
+
+- 2026-11-25 (prd/orchestration-split): From the Fable skeptic on wave 8 (slice 15, merge 73b63660; go, no blocker). 1) scripts/project/doc-budget.mjs: only errors inside the land try-block exit 2; a failed import of doc-budget.config.mjs exits 1 and land.sh calls it a breach. 2) blame, ci-args, ci-commits, ci-runs, ci-status, gate, outstanding, promote read tier data at import through tierDataOrExit('ci'): make lazy or fix the 'lazy' wording. 3) proposedTiers()/tierRank() call loadConfig() each time; gate.mjs calls tierRank per commit in walkVerdicts: memoize. 4) ciFailureTopic() returns '' when backlog.ciFailureTopic is unset, so findings would file with prd '': refuse or skip. 5) prd.sh check case: a failing git diff reports 'the check plan failed'; separate the messages. 6) check-plan.mjs isFolder stats under project.root, not --repo DIR (symlink/gitlink edge only). 7) fixes-plans.test.mjs now tests Caretook's copy of nextSlice; the core's (scripts/loops/status-trim.mjs:111) can drift untested. 8) scripts/project/landing.mjs: read the reset command from commands.datastoreReset again, and drop 'after landing' from land.sh's post-landing next-steps line. 9) vitest.config.ts comment near PROJECT_TOOLING. 10) Without the core, check-areas.test and test-projects.test fail and are not on the PRD's residual list: add them to the list (the move runbook) or fix them. Waits for stage 1b with B-838.
+
+### B-843 · bug · Group settings Members: pending-invite and invite-link cards are crowded on a phone
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4f356153
+
+- 2026-11-25 (Robert Bo Davis): From a phone screenshot (2026-11-25, staging, dark theme). Invite links card: the details column squeezes to one word per line ('Used / 1 / of / 10 / times …') and 'Expires Dec' runs under the Copy and Share buttons. Pending invitations card: the email is cut to 'sam.invited@e…' and the meta wraps over five lines beside Resend and Revoke. Fix: at narrow widths put the actions on their own row under the details (or in a menu), let the email wrap or show it in full. The 'Couldn't load this link' error and greyed Copy/Share on the same card are B-830 (staging seed without INVITE_LINK_KEY), not this item.
+
+### B-844 · chore · Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git
+
+- status: landed
+- prd: orchestration-split-2
+- owner: prd/orchestration-split-2
+- commit: d671ae22
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic on wave 1 (2026-11-25, tip 3b427316; go, no blocker). 1) scripts/loops/recover.test.mjs:232-235 and tidy-cli.test.mjs:124-127 copy scripts/project by join(HERE, '..', 'project'), unseen by the boundary lint: slice 3 removes both (now in its acceptance criteria). 2) scripts/project/test-db.sh:46-64 duplicates stack-lib.sh:9-32 (test_db_name, write_test_env, the port and project defaults): a name drift leaks databases (new.sh writes the core's name, rm.sh drops the project's), a port drift breaks a worktree's tests; add a one-line parity assertion until slice 2 or 3 removes the core copy. 3) apps/web/test/browserLease.test.ts:79-84 runs the real hooks.lease in web:unit, which CI runs: once Risa is external, a clone without the tool fails five of six tests; at the move, skip when the command is absent or use a stub lease command. 4) apps/web/test/browserLease.ts:91: sh -c 'exec <cmd>' fails for a command with a leading env assignment or a compound command; say 'one simple command' in the config doc. 5) scripts/loops/doc.mjs:60-76 sectionOf: any fence marker toggles the fence state, the heading match takes the first heading at any level (the old skeptics.mjs matched only ##), closing #s aren't stripped; none bites today's docs. 6) scripts/project/test-db.sh:32: under set -euo pipefail, main=$(git … | awk …) exits with no message outside a git repository, and awk's $2 truncates a main-checkout path with a space (as lib.sh:10).
+- 2026-11-25 (prd/orchestration-split-2): Folds into orchestration-split-2 slice 9 (wave 4) with B-838 and B-842, on the user's word (relayed by split-ops 2026-11-25); point 2 (test DB name and port parity) goes to slice 2 if it fits its files.
+- 2026-11-25 (prd/orchestration-split-2): Point 2 (test DB name and port parity) done by orchestration-split-2 slice 2 (merge 5b690d58): the core keeps no copy; they come from the test-db hook. The other points stay for slice 9.
+
+### B-846 · chore · Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move
+
+- status: landed
+- prd: orchestration-split-2
+- owner: prd/orchestration-split-2
+- commit: d671ae22
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic on wave 2 (go at 00929e32, 2026-11-25). 1) scripts/project/stack-facts.sh:187-191: stack_facts derives project= from .env.loop's SLOT, not .env's CARETOOK_STACK (which teardown uses); a SLOT outside 1-19 prints no project. 2) scripts/project/stack.sh:52 (base_of): --env-only keeps an existing .env.loop BASE_BRANCH over the --base given, where the old write_stackless_env and write_stack_env always wrote the given one; harmless for today's callers. 3) Slice 3 needs from the hook contract: a 'stop, keep data' operation (down.sh:75), a stopped-since fact (stack_stopped_secs still calls Docker), and recover.sh's compose-up-plus-migrate, which is not stackUp (that also seeds). 4) docs/agents/loop.md:1 opens with a headless list (it continues the generic Loop rules): a one-line pointer to pnpm prd doc loop would help a direct reader. 5) After the move to Risa, the checkout the tool lives in (lib.sh stack_hook, loops_lib_dir) is no longer the project: stack_hook needs the project root. 6) cd … && pwd in a $(…) prints twice when CDPATH matches (lib.sh loops_lib_dir; also session.sh, rotate.sh). Point 3 is for slice 3 (wave 3); the rest for slice 9 or the move runbook.
+- 2026-11-25 (prd/orchestration-split-2): On the user's word (relayed by split-ops 2026-11-25): point 3 (the hook contract's gaps) goes to orchestration-split-2 slice 3 (wave 3), the rest to slice 9 (wave 4).
+
+### B-847 · chore · Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order
+
+- status: landed
+- prd: orchestration-split-2
+- owner: prd/orchestration-split-2
+- commit: d671ae22
+
+- 2026-11-25 (prd/orchestration-split-2): From the Fable skeptic's go on wave 3 at 9bea8d9c (2026-11-25). 1. inventory-facts.mjs:120-131 (readyFacts) and tidy-cli.mjs:297-298 ignore stackReady's exit status: a failed call reads as no stack, so its project leaves the in-use set and the dispatcher's unattended tidy-cli --yes could remove its dangling volumes (harmless today: every stack volume is a bind mount); take the project from stackStatus, skip volume findings when a hook call failed, add a tidy-cli test. 2. scripts/project/stack.sh:121 ready exits 1 for not-ready and for a failed hook; gc.sh:44, ls.sh:28, inventory-facts.mjs:121 can't tell them apart: a distinct exit code or an always-printed fact. 3. tidy's read path runs docker system df -v (stack-facts.sh:292) where it ran docker volume ls --filter dangling=true: the non --all form could use the cheap listing. 4. new.sh:100-112: a failed install leaves a stacked worktree with no .env.loop and its slot lease held, so a later stack up leases a second slot; the missing-main-env check moved to after install. 5. recover.sh:239 writes the migrate marker before the hook, so a failed compose-up or Postgres wait reads as a cut-off migrate, and a stack_up on a worktree with no stack leaves a marker nothing clears; bring back the dropped marker-exists-while-migrating test through the stub's SAMPLE_STACK_MARK. 6. hooks.mjs has no unit test (127 for an unset hook, cwd at the tool's top, fact's last value, factList); with no stackEngine hook inventory-facts.mjs:166 reads engine not running and recover dies: a project without a stack needs no-hook-means-no-engine. 7. Docker words left in the core: inventory.mjs:15,55,194,370, recover.sh:294,301, prd.sh:60,70 (orchestration-split-3). 8. packages/notifications/src/config.ts:27 names the removed scripts/loops/serve.sh (should be scripts/project/serve.sh). 9. Merged docs read out of order: docs/agents/orchestrator.md:1-4 and planner.md:4 put the role's intro mid-document, scripts/loops/docs/backlog.md opens with Deciding what's next; a generic one-line intro per role, or an additions file that can prepend. 10. Orchestrator budgets have 4 bytes of room each (3387 of 3391, 11965 of 11969). 11. Slice 3's touched files still on the allowlist: recover.sh (project-env 18), inventory-facts.mjs (13), ls.sh (9), tidy-cli.mjs (6, core-to-project 1), browser.sh (core-to-project 4). 12. test-db.sh:216 use prints its human line to stderr, shown beside new.sh's summary (cosmetic). Proposed for slice 9 (wave 4) with B-838, B-842, B-844, B-846: the user's word needed.
+- 2026-11-25 (prd/orchestration-split-2): Goes to slice 9 (wave 4) with B-838, B-842, B-844 and B-846, on the user's word relayed by split-ops 2026-11-25; slice 9 may be split in two when wave 4 is planned.
+- 2026-11-25 (slice/orchestration-split-2/10): Slice 10 (orchestration-split-2): points 1-6, 8, 12 done. Point 11 left: the five files' remaining allowlist lines are CARETOOK_ env names (the RISA_ rename, orchestration-split-3), browser.sh's runner paths (orchestration-split-3) and tidy-cli.mjs:129's scripts/ci/quarantine.txt (a config path, slice 9's config points); the counts are exact, nothing to drop here. Point 4's missing-main-env check still runs inside stackUp, after install (a pre-install check would need a new hook verb).
+- 2026-11-25 (prd/orchestration-split-2): Point 7 (Docker words in the core) left for orchestration-split-3; the rest done in orchestration-split-2 slices 8 and 10 (merges 8e76bafc, 9cba7505).
+
+### B-848 · bug · Right nav links overlap the recipient selector and header menu on medium-sized screens
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 4f356153
+
+- 2026-11-25 (Robert Bo Davis): Triage: header layout at medium widths (B-848) and View menu wording (B-849); small UI fixes
+
+### B-849 · change · Rename timeline View menu labels from Rows and Cards to Condensed and Full
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: c492621a
+
+- 2026-11-25 (Robert Bo Davis): Triage: header layout at medium widths (B-848) and View menu wording (B-849); small UI fixes
+
+### B-850 · change · Timeline Full view should show live notes with their rich text formatting
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: c492621a
+
+- 2026-11-25 (Robert Bo Davis): Triage: Full view renders live notes' rich text (reuse the read-only Tiptap view); may outgrow a fix if layout or speed suffers
+
+### B-856 · bug · Marketing pages have no light mode (dark only)
+
+- status: dropped
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-25 (Robert Bo Davis): User 2026-11-26, for the next marketing pass; pairs with B-836 (visual refresh). Check whether it should follow the system theme like the app
+- 2026-11-25 (Robert Bo Davis): User 2026-11-25: not a bug (user error); light mode works
+
+### B-857 · change · Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537)
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 5f191304
+
+- 2026-11-25 (prd/fixes-ui): Found by fixes-ui slice 80 (B-833): the parser's preview wording for an appointmentWord or visit line still says Appointment; B-537 made Event the one word app-wide. Wording only, in the quick entry parser's titles and their tests.

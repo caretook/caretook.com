@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 import { decideGate, needsBlame, verdictMeets, walkVerdicts } from "./gate.mjs";
 
@@ -51,6 +53,19 @@ describe("decideGate", () => {
     const out = decide({ kind });
     expect(out).toMatchObject({ land: false, code });
     expect(out.lines.join("\n")).toContain("pnpm prd ci run unit --ref b --wait");
+  });
+
+  it("a time verdict refuses with that reason: never blamed, never landed as a flake", () => {
+    const verdict = JSON.parse(
+      readFileSync(new URL("./verdict.fixtures/branch-time-failure.json", import.meta.url), "utf8"),
+    );
+    expect(verdict.kind).toBe("time");
+    expect(needsBlame(verdict, [])).toBe(false);
+    const out = decideGate({ verdict, tier: "unit", branch: "b", touched: [] });
+    expect(out).toMatchObject({ land: false, code: 6, fileFlakes: false });
+    expect(out.lines).toEqual([
+      "time: past an armed cutoff in unit-1; its tests passed. Trim the step, then: pnpm prd ci run unit --ref b --wait",
+    ]);
   });
 
   it("file lands when every failure is dev's, and files its flakes", () => {
@@ -203,6 +218,44 @@ describe("walkVerdicts", () => {
       { ...wave, verdicts: { components: "file" } },
     ]);
     expect(failed.result).toMatchObject({ verdict: null, carried: null, need: "components" });
+  });
+
+  it("asks for a fresh run on the tip when the verdict behind a tooling commit failed, and says why", () => {
+    for (const kind of ["file", "brake", "infra", "time"]) {
+      const { result, asked } = walk([
+        { sha: "fix", change: "none" },
+        { ...wave, verdicts: { components: kind } },
+      ]);
+      expect(result).toMatchObject({ verdict: null, run: null, carried: null, need: "components" });
+      expect(result?.why).toContain(`the ${kind} verdict on wave is not carried`);
+      expect(asked).toEqual(["fix@components", "wave@components"]);
+    }
+    const own = walk(
+      [
+        { sha: "fix", change: "none" },
+        { ...wave, verdicts: { components: "flake" } },
+      ],
+      "components",
+      ["a.test.ts"],
+    );
+    expect(own.result).toMatchObject({ verdict: null, need: "components", why: expect.any(String) });
+  });
+
+  it("still carries a green or an untouched flake behind a tooling commit", () => {
+    for (const kind of ["green", "flake"]) {
+      const { result } = walk([
+        { sha: "fix", change: "none" },
+        { ...wave, verdicts: { components: kind } },
+      ]);
+      expect(result).toMatchObject({ verdict: { commit: "wave", kind }, carried: null, need: "components" });
+      expect(result?.why).toBeUndefined();
+    }
+  });
+
+  it("keeps a failing verdict on the tip itself for the gate to blame", () => {
+    const { result } = walk([{ sha: "tip", change: "none", verdicts: { components: "file" } }]);
+    expect(result).toMatchObject({ verdict: { commit: "tip", kind: "file" } });
+    expect(result?.why).toBeUndefined();
   });
 
   it("stops at a commit no carry crosses", () => {

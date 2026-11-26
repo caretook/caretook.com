@@ -136,7 +136,8 @@ export function parseCiRef(ref) {
 
 /**
  * The plan job's outputs for a ref name, and a narrowed run's files if any.
- * `components2` is the second and third shards: a narrowed run has one components job.
+ * `components2` is the second and third component shards, `unit2` the second unit
+ * shard: a narrowed run has one components job and one unit job.
  * @param {string} ref
  * @param {string[] | null} [narrowed]
  */
@@ -148,13 +149,14 @@ export function planOutputs(ref, narrowed = null) {
     return [
       `tier=${parsed.tier}`,
       "static=false",
-      `unit=${jobs.includes("unit")}`,
+      `unit=${jobs.includes("unit-1")}`,
       `integration=${jobs.includes("integration")}`,
       `components=${jobs.includes("components-1")}`,
       "full=false",
       "candidate=false",
       "release=false",
       "components2=false",
+      "unit2=false",
       "narrowed=true",
     ];
   }
@@ -163,6 +165,7 @@ export function planOutputs(ref, narrowed = null) {
     `tier=${parsed.tier}`,
     ...TIERS.map((t, i) => `${t}=${i <= upTo}`),
     `components2=${upTo >= TIERS.indexOf("components")}`,
+    `unit2=${upTo >= TIERS.indexOf("unit")}`,
     "narrowed=false",
   ];
 }

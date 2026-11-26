@@ -60,7 +60,7 @@ describe.each([420, 1280])("at %i", (width) => {
     expect(after).toBeGreaterThanOrEqual(0);
   });
 
-  test("Timeline layout: the layout, named by the page's heading (Rows or Cards), then easy mode", async () => {
+  test("Timeline layout: the layout, named by the page's heading (Condensed or Full), then easy mode", async () => {
     await open("/app/settings/timeline", width);
     const group = page.getByRole("radiogroup", { name: "Timeline layout" });
     await expect.element(group).toBeVisible();
@@ -69,7 +69,7 @@ describe.each([420, 1280])("at %i", (width) => {
         .getByRole("radio")
         .elements()
         .map((r) => r.getAttribute("aria-label")),
-    ).toEqual(["Rows", "Cards"]);
+    ).toEqual(["Condensed", "Full"]);
     expect(page.getByRole("radiogroup").elements()).toHaveLength(2);
     expect(
       page
@@ -166,66 +166,66 @@ describe("the timeline layout: Settings and the timeline's toggle change one pre
     for (const [k, v] of entries) localStorage.setItem(k, v);
   };
 
-  test("Cards in Settings saves at once, and the timeline then shows cards", async () => {
+  test("Full in Settings saves at once, and the timeline then shows the full layout", async () => {
     const server = account("rows");
     const device = await openOn(server.api);
     await expect.poll(view).toBe("rows");
 
     await openSettings(device);
-    expect(chosen()).toBe("Rows");
-    await userEvent.click(layout().getByRole("radio", { name: "Cards" }));
+    expect(chosen()).toBe("Condensed");
+    await userEvent.click(layout().getByRole("radio", { name: "Full" }));
     await expect.element(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
-    expect(chosen()).toBe("Cards");
+    expect(chosen()).toBe("Full");
     expect(server.prefs.timelineView).toBe("cards");
 
     await openTimelineFromHeader(device);
     await expect.poll(view).toBe("cards");
   });
 
-  test("the timeline's toggle back to Rows, then Settings at once (the save still in flight), shows Rows", async () => {
+  test("the timeline's toggle back to Condensed, then Settings at once (the save still in flight), shows Condensed", async () => {
     const server = account("cards");
     const device = await openOn(server.api);
     await expect.poll(view).toBe("cards");
 
     server.hold();
-    await setView("Rows");
+    await setView("Condensed");
     // Settings opens while the toggle's save is still on its way.
     const opening = openSettings(device);
     await expect.poll(device.location).toBe("/app/settings/timeline");
     expect(server.prefs.timelineView).toBe("cards");
     server.release();
     await opening;
-    expect(chosen()).toBe("Rows");
+    expect(chosen()).toBe("Condensed");
     expect(server.prefs.timelineView).toBe("rows");
   });
 
   test("the choice follows the account to a second browser, both ways", async () => {
     const server = account("rows");
-    // The first browser chooses Cards in Settings.
+    // The first browser chooses Full in Settings.
     const first = await openOn(server.api);
     await openSettings(first);
-    await userEvent.click(layout().getByRole("radio", { name: "Cards" }));
+    await userEvent.click(layout().getByRole("radio", { name: "Full" }));
     await expect.element(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
     await first.screen.unmount();
     const firstBrowser = storage();
 
-    // A second browser (nothing stored yet) shows the account's Cards, then chooses Rows.
+    // A second browser (nothing stored yet) shows the account's Full, then chooses Condensed.
     localStorage.clear();
     const second = await openOn(server.api);
     await expect.poll(view).toBe("cards");
     await openSettings(second);
-    expect(chosen()).toBe("Cards");
-    await userEvent.click(layout().getByRole("radio", { name: "Rows" }));
+    expect(chosen()).toBe("Full");
+    await userEvent.click(layout().getByRole("radio", { name: "Condensed" }));
     await expect.element(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
     expect(server.prefs.timelineView).toBe("rows");
     await second.screen.unmount();
 
-    // The first browser's next visit follows the second's choice over its own cached Cards.
+    // The first browser's next visit follows the second's choice over its own cached Full.
     restore(firstBrowser);
     const again = await openOn(server.api);
     await expect.poll(view).toBe("rows");
     await openSettings(again);
-    expect(chosen()).toBe("Rows");
+    expect(chosen()).toBe("Condensed");
   });
 });
 
@@ -271,10 +271,10 @@ describe("offline: a change is pending on the device and applies at once", () =>
     expect(labels).not.toContain("°F");
   });
 
-  test("the timeline's Cards is pending, and still shown when the timeline opens again", async () => {
+  test("the timeline's Full is pending, and still shown when the timeline opens again", async () => {
     const first = await renderWithDevice({ route: TIMELINE_ROUTES, url: TIMELINE_URL, fixtures: world() });
     await expect.poll(view).toBe("rows");
-    await setView("Cards");
+    await setView("Full");
     await expect.poll(() => pending()?.timelineView).toBe("cards");
     await first.screen.unmount();
 

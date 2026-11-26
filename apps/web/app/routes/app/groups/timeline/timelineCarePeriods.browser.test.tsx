@@ -167,7 +167,7 @@ describe("the markers", () => {
   test("show in cards", async () => {
     await open();
     await ready();
-    await setView("Cards");
+    await setView("Full");
     await waitUntil(
       () => !!document.querySelector(`main ol[data-view="cards"] > li[data-marker="${HOME_NOW.id}"]`),
       "the marker in cards",

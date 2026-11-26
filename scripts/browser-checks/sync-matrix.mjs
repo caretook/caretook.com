@@ -8,7 +8,7 @@
 // - `server` tables are written only by the services (or the seeds): a
 //   seeded row must be on both devices.
 //
-// A new synced table adds a row here; scripts/loops/sync-matrix.test.mjs
+// A new synced table adds a row here; scripts/project/sync-matrix.test.mjs
 // fails until it does. `care_recipient` is uploadable for one column only
 // (`no_known_allergies_at`), so roundtrip patches it in its own step
 // (`RECIPIENT_PATCH`) rather than inserting a row.
@@ -59,6 +59,18 @@ export const symptomTypeId = (groupId, name) =>
 /** The matrix's new catalog name (a symptom's), unique to the run by its tag. */
 export const matrixSymptomName = (tag) => `${tag} matrix symptom`;
 
+/** packages/data's TAG_NAMESPACE and RECORD_TAG_NAMESPACE: a tag's id comes from its group, key and counter; a link's from its tag and record. */
+export const TAG_NAMESPACE = "19faa300-620b-4ca1-b150-6e6d3826303c";
+export const RECORD_TAG_NAMESPACE = "37bf062e-a4b6-42b1-a4ce-d687ffdcfc7a";
+/** packages/data's `tagKey`: case and spaces folded. */
+export const tagKey = (name) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+export const tagId = (groupId, name, counter = 0) =>
+  uuidV5(`${groupId.toLowerCase()}:${counter}:${tagKey(name)}`, TAG_NAMESPACE);
+export const recordTagId = (tagIdValue, recordId) =>
+  uuidV5(`${tagIdValue.toLowerCase()}:${recordId.toLowerCase()}`, RECORD_TAG_NAMESPACE);
+/** The matrix's new tag, unique to the run by its tag. */
+export const matrixTagName = (tag) => `${tag} matrix tag`;
+
 /** An empty Yjs update (base64): the smallest valid `note_update`. */
 const EMPTY_YJS_UPDATE = "AAA=";
 
@@ -95,6 +107,8 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       series: randomUUID(),
       symptomType: symptomTypeId(groupId, matrixSymptomName(tag)),
       entryTodo: entryTodoId(entry, todo),
+      tag: tagId(groupId, matrixTagName(tag)),
+      recordTag: recordTagId(tagId(groupId, matrixTagName(tag)), entry),
     },
   };
 };
@@ -399,6 +413,35 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // A new tag in the group's list (its id derived from the group and the name).
+  device(
+    "tag",
+    (ctx) => ctx.ids.tag,
+    (ctx) =>
+      insert("tag", {
+        id: ctx.ids.tag,
+        group_id: ctx.groupId,
+        name: matrixTagName(ctx.tag),
+        name_key: tagKey(matrixTagName(ctx.tag)),
+        ...audit(ctx),
+      }),
+  ),
+  // The matrix tag on the matrix note (both written above).
+  device(
+    "record_tag",
+    (ctx) => ctx.ids.recordTag,
+    (ctx) =>
+      insert("record_tag", {
+        id: ctx.ids.recordTag,
+        group_id: ctx.groupId,
+        tag_id: ctx.ids.tag,
+        entry_id: ctx.ids.entry,
+        todo_id: null,
+        provider_id: null,
+        medication_id: null,
+        ...audit(ctx),
+      }),
+  ),
 ];
 
 /**
@@ -424,6 +467,8 @@ export const cleanupSql = (ctx, recordedAt) =>
   [
     `DELETE FROM timeline_entry_provider WHERE id = '${ctx.ids.link}'`,
     `DELETE FROM timeline_entry_todo WHERE id = '${ctx.ids.entryTodo}'`,
+    `DELETE FROM record_tag WHERE id = '${ctx.ids.recordTag}'`,
+    `DELETE FROM tag WHERE id = '${ctx.ids.tag}'`,
     `DELETE FROM medication_condition WHERE id = '${ctx.ids.medicationCondition}'`,
     `DELETE FROM condition_manager WHERE id = '${ctx.ids.conditionManager}'`,
     `DELETE FROM note_update WHERE document_id = '${ctx.ids.provider}'`,

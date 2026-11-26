@@ -10,7 +10,9 @@
 # `verdict` artifact, kept 7 days. A test step that fails reruns its failed files
 # once (scripts/ci/test-job.mjs), and a failed browser check likewise
 # (scripts/ci/browser-job.mjs); a quarantine step runs the quarantined tests and
-# can't fail the run. A commit carrying .ci-narrowed.json runs only its files' jobs.
+# can't fail the run. The unit and component test steps are timed (--time-gate):
+# each shows its seconds and verdict in its job summary, and an armed breach fails
+# it. A commit carrying .ci-narrowed.json runs only its files' jobs.
 #
 # Secrets: none. The test env is fictional and generated per job
 # (scripts/ci/env.mjs). The repo is public, so run logs are public.
@@ -50,6 +52,7 @@ jobs:
       candidate: ${{ steps.tier.outputs.candidate }}
       release: ${{ steps.tier.outputs.release }}
       components2: ${{ steps.tier.outputs.components2 }}
+      unit2: ${{ steps.tier.outputs.unit2 }}
       pg_password: ${{ steps.password.outputs.pg_password }}
     steps:
       - id: checkout
@@ -117,7 +120,9 @@ jobs:
         if: ${{ !cancelled() }}
         run: node scripts/project/check-areas.mjs lint
 
-  unit:
+  # Two shards (balanced by scripts/ci/shard-sequencer.mjs), each timed as its own
+  # unit measure; the first runs the quarantined tests, and a narrowed run only it.
+  unit-1:
     needs:
       - plan
     if: ${{ needs.plan.outputs.unit == 'true' }}
@@ -147,9 +152,9 @@ jobs:
         env:
           CARETOOK_LEASES: ""
         run: >-
-          node scripts/ci/test-job.mjs --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
-          --reporter=json --outputFile.json=ci-results/unit.json
+          node scripts/ci/test-job.mjs --time-gate --project data:unit --project web:unit --project notifications:unit
+          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --shard=1/2
+          --reporter=default --reporter=json --outputFile.json=ci-results/unit-1.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
         if: ${{ !cancelled() }}
@@ -159,11 +164,49 @@ jobs:
         run: >-
           node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
           --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
-          --reporter=json --outputFile.json=ci-results/unit.json
+          --reporter=json --outputFile.json=ci-results/unit-1.json
       - id: report
         name: Report the failures
         if: ${{ !cancelled() }}
-        run: node scripts/ci/verdict.mjs summarize ci-results/unit.json >> "$GITHUB_OUTPUT"
+        run: node scripts/ci/verdict.mjs summarize ci-results/unit-1.json >> "$GITHUB_OUTPUT"
+
+  unit-2:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.unit2 == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env and a git identity for the tooling tests
+        run: |
+          node scripts/ci/env.mjs >> "$GITHUB_ENV"
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+          git switch --create ci-run
+      - id: test
+        name: Unit tests
+        # The lease tests take real leases in their own temp directories.
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --time-gate --project data:unit --project web:unit --project notifications:unit
+          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --shard=2/2
+          --reporter=default --reporter=json --outputFile.json=ci-results/unit-2.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/unit-2.json >> "$GITHUB_OUTPUT"
 
   integration:
     needs:
@@ -271,7 +314,7 @@ jobs:
       - id: test
         name: Component tests (shard 1 of 3)
         run: >-
-          node scripts/ci/test-job.mjs --project web:components --project web:components:ny --shard=1/3
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=1/3
           --reporter=default --reporter=json --outputFile.json=ci-results/components-1.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
@@ -310,7 +353,7 @@ jobs:
       - id: test
         name: Component tests (shard 2 of 3)
         run: >-
-          node scripts/ci/test-job.mjs --project web:components --project web:components:ny --shard=2/3
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=2/3
           --reporter=default --reporter=json --outputFile.json=ci-results/components-2.json
       - id: report
         name: Report the failures
@@ -342,7 +385,7 @@ jobs:
       - id: test
         name: Component tests (shard 3 of 3)
         run: >-
-          node scripts/ci/test-job.mjs --project web:components --project web:components:ny --shard=3/3
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=3/3
           --reporter=default --reporter=json --outputFile.json=ci-results/components-3.json
       - id: report
         name: Report the failures
@@ -755,7 +798,8 @@ jobs:
     needs:
       - plan
       - static
-      - unit
+      - unit-1
+      - unit-2
       - integration
       - components-1
       - components-2

@@ -2,6 +2,33 @@
 
 Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `pnpm prd status-trim fixes-ui`, the newest trim first.
 
+## Trimmed 2026-11-26
+
+**Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
+
+## Trimmed 2026-11-26
+
+**Wave 14 (2026-11-25, this session):** synced dev (d2d851b7) into prd/fixes-ui first. Slices 79–84: B-819 no-group loading (opus), B-833 quick entry tips use the group's names (opus), B-843 members invite cards on a phone (opus), B-848 header overlap at medium widths (opus), B-849 View menu Condensed/Full (sonnet, a rename), B-850 Full view rich live notes (opus; may outgrow a fix). All six run at once; hot files set on the registry row; items claimed. All six merged. CI components run 45742849440 (a9c81be4): brake; blame: branch's timelineRichText.browser.test ("Cards" after 83's rename, sent to 84) and groupChoicePending.browser.test (loads read before the loader ran, sent to 79); groups.int admin codes flaky (not ours). Fixes merged: 79 (10ee64c0), 84 (8ccf1fef); CI components green (run 45744852768, 39c3f1a4). Synced dev (local 731fa6da); slice worktrees removed; recheck components on the synced tip out; `browser --suite` blocked by the permission classifier (as in wave 5), `browser --changed --base dev` 5/6: layout-offline.spec failed on the old "Cards" label (slice 83 missed scripts/browser-checks); fixed by a sonnet fix agent (merge 858da9a4), layout-offline then passed. Recheck components green on the synced tip (run 45746157575, 6759b1b2). PR and Codex review next, then land. Slice 83 also renamed Settings > Timeline layout and edited docs/domain/timeline.md (a loop shouldn't; kept as the wave's fold). Slice 80 added "event"/"events" as quick entry `appointmentWord` rows (packages/data vocabulary); the parser's preview still titles events "Appointment with …" (follow-up, B-537 wording). At landing fold into live-notes.md: Full view cards render a note's formatting from its Yjs snapshot via `lib/live-notes/noteRichText.ts` and `components/entry/NoteRichText.tsx` (no Tiptap on the timeline; cache per doc in notes.sync.ts; mentions show their typed name) (slice 84). At landing fold into app-shell.md: header section links are icons only (label sr-only, `title` hint) from `sm` to `lg`; the group menu trigger shrinks and truncates (slice 82). Still held: B-694 (the user approves each form live), B-325 (Capacitor). Wave 13 landed as dev 62ebbeeb (PR #190), details in the history file.
+
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 84    | B-850 | merged (opus)   | c492621a |
+| 83    | B-849 | merged (sonnet) | df82660c |
+| 82    | B-848 | merged (opus)   | 4f356153 |
+| 81    | B-843 | merged (opus)   | 606ed5da |
+| 80    | B-833 | merged (opus)   | 3632f035 |
+| 79    | B-819 | merged (opus)   | cf023ddf |
+
+## Trimmed 2026-11-25
+
+**Wave 13 (2026-11-25, the user's pre-call wave):** only B-342, B-817, B-828 (slices 76–78, all opus). Held for later: B-325 (native safe area), B-694 (long create forms on tabs), B-819 (no-group page feedback), B-833 (quick entry tip uses a group provider). Slice worktrees made with `CARETOOK_USAGE_WATCH=off` (split week). **Deadline:** land and `pnpm prd rm fixes-ui` within about 2 to 2.5 h of 2026-11-25 start, before orchestration-split wave 6 (if late, wave 6 waits). Hot files set on the registry row.
+
+| Slice | Item  | State         | Merge    |
+| ----- | ----- | ------------- | -------- |
+| 78    | B-828 | merged (opus) | ee6117ca |
+| 77    | B-817 | merged (opus) | e57ed71a |
+| 76    | B-342 | merged (opus) | dc2e5fc4 |
+
 ## Trimmed 2026-11-25
 
 **Next step (hand-over):** wave 12 landed 2026-11-24 23:51 as dev ea38277 through PR #180, `--no-review` (Codex out of credits); CI components green (run 45547361491, 2246ae8f), landed unsynced (dev shared no file); browser --changed --base dev 11/11. Slices, all opus: 73 (B-803, 3rem glass tab bar, sliding `data-tab-bar-indicator` pill), 74 (B-804, `OfflineBanner` after a 3 s grace, mounted after the staff announcement), 75 (B-806, `brand/AppLoading` as root HydrateFallback, 300 ms CSS delay). Sent back twice: the banner flashed on every online cold load (grace added); the first CI run (45545458788) broke staff.browser.test (`header + [data-region="announcement"]`). Lesson: a new region in the layout breaks frame tests that pin sibling order; name staff/frame tests in such a slice. Report filed; to-test/2026-11-24-2351-fixes-ui.md. Docs folded into app-shell.md (trimmed to budget). Slice worktrees removed. **Next session:** `pnpm backlog ingest` and `list`; no triaged fixes-ui item waits except the held B-694 (user approves each form live) and B-325 (Capacitor; its blank-start half now done by B-806).

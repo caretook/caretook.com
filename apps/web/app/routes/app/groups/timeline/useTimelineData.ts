@@ -3,6 +3,7 @@ import type { LiveDocument } from "~/lib/live-notes/liveNow";
 import type { LatestVital, TimelineEntry } from "~/lib/core/rpc";
 import type { EntryMedicationRow } from "~/lib/medications/medicationTimeline.sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
@@ -22,7 +23,7 @@ import { getSync, useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
-import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import { cachedRichText, groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
 import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import {
   fromLocalTimestamp,
@@ -70,13 +71,15 @@ export type TimelineData = {
   nameOf: (userId: string) => string;
   /** A member's picture, when they have one (and are still a member). */
   imageOf: (userId: string) => string | null;
+  /** A note's or event's formatted text (its document's blocks), decoded when asked: the cards' body. */
+  richTextOf: (entryId: string) => NoteBlock[] | null;
   /** A note's or event's linked providers, in link order (the "with …" line). */
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
   /** A pass's name (deleted ones too), for a pass log's row; null when it isn't on the device. */
   passNameOf: (passId: string | null) => string | null;
   /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
   now: Date;
-  /** The Today card's appointment: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
+  /** The Today card's appointment: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind, author and tag filters, not the search. */
   next: { next: TimelineEntry | null; more: number };
   /** The care periods' track and their places' names (the current-period line). Ignores the filters. */
   periods: TimelinePeriods;
@@ -131,13 +134,14 @@ export function useTimelineData({
   day?: string | null;
   initial: TimelineRows;
 }): TimelineData {
-  // The paging belongs to one set of filters (kind, author and search) and one jump: under any other, it's one page again.
+  // The paging belongs to one set of filters (kind, author, tag and search) and one jump: under any other, it's one page again.
   const filterKey = JSON.stringify([
     filters.kind,
     filters.author,
     filters.match ?? null,
     filters.vital ?? null,
     filters.symptoms ?? [],
+    filters.tag ?? null,
     day,
   ]);
   // Back to this history entry starts from the window kept for it; anything else from one page.
@@ -192,6 +196,7 @@ export function useTimelineData({
   const documentsSql = groupDocumentsQuery(groupId);
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
+  const documentsById = useMemo(() => new Map(documentRows.map((row) => [row.id, row])), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
   const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff, before);
   const links = useLiveRows<EntryProviderLinkRow>(
@@ -271,7 +276,7 @@ export function useTimelineData({
   const markers = periodMarkers(periods.spans, {
     oldestLoaded: shown.at(-1)?.occurredAt ?? null,
     hasOlder: page.hasOlder,
-    filtered: !!(filters.kind || filters.author || filters.match),
+    filtered: !!(filters.kind || filters.author || filters.tag || filters.match),
     before: windowBefore,
   });
   const now = new Date(cutoff);
@@ -351,6 +356,10 @@ export function useTimelineData({
     liveLabelOf: (id) => liveLabels.get(id),
     nameOf,
     imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
+    richTextOf: (id) => {
+      const row = documentsById.get(id);
+      return row ? cachedRichText(row) : null;
+    },
     providersOf: (id) => providersByEntry.get(id),
     passNameOf: (id) => (id ? (passes.find((p) => p.id === id)?.name ?? null) : null),
     now,
@@ -369,7 +378,7 @@ export function useTimelineData({
             ? jumpNotice({
                 day,
                 shownDay: landedDay,
-                filtered: !!(filters.kind || filters.author || filters.vital),
+                filtered: !!(filters.kind || filters.author || filters.vital || filters.tag),
               })
             : null,
           noticeDay: landedDay ?? days.at(-1)?.key ?? null,

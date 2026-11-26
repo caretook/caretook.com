@@ -4,18 +4,24 @@
 
 ## Status
 
-**Where it stands (2026-11-25): planned, held** (`hold` on its row: the user asked for smaller slices after two skeptic send-backs; lift with `pnpm backlog prd set todo-subtasks flags-=hold`). Runs after `tags`. The lists (Todos tab, Planner, Today card, Easy view) are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 2 green, landing (PR #217).** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
 
-| Slice | Wave | State   | Merge into `prd/todo-subtasks` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
-| 3     | 3    | planned |                                                |
-| 4     | 4    | planned |                                                |
-| 5     | 5    | planned |                                                |
-| 6     | 6    | planned |                                                |
+**Wave 1 landed** in `dev` as 1b34ce24 through PR #214, tier `full` (run 45797912432 on 39c49a52: brake, every failure dev's: boundary.test B-865/B-866, build budget B-868, landed `--fixes B-868`), **without Codex (out of credits)**. Slice 1 merged ffdfad37 plus fix 12904700 (todoRename's exact index list). Migration `0047_todo_subtasks`; `parent_id` already in the `todo` stream (rolesSql needs it; device schema is slice 3). Browser lean set 10/11; session-end fails on dev too: filed B-869. to-test `to-test/2026-11-26-0600-todo-subtasks.md`. Docs: todos.md _Subtasks_ (trimmed to stay under budget). Slice 1 worktree removed.
 
-**Backlog:** claim B-550 when slice 1 starts; it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
+**Wave 2 (2026-11-26):** dev synced at 1924784c (CI lists only, no recheck). Worktree `.loops/todo-subtasks-2` (slot 3) made; slice 2 agent (opus) handed off (c3801a41, 646fe7f9, a5df9a8c; quick check passed), merged at 305bd996. Gate: `integration` run 45809410424 on d84b706d: file, only boundary.test (dev's by blame, B-865/B-866) — **green for the branch**. Sync: no merge needed. PR #217 open; Codex out of credits (exit 4): land `--tier integration --no-review`. Docs folded (todos.md rollup and cascade; connectors.md `parentId`; trimmed under budget). Notes for later slices: `rollUp(tx, parentId, actorId, at?)` exported (slice 4 passes the device's tick time); `remove` returns `{ ids }`; no `openSubtasks` wording in `unsavedChanges.ts` yet (slice 3); connector descriptions can't say "task" (say "step"). Backlog ingest: nothing new for this topic.
+
+| Slice | Wave | State         | Merge into `prd/todo-subtasks` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | landed (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
+| 2     | 2    | merged (opus) | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
+| 3     | 3    | planned       |                                                |
+| 4     | 4    | planned       |                                                |
+| 5     | 5    | planned       |                                                |
+| 6     | 6    | planned       |                                                |
+
+**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 (opus) handed off and merged at ffdfad37; migration 0047_todo_subtasks. `parent_id` already streamed in `sync-config.yaml` (rolesSql needs every column; device schema still slice 3). Wave gate: `full` CI run 45792344179 on 447e9d6e: **brake** — todoRename.int.test.ts (exact index list, new index) fixed by slice 1 (f27f0c14), merged again at 12904700; dev synced at 89a10d65 (no migrations or seeds); full rerun 45797912432 on 39c49a52: brake, all dev's by blame (boundary.test B-865/B-866, build budget B-868; timelineBack flaky, quarantined) — **wave 1 green for the branch**; land needs `--fixes B-868`. PR #214 open; Codex out of credits (exit 4): land `--no-review`. Docs folded (todos.md, 53901766). Browser lean set: 10/11 pass; session-end fails on dev too (2/2 at load ~11 on dev 0005f796): filed B-869 (fixes-tooling), not this branch's. Landing: `--tier full --no-review --fixes B-868`; the app bundle 163 B over budget is dev's (blame; B-868, dev a84d6611 brakes on it too, so landing needs `--fixes B-868` or its fix in dev); a format warn on this plan file, fixed at 6265dad3.
+
+**Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 
 ## Architectural decisions
 

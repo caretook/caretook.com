@@ -20,14 +20,25 @@
 # unhandled error (no file owns it) or past CARETOOK_CHECK_RERUN_MAX failed files
 # (20: that many is a real break).
 # $CARETOOK_CHECK_STATE, a directory, when set, gets the current `step` and the
-# `failed` and `flaky` files, one per line. The exit code is the check's: 0 passed.
+# `failed` and `flaky` files, one per line; `times`, each step's seconds once it
+# ends (`<seconds> <step>` lines: typegen, static, unit, integration, components,
+# lint, docs, build, `count` for a slice or quick check's file listing, or `tests`
+# for a full check's one run); and `slowest`, each
+# test step's ten slowest files from its first run's Vitest report (`<seconds>
+# <file>` lines; the time gate names them). The exit code is the check's: 0 passed.
 set -euo pipefail
-here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+here=$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mode=$1 base=$2; shift 2
 unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit)
 state=${CARETOOK_CHECK_STATE:-}
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+# The step being timed and its start; the last one's seconds are written at exit.
+timed="" timed_at=0
+lap() {
+  [[ -z $state || -z $timed ]] || printf '%s %s\n' "$(($(date +%s) - timed_at))" "$timed" >> "$state/times"
+  timed=""
+}
+trap 'lap; rm -rf "$work"' EXIT
 
 case $mode in
   slice) echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits" ;;
@@ -35,15 +46,20 @@ case $mode in
 esac
 
 step() { [[ -z $state ]] || printf '%s\n' "$1" > "$state/step"; }
+# clock NAME: time what runs next as NAME. begin STEP [NAME]: STEP starts (and
+# names a failure), timed as NAME (default STEP). A failure's renaming of the step
+# is a plain `step`.
+clock() { lap; timed=$1; timed_at=$(date +%s); }
+begin() { step "$1"; clock "${2:-$1}"; }
 record() { # record failed|flaky FILE…
   local kind=$1; shift
   [[ -z $state ]] || (($# == 0)) || printf '%s\n' "$@" >> "$state/$kind"
 }
 
 static() {
-  step typecheck
+  begin typecheck typegen
   pnpm typegen
-  step static
+  begin static
   local names=(typecheck lint format) pids=() i code=0 failed=""
   pnpm --filter './apps/*' --filter './packages/*' exec tsc > "$work/typecheck.log" 2>&1 & pids+=($!)
   # Type-aware ESLint sits at Node's default heap limit (about 4 GB), as in ci.yml.
@@ -63,15 +79,16 @@ static() {
 # mixed run: its failed files name the step.
 tests() {
   local name=$1 json="$work/first.json" again="$work/again.json" out="$work/out.log" code=0 f
-  step "$name"
+  begin "$name"
   pnpm exec vitest run ${selection[@]+"${selection[@]}"} "${projects[@]}" ${targets[@]+"${targets[@]}"} \
     --reporter=default --reporter=json --outputFile.json="$json" 2>&1 | tee "$out" || code=$?
+  [[ -z $state ]] || node "$here/check-failed.mjs" --slowest "$json" >> "$state/slowest" || true
   ((code)) || return 0
   local failed=() still=() flaky=()
   while IFS= read -r f; do [[ -z $f ]] || failed+=("$f"); done < <(node "$here/check-failed.mjs" "$json")
   if [[ $name == tests ]]; then name=$(node "$here/check-failed.mjs" --step ${failed[@]+"${failed[@]}"}); step "$name"; fi
   if ((${#failed[@]} == 0)); then echo "$name failed with no test file to rerun"; exit "$code"; fi
-  if grep -qE 'Unhandled (Error|Rejection)|unhandled error' "$out"; then
+  if node "$here/check-failed.mjs" --unhandled "$out"; then
     echo "$name: an unhandled error, so no rerun"; record failed "${failed[@]}"; exit "$code"
   fi
   if ((${#failed[@]} > ${CARETOOK_CHECK_RERUN_MAX:-20})); then
@@ -101,14 +118,15 @@ static
 if [[ $mode == full ]]; then
   projects=(--project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling')
   tests tests
-  step docs; pnpm docs:budget
-  step build; pnpm build:budget
+  begin docs; pnpm docs:budget
+  begin build; pnpm build:budget
 else
   own_int=() own_browser=()
   for f in "$@"; do
     [[ -f $f ]] || continue  # deleted in the diff
     if [[ $f == *.browser.test.tsx ]]; then own_browser+=("$f"); else own_int+=("$f"); fi
   done
+  clock count
   files() { pnpm exec vitest list --filesOnly "$@" | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u; }
   all=$(files --project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling' | grep -c . || true)
   run=$( { files "${unit[@]}"
@@ -135,7 +153,7 @@ else
     tests components
     targets=()
   fi
-  step lint; node scripts/project/check-areas.mjs lint
-  step docs; pnpm docs:budget
+  begin lint; node scripts/project/check-areas.mjs lint
+  begin docs; pnpm docs:budget
 fi
 exit 0

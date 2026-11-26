@@ -533,6 +533,54 @@ export const timelineEntryTodos = sqliteTable(
 );
 
 /**
+ * A care group's shared tags (tags). The id comes from the group, the folded
+ * name and a counter (`tagId`); `name_key` is the folded name. Hard deletes.
+ */
+export const tags = sqliteTable(
+  "tag",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    name: text("name"),
+    nameKey: text("name_key"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("tag_group").on(t.groupId)],
+);
+
+/**
+ * Which records carry which tags (tags): exactly one of the target columns
+ * is set. The id comes from the tag and the record (`recordTagId`);
+ * untagging deletes the row. Readers join live records.
+ */
+export const recordTags = sqliteTable(
+  "record_tag",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    tagId: text("tag_id"),
+    entryId: text("entry_id"),
+    todoId: text("todo_id"),
+    providerId: text("provider_id"),
+    medicationId: text("medication_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("record_tag_tag").on(t.tagId),
+    index("record_tag_entry").on(t.entryId),
+    index("record_tag_todo").on(t.todoId),
+    index("record_tag_provider").on(t.providerId),
+    index("record_tag_medication").on(t.medicationId),
+  ],
+);
+
+/**
  * Local only (never synced, never uploaded; cleared with the local copy): one
  * row per change the server didn't save (sync-safety, B-285). `outcome` is
  * `refused` (a 4xx: the server's `code` and `issues`, JSON text) or
@@ -582,6 +630,8 @@ export const drizzleSchema = {
   appointmentSeries,
   symptomTypes,
   timelineEntryTodos,
+  tags,
+  recordTags,
   unsavedChanges,
 };
 
