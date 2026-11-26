@@ -8,6 +8,8 @@
 
 **Wave 2 landed** in `dev` as 588c2017 through PR #217, tier `integration` (run 45811545080 on 2a6745f8: file, only boundary.test, dev's B-865/B-866), **without Codex (out of credits)**; a live dev brake (B-868) needed `prd sync --force` (2a6745f8, plans and build budget only) and a quick check (passed). Report a264; to-test `to-test/2026-11-26-0639-todo-subtasks.md`. Slice 2 worktree removed.
 
+**Paused (2026-11-26):** the user said "hold" before wave 3 started; nothing in flight, no wave-3 ingest or sync yet. `dev-sync` run (dev already at origin/dev, with fixes-tooling 9b 87ed1d1f); rotated on the backlog session's word for the new rules. **Stay paused until the backlog session or the user says resume.**
+
 **Next:** wave 3 (slice 3, subtasks reach the device: a sync column, so the `full` gate), from a fresh session. Slice 3 should add `todoService:openSubtasks` wording beside `badParent` on the "Not saved" page.
 
 **Wave 1 landed** in `dev` as 1b34ce24 through PR #214, tier `full` (run 45797912432 on 39c49a52: brake, every failure dev's: boundary.test B-865/B-866, build budget B-868, landed `--fixes B-868`), **without Codex (out of credits)**. Slice 1 merged ffdfad37 plus fix 12904700 (todoRename's exact index list). Migration `0047_todo_subtasks`; `parent_id` already in the `todo` stream (rolesSql needs it; device schema is slice 3). Browser lean set 10/11; session-end fails on dev too: filed B-869. to-test `to-test/2026-11-26-0600-todo-subtasks.md`. Docs: todos.md _Subtasks_ (trimmed to stay under budget). Slice 1 worktree removed.
