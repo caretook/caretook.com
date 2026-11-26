@@ -6,8 +6,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
-- Switching between submenus and group settings sometimes loads slowly with no feedback (B-828)
-  It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
 - Offline banner flashes too often when the connection hasn't actually dropped (B-840)
   Needs a longer timeout before marking the site as offline.
 - Right nav links overlap the recipient selector and header menu on medium-sized screens (B-848)
@@ -32,7 +30,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - privacy policy and terms of service. (B-54)
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
-- We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos. (B-417)
 - Tags on everything so users can organize data how they want. (B-548)
 - nested todos (B-550)
 
