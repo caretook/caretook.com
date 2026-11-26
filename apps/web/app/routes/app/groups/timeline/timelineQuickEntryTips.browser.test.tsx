@@ -6,7 +6,6 @@ import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
-import { QUICK_ENTRY_EXAMPLES } from "~/components/quick-entry/quickEntryCopy";
 import { clearUndo } from "~/lib/medications/passUndo";
 import * as timeline from "./route";
 import { TIMELINE_URL } from "./timelineWorld";
@@ -16,12 +15,20 @@ import { TIMELINE_URL } from "./timelineWorld";
 // the empty box on a user's first three real focuses (a press or Tab, never
 // a focus the app makes) while it's focused; the X ends it for good. It gives
 // way to a card or the matching names, and storage that throws shows nothing.
+// The examples name the group's own provider and medication, else the
+// fictional defaults (B-833), and say "event", not "appt".
 
 const ROUTES: DeviceRoute[] = [{ path: "/app/groups/:groupId/timeline", module: timeline }];
 const METFORMIN = fx.medication({ name: "Metformin", strength: "500 mg", dose: "1 tablet" });
+const OKAFOR = fx.provider({ name: "Dr. Ada Okafor" });
 const KEY = `caretook:quickEntryTips:${TEST_USER.id}`;
+/** The examples with the group's Metformin and Dr. Okafor. */
+const EXAMPLES = ["bp 130/85 hr 72", "gave Metformin", "pain 4 left knee", "event Dr. Ada Okafor Friday 2pm"];
+/** The fictional defaults, for a group with neither. */
+const DEFAULTS = ["bp 130/85 hr 72", "gave metformin", "pain 4 left knee", "event Dr Lee Friday 2pm"];
 
-const open = () => renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: [METFORMIN] });
+const open = (fixtures = [METFORMIN, OKAFOR]) =>
+  renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures });
 
 const box = () => page.getByRole("textbox", { name: "What happened?" });
 const field = () => box().element() as HTMLTextAreaElement;
@@ -37,6 +44,13 @@ const leave = async () => {
   field().blur();
   await expect.poll(panel).toBeNull();
 };
+/** The box's accessible description, all its parts. */
+const description = () =>
+  field()
+    .getAttribute("aria-describedby")!
+    .split(" ")
+    .map((id) => document.getElementById(id)?.textContent ?? "")
+    .join(" ");
 
 afterEach(() => {
   clearUndo();
@@ -50,7 +64,7 @@ describe("the tips panel", () => {
       await press();
       await expect.poll(panel).not.toBeNull();
       expect(panel()?.textContent).toContain("Why don’t you try");
-      for (const line of QUICK_ENTRY_EXAMPLES) expect(panel()?.textContent).toContain(line);
+      for (const line of EXAMPLES) await expect.poll(() => panel()?.textContent).toContain(line);
       expect(panel()?.textContent).toContain("for a note");
       expect(panel()?.textContent).toContain("for an event");
       expect(panel()?.textContent).toContain("Commas log several at once");
@@ -61,6 +75,32 @@ describe("the tips panel", () => {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(panel()).toBeNull();
     expect(stored()).toEqual({ seen: 3, dismissed: false });
+  });
+
+  test("its examples name the group's own provider and medication, and say event, not appt", async () => {
+    await open();
+    await press();
+    const el = await found(panel);
+    // The names arrive from the local database after mount.
+    await expect.poll(() => el.textContent).toContain("event Dr. Ada Okafor Friday 2pm");
+    for (const line of EXAMPLES) {
+      expect(el.textContent).toContain(line);
+      expect(description()).toContain(line);
+    }
+    expect(el.textContent).not.toContain("Dr Lee");
+    expect(el.textContent).not.toMatch(/\bappt\b/);
+    expect(description()).not.toMatch(/\bappt\b/);
+  });
+
+  test("with no provider or medication, the fictional defaults show", async () => {
+    await open([]);
+    await press();
+    const el = await found(panel);
+    for (const line of DEFAULTS) {
+      expect(el.textContent).toContain(line);
+      expect(description()).toContain(line);
+    }
+    expect(el.textContent).not.toMatch(/\bappt\b/);
   });
 
   test("the X hides it for good, and clicking it keeps focus in the box", async () => {
@@ -93,7 +133,7 @@ describe("the tips panel", () => {
     await open();
     await press();
     await expect.poll(panel).not.toBeNull();
-    await userEvent.click(page.getByText(QUICK_ENTRY_EXAMPLES[0]));
+    await userEvent.click(page.getByText(EXAMPLES[0]));
     expect(document.activeElement).toBe(field());
     expect(panel()).not.toBeNull();
   });
@@ -167,13 +207,9 @@ describe("the tips panel", () => {
     expect(tips.bottom).toBeLessThanOrEqual(window.innerHeight);
     expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth);
     // Screen readers hear the examples once, in the box's description; only the X is in the tree.
-    expect(el.querySelector("[aria-hidden='true']")?.textContent).toContain(QUICK_ENTRY_EXAMPLES[3]);
-    const described = field()
-      .getAttribute("aria-describedby")!
-      .split(" ")
-      .map((id) => document.getElementById(id)?.textContent ?? "")
-      .join(" ");
-    for (const line of QUICK_ENTRY_EXAMPLES) expect(described).toContain(line);
+    await expect.poll(() => el.querySelector("[aria-hidden='true']")?.textContent).toContain(EXAMPLES[3]);
+    const described = description();
+    for (const line of EXAMPLES) expect(described).toContain(line);
     expect(described).toContain("“e:”");
   });
 
