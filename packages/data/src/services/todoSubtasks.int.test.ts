@@ -284,9 +284,7 @@ describe("todoService: the rollup and the cascading delete", () => {
       expect(await stateOf(u.owner.ctx, id)).toMatchObject({ deleted: false });
 
     const removed = ok(await todoService.remove(u.caretaker.ctx, top.id));
-    expect(new Set((removed as { ids: string[] }).ids)).toEqual(
-      new Set([top.id, sub.id, subSub.id, sibling.id]),
-    );
+    expect(new Set(removed.ids)).toEqual(new Set([top.id, sub.id, subSub.id, sibling.id]));
     const rows = await Promise.all(
       [top.id, sub.id, subSub.id, sibling.id].map((id) =>
         todoService.getById(u.owner.ctx, id, { includeDeleted: true }),
