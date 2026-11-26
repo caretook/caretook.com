@@ -23,9 +23,19 @@ const METFORMIN = fx.medication({ name: "Metformin", strength: "500 mg", dose: "
 const OKAFOR = fx.provider({ name: "Dr. Ada Okafor" });
 const KEY = `caretook:quickEntryTips:${TEST_USER.id}`;
 /** The examples with the group's Metformin and Dr. Okafor. */
-const EXAMPLES = ["bp 130/85 hr 72", "gave Metformin", "pain 4 left knee", "event Dr. Ada Okafor Friday 2pm"];
+const EXAMPLES = [
+  "bp 130/85 hr 72",
+  "gave Metformin",
+  "pain 4 left knee",
+  "event Dr. Ada Okafor Friday 2pm",
+] as const;
 /** The fictional defaults, for a group with neither. */
-const DEFAULTS = ["bp 130/85 hr 72", "gave metformin", "pain 4 left knee", "event Dr Lee Friday 2pm"];
+const DEFAULTS = [
+  "bp 130/85 hr 72",
+  "gave metformin",
+  "pain 4 left knee",
+  "event Dr Lee Friday 2pm",
+] as const;
 
 const open = (fixtures = [METFORMIN, OKAFOR]) =>
   renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures });
