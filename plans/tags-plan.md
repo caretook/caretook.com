@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** waves 1, 2 and 3 landed in `dev` (2026-11-26). **Next: wave 4** (slice 6, timeline filter and search by tag; opus): `pnpm prd sync` first, then `pnpm prd slice tags 6`. It may reuse `lib/tags/tagFilter.ts` (slice 4) for its filter section; the timeline's `parseFilters` doesn't read `?tag=` yet. After it merges: `pnpm backlog done B-548`.
+**Where it stands:** waves 1, 2 and 3 landed in `dev` (2026-11-26). **Wave 4 under way:** `pnpm prd sync` was a no-op (up to date); worktree `tags-6` made on `slice/tags/6` from f8c465ee and its agent spawned (opus, 2026-11-26). It may reuse `lib/tags/tagFilter.ts` (slice 4). After it merges: `pnpm backlog done B-548`.
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -24,7 +24,7 @@
 | 3     | 3    | landed      | b71903f5 (2dfe5297)                     |
 | 4     | 3    | landed      | 998d10d8, c5ec876e (0bc2c990, 26a8ed64) |
 | 5     | 3    | landed      | 5708c180 (b52ced9d)                     |
-| 6     | 4    | not started |                                         |
+| 6     | 4    | in progress |                                         |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
 
