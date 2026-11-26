@@ -21,10 +21,11 @@ Notes for every wave:
 
 **Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
 
-**Next session:** `pnpm backlog ingest` and `list`. Triaged and waiting: B-857 (quick entry preview says "Appointment"; wording). Still held: B-694 (the user approves each form live), B-325 (Capacitor). No slice in flight.
+**Wave 15 (2026-11-25):** ingest and list done; prd/fixes-ui up to date with dev. Slice 85 (B-857, quick entry previews say Event) started on sonnet (wording only, spelled out), worktree fixes-ui-85; watch running. Still held: B-694 (the user approves each form live), B-325 (Capacitor). Hot files: `packages/data/src/db/schema/assistant/`.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State            | Merge |
+| ----- | ----- | ---------------- | ----- |
+| 85    | B-857 | started (sonnet) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
