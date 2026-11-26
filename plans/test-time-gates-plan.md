@@ -15,7 +15,7 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-25): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 - 2026-11-25: base 0a76460a (orchestration-split-2 landed). Backlog: B-837 (time gates, claimed), B-772, B-781, B-370; nothing new to propose.
-- Wave 1: slice 1 (opus) handed off 58cf4ef5 (slice check passed), merged 3f65aebf. `time-gate.mjs` + `gates` in `scripts/ci/tiers.json` (read in `tier-data.mjs`), all unarmed; arm a measure with `armed: true`. Gate: requested `full` CI run (tier: scripts/ci). Worktree kept until green.
+- Wave 1: slice 1 (opus) handed off 58cf4ef5 (slice check passed), merged 3f65aebf. `time-gate.mjs` + `gates` in `scripts/ci/tiers.json` (read in `tier-data.mjs`), all unarmed; arm a measure with `armed: true`. Gate: requested `full` CI run (tier: scripts/ci). CI full run 45746430590 on ed22fc7a: `flake` (components-2 search.sync perf test, not ours; lands). Sync: no merge needed. Slice 1 worktree removed. PR #202 open; Codex review out. project-config doc folded (36cc5a26).
 
 ## Architectural decisions
 
