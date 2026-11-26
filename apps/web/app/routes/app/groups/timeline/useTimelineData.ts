@@ -3,6 +3,7 @@ import type { LiveDocument } from "~/lib/live-notes/liveNow";
 import type { LatestVital, TimelineEntry } from "~/lib/core/rpc";
 import type { EntryMedicationRow } from "~/lib/medications/medicationTimeline.sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
@@ -22,7 +23,7 @@ import { getSync, useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
-import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import { cachedRichText, groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
 import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import {
   fromLocalTimestamp,
@@ -70,6 +71,8 @@ export type TimelineData = {
   nameOf: (userId: string) => string;
   /** A member's picture, when they have one (and are still a member). */
   imageOf: (userId: string) => string | null;
+  /** A note's or event's formatted text (its document's blocks), decoded when asked: the cards' body. */
+  richTextOf: (entryId: string) => NoteBlock[] | null;
   /** A note's or event's linked providers, in link order (the "with …" line). */
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
   /** A pass's name (deleted ones too), for a pass log's row; null when it isn't on the device. */
@@ -192,6 +195,7 @@ export function useTimelineData({
   const documentsSql = groupDocumentsQuery(groupId);
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
+  const documentsById = useMemo(() => new Map(documentRows.map((row) => [row.id, row])), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
   const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff, before);
   const links = useLiveRows<EntryProviderLinkRow>(
@@ -351,6 +355,10 @@ export function useTimelineData({
     liveLabelOf: (id) => liveLabels.get(id),
     nameOf,
     imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
+    richTextOf: (id) => {
+      const row = documentsById.get(id);
+      return row ? cachedRichText(row) : null;
+    },
     providersOf: (id) => providersByEntry.get(id),
     passNameOf: (id) => (id ? (passes.find((p) => p.id === id)?.name ?? null) : null),
     now,

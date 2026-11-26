@@ -2,6 +2,7 @@ import type { HighlightRange, ParsedSearch, UnitChoices } from "@caretook/data/s
 import type { ReactNode } from "react";
 import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { TimelineEntry } from "~/lib/core/rpc";
+import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 
 import {
   conditionChangeText,
@@ -16,6 +17,7 @@ import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { chipLabel, withSummary, withText } from "~/lib/providers/entryProviders";
 import { medicationEntryText } from "~/lib/medications/medicationEntries";
 import { MedicationHeading } from "./MedicationEntryText";
+import { NoteRichText } from "./NoteRichText";
 
 /** Readable lines on wide screens: the heading, the "with …" line and the text stop at about 75 characters. */
 const TEXT_CAP = "max-w-[75ch]";
@@ -27,7 +29,8 @@ const TEXT_CAP = "max-w-[75ch]";
  * Type 2 diabetes" and its before → after lines), its vital readings, who it was
  * with (linked providers), a dose's or stop's note, and its text, in that order. The first of those can share a line
  * with `aside` (the card's live dot and time); `footer` comes last. Rows clamp
- * the text to two lines (`clamp`, with "More"); cards show all of it.
+ * the text to two lines (`clamp`, with "More"); cards show all of it, a
+ * note's or event's with its formatting when given its `richText`.
  *
  * With `search` (a parsed `?q=`), matched words are marked, and a clamped
  * note's or event's text whose match is past the clamp gets a snippet line
@@ -38,6 +41,7 @@ export function EntryBody({
   units,
   clamp = false,
   providers,
+  richText,
   aside,
   footer,
   search,
@@ -47,6 +51,8 @@ export function EntryBody({
   units: UnitChoices;
   clamp?: boolean;
   providers?: readonly LinkedProviderName[];
+  /** A note's or event's document blocks (`noteRichText`): shown formatted unless clamped. */
+  richText?: readonly NoteBlock[] | null;
   aside?: ReactNode;
   footer?: ReactNode;
   /** The search to mark (the timeline's or the search page's `q`, parsed). */
@@ -99,6 +105,8 @@ export function EntryBody({
     body &&
       (clamp ? (
         <ClampedText key="body" text={body} ranges={marks(body)} />
+      ) : richText?.length && isLiveEntryKind(entry.kind) ? (
+        <NoteRichText key="body" blocks={richText} marks={marks} className={`break-words ${TEXT_CAP}`} />
       ) : (
         <FullText key="body" text={body} ranges={marks(body)} />
       )),
