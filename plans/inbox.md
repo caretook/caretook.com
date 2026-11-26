@@ -22,6 +22,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Move this section so it's the first item after the timeline on the features page.
 - Features page should highlight easy mode (B-888)
 - Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm
+- Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
 
 ## Feature requests
 
