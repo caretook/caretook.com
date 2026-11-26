@@ -10,8 +10,6 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
-
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
 Notes for every wave:
@@ -21,11 +19,12 @@ Notes for every wave:
 
 **Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
 
-**Wave 15 (2026-11-25):** ingest and list done; prd/fixes-ui up to date with dev. Slice 85 (B-857, quick entry previews say Event) on sonnet, handed off (4ae8d799) and merged as 5f191304; CI integration green (run 45750856542, de32eac7); sync needed no merge; worktree removed; PR #203 open, Codex review waiting. Browser checks: none needed (`--changed`). Still held: B-694 (the user approves each form live), B-325 (Capacitor). Hot files: `packages/data/src/db/schema/assistant/`.
+**Previous hand-over:** wave 15 landed 2026-11-25 as dev 2584a81 through PR #203, `--no-review` (Codex out of credits), CI integration green (run 45750856542, de32eac7), landed on an unsynced tip (dev shared no file); to-test/2026-11-25-2254-fixes-ui.md. Slice 85 (B-857, quick entry previews say Event; sonnet). Docs folded into assistant.md (trimmed to stay under budget). Slice worktree removed.
 
-| Slice | Item  | State            | Merge |
-| ----- | ----- | ---------------- | ----- |
-| 85    | B-857 | started (sonnet) |       |
+**Next session:** `pnpm backlog ingest` and `list`. Nothing triaged and waiting. Still held: B-694 (the user approves each form live), B-325 (Capacitor). No slice in flight.
+
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
