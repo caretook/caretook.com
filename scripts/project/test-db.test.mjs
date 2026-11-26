@@ -79,6 +79,35 @@ describe("test-db.sh", () => {
     expect(ok(["status"])).toMatch(/shared test Postgres: not running/);
   });
 
+  it("says so outside a git repository, rather than exiting silently", () => {
+    const lone = join(root, "lone");
+    mkdirSync(lone, { recursive: true });
+    copyFileSync(join(HERE, "test-db.sh"), join(lone, "test-db.sh"));
+    const r = spawnSync("bash", [join(lone, "test-db.sh"), "status"], {
+      cwd: lone,
+      encoding: "utf8",
+      env: { ...env, GIT_CEILING_DIRECTORIES: root },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/isn't in a git repository/);
+  });
+
+  it("finds a main checkout whose path has a space", () => {
+    const spaced = join(root, "a repo");
+    execFileSync("git", ["init", "-q", "-b", "dev", spaced]);
+    mkdirSync(join(spaced, "scripts/project"), { recursive: true });
+    copyFileSync(join(HERE, "test-db.sh"), join(spaced, "scripts/project/test-db.sh"));
+    mkdirSync(join(spaced, ".loops", "w-1"), { recursive: true });
+    const r = spawnSync("bash", [join(spaced, "scripts/project/test-db.sh"), "use", "w-1"], {
+      cwd: spaced,
+      encoding: "utf8",
+      env,
+    });
+    expect(r.stderr).toBe("");
+    expect(r.status).toBe(0);
+    expect(existsSync(join(spaced, ".loops", "w-1", "packages/data/.env.test.local"))).toBe(true);
+  });
+
   it("gives its port and Compose project as facts (the core's only copy of them)", () => {
     expect(ok(["facts"])).toBe("port=5436\nproject=caretook-shared-test\nrunning=no\n");
     expect(ok(["facts"], { env: { FAKE_SHARED_ID: "c0ffee" } })).toMatch(/^running=yes$/m);
@@ -95,7 +124,11 @@ describe("test-db.sh", () => {
     const f = join(loops, "t-1", "packages/data/.env.test.local");
     mkdirSync(join(loops, "t-1", "packages/data"), { recursive: true });
     writeFileSync(f, 'DATABASE_URL="postgresql://caretook:password@localhost:1/caretook"\nPG_TEST_PORT=1\n');
-    expect(ok(["use"], { cwd: join(loops, "t-1") })).toMatch(/caretook_test_t_1/);
+    const r = sh(["use"], { cwd: join(loops, "t-1") });
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/^summary=caretook_test_t_1 on the shared test Postgres \(:5436\)$/m);
+    // Its human line is for a terminal only: new.sh reads summary= and prints its own.
+    expect(r.stderr).toBe("");
     const text = readFileSync(f, "utf8");
     expect(text).toMatch(/localhost:5436\/caretook_test_t_1"/);
     expect(text).toMatch(/^PG_TEST_PORT=5436$/m);

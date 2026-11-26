@@ -5,7 +5,7 @@
 # it only through the hooks.
 
 # The main checkout (the repo's first worktree) and its .loops worktrees.
-main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain 2>/dev/null | awk 'NR==1{print $2}')
+main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
 loops=$main/.loops
 
 die() { echo "$*" >&2; exit 1; }
@@ -184,16 +184,19 @@ slot_facts() {
 }
 
 # stack_facts DIR → the facts of the worktree's stack, from its env files (no
-# Docker): nothing for a worktree without a stack, but web_port when its
-# apps/web/.env names one.
+# Docker): its project from .env's CARETOOK_STACK (as teardown takes it), its
+# ports from .env.loop's SLOT, which must then be 1-19; nothing for a worktree
+# without a stack, but web_port when its apps/web/.env names one.
 stack_facts() {
   local slot proj port
   proj=$(stack_project "$1") slot=$(env_get "$1/.env.loop" SLOT) port=$(web_port "$1")
-  if [[ -n $proj && $slot =~ ^[0-9]+$ ]]; then
-    slot_facts "$slot" | grep -v '^web_port=\|^url='
+  if [[ -n $proj ]]; then
+    [[ $slot =~ ^[0-9]+$ ]] && ((slot >= 1 && slot <= 19)) ||
+      die "$(basename "$1")'s stack $proj needs a SLOT of 1-19 in .env.loop (got ${slot:-none})"
+    slot_facts "$slot" | sed -e "s|^project=.*|project=$proj|" -e "s|^pg_container=.*|pg_container=$proj-postgres-1|" |
+      grep -v '^web_port=\|^url='
     [[ -n $port ]] && printf '%s\n' "web_port=$port" "url=http://localhost:$port"
   else
-    [[ -z $proj ]] || echo "project=$proj"
     [[ -z $port ]] || echo "web_port=$port"
   fi
   return 0
@@ -277,6 +280,8 @@ docker_kb() {
 # uses (stack.sh leftovers): volume=, image= and kept= lines. The PROJECTs are
 # in use, and so are the main checkout's (caretook) and the shared test
 # Postgres's, and each PROJECT's -test (worktrees made before the shared one).
+# The plain read (tidy's) lists dangling volumes alone, cheaply, and gives their
+# size as ?; --all reads every volume's size (docker system df -v).
 leftovers() {
   local used vname vsize links labels vproj others=0 id isize shared p
   docker info >/dev/null 2>&1 || { echo "kept=Docker isn't running: volumes and images not checked"; return 0; }
@@ -295,11 +300,15 @@ leftovers() {
     elif [[ $used == *" $vproj "* ]]; then
       [[ -z $all ]] || echo "kept=volume $vname: $vproj is still in use (the main checkout, the shared test Postgres or a worktree's stack)"
     elif [[ $vproj =~ ^caretook-loop[0-9]+(-test)?$ ]]; then
-      echo "volume=$vname $(docker_kb "$vsize") dangling; no worktree uses $vproj"
+      echo "volume=$vname $([[ $vsize == "?" ]] && echo "?" || docker_kb "$vsize") dangling; no worktree uses $vproj"
     else
       others=$((others + 1))
     fi
-  done < <(docker system df -v --format '{{range .Volumes}}{{.Name}} {{.Size}} {{.Links}} {{.Labels}}{{println}}{{end}}' 2>/dev/null || true)
+  done < <(if [[ -n $all ]]; then
+    docker system df -v --format '{{range .Volumes}}{{.Name}} {{.Size}} {{.Links}} {{.Labels}}{{println}}{{end}}'
+  else
+    docker volume ls --filter dangling=true --format '{{.Name}} ? 0 {{.Labels}}'
+  fi 2>/dev/null || true)
   [[ -z $all ]] && return 0
   ((others == 0)) || echo "kept=$others dangling volume(s) of other Compose projects, or named outside Compose: not caretook's, left alone"
   while read -r id isize; do

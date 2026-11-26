@@ -12,12 +12,14 @@
 #                  A half-made new stack is taken down again before failing.
 #   stack.sh down DIR [--base B]
 #                  stop the dev server, remove the Compose projects and their
-#                  data and the stack's env files (.env.loop keeps BASE_BRANCH,
-#                  else B); no stack: write the stackless .env.loop, no facts
+#                  data and the stack's env files (.env.loop gets B, else
+#                  keeps its BASE_BRANCH); no stack: write the stackless
+#                  .env.loop, no facts
 #   stack.sh status DIR      its facts, from its env files (no Docker)
 #   stack.sh status --slot N [--probe]   slot N's facts; --probe adds in_use
 #   stack.sh ready DIR       its facts, containers=<running>/<all> and
-#                            ready=yes|no; exit 0 only when ready. With none
+#                            ready=yes|no, always: exit 0 for yes, 1 for no,
+#                            and a call without ready= failed. With none
 #                            running, stopped_secs=<how long ago it stopped>
 #                            (its newest container's end; no containers: the
 #                            root .env's age)
@@ -25,14 +27,15 @@
 #                            its facts; no stack: nothing
 #   stack.sh start DIR       start a stopped stack, wait for its Postgres
 #                            (CARETOOK_RECOVER_PG_SECS, 60) and migrate, retried
-#                            once, never seeding (pnpm prd recover); its facts
+#                            once, never seeding (pnpm prd recover); its facts,
+#                            and migrating=yes once it gets to the migrate
 #   stack.sh engine [status|start]   running=yes|no and name=Docker; start
 #                            opens Docker Desktop and waits for it
 #                            (CARETOOK_DOCKER_WAIT_SECS, 180)
 #   stack.sh leftovers [--all] [PROJECT…]   dangling data no stack uses, the
 #                            PROJECTs (the worktrees' project facts), the main
 #                            checkout's and the shared test Postgres's kept:
-#                            volume=<name> <KB> <why> for a gone worktree stack's
+#                            volume=<name> <KB|?> <why> for a gone worktree stack's
 #                            volumes; --all adds anonymous volumes, image=<id>
 #                            <KB> <why> for dangling images, and kept=<why>
 #                            lines. Docker not running: one kept= line
@@ -59,11 +62,11 @@ while (($#)); do
     *) if [[ -z $dir ]]; then dir=$1; else rest+=("$1"); fi; shift ;;
   esac
 done
-usage() { sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
+usage() { sed -n '2,47p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
 need_dir() { [[ -n $dir && -d $dir ]] || die "stack.sh $cmd: no worktree at ${dir:-(none given)}"; }
 name=$(basename "${dir:-.}")
-# The base a rewritten .env.loop keeps: its own, else the one given.
-base_of() { local b; b=$(env_get "$dir/.env.loop" BASE_BRANCH); echo "${b:-$base}"; }
+# The base a rewritten .env.loop gets: the one given, else its own.
+base_of() { [[ -n $base ]] && echo "$base" || env_get "$dir/.env.loop" BASE_BRANCH; }
 
 case $cmd in
   up)
@@ -137,6 +140,8 @@ case $cmd in
     # Quiet, as recover prints: only its own lines go to stderr.
     (cd "$dir" && docker compose up -d --wait) </dev/null >/dev/null 2>&1 || die "compose up failed"
     wait_for_pg "$dir" "$proj"
+    # The core's migrate marker counts a failure only from here on.
+    echo "migrating=yes"
     if ! migrate "$dir"; then
       echo "migrate failed; retrying once" >&2
       sleep 3

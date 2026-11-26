@@ -5,6 +5,7 @@
 ## Before
 
 - All three stage-1 topics are in `dev`; the boundary lint passes with only the named residual list.
+- **Hooks run from the project, not the tool's checkout** (B-846): today `stack_hook` (`lib.sh`) and `hooks.mjs` run a hook from the top of the checkout the tool's files are in, which is Caretook's until the move. Risa's copy must run it from the configured project's root (the repo the command runs for), or every stack and test-db hook misses its scripts. Change it in step 2's layout commit, with a test on the sample project from outside it.
 - **Write the removal commit first and rehearse it:** on a throwaway branch of `dev`, the commit of step 5 (delete the manifest's core files, exactly the residual list's lines, and any line of CI's two lists, `scripts/ci/quarantine.txt` and `brake-list.txt`, that names a core test: the boundary lint reads those lists as data and doesn't show them). Push it and run GitHub CI (all jobs); it must be green; then delete the branch and keep the commit to reuse.
 - `pnpm prd dispatch --pause`; every PRD, slice, plan and hotfix worktree landed or removed (`pnpm prd status` shows none); no managed sessions (the backlog captain, the inbox session and every helper closed; the dispatcher paused, so its keep-alive reopens none); no open asks that need the tooling. Save `pnpm prd status` and `pnpm prd dispatch --dry-run` output to compare.
 - **Unload the launchd watchdog** (label `com.caretook.prd-watchdog`, runs `<main>/scripts/loops/prd.sh watchdog`): `pnpm prd autostart remove`.
