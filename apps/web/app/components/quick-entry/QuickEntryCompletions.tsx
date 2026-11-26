@@ -12,15 +12,15 @@ const GAP = 4;
  * chip (reached by Tab), until Escape, which hides them until the text
  * changes. Spread `area` on the wrapper that holds both; `onKeyDown` goes
  * on the field and the overlay, `onFieldKeyDown` on the field too, and
- * `overlay` on `QuickEntryCompletions`.
+ * `overlayRef` on `QuickEntryCompletions`.
  */
 export function useCompletionsOverlay(text: string, field: RefObject<HTMLTextAreaElement | null>) {
   const [focused, setFocused] = useState(false);
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
-  const overlay = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   return {
     open: focused && dismissedFor !== text,
-    overlay,
+    overlayRef,
     area: {
       onFocus: () => setFocused(true),
       onBlur: (e: FocusEvent<HTMLElement>) => {
@@ -44,7 +44,7 @@ export function useCompletionsOverlay(text: string, field: RefObject<HTMLTextAre
     ) => {
       if (e.key !== "Tab" || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
       const first = completions[0];
-      const chips = overlay.current?.querySelectorAll("button");
+      const chips = overlayRef.current?.querySelectorAll("button");
       if (!first || !chips?.length) return;
       e.preventDefault();
       if (completions.length === 1) onFill(first.text);
@@ -53,9 +53,16 @@ export function useCompletionsOverlay(text: string, field: RefObject<HTMLTextAre
   };
 }
 
+const ARROW_STEP: Partial<Record<string, number>> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+};
+
 /** Arrow keys move between the name chips (wrapping). */
 function moveAmongChips(e: KeyboardEvent<HTMLElement>) {
-  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  const step = ARROW_STEP[e.key];
   if (!step) return;
   const chips = [...e.currentTarget.querySelectorAll("button")];
   const at = chips.indexOf(document.activeElement as HTMLButtonElement);
@@ -78,30 +85,26 @@ export function QuickEntryCompletions({
   completions,
   onFill,
   onKeyDown,
-  overlay,
+  overlayRef,
 }: {
   completions: readonly Completion[];
   /** Put this in the box and leave the cursor at its end. */
   onFill: (text: string) => void;
   /** `useCompletionsOverlay`'s Escape. */
   onKeyDown: (e: KeyboardEvent) => void;
-  /** `useCompletionsOverlay`'s `overlay`, for its Tab. */
-  overlay: RefObject<HTMLDivElement | null>;
+  /** `useCompletionsOverlay`'s `overlayRef`, for its Tab. */
+  overlayRef: RefObject<HTMLDivElement | null>;
 }) {
   const [below, setBelow] = useState(false);
-  const own = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const el = own.current;
+    const el = overlayRef.current;
     const anchor = el?.parentElement;
     if (!el || !anchor) return;
     setBelow(anchor.getBoundingClientRect().top < el.offsetHeight + GAP);
-  }, [completions]);
+  }, [completions, overlayRef]);
   return (
     <div
-      ref={(el) => {
-        own.current = el;
-        overlay.current = el;
-      }}
+      ref={overlayRef}
       className={`${SURFACE} ${below ? "relative mt-1" : "absolute right-0 bottom-full left-0 mb-1"} z-20 p-2`}
       data-quick-completions={below ? "below" : "above"}
       role="presentation"

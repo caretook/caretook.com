@@ -147,7 +147,7 @@ export function QuickEntryBox({
                   completions={completions}
                   onFill={fill}
                   onKeyDown={names.onKeyDown}
-                  overlay={names.overlay}
+                  overlayRef={names.overlayRef}
                 />
               )}
               {tips.visible && <QuickEntryTips examples={examples} onDismiss={tips.dismiss} />}
