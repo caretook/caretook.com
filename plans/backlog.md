@@ -1440,6 +1440,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
 - 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-26 (slice/fixes-tooling/59): Cause (fixes-tooling slice 59): after Back the timeline remounts with ~35 watches; each result arrived in its own task and re-rendered the 3-page timeline (~70 ms each, 15 in a row), and every later query waited behind the render: post-Back settle 1.7 s locally, 4.0-4.4 s at 2x CPU throttle, past 5 s on a loaded CI runner. Fix: watchLiveQuery hands results over at the next frame, together (100 ms timer for a hidden page): 0.6-0.9 s, 2.3-2.9 s at 2x. 20/20 runs (10 per zone) at load 100+. Quarantine lines can go.
 
 ### B-637 · chore · About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit
 
