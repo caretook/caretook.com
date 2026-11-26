@@ -18,14 +18,16 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { failedFiles, stepOf } from "./check-failed.mjs";
+import { failedFiles, slowestFiles, stepOf } from "./check-failed.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 let root, bin, calls, state;
 
 // The stub: log the arguments; fail when they contain $STUB_FAIL. A vitest run
 // reads $STUB_TESTS, "<file>:<times it fails>" pairs: a listed file still failing
-// goes in the JSON report and fails the run.
+// goes in the JSON report and fails the run. $STUB_TIMES, "<file>:<seconds>"
+// pairs, are the passing files a first run reports with their times, each in its
+// project's run (integration for .int.test.ts, components for .browser.test.tsx).
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 const args = process.argv.slice(2);
@@ -46,7 +48,15 @@ for (const pair of (process.env.STUB_TESTS || "").split(",").filter(Boolean)) {
   if (counts[file] <= Number(times)) failed.push(file);
 }
 fs.writeFileSync(seen, JSON.stringify(counts));
-fs.writeFileSync(out, JSON.stringify({ testResults: failed.map((name) => ({ name: process.cwd() + "/" + name, status: "failed" })) }));
+const results = failed.map((name) => ({ name: process.cwd() + "/" + name, status: "failed" }));
+const project = args.includes("integration") ? "int" : args.includes("web:components") ? "browser" : "unit";
+for (const pair of rerun ? [] : (process.env.STUB_TIMES || "").split(",").filter(Boolean)) {
+  const [file, secs] = pair.split(":");
+  const kind = file.endsWith(".int.test.ts") ? "int" : file.endsWith(".browser.test.tsx") ? "browser" : "unit";
+  if (kind === project && !failed.includes(file))
+    results.push({ name: process.cwd() + "/" + file, status: "passed", startTime: 5000, endTime: 5000 + Number(secs) * 1000 });
+}
+fs.writeFileSync(out, JSON.stringify({ testResults: results }));
 process.exit(failed.length || process.env.STUB_UNHANDLED ? 1 : 0);
 `;
 
@@ -80,6 +90,7 @@ const body = (args, fail = "", extra = {}) => {
       STUB_CALLS: calls,
       STUB_FAIL: fail,
       STUB_TESTS: "",
+      STUB_TIMES: "",
       STUB_UNHANDLED: "",
       CARETOOK_CHECK_STATE: state,
       CARETOOK_CHECK_COUNTS: "",
@@ -87,7 +98,9 @@ const body = (args, fail = "", extra = {}) => {
     },
   });
   const read = (name) =>
-    existsSync(join(state, name)) ? readFileSync(join(state, name), "utf8").trim().split("\n") : [];
+    existsSync(join(state, name))
+      ? readFileSync(join(state, name), "utf8").trim().split("\n").filter(Boolean)
+      : [];
   return {
     status: r.status,
     out: r.stdout,
@@ -95,6 +108,8 @@ const body = (args, fail = "", extra = {}) => {
     step: read("step")[0],
     failed: read("failed"),
     flaky: read("flaky"),
+    times: read("times"),
+    slowest: read("slowest"),
   };
 };
 
@@ -200,6 +215,56 @@ describe("check-body.sh", () => {
   });
 });
 
+describe("check-body.sh step times and slowest files", () => {
+  const steps = (r) =>
+    r.times.map((l) => {
+      expect(l).toMatch(/^\d+ [a-z]+$/);
+      return l.split(" ")[1];
+    });
+  const TIMES = [
+    "u1.test.ts:3",
+    "u2.test.ts:12.5",
+    ...Array.from({ length: 11 }, (_, i) => `n${i}.test.ts:${i / 10}`),
+    "a.int.test.ts:40",
+    "b.browser.test.tsx:7",
+  ].join(",");
+
+  it("a slice check writes each step's seconds and its test steps' slowest files", () => {
+    writeFileSync(join(root, "a.int.test.ts"), "");
+    writeFileSync(join(root, "b.browser.test.tsx"), "");
+    const r = body(["slice", "base", "a.int.test.ts", "b.browser.test.tsx"], "", { STUB_TIMES: TIMES });
+    expect(r.status).toBe(0);
+    expect(steps(r)).toEqual([
+      "typegen",
+      "static",
+      "count",
+      "unit",
+      "integration",
+      "components",
+      "lint",
+      "docs",
+    ]);
+    // Ten from the unit run, slowest first, then the one file of each of the others.
+    expect(r.slowest).toHaveLength(12);
+    expect(r.slowest.slice(0, 3)).toEqual(["12.5 u2.test.ts", "3 u1.test.ts", "1 n10.test.ts"]);
+    expect(r.slowest.slice(10)).toEqual(["40 a.int.test.ts", "7 b.browser.test.tsx"]);
+  });
+
+  it("a quick check times its integration step too", () => {
+    const r = body(["quick", "base"], "", { STUB_TIMES: TIMES });
+    expect(r.status).toBe(0);
+    expect(steps(r)).toEqual(["typegen", "static", "count", "unit", "integration", "lint", "docs"]);
+    expect(r.slowest).toContain("40 a.int.test.ts");
+  });
+
+  it("a failed check times the steps it ran, the failing one last", () => {
+    const r = body(["slice", "base"], "", { STUB_TESTS: "u1.test.ts:2" });
+    expect(r.status).toBe(1);
+    expect(steps(r)).toEqual(["typegen", "static", "count", "unit"]);
+    expect(r.slowest).toEqual([]);
+  });
+});
+
 describe("check-body.sh reruns a failed test file", () => {
   const rerun = (...files) =>
     `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit ${files.join(" ")}`;
@@ -253,6 +318,35 @@ describe("check-failed.mjs", () => {
     expect(failedFiles(report, "/r")).toEqual(["a.test.ts", "b.test.ts"]);
     expect(failedFiles("not json", "/r")).toEqual([]);
     expect(failedFiles("{}", "/r")).toEqual([]);
+  });
+
+  it("names a report's ten slowest files, slowest first, and none from a broken report", () => {
+    const at = (name, secs, extra = {}) => ({
+      name,
+      status: "passed",
+      startTime: 1e12,
+      endTime: 1e12 + secs * 1000,
+      ...extra,
+    });
+    const report = JSON.stringify({
+      testResults: [
+        at("/r/a.test.ts", 1.04),
+        at("/r/b.test.ts", 30),
+        at("/r/c.test.ts", 2, { status: "failed" }),
+        { name: "/r/untimed.test.ts", status: "passed" },
+        ...Array.from({ length: 10 }, (_, i) => at(`/r/n${i}.test.ts`, 0.5)),
+      ],
+    });
+    const top = slowestFiles(report, "/r");
+    expect(top).toHaveLength(10);
+    expect(top.slice(0, 3)).toEqual([
+      { name: "b.test.ts", seconds: 30 },
+      { name: "c.test.ts", seconds: 2 },
+      { name: "a.test.ts", seconds: 1 },
+    ]);
+    expect(top.map((f) => f.name)).not.toContain("untimed.test.ts");
+    expect(slowestFiles("not json", "/r")).toEqual([]);
+    expect(slowestFiles("{}", "/r")).toEqual([]);
   });
 
   it("names a mixed run's step from its files", () => {

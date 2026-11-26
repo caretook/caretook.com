@@ -1,8 +1,9 @@
 // A CI test step against a fake Vitest: the one rerun of the failed files, what a
-// narrowed run keeps, and a quarantine step that can't fail.
+// narrowed run keeps, a quarantine step that can't fail, and a timed step's gate
+// on a fake clock. Fictional file names and times only.
 import { describe, expect, it } from "vitest";
 
-import { MAX_RERUN_FILES, failedFiles, runQuarantine, runStep, stepGroup } from "./test-job.mjs";
+import { MAX_RERUN_FILES, failedFiles, fileTimes, runQuarantine, runStep, stepGroup } from "./test-job.mjs";
 
 const OUT = "ci-results/unit.json";
 const ARGS = ["--project", "data:unit", "--shard=1/2", "--reporter=json", `--outputFile.json=${OUT}`];
@@ -11,19 +12,43 @@ const report = (/** @type {string[]} */ files) =>
     testResults: files.map((f) => ({ name: `/w/${f}`, status: "failed", assertionResults: [] })),
   });
 
-function fake({ codes = [0], texts = /** @type {Record<string, string>} */ ({}) } = {}) {
+/** The gates' data as the core fills it in: every measure at its defaults, those given armed. */
+const gatesWith = (/** @type {any} */ data) => {
+  const armed = Object.keys(data?.measures ?? {});
+  const limits = (/** @type {string} */ m) => ({ aim: 300, cutoff: 360, armed: armed.includes(m) });
+  return {
+    quietLoadPerCore: 1,
+    measures: { unit: limits("unit"), components: limits("components"), quick: limits("quick") },
+    localModes: ["quick", "slice"],
+  };
+};
+
+function fake({
+  codes = [0],
+  texts = /** @type {Record<string, string>} */ ({}),
+  seconds = /** @type {number[]} */ ([]),
+  gates = gatesWith(undefined),
+} = {}) {
   /** @type {{ args: string[], env: Record<string, string> }[]} */ const runs = [];
   /** @type {string[]} */ const lines = [];
+  /** @type {Record<string, string>} */ const written = {};
+  /** @type {string[]} */ const summary = [];
+  let clock = 1_000_000;
   const io = {
     run(/** @type {string[]} */ args, /** @type {Record<string, string>} */ env) {
       runs.push({ args, env });
+      clock += (seconds[runs.length - 1] ?? 1) * 1000;
       return codes[runs.length - 1] ?? 0;
     },
     readText: (/** @type {string} */ p) => texts[p] ?? null,
     log: (/** @type {string} */ l) => lines.push(l),
     root: "/w",
+    now: () => clock,
+    gates: () => gates,
+    write: (/** @type {string} */ p, /** @type {string} */ t) => void (written[p] = t),
+    summary: (/** @type {string} */ t) => void summary.push(t),
   };
-  return { io, runs, lines };
+  return { io, runs, lines, written, summary };
 }
 
 describe("a test step", () => {
@@ -143,5 +168,115 @@ describe("a quarantine step", () => {
     const f = fake({ texts: { "scripts/ci/quarantine.txt": "# header\n" } });
     expect(runQuarantine(ARGS, f.io)).toBe(0);
     expect(f.runs).toEqual([]);
+  });
+});
+
+describe("a timed step", () => {
+  const COMP = "ci-results/components-1.json";
+  const TIMED = [
+    "--time-gate",
+    "--project",
+    "web:components",
+    "--shard=1/3",
+    "--reporter=json",
+    `--outputFile.json=${COMP}`,
+  ];
+  /** A report whose files took 1..n seconds, the last failed when asked. */
+  const timedReport = (/** @type {number} */ n, failed = false) =>
+    JSON.stringify({
+      testResults: Array.from({ length: n }, (_, i) => ({
+        name: `/w/apps/web/app/fictional-${i}.browser.test.tsx`,
+        status: failed && i === n - 1 ? "failed" : "passed",
+        startTime: 5_000,
+        endTime: 5_000 + (i + 1) * 1000,
+        assertionResults: [],
+      })),
+    });
+  const result = (/** @type {Record<string, string>} */ written) =>
+    JSON.parse(/** @type {string} */ (written["ci-results/components-1.time.json"]));
+
+  it("writes warn with its slowest files for a passing 330 s components step, and passes", () => {
+    const f = fake({ seconds: [330], texts: { [COMP]: timedReport(12) } });
+    expect(runStep(TIMED, f.io)).toBe(0);
+    expect(f.runs[0]?.args).not.toContain("--time-gate");
+    const r = result(f.written);
+    expect(r).toMatchObject({ measure: "components", seconds: 330, verdict: "warn", armed: false });
+    const files = r.lines.filter((/** @type {string} */ l) => l.includes("fictional-"));
+    expect(files).toHaveLength(10);
+    expect(files[0]).toMatch(/12 s {2}apps\/web\/app\/fictional-11\.browser\.test\.tsx$/);
+    expect(f.summary.join("")).toContain("### Time gate: components, 330 s, warn");
+    expect(f.lines).toContain(r.lines[0]);
+  });
+
+  it("fails an armed breach with `time`, every test passing", () => {
+    const gates = gatesWith({ measures: { components: { armed: true } } });
+    const f = fake({ seconds: [400], texts: { [COMP]: timedReport(3) }, gates });
+    expect(runStep(TIMED, f.io)).not.toBe(0);
+    expect(result(f.written)).toMatchObject({ seconds: 400, verdict: "fail", armed: true });
+    expect(f.lines.at(-1)).toMatch(/^time: the components step took 400 s, past its armed cutoff of 360 s$/);
+    expect(f.runs).toHaveLength(1);
+  });
+
+  it("an unarmed breach past the cutoff only warns, saying so", () => {
+    const f = fake({ seconds: [400], texts: { [COMP]: timedReport(3) } });
+    expect(runStep(TIMED, f.io)).toBe(0);
+    expect(result(f.written).lines[0]).toContain("not armed");
+  });
+
+  it("doesn't count a failing step's rerun", () => {
+    const gates = gatesWith({ measures: { components: { armed: true } } });
+    const f = fake({ codes: [1, 0], seconds: [200, 500], texts: { [COMP]: timedReport(3, true) }, gates });
+    expect(runStep(TIMED, f.io)).toBe(0);
+    expect(f.runs).toHaveLength(2);
+    expect(result(f.written)).toMatchObject({ seconds: 200, verdict: "ok" });
+  });
+
+  it("keeps a test failure's code over the time", () => {
+    const gates = gatesWith({ measures: { components: { armed: true } } });
+    const f = fake({ codes: [3, 1], seconds: [400, 10], texts: { [COMP]: timedReport(3, true) }, gates });
+    expect(runStep(TIMED, f.io)).toBe(3);
+    expect(result(f.written).verdict).toBe("fail");
+  });
+
+  it("times the unit step as the unit measure", () => {
+    const f = fake({ seconds: [100] });
+    expect(runStep(["--time-gate", ...ARGS], f.io)).toBe(0);
+    expect(JSON.parse(/** @type {string} */ (f.written["ci-results/unit.time.json"]))).toMatchObject({
+      measure: "unit",
+      verdict: "ok",
+    });
+  });
+
+  it("isn't timed without the flag, on a group with no measure, or on a narrowed run", () => {
+    const plain = fake({ seconds: [999] });
+    runStep(ARGS, plain.io);
+    expect(plain.written).toEqual({});
+    const integration = fake({ seconds: [999] });
+    runStep(["--time-gate", "--project", "integration", `--outputFile.json=${OUT}`], integration.io);
+    expect(integration.written).toEqual({});
+    const narrowed = fake({
+      seconds: [999],
+      texts: { ".ci-narrowed.json": JSON.stringify({ target: "t", files: ["a.test.ts"] }) },
+    });
+    expect(runStep(["--time-gate", ...ARGS], narrowed.io)).toBe(0);
+    expect(narrowed.written).toEqual({});
+  });
+
+  it("isn't judged when the gates' data can't be read, and the step still passes", () => {
+    const f = fake({ seconds: [999] });
+    f.io.gates = () => {
+      throw new Error("broken");
+    };
+    expect(runStep(TIMED, f.io)).toBe(0);
+    expect(f.written).toEqual({});
+    expect(f.lines[0]).toMatch(/not judged \(broken\)/);
+  });
+
+  it("reads each file's seconds from a report, skipping one with no times", () => {
+    const text = JSON.stringify({
+      testResults: [{ name: "/w/a.test.ts", startTime: 1000, endTime: 3500 }, { name: "/w/b.test.ts" }],
+    });
+    expect(fileTimes(text, "/w")).toEqual([{ name: "a.test.ts", seconds: 2.5 }]);
+    expect(fileTimes("not json", "/w")).toEqual([]);
   });
 });
