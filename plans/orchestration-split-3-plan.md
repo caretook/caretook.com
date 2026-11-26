@@ -10,14 +10,14 @@
 
 **Wave 1 landed 2026-11-26 as 00c60f0c** (PR #230, `--no-review`: Codex out of credits; full CI 45874687474 = flake in two app tests outside the branch, filed B-921; unsynced tip, dev's two commits shared no file). Slices 1 and 2 on opus; worktrees removed. On the user's word (via the backlog session caretook-com-20) the open-worktree rule was met by coordinating: fixes-ui parked, plan/self-recovery-2 removed (draft on its branch); the backlog session releases fixes-ui now. Docs folded: `docs/agents/project-config.md` (the `browser` hook contract, the host layer). The rest of wave 1's docs (machinery's browser hook and host layer) wait for the last landing, with the rest. B-543 stays in progress until slice 5 lands.
 
-**Next: wave 2** (slices 3 and 6, both ready: 2 and 1 are merged). First `pnpm prd sync`. Slice 3 (CLIs and Node through `host.mjs`; extend `host-call` with `claude`, `codex`, `gh`; tests that copy scripts into a temp repo need `host.mjs` in their lists): opus. Slice 6 (moves `checks.mjs`, `checks.test.mjs`, `check-areas.d/` to `scripts/project/`): starts only when no running PRD or fixes wave has an unlanded change to `check-areas.d/` or the checks manifest. Check fixes-ui and other `prd/` branches with `git diff dev...<branch> --stat -- scripts/loops/check-areas.d scripts/loops/checks*` first. The gate already reads `paths.checksManifest`, so the move is mostly config plus `browser-job.mjs`'s `MANIFEST` and the runner test's paths. Its model is sonnet if it is a plain move, else opus. Tier: full.
+**Wave 2 running** (started 2026-11-26 after `pnpm prd sync --force`, 2e14e743). Slice 3 (CLIs and Node through `host.mjs`) and slice 6 (the check data moves to `scripts/project/`) both on opus. Slice 6's start condition checked: no `prd/`, `slice/` or `hotfix/` branch and no worktree had unlanded changes to `check-areas.d/` or the checks manifest. Watch running. Tier: full. B-543 claimed.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
 | ----- | ---- | ------- | -------------------------------------- |
 | 1     | 1    | landed  | 41fa52cf (dev 00c60f0c)                |
 | 2     | 1    | landed  | 8338ca66 (dev 00c60f0c)                |
-| 3     | 2    | planned |                                        |
-| 6     | 2    | planned |                                        |
+| 3     | 2    | running |                                        |
+| 6     | 2    | running |                                        |
 | 8     | 3    | planned |                                        |
 | 7     | 3    | planned |                                        |
 | 4     | 4    | planned |                                        |
