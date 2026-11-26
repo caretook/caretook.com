@@ -3,6 +3,7 @@ import type { ParsedSearch, UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/core/rpc";
+import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import {
@@ -49,6 +50,8 @@ export type EntryViewProps = {
   liveLabel?: string;
   /** A note's or event's linked providers: the "with …" line. */
   providers?: LinkedProviderName[];
+  /** A note's or event's formatted text (cards only: rows keep the plain two-line clamp). */
+  richText?: NoteBlock[] | null;
   /** The timeline's search (`?q=`, parsed): its matches are marked. */
   search?: ParsedSearch;
   /** Easy mode: the kind icon and the author aren't filters (rows only). */

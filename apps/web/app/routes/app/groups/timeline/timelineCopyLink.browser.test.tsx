@@ -84,7 +84,7 @@ describe("copy link", () => {
       `${location.origin}${TIMELINE_URL}?day=${dayKeyIn(daysAgo(3).toISOString(), zone())}`,
     );
 
-    await setView("Cards");
+    await setView("Full");
     await waitUntil(() => !!copyButton(rowWith("Walked to the mailbox")), "the card's button");
     await userEvent.click(await found(() => copyButton(rowWith("Walked to the mailbox"))));
     await expect.poll(() => copied.length).toBe(3);

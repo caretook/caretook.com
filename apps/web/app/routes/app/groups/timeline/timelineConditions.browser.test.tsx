@@ -101,7 +101,7 @@ describe("condition changes on the timeline", () => {
     expect(iconOf(row).getAttribute("aria-label")).toBe("Show only condition changes");
     expect(iconOf(row).querySelector("svg")).not.toBeNull();
 
-    await setView("Cards");
+    await setView("Full");
     await expect.poll(texts).toContain("Changed Type 2 diabetes | Since: 2015 → 2014");
   });
 

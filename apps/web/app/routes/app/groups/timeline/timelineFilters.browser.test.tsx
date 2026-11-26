@@ -125,7 +125,7 @@ describe("the kind icon", () => {
   test("cards: the same icon filters", async () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
-    await setView("Cards");
+    await setView("Full");
     await userEvent.click(await found(() => iconOf(rowOf("Symptom")!)));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
     await expect.poll(rowKinds).toBe("Symptom: ");
@@ -220,7 +220,7 @@ describe("the author filter", () => {
   test("cards: the author's name is the control", async () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
-    await setView("Cards");
+    await setView("Full");
     expect(samLink().textContent?.trim()).toBe("Sam Okafor");
     await userEvent.click(samLink());
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);

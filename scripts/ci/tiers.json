@@ -20,5 +20,13 @@
   "browserCheck": "scripts/browser-checks/*.spec.mjs",
   "narrowedFile": ".ci-narrowed.json",
   "forcedFlakeFile": ".github/ci-force-flake.json",
-  "refPrefix": "ci/"
+  "refPrefix": "ci/",
+  "gates": {
+    "quietLoadPerCore": 1,
+    "measures": {
+      "unit": { "aim": 300, "cutoff": 360, "armed": false },
+      "components": { "aim": 300, "cutoff": 360, "armed": false },
+      "quick": { "aim": 300, "cutoff": 360, "armed": false, "modes": ["quick", "slice"] }
+    }
+  }
 }

@@ -4,8 +4,8 @@ import { Eye, LayoutList, List } from "lucide-react";
 import { CIRCLE, ICON, Menu } from "~/components/ui";
 
 const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
-  { id: "rows", label: "Rows", icon: List },
-  { id: "cards", label: "Cards", icon: LayoutList },
+  { id: "rows", label: "Condensed", icon: List },
+  { id: "cards", label: "Full", icon: LayoutList },
 ];
 
 const MODE_ITEMS: { id: DaySummaryMode; label: string; description: string }[] = [
@@ -19,7 +19,7 @@ const isMode = (id: string): id is DaySummaryMode => MODE_ITEMS.some((m) => m.id
 
 /**
  * The full timeline's "View options" (an eye icon), at the right end of the
- * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Rows or Cards, one choice) and Day summaries (Highlights,
+ * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Condensed or Full, one choice) and Day summaries (Highlights,
  * Full or Off, the viewer's setting: `useDaySummaryMode`). Easy mode's
  * toggle is the page header's button (`EasyModeToggle`), not here.
  */

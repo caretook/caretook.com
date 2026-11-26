@@ -321,6 +321,8 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     save,
     edit,
     clear: reset,
+    medications,
+    providers,
     passes,
     dueNow,
     givePass,

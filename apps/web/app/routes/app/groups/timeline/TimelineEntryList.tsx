@@ -127,6 +127,7 @@ export function TimelineEntryList({
     | "liveLabelOf"
     | "nameOf"
     | "providersOf"
+    | "richTextOf"
     | "imageOf"
     | "passNameOf"
     | "markers"
@@ -309,6 +310,7 @@ export function TimelineEntryList({
         }
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
+        richText={view === "cards" && canHaveNoteDocument(entry.kind) ? data.richTextOf(entry.id) : undefined}
         search={marked ? parsed : undefined}
         easy={easy}
         openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}

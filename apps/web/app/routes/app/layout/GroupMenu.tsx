@@ -94,7 +94,7 @@ export function GroupMenu({ groupId }: { groupId: string }) {
       menuLabel="Care groups"
       variant="ghost"
       size="sm"
-      className="min-w-0 gap-1 px-2 font-semibold"
+      className="min-w-0 shrink gap-1 px-2 font-semibold"
       placement="bottom start"
       width="lg"
       items={[
