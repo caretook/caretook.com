@@ -65,7 +65,8 @@
     "hooksInstall": "git config core.hooksPath .githooks"
   },
   "stack": {
-    "portEnv": "apps/web/.env"
+    "portEnv": "apps/web/.env",
+    "checkBuild": "apps/web/build"
   },
   "testProjects": {
     "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],

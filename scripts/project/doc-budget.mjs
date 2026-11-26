@@ -5,7 +5,7 @@
 //       Lists the docs over budget with their sizes. Always exits 0, even if
 //       the measuring itself fails (it runs inside `pnpm check`). Then, for
 //       each topic in plans/backlog.md's registry not flagged done, warns when
-//       its plan's _Status_ passes 6 KB (trim it: `pnpm prd status-trim`).
+//       its plan's _Status_ passes 6 KB (trim it: the tool's `status-trim`).
 //   node scripts/project/doc-budget.mjs land <base> [--head <ref>] [--repo <dir>]
 //       Exits 1 if any doc is over budget AND bigger than at <base>, naming
 //       each with its size, budget and base size; 2 when it can't measure. --head measures that ref
@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readRisa } from "./risa.mjs";
+import { readRisa, toolCommand } from "./risa.mjs";
 import { STATUS_WARN_BYTES, statusBytes } from "./status-trim.mjs";
 
 // The budgets, loaded here so a file that doesn't load is this command's own error (exit 2 in land
@@ -225,7 +225,7 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
     try {
       for (const r of head ? [] : longStatuses(repo))
         out(
-          `plan status: plans/${r.topic}-plan.md's _Status_ is ${kb(r.size)}, over ${kb(STATUS_WARN_BYTES)} (a warning): pnpm prd status-trim ${r.topic}`,
+          `plan status: plans/${r.topic}-plan.md's _Status_ is ${kb(r.size)}, over ${kb(STATUS_WARN_BYTES)} (a warning): ${toolCommand(repo, "prd")} status-trim ${r.topic}`,
         );
     } catch (e) {
       out(`plan status: skipped (${e.message.split("\n")[0]})`);
