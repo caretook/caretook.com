@@ -2,7 +2,7 @@
 
 - Postgres is the truth. Each device keeps a SQLite copy; writes upload through **our** API (`sync.upload`), so permissions, validation and audits apply. Last write wins per row; live notes merge (Yjs).
 - **Hosting:** PowerSync Cloud; locally the `journeyapps/powersync-service:1.28.3` container on :8080, with bucket storage in its own Postgres.
-- **Sync Streams** (`powersync/sync-config.yaml`, edition 3). **Queries list their columns explicitly**, so a new column must be added there too. Then `docker compose restart powersync`.
+- **Sync Streams** (`powersync/sync-config.yaml`, edition 3). **Queries list their columns explicitly**, so add a new column there too, then `docker compose restart powersync`.
   - `care_groups`: one bucket per group the user belongs to, carrying the care tables (most with soft-deleted rows), and the link tables `medication_condition`, `condition_manager` and `timeline_entry_todo` (hard deletes; [todos](todos.md)). `care_recipient` carries `no_known_allergies_at` and `no_known_conditions_at`, `note_document` `todo_id`, `care_group` `details_outside_allowed` ([calendars](calendars.md)).
   - `member_profiles`: co-members' `PUBLIC_PROFILE_FIELDS`.
   - `care_group_writers`: `care_recipient_details` for writers' groups. PowerSync 1.28.3 rejects `role IN (...)`, so it lists the roles it excludes (`viewer`, `easy_helper`, `easy_viewer`): **every new non-writer role must be excluded there too**.
@@ -24,8 +24,8 @@
     - A wipe runs `disconnectAndClear`, then `VACUUM`, and **keeps the IndexedDB file** (a `deleteDatabase` blocked by PowerSync's shared worker blocks every later sign-in); OPFS files are removed. `closeKept` closes without clearing (`caretook:sync-kept`); `countWaiting` counts `ps_crud`, even with no database open.
     - `fetchCredentials` calls `/api/auth/token` (always the live session: auth.md). A 401 leaves the device local-only.
   - `pageCache.ts` (`releaseSyncLocksWhenCached`, before PowerSync opens): a page in the back/forward cache holds PowerSync 2.7's `tab-close-signal-*` and `shared-connection-*` Web Locks, so the next page's database never opens. It releases them on `pagehide` into the cache and reloads on `pageshow` out of it; recheck its lock names on a PowerSync upgrade.
-  - `index.ts`: `openSync`, `getSync`, `closeSync`, `countWaiting`, the first-sync helpers, `useLiveQuery` (nothing with no database open; new loader data keeps live rows), `useSyncState` (`waiting`, `notSaved`, `uploadFailed`).
-  - **The first sync:** `waitForFirstSync(db)` waits at most 1 s (`FIRST_SYNC_WAIT_MS`) and resolves to `isFirstSyncDone(db)` (PowerSync's `hasSynced`, which persists with the local copy). `useFirstSyncDone()` is the hook (below the /app layout only).
+  - `index.ts`: `openSync`, `getSync`, `closeSync`, `countWaiting`, the first-sync helpers, `useLiveQuery` (nothing with no database open; new loader data keeps live rows; results land together next frame, 100 ms if hidden), `useSyncState` (`waiting`, `notSaved`, `uploadFailed`).
+  - **The first sync:** `waitForFirstSync(db)` waits at most 1 s (`FIRST_SYNC_WAIT_MS`) for `isFirstSyncDone(db)` (PowerSync's `hasSynced`, kept locally); hook: `useFirstSyncDone()` (below /app's layout).
     - A loader whose group isn't on the device throws `notOnDevice(db)`: a 404 once the first sync is done, else a 503 that `/app`'s `ErrorBoundary` shows as `FirstSyncPending` (it reruns the loaders when the sync lands).
   - **Session:** `lib/auth/session.ts` `requireSession(request)` is the one shared session check and DB open. Every confirmed online check records `caretook:session-confirmed:<userId>`. The server's answer is sorted by the pure `sessionOutcome` (`lib/auth/sessionRules.ts`):
     - A session is ok. No session, 401 or 403 is **signed out**: `endSession()`, then sign-in. `wipeDevice()` clears the database and forgets the cached user, settings, last group and recent searches.
