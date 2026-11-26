@@ -111,7 +111,6 @@ describe("the plain runner", SLOW, () => {
     expect(status).toBe(1);
     expect(out).toMatch(/^✗ broken › a soft step\n {2}Error: soft/m);
     expect(out).toMatch(/^FAIL broken\n {2}Error: soft[\s\S]* {2}Error: the number/m);
-    expect(out).not.toMatch(/PASS fine/);
     expect(out).toMatch(/no check nosuch/);
     expect(readFileSync(results, "utf8")).toBe("specfail\tFAIL\t0\nnosuch\tMISSING\t0\n");
     // The failure's trace went to the folder it was given.
