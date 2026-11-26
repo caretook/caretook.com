@@ -23,3 +23,9 @@ Older hand-offs moved out of the plan's _Status_.
 
 - **For slice 3:** `stack-lib.sh` still has its own `write_test_env` and `test_db_name`, now also in the project's `test-db.sh`; the fixture copies of `scripts/project` in three core tests go (in its acceptance criteria).
 - **For the doc slices (6 to 8):** `scripts/loops/docs/` doesn't exist yet; a role with `additions` fails until its generic doc is there. Ten roles, not nine (`orchestration` is `docs/orchestration.md`).
+
+## Moved from _Status_ at wave 3's landing (2026-11-25)
+
+**Wave 2 landed 2026-11-25 as 47fb5414** (PR #197, tier `integration`, `--no-review`: Codex was out of credits, so it didn't review this wave; landed on an unsynced tip, `dev`'s 2 newer commits sharing no file). CI: green on 00929e32 (run 45708541701). The Fable skeptic (rule 3): no at 878f964e (one blocker: `stack_hook`'s relative folder after `new.sh`'s `cd`), go at 00929e32 after the fix; its follow-ups are B-846. No docs folded (the plan folds them at the last landing). No other worktree was open (rule 4). Worktrees and branches of slices 2 and 6 are removed.
+
+**Wave 1 landed 2026-11-25 as eaba1e81** (PR #196, tier `full`, `--no-review`; slices 1, 4, 5; skeptic go, follow-ups B-844).

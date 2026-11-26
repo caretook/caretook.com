@@ -32,12 +32,13 @@ set -euo pipefail
 # defined here.
 shared_test_port=${CARETOOK_SHARED_TEST_PORT:-5436}
 shared_test_project=${CARETOOK_SHARED_TEST_PROJECT:-caretook-shared-test}
-compose_file=$(cd "$(dirname "$0")/../.." && pwd)/docker-compose.shared-test.yml
-# The main checkout (the repo's first worktree) and its .loops worktrees.
-main=$(git -C "$(dirname "$0")" worktree list --porcelain 2>/dev/null | awk 'NR==1{print $2}')
-loops=$main/.loops
-
+compose_file=$(CDPATH= cd "$(dirname "$0")/../.." && pwd)/docker-compose.shared-test.yml
 die() { echo "$*" >&2; exit 1; }
+
+# The main checkout (the repo's first worktree, its path whole) and its .loops worktrees.
+main=$(git -C "$(dirname "$0")" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p') || main=""
+[[ -n $main ]] || die "test-db.sh: $(dirname "$0") isn't in a git repository (it needs the main checkout)"
+loops=$main/.loops
 
 # here_name → the name of the .loops worktree the shell is in, or nothing.
 here_name() {
@@ -213,7 +214,10 @@ case $cmd in
     name=${1:-$(here_name)}
     [[ -n $name && -d $loops/$name ]] || die "use: give a .loops worktree name, or run it inside one"
     write_test_env "$loops/$name" "$name"
-    echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)" >&2
+    # The human line only for a person at a terminal; a caller (new.sh) reads summary=.
+    if [[ -t 1 ]]; then
+      echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)" >&2
+    fi
     printf '%s\n' "database=$(db_of "$name")" "port=$shared_test_port" \
       "summary=$(db_of "$name") on the shared test Postgres (:$shared_test_port)"
     ;;

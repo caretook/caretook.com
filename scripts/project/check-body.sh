@@ -22,7 +22,7 @@
 # $CARETOOK_CHECK_STATE, a directory, when set, gets the current `step` and the
 # `failed` and `flaky` files, one per line. The exit code is the check's: 0 passed.
 set -euo pipefail
-here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+here=$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mode=$1 base=$2; shift 2
 unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit)
 state=${CARETOOK_CHECK_STATE:-}

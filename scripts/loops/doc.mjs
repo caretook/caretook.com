@@ -4,9 +4,12 @@
 // Each role (loop, orchestrator, planner, …) has one generic doc, the core's, in
 // docs/<role>.md beside this file. A project changes it through its config's
 // roles group: `roles.<role>.additions` (a file printed after the generic doc) or
-// `roles.<role>.replacement` (a file printed instead of it). With a section, only
-// that heading's text: the heading line through the line before the next heading
-// of its level or higher, from the merged doc.
+// `roles.<role>.replacement` (a file printed instead of it). The additions follow
+// the generic doc's last line, so they can continue only its last section; one
+// that opens with an HTML comment (`<!-- … -->`, a pointer for someone reading the
+// file itself) has it left out. With a section, only that heading's text: the
+// heading line through the line before the next heading of its level or higher,
+// from the merged doc.
 //
 // Exit 2 on an unknown role or section, a named file that is missing, or a role
 // that names both. Every prompt and core file names a role's doc through this
@@ -20,6 +23,9 @@ import { ConfigError, loadConfig } from "./config.mjs";
 export const GENERIC_DIR = fileURLToPath(new URL("./docs", import.meta.url));
 
 export class DocError extends Error {}
+
+/** An additions file's opening HTML comment, with the blank lines after it. */
+const LEADING_COMMENT = /^<!--[\s\S]*?-->[ \t]*\n(\s*\n)*/;
 
 const read = (file, what) => {
   try {
@@ -49,22 +55,38 @@ export function knownRoles(config, genericDir = GENERIC_DIR) {
 
 /**
  * The heading's text in a Markdown doc (ATX headings outside code fences), or
- * undefined when it has none.
+ * undefined when it has none. A fence closes only on its own marker (the same
+ * character, at least as long, nothing after it); a heading's closing #s don't
+ * count. The first heading with the text wins, at any level, and its section
+ * runs to the next heading at that level or above.
  * @param {string} markdown
  * @param {string} heading the heading's text, without its #s
  */
 export function sectionOf(markdown, heading) {
   const lines = markdown.split("\n");
-  let fenced = false;
-  /** @type {(number | undefined)[]} each line's heading level */
-  const levels = lines.map((l) => {
-    if (/^\s*(```|~~~)/.test(l)) fenced = !fenced;
-    const m = !fenced && /^(#{1,6})\s/.exec(l);
-    return m ? m[1].length : undefined;
+  /** @type {string | undefined} the open fence's marker */
+  let fence;
+  /** @type {{ level: number, text: string } | undefined}[] */
+  const heads = lines.map((l) => {
+    if (fence) {
+      const close = /^ {0,3}(`{3,}|~{3,})\s*$/.exec(l);
+      if (close && close[1][0] === fence[0] && close[1].length >= fence.length) fence = undefined;
+      return undefined;
+    }
+    const open = /^ {0,3}(`{3,}|~{3,})/.exec(l);
+    if (open) {
+      fence = open[1];
+      return undefined;
+    }
+    const m = /^ {0,3}(#{1,6})(?:\s+(.*?))?\s*$/.exec(l);
+    if (!m) return undefined;
+    const text = (m[2] ?? "").replace(/(^|\s+)#+$/, "").trim();
+    return { level: m[1].length, text };
   });
-  const start = lines.findIndex((l, i) => levels[i] && l.replace(/^#+\s+/, "").trim() === heading.trim());
+  const start = heads.findIndex((h) => h?.text === heading.trim());
   if (start < 0) return undefined;
-  const end = levels.findIndex((lv, i) => i > start && lv !== undefined && lv <= levels[start]);
+  const level = /** @type {{ level: number }} */ (heads[start]).level;
+  const end = heads.findIndex((h, i) => i > start && h !== undefined && h.level <= level);
   return lines
     .slice(start, end < 0 ? undefined : end)
     .join("\n")
@@ -93,7 +115,7 @@ export function roleDoc(role, { config, root, section, genericDir = GENERIC_DIR 
         join(root, entry.additions),
         `the ${role} role's additions, ${entry.additions},`,
       );
-      text = `${text.replace(/\n*$/, "\n")}\n${additions}`;
+      text = `${text.replace(/\n*$/, "\n")}\n${additions.replace(LEADING_COMMENT, "")}`;
     }
   }
   if (!section) return text;

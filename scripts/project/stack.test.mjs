@@ -34,6 +34,7 @@ case $1 in
   inspect) [[ -z \${FAKE_INSPECT:-} ]] || echo "$FAKE_INSPECT" ;;
   info) countdown boot && exit 1; exit "\${FAKE_INFO:-0}" ;;
   system) [[ -z \${FAKE_DF:-} ]] || echo "$FAKE_DF" ;;
+  volume) [[ $2 != ls || -z \${FAKE_VOLUMES:-} ]] || echo "$FAKE_VOLUMES" ;;
   images) [[ -z \${FAKE_IMAGES:-} ]] || echo "$FAKE_IMAGES" ;;
 esac
 exit 0
@@ -138,6 +139,33 @@ describe("slot facts", () => {
   });
 });
 
+describe("a worktree's stack facts", () => {
+  const w = () => join(loops, "facts-1");
+  beforeEach(() => mkdirSync(w(), { recursive: true }));
+
+  it("take the project from .env's CARETOOK_STACK, as teardown does, and the ports from SLOT", () => {
+    writeFileSync(join(w(), ".env"), "CARETOOK_STACK=caretook-loop7\n");
+    writeFileSync(join(w(), ".env.loop"), "SLOT=2\nBASE_BRANCH=dev\n");
+    expect(facts(ok(["status", w()]))).toMatchObject({
+      slot: "2",
+      project: "caretook-loop7",
+      pg_container: "caretook-loop7-postgres-1",
+      pg_port: "6234",
+    });
+  });
+
+  it("refuse a stack whose SLOT is outside 1-19, or missing", () => {
+    writeFileSync(join(w(), ".env"), "CARETOOK_STACK=caretook-loop7\n");
+    for (const slot of ["20", "0", "x", ""]) {
+      writeFileSync(join(w(), ".env.loop"), `SLOT=${slot}\nBASE_BRANCH=dev\n`);
+      const r = run("stack.sh", ["status", w()]);
+      expect(r.status, slot).not.toBe(0);
+      expect(r.stderr).toMatch(/needs a SLOT of 1-19 in \.env\.loop/);
+    }
+    rmSync(w(), { recursive: true });
+  });
+});
+
 describe("up and down", () => {
   const dir = () => join(loops, "t-1");
 
@@ -184,11 +212,13 @@ describe("up and down", () => {
     expect(facts(down).project).toBe("caretook-loop4");
     for (const f of [".env", "packages/data/.env", "apps/web/.env"])
       expect(existsSync(join(dir(), f)), f).toBe(false);
-    // .env.loop keeps the base it had, not the one given.
-    expect(read(dir(), ".env.loop")).toBe("SLOT=\nBASE_BRANCH=prd/t\n");
+    // .env.loop gets the base given (the core's parent of the branch).
+    expect(read(dir(), ".env.loop")).toBe("SLOT=\nBASE_BRANCH=dev\n");
     expect(read(dir(), "packages/data/.env.test.local")).toMatch(/caretook_test_t_1/);
     rmSync(log, { force: true });
+    // With none given, it keeps its own.
     expect(ok(["down", dir()])).toBe("");
+    expect(read(dir(), ".env.loop")).toBe("SLOT=\nBASE_BRANCH=dev\n");
     expect(ok(["status", dir()])).toBe("");
     expect(calls()).toBe("");
   });
@@ -317,11 +347,20 @@ describe("stop, start, stopped_secs, engine and leftovers", () => {
       "abc123 21.03kB 0 com.docker.volume.anonymous=",
       "linked 1MB 1 com.docker.compose.project=caretook-loop9",
     ].join("\n");
-    const e = { env: { FAKE_DF: df, FAKE_IMAGES: "sha256img 2GB" } };
+    // The plain read (tidy's): Docker's dangling listing, no sizes.
+    const dangling = df
+      .split("\n")
+      .filter((l) => l.split(" ")[2] === "0")
+      .map((l) => l.replace(/ \S+ 0 /, " ? 0 "))
+      .join("\n");
+    const e = { env: { FAKE_DF: df, FAKE_VOLUMES: dangling, FAKE_IMAGES: "sha256img 2GB" } };
     expect(ok(["leftovers", "caretook-loop6"], e).trim().split("\n")).toEqual([
-      "volume=caretook-loop9_data 12500 dangling; no worktree uses caretook-loop9",
+      "volume=caretook-loop9_data ? dangling; no worktree uses caretook-loop9",
     ]);
+    expect(calls()).toMatch(/^docker volume ls --filter dangling=true /m);
+    expect(calls()).not.toMatch(/docker system df/);
     const all = ok(["leftovers", "--all", "caretook-loop6"], e);
+    expect(all).toMatch(/^volume=caretook-loop9_data 12500 dangling; no worktree uses caretook-loop9$/m);
     expect(all).toMatch(/^volume=abc123 21 dangling, anonymous$/m);
     expect(all).toMatch(/^image=sha256img 2000000 dangling \(untagged\)$/m);
     expect(all).toMatch(/^kept=volume caretook-loop6_data: caretook-loop6 is still in use/m);

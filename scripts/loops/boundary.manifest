@@ -31,6 +31,7 @@ scripts/ci/ci-blame.mjs core
 scripts/ci/ci-commits.mjs core
 scripts/ci/ci-file.mjs core
 scripts/ci/ci-gate.mjs core
+scripts/ci/ci-ids.test.mjs core
 scripts/ci/ci-io.mjs core
 scripts/ci/ci-lists.mjs core
 scripts/ci/ci-lists.test.mjs core
@@ -167,8 +168,11 @@ scripts/loops/docs/backlog.md core
 scripts/loops/docs/hotfix.md core
 scripts/loops/docs/inbox.md core
 scripts/loops/docs/loop.md core
+scripts/loops/docs/machinery.md core
+scripts/loops/docs/orchestration.md core
 scripts/loops/docs/orchestrator.md core
 scripts/loops/docs/planner.md core
+scripts/loops/docs/project-config.md core
 scripts/loops/docs/recovery.md core
 scripts/loops/down.sh core
 scripts/loops/drain.mjs core
@@ -179,6 +183,7 @@ scripts/loops/gc.sh core
 scripts/loops/heartbeat.mjs core
 scripts/loops/heartbeat.test.mjs core
 scripts/loops/hooks.mjs core
+scripts/loops/hooks.test.mjs core
 scripts/loops/inbox-settings.json core
 scripts/loops/inventory-facts.mjs core
 scripts/loops/inventory.mjs core
