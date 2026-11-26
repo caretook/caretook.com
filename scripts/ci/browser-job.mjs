@@ -21,7 +21,7 @@ import { FORCED_FLAKE_FILE, browserCheckFile } from "./tiers.mjs";
 
 export const FIRST_RESULTS = "ci-results/browser.tsv";
 export const RERUN_RESULTS = "ci-results/browser.rerun.tsv";
-const MANIFEST = "scripts/loops/checks";
+const MANIFEST = "scripts/project/checks";
 export const RUNNER = "scripts/project/browser-run.sh";
 /** A check the manifest gives no cap. */
 const DEFAULT_CAP_S = 600;
