@@ -6,11 +6,11 @@
 
 **Where it stands (2026-11-26): wave 1 running.** Landing mode: **run everything through** (started run-through; land each green wave, ask only real questions). Models: slices on opus. `todo-subtasks` is done (landed bacd6b65).
 
-**Wave 1 (2026-11-26):** ingest: nothing new for this topic (B-914 flavor packs is unrelated). Sync: up to date with dev. B-550 is still owned by `prd/todo-subtasks` (a forced claim was blocked; that topic is done, so left as is). Worktree `.loops/todo-subtasks-2-1` made (no stack); slice 1 agent (opus) spawned with todo-subtasks' notes (`subtaskProgressQuery` + `progressByParent`, `TodoTick` `progress`, `TodoParentLink`). Watch running.
+**Wave 1 (2026-11-26):** ingest: nothing new for this topic (B-914 flavor packs is unrelated). Sync: up to date with dev. B-550 is still owned by `prd/todo-subtasks` (a forced claim was blocked; that topic is done, so left as is). Worktree `.loops/todo-subtasks-2-1` made (no stack); slice 1 agent (opus) spawned with todo-subtasks' notes (`subtaskProgressQuery` + `progressByParent`, `TodoTick` `progress`, `TodoParentLink`). Watch running. Slice 1 handed off (6955c09e; quick check passed), merged at 9c2effa9. Notes for slice 2: `TodoProgressMark`, `TodoPartOf` (components/todos/TodoTreeMarks), `parentsById` + `progressByParent` from the one `subtaskProgressQuery` (now joins the parent's title), `TodosFilter.listed`, `TodoTick` `showCount`; list rows disable a waiting parent's tick. Docs to fold: todos.md ("Only the todo page feeds it yet" stale), components.md (the marks). Gate: `components` CI run requested.
 
 | Slice | Wave | State   | Merge into `prd/todo-subtasks-2` (slice commits) |
 | ----- | ---- | ------- | ------------------------------------------------ |
-| 1     | 1    | running |                                                  |
+| 1     | 1    | merged  |                                                  |
 | 2     | 2    | planned |                                                  |
 
 ## Architectural decisions
