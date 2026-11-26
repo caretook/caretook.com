@@ -1144,3 +1144,86 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component test: tapping a group settings page link while its loader is pending shows the pending state at once, and it clears when the page renders.
 - [ ] Component test: the same for a user settings page link.
+
+## Wave 14 (written 2026-11-25 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no new dependency, no edits under `apps/web/test/` (orchestration-split-2 is running). Still held: B-694 (the user approves each form live) and B-325 (Capacitor). Slices 79–84 touch different files and run at once.
+
+## Slice 79: Picking a care group on the no-group page shows it's loading (B-819)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/care-groups.md · Tests: component (browser)
+
+**Problem.** On the no-group page (`routes/app/home/route.tsx`), picking a care group gives no feedback while the group loads (the first load can be slow), and the buttons can be tapped again.
+
+**Build.** The user is fine with either: show a loading state at once. Prefer marking the tapped choice pending (a small spinner and "Opening…" in it) and disabling the other choices while `useNavigation().state !== "idle"`, the way `SectionNav` shows its pending state (`sectionNavPending.browser.test.tsx`). If the route's own `brand/AppLoading` screen fits better, use it and say why in the hand-off. No data change.
+
+**Acceptance criteria.**
+
+- [ ] Component test: tapping a group marks that choice pending (accessible: `aria-busy` or its "Opening…" text) before the navigation finishes.
+- [ ] Component test: while one is pending, the group choices can't start a second navigation.
+
+## Slice 80: Quick entry tips use the group's own provider and medication (B-833)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/assistant.md · Tests: component (browser)
+
+**Problem.** The quick entry tips' examples (`QUICK_ENTRY_EXAMPLES` in `components/quick-entry/quickEntryCopy.ts`) name a made-up "Dr Lee" and "metformin" even when the group has its own.
+
+**Build.** The example "appt Dr Lee Friday 2pm" names one of the group's providers and "gave metformin" one of the group's medications (read from the local database, the way the quick entry screens already read them), each falling back to the fictional default when the group has none. Say "event", not "appt" (B-537: "Event" app-wide); keep the example something the parser understands. The box's accessible description (`QUICK_ENTRY_RULES`) reads the same lines. `QuickEntryTips.tsx` takes the names as props or reads them itself, whichever matches its callers.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineQuickEntryTips.browser.test.tsx`): with a group provider and medication, the tips name them; with none, the fictional defaults show.
+- [ ] Component test: the tips say "event", not "appt".
+- [ ] Unit or component test: each example still parses as the kind it shows.
+
+## Slice 81: Members invite cards fit a phone (B-843)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md · Tests: component (browser)
+
+**Problem.** In group settings Members, on a phone: the invite links card (`routes/app/groups/settings/members/InviteLinks.tsx`) squeezes its details to one word per line ("Used / 1 / of / 10 / times …") and "Expires Dec" runs under Copy and Share; the pending invitations card (`PendingInvites.tsx`) cuts the email to "sam.invited@e…" and wraps the meta over five lines beside Resend and Revoke.
+
+**Build.** At narrow widths put each card's actions on their own row under the details (or in a menu if a row doesn't fit), let the details run the card's full width, and let the email wrap (`break-all`/`overflow-wrap:anywhere`) or show in full. Wider screens keep today's side-by-side layout if it fits. The "Couldn't load this link" error is B-830, not this.
+
+**Acceptance criteria.**
+
+- [ ] Component test at 375px: the invite link's details don't sit beside its Copy and Share buttons (the buttons start below the details), and no text overlaps them.
+- [ ] Component test at 375px: a pending invite shows its full email, and Resend and Revoke sit below it.
+
+## Slice 82: The header's right links don't overlap the recipient selector at medium widths (B-848)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** On medium-sized screens the header's right nav links overlap the recipient (care group) selector and the header menu (`routes/app/layout/`: `route.tsx`, `SectionNav.tsx`, `GroupMenu.tsx`, `UserMenu.tsx`).
+
+**Build.** Find the widths where they collide and fix the layout so nothing overlaps at any width from phone to desktop: let the selector truncate its name, move the breakpoint where the section links join the header, or let the links shrink, whichever keeps every link reachable. Keep the phone tab bar and desktop header as they are where they fit. Frame tests pin the header's regions (`frame.browser.test.tsx`, `staff.browser.test.tsx`): keep their order or update them in this slice.
+
+**Acceptance criteria.**
+
+- [ ] Component test at several widths across the medium range (for example 640, 768, 900 and 1024px): the section links' boxes don't intersect the group selector's or the header menu's.
+- [ ] The existing frame tests still pass.
+
+## Slice 83: Timeline View menu says Condensed and Full (B-849)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component (browser)
+
+**Problem.** The timeline View menu's layout choices read "Rows" and "Cards".
+
+**Build.** In `routes/app/groups/timeline/TimelineViewMenu.tsx`, the labels become "Condensed" (was Rows) and "Full" (was Cards); the ids (`rows`, `cards`) and saved preference stay, so no one's choice changes. Update the comment, the test helper `setView` in `timelineWorld.tsx` and any test or doc that finds the options by their old names.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the View menu offers "Condensed" and "Full", and picking each still switches the layout.
+- [ ] No test or screen still names the layout "Rows" or "Cards".
+
+## Slice 84: Timeline Full view shows live notes' rich text (B-850)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: component (browser)
+
+**Problem.** In the timeline's Full (cards) view, a live note shows as plain text, losing its headings, lists and bold.
+
+**Build.** Find what the timeline has for a live note's body (a stored snapshot or the Yjs doc) and render its formatting in `TimelineEntryCard`/`components/entry/EntryBody.tsx` in Full view only (Condensed keeps its two-line plain clamp), read-only, with mentions shown as in the editor. Reuse the Tiptap setup in `components/notes/` (a non-editable editor or its schema's HTML output); search highlighting may stay plain-text if it can't mark rich text, say so. **Stop and say so in the hand-off** if it needs a schema or sync change, loading every note's Yjs doc per card, or makes the timeline visibly slower: then it outgrows a fix.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in Full view a live note with a heading, a list and bold text renders them as `h`, `li` and `strong` elements, not editable.
+- [ ] Component test: in Condensed view the same note still shows its plain two-line clamp.
