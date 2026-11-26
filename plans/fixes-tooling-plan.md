@@ -8,34 +8,29 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-**Hand-off (2026-11-26, wave 7 mid-wave; rotated for context).** Resumed after the post-wave-6 pause. B-771 was fixed on dev by a hotfix (e19c42ab). Wave 7 = slices 50–60, all opus. Deferred for tags' hot files: B-653, B-776, B-619, B-839, B-845, B-864. ~40 other triaged items wait for wave 8+.
+**Wave 8 (2026-11-26, run-through; resumed after the wave 7 rotation).** Reconciled: no landing cut off, no slices in flight; `prd sync` needed no merge. Slices 61–68 written (landing, Codex, cleanup: B-239, B-240, B-244, B-867, B-442, B-443, B-447, B-639, B-649, B-738, B-545), items claimed, hot files set. Running about 5 at once (wave 7's lesson): first 61, 63, 64, 66, 67 (all opus); then 62, 65 (opus) and 68 (sonnet). 65 waits for 66 (both `land.sh`).
 
-- **Merged:** 50 (86103144), 51 (4bf25df7), 52 (dd8d3a21), 53 (f1166303), 54 (793bcf65), 55 (42781ced), 56 (729eeed7), 57 (0783ecf7), 58 (c1fb36b0), 59 (7975988e), 60 (e5f7b7cb). All 11 merged; items ready. Wave gate: `pnpm prd ci run full --wait` (tier full: scripts/ci/env.mjs). **Accepted, to merge in plan order:** 52 (a574e9e2), 54 (729a8858), 55 (cefd6394), 58 (1bac753f), 59 (54294a9c). **Not handed off at rotation:** 51 (d1b105de committed), 53 (44dd2730), 56 (db33b7f7), 57 (86fbcf8b), 60 (01aacbef; 4 files uncommitted). The fresh session respawns them with `--continue`; each should send its hand-off.
-- **Load:** 11 slices at once pushed load to 150–220. Slices 50 and 52 saw their checks fail on load in files they don't touch (land-gate, prompt-golden, the time budget); the files pass alone. Accepted: the wave's CI run is the gate. Next wave: run fewer slices at once.
-- **Slice 59 reaches past tooling:** `apps/web/app/lib/sync/index.ts` `watchLiveQuery` now hands results to React at the next frame, batched, with a 100 ms fallback for a hidden page. The cause: about 35 watches after Back each rendered the 3-page timeline, about 70 ms each. That affects every live query. Sent to the backlog session (caretook-com-24) as an FYI. **Its reply: no objection, merge it this wave** (a separate `--no-ff` merge, so it reverts alone). Gate it on the full CI component run plus the integration tier and the browser sync round-trip. If a sync or offline test turns red or flaky after it: drop 59 from the wave, file it for a sync topic, land the rest, never force it. Note it in sync.md at landing. Also: the timelineBack (B-633) and newGroup (B-769) lines in `scripts/ci/quarantine.txt` can go once they're done (`pnpm prd ci` writes that file).
-- **Docs to fold at landing:** prd.sh's help heredoc is unquoted, so backticks and `$` need escaping (B-766). The planner's slice fields: `Blocked by: slice 3 | 3 | 1, 2 | none` (B-768; `Blocks:` is still unknown). machinery/orchestrator: status-trim puts back a fixes plan's missing slice table (B-807). Only Vitest's own report line counts as an unhandled error (B-623). components.md Gotchas: a menu's popover is a `dialog`, so find a sheet by name (B-769). sync.md: live query results are handed over at the next frame, together (B-633).
-- **Resumed (2026-11-26, session fixes-tooling-95):** no live agents found; respawned 51, 53, 56, 57, 60 with `--continue` (opus) to write their hand-offs (60 has a further commit 67a3734c, all clean). Watch running.
-- **Wave gate:** full run 45784130450 on 3cc9c483: verdict `file`; blame: both failures dev's (boundary.test.mjs, filed B-865, B-866), so it lands. The quarantined B-824 case still FAILED on CI: sent back to slice 57's agent as a fix request (worktree fixes-tooling-57 kept; others removed). Sync: no merge needed. PR #211 opened; Codex out of credits (review exit 4), so land with `--no-review` and say so. Docs folded (7297baa3). 57's fix request: no commit; the CI failure is a real lease.sh exclusivity bug, filed B-867 (fixes-tooling, triaged; B-824's quarantine stays). Next: status-trim, `pnpm prd land fixes-tooling --tier full --no-review -m …`, report, rotate.
-- **Docs to fold at landing (more):** Quarantine lines for B-633, B-769, B-824 can go (`pnpm prd ci` owns quarantine.txt). Docs to fold also: B-767 one comma-joined Backlog-Tool trailer (backlog.md); B-542 CARETOOK_UNIT_WORKERS (loop.md Tests); B-812 last step is `pnpm prd rm` from inside (orchestrator/planner/machinery); B-754 fixtures as files, not CLI calls (loop Tests); B-824 quarantined tests run only with CARETOOK_QUARANTINE=run.
-- Note: `pnpm prd watch --mark <n>` takes only nudged|replied|restarted|left|asked (there's no hand-off mark).
+- **Resumed 2026-11-26 (new session):** no landing journal; all 61–68 merged, tip aa853dcc; gate run 2 green (aa853dcc, run 45808562744). `prd sync` merged dev (a5a1895c); full CI on the synced tip out; PR #216 open; Codex out of credits (exit 4): land `--no-review`. Synced-tip run 45809807786 braked on the build budget (app 406448 B over the old 406187 ceiling: the first sync missed dev's raise 1315ffa6, B-868); `sync --force` merged it (25a4f066), full CI rerun out.
+- **Hand-over (rotating at the context limit, 161k):** all slices 61–68 merged; tip b3f78e46. Next: `pnpm prd ci run full --wait` (gate run 2, tier full for `scripts/ci/ci-gate.mjs`); on `file`, `pnpm prd ci blame` (expected dev's: the search rebuild timing test on the brake list; boundary should now pass) and send a branch failure to a `--continue` agent in that slice's worktree. Then the landing steps: `pnpm prd sync`, `pnpm test:tooling` if it merged, `pnpm prd pr fixes-tooling`, `pnpm prd review fixes-tooling --wait` (exit 4: `--no-review`), `pnpm prd ready`, land `--tier full`, report, `pnpm prd rm fixes-tooling-<n>` for 61–68, fold the docs (doc lines below), status-trim, rotate.
+- **Doc lines for the landing:** orchestrator.md _The check gate_ _What counts_ (slice 67): an ancestor verdict carries only when it's green or a flake outside the branch's files; a failing one asks for a fresh run on the tip. _Landing a wave_ step 4 (slice 62): `--resolve` each declined or current thread; an outdated one stops blocking once Codex's state on the head says `has_unresolved_findings: false`. `--force` rules (slice 66): a skeptic's `--force` refuses when dev's brake state can't be read (GitHub, the origin/dev fetch, the board); `--by-user` is the way through; the brake is read on origin/dev's tip too. Machinery, leases (63, 64): `name` is linked in from a per-writer temp file, a losing taker backs off; a takeover skips a lease that vanished mid-read; the `write:<marker>` test hook; tidy removes a dead lease only through `lease_take_over`. Machinery, landing reports (65): a docs-and-tooling-only landing's _What to try_ lists commands, not the dev URL. review.sh's `REVIEW_TAKE_UP` (61). B-824's quarantine line can go now that B-867 is in (slice 63).
+- **Slice 65 fix merged** (7ac4318d): boundary ok. **Gate run 1:** full on 992169b6 (run 45805573421): `file`. boundary.test.mjs fails on the branch too: slice 65's to-test tests add two `apps/web/` paths (land.test.mjs app-path 24 against 22); fix request sent to slice 65. The search rebuild timing test is on the brake list (dev's, B-619/B-839). B-865/B-866 (the branch-prefixes test naming `$CARETOOK_INBOX_DIR`, from wave 7) fixed in d2133f4e. `land-gate.test.mjs`'s dev-brake test timed out under load ~60 in two slice checks (passes alone): file it if CI shows it.
+- **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-608, B-609, B-619, B-653, B-660, B-667, B-681, B-720, B-721, B-722, B-749, B-751, B-753, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-845, B-851, B-852, B-862, B-864 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
+- **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's once slice 63 (B-867) lands.
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State                                                                   | Merge    |
-| ----- | ------------ | ----------------------------------------------------------------------- | -------- |
-| 50    | B-766        | merged (check stopped on load 149; CI gates)                            | 86103144 |
-| 51    | B-767        | merged (check passed)                                                   | 4bf25df7 |
-| 52    | B-768        | merged (check failed only on load, untouched files)                     | dd8d3a21 |
-| 53    | B-542        | merged (check passed; cap 4 = +50% unit time, proposal 5 noted on item) | f1166303 |
-| 54    | B-623, B-860 | merged (check passed)                                                   | 793bcf65 |
-| 55    | B-807        | merged (check passed)                                                   | 42781ced |
-| 56    | B-754        | merged (check passed)                                                   | 729eeed7 |
-| 57    | B-824        | merged (check passed; 20/20 under load)                                 | 0783ecf7 |
-| 58    | B-769        | merged (check passed)                                                   | c1fb36b0 |
-| 59    | B-633        | merged (check passed; app-wide, revert alone if sync goes red)          | 7975988e |
-| 60    | B-812        | merged (check passed)                                                   | e5f7b7cb |
+| Slice | Item         | State                        | Merge    |
+| ----- | ------------ | ---------------------------- | -------- |
+| 61    | B-239, B-240 | merged (opus)                | 1699763a |
+| 62    | B-244        | merged (opus)                | 35e43036 |
+| 63    | B-867        | merged (opus)                | 69bcc9c1 |
+| 64    | B-442        | merged (opus)                | 3c48b294 |
+| 65    | B-443, B-447 | merged (opus)                | ee34a22e |
+| 66    | B-639, B-649 | merged (opus), in 65's merge | ee34a22e |
+| 67    | B-738        | merged (opus)                | a6ade197 |
+| 68    | B-545        | merged (sonnet)              | 7b608d23 |
 
 ## Wave 1
 
@@ -630,3 +625,84 @@ An orchestrator's finishing step runs `pnpm prd rm <topic>` from inside its own 
 
 - `pnpm prd rm <topic>` run from inside that topic's integration worktree by its own orchestrator session ends that session itself after removing (as `prd end` would), or, if that can't be done safely, refuses with the exact one-line command to run instead (`cd <main> && pnpm prd rm <topic> && pnpm prd end`). Update the orchestrator prompt's last-step line (in `scripts/loops/prompts/` or `prompt.sh`) to match.
 - Unit test: rm from inside its worktree takes the new path; rm from the main checkout behaves as today. Hand-off: the lines `orchestrator.md`'s last-landing order should change to.
+
+## Wave 8
+
+Started 2026-11-26. Contents: the rest of the landing, Codex and cleanup group: the review tooling (B-239, B-240, B-244), the lease race and tidy's lease delete (B-867, B-442), the to-test file (B-443, B-447), the unsynced brake read (B-639, B-649), the gate's carried failing verdict (B-738) and rm.sh's double registry read (B-545). Each item's backlog notes (`pnpm backlog show B-<n>`) carry the details. Never touch a running topic's hot files (`pnpm backlog prd list`: todo-subtasks' `lib/todos/`, `components/todos/`, `routes/app/groups/{todo,todos}/`, `syncRegistry.ts`, `sync-config.yaml`, `lib/sync/schema.ts`, `sync-matrix.mjs`). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain. Slices 63 and 64 both touch the lease code, and 65 and 66 both touch `land.sh`: keep each change local to its own functions.
+
+### Slice 61: pnpm prd review's --json is valid JSON, and --again --wait times out honestly (B-239, B-240)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+`scripts/loops/review.sh`: with `--json`, progress lines (asked Codex…, waiting) go to stdout, so the output isn't valid JSON; with `--again --wait`, when Codex never takes up the re-review, it falls through to the old verdict instead of exiting 75.
+
+- With `--json`, stdout carries only the JSON verdict; every progress line goes to stderr.
+- `--again --wait`: when Codex's summary for the head never changes from the one before the re-review was asked, it exits 75 at the timeout (saying so on stderr) rather than reporting the old verdict.
+- Unit tests (`review.test.mjs`, with its fixtures): `--json --wait` stdout parses as JSON; `--again --wait` with an unchanged summary exits 75.
+
+### Slice 62: outdated Codex threads stop blocking once Codex's state on the head is clean (B-244)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+The user's decision (2026-11-21): trust Codex's summary for the head.
+
+- `openFindings` in `scripts/loops/codex-review.mjs`: an outdated Codex thread no longer counts as open when Codex's `codex-review-state` on the head says `has_unresolved_findings: false`. A thread that isn't outdated, or one on a head whose state still has unresolved findings, still needs a reply and a resolve.
+- Update the orchestrator prompt's review line (`scripts/loops/prompt.sh` or `scripts/loops/prompts/`, with `prompt.test.mjs`) to say only declined and current threads need `--resolve`.
+- Unit test (`codex-review.test.mjs`, the `outdated.json` fixture): an outdated thread with a clean head state is not open; the same thread with unresolved findings on the head is. Hand-off: the lines `docs/agents/orchestrator.md` (_Landing a wave_ step 4) and `docs/orchestration.md` should change to.
+
+### Slice 63: two takers can't hold one check slot (B-867)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/lease.sh`: on CI two takers both wrote `check/<n>/name.tmp`, one `mv` took the other's file, and a run went ahead with no lease (evidence in the item's note).
+
+- Each writer uses its own temp name (e.g. `name.tmp.$$`); after the `mv`, the taker confirms the slot's recorded pid is its own, else it backs off and tries again (or waits) as if the slot were taken.
+- Unit test (`lease.test.mjs`): two takers racing one slot never both hold it (a deterministic interleaving, e.g. a hook between write and mv, rather than a timing loop); the lone-taker path is unchanged. Hand-off: whether B-824's quarantine line can go.
+
+### Slice 64: tidy deletes a dead lease only through lease.sh's takeover (B-442)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`pnpm prd tidy --yes` (`scripts/loops/tidy-cli.mjs` ~445) `rmSync`s dead leases from its earlier snapshot, so a lease retaken in between is deleted.
+
+- Tidy removes a lease only through lease.sh's takeover protocol (its `.takeover` mutex and a fresh liveness check at delete time), never by a plain delete of a path from its snapshot. Keep the change in tidy's lease path; don't change `lease.sh`'s take path (slice 63's).
+- Unit test (`tidy-cli.test.mjs` or `tidy.test.mjs`): a lease that was dead at the snapshot but live at delete time survives; a still-dead one is removed.
+
+### Slice 65: the to-test file lists the landed items and fits a tooling landing (B-443, B-447)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+The `to-test/` file `pnpm prd land` writes lists no items after a local landing (they read landed, not ready, once dev has the merge); its _What wasn't checked_ repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under _What to try_.
+
+- Capture the ready items before the merge (both the PR and the `--local` paths) and use them in the file.
+- _What wasn't checked_ carries no repeated line.
+- A diff that is only `scripts/`, tooling and docs gets the commands to try instead of the app URL and seed sign-ins.
+- Unit tests (`land.test.mjs` or the report module's): a local landing lists its items; a tooling-only diff gets commands, not the URL; no duplicate line.
+
+### Slice 66: an unsynced landing reads origin/dev's brake, and fails closed when it can't (B-639, B-649)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit
+
+`unsynced_dev_brake` (`scripts/loops/unsynced.sh`) reads the verdict for local dev's tip, so a brake on a newer `origin/dev` is missed; and with GitHub unreadable it reports no known brake, which a skeptic's `--force` then trusts.
+
+- Judge the brake on `origin/dev`'s tip (after a fetch) as well as local dev's.
+- When the brake state can't be read, say so distinctly; `land --force` with a skeptic's go refuses on an unreadable state (naming `--by-user` as the way through) instead of treating it as no brake.
+- Unit tests (`land-unsynced.test.mjs`, `land-force-resume.test.mjs` or the skeptic's): a brake only on origin/dev's newer tip is seen; an unreadable state refuses a skeptic `--force`.
+
+### Slice 67: the land gate never carries a failing verdict across a tooling change (B-738)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit
+
+The gate counts a verdict on a first-parent ancestor when only docs or tooling changed since; that carries a failing verdict too, so a tooling fix commit is refused on the old failure (hotfix/lane-cap, 2026-11-24).
+
+- A carried ancestor verdict counts only when it is green (or a flake the branch's files don't touch, as today's rules allow); a failing one makes the gate request a fresh run on the tip (and say why), not refuse.
+- Unit test (`land-gate.test.mjs` or `check-gate.test.mjs` / the gate module's): a failing ancestor verdict plus a tooling-only commit asks for a new run; a green one still carries. Hand-off: the line _The check gate_'s _What counts_ should change to.
+
+### Slice 68: rm.sh reads the registry once (B-545)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+`scripts/loops/rm.sh` runs `backlog.mjs prd list --json` twice (~line 90 and ~104).
+
+- Reuse the first read's rows for the hot-files step; behaviour, messages and exits stay the same, including when the first read failed.
+- Unit test: the existing rm tests pass; one asserts a single registry read per rm (e.g. through a stub that counts calls).
