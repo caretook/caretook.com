@@ -338,6 +338,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-890 | feature | triaged | symptom-catalog-2 |  | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
 | B-891 | feature | triaged | tags-2 |  | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
 | B-892 | feature | triaged | tags-2 |  | Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu |
+| B-893 | feature | triaged | tags-2 |  | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
+| B-894 | chore | triaged | tags-2 |  | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
+| B-895 | feature | triaged | tags-2 |  | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
+| B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
+| B-897 | bug | triaged | fixes-ui |  | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
+| B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
+| B-899 | change | triaged | tags-2 |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
+| B-900 | change | triaged | fixes-ui |  | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
+| B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 
 ## Items
 
@@ -2501,3 +2510,88 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: chips already show on timeline rows in both views (TagChips, two then +N), but adding a tag needs ⋯ > Tags. Wants a quick add right on the item in the full and easy timeline views. Planner: the tap target (a + chip?), Easy helpers only on their own entries (canTagRecord), row tap already opens edit/entry page.
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: the same quick-manage-tags component also goes on the edit and view pages of everything taggable (timeline entries and events, todos, providers, medications), replacing ⋯ > Tags, the provider's Tags header button and the medication edit sheet's toggles. Goal: adding and removing a tag as quick and easy as possible (a tap on a chip to remove, one to add).
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: read-only (chips only, no add or remove) for anyone who can't tag that record (canTagRecord) or create tags (canCreateTag); add-new only for those who may create. The caller sets how many tags show before '+N' (a prop, like ROW_CHIPS today), so each place fits its display size.
+
+### B-893 · feature · Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it
+
+- status: triaged
+- prd: tags-2
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: like user avatars (AvatarColor, components/ui/avatarLook.ts the one class map). New tag: a random palette color not yet used by the group's tags (any when all are taken); pick it on the tags page (B-891). A synced column on tag (additive migration); offline devices pick independently, so two may land on one color (fine). Chips (TagChips) and the picker show it; contrast in light and dark.
+
+### B-894 · chore · Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind
+
+- status: triaged
+- prd: tags-2
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: seeds/tags.ts has only three tags on Dev Family. Add more (all fictional) on entries of each kind, events, todos, providers and medications, in the other seed groups too, with colors once B-893 lands.
+
+### B-895 · feature · Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it
+
+- status: triaged
+- prd: tags-2
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: the search page's tag filter (TagField.tsx, a native select, 'Any tag') isn't great. Ideas: list the group's tags as tappable chips (filter box when many), with colors from B-893. And plain search text matching a tag name (tagKey fold, maybe prefix) returns that tag's items with no tag picked; today tags never reach the index (search.sync.ts, a record_tag subquery only under ?tag=). Planner: rank tag matches with text matches, show the matched tag on results.
+
+### B-896 · feature · Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch
+
+- status: triaged
+- prd: onboarding-3
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: two pages, an 'ez entry cheatsheet' (examples by kind: vitals, symptoms, doses, notes, events, passes, todos; times, units, several at once) and an 'ez entry vocabulary' (the words and units it knows). Link from quick entry itself and somewhere sensible (help, onboarding). Build from the parser's own tables (schema/quickEntry.ts) or test them against it, so the pages can't drift. Timing: just before launch, once the parser settles. Triage: onboarding-3 (held), with the other learn-the-app nudges.
+
+### B-897 · bug · Easy entry: medication autocomplete suggestion covers the event entry suggestion box
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the inbox: Autocomplete suggestions should probably appear above the box, with the event entry suggestion box below.
+- 2026-11-26 (Robert Bo Davis): Triage: quick entry suggestion popovers (overlap; Tab behaviour) are look and flow, fixes-ui; take together
+
+### B-898 · change · Quick entry should use the similar symptom by default on Enter, with an option to add new instead,…
+
+- status: triaged
+- prd: symptom-catalog-2
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the inbox: Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm
+- 2026-11-26 (Robert Bo Davis): Triage: symptom matching in quick entry belongs with the symptom catalog follow-up
+
+### B-899 · change · Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
+
+- status: triaged
+- prd: tags-2
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): Triage: same timeline rows in both views as the quick-tag component (B-892); fold in to avoid a hot-file clash
+
+### B-900 · change · Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when…
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the inbox: Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when there are several
+- 2026-11-26 (Robert Bo Davis): Triage: quick entry suggestion popovers (overlap; Tab behaviour) are look and flow, fixes-ui; take together
+
+### B-901 · plan · Onboarding plan for invited users, based on their user type (we already have one for care group…
+
+- status: triaged
+- prd: onboarding-3
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the inbox: Onboarding plan for invited users, based on their user type (we already have one for care group creators)
+- 2026-11-26 (Robert Bo Davis): Triage: onboarding for invited members by user type; beside the other onboarding-3 items (held)

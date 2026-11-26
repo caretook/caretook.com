@@ -7,7 +7,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 ## Bugs/Nits
 
 - Frontpage hero CTA buttons wrap on mobile; they should fit side by side (B-885)
-- Easy entry: medication autocomplete suggestion covers the event entry suggestion box
+- Easy entry: medication autocomplete suggestion covers the event entry suggestion box (B-897)
   Autocomplete suggestions should probably appear above the box, with the event entry suggestion box below.
 
 ## Change requests
@@ -23,9 +23,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation (B-887)
   Move this section so it's the first item after the timeline on the features page.
 - Features page should highlight easy mode (B-888)
-- Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm
-- Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
-- Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when there are several
+- Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm (B-898)
+- Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu (B-899)
+- Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when there are several (B-900)
 
 ## Feature requests
 
@@ -41,7 +41,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Big plans
 
-- Onboarding plan for invited users, based on their user type (we already have one for care group creators)
+- Onboarding plan for invited users, based on their user type (we already have one for care group creators) (B-901)
 
 ## Questions
 
