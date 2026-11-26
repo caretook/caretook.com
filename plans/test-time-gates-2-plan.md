@@ -1,0 +1,78 @@
+# Plan: Test time gates, part 2
+
+PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B-772. Starts after `test-time-gates` (done). The numbers it starts from are in the PRD's _Notes_ and [test-time-gates' _Status_](test-time-gates-plan.md#status).
+
+## Status
+
+| Slice                                        | Wave | State   | Merge |
+| -------------------------------------------- | ---- | ------- | ----- |
+| 1. Four component shards                     | 1    | planned | —     |
+| 2. The quiet rule; the quick gate armed      | 1    | planned | —     |
+| 3. The durations refreshed; components armed | 2    | planned | —     |
+
+## Architectural decisions
+
+- **The limits stay:** aim 300 s, warn past 300, fail past 360, for every measure. This topic only brings measures under and arms them.
+- **Armed by data, on a measured run:** a slice arms its measure (`armed: true` in the gates' data) only after a run it records in _Status_ shows the measure at most 275 s. That leaves room for a runner about 30% slower to stay under the 360 s cutoff. Over 275 s, it records the times, leaves the measure unarmed and files the rest in `fixes-perf`.
+- **Quiet start only, locally:** after slice 2, the gate judges a local check whose start load is quiet (the user's call, a255: the end load counts the check's own work). A quick check counts only when the gate judged it (`ok`, `warn` or `fail`, never `unjudged`) and its step times show a `tooling` field.
+- **No test changes what it asserts:** a shard change or a file split keeps the same test count, checked before and after.
+
+## How to run this plan
+
+- **Wave 1:** slices 1 and 2, side by side. Slice 1 owns the workflow's component jobs, the tier data's job list, the tier plan's outputs and the test fixtures naming the shards. Slice 2 owns the time gate's quiet rule, the `recover` tooling test file (and `rotate`'s, then `dispatch`'s, only if needed) and the gates' `quick` line.
+- **Slice 2's quiet window:** slice 2 writes its split first. Its measuring run waits until slice 1 has handed off, so slice 1's own checks don't load the machine. Then the orchestrator asks the user for a quiet window (`pnpm prd ask --defaults`, recommending "now": `pnpm prd dispatch --pause` stops new starts, but running sessions still load the machine, so the user picks the time). Once it's quiet, the loop runs its quick check. That check's diff touches the tooling tests, so the tooling step runs. If the gate didn't judge it (a busy start), or its step times have no `tooling` field, the run doesn't count: ask once more, and after a second miss record the times, leave `quick` unarmed and file a `fixes-perf` item.
+- **Wave 2:** slice 3, on `prd/test-time-gates-2` after slice 1 merged. It reads the four-shard run slice 1 recorded, refreshes the table, and makes the arming run.
+- **Wave gates:** a requested `full` CI run on `prd/test-time-gates-2` each wave. Its shard times and unit times go in _Status_; with `components` armed, a shard past 360 s fails it as `time`.
+- **Items at landing:** B-859, B-837 and B-772 close when both measures are armed. An unarmed measure stays open in `fixes-perf` as a new item naming its last times, and B-837 closes with a note pointing to it.
+- **Doc folds at landing:** the components doc (four shards; the table refreshed from run N) and the runbook's shard line; the machinery doc's gates line (which measures are armed, and the quiet rule's start load only).
+
+## Slice 1: Four component shards
+
+Stack: no · Reads: docs/domain/components.md, docs/agents/machinery.md · Tests: unit
+
+User stories 1.
+
+**What to build:** CI's components tier runs a fourth shard (PRD _Implementation decisions_, "Component shards"): the workflow's job (a copy of the third, `--shard=N/4` on every shard), the jobs the final gate waits on, the tier data's job list, and the tier plan's outputs (the narrowed first shard alone, the rest together). The verdict takes its required jobs from the tier data, so the verdict's and the browser job's fixtures name four shards. Release's zone-component jobs keep two shards. About 8 files: the workflow, the tier data, the tier plan, and the tests over them. The durations table and the docs aren't this slice's.
+
+**Acceptance criteria:**
+
+- `tiers.test.mjs`, `ci.test.mjs` and the workflows' test pass with four component jobs: a `components` tier plans all four, and a narrowed one only the first.
+- `verdict.test.mjs` and `browser-job.test.mjs` pass with fixtures naming `components-1` to `-4`.
+- `shards.test.mjs`: a four-shard split from a durations table differs by at most the largest file, and the same input gives the same shards.
+- One requested `components` run from the branch: every shard's test-step seconds and its run id in _Status_ (slice 3 refreshes from it), and the component test count across the four shards equals the three-shard count from test-time-gates' last `full` run (both numbers in the hand-off).
+
+**Blocked by:** none. **Blocks:** 3.
+
+## Slice 2: The quiet rule; the quick gate armed
+
+Stack: no · Reads: docs/agents/loop.md, docs/agents/machinery.md · Tests: unit
+
+User stories 3, 4, 5.
+
+**What to build:** the time gate judges the local measure on its start load only (PRD _Implementation decisions_, "The quiet rule"; the user's answer, a255). `recover.test.mjs` splits along its `describe` groups, with a fixture module for the shared setup (PRD _Implementation decisions_, "The tooling test split"). Then one quick check is measured in a quiet window (PRD _Implementation decisions_, "The quick check's measurement"; _How to run this plan_ for when and the bounded retry). Over 275 s, `rotate.test.mjs` (then `dispatch.test.mjs`) splits the same way and the slice measures again. Then `quick` is armed. Keep it to about 8 files; a further split goes to `fixes-perf`.
+
+**Acceptance criteria:**
+
+- `time-gate.test.mjs`: a quiet start with a busy end is judged (`ok`, `warn` or `fail`); a busy start is `unjudged`; the CI measures are unaffected; the lines still name both loads.
+- `pnpm test:tooling` passes with the same test count before and after the split (both numbers in the hand-off).
+- The quiet quick check's total and step times (from the check log) in _Status_: judged (not `unjudged`), with a `tooling` field.
+- `tier-data.test.mjs` passes with `quick` armed.
+- `quick` armed only if the judged run is at most 275 s; otherwise the times recorded, left unarmed and a `fixes-perf` item filed naming the slowest steps and files.
+
+**Blocked by:** none (its measuring run waits for slice 1's hand-off). **Blocks:** none.
+
+## Slice 3: The durations refreshed; components armed
+
+Stack: no · Reads: docs/domain/components.md · Tests: unit
+
+User stories 1, 2, 5.
+
+**What to build:** the durations table refreshed from slice 1's four-shard run with the balancer's refresh command (PRD _Implementation decisions_, "The durations table"). Then one requested `components` run on the refreshed table arms `components` if its slowest shard is at most 275 s (PRD _Implementation decisions_, "Arming").
+
+**Acceptance criteria:**
+
+- The refreshed table holds `web:components:ny` entries only for the six files the New York project runs, and `shards.test.mjs` still passes.
+- `tier-data.test.mjs` passes with `components` armed (when it is).
+- One requested `components` run on the refreshed table: every shard's test-step seconds in _Status_. `components` is armed if the slowest is at most 275 s; otherwise the times are recorded, the gate left unarmed and a `fixes-perf` item filed naming the slowest files.
+
+**Blocked by:** 1. **Blocks:** none.
