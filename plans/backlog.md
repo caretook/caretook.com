@@ -353,6 +353,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-905 | change | triaged | fixes-ui |  | Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens |
 | B-906 | change | triaged | fixes-ui |  | Timeline Today header: put the add-care-period button right next to the care period display so they read as related |
 | B-907 | change | inbox |  |  | Tests: drop assertions that pin fixed UI copy word for word |
+| B-908 | change | triaged | fixes-ui |  | One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs |
+| B-909 | change | triaged | fixes-ui |  | Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default |
 
 ## Items
 
@@ -2660,3 +2662,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): About 50 app test files assert exact wording. Keep the ones testing text the code builds (dose counts, repeat labels, dates) and legally versioned text (waitlist consent). Replace plain fixed-label pins with role/structure checks. User's word 2026-11-26: copy changes shouldn't mean editing tests.
+
+### B-908 · change · One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user, 2026-11-26. One standard loading component with the main app loader's design (brand/AppLoading.tsx: the mark, spinner and message, centred), shown inside the /app frame with the header, and taking a custom message (example: FirstSyncPending's 'Getting your care groups…', which today is ui/Loading's small inline spinner). It has an optional, configurable 'Go back' button to cancel a load that hangs, plus a watcher that shows 'This looks hung? Go back?' on a very slow load (the threshold is configurable). Code read: ui/Loading (a small spinner or a Skeleton) is used in FirstSyncPending, the home route, RemindMeSheet, VisitPrepSheet, GoogleCard and the dev gallery's LoadingSection. AppLoading is root's HydrateFallback, runs before any script runs and has no header, so it stays as it is; the new component reuses its look. Put it in ui/ (components.md, ui-kit.md), add it to the /dev/ui gallery, move FirstSyncPending onto it, and decide where 'go back' leads when there's no history (the groups list or /app). Tests check structure and behaviour (the prompt shows after the threshold, and go back navigates), never the exact wording.
+
+### B-909 · change · Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user, 2026-11-26. The providers list gets a layout choice like the timeline's: Condensed and Full, with the same icons (lucide List for Condensed, LayoutList for Full), and Condensed is the default. Use one shared component if at all possible. Code read: the timeline's choice is the Layout section of TimelineViewMenu.tsx (routes/app/groups/timeline; an eye-icon ui/Menu with a selection section), saved per user as userPreferences.timelineView ('rows' or 'cards', DEFAULT_TIMELINE_VIEW 'rows'; packages/data schema app-shell/userPreferences.ts) through useTimelineView and saveSettings. Lift the layout items and their icons into one shared piece (a ui/ or components/ layout-choice section or menu) used by both the timeline and providers. The providers list (routes/app/groups/providers, ProviderListItem.tsx, DirectoryResults.tsx) gets a dense row and today's fuller item. Saving it per user means a new optional providersView key in userPreferencesZSchema (strictObject, so the server must accept it before devices send it: expand first). Decide whether one key covers both lists or each list keeps its own; separate keys are suggested. Docs: providers.md, timeline.md, components.md.
+- 2026-11-26 (Robert Bo Davis): Decided by the user, 2026-11-26: separate settings. Providers gets its own providersView key (default Condensed), so the timeline's choice stays its own.
