@@ -6,12 +6,16 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 
 | Slice                                        | Wave | State   | Merge |
 | -------------------------------------------- | ---- | ------- | ----- |
-| 1. The time gate and its data                | 1    | planned | —     |
+| 1. The time gate and its data                | 1    | started | —     |
 | 2. The quick check's times and its gate      | 2    | planned | —     |
 | 3. Stops and breaches apart; the guards stay | 3    | planned | —     |
 | 4. CI's unit and component gates             | 2    | planned | —     |
 | 5. Component shards balanced                 | 3    | planned | —     |
 | 6. The unit job under the aim                | 3    | planned | —     |
+
+- **Landing mode: run everything through** (dispatcher start, 2026-11-25): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+- 2026-11-25: base 0a76460a (orchestration-split-2 landed). Backlog: B-837 (time gates, claimed), B-772, B-781, B-370; nothing new to propose.
+- Wave 1: slice 1 started (worktree `.loops/test-time-gates-1`, agent on opus).
 
 ## Architectural decisions
 
