@@ -28,10 +28,10 @@ const LEASE = (JSON.parse(readFileSync(join(REPO, "risa.json"), "utf8")) as { ho
  * an external Risa) skips the tests that need a real lease.
  */
 function canRun(command: string, cwd: string): boolean {
-  const words = command.split(/\s+/).filter((w) => w && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w));
-  if (!words.length) return false;
-  const found = spawnSync("sh", ["-c", 'command -v "$1" >/dev/null', "x", words[0]], { cwd }).status === 0;
-  return found && words.slice(1).every((w) => !w.includes("/") || existsSync(resolve(cwd, w)));
+  const [program, ...rest] = command.split(/\s+/).filter((w) => w && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w));
+  if (!program) return false;
+  const found = spawnSync("sh", ["-c", 'command -v "$1" >/dev/null', "x", program], { cwd }).status === 0;
+  return found && rest.every((w) => !w.includes("/") || existsSync(resolve(cwd, w)));
 }
 const realLease = canRun(LEASE, REPO);
 
