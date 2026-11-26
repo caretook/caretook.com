@@ -15,10 +15,12 @@ import {
   clearKind,
   clearPeriod,
   clearSymptoms,
+  clearTag,
   clearVital,
   removeSymptom,
   setKind,
   setPeriod,
+  setTag,
   setVital,
   TIMELINE_KINDS,
 } from "~/lib/timeline/timelineFilters";
@@ -28,8 +30,8 @@ import {
  * Vitals (`vitalTypes`: the types the group has readings of, and the current
  * one), the symptom types under Symptoms (a multi-select of `symptomTypes`:
  * the catalog rows the group has live entries of, and the chosen ones; each
- * choice adds or takes off one, "All symptoms" takes them all off), the care
- * period while searching, then the author and search filters
+ * choice adds or takes off one, "All symptoms" takes them all off), Tag
+ * (Any or one of the group's `tags`, when it has any), the care period while searching, then the author and search filters
  * when they're on (`extra`: their removable chips). Every choice is a link
  * through `lib/timeline/timelineFilters.ts`, so it applies at once and the
  * URL keeps it. Clear removes every filter but the search; Done closes.
@@ -41,6 +43,8 @@ export function FilterSheet({
   vitalTypes,
   symptoms = [],
   symptomTypes = [],
+  tag = null,
+  tags = [],
   period,
   extra,
 }: {
@@ -52,6 +56,10 @@ export function FilterSheet({
   symptoms?: readonly string[];
   /** The group's catalog, each with whether it has live entries (`symptomFilterQuery`). */
   symptomTypes?: readonly SymptomFilterRow[];
+  /** The tag filter's id (`?tag=`), while it's one of the group's tags. */
+  tag?: string | null;
+  /** The group's tags, A to Z. */
+  tags?: readonly { id: string; name: string }[];
   /** Only while searching: the group's periods, and the chosen one. */
   period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null } | null;
   /** The author and Matching chips (none when neither is on). */
@@ -127,6 +135,23 @@ export function FilterSheet({
             />
           </Section>
         )}
+        {tags.length > 0 && (
+          <Section title="Tag">
+            <ChipGroup
+              label="Show entries tagged"
+              {...links}
+              links={[
+                { id: "any-tag", label: "Any", to: { search: clearTag(search) }, current: !tag },
+                ...tags.map((t) => ({
+                  id: `tag-${t.id}`,
+                  label: t.name,
+                  to: { search: setTag(search, t.id) },
+                  current: tag === t.id,
+                })),
+              ]}
+            />
+          </Section>
+        )}
         {period && period.choices.length > 0 && (
           <Section title="Period">
             <ChipGroup
@@ -158,7 +183,7 @@ export function FilterSheet({
         <div className="flex justify-end gap-2 pt-2">
           <Button
             {...links}
-            to={{ search: clearKind(clearAuthor(clearPeriod(search))) }}
+            to={{ search: clearTag(clearKind(clearAuthor(clearPeriod(search)))) }}
             variant="ghost"
             size="sm"
             data-filter-clear=""

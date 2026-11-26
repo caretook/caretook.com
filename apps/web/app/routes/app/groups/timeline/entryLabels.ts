@@ -28,7 +28,8 @@ export const actionsLabel = (entry: Labelled) =>
  * search (`q`): "No symptoms by Alex Rivera match “fall”." With a vital
  * type (`vital`, under the vital kind): "No blood pressure readings yet."
  * With symptom types (`symptomNames`, the chosen catalog names, under the
- * symptom kind): "No pain or nausea on the timeline yet."
+ * symptom kind): "No pain or nausea on the timeline yet." With a tag
+ * (`tagName`): "No notes tagged “Knee” on the timeline yet."
  */
 export const emptyTimelineText = (
   kind: TimelineEntryKind | null,
@@ -36,6 +37,7 @@ export const emptyTimelineText = (
   q?: string | null,
   vital?: VitalType | null,
   symptomNames?: readonly string[] | null,
+  tagName?: string | null,
 ) => {
   const what =
     vital && kind === "vital"
@@ -45,11 +47,14 @@ export const emptyTimelineText = (
         : kind
           ? KIND_META[kind].plural.toLowerCase()
           : "entries";
+  const tagged = tagName ? ` tagged “${tagName}”` : "";
   if (q) {
-    return `No ${what}${authorName ? ` by ${authorName}` : ""} match “${q}”.`;
+    return `No ${what}${tagged}${authorName ? ` by ${authorName}` : ""} match “${q}”.`;
   }
-  if (!kind && !authorName) return "Nothing on the timeline yet.";
-  return authorName ? `No ${what} by ${authorName} yet.` : `No ${what} on the timeline yet.`;
+  if (!kind && !authorName && !tagName) return "Nothing on the timeline yet.";
+  return authorName
+    ? `No ${what}${tagged} by ${authorName} yet.`
+    : `No ${what}${tagged} on the timeline yet.`;
 };
 
 /** A vital type's readings, as a sentence names them: "blood pressure readings", "oxygen (SpO₂) readings". */

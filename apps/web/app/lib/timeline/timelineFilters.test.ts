@@ -20,6 +20,8 @@ import {
   addSymptom,
   removeSymptom,
   clearSymptoms,
+  clearTag,
+  setTag,
 } from "./timelineFilters";
 
 const ALEX = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -34,6 +36,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters("?")).toEqual({
       kind: null,
@@ -42,6 +45,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
   });
 
@@ -53,6 +57,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters(`?author=${ALEX}`)).toEqual({
       kind: null,
@@ -61,12 +66,14 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({
       kind: "vital",
       author: ALEX,
       vital: null,
       symptoms: [],
+      tag: null,
       q: "",
       period: null,
     });
@@ -75,6 +82,7 @@ describe("parseFilters", () => {
       author: ALEX,
       vital: null,
       symptoms: [],
+      tag: null,
       q: "",
       period: null,
     });
@@ -88,6 +96,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
   });
 
@@ -105,6 +114,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters("?kind=")).toEqual({
       kind: null,
@@ -113,6 +123,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters("?kind=Symptom")).toEqual({
       kind: null,
@@ -121,6 +132,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
   });
 
@@ -132,6 +144,7 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters("?author=")).toEqual({
       kind: null,
@@ -140,12 +153,14 @@ describe("parseFilters", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({
       kind: null,
       author: null,
       vital: null,
       symptoms: [],
+      tag: null,
       q: "",
       period: null,
     });
@@ -157,6 +172,7 @@ describe("parseFilters", () => {
       author: ALEX,
       vital: null,
       symptoms: [],
+      tag: null,
       q: "",
       period: null,
     });
@@ -165,6 +181,7 @@ describe("parseFilters", () => {
       author: null,
       vital: null,
       symptoms: [],
+      tag: null,
       q: "",
       period: null,
     });
@@ -180,6 +197,7 @@ describe("parseFilters", () => {
       author: null,
       vital: null,
       symptoms: [],
+      tag: null,
       q: "",
       period: null,
     });
@@ -310,6 +328,7 @@ describe("a round trip", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     search = clearKind(search);
     expect(parseFilters(search)).toEqual({
@@ -319,6 +338,7 @@ describe("a round trip", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     search = setKind(search, "note");
     search = clearAuthor(search);
@@ -329,6 +349,7 @@ describe("a round trip", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
   });
 });
@@ -549,6 +570,7 @@ describe("the search's care period (?period=)", () => {
       period: null,
       vital: null,
       symptoms: [],
+      tag: null,
     });
     expect(parseFilters("?q=knee&period=rehab").period).toBeNull();
   });
@@ -644,5 +666,73 @@ describe("the day jump (?day=)", () => {
     expect(clearDay("?kind=note&day=2026-11-03")).toBe("?kind=note");
     expect(clearDay("?day=2026-11-03")).toBe("");
     expect(clearDay("?kind=note")).toBe("?kind=note");
+  });
+});
+
+describe("the tag (?tag=)", () => {
+  const TAG = "3f2b8c1e-5d1a-4c2e-9a77-0b6f3c1e0aaa";
+  const OTHER = "9a77e3f1-5d1a-4c2e-0b6f-3c1e2b8c0bbb";
+
+  it("reads one tag's id, lower-case; anything else is no tag", () => {
+    expect(parseFilters(`?tag=${TAG}`).tag).toBe(TAG);
+    expect(parseFilters(`?tag=${TAG.toUpperCase()}`).tag).toBe(TAG);
+    expect(parseFilters("?tag=urgent").tag).toBeNull();
+    expect(parseFilters("?tag=").tag).toBeNull();
+    expect(parseFilters("").tag).toBeNull();
+  });
+
+  it("reads beside the kind, the author and the search", () => {
+    expect(parseFilters(`?kind=note&author=${ALEX}&q=walk&tag=${TAG}`)).toMatchObject({
+      kind: "note",
+      author: ALEX,
+      q: "walk",
+      tag: TAG,
+    });
+  });
+
+  it("counts as a filter", () => {
+    expect(hasFilters(parseFilters(`?tag=${TAG}`))).toBe(true);
+  });
+
+  it("sets a tag, keeping the other filters", () => {
+    expect(setTag("", TAG)).toBe(`?tag=${TAG}`);
+    expect(setTag(`?kind=symptom&author=${ALEX}&q=knee`, TAG)).toBe(
+      `?kind=symptom&author=${ALEX}&q=knee&tag=${TAG}`,
+    );
+    expect(setTag(`?kind=vital&vital=weight`, TAG.toUpperCase())).toBe(`?kind=vital&vital=weight&tag=${TAG}`);
+  });
+
+  it("replaces the tag on; the same tag or an id that isn't one changes nothing", () => {
+    expect(setTag(`?tag=${TAG}`, OTHER)).toBe(`?tag=${OTHER}`);
+    expect(setTag(`?kind=note&tag=${TAG}`, TAG)).toBe(`?kind=note&tag=${TAG}`);
+    expect(setTag("?kind=note", "urgent")).toBe("?kind=note");
+  });
+
+  it("clears the tag, keeping the other filters", () => {
+    expect(clearTag(`?kind=note&author=${ALEX}&tag=${TAG}`)).toBe(`?kind=note&author=${ALEX}`);
+    expect(clearTag(`?tag=${TAG}`)).toBe("");
+    expect(clearTag("?kind=note")).toBe("?kind=note");
+  });
+
+  it("stays when the other filters change", () => {
+    const on = `?tag=${TAG}`;
+    expect(parseFilters(setKind(on, "event")).tag).toBe(TAG);
+    expect(parseFilters(setAuthor(on, SAM)).tag).toBe(TAG);
+    expect(parseFilters(setQuery(on, "fall")).tag).toBe(TAG);
+    expect(parseFilters(clearKind(setKind(on, "event"))).tag).toBe(TAG);
+    expect(parseFilters(clearQuery(setQuery(on, "fall"))).tag).toBe(TAG);
+    expect(parseFilters(addSymptom(on, SAM)).tag).toBe(TAG);
+  });
+
+  it("goes with clearFilters", () => {
+    expect(clearFilters(`?kind=note&tag=${TAG}`)).toBe("");
+    expect(clearFilters(`?tag=${TAG}&upcoming=1`)).toBe("?upcoming=1");
+  });
+
+  it("stays over a day jump, and a tag change clears the day", () => {
+    const jumped = setDay(`?tag=${TAG}`, "2026-11-03");
+    expect(parseFilters(jumped).tag).toBe(TAG);
+    expect(new URLSearchParams(setTag(jumped, OTHER)).has("day")).toBe(false);
+    expect(new URLSearchParams(clearTag(jumped)).has("day")).toBe(false);
   });
 });

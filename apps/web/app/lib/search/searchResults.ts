@@ -1,6 +1,6 @@
 import type { SearchItemType } from "@caretook/data/schema";
 
-import { SEARCH_MAX_LENGTH } from "@caretook/data/schema";
+import { SEARCH_MAX_LENGTH, tagFromParams } from "@caretook/data/schema";
 import { isSearchItemType, SEARCH_ALL_PARAM, SEARCH_PERIOD_PARAM, SEARCH_QUERY_PARAM } from "./urls";
 import { isRowId } from "../timeline/timelineFilters";
 
@@ -25,8 +25,14 @@ export type RankedHit = {
 /** One type's matches: the first few, and how many there are in all. */
 export type HitSection = { hits: readonly RankedHit[]; total: number };
 
-/** What the page's URL asks for: the text (as typed), the section shown in full, and the care period it's narrowed to. */
-export type SearchPageQuery = { q: string; all: SearchItemType | null; period: string | null };
+/** What the page's URL asks for: the text (as typed), the section shown in full, the care period and the tag it's narrowed to. */
+export type SearchPageQuery = {
+  q: string;
+  all: SearchItemType | null;
+  period: string | null;
+  /** A tag's id (`?tag=`): whether it's one of the group's is the page's to check. */
+  tag: string | null;
+};
 
 /** Sections in page order: the things you'd look up by name first, then todos, then the timeline's entries. */
 export const SECTION_ORDER: readonly SearchItemType[] = [
@@ -60,9 +66,9 @@ const NOUNS: Record<SearchItemType, [one: string, many: string]> = {
 };
 
 /**
- * `?q=` (capped at the parser's length), `?all=` (only a known type) and
- * `?period=` (a row id; whether it's a period of the group is the page's
- * to check), the last two only with a search.
+ * `?q=` (capped at the parser's length), `?all=` (only a known type, with a
+ * search or a tag), `?period=` (a row id, only with a search; whether it's a
+ * period of the group is the page's to check) and `?tag=` (`tagFromParams`).
  */
 export const parseSearchPage = (search: string): SearchPageQuery => {
   const params = new URLSearchParams(search);
@@ -70,10 +76,12 @@ export const parseSearchPage = (search: string): SearchPageQuery => {
   const all = params.get(SEARCH_ALL_PARAM);
   const period = params.get(SEARCH_PERIOD_PARAM);
   const searching = !!q.trim();
+  const tag = tagFromParams(params);
   return {
     q,
-    all: searching && isSearchItemType(all) ? all : null,
+    all: (searching || !!tag) && isSearchItemType(all) ? all : null,
     period: searching && isRowId(period) ? period.toLowerCase() : null,
+    tag,
   };
 };
 
@@ -145,11 +153,14 @@ export const countText = (type: SearchItemType, n: number) => `${n} ${NOUNS[type
 
 /**
  * The polite announcement of a search's results: "2 medications and 14
- * entries", or "No matches for "knee"".
+ * entries", or "No matches for "knee"". With a tag's name: "No matches for
+ * "knee" tagged "Urgent"", or with no text "Nothing is tagged "Urgent"".
  */
-export const resultCountText = (sections: readonly ResultSection[], q: string) => {
+export const resultCountText = (sections: readonly ResultSection[], q: string, tagName?: string | null) => {
   const parts = sections.map((s) => countText(s.type, s.total));
-  if (!parts.length) return `No matches for “${q.trim()}”`;
+  const tagged = tagName ? ` tagged “${tagName}”` : "";
+  if (!parts.length)
+    return q.trim() || !tagName ? `No matches for “${q.trim()}”${tagged}` : `Nothing is${tagged}`;
   if (parts.length === 1) return parts[0];
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 };

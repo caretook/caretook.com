@@ -13,8 +13,9 @@ import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { ConditionRow, LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
+import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { isEmptySearch } from "@caretook/data/schema";
+import { activeTag, isEmptySearch } from "@caretook/data/schema";
 import { groupLinksByEntry } from "~/lib/providers/entryProviders";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { medicationIdOf, withMedication } from "~/lib/medications/medicationEntries";
@@ -28,8 +29,9 @@ import { toTodo } from "~/lib/todos/todos.sync";
 import { toConditions } from "~/lib/profiles/conditions.sync";
 import { rangeUntilNow } from "~/lib/care-periods/periodSearch";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
-import { parseSearch, searchGroup, searchIndexStatus } from "~/lib/search/search.sync";
-import { fromLocalTimestamp, toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { parseSearch, searchGroup, searchIndexStatus, taggedItems } from "~/lib/search/search.sync";
+import { tagsQuery } from "~/lib/tags/tags.sync";
+import { fromLocalTimestamp, readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
 
 // The search page's reads: the index's matches for one group, arranged into
 // sections (`lib/search/searchResults`), then the rows they show, read locally in
@@ -47,6 +49,8 @@ export type SearchPageData = SearchPageQuery & {
   status: SearchIndexStatus;
   /** The text has no word to search for (empty, or only exclusions). */
   empty: boolean;
+  /** The tag filter's name, while `tag` is one of the group's tags (else both are null). */
+  tagName: string | null;
   sections: ResultSection[];
   entries: Record<string, EntryResult>;
   providers: Record<string, ProviderResult>;
@@ -180,7 +184,9 @@ const periodSearchRange = async (db: SyncDb, groupId: string, periodId: string |
 
 /**
  * The search page for `query` in one group (within its care period's dates,
- * when it names one: entries only). While the index is being
+ * when it names one: entries only; with a tag, only the items carrying it,
+ * and with a tag and no text, every live one of them, conditions left out:
+ * `taggedItems`). An unknown or deleted tag is no filter. While the index is being
  * prepared (a first open, a new format) it may find nothing yet; the page
  * says so and searches again when it's ready.
  */
@@ -191,8 +197,11 @@ export const loadSearch = async (
 ): Promise<SearchPageData> => {
   const status = searchIndexStatus();
   const parsed = parseSearch(query.q);
+  const tag = query.tag ? activeTag(query.tag, await readRows<TagRow>(db, tagsQuery(groupId))) : null;
   const none: SearchPageData = {
     ...query,
+    tag: tag?.id ?? null,
+    tagName: tag?.name ?? null,
     status,
     empty: isEmptySearch(parsed),
     sections: [],
@@ -203,11 +212,23 @@ export const loadSearch = async (
     conditions: {},
     notes: {},
   };
-  if (none.empty || status === "unavailable") return none;
+  // A tag with no text lists what carries it, without the index.
+  const listing = !!tag && !query.q.trim();
+  if (!listing && (none.empty || status === "unavailable")) return none;
   let sections: ResultSection[];
   try {
-    const range = await periodSearchRange(db, groupId, query.period);
-    sections = searchSections(await searchGroup(db, groupId, parsed, sectionLimits(query.all), range), query);
+    const limits = sectionLimits(query.all);
+    const results = listing
+      ? await taggedItems(db, groupId, tag.id, limits)
+      : await searchGroup(
+          db,
+          groupId,
+          parsed,
+          limits,
+          await periodSearchRange(db, groupId, query.period),
+          tag?.id ?? null,
+        );
+    sections = searchSections(results, query);
   } catch (e) {
     // The index's tables are being created (or rebuilt): nothing to show yet.
     if (status === "preparing") return none;

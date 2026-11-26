@@ -2,19 +2,22 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
+import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { dayInZone } from "@caretook/data/schema";
+import { activeTag, dayInZone } from "@caretook/data/schema";
 import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { Page } from "~/components/ui";
 import { QuickEntryBox } from "~/components/quick-entry";
+import { useGroupTags } from "~/components/tags";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formString } from "~/lib/core/form";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { loadSettings, useMySettings } from "~/lib/app-shell/me";
 import { sessionContext } from "~/lib/auth/session";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
-import { removeEntry } from "~/lib/timeline/timeline.sync";
+import { readRows, removeEntry } from "~/lib/timeline/timeline.sync";
+import { tagsQuery } from "~/lib/tags/tags.sync";
 import { parseFilters, readDay } from "~/lib/timeline/timelineFilters";
 import { jumpBound } from "~/lib/timeline/timelineJump";
 import { localTimeZone } from "~/lib/core/format";
@@ -61,7 +64,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
  * The first screenful, read locally so the page renders complete: the
  * history up to now, and what's next after it (the Today card's
  * appointment). `?kind=` shows one kind (`?vital=` one vital type, `?symptom=` any of some symptom types), `?author=`
- * one person's entries and `?q=` the entries matching a search (through the
+ * one person's entries, `?tag=` the entries carrying one of the group's tags (an unknown one is no filter) and `?q=` the entries matching a search (through the
  * device's search index; a reload waits a moment for it). The group itself comes from the group route (which
  * has already turned away a group not on the device).
  */
@@ -75,17 +78,26 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const zone = localTimeZone();
   const day = readDay(urlSearch, dayInZone(now, zone));
   const before = day ? jumpBound(day, zone, now) : null;
-  const [status, searchPeriods] = await Promise.all([
+  const [status, searchPeriods, tagRows] = await Promise.all([
     filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
     filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
+    readRows<TagRow>(db, tagsQuery(params.groupId)),
   ]);
+  const tag = activeTag(filters.tag, tagRows)?.id ?? null;
   const range = searchPeriodRange(searchPeriods, filters.period);
   const { match } = timelineSearch(params.groupId, filters.q, status, range);
   const [rows, settings] = await Promise.all([
     loadTimelineRows(
       db,
       params.groupId,
-      { kind: filters.kind, author: filters.author, vital: filters.vital, symptoms: filters.symptoms, match },
+      {
+        kind: filters.kind,
+        author: filters.author,
+        vital: filters.vital,
+        symptoms: filters.symptoms,
+        tag,
+        match,
+      },
       before,
     ),
     loadSettings(request, db.userId),
@@ -96,6 +108,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     ...filters,
     day,
     searchPeriods,
+    tagRows,
     ...rows,
     ...settings,
   };
@@ -143,7 +156,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const mode = useEasyMode(userId, groupId, group, settings.easyMode);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
-  const filters = { kind, author, vital, symptoms, match: search.match };
+  // The tag filter, while it's one of the group's tags (live: a deleted one is no filter).
+  const tags = useGroupTags(groupId, loaderData.tagRows);
+  const tag = activeTag(loaderData.tag, tags);
+  const filters = { kind, author, vital, symptoms, tag: tag?.id ?? null, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, day, initial: loaderData });
   const [view, setView] = useTimelineView(userId, settings.timelineView);
   const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, settings.daySummary);
@@ -180,6 +196,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         vital={vital}
         vitalTypes={data.latestVitals.map((v) => v.reading.type)}
         symptoms={symptoms}
+        tag={tag}
+        tags={tags}
         period={period}
         trailing={
           !mode.easy && (
@@ -202,7 +220,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         mode={mode}
         summaryMode={summaryMode}
         chips={chips}
-        filters={{ kind, author, vital, symptoms, search: { q, state: search.state } }}
+        filters={{ kind, author, vital, symptoms, tag, search: { q, state: search.state } }}
       >
         {sheets}
       </EasyTimeline>
@@ -240,6 +258,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         author={author}
         vital={vital}
         symptoms={symptoms}
+        tag={tag}
         search={{ q, state: search.state }}
         onAddEntry={addEntry}
       />
