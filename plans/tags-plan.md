@@ -20,9 +20,9 @@
 | ----- | ---- | ----------- | --------------------------------------- |
 | 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
 | 2     | 2    | landed      | b3fe1008, f71fed2a (491e3862, 5d091480) |
-| 3     | 3    | in progress |                                         |
+| 3     | 3    | merged      | b71903f5 (2dfe5297)                     |
 | 4     | 3    | in progress |                                         |
-| 5     | 3    | in progress |                                         |
+| 5     | 3    | handed off  | waits for 4 (b52ced9d)                  |
 | 6     | 4    | not started |                                         |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
