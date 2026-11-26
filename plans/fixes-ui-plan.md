@@ -1229,3 +1229,18 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component test: in Full view a live note with a heading, a list and bold text renders them as `h`, `li` and `strong` elements, not editable.
 - [ ] Component test: in Condensed view the same note still shows its plain two-line clamp.
+
+## Wave 15 (written 2026-11-25 by the orchestrator, from the triaged fixes-ui items)
+
+## Slice 85: Quick entry previews title events with Event, not Appointment (B-857)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/appointments.md · Tests: unit (`packages/data`)
+
+**Problem.** Quick entry's parser still titles an event line "Appointment with <provider>", "<words> appointment" or "Appointment" (`packages/data/src/db/schema/assistant/quickEntry.ts`, the `title` for a keyword line, near line 1728). B-537 made Event the one word app-wide.
+
+**Build.** The titles become "Event with <provider>", the typed words alone, capitalized ("Dental cleaning", not "Dental cleaning event"), and "Event". The parser still recognizes "appointment", "appt" and "visit" as keywords: only its output wording changes. Update `quickEntry.test.ts`, `quickEntryPreview.test.ts` and any other test, browser check (`scripts/browser-checks/`) or connector text that asserts the old titles (grep for "Appointment with" and `appointment"`).
+
+**Acceptance criteria.**
+
+- [ ] Unit test: "appointment with Dr. Lee tomorrow 3pm" previews the title "Event with <provider>"; "dental cleaning appt friday" previews "Dental cleaning"; a bare "appointment tomorrow" previews "Event".
+- [ ] No test, browser check or screen still expects an "Appointment" title from quick entry.
