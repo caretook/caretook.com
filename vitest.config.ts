@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
 import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 import { parseQuarantine, quarantineMode } from "./scripts/ci/lists.mjs";
+import { DurationSequencer } from "./scripts/ci/shard-sequencer.mjs";
 import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 
 // Vitest projects:
@@ -58,6 +59,7 @@ const PROJECT_UNIT = [
   "env",
   "lists",
   "release-jobs",
+  "shards",
   "test-job",
   "tiers",
   "verdict",
@@ -112,11 +114,17 @@ const inNodeZone = <P extends { test: { env?: Record<string, string>; browser?: 
 // and `web:components:ny` (NY_INCLUDE, in the second zone). The device's zone is
 // the browser context's; the recipient's is the fixtures' (TEST_TIME_ZONE).
 const COMPONENT_FILES = ["app/**/*.browser.test.tsx", "test/**/*.browser.test.tsx"];
+// The second zone's every-run files: the ones written to test the zones apart, which
+// build their moments with apps/web/test/zone.ts (zones.test.mjs keeps this list and
+// those imports the same). The release tier's zone-components jobs run every
+// component file in the second zone (B-772).
 const NY_INCLUDE = [
-  "app/routes/app/groups/timeline/**/*.browser.test.tsx",
-  "app/routes/app/groups/medications/**/*.browser.test.tsx",
-  "app/routes/app/groups/medication/**/*.browser.test.tsx",
-  "app/routes/app/groups/planner/**/*.browser.test.tsx",
+  "app/routes/app/groups/medications/today.browser.test.tsx",
+  "app/routes/app/groups/planner/plannerEvents.browser.test.tsx",
+  "app/routes/app/groups/planner/plannerSeries.browser.test.tsx",
+  "app/routes/app/groups/timeline/timelineHeader.browser.test.tsx",
+  "app/routes/app/groups/timeline/timelineZones.browser.test.tsx",
+  "app/routes/app/groups/timeline/todayCard.browser.test.tsx",
 ];
 const componentsProject = (name: string, zone: string, port: number, include = COMPONENT_FILES) => ({
   extends: "./apps/web/vite.config.ts",
@@ -176,6 +184,8 @@ const componentsProject = (name: string, zone: string, port: number, include = C
 
 export default defineConfig({
   test: {
+    // `--shard` balances files by their past seconds (scripts/ci/shards.mjs), not by count.
+    sequence: { sequencer: DurationSequencer },
     projects: [
       {
         test: {
@@ -278,8 +288,8 @@ export default defineConfig({
         },
       },
       componentsProject("web:components", testZone(), await freePort()),
-      // The second zone, every day: the screens where a zone mistake misdates care
-      // data (the timeline, doses, events) with the device in New York and the
+      // The second zone, every run: the tests that set the zones apart (the timeline,
+      // doses, events), with the device in New York and the
       // recipient's fixtures still in Los Angeles (B-372). Its own project, since
       // one project's browser instances can't have different provider settings;
       // its own port, since the two run at once. A New York-only skip names its
