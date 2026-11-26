@@ -2,11 +2,12 @@
 // The browser suite of a CI job: `node scripts/ci/browser-job.mjs`, then
 // `node scripts/ci/browser-job.mjs report` for $GITHUB_OUTPUT.
 //
-// Runs browser.sh --suite, then reruns once each check that failed and that the
-// runner hasn't already retried, so no check gets a third try. A pass on the rerun,
-// or the runner's FLAKY, is a flake: the job passes and the verdict names the check.
-// Both passes share one time budget inside the job's limit; a check they never
-// reach is `not-run`, which the verdict reads as infra.
+// Runs the suite's checks (the manifest's e2e ones) one at a time through the
+// plain runner (scripts/project/browser-run.sh: no lease, no retry), each ended at
+// its manifest cap, then reruns once each check that failed. A pass on the rerun
+// is a flake: the job passes and the verdict names the check. Both passes share
+// one time budget inside the job's limit; a check they never reach is `not-run`,
+// which the verdict reads as infra.
 //
 // A proof run's throwaway commit carries .github/ci-force-flake.json (`pnpm prd ci run
 // candidate --force-flake <check>`): that check's spec throws for the first pass
@@ -21,6 +22,11 @@ import { FORCED_FLAKE_FILE, browserCheckFile } from "./tiers.mjs";
 export const FIRST_RESULTS = "ci-results/browser.tsv";
 export const RERUN_RESULTS = "ci-results/browser.rerun.tsv";
 const MANIFEST = "scripts/loops/checks";
+export const RUNNER = "scripts/project/browser-run.sh";
+/** A check the manifest gives no cap. */
+const DEFAULT_CAP_S = 600;
+/** Between two checks: Better Auth allows about 3 sign-ins per 10 s per client IP. */
+const PAUSE_MS = 2000;
 /** The job's 35 minutes less its setup (about 3) and a margin to report. */
 export const BUDGET_S = 1740;
 /** Too little left to start a rerun that could prove anything. */
@@ -32,7 +38,7 @@ export const FORCED_LINE = 'throw new Error("forced failure for the CI proof run
 
 /**
  * @typedef {{ check: string, verdict: string, retried: boolean }} CheckRun
- * @typedef {{ run: (args: string[], env: Record<string, string>) => number, readText: (path: string) => string | null, writeText: (path: string, text: string) => void, remove: (path: string) => void, log: (line: string) => void, now: () => number, root: string }} BrowserIo
+ * @typedef {{ run: (args: string[]) => number, readText: (path: string) => string | null, writeText: (path: string, text: string) => void, remove: (path: string) => void, log: (line: string) => void, now: () => number, pause: (ms: number) => void, root: string }} BrowserIo
  */
 
 /** The suite's checks, in order: the manifest's `e2e yes` lines. */
@@ -44,8 +50,19 @@ export const suiteChecks = (/** @type {string} */ manifest) =>
     .filter((fields) => fields.length >= 4 && fields[3] === "yes")
     .map((fields) => /** @type {string} */ (fields[0]));
 
+/** Each listed check's cap in seconds, from the manifest's second column. */
+export const checkCaps = (/** @type {string} */ manifest) =>
+  new Map(
+    manifest
+      .split("\n")
+      .filter((line) => !line.startsWith("#"))
+      .map((line) => line.trim().split(/\s+/))
+      .filter((fields) => fields.length >= 4 && /^[0-9]+$/.test(fields[1] ?? ""))
+      .map((fields) => [/** @type {string} */ (fields[0]), Number(fields[1])]),
+  );
+
 /**
- * browser.sh's result lines, by check.
+ * The runner's result lines, by check.
  * @param {string | null} text
  * @returns {Map<string, CheckRun>}
  */
@@ -116,9 +133,34 @@ const readSummary = (/** @type {BrowserIo} */ io) =>
     parseResults(io.readText(RERUN_RESULTS)),
   );
 
+/**
+ * One pass: each check through the runner, in turn, its result appended to
+ * `results`, each ended at its cap or the budget's end (`until`, in io.now()'s
+ * milliseconds), whichever comes first; one the budget never reaches is NOT-RUN.
+ * @param {BrowserIo} io
+ * @param {string[]} checks
+ * @param {Map<string, number>} caps
+ * @param {string} results
+ * @param {number} until
+ */
+function runPass(io, checks, caps, results, until) {
+  checks.forEach((check, i) => {
+    if (i > 0) io.pause(PAUSE_MS);
+    const left = Math.floor((until - io.now()) / 1000);
+    if (left < 1) {
+      io.writeText(results, `${io.readText(results) ?? ""}${check}\tNOT-RUN\t0\n`);
+      return;
+    }
+    const limit = Math.min(caps.get(check) ?? DEFAULT_CAP_S, left);
+    io.run(["run", "--results", join(io.root, results), "--timeout", String(limit), check]);
+  });
+}
+
 /** @param {BrowserIo} io */
 export function runBrowserJob(io) {
-  const expected = suiteChecks(io.readText(MANIFEST) ?? "");
+  const manifest = io.readText(MANIFEST) ?? "";
+  const expected = suiteChecks(manifest);
+  const caps = checkCaps(manifest);
   if (!expected.length) throw new Error(`no suite in ${MANIFEST}`);
   const forced = forcedCheck(io, expected);
   const start = io.now();
@@ -133,11 +175,7 @@ export function runBrowserJob(io) {
       io.log(`proof run: ${forced} is forced to fail on the first pass`);
       io.writeText(spec, `${FORCED_LINE}${original}`);
     }
-    // A forced failure must reach this job's rerun, not the runner's retry.
-    io.run(["--suite", ...(spec ? ["--no-retry"] : [])], {
-      CARETOOK_BROWSER_RESULTS: join(io.root, FIRST_RESULTS),
-      CARETOOK_BROWSER_SUITE_CAP: String(BUDGET_S),
-    });
+    runPass(io, expected, caps, FIRST_RESULTS, start + BUDGET_S * 1000);
   } finally {
     if (spec && original !== null) io.writeText(spec, original);
   }
@@ -147,11 +185,7 @@ export function runBrowserJob(io) {
   if (failed.length && left < MIN_RERUN_S) io.log(`${left}s left: not rerunning ${failed.join(", ")}`);
   else if (failed.length) {
     io.log(`rerunning ${failed.length} failed check(s) once: ${failed.join(", ")}`);
-    io.run(["--suite", "--no-retry"], {
-      CARETOOK_BROWSER_RESULTS: join(io.root, RERUN_RESULTS),
-      CARETOOK_BROWSER_SUITE: failed.join(" "),
-      CARETOOK_BROWSER_SUITE_CAP: String(left),
-    });
+    runPass(io, failed, caps, RERUN_RESULTS, start + BUDGET_S * 1000);
   }
 
   const summary = readSummary(io);
@@ -164,17 +198,13 @@ const realIo = () => {
   const root = process.cwd();
   return {
     root,
-    // An absolute path: the runner changes directory and then resolves itself from $0.
-    run: (args, env) =>
-      spawnSync("bash", [join(root, "scripts/loops/browser.sh"), ...args], {
-        stdio: "inherit",
-        env: { ...process.env, ...env },
-      }).status ?? 1,
+    run: (args) => spawnSync("bash", [join(root, RUNNER), ...args], { stdio: "inherit" }).status ?? 1,
     readText: (path) => (existsSync(join(root, path)) ? readFileSync(join(root, path), "utf8") : null),
     writeText: (path, text) => writeFileSync(join(root, path), text),
     remove: (path) => rmSync(join(root, path), { force: true }),
     log: (line) => console.log(`browser-job: ${line}`),
     now: () => Date.now(),
+    pause: (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms),
   };
 };
 

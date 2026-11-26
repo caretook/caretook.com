@@ -85,6 +85,7 @@
     "stackEngine": "scripts/project/stack.sh engine",
     "stackLeftovers": "scripts/project/stack.sh leftovers",
     "serve": "scripts/project/serve.sh",
+    "browser": "scripts/project/browser-run.sh",
     "testDb": "scripts/project/test-db.sh",
     "lease": "bash scripts/loops/lease.sh hold"
   },
