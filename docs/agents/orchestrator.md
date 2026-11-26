@@ -1,13 +1,11 @@
 - **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check on `pnpm log dev` or `pnpm backlog list`; then `pnpm prd sync --force`. **Unsure, or a choice past your topic:** ask the backlog session (SendMessage); it advises.
 - **Run-through sessions never ask in the terminal:** `pnpm prd ask` (a question, or a report at each landing). A fresh Opus [skeptic](machinery.md#the-skeptic) reads each question first. A recommended one takes `--defaults` (the tool takes it after 30 minutes) or `--waits` ([never list](preferences.md#planning-and-slices)). Then a PushNotification with its line and `pnpm prd ask --wait <id>` in the background; carry on meanwhile. **Only a question's line is pushed.**
 
-For a PRD orchestrator: a top-level session (spawned agents can't spawn), one per PRD, in the integration worktree `.loops/<topic>` on `prd/<topic>`, steered by the user. It reads `dev`, never works in the main checkout, and runs loops ([loop](loop.md)). **At most four PRDs run at once** (`prd dispatch --cap`).
-
 ## Branches and protection
 
-- `main` (live) and `staging` change only by PR merge on GitHub (`staging` from an `rc/*` candidate, `main` from `staging`). `dev` takes landings, `pnpm backlog` commits and small direct changes. `prd/<topic>` takes its slices' merges and `dev` syncs; `slice/<topic>/<n>` its loop's commits; `plan/<topic>` (docs) and `hotfix/<name>` their session's commits; all three land in `dev` like a PRD.
+- `main` (live) and `staging` change only by PR merge on GitHub (`staging` from an `rc/*` candidate, `main` from `staging`). `dev` takes landings, `pnpm backlog` commits and small direct changes; `prd/<topic>` its slices' merges and `dev` syncs; the other branches their session's commits.
 - **Hooks** (`.githooks/`; `pnpm hooks:install` sets `core.hooksPath` for every worktree, and `new.sh` runs it): on `main` and `staging`, no commits, merges or pushes, and no local moves but a fast-forward to `origin`'s copy (`git fetch && git branch -f main origin/main`). The dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1` (the hook says so); agents never set it. `dev` isn't restricted. `commit-msg` checks Conventional Commits on every branch.
-- `pnpm prd sync`, `pnpm prd land` and `pnpm backlog` write their own commit subjects. `pr` and `land` push `dev` (fast-forward only); backlog writes don't.
+- `pnpm prd sync`, `pnpm prd land` and `pnpm backlog` write their own commit subjects; backlog writes don't push `dev`.
 
 ## Running a wave
 
@@ -50,7 +48,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 ### Docs at landing
 
 - Fold the wave's lasting decisions into the matching area doc (add a doc and an _Area index_ entry for a new area), process changes into the role doc, and only rules every session needs into AGENTS.md. Keep in-flight status in your plan. Loops never edit AGENTS.md or `docs/`.
-- **Byte budgets** (`scripts/project/doc-budget.config.mjs`): the core 8 KB, each `docs/agents/*.md` 15 KB, each `docs/domain/*.md` and `docs/layout.md` 10 KB. `pnpm check` warns (`pnpm docs:budget`). `pnpm prd land` refuses any branch (`--force` included) that makes an over-budget doc bigger than on `dev`: **trim at least what you fold in.**
+- **Byte budgets** (`scripts/project/doc-budget.config.mjs`): the core 8 KB, each role 15 KB (a split one's two halves share it), each `docs/domain/*.md` and `docs/layout.md` 10 KB. `pnpm check` warns (`pnpm docs:budget`). `pnpm prd land` refuses any branch (`--force` included) that makes an over-budget doc bigger than on `dev`: **trim at least what you fold in.**
 - When a PRD is done, move its decisions to the area docs and mark it done.
 
 ## Rules across PRDs

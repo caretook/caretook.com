@@ -3,7 +3,7 @@
 3. Hosting: go live by working through [`ops/runbook.md`](../../ops/runbook.md) with the user, staging first.
 4. After invites: the launch work in [notifications](../domain/notifications.md); then Capacitor (bearer storage, `VITE_API_ORIGIN`).
 
-For anyone who reads or writes the backlog: the user, orchestrators, planning and backlog sessions, and loops (notes only). Everything planned (bugs, changes, features, big plans, questions) lives in two files, **only on `dev`**.
+Everything planned (bugs, changes, features, big plans, questions) lives in two files, **only on `dev`**.
 
 ## The two files
 
