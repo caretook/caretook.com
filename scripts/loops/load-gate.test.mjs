@@ -1,6 +1,6 @@
 // The load gate: the pure decision (load-gate.mjs), its CLI, and the scripts
 // that wait on it or warn (new.sh slice, pnpm prd start, pnpm prd status)
-// against a throwaway repo with fake docker, pnpm, lsof and nvm, and a stubbed
+// against a throwaway repo with the stub stack hook and fake pnpm, lsof and nvm, and a stubbed
 // load (a file the tests write), so the real machine's load never matters.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
@@ -19,7 +19,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadGate, parseLoad, readLoadGate, sayGate, stateOf } from "./load-gate.mjs";
-import "./config-fixture.mjs";
+import { stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 
@@ -126,10 +126,6 @@ const PLAN = `# Plan: T
 
 Stack: no · Reads: none · Tests: unit
 `;
-const FAKE_DOCKER = `#!/usr/bin/env bash
-case $1 in exec) [[ "$*" != *psql* ]] || echo 0 ;; esac
-exit 0
-`;
 
 describe("the scripts that wait or warn", () => {
   let root, main, loops, loadFile, env;
@@ -179,17 +175,16 @@ describe("the scripts that wait or warn", () => {
     const nvm = join(root, "nvm");
     mkdirSync(bin);
     mkdirSync(nvm);
-    writeFileSync(join(bin, "docker"), FAKE_DOCKER);
     writeFileSync(join(bin, "pnpm"), "#!/usr/bin/env bash\nexit 0\n");
     writeFileSync(join(bin, "lsof"), "#!/usr/bin/env bash\nexit 1\n");
-    for (const f of ["docker", "pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
+    for (const f of ["pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
     writeFileSync(join(nvm, "nvm.sh"), "nvm() { :; }\n");
     env = {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
+      SAMPLE_STACK_STATE: join(root, "stack-state"),
       NVM_DIR: nvm,
       TRUNK: "dev",
-      CARETOOK_SHARED_TEST_PORT: "",
       CARETOOK_FREE_GB: "100",
       CARETOOK_MIN_FREE_GB: "",
       CARETOOK_MAX_PRDS: "",
@@ -213,6 +208,8 @@ describe("the scripts that wait or warn", () => {
       (f) => f.endsWith(".sh") || f === "slice-fields.mjs" || f === "config.mjs" || f === "load-gate.mjs",
     ))
       copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
+    // The stack and test DB hooks: the sample project's stub.
+    env.RISA_CONFIG = stubHookConfig(main);
     writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\n.postgres/\n");
     mkdirSync(join(main, "plans"));
     writeFileSync(join(main, "plans/t-plan.md"), PLAN);

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Tear down a worktree made by new.sh: stop and delete its Docker stacks and
-# data, drop its databases on the shared test Postgres (its own and its
-# integration workers' copies), remove the worktree, its session record
+# Tear down a worktree made by new.sh: take down its stack and data (the stack
+# hook's stackDown), drop its test databases (the testDb hook's drop: its own
+# and its integration workers' copies), remove the worktree, its session record
 # (.loops/.sessions/) and release its slot. Then delete its branch if it's
 # fully merged into its parent (slice/<topic>/<n> → prd/<topic>; prd/* and
 # plan/* and hotfix/* → dev); an unmerged branch is kept. A merged branch's
@@ -40,9 +40,9 @@ branch=$(git -C "$dir" branch --show-current)
 if [[ -z $force && -n $(git -C "$dir" status --porcelain) ]]; then
   echo "$dir has uncommitted changes (commit them, or pass --force)" >&2; exit 1
 fi
-if [[ -z $force && $branch == prd/* ]]; then
+if [[ -z $force && $branch == "$prd_prefix"* ]]; then
   for d in "$loops"/*/; do
-    [[ $(git -C "$d" branch --show-current 2>/dev/null) == "slice/${branch#prd/}/"* ]] && {
+    [[ $(git -C "$d" branch --show-current 2>/dev/null) == "$slice_prefix${branch#"$prd_prefix"}/"* ]] && {
       echo "slice worktree $(basename "$d") still exists (remove it first, or pass --force)" >&2; exit 1; }
   done
 fi
@@ -50,8 +50,8 @@ fi
 # Whether a finished PRD marks its topic done: decided now, while its plan (and
 # this script's own checkout, maybe the worktree) is still here.
 mark_done="" flags=""
-if [[ -n $registry && $branch == prd/* ]]; then
-  topic=${branch#prd/}
+if [[ -n $registry && $branch == "$prd_prefix"* ]]; then
+  topic=${branch#"$prd_prefix"}
   if ! git -C "$main" merge-base --is-ancestor "$branch" "$(parent_of "$branch")" 2>/dev/null; then
     mark_done="" # not merged: nothing to say
   elif left=$(node "$(dirname "$0")/rotate.mjs" slices-left "$dir/plans/$topic-plan.md"); then
@@ -71,29 +71,30 @@ fi
 
 # A standing topic's wave set its row's hot files; with its worktree gone they go too.
 clear_hot=""
-if [[ -n $registry && $branch == prd/* ]] && hot_rows=$(cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd list --json 2>/dev/null) &&
-  node "$(dirname "$0")/rotate.mjs" clears-hot "${branch#prd/}" <<<"$hot_rows"; then
-  clear_hot=${branch#prd/}
+if [[ -n $registry && $branch == "$prd_prefix"* ]] && hot_rows=$(cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd list --json 2>/dev/null) &&
+  node "$(dirname "$0")/rotate.mjs" clears-hot "${branch#"$prd_prefix"}" <<<"$hot_rows"; then
+  clear_hot=${branch#"$prd_prefix"}
 fi
 
-stack_teardown "$dir"
-# Its databases on the shared test Postgres, worker copies too (nothing when that isn't running).
-"$(dirname "$0")/test-db.sh" drop "$name" || echo "couldn't drop $(test_db_name "$name") (pnpm prd test-db list)" >&2
+# Its stack, its data and its env files (the stack hook; nothing without a stack).
+stack_hook stackDown "$dir" >/dev/null || die "couldn't take down $name's stack; the worktree stays ($(tool_command prd) stack down $name)"
+# Its test databases, worker copies too (the testDb hook; nothing when that server isn't running).
+stack_hook testDb drop "$name" || echo "couldn't drop $name's test database ($(tool_command prd) test-db list)" >&2
 # Whether a slice was merged into its parent, for the run log's slice-end (below).
 slice_merged=false
-if [[ $branch == slice/* ]] && git -C "$main" merge-base --is-ancestor "$branch" "$(parent_of "$branch")" 2>/dev/null; then
+if [[ $branch == "$slice_prefix"* ]] && git -C "$main" merge-base --is-ancestor "$branch" "$(parent_of "$branch")" 2>/dev/null; then
   slice_merged=true
 fi
 git -C "$main" worktree remove ${force:+--force} "$dir"
 release_slot "$name"
 # The run log (run-log.mjs): a slice's end, for pnpm prd metrics. Never fails.
-[[ $branch != slice/* ]] || run_log slice-end "name=$name" "branch=$branch" "merged:=$slice_merged"
+[[ $branch != "$slice_prefix"* ]] || run_log slice-end "name=$name" "branch=$branch" "merged:=$slice_merged"
 # Its session record (session.sh), if it had one: the session itself isn't
 # touched (a planner removes its worktree, then ends with pnpm prd end).
 case $branch in
-  prd/*) rm -f "$loops/.sessions/prd-${branch#prd/}.json" ;;
-  plan/*) rm -f "$loops/.sessions/plan-${branch#plan/}.json" ;;
-  hotfix/*) rm -f "$loops/.sessions/hotfix-${branch#hotfix/}.json" ;;
+  "$prd_prefix"*) rm -f "$loops/.sessions/prd-${branch#"$prd_prefix"}.json" ;;
+  "$plan_prefix"*) rm -f "$loops/.sessions/plan-${branch#"$plan_prefix"}.json" ;;
+  "$hotfix_prefix"*) rm -f "$loops/.sessions/hotfix-${branch#"$hotfix_prefix"}.json" ;;
 esac
 
 # Mark it done through the main checkout's backlog tool (one commit on dev); a

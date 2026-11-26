@@ -295,10 +295,11 @@ export SMOKE=$([[ -n $smoke ]] && echo 1 || echo 0)
 # left alone.
 ensure_server() {
   [[ $here != main && -n $(web_port "$top") ]] || return 0
-  local serve newer
-  serve=$(dirname "$0")/serve.sh
+  local newer
+  # The project's dev server, through the config's serve hook.
+  serve() { stack_hook serve "$@"; }
   if [[ -n $use_dev ]]; then
-    "$serve" "$here" --dev
+    serve "$here" --dev
     return
   fi
   require_disk "a check build"
@@ -307,15 +308,15 @@ ensure_server() {
       apps/web/build-target.ts apps/web/package.json apps/web/.env packages/*/src packages/*/package.json \
       pnpm-lock.yaml -type f ! -name '*.test.ts' -newer .serve-built 2>/dev/null | head -1)
     if [[ -z $newer && -f $top/.serve-built ]]; then
-      "$serve" "$here" --built
+      serve "$here" --built
       return
     fi
     echo "The check build is older than the source (${newer:-no build yet}): rebuilding."
-    "$serve" "$here" --restart --built
+    serve "$here" --restart --built
     return
   fi
   echo "Checks run against a check build (pnpm prd browser --dev for the dev server)."
-  "$serve" "$here" --built
+  serve "$here" --built
 }
 
 # start_server → ensure_server, its output in the log dir unless --verbose
@@ -495,12 +496,12 @@ if [[ $mode == one ]]; then
   done_with "$rc"
 fi
 
-# --changed: the checks the changed files need, from the rules in
-# scripts/loops/check-areas.d/ (most specific wins), resolved by check-areas.mjs.
-areas=$top/scripts/loops/check-areas.d
-resolver=$(dirname "$0")/check-areas.mjs
-
+# --changed: the checks the changed files need, from the rules in the config's
+# check areas folder (most specific wins), resolved by its checkAreas hook.
 if [[ $mode == changed ]]; then
+  areas_rel=$(config_get paths.checkAreas) || die "the config names no check areas folder (paths.checkAreas)"
+  config_get hooks.checkAreas >/dev/null || die "the config names no check-areas resolver (hooks.checkAreas)"
+  areas=$top/$areas_rel
   [[ -d $areas ]] || die "no $areas"
   if [[ -z $base_ref ]]; then
     for r in "${BASE_BRANCH:-}" origin/dev dev; do
@@ -519,8 +520,8 @@ if [[ $mode == changed ]]; then
   # One line per file: "<file><TAB><checks>". A tie (two equally specific
   # rules) exits 2 after naming them on stderr: the first still answers.
   rc=0
-  resolved=$(printf '%s\n' "$files" | node "$resolver" resolve --root "$top" --areas "$areas" --base "$mb" ${head_ref:+--head "$head_ref"}) || rc=$?
-  ((rc == 0 || rc == 2)) || die "check-areas.mjs failed (exit $rc)"
+  resolved=$(printf '%s\n' "$files" | run_hook checkAreas resolve --root "$top" --areas "$areas" --base "$mb" ${head_ref:+--head "$head_ref"}) || rc=$?
+  ((rc == 0 || rc == 2)) || die "the checkAreas hook failed (exit $rc)"
   while IFS=$'\t' read -r f c; do
     [[ -z $f ]] && continue
     [[ -n $list_only ]] && printf '  %-60s %s\n' "$f" "$c"
@@ -532,7 +533,7 @@ if [[ $mode == changed ]]; then
     esac
   done <<< "$resolved"
   ((${#unmapped[@]})) && {
-    echo "No rule in scripts/loops/check-areas.d/ for: ${unmapped[*]}"
+    echo "No rule in $areas_rel/ for: ${unmapped[*]}"
     echo "  (running $unmapped_default for them; add a rule)"
   }
   if [[ -n $full ]]; then

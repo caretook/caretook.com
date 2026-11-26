@@ -4,43 +4,31 @@
 
 ## Status
 
-**Running** since 2026-11-25, opened by the user by hand (the registry row still carries `hold`, which keeps the dispatcher off it). **Landing mode: run everything through** (the user, 2026-11-25): land each green wave and clean up, asking only real questions. **Slices to start: every ready slice from here** (the user, 2026-11-25, after wave 1 landed): wave 2 (slices 2 and 6) next, then each later wave as its blockers land, without asking again. **Wave 2's slices run on opus** (the user's choice); later waves at the orchestrator's judgement, as below. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
+**Done 2026-11-25: all eight waves landed**, the last (wave 8, slice 15 as 73b63660) through PR #194 (`full` green on 73b63660, run 45685227577; `pnpm test:tooling` passed 104 files; Codex out of credits so not reviewed; the Fable skeptic said go, follow-ups B-842; landed on an unsynced tip, dev's 3 commits shared no file; no other worktree was open). B-838 and B-842 move to `orchestration-split-2` (split-ops). Next: `orchestration-split-2`, on the user's word. **Ran** from 2026-11-25, opened by the user by hand (the registry row still carries `hold`, which keeps the dispatcher off it). **Landing mode: run everything through** (the user, 2026-11-25): land each green wave and clean up, asking only real questions. **Slices to start: every ready slice from here** (the user, 2026-11-25, after wave 1 landed): wave 2 (slices 2 and 6) next, then each later wave as its blockers land, without asking again. **Wave 2's slices run on opus** (the user's choice); later waves at the orchestrator's judgement, as below. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Likely Fable candidates: slice 1 (the lint's rules decide what every later slice must clear) and slice 11 (the check's body and what surrounds it part ways). Sonnet candidates: slice 9 (moves) once slice 6 has landed.
 
-| Slice | Wave | State   | Merge into `prd/orchestration-split` |
-| ----- | ---- | ------- | ------------------------------------ |
-| 1     | 1    | merged  | e90f5f02                             |
-| 2     | 2    | merged  | fd5aa70e                             |
-| 6     | 2    | merged  | bd866a13                             |
-| 3     | 3    | merged  | af99df64                             |
-| 9     | 3    | merged  | 744e5d07                             |
-| 4     | 4    | merged  | a893c395                             |
-| 5     | 4    | merged  | d11cc8ae                             |
-| 10    | 5    | merged  | f5d40957                             |
-| 13    | 5    | merged  | eccbfca4                             |
-| 7     | 6    | planned |                                      |
-| 8     | 6    | planned |                                      |
-| 11    | 6    | planned |                                      |
-| 12    | 7    | planned |                                      |
+| Slice | Wave | State  | Merge into `prd/orchestration-split` |
+| ----- | ---- | ------ | ------------------------------------ |
+| 1     | 1    | merged | e90f5f02                             |
+| 2     | 2    | merged | fd5aa70e                             |
+| 6     | 2    | merged | bd866a13                             |
+| 3     | 3    | merged | af99df64                             |
+| 9     | 3    | merged | 744e5d07                             |
+| 4     | 4    | merged | a893c395                             |
+| 5     | 4    | merged | d11cc8ae                             |
+| 10    | 5    | merged | f5d40957                             |
+| 13    | 5    | merged | eccbfca4                             |
+| 7     | 6    | merged | 7e1901e8                             |
+| 8     | 6    | merged | f12aefa2                             |
+| 11    | 6    | merged | 4da423cf                             |
+| 12    | 7    | merged | e0e556f2                             |
+| 14    | 7    | merged | 617e2561                             |
+| 15    | 8    | merged | 73b63660                             |
 
 **Backlog:** B-543 closes with the move (the runbook's last step).
 
-**Landed:** wave 1 as 1029b791 (PR #185), wave 2 as b50c288 (PR #186), wave 3 as 98d62d3e (PR #187), **wave 4 as 53d76eb4** (PR #188, `full` green on run 45650887484, `pnpm test:tooling` passed, Codex out of credits so not reviewed; the Fable skeptic said go). Hand-offs, skeptics and fixes are in [the history](orchestration-split-history.md). Slice worktrees 4 and 5 are removed. **Before `pnpm prd rotate`, message `backlog - split-ops` (the session `caretook-com-f7` since 2026-11-25; find it with ListAgents if it changed again) and wait for its go.** **Until the weekly reset (Sat 2026-11-28 12:00), make every slice worktree with `CARETOOK_USAGE_WATCH=off pnpm prd slice …`** (relayed by split-ops as the user's word, 2026-11-25: run up to the weekly limit; at 100% sessions stop and wait; the dispatcher is off on purpose). The user wants a Fable skeptic on each wave's decisions and code before it lands (split-ops, 2026-11-25); `skeptic record` takes no such verdict, so it goes in _Status_ and the landing report.
+**Docs folded** (2026-11-25, with wave 8): the split's lasting facts are in the new [`docs/agents/project-config.md`](../docs/agents/project-config.md) (the config and its keys, the manifest, the lint and allowlist, the hooks' contracts, the check plan's rules, the tier data's two readers, `scripts/ci/` by owner, the verdict file, the tests by owner), with its entry in AGENTS.md's _Area index_ and `docs/agents/loop.md`'s Vitest projects line corrected; machinery had no room (15,349 of 15,360 bytes). **The wave 8 Fable skeptic said go**, no blocker (it read 73b63660 and ran 10 test files, 436 tests); follow-ups B-842, which waits for stage 1b with B-838. `pnpm test:tooling` passed on 73b63660 (104 files, 2581 tests).
 
-**Wave 5 is running** (started 2026-11-25 by a resumed session, after a boundary `backlog ingest` with nothing new for this topic and a `pnpm prd sync` that needed no merge): slices 10 and 13 each have a worktree (`orchestration-split-10`, `-13`) and a background agent on opus, with the watch running; on a takeover with no live agent, respawn with `--continue`. **Both merged** (10 as f5d40957, 13 as eccbfca4; boundary ok at 1790 allowed); the wave's `full` CI run and `pnpm test:tooling` are out, and a Fable skeptic reads the wave; the slice worktrees stay until the verdict is green. **Slice 10 handed off** at 32a68622 (quick check passed; rules in `scripts/project/check-plan-rules.json` under `paths.checkPlanRules`, the engine's `checkPlanFor(project)`, `testProjects` in `risa.json`, the sample's `tools/tiers.json` and `tools/check-plan-rules.json`; CI's two list paths stay the config's `paths.brakeList` and `paths.quarantine`, not the rules file; **two new allowlist lines beyond the PRD's residual list**: `check-plan-rules.json project-to-core 2` (the `^scripts/ci/` rule, clears at the move) and `check-plan-rules.test.mjs project-to-core 26` (Caretook's table through the core's engine, dropped by the removal commit): the wave 5 Fable skeptic said **go** on both and on the wave, 2026-11-25, with no blocker: its differential of dev's engine against this one over 2,872 paths and 20,000 file sets found 0 differences, and the failure modes fail closed; the PRD's residual list now names the two lines; its code follow-ups are B-834). **From wave 5, for later slices:** slices 7 and 8: `check-plan.mjs`'s `CORE_HARNESS` and `CORE_TOOLING` hardcode `scripts/loops` and `scripts/backlog`, and the rules' harness paths name `scripts/loops/serve.sh`, `checks` and `check-areas.d`: change them in the same commit as any file move, or the harness tier drops silently. Slice 11: decide whether `tooling-tests.mjs` throwing on an unset `testProjects.tooling` is right. Slice 12 and the move runbook: re-home `check-plan-rules.test.mjs` to run through the `risa` CLI, never just drop it (it is the only guard on the landing gate's data). **Slice 13 handed off** at a4f7e9cc (quick check passed, 97 files; boundary ok at 1859 allowed; the eight callers and `ci-args`/`blame`'s id prefix swapped; the `planOutputs` tests now in `scripts/ci/tiers.test.mjs`; allowlist lines only; left for slice 8: `release.mjs:52`'s browser-check path, `blame.mjs`'s `lists.mjs` import; for slice 12: `ci-runs.mjs`'s `verdict.mjs` import); it merges after slice 10. **A fixes lane may open beside this topic** (split-ops, 2026-11-25, pre-call fixes B-342, B-817, B-828): wave 5 can land beside it; before wave 6 or 7 lands, check `pnpm prd status` for any other PRD, plan or hotfix worktree, and if one is open hold the landing and message split-ops instead. Tier `full`, both on opus (10: the check plan's rules as Caretook's data, the sample project's own rules; 13: the eight CI callers and their tests swap to the tier reader). Wave 5 moves no script other worktrees call. Tell slice agents: prepend nvm's Node 24 to PATH; unset `CARETOOK_USAGE_WATCH` for the slice check until B-818 lands; a test that copies `scripts/backlog/*.mjs` or `scripts/loops` into a throwaway repo must copy `config.mjs`, and `scripts/project` when it reaches the doc budget. Open for this topic, none with a slice yet: B-821 (a moved `B-n` read as `RISA-n`, needed before the move), B-822, B-823, B-825, B-826, B-827, B-832 (the wave 4 skeptic's code follow-ups), B-834 (wave 5's): propose a late slice for them to the user before wave 7.
-
-**From wave 4, for later slices:** the core tier reader is `scripts/ci/tier-data.mjs` (`tierData().X`, no `planOutputs`) on Caretook's `scripts/ci/tiers.json` (`paths.tierData`; kept in `scripts/ci/` so a change still asks for `full`). Slice 13: the `planOutputs` tests in `ci.test.mjs` and `release.test.mjs` move to a Caretook test; the four fixture tests already copy `tiers.json`. Slices 10 and 11: the sample project is `scripts/loops/sample-project/` (`risa.json`, `repo.mjs`'s `makeRepo(main, { config, files })`, the core golden); it has no tier data file yet, and a config fixture needs one at its root wherever the check plan loads (`land.test.mjs`'s `sample()` copies one). B-823's rest keeps the sample from varying branch prefixes. Caretook's golden is `scripts/project/prompt-golden.txt` (`vitest -u`). Allowlisted until `orchestration-split-3` slice 4's `RISA_` rename: `prompts/backlog.sh project-env 4`, the sample golden's 2. `risa.json` has a `roles` group of six replacements (noted in `orchestration-split-2` slice 5).
-
-**From wave 3, for later slices:** the boundary lint reads CI's two lists (`paths.brakeList`, `paths.quarantine`) as data (94feb95d; the move runbook drops their core-test lines). Slice 7 deletes the three forwarders in `scripts/loops/` (`check-areas.mjs`, `doc-budget.mjs`, `doc-budget.config.mjs`) and points `browser.sh` and `land.sh` at `scripts/project/`. `commands.quickCheck` and `projectTests` are unset until slice 11. `scripts/project/risa.mjs` is Caretook's plain read of `risa.json`.
-
-**Docs to fold at the last landing**, from wave 4: machinery (`paths.promptGolden`, `commands.toolingTests`, `log`, `docBudget`, `stack.portEnv`, `role_doc`, `in_main`, the sample project, the tier data and its two readers). From wave 3: `docs/agents/loop.md` (the check-areas and sync-matrix test paths, now `scripts/project/`), machinery (`find_repo`, `run_project`, `tool_command`, `commands.hooksInstall`, the lint's data lists). From wave 2: `docs/agents/loop.md` _Tests_ (`scripts:unit` is now `core:unit` + `project:unit`, plus `project:tooling`; `pnpm test:project` runs both project ones); machinery: `paths.tooling`, `backlog.idPrefix`, `backlogIds()`. Slice 10's `testProjects.tooling` = `tooling:unit`, `core:unit`, `project:unit`, `project:tooling`; harness `tooling:browser`.
-
-**What slice 1 set, for later slices** (fold into machinery at the last landing):
-
-- The config: `risa.json`; the loader `scripts/loops/config.mjs` (`get`, `dump`, `check`; an unknown key is an error); bash `config_get KEY` in `lib.sh`, loaded once at source. `RISA_CONFIG` overrides the path (the throwaway-repo tests set it through `config-fixture.mjs`, until slice 4's sample project). A new optional key `boundary.appPaths` holds the app paths the lint refuses.
-- The manifest `scripts/loops/boundary.manifest`: `<path> core|project`, sorted; a new file under the folders needs its line.
-- The lint `scripts/loops/boundary.mjs`: rules `project-env`, `project-name`, `app-path`, `core-to-project`, `project-to-core`; the allowlist `boundary.allowlist` is `<path> <rule> <count> [# why]`, exact counts (1,900 findings today), shrunk with `--write`, never grown. Blind spots: paths built from pieces, bare names with no extension, paths inside a regex group.
-- Ownership beyond the PRD's lists (one manifest line each to change): the project's are `lint-heap.test.mjs`, `workspace-config.test.mjs`, `fixes-plans.test.mjs`, `check-body.test.mjs`, `check-failed.mjs` and the prompt golden; core for now are `stack-lib.sh`, `stack.test.mjs`, `browser.sh`, `browser.test.mjs`, `ci.test.mjs`, `release.mjs`.
-- Left for slice 2: `lib.sh`'s `exempt_re` doesn't name `risa.json` yet.
+The earlier landings (waves 1 to 7), wave 8's hand-over and the notes for `orchestration-split-2`, `orchestration-split-3` and the move runbook (what later slices need from waves 3, 4, 7 and 8) are in [the history](orchestration-split-history.md), under _Moved at the last landing_.
 
 ## Architectural decisions
 
@@ -57,8 +45,8 @@
 ## How to run this plan
 
 - **Start only when the tooling is quiet:** no `fixes-tooling` wave or other topic with `scripts/loops/`, `scripts/backlog/`, `scripts/ci/` or `.githooks/` hot. The three stage-1 topics run one after another, never side by side.
-- **Wave 1:** slice 1. **Wave 2:** slices 2 and 6 (2 owns `scripts/backlog/` and `lib.sh`; 6 owns `package.json`, `vitest.config.ts`, `check-plan.mjs`'s tooling pattern, `tooling-lint.mjs`, the `_global` area map and AGENTS.md). **Wave 3:** slices 3 and 9 (3 owns `lib.sh`, `prd.sh`, `unsynced.sh`, `land.sh`, `new.sh` and `ready.sh`; 9 owns the moved files, `package.json`'s `log` and `docs:budget` lines, `ci.yml`, `serve.sh`'s preview line, `check-body.sh`'s check-areas line, `check-plan.mjs`'s harness pattern and the deploy workflow test). **Wave 4:** slices 4 and 5 (4 owns the prompts and goldens; 5 owns the tier data, its two readers, `tiers.mjs` and `check-plan.mjs`'s tier import). **Wave 5:** slices 10 and 13 (10 owns `check-plan.mjs`, `dev-brought.mjs`, `tooling-lint.mjs` and `tooling-tests.mjs`; 13 owns the eight `scripts/ci/` callers of the tier data and the tests that copy `tiers.mjs`). **Wave 6:** slices 7, 8 and 11 (7 owns `land.sh` and `browser.sh`; 8 owns `scripts/ci/`'s lists and release code; 11 owns `check-body.sh`, `check-run.sh`, `check-failed.mjs`, `prd.sh`'s check case and their tests). **Wave 7:** slice 12 (`scripts/ci/ci-runs.mjs`, `verdict.mjs` and the CI tests that cross the line).
-- **Tiers** (what the check plan proposes, once at landing): wave 1 edits the `_global` area map, which the browser harness test covers: `integration`; waves 2 to 7 touch `package.json`, `vitest.config.ts`, `.github/` or `scripts/ci/`: `full`. Every wave also runs `pnpm test:tooling`.
+- **Wave 1:** slice 1. **Wave 2:** slices 2 and 6 (2 owns `scripts/backlog/` and `lib.sh`; 6 owns `package.json`, `vitest.config.ts`, `check-plan.mjs`'s tooling pattern, `tooling-lint.mjs`, the `_global` area map and AGENTS.md). **Wave 3:** slices 3 and 9 (3 owns `lib.sh`, `prd.sh`, `unsynced.sh`, `land.sh`, `new.sh` and `ready.sh`; 9 owns the moved files, `package.json`'s `log` and `docs:budget` lines, `ci.yml`, `serve.sh`'s preview line, `check-body.sh`'s check-areas line, `check-plan.mjs`'s harness pattern and the deploy workflow test). **Wave 4:** slices 4 and 5 (4 owns the prompts and goldens; 5 owns the tier data, its two readers, `tiers.mjs` and `check-plan.mjs`'s tier import). **Wave 5:** slices 10 and 13 (10 owns `check-plan.mjs`, `dev-brought.mjs`, `tooling-lint.mjs` and `tooling-tests.mjs`; 13 owns the eight `scripts/ci/` callers of the tier data and the tests that copy `tiers.mjs`). **Wave 6:** slices 7, 8 and 11 (7 owns `land.sh` and `browser.sh`; 8 owns `scripts/ci/`'s lists and release code; 11 owns `check-body.sh`, `check-run.sh`, `check-failed.mjs`, `prd.sh`'s check case and their tests). **Wave 7:** slices 12 and 14 (12 owns `scripts/ci/ci-runs.mjs`, `verdict.mjs` and the CI tests that cross the line; 14 owns `scripts/backlog/`, the loader's id keys and the scripts that still hardcode a branch prefix, and no file in `scripts/ci/`). **Wave 8:** slice 15 (the follow-ups in `lib.sh`, the prompts, `check-plan.mjs`, `tier-data.mjs`, `land.sh`, `ready.sh`, `prd.sh`'s check case, `release.mjs`, `blame.mjs`, `check-tooling.mjs`, `scripts/project/doc-budget.mjs`, `fixes-plans.test.mjs` and `vitest.config.ts`).
+- **Tiers** (what the check plan proposes, once at landing): wave 1 edits the `_global` area map, which the browser harness test covers: `integration`; waves 2 to 8 touch `package.json`, `vitest.config.ts`, `.github/` or `scripts/ci/`: `full`. Every wave also runs `pnpm test:tooling`.
 - **Docs at the last landing:** [machinery](../docs/agents/machinery.md) (the config, the manifest, the lint, the CI split, the check plan's rules, the check hook, `pnpm test:project`), [orchestrator](../docs/agents/orchestrator.md), [loop](../docs/agents/loop.md), [orchestration](../docs/orchestration.md), `pnpm prd help`.
 
 ## Slice 1: The config, the manifest and the boundary lint
@@ -295,3 +283,44 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 - The lint reports no core import of `tiers.mjs` and no file-group pattern in a core file; the CI tests, the four fixture tests and `pnpm prd ci` tests pass.
 
 **Blocked by:** 5. **Blocks:** 8.
+
+## Slice 14: Backlog ids and branch prefixes, finished
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+**User stories:** 1, 2. Added 2026-11-25 on the user's word, from the wave 2 and 3 skeptics' follow-ups. Backlog: B-821, B-822, B-823 (their notes name the lines).
+
+**What to build**
+
+- **B-821:** an optional config key for a former id prefix. A project that sets it reads an id with the former prefix as its own (Risa: `B-772` is `RISA-772`) in every lookup; new ids, headings and tags keep the current prefix. Caretook leaves it unset, so `B-n` behaves as today.
+- **B-822:** the look-alike sort takes an id's number through the id helper, not `id.slice(2)`; the loader checks the config's item-type pattern against `idPrefix` (a prefix the one allows, the other allows); a broken `risa.json` gives the backlog one clear `backlog:` line, not a Node stack at import.
+- **B-823:** every core script that still hardcodes a branch prefix (`prd/`, `slice/`, `plan/`, `hotfix/`) outside the six files slice 3 took (`rm.sh` and the rest) reads it through `lib.sh`'s helpers; `is_protected` gets its callers or goes. Touch no file under `scripts/ci/` (slice 12's, in this wave); name any prefix left there in the hand-off for slice 15.
+
+**Acceptance criteria**
+
+- Unit tests: under a sample config with prefix `RISA` and former prefix `B`, `B-772` finds `RISA-772` and a new item is `RISA-n`; with no former prefix, today's tests pass unchanged; the look-alike sort orders `RISA-` ids by number; a prefix the id helper allows passes the loader and one it refuses fails with a clear line; a broken config prints one `backlog:` line and exits non-zero.
+- The sample project runs with different branch prefixes: a test shows the touched scripts honour them; the touched files leave the allowlist where they were on it.
+
+**Blocked by:** 2, 3, 4. **Blocks:** the move.
+
+## Slice 15: The skeptics' code follow-ups
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tests: unit
+
+**User stories:** 2, 3, 6. Added 2026-11-25 on the user's word, from the wave 3 to 6 skeptics' follow-ups. Backlog: B-825, B-826, B-827, B-832, B-834, B-835 (their notes name the lines; read each with `pnpm backlog show`).
+
+**What to build**
+
+- **B-825:** a test ties `scripts/project/doc-budget.mjs`'s copy of the registry table header to the registry's, so a new column fails a test instead of printing 'plan status: skipped'.
+- **B-826:** `run_project` runs a config command in a subshell, so a `cd` or `exit` in it can't change the caller.
+- **B-827:** `fixes-plans.test.mjs` uses Caretook's copy of `status-trim.mjs` (`pnpm test:project` passes without the core); the 'what to try' text and the migration, seed and sync notes in `land.sh` and `ready.sh` come from the config or a project file; the stale comment in `scripts/browser-checks/sync-matrix.mjs` names the test's new path.
+- **B-832:** quote the `role_doc` fallback in the five prompts, with a test on the fallback; the tier data is read when first asked for, not at `check-plan.mjs`'s import, and a broken file gives a clear line; `groupOf` answers as the old code did for a file name with a newline; the sample repo copies only what its tests need.
+- **B-834:** the check plan's `under()` no longer proposes `none` for a path equal to a folder's name; `prd.sh`'s check case dies when the mode it reads is empty; a bad tier file gives the CI commands a clear line, not a bare stack.
+- **B-835:** `land.sh` tells a `docBudget` hook that failed to run from a budget breach, and a mistyped `hooks` key is an error, not a silent skip; a test joins a built release verdict to `releasePasses` at the release tier; `prd fixes-bug` in `release.mjs` and `blame.mjs` becomes a config value; the stale `loops/check-body` entry in `vitest.config.ts` and the stale comment in `check-plan.mjs` go; `check-tooling.mjs` and `tooling-tests.mjs` agree on an unset `testProjects.tooling`. The check's body keeps naming `core:unit` until the move (`pnpm test`'s set must not change).
+- Any branch prefix slice 14's hand-off names in `scripts/ci/`.
+
+**Acceptance criteria**
+
+- Each item has a test that fails before its fix; `pnpm test`, `test:tooling` and `test:browser-harness` list the same test files as before but for the new ones; the check plan's table of sample diffs gives the same answers as before; `pnpm test:project` passes in a temporary copy without the core's files; the allowlist only shrinks.
+
+**Blocked by:** 12, 14. **Blocks:** `orchestration-split-2`.

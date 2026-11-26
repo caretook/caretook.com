@@ -2,7 +2,7 @@
 // (all rows, or what `pnpm prd status-trim` left; the moved rows' tables in its history parse too).
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { nextSlice } from "./status-trim.mjs";
+import { nextSlice } from "../project/status-trim.mjs";
 
 const plans = new URL("../../plans/", import.meta.url).pathname;
 const CATEGORIES = ["ui", "tooling", "perf", "bug", "nit"];

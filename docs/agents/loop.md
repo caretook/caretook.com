@@ -1,29 +1,8 @@
-# Loop handbook
-
-For a slice agent (a loop): one background agent working one slice of a PRD in `.loops/<topic>-<n>`, on `slice/<topic>/<n>`, run by the PRD's [orchestrator](orchestrator.md). The [rules across PRDs](orchestrator.md#rules-across-prds) (migrations, seeds, registries, hot files) bind you too.
-
-## Loop rules
-
 - Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24).
-- Your prompt ends with your slice's section, wave intro and cited PRD parts; open the plan for gaps. Read docs its `Reads` names ([fields](planner.md#slice-fields)).
 - Your stack is your own: `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` use your ports. Never touch the main checkout, other worktrees or other Compose projects.
 - Serve with `pnpm prd serve` (`WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
 - Keep shared-file edits small. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
-- **Past 175k context** a hook asks you to judge ([the watch](machinery.md#the-context-watch)): continue or hand off, and say which in the hand-off. **Past 300k** hand off now: commit, start no check, name any unfinished fix.
-- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, below); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
-- **Your hand-off releases your stack** (`pnpm prd stack down`); then wait: the orchestrator may send back a failure from the wave's CI run.
-- **Bye** (a message of just 'bye'): your hand-off ready, your stack down, then `pnpm prd bye` (it only reports); send your orchestrator what it lists.
-- **A fix request is only:** `pnpm prd stack up` if the slice uses one; `git merge --no-ff -m "chore(<topic>): merge prd/<topic> for a fix" prd/<topic>`; a new commit; `pnpm prd check --quick "slice fix"`; `stack down`; a new hand-off line.
-
-## Hand-off
-
-Your final message:
-
-- what was built, grouped by area, with every shared-file edit called out;
-- each acceptance criterion, met or not, with evidence;
-- the `pnpm prd check` output, and the ■ lines of any browser check you ran;
-- anything skipped or surprising that later slices need;
-- the commit SHAs.
+- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, above); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 
 ## Your worktree and stack
 
@@ -34,7 +13,7 @@ Your final message:
 
 ## Tests
 
-- **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `scripts:unit` (sync matrix, check-areas, checks, check-times, deploy, build); `tooling:unit` (loops, backlog, hooks; 20 s timeout; not in `pnpm test`: `pnpm test:tooling`); `tooling:browser` (browser harness: `pnpm test:browser-harness`; `test:tooling` adds it only for a change to its paths); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup migrates once per run, refuses other hosts or ports, copies the database per worker ([data-layer](../domain/data-layer.md)); tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
+- **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `project:unit`, `core:unit` (sync matrix, check-areas, deploy, build; check-times, CI); `tooling:unit` and `project:tooling` (loops, backlog; hooks; 20 s; `pnpm test:tooling`); `tooling:browser` (browser harness: `pnpm test:browser-harness`; `test:tooling` adds it only for a change to its paths); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup migrates once per run, refuses other hosts or ports, copies the database per worker ([data-layer](../domain/data-layer.md)); tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
 - **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build.
 - A browser step that asserts pure logic goes once a unit test covers it, and one that asserts one device's screen once a component test does.
 - **Tests don't race the machine:** wait on state, not a sleep; fake clocks take few steps (`CARETOOK_CLOCK_FILE`); fake pids are 99_999_999; a polled fake file is renamed in; a slow integration file shares a world per describe, cleaned per test.
@@ -57,7 +36,7 @@ Your final message:
 
 ### Which checks a file needs
 
-`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/loops/check-areas.mjs resolve <file>…`).
+`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
 
 - A line is a bash-style glob (`*` also matches `/`), then checks as words, or `-` (none), `@suite` (the lean set) or `@self` (the check file itself; `- (deleted)` when deleted). `#` comments. The file a rule sits in, and its order, never matter: put it in the area that owns the path.
 - **The most specific rule wins** across all files: the longest literal prefix before the first wildcard, then fewer wildcards, then the longer glob; a remaining tie is an error.

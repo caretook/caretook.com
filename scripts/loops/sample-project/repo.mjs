@@ -1,12 +1,13 @@
 // The sample project: a project config (risa.json, beside this file) that is not
 // this repo's, and a throwaway repo built on it, for the core's tests. Its names
 // differ from this repo's wherever the tooling reads them through the config (the
-// tool's commands, paths, role docs, the trunk, the id prefix, the project's
-// commands), except the branch prefixes, which some scripts still hardcode.
+// tool's commands, paths, role docs, the trunk, the branch prefixes (topic/,
+// part/, draft/, quick/), the id prefix, the project's commands).
 //
 //   makeRepo(main, { config, files })   a git repo at `main`: the tool's scripts
-//     (scripts/loops), the config as its risa.json, the data files it names that sit
-//     beside it (the tier data, the check plan's rules: tools/ here), the files given
+//     (scripts/loops, without its tests and goldens), the config as its risa.json, the data files it names that sit
+//     beside it (the tier data, the check plan's rules: tools/ here), the script its
+//     check hook runs when it sits beside it (tools/check.sh), the files given
 //     (path → text), one commit on the config's trunk. The scripts find the config at its root, so
 //     a test runs them with RISA_CONFIG unset.
 import { execFileSync } from "node:child_process";
@@ -28,9 +29,14 @@ export const SAMPLE_CONFIG = fileURLToPath(new URL(`./${CONFIG_NAME}`, import.me
 export function makeRepo(main, { config = SAMPLE_CONFIG, files = {} } = {}) {
   const parsed = JSON.parse(readFileSync(config, "utf8"));
   mkdirSync(main, { recursive: true });
-  cpSync(LOOPS, join(main, "scripts/loops"), { recursive: true });
+  // The scripts alone: no tests or prompt goldens, which no copied script reads.
+  cpSync(LOOPS, join(main, "scripts/loops"), {
+    recursive: true,
+    filter: (src) => !src.endsWith(".test.mjs") && !src.endsWith("golden.txt"),
+  });
   copyFileSync(config, join(main, CONFIG_NAME));
-  for (const rel of [parsed.paths.tierData, parsed.paths.checkPlanRules]) {
+  const hookScript = parsed.hooks?.check?.split(" ")[0];
+  for (const rel of [parsed.paths.tierData, parsed.paths.checkPlanRules, hookScript]) {
     const from = rel && join(dirname(config), rel);
     if (!from || !existsSync(from)) continue;
     mkdirSync(dirname(join(main, rel)), { recursive: true });

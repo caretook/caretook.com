@@ -48,8 +48,8 @@
 # neither. The to-test file and land's output carry the verdict, and every Codex
 # decline verdict recorded for the topic since its last landing.
 # --force skips the check requirement, not the sync, and not the doc budget:
-# it also refuses (doc-budget.mjs) when the branch grows a doc that is already
-# over its budget, for every kind of branch (a plan branch lands docs).
+# it also refuses (the config's docBudget hook) when the branch grows a doc that
+# is already over its budget, for every kind of branch (a plan branch lands docs).
 # The PR path also refuses unless the PR is open, its head is the branch's
 # local tip, and Codex's verdict on it is clean (pnpm prd review): a clean
 # verdict on an older head carries over plain dev merges that leave the PR's
@@ -263,8 +263,15 @@ if [[ -z $resume ]]; then
   if [[ -d $dir ]]; then
     [[ -z $(git -C "$dir" status --porcelain) ]] || die "uncommitted changes in $dir"
   fi
-  node "$(dirname "$0")/doc-budget.mjs" land "$trunk" --head "$branch" --repo "$main" ||
-    die "$branch grows a doc that is over its budget (scripts/loops/doc-budget.config.mjs): trim it, then land"
+  # The project's doc budget (the config's docBudget hook; none set: no budget).
+  # Exit 1 is a breach; any other failure is a hook that didn't run. (A mistyped
+  # hooks key never skips it: lib.sh refuses a config that doesn't load.)
+  if config_get hooks.docBudget >/dev/null 2>&1; then
+    budget_rc=0
+    run_hook docBudget land "$trunk" --head "$branch" --repo "$main" || budget_rc=$?
+    ((budget_rc != 1)) || die "$branch grows a doc that is over its budget: trim it, then land"
+    ((budget_rc == 0)) || die "the doc budget (the config's docBudget hook) failed to run (exit $budget_rc): fix it, then land"
+  fi
   if [[ ($branch == "$prd_prefix"* || $branch == "$hotfix_prefix"*) && -z $force ]]; then
     proposed=$(propose_tier "$drift_ref" "$branch" "$tier") || die "unknown tier $tier (none, static, unit, integration, components, full)"
     { read -r proposal; read -r proposal_why; read -r tier_status; } <<< "$proposed"
@@ -448,8 +455,7 @@ render_to_test() {
     echo
     echo "## What to try, and where"
     echo
-    echo "- Run \`pnpm dev\` in $main (after \`pnpm install\`, or \`pnpm datastore:reset\` if the notes below say so) and open http://localhost:5173."
-    echo "- Sign in as \`member@example.com\`, \`caretaker@example.com\` or \`viewer@example.com\` (the password is \`SEED_USER_PASSWORD\` in \`packages/data/.env\`)."
+    landing_hook try "$main" | sed 's/^/- /'
     echo "- Changed files, to find the screen or tool:"
     sed 's/^/  - /' <<< "$(head -20 <<< "$changed")"
     echo
@@ -538,9 +544,7 @@ mark_landed() {
 }
 # next_steps → what the main checkout needs after the landing.
 next_steps() {
-  grep -qE '^packages/data/src/db/(migrations|seeds)/' <<< "$changed" &&
-    echo "  migrations or seeds changed: run \`$(project_command datastoreReset)\` in $main"
-  grep -q '^powersync/' <<< "$changed" && echo "  the sync config changed: run \`docker compose restart powersync\` in $main"
+  landing_hook notes <<< "$changed" | sed 's/^/  /'
   grep -qE '(^|/)package\.json$|^pnpm-lock\.yaml$' <<< "$changed" && echo "  dependencies changed: run \`pnpm install\` in $main"
   [[ $path == local ]] && echo "  publish it with: git -C $main push origin $trunk"
   if [[ $branch == "$prd_prefix"* ]]; then echo "  when the whole PRD is done: pnpm prd rm $name"; else echo "  then: pnpm prd rm $name"; fi

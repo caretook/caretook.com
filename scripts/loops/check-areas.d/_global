@@ -1,6 +1,6 @@
 # check-areas: docs, tooling, config, build, deploys, email and the browser
 # checks themselves. How rules resolve (most specific wins, the built-ins, the
-# lint): scripts/loops/check-areas.mjs. Test files need no rule: a built-in
+# lint): scripts/project/check-areas.mjs. Test files need no rule: a built-in
 # maps every *.test.ts(x)/.mjs to none. A path ending in / is a directory
 # default: it answers for a file under it that no rule matches (the deepest
 # default wins), so a new file in an area's directory needs no rule.

@@ -108,6 +108,9 @@ pnpm prd <command>
                               session, backlog-<name> (Remote Control "backlog - <name>"); the outcome is a notice
     session requests [--json] the pending requests, and those settled in the last day
 
+    doc <role> [section]      a role's doc as its sessions read it (the generic doc, then the project's
+                              additions; or its replacement), or one section of it; no role: the roles
+
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
     ask --topic <t> --question <text> --skeptic <id> [--option <a>]… [--recommend <a|n> --defaults|--waits]
                               file a question past a skeptic (the dispatcher's own need none); prints its id and the PushNotification line to send; a macOS
@@ -158,7 +161,7 @@ pnpm prd <command>
                               the diff since the last full pass, and a diff touching a migration, seeds, the
                               sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
                               check; the tooling tests join when the diff touches the tooling
-                              (docs and tooling-only changes need neither: docs/agents/orchestrator.md, _The check gate_)
+                              (docs and tooling-only changes need neither: prd doc orchestrator "The check gate")
     status-trim [topic] [--dry-run] [--next]   keep the plan's _Status_ short (after each landing): move the
                               hand-offs but the latest, and a fixes plan's landed waves (their paragraphs and
                               table rows), to plans/<topic>-history.md, newest first; --next: the next slice number
@@ -265,7 +268,8 @@ case $cmd in
       --check-log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" \
       --flake-log "${CARETOOK_BROWSER_FLAKES:-$loops/.browser-flakes.log}" "$@" ;;
   land) exec "$bin/land.sh" "$@" ;;
-  serve) exec "$bin/serve.sh" "$@" ;;
+  # The project's dev server and test database, through the config's hooks.
+  serve) stack_hook serve "$@"; exit $? ;;
   browser) exec "$bin/browser.sh" "$@" ;;
   rm) exec "$bin/rm.sh" "$@" ;;
   stack) exec "$bin/stack.sh" "$@" ;;
@@ -278,8 +282,9 @@ case $cmd in
     [[ ${1:-} == "" || ${1:-} == -* ]] || { kind=$1; shift; }
     exec "$bin/lease.sh" wait "$kind" "$@"
     ;;
-  test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
+  test-db | testdb) stack_hook testDb "$@"; exit $? ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
+  doc) exec node "$bin/doc.mjs" "$@" ;;
   queue) exec node "$bin/queue.mjs" "$@" ;;
   status-trim)
     t=""
@@ -470,20 +475,22 @@ case $cmd in
       [[ $(git -C "$dir" branch --show-current) == "$slice_prefix"* ]] && asked=slice
     fi
     base=$(check_base "$dir" "$asked")
-    { read -r pmode; read -r ptooling; read -r pown; } < <(
-      git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD)
+    # A plan that fails (its line is above) or gives no mode runs no check.
+    plan=$(git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD) ||
+      die "check: the check plan (check-plan.mjs) failed, so no check ran"
+    pmode="" ptooling="" pown=""
+    { read -r pmode || true; read -r ptooling || true; read -r pown || true; } <<< "$plan"
+    [[ -n $pmode ]] || die "check: the check plan (check-plan.mjs) gave no mode, so no check ran"
     rm -f "$record"
     # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
     # wave of loops finishing together doesn't run every pnpm check at once.
-    if [[ $pmode == slice ]]; then
-      echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits ($why)"
-    elif [[ $pmode == quick ]]; then
-      echo "Quick check against ${base:0:7}: typecheck, lint, format, every unit test, the integration tests related to the diff, and the component tests it adds or edits ($why)"
-    fi
-    [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
+    # The project's check (the config's check hook) prints its own steps;
+    # check-hook.sh runs it, then the tooling tests when the plan says so.
+    echo "The $pmode check of the diff since ${base:0:7}${why:+ ($why)}."
+    [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests join after the project's check."
     # shellcheck disable=SC2086
     (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check${pmode:+ ($pmode)}" -- \
-      "$bin/check-run.sh" "$pmode" "$why" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
+      "$bin/check-run.sh" "$pmode" "$why" -- "$bin/check-hook.sh" "$pmode" "$base" "$ptooling" $pown)
     if [[ $pmode == quick || $pmode == slice ]]; then
       echo "$(git -C "$dir" rev-parse HEAD) quick $base $why" > "$record"
       echo "quick check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current)): $why"

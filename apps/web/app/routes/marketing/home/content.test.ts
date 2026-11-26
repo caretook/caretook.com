@@ -15,9 +15,27 @@ describe("homeContent", () => {
     expect(homeContent.meta.description.length).toBeLessThanOrEqual(200);
   });
 
-  it("has one h1 (the hero heading) and a lead", () => {
-    expect(nonEmpty(homeContent.hero.heading)).toBe(true);
+  it("leads with the lockup: the name, the tagline, then the descriptor with the founder clause", () => {
+    expect(homeContent.hero.lockup).toEqual({
+      name: "Caretook",
+      tagline: "Care, taken.",
+      descriptor: "The free care notebook for families, built by caregivers who've been there.",
+    });
+  });
+
+  it("keeps the old heading as supporting copy under the lockup, and a lead", () => {
+    expect(homeContent.hero.heading).toBe("Keep track of someone's care, together.");
     expect(nonEmpty(homeContent.hero.lead)).toBe(true);
+  });
+
+  it("carries the tagline in its title and the descriptor's first clause in its description", () => {
+    const { name, tagline, descriptor } = homeContent.hero.lockup;
+    expect(homeContent.meta.title).toBe(`${name}: ${tagline}`);
+    // The founder clause stays out of the description: with it, the description
+    // would pass the search length the first test holds it to.
+    const [first] = descriptor.split(",");
+    expect(first).toBe("The free care notebook for families");
+    expect(homeContent.meta.description).toContain(first);
   });
 
   it("offers both calls to action: the waitlist and an access code", () => {
@@ -31,7 +49,7 @@ describe("homeContent", () => {
     homeContent.helps,
     homeContent.steps,
     homeContent.promise,
-    homeContent.earlyAccess,
+    homeContent.price,
     homeContent.waitlist,
   ];
 
@@ -57,6 +75,15 @@ describe("homeContent", () => {
     for (const step of homeContent.steps.items) {
       expect(nonEmpty(step.title) && nonEmpty(step.body)).toBe(true);
     }
+  });
+
+  it("picks four or five things it helps with, medications among them, and nothing as coming", () => {
+    const { items } = homeContent.helps;
+    expect(items.length).toBeGreaterThanOrEqual(4);
+    expect(items.length).toBeLessThanOrEqual(5);
+    expect(items.map((i) => i.icon)).toContain("medications");
+    expect(homeContent.hero.lead).toMatch(/medications/);
+    expect(homeContent.hero.lead).not.toMatch(/\bsoon\b/i);
   });
 
   it("keeps the privacy promise: no ads, not sold, no trackers, no AI training, deletion", () => {

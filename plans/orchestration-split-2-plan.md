@@ -4,18 +4,46 @@
 
 ## Status
 
-**On hold** (registry row `orchestration-split-2`, flag `hold`, after `orchestration-split`): the user lifts it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slice 3 is the same swap in about ten scripts: a sonnet candidate once slice 2 has set the pattern. The doc splits (6 to 8) need judgement on what is generic: opus.
+**Running by hand** (2026-11-25): the user opening this session lifted the hold for this run. The registry row `orchestration-split-2` keeps its `hold` flag on purpose, so the dispatcher can't start it on Opus. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slice 3 is the same swap in about ten scripts: a sonnet candidate once slice 2 has set the pattern. The doc splits (6 to 8) need judgement on what is generic: opus.
+
+**Session 3 on Fable (2026-11-25): wave 3 is running.** **Landing mode: ask before each landing**, through the backlog split-ops session (`caretook-com-d6` at this writing; the session record is `backlog-split-ops`, find it with ListAgents; the user's contact for the split until the reset, Sat 2026-11-28 12:00). The user's word to session 1: "listen to backlog - split-ops agent".
+
+**Wave 3:** synced `dev` with `--force` (d53f17b5), then slices 3 and 7, both on opus, are **merged** (721935db, 70449b6f; no conflict; boundary lint and doc budget ok on the tip). Slice 3 took four agents (three stopped at their context limit: 37 files was too big for one slice). **The wave's tier is `integration`**, not none: slice 3 edits `browser.sh` (its serve call goes through the hook). **Gate so far, on 9bea8d9c:** `pnpm test:tooling` passed locally (2630). **The Fable skeptic (rule 3): go**, no blocker; its 12 follow-ups are **B-847** (proposed for slice 9: the user's word needed, through split-ops). **CI (`integration`, run 45720109711): `file`**: 8 tests of `scripts/project/stack.test.mjs` fail on Linux only (blame: the branch's, slice 3); the cause was `stat -f … || stat -c …` in `stack-facts.sh` (GNU `stat -f` prints and fails), fixed in b450e496 and **merged as 45bc9da3** (the skeptic's go was at 9bea8d9c; the fix is 12 lines in `stack-facts.sh` and a test). **CI green on 35a42732** (`integration`, run 45722359111). One stack down and up on this worktree through the new hooks: fine. `pnpm prd sync` skipped (only backlog commits newer). **PR #198 is open; Codex is out of credits** (no review coming: land with `--no-review`, said in the report). Slices 3 and 7's worktrees and branches are removed (through the new `rm.sh`); no other worktree is open (rule 4). **Waiting for split-ops' go to land** (asked): `pnpm prd land orchestration-split-2 --tier integration --no-review -m "feat(orchestration-split-2): the core reads stack facts only through the hooks, the orchestrator, planner, backlog and inbox docs split (B-543, B-846)"`, then status-trim, tell split-ops (the user's push notification), and ask its go to rotate (rule 1). The slices' worktrees stay until the verdict is green. `dev` had no edit to the four split docs since d53f17b5 at the merge: check again before landing. **The user wants a push notification when wave 3 lands** (split-ops then prints marketing-2's start commands): tell split-ops at that landing. Older hand-offs: [`orchestration-split-2-history.md`](orchestration-split-2-history.md).
+
+- **For the skeptic:** slice 3's contract grew past B-846 point 3: hooks `stackStop`, `stackStart`, `stackEngine`, `stackLeftovers`, `serve`; `stopped_secs=` in `ready`; `test-db` `orphans`, `running=` and `use` facts; a core `hooks.mjs`; a stub hook in the sample project. Behaviour changes: `rm.sh` dies on a failed `stackDown`; recover keeps the migrate marker when the start fails; `ls.sh`'s fallback text. One test dropped (the marker exists while the migrate runs). Slice 7 raised the allowlist's `doc-budget.config.mjs project-to-core` count instead of taking the paths out.
+- **Left for later:** `inventory.mjs` keeps "Docker" in a step name, field and line (orchestration-split-3); a comment in `packages/notifications/src/config.ts` names the removed `scripts/loops/serve.sh` (an app file, kept out of this wave); `browser.test.mjs` and `fixes-plans.test.mjs` still copy or import `scripts/project`.
+- **For the last landing's docs (machinery):** the contract additions above; a generic doc's additions file can continue only its last section, so a section mixing generic lines and `dev` lines stays whole in Caretook's half.
+
+**Wave 2 landed 2026-11-25 as 47fb5414** (PR #197, tier `integration`, `--no-review`: Codex was out of credits, so it didn't review this wave; landed on an unsynced tip, `dev`'s 2 newer commits sharing no file). CI: green on 00929e32 (run 45708541701). The Fable skeptic (rule 3): no at 878f964e (one blocker: `stack_hook`'s relative folder after `new.sh`'s `cd`), go at 00929e32 after the fix; its follow-ups are B-846. No docs folded (the plan folds them at the last landing). No other worktree was open (rule 4). Worktrees and branches of slices 2 and 6 are removed.
+
+- **For slice 3:** temporary and its to remove: the thin functions in `stack-lib.sh` (`test_db_name`, `write_test_env`, `slot_ports`, `slot_busy`, `require_main_env`, `write_stack_env`, `write_stackless_env`, `stack_project`, `stack_teardown`, `shared_test_port`, `shared_test_project`), the hook options `--env-only`, `--teardown-only` and `--check`, the `serve.sh` forwarder, and the fixture copies of `scripts/project` in the core tests (slice 2 added them to `disk`, `reclaim`, `rotate`, `drain` and `load-gate` too). `stack_stopped_secs` still calls Docker. `reclaim.sh` calls `stack_hook stackStatus` itself and dies on a failed hook (keep that guard). `lib.sh`'s `loops_lib_dir` is the tool's folder, absolute: use it, never a relative `BASH_SOURCE`. Each `stack_project` and `web_port` call starts a Bash process.
+- **For slice 7:** as slice 6 did it: lines naming `dev` stayed in Caretook's halves; the additions file may open mid-section so a named section returns both halves; `doc-budget.mjs` measures exact-path entries (put each half's figure before the `docs/agents/*.md` line). The orchestrator doc is at 15350 of 15360 B. `docs/loops.md` (the stub) still says the loop doc holds the loop rules and hand-off.
+- **For slice 8:** ten roles, not nine (`orchestration` is `docs/orchestration.md`); the machinery doc still says Node callers use `lease.mjs`.
+
+**Wave 1 landed 2026-11-25 as eaba1e81** (PR #196, tier `full`, `--no-review`; slices 1, 4, 5; skeptic go, follow-ups B-844).
+
+**This week's rules** (the user's word, relayed by split-ops; they lapse at the reset unless renewed):
+
+1. Before every `pnpm prd rotate`, message split-ops and wait for its go (it checks the session record says model fable).
+2. Start every slice worktree with `CARETOOK_USAGE_WATCH=off pnpm prd slice …` (the dispatcher is off on purpose; at 100% usage sessions stop and wait, and split-ops clears the stalls after the reset).
+3. Before each wave lands, a Fable skeptic reviews its decisions and code; its verdict goes here and in the landing report (`skeptic record` takes no such verdict).
+4. Waves 1 to 3 land only when no other PRD, plan or hotfix worktree is open; if one is, hold and message split-ops.
+5. Big choices (an `asked` PRD decision, or a new one of that size) go to the user one at a time through split-ops.
+6. Ask split-ops before each landing and before `pnpm prd rm` / `end`.
+
+**Backlog:** B-543 (the split, the topic's item). Slice 9 (wave 4) takes B-838 and B-842 (the stage 1a wave 7 and 8 skeptics' follow-ups), B-844 (wave 1's; its point 2 is done, slice 2) and B-846 (wave 2's) but its point 3, which is slice 3's: all on the user's word, relayed by split-ops 2026-11-25.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-2` |
 | ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | planned |                                        |
-| 4     | 1    | planned |                                        |
-| 5     | 1    | planned |                                        |
-| 2     | 2    | planned |                                        |
-| 6     | 2    | planned |                                        |
-| 3     | 3    | planned |                                        |
-| 7     | 3    | planned |                                        |
+| 1     | 1    | landed  | ad60a316                               |
+| 4     | 1    | landed  | a4c667dd                               |
+| 5     | 1    | landed  | 73331f09                               |
+| 2     | 2    | landed  | 5b690d58                               |
+| 6     | 2    | landed  | 89ef0dda                               |
+| 3     | 3    | merged  | 721935db                               |
+| 7     | 3    | merged  | 70449b6f                               |
 | 8     | 4    | planned |                                        |
+| 9     | 4    | planned |                                        |
 
 ## Architectural decisions
 
@@ -31,8 +59,8 @@ As in [`orchestration-split-plan.md`](orchestration-split-plan.md) (the names, t
 ## How to run this plan
 
 - **Start only when** `orchestration-split` has landed and the tooling is quiet.
-- **Wave 1:** slices 1, 4 and 5 (1 owns `test-db.sh` and the data package's test setup; 4 owns the lease CLI, `lease.sh`, `lease.mjs` and `apps/web/test/`; 5 owns `prd.sh`, the doc command, the prompts, `skeptics.mjs` and AGENTS.md). **Wave 2:** slices 2 and 6 (2 owns `stack-lib.sh`, `stack.sh`, `serve.sh` and `lib.sh`'s stack functions; 6 owns the loop, hotfix and recovery docs). **Wave 3:** slices 3 and 7 (3 owns the inventory, reclaim, recover, tidy and worktree scripts; 7 owns the orchestrator, planner, backlog and inbox docs). **Wave 4:** slice 8 (the machinery doc and `docs/orchestration.md`).
-- **Tiers** (what the check plan proposes, once at landing): wave 1 touches `packages/data/` and `apps/web/test/`: `components`; wave 2 edits `serve.sh` and `lib.sh`, which the browser harness test covers: `integration`; waves 3 and 4 are tooling and docs only. Waves 2 and 3 also need a stack: one `pnpm prd stack up` and down each. Every wave runs `pnpm test:tooling`.
+- **Wave 1:** slices 1, 4 and 5 (1 owns `test-db.sh` and the data package's test setup; 4 owns the lease CLI, `lease.sh`, `lease.mjs` and `apps/web/test/`; 5 owns `prd.sh`, the doc command, the prompts, `skeptics.mjs` and AGENTS.md). **Wave 2:** slices 2 and 6 (2 owns `stack-lib.sh`, `stack.sh`, `serve.sh` and `lib.sh`'s stack functions; 6 owns the loop, hotfix and recovery docs). **Wave 3:** slices 3 and 7 (3 owns the inventory, reclaim, recover, tidy and worktree scripts; 7 owns the orchestrator, planner, backlog and inbox docs). **Wave 4:** slices 8 and 9 (8 owns the machinery doc and `docs/orchestration.md`; 9 owns the `scripts/ci/`, `scripts/backlog/` and `scripts/project/` files its two items name, and the lines they name in `prd.sh`, `land.sh`, `ls.sh`, `pr.sh` and `tidy-cli.mjs`).
+- **Tiers** (what the check plan proposes, once at landing): wave 1 touches `packages/data/` and `apps/web/test/`: `components`; wave 2 edits `serve.sh` and `lib.sh`, which the browser harness test covers: `integration`; waves 3 and 4 are tooling and docs only, except that slice 9 edits `scripts/ci/`, which proposes `full` for wave 4. Waves 2 and 3 also need a stack: one `pnpm prd stack up` and down each. Every wave runs `pnpm test:tooling`.
 - **Docs at the last landing:** the machinery doc (the stack hooks and their contract, the lease command, the doc command and how a project adds to a role), the loop and hotfix docs.
 
 ## Slice 1: The test DB as Caretook's
@@ -80,11 +108,12 @@ Stack: yes · Reads: docs/agents/machinery.md, docs/agents/recovery.md · Tests:
 
 - The inventory, reclaim, recover, tidy, gc, down, ls, new and rm scripts stop knowing Docker, compose, ports and `caretook_test_*` names: they read the stack hook's `status` facts and call its `down` and the `test-db` hook; the forwarding paths and thin functions from slices 1 and 2 go.
 - About 10 scripts and their tests; each change is the same swap from a direct Docker, port or `test-db.sh` call to the hook.
+- **B-846 point 3** (the wave 2 skeptic's, on the user's word): the hook contract gains what these callers need and slice 2 left out: a stop that keeps the data (`down.sh`), a stopped-since fact (`stack_stopped_secs`, which still calls Docker), and an up that migrates without seeding (`recover.sh`).
 - The core's tests stop importing app code: `stack.test.mjs` and `tidy.test.mjs` take the test-database name from the hook's facts or the sample project, not from `packages/data/`.
 
 **Acceptance criteria**
 
-- `pnpm prd status`, `pnpm prd tidy --dry-run` and `pnpm prd recover --dry-run` print the same before and after, captured together with nothing landing between; their tests pass on a stubbed hook; no core test imports from `apps/` or `packages/`; the touched files leave the allowlist.
+- `pnpm prd status`, `pnpm prd tidy --dry-run` and `pnpm prd recover --dry-run` print the same before and after, captured together with nothing landing between; their tests pass on a stubbed hook; no core test imports from `apps/` or `packages/`, and the fixture copies of `scripts/project` in `recover.test.mjs`, `tidy-cli.test.mjs` and `stack.test.mjs` (slice 1's, for the forwarder) are gone; the touched files leave the allowlist.
 
 **Blocked by:** 2. **Blocks:** `orchestration-split-3`.
 
@@ -172,3 +201,23 @@ Stack: no · Reads: docs/agents/machinery.md, docs/orchestration.md · Tests: un
 - As slice 6; every role in the config is now generic plus additions, none a replacement.
 
 **Blocked by:** 7. **Blocks:** `orchestration-split-3`.
+
+## Slice 9: The stage 1a skeptics' follow-ups
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+**User stories:** 3, 6. Backlog items B-838, B-842, B-844 and B-846 (added 2026-11-25 on the user's word; `pnpm backlog show` has each numbered point with its file and line).
+
+**What to build**
+
+- **B-838:** a test ties the verdict fixtures and the one `VERDICT_VERSION` to `buildVerdict`; a former id prefix, when set, is read everywhere the current one is matched (the inbox tags, `land.sh --fixes`, `prd.sh`, the plan prompt, the CI args, lists and blame), with a test of an ingest under a new prefix; `tidy-cli.mjs` and `pr.sh` take a slice's topic and the branch prefixes through the one helper; `ls.sh` escapes the prefix in its pattern; a broken `risa.json` gives each importer of `registry.mjs` and `format.mjs` its own clear error; `outstanding.mjs` and `prd.sh`'s help take the branch prefixes from the config.
+- **B-842:** `doc-budget.mjs` exits 2 on any error that isn't a breach; the eight `scripts/ci` modules read the tier data when first used, not at import; `proposedTiers` and `tierRank` load the config once; an unset `ciFailureTopic` refuses to file; `prd.sh`'s check case tells a failed `git diff` from a failed check plan; `isFolder` stats under `--repo`; the core's `nextSlice` has its own test; `landing.mjs` reads the reset command from the config and `land.sh`'s next-steps line drops "after landing"; the `vitest.config.ts` comment; `check-areas.test` and `test-projects.test` pass without the core or join the PRD's residual list.
+- **B-844:** the points slice 2 didn't take: the browser lease test finds the tool in CI after the move; the lease spawn's exec takes more than a simple command, or refuses one clearly; `sectionOf`'s fence and heading edge cases; `test-db.sh` gives a clear error outside git; and the test DB name and port parity, if slice 2 left it.
+- **B-846** (but point 3, slice 3's): `stack_facts` takes the project from `.env`'s `CARETOOK_STACK` as teardown does, and a SLOT outside 1 to 19 is an error; `--env-only` writes the `--base` given (if slice 3 left the option); `docs/agents/loop.md` opens with a pointer to `pnpm prd doc loop`; the `cd … && pwd` under `CDPATH`. `stack_hook` needing the project root after the move goes to the move runbook as a note.
+- Not here: Risa's id counter starting above Caretook's highest id (the move runbook's step 3). A point that turns out to need a choice of the PRD's _Decisions_ size is left, with a note on its item.
+
+**Acceptance criteria**
+
+- Each numbered point of the four items is fixed with a test, or named in the hand-off with why it was left; `pnpm test:tooling` passes; no behaviour of Caretook's commands changes (the prompt goldens and the CI verdict fixtures pass unchanged).
+
+**Blocked by:** 3, 7 (they change the same scripts and docs). **Blocks:** `orchestration-split-3`.

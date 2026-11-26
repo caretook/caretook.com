@@ -24,14 +24,16 @@ for dir in "$loops"/*/; do
   parent=$(parent_of "$branch")
   ahead=$(git -C "$dir" rev-list --count "$parent..HEAD" 2>/dev/null || echo '?')
   dirty=$([[ -n $(git -C "$dir" status --porcelain) ]] && echo dirty || echo clean)
-  proj=$(env_get "$dir/.env" CARETOOK_STACK)
+  # One stack hook call per worktree: its project, slot, containers, port and stopped-since.
+  facts=$(stack_hook stackReady "$dir" 2>/dev/null || true)
+  proj=$(fact project "$facts")
   if [[ -n $proj ]]; then
-    slot=${proj#caretook-loop}
-    up=$(docker compose -p "$proj" ps -q 2>/dev/null | wc -l | tr -d ' ')
-    port=$(web_port "$dir")
+    slot=$(fact slot "$facts"); slot=${slot:-?}
+    containers=$(fact containers "$facts"); up=${containers%%/*}; up=${up:-0}
+    port=$(fact web_port "$facts")
     stack="$up up"
     if ((up == 0)); then
-      secs=$(stack_stopped_secs "$dir")
+      secs=$(fact stopped_secs "$facts")
       [[ -n $secs ]] && ((secs >= limit)) &&
         leftovers+="stopped stack: $name ($proj stopped $(fmt_age "$secs") ago): pnpm prd gc"$'\n'
     fi
@@ -41,7 +43,7 @@ for dir in "$loops"/*/; do
   fi
   found=1
   [[ -z $branch ]] || branches+=("$branch")
-  if [[ $branch == slice/*/* ]]; then
+  if [[ $branch == "$slice_prefix"*/* ]]; then
     slice_dirs+=("$dir")
     # Only what gc would take: a slice stays until its wave has landed.
     if slice_merged "$dir" && git -C "$dir" merge-base --is-ancestor HEAD "$trunk" 2>/dev/null; then
@@ -78,9 +80,9 @@ if ((${#slice_dirs[@]})); then
   echo
   echo "Slices"
   for dir in "${slice_dirs[@]}"; do
-    b=$(git -C "$dir" branch --show-current); t=${b#slice/}; t=${t%%/*}
+    b=$(git -C "$dir" branch --show-current); t=${b#"$slice_prefix"}; t=${t%%/*}
     going=0
-    grep -qE "^  prd/$t: (running|.*\(a run is going\))" <<<"$ci" && going=1
+    grep -qE "^  $prd_prefix$t: (running|.*\(a run is going\))" <<<"$ci" && going=1
     echo "  $(basename "$dir"): $(slice_state "$dir" "$going")"
   done
 fi
@@ -96,7 +98,7 @@ done
 [[ -z $leftovers ]] || printf '\n%s' "$leftovers"
 
 echo
-"$(dirname "$0")/test-db.sh" status 2>/dev/null || echo "shared test Postgres: unknown (is Docker running?)"
+stack_hook testDb status 2>/dev/null || echo "test database: unknown (the testDb hook failed)"
 
 echo
 "$(dirname "$0")/lease.sh" holders

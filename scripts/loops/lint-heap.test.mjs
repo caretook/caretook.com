@@ -10,7 +10,7 @@ const heaps = (text) => [...text.matchAll(/--max-old-space-size=(\d+)/g)].map((m
 
 describe("the ESLint heap", () => {
   const { scripts } = JSON.parse(read("package.json"));
-  const check = heaps(read("scripts/loops/check-body.sh"));
+  const check = heaps(read("scripts/project/check-body.sh"));
   const ci = heaps(read(".github/workflows/ci.yml"));
 
   it("is set by the check and by CI", () => {

@@ -6,8 +6,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
-- Switching between submenus and group settings sometimes loads slowly with no feedback (B-828)
-  It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
+- Offline banner flashes too often when the connection hasn't actually dropped (B-840)
+  Needs a longer timeout before marking the site as offline.
+- Right nav links overlap the recipient selector and header menu on medium-sized screens (B-848)
 
 ## Change requests
 
@@ -17,6 +18,10 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   The backlog agents are named after Star Trek captains for the user, but not their internal names, so other agents can't find them by captain name.
 - Orchestrator summary for backlog handoff should include the ability to pass on directives from the user more clearly and directly. (B-815)
 - Appointment-setting example in easy menu tips should use a doctor from the user's providers (B-833)
+- Time limit gate for component tests to keep them from growing too long (B-837)
+  5 minute goal, 6 minute hard cutoff.
+- Rename timeline View menu labels from Rows and Cards to Condensed and Full (B-849)
+- Timeline Full view should show live notes with their rich text formatting (B-850)
 
 ## Feature requests
 
@@ -25,7 +30,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - privacy policy and terms of service. (B-54)
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
-- We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos. (B-417)
 - Tags on everything so users can organize data how they want. (B-548)
 - nested todos (B-550)
 

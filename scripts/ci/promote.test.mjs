@@ -1,7 +1,7 @@
 // `pnpm prd ci promote` through `main`, on temp repositories: origin is a local bare
 // repository and gh is a fixture that merges into it, so no test can reach GitHub.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,9 +11,8 @@ import { REFUSED } from "./candidate.mjs";
 import { EXIT, main } from "./ci.mjs";
 import { releasePasses } from "./gate.mjs";
 import { tierData } from "./tier-data.mjs";
-import { buildVerdict } from "./verdict.mjs";
 
-const { jobsFor } = tierData();
+const { browserCheckFile } = tierData();
 
 const BRANCH = "rc/20261123-1030";
 const CI_REF = "ci/candidate/rc-20261123-1030";
@@ -134,15 +133,11 @@ const io = () => ({
 });
 const promote = (/** @type {string[]} */ ...argv) => main(["promote", ...argv], /** @type {any} */ (io()));
 
+/** A green candidate verdict the project's CI wrote (verdict.fixtures/), for the tip. */
 const baseVerdict = (over = {}) => ({
-  ...buildVerdict({
-    commit: tip,
-    runId: "7",
-    tier: "candidate",
-    needs: Object.fromEntries(
-      ["plan", ...jobsFor("candidate").jobs].map((job) => [job, { result: "success" }]),
-    ),
-  }),
+  ...JSON.parse(readFileSync(new URL("./verdict.fixtures/candidate-green.json", import.meta.url), "utf8")),
+  commit: tip,
+  target: tip,
   ...over,
 });
 const addRun = (/** @type {number} */ id, /** @type {any} */ verdict, over = {}) => {
@@ -161,7 +156,7 @@ const addRun = (/** @type {number} */ id, /** @type {any} */ verdict, over = {})
 };
 const flakeOf = (/** @type {boolean} */ brake) => ({
   kind: "flake",
-  flaky: [{ job: "browser", file: "scripts/browser-checks/roundtrip.spec.mjs", name: null, brake }],
+  flaky: [{ job: "browser", file: browserCheckFile("roundtrip"), name: null, brake }],
 });
 
 const expectNothingMerged = (/** @type {string} */ stagingBefore) => {
@@ -487,5 +482,20 @@ describe("releasePasses", () => {
     ["no verdict", null, false],
   ])("%s", (_name, verdict, pass) => {
     expect(releasePasses(verdict, "candidate", SHA).pass).toBe(pass);
+  });
+
+  // A release-tier verdict as the project's CI builds it (verdict.fixtures/, from its
+  // buildVerdict), joined to the gate at the release tier.
+  it("passes a built release verdict at the release tier, and a candidate one doesn't", () => {
+    const read = (/** @type {string} */ name) =>
+      JSON.parse(readFileSync(new URL(`./verdict.fixtures/${name}`, import.meta.url), "utf8"));
+    const release = read("release-green.json");
+    expect(releasePasses(release, "release", release.commit)).toEqual({ pass: true, why: "green" });
+    expect(releasePasses(release, "candidate", release.commit).pass).toBe(true);
+    const candidate = read("candidate-green.json");
+    expect(releasePasses(candidate, "release", candidate.commit)).toEqual({
+      pass: false,
+      why: "the run reached candidate, below release",
+    });
   });
 });

@@ -55,12 +55,13 @@ const PROJECT_UNIT = [
   "browser-job",
   "env",
   "lists",
+  "release-jobs",
   "test-job",
   "tiers",
   "verdict",
   "zones",
 ].map((name) => `{loops,ci,project}/${name}.test.mjs`);
-const PROJECT_TOOLING = ["check-body", "doc-budget", "fixes-plans", "lint-heap", "workspace-config"].map(
+const PROJECT_TOOLING = ["fixes-plans", "lint-heap", "workspace-config"].map(
   (name) => `loops/${name}.test.mjs`,
 );
 
@@ -185,11 +186,12 @@ export default defineConfig({
       {
         // Pure apps/web logic (app/**/*.test.ts): no PowerSync, no React Router
         // plugin (apps/web's vite.config.ts isn't loaded), so tests import
-        // relatively, not through "~/".
+        // relatively, not through "~/". Plus the test harness's own Node
+        // parts (test/*.test.ts: the browser lease helper).
         test: {
           name: "web:unit",
           root: "./apps/web",
-          include: ["app/**/*.test.ts"],
+          include: ["app/**/*.test.ts", "test/**/*.test.ts"],
         },
       },
       {
