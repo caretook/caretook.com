@@ -3,15 +3,18 @@ import { describe, expect, it } from "vitest";
 import { createWorld, ok } from "../../data/test/fixtures";
 import { clientFor, deleteOp, outcomes, patchOp, putOp, sqliteTime } from "./testing";
 
-// sync.upload for tags (tags slice 1): a device's `tag` PUT adds a tag (a
-// replay returns it), a `record_tag` PUT links and DELETE unlinks, null
-// targets pass as null so none or two are refused, a taken name refuses the
-// tag and its dependent link (both recorded as not saved on the device), and
-// PATCH and DELETE on `tag` stay read-only until slice 3. Each test makes its
-// own users and group.
+// sync.upload for tags (tags slices 1 and 3): a device's `tag` PUT adds a
+// tag (a replay returns it, even renamed), a name PATCH renames it (the
+// server derives `name_key`), an owner's DELETE removes it and its links; a
+// `record_tag` PUT links and DELETE unlinks, null targets pass as null so
+// none or two are refused; a taken name, a refused rename and a link to a
+// deleted tag are rejected (recorded as not saved on the device). Each test
+// makes its own users and group.
 
 const setup = async () => {
-  const { u, group } = await createWorld({ members: ["caretaker", "viewer", "easy_viewer"] });
+  const { u, group } = await createWorld({
+    members: ["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"],
+  });
   const entry = ok(
     await timelineEntryService.create(u.caretaker.ctx, {
       groupId: group.id,
@@ -44,12 +47,27 @@ const setup = async () => {
   const links = async () =>
     (await getDb().$client.query<{ id: string }>(`SELECT id FROM record_tag WHERE entry_id = $1`, [entry.id]))
       .rows;
+  const tagOf = async (id: string) =>
+    (
+      await getDb().$client.query<{ name: string; name_key: string; created_by: string }>(
+        `SELECT name, name_key, created_by FROM tag WHERE id = $1`,
+        [id],
+      )
+    ).rows[0] ?? null;
+  const rename = (id: string, name: string, extra: Record<string, unknown> = {}) =>
+    patchOp("tag", id, { name, name_key: name.toLowerCase(), updated_at: sqliteTime(), ...extra });
   return {
+    u,
     group,
     entry,
     tagPut,
     linkPut,
     links,
+    tagOf,
+    rename,
+    owner: clientFor(u.owner.ctx.authUser),
+    admin: clientFor(u.admin.ctx.authUser),
+    easyHelper: clientFor(u.easy_helper.ctx.authUser),
     caretaker: clientFor(u.caretaker.ctx.authUser),
     viewer: clientFor(u.viewer.ctx.authUser),
     easyViewer: clientFor(u.easy_viewer.ctx.authUser),
@@ -105,18 +123,90 @@ describe("sync.upload: tag and record_tag", () => {
     expect(await links()).toEqual([]);
   });
 
-  it("refuses PATCH on record_tag, and PATCH and DELETE on tag (until rename and delete)", async () => {
-    const { tagPut, linkPut, caretaker } = await setup();
+  it("refuses PATCH on record_tag, and a PATCH of a tag's group or an unknown column", async () => {
+    const { group, tagPut, linkPut, caretaker } = await setup();
     const tag = tagPut("Urgent");
     const link = linkPut(tag.id);
     expect(await outcomes(caretaker, [tag, link])).toEqual(["applied", "applied"]);
     expect(
       await outcomes(caretaker, [
         patchOp("record_tag", link.id, { updated_at: sqliteTime() }),
-        patchOp("tag", tag.id, { name: "Pressing" }),
-        deleteOp("tag", tag.id),
+        patchOp("tag", tag.id, { group_id: group.id }),
+        patchOp("tag", tag.id, { colour: "red" }),
+        patchOp("tag", tag.id, { updated_at: sqliteTime() }),
       ]),
-    ).toEqual(["sync:readOnlyTable", "sync:readOnlyTable", "sync:readOnlyTable"]);
+    ).toEqual(["sync:readOnlyTable", "tagService:immutable", "sync:unknownColumn", "applied"]);
+  });
+
+  it("a name PATCH renames; the device's name_key is ignored, and a replayed create returns the renamed tag", async () => {
+    const { tagPut, tagOf, rename, caretaker, admin } = await setup();
+    const tag = tagPut("Urgent");
+    expect(await outcomes(caretaker, [tag])).toEqual(["applied"]);
+    expect(
+      await outcomes(admin, [rename(tag.id, "  Very   pressing ", { name_key: "something else" })]),
+    ).toEqual(["applied"]);
+    expect(await tagOf(tag.id)).toMatchObject({ name: "Very pressing", name_key: "very pressing" });
+    // A device that never saw the rename replays its create: the one tag, renamed.
+    expect(await outcomes(caretaker, [tag])).toEqual(["applied"]);
+    expect(await tagOf(tag.id)).toMatchObject({ name: "Very pressing" });
+  });
+
+  it("refuses a rename to a taken name", async () => {
+    const { tagPut, tagOf, rename, caretaker } = await setup();
+    const tag = tagPut("Urgent");
+    expect(await outcomes(caretaker, [tag, tagPut("Knee"), rename(tag.id, "KNEE")])).toEqual([
+      "applied",
+      "applied",
+      "tagService:nameTaken",
+    ]);
+    expect(await tagOf(tag.id)).toMatchObject({ name: "Urgent" });
+  });
+
+  it("two people add one tag offline, the second an Easy helper: their rename is refused, not saved", async () => {
+    const { u, tagPut, tagOf, rename, caretaker, easyHelper } = await setup();
+    const tag = tagPut("Urgent");
+    // The caretaker's upload lands first, so they're its creator; the Easy
+    // helper's PUT of the same id is a replay, and their rename is refused in SQL.
+    expect(await outcomes(caretaker, [tag])).toEqual(["applied"]);
+    const results = await easyHelper.sync.upload({ ops: [tag, rename(tag.id, "Pressing")] });
+    expect(results.results.map((r) => [r.status, r.status === "rejected" ? r.code : null])).toEqual([
+      ["applied", null],
+      ["rejected", "permissions:unauthorized"],
+    ]);
+    expect(await tagOf(tag.id)).toMatchObject({
+      name: "Urgent",
+      name_key: "urgent",
+      created_by: u.caretaker.user.id,
+    });
+
+    // A tag the Easy helper created is theirs to rename.
+    const mine = tagPut("Knee");
+    expect(await outcomes(easyHelper, [mine, rename(mine.id, "Sore knee")])).toEqual(["applied", "applied"]);
+    expect(await tagOf(mine.id)).toMatchObject({ name: "Sore knee", created_by: u.easy_helper.user.id });
+  });
+
+  it("only an owner's DELETE removes a tag and its links; a replay is fine, and a later link is not saved", async () => {
+    const { u, entry, tagPut, linkPut, links, tagOf, owner, admin, caretaker, easyHelper } = await setup();
+    const tag = tagPut("Urgent");
+    const link = linkPut(tag.id);
+    expect(await outcomes(caretaker, [tag, link])).toEqual(["applied", "applied"]);
+    for (const api of [admin, caretaker, easyHelper])
+      expect(await outcomes(api, [deleteOp("tag", tag.id)])).toEqual(["permissions:unauthorized"]);
+    expect(await tagOf(tag.id)).not.toBeNull();
+
+    expect(await outcomes(owner, [deleteOp("tag", tag.id), deleteOp("tag", tag.id)])).toEqual([
+      "applied",
+      "applied",
+    ]);
+    expect(await tagOf(tag.id)).toBeNull();
+    expect(await links()).toEqual([]);
+    expect(ok(await timelineEntryService.getById(u.caretaker.ctx, entry.id))).not.toBeNull();
+
+    // A device that tagged offline before it heard of the delete.
+    const late = await caretaker.sync.upload({ ops: [link] });
+    expect(late.results.map((r) => [r.status, r.status === "rejected" ? r.code : null])).toEqual([
+      ["rejected", "recordTagService:tagNotFound"],
+    ]);
   });
 
   it("refuses a viewer's and an Easy viewer's PUTs and DELETE", async () => {
