@@ -3,7 +3,16 @@
 // on a fake clock. Fictional file names and times only.
 import { describe, expect, it } from "vitest";
 
-import { MAX_RERUN_FILES, failedFiles, fileTimes, runQuarantine, runStep, stepGroup } from "./test-job.mjs";
+import ProgressReporter, { hungFiles, progressFileOf } from "./progress-reporter.mjs";
+import {
+  MAX_RERUN_FILES,
+  failedFiles,
+  fileTimes,
+  runQuarantine,
+  runStep,
+  stepGroup,
+  withProgress,
+} from "./test-job.mjs";
 
 const OUT = "ci-results/unit.json";
 const ARGS = ["--project", "data:unit", "--shard=1/2", "--reporter=json", `--outputFile.json=${OUT}`];
@@ -278,5 +287,73 @@ describe("a timed step", () => {
     });
     expect(fileTimes(text, "/w")).toEqual([{ name: "a.test.ts", seconds: 2.5 }]);
     expect(fileTimes("not json", "/w")).toEqual([]);
+  });
+});
+
+describe("a run's progress", () => {
+  it("adds the progress reporter beside the step's own, writing beside its report", () => {
+    const { args, env } = withProgress(ARGS);
+    expect(args[0]).toMatch(/--reporter=.*progress-reporter\.mjs$/);
+    expect(args.slice(1)).toEqual(ARGS);
+    expect(env).toEqual({ CARETOOK_CI_PROGRESS: "ci-results/unit.progress.json" });
+    expect(progressFileOf("ci-results/c.rerun.json")).toBe("ci-results/c.rerun.progress.json");
+  });
+
+  it("keeps the default reporter for a run that names none", () => {
+    const { args } = withProgress(["--project", "x", `--outputFile.json=${OUT}`]);
+    expect(args[1]).toBe("--reporter=default");
+  });
+
+  function reporter(limitSeconds = 300) {
+    /** @type {Record<string, any>} */ const written = {};
+    /** @type {(() => void)[]} */ const timers = [];
+    /** @type {number[]} */ const exits = [];
+    /** @type {string[]} */ const lines = [];
+    const r = new ProgressReporter({
+      path: "r/c.progress.json",
+      limitSeconds,
+      root: "/w",
+      write: (p, t) => void (written[p] = JSON.parse(t)),
+      log: (l) => void lines.push(l),
+      exit: (c) => void exits.push(c),
+      setTimer: (fn) => timers.push(fn) - 1,
+      clearTimer: (i) => void (timers[/** @type {number} */ (i)] = () => {}),
+    });
+    const mod = (/** @type {string} */ f, state = "passed") => ({ moduleId: `/w/${f}`, state: () => state });
+    return { r, written, timers, exits, lines, mod, read: () => written["r/c.progress.json"] };
+  }
+
+  it("a finished run leaves no file hung", () => {
+    const t = reporter();
+    t.r.onTestModuleStart(t.mod("a.test.ts"));
+    t.r.onTestModuleEnd(t.mod("a.test.ts", "failed"));
+    expect(t.read()).toMatchObject({
+      started: ["a.test.ts"],
+      finished: ["a.test.ts"],
+      failed: ["a.test.ts"],
+    });
+    expect(hungFiles(t.read())).toEqual([]);
+    t.timers.forEach((fn) => fn());
+    expect(t.exits).toEqual([]);
+  });
+
+  it("a file past its limit is named and the run stopped; a killed run's unfinished file is hung", () => {
+    const t = reporter();
+    t.r.onTestModuleStart(t.mod("a.test.ts"));
+    t.r.onTestModuleStart(t.mod("b.test.ts"));
+    expect(hungFiles(t.read())).toEqual(["a.test.ts", "b.test.ts"]);
+    t.r.onTestModuleEnd(t.mod("a.test.ts"));
+    t.timers[1]?.();
+    expect(t.read().timedOut).toEqual(["b.test.ts"]);
+    expect(hungFiles(t.read())).toEqual(["b.test.ts"]);
+    expect(t.exits).toEqual([1]);
+    expect(t.lines[0]).toContain("b.test.ts has run past 300 s");
+  });
+
+  it("does nothing without a progress file", () => {
+    const r = new ProgressReporter({ path: null, write: () => expect.fail("wrote") });
+    r.onInit();
+    r.onTestModuleStart({ moduleId: "/w/a.test.ts" });
+    expect(hungFiles(null)).toEqual([]);
   });
 });

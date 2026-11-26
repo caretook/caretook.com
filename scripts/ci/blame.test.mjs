@@ -5,7 +5,14 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { devRunPlan, slicesNear, sortFlakes, splitFailures, verdictFailures } from "./blame.mjs";
+import {
+  HUNG_MESSAGE,
+  devRunPlan,
+  slicesNear,
+  sortFlakes,
+  splitFailures,
+  verdictFailures,
+} from "./blame.mjs";
 import { EXIT, blame, ciStatus, fileFlakes, main, requestRun } from "./ci.mjs";
 import { applyFindings, findingKey, keyMark, pruneQuarantine } from "./filing.mjs";
 import { tierData } from "./tier-data.mjs";
@@ -46,6 +53,7 @@ const verdict = (/** @type {any} */ o = {}) => {
       tests,
       truncated: !!o.truncated,
       unnamedJobs: o.unnamedJobs ?? [],
+      ...(o.hung ? { hung: o.hung } : {}),
     },
     afterRerun: o.afterRerun ?? null,
     flaky: o.flaky ?? [],
@@ -344,6 +352,19 @@ describe("unknown is never green", () => {
     expect(await run(world({ branchVerdict: verdict({ kind: "green" }) }))).toBe(EXIT.unknown);
   });
 
+  it("files a hung file against that file, its message saying it hung", () => {
+    const failures = verdictFailures(verdict({ files: [UNIT], jobs: ["unit"], hung: [UNIT] }));
+    expect(failures).toMatchObject({ files: [UNIT], hung: [UNIT], partial: false });
+    const s = splitFailures(failures, onDev({ files: [UNIT], jobs: ["unit"], kind: "file" }), []);
+    expect(s.dev).toMatchObject([{ file: UNIT, name: null, message: HUNG_MESSAGE }]);
+    const passed = splitFailures(failures, onDev(), []);
+    expect(passed.branch).toMatchObject([{ file: UNIT, message: HUNG_MESSAGE }]);
+  });
+
+  it("a verdict from before hung files names none", () => {
+    expect(verdictFailures(verdict({ files: [UNIT], jobs: ["unit"] })).hung).toEqual([]);
+  });
+
   it("with no dev result nothing is placed on dev or the branch", () => {
     const s = splitFailures(verdictFailures(verdict({ tests: [test1] })), null, []);
     expect(s).toMatchObject({ dev: [], branch: [] });
@@ -493,6 +514,48 @@ describe("filing a dev failure", () => {
     const w = world({ absent: [UNIT], notices: [notice] });
     await run(w);
     expect(w.board).toEqual([notice]);
+  });
+});
+
+describe("a failure's message", () => {
+  const message = "AssertionError: expected 812 to be below 500\n  at search.test.ts:40";
+  const said = { ...test1, message };
+
+  it("prints beside the test in blame, on one line", async () => {
+    const w = world({ branchVerdict: verdict({ tests: [said] }) });
+    expect(await run(w)).toBe(2);
+    const at = w.lines.findIndex((l) => l.startsWith("  the branch's: "));
+    expect(w.lines[at + 1]).toBe("      AssertionError: expected 812 to be below 500 at search.test.ts:40");
+  });
+
+  it("is kept in blame's JSON and quoted in dev's filed note", async () => {
+    const w = world({
+      branchVerdict: verdict({ tests: [said] }),
+      dev: onDev({ kind: "file", tests: [test1] }),
+    });
+    await run(w, true);
+    expect(JSON.parse(w.lines.at(-1) ?? "").devFailures[0].message).toBe(message);
+    expect(w.filings[0].findings[0].note).toMatch(
+      / First failure: AssertionError: expected 812 to be below 500 at search\.test\.ts:40$/,
+    );
+  });
+
+  it("is quoted in a filed flake's note, and a test with none adds nothing", () => {
+    const flake = { job: "unit", file: UNIT, name: "one", brake: false };
+    const [filed] = sortFlakes([{ ...flake, message }], [], { branch: "b" }).findings;
+    expect(filed.note).toContain("; found by b. First failure: AssertionError: expected 812");
+    const [bare] = sortFlakes([flake], [], { branch: "b" }).findings;
+    expect(bare.note).not.toContain("First failure");
+  });
+
+  it("prints under a branch's own flake in ci file", () => {
+    const w = world({
+      branchVerdict: verdict({ kind: "flake", jobs: ["unit"], flaky: [{ ...test1, brake: false, message }] }),
+      diff: UNIT,
+    });
+    fileFlakes({ branch: "slice/t/5", sha: SHA, base: null }, w.io);
+    const at = w.lines.findIndex((l) => l.includes("the branch's flake"));
+    expect(w.lines[at + 1]).toContain("expected 812 to be below 500");
   });
 });
 

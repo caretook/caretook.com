@@ -117,7 +117,7 @@ const body = (args, fail = "", extra = {}) => {
 
 const TSC = "--filter ./apps/* --filter ./packages/* exec tsc";
 const ESLINT = "exec eslint .";
-const PRETTIER = "exec prettier --check .";
+const PRETTIER = "exec prettier --check --cache .";
 const UNIT =
   "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit";
 const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser --project !project:tooling";
