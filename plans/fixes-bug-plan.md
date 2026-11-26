@@ -10,10 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                                     | Merge |
-| ----- | ----- | --------------------------------------------------------- | ----- |
-| 72    | B-830 | started (opus)                                            |       |
-| 73    | B-840 | handed off a07c084e (check stopped on plan format; rerun) |       |
+| Slice | Item  | State                                            | Merge |
+| ----- | ----- | ------------------------------------------------ | ----- |
+| 72    | B-830 | started (opus)                                   |       |
+| 73    | B-840 | handed off fcf74ab2, check green; merge after 72 |       |
 
 **Wave 16 running** (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
 
