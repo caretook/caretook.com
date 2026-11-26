@@ -1832,6 +1832,56 @@ describe("prefixes", () => {
   test("the prefix isn't part of the text", () => {
     expect(action(top("n: bp 130/85"))).toMatchObject({ text: "bp 130/85" });
   });
+
+  describe("a kind word, with or without its colon, after an 'add' or not (B-902)", () => {
+    test.each([
+      "to-do call the pharmacy",
+      "todo call the pharmacy",
+      "to do call the pharmacy",
+      "task call the pharmacy",
+      "add todo call the pharmacy",
+      "add to-do call the pharmacy",
+      "Add a to do: call the pharmacy",
+    ])("%s is a todo", (line) => {
+      const r = top(line);
+      expect(r.kind).toBe("todo");
+      expect(action(r)).toMatchObject({ type: "addTodo", title: "Call the pharmacy" });
+    });
+
+    test.each([
+      ["add note slept well", "slept well"],
+      ["note slept well", "slept well"],
+      ["Note: ate lunch, then napped", "ate lunch, then napped"],
+    ])("%s is a note, without its cue", (line, text) => {
+      expect(parse(line)).toHaveLength(1);
+      const r = top(line);
+      expect(r.kind).toBe("note");
+      expect(action(r)).toMatchObject({ type: "addNote", text });
+    });
+
+    test("add event dentist friday 3pm is an event", () => {
+      const r = top("add event dentist friday 3pm");
+      expect(r.kind).toBe("event");
+      const a = action(r);
+      if (a.type !== "addEvent") throw new Error(`not an event: ${a.type}`);
+      expect(a.title).toMatch(/^Dentist/);
+      expect(when(r)).toBe("2026-11-20T23:00:00.000Z");
+    });
+
+    test("an 'add' without a kind word keeps its words and picks no kind", () => {
+      const r = top("add salt to diet");
+      expect(r.kind).toBe("note");
+      expect(r.confidence).toBeLessThan(1);
+      expect(action(r)).toMatchObject({ type: "addNote", text: "add salt to diet" });
+    });
+
+    test("a kind word that only starts a word isn't a cue", () => {
+      expect(top("notebook left at the clinic").kind).toBe("note");
+      expect(action(top("notebook left at the clinic"))).toMatchObject({
+        text: "notebook left at the clinic",
+      });
+    });
+  });
 });
 
 describe("todos", () => {
