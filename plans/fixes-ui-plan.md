@@ -19,10 +19,16 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-**Idle (2026-11-25):** wave 13 (B-342 Postgres pool, B-817 light tab bar, B-828 settings tap feedback; slices 76–78, opus) landed as dev 62ebbeeb through PR #190, `--no-review` (Codex out of credits), CI components green (run 45662544684); lean suite 10/11 (ui.spec = B-808, noted). Docs folded into app-shell.md. Still held: B-325 (native safe area), B-694 (long create forms on tabs), B-819 (no-group page feedback), B-833 (quick entry tip uses a group provider). Worktree removed; the next session starts fresh from triaged items. No slice in flight.
+**Wave 14 (2026-11-25, this session):** synced dev (d2d851b7) into prd/fixes-ui first. Slices 79–84: B-819 no-group loading (opus), B-833 quick entry tips use the group's names (opus), B-843 members invite cards on a phone (opus), B-848 header overlap at medium widths (opus), B-849 View menu Condensed/Full (sonnet, a rename), B-850 Full view rich live notes (opus; may outgrow a fix). All six run at once; hot files set on the registry row; items claimed. Still held: B-694 (the user approves each form live), B-325 (Capacitor). Wave 13 landed as dev 62ebbeeb (PR #190), details in the history file.
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
+| 79 | B-819 | starting | |
+| 80 | B-833 | starting | |
+| 81 | B-843 | starting | |
+| 82 | B-848 | starting | |
+| 83 | B-849 | starting | |
+| 84 | B-850 | starting | |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
