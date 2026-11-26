@@ -1,5 +1,5 @@
-// Parsers for the browser-check manifest (scripts/loops/checks) and the file →
-// check map (scripts/loops/check-areas.d/). browser.sh reads the manifest with awk
+// Parsers for the browser-check manifest (scripts/project/checks) and the file →
+// check map (scripts/project/check-areas.d/). browser.sh reads the manifest with awk
 // and the map through check-areas.mjs; these are for tests that keep them in step.
 
 const lines = (text) =>

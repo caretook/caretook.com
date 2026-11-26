@@ -38,7 +38,7 @@
 
 ### Which checks a file needs
 
-`scripts/loops/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
+`scripts/project/check-areas.d/` maps files to checks (one file per area, plus `_global`); `check-areas.mjs` resolves them (`node scripts/project/check-areas.mjs resolve <file>…`).
 
 - A line is a bash-style glob (`*` also matches `/`), then checks as words, or `-` (none), `@suite` (the lean set) or `@self` (the check file itself; `- (deleted)` when deleted). `#` comments. Neither the file a rule sits in nor its order matters: put it in the area that owns the path.
 - **The most specific rule wins** across all files: the longest literal prefix before the first wildcard, then fewer wildcards, then the longer glob; a remaining tie is an error.
@@ -49,7 +49,7 @@
 
 ### The manifest and the lean set
 
-- `scripts/loops/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
+- `scripts/project/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
 - **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, each uploadable one by its app writer (`sync-writers.mjs`; a link table names its parent's) with uploads held, every streamed column compared on the other device (server-set ones named); `sync-matrix.test.mjs` fails on a table with no row or writer.
 - **Moving a check's screen steps to component tests:** write them, delete each covered step; `e2e yes` if a flow is left, else delete the check and its `check-areas.d/` rules.
 

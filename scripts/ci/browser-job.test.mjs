@@ -29,7 +29,7 @@ const lines = (/** @type {[string, string, number?][]} */ rows) =>
  */
 function fake(/** @type {Record<string, string[]>} */ verdicts, { files = {}, tick = 0 } = {}) {
   /** @type {Record<string, string>} */
-  const disk = { "scripts/loops/checks": MANIFEST, [SIGN_IN]: "spec\n", ...files };
+  const disk = { "scripts/project/checks": MANIFEST, [SIGN_IN]: "spec\n", ...files };
   /** @type {{ args: string[], spec: string | undefined }[]} */ const runs = [];
   /** @type {string[]} */ const logged = [];
   /** @type {Record<string, number>} */ const tries = {};
