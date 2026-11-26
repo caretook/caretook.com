@@ -51,11 +51,11 @@
 ## The check runner
 
 - **Scripts:** `prompts/<kind>.sh` (two goldens: `vitest -u`), `slice-brief.mjs`, `ci-*.mjs`; lint at 6 GB; `pnpm prd tier`.
-- **The log:** `.check-times.log`, 18 fields (older lines still parse); 13–16: failed step, failed files, flaky ones, the limit that stopped it; 17 the time gate's verdict (`ok`, `warn`, `fail`, `unjudged`, empty when not judged), 18 the step times (`step:seconds,…`).
-- **The time gate** (`time-gate.mjs`, data in the tier data's `gates`): a passed quick or slice check is judged from the state files `times` and `slowest`, only when the 5-minute load is at most the core count at its start and end (else `unjudged`). An armed `fail` exits 125, a time breach and not a test failure.
-- **The limits** (`check-budget.mjs`): the budget, max(2× median, slowest + 20%) of the last 20 passes of that mode and branch kind, load-scaled ×1–3, between 10 minutes and the limit (20, full 40, `CARETOOK_CHECK_LIMIT`; it alone under 5 runs). Silence: `CARETOOK_CHECK_SILENCE` (480 s), scaled alike. A clock gap over `CARETOOK_CHECK_SLEEP_GAP` (30 s) is sleep. A breach: TERM to the tree, KILL after 10 s, step and last 30 lines, exit 124.
-- **The rerun:** a failed test step reruns only its failed files, once, one at a time; a pass there passes the check and logs them as flaky. No rerun after an unhandled error, or past `CARETOOK_CHECK_RERUN_MAX` (20) failed files.
-- **The run log** (`run-log.mjs`, silent on failure): `.loops/.run-log.jsonl` (`CARETOOK_RUN_LOG`), JSON lines: slice and landing start and end, browser results, Codex verdicts once per PR and head. `pnpm prd metrics` sums it with the check and flake logs.
+- **The log:** `.check-times.log`, 18 fields, last: failed step, files, flaky ones, stopping limit, time verdict, step times.
+- **Time gate** (`time-gate.mjs`): a passed quick or slice check, quiet (load ≤ cores) at both ends, else `unjudged`; armed `fail` exits 125.
+- **The limits** (`check-budget.mjs`): budget max(2× median, slowest + 20%) of the last 20 passes (mode, branch kind), load-scaled ×1–3, from 10 minutes to the limit (20, full 40, `CARETOOK_CHECK_LIMIT`; alone under 5 runs). Silence: `CARETOOK_CHECK_SILENCE` (480 s), scaled alike. A clock gap over `CARETOOK_CHECK_SLEEP_GAP` (30 s) is sleep. A breach: TERM the tree, KILL after 10 s, step and last 30 lines, exit 124.
+- **The rerun:** a failed test step reruns its failures once, one at a time; a pass there is logged flaky. None after an unhandled error or past `CARETOOK_CHECK_RERUN_MAX` (20) files.
+- **The run log** (`run-log.mjs`, silent on failure): `.loops/.run-log.jsonl` (`CARETOOK_RUN_LOG`): slice and landing spans, browser results, Codex verdicts per PR head. `pnpm prd metrics` adds the check and flake logs.
 
 ## The asks queue
 
