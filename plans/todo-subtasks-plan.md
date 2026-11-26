@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 4 running (slice 4).** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 4 landed, wave 5 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 4 landed** in `dev` as e9c11fa3 through PR #222, tier `components` (run 45845374835 on 629aec29, green), **without Codex (out of credits)**; landed unsynced (dev's 2 commits shared no file). Browser: roundtrip and live-notes passed. to-test `to-test/2026-11-26-1016-todo-subtasks.md`. Slice 4 worktree removed. **Next:** wave 5 (slice 5, the todo page's Subtasks band; stack no), from a fresh session after rotation.
 
 **Wave 4 (2026-11-26):** resumed after an interruption (no landing journal; no slice in flight). Ingest: nothing new for this topic; doctor's 3 findings are other topics'. Sync: up to date with dev. Worktree `.loops/todo-subtasks-4` (slot 3) made; slice 4 agent (opus) spawned, with slice 2/3's notes (`rollUp(tx, parentId, actorId, at?)`). Watch running. Slice 4 handed off (6a757463, 88ee2c9c; quick check passed; `prd browser roundtrip` passed with new step 6f), merged at 2d91a3d8. Gate: `components` CI (tier tool; CI has no `roundtrip` tier, so the browser `roundtrip` reruns at landing). Notes: `ROLLUP_METADATA` in todoTree; `todoService.rollUpUploaded`; device `planRollup` in todos.sync; device doesn't refuse a hand tick of a parent with open subtasks (server does; slice 6's disabled tick). Docs still say "No device rollup yet": fold at landing.
 
