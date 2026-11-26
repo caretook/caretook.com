@@ -4,11 +4,15 @@
 
 ## Status
 
-**Where it stands (2026-11-26): running, wave 1.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Hold lifted; `tags` landed (dev 923875d3). The lists (Todos tab, Planner, Today card, Easy view) are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 1 landed, wave 2 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 1 landed** in `dev` as 1b34ce24 through PR #214, tier `full` (run 45797912432 on 39c49a52: brake, every failure dev's: boundary.test B-865/B-866, build budget B-868, landed `--fixes B-868`), **without Codex (out of credits)**. Slice 1 merged ffdfad37 plus fix 12904700 (todoRename's exact index list). Migration `0047_todo_subtasks`; `parent_id` already in the `todo` stream (rolesSql needs it; device schema is slice 3). Browser lean set 10/11; session-end fails on dev too: filed B-869. to-test `to-test/2026-11-26-0600-todo-subtasks.md`. Docs: todos.md _Subtasks_ (trimmed to stay under budget). Slice 1 worktree removed.
+
+**Next:** wave 2 (slice 2, the server rollup), from a fresh session.
 
 | Slice | Wave | State         | Merge into `prd/todo-subtasks` (slice commits) |
 | ----- | ---- | ------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
+| 1     | 1    | landed (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
 | 2     | 2    | planned       |                                                |
 | 3     | 3    | planned       |                                                |
 | 4     | 4    | planned       |                                                |
