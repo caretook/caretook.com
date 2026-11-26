@@ -6,7 +6,7 @@
 
 **Where it stands (2026-11-26): wave 5 in flight.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
 
-**Wave 5 (2026-11-26):** resumed after an interruption (no landing journal; no slice in flight). Ingest: nothing new for this topic. Sync: no merge needed (dev's changes share no file). Worktree `.loops/todo-subtasks-5` made (no stack); slice 5 agent (opus) spawned with slices 1–4's notes. Watch running.
+**Wave 5 (2026-11-26):** resumed after an interruption (no landing journal; no slice in flight). Ingest: nothing new for this topic. Sync: no merge needed (dev's changes share no file). Worktree `.loops/todo-subtasks-5` made (no stack); slice 5 agent (opus) spawned with slices 1–4's notes. Watch running. Slice 5 handed off (89b93a7d; quick check passed, 12/12 own component tests), merged at d5d2fd62. Notes: `useTodoSubtasks` (todoQuery parent + subtasksQuery), `TodoSubtasks` band, `TodoParentLink`; `TodoUndoStatus` got an optional `todoIds` filter (Status band's Undo now only its own tick). Docs to fold at landing: band, Part of link, `todoIds`.
 
 **Wave 4 landed** in `dev` as e9c11fa3 through PR #222, tier `components` (run 45845374835 on 629aec29, green), **without Codex (out of credits)**; landed unsynced (dev's 2 commits shared no file). Browser: roundtrip and live-notes passed. to-test `to-test/2026-11-26-1016-todo-subtasks.md`. Slice 4 worktree removed. **Next:** wave 5 (slice 5, the todo page's Subtasks band; stack no), from a fresh session after rotation.
 
