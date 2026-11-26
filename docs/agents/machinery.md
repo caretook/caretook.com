@@ -38,24 +38,24 @@
 - **The pick**, in order: paused does nothing; [draining](recovery.md) holds all; reopens (not a record `rotating` under 5 minutes; 30 live resets the count); busy stops starts and plans; then starts before plans, in row order, within the cap (unmanaged worktrees take a slot and their hot files), skipping `hold`, `done`, an `After` not done, a hot-file collision, `alone`, and a topic awaiting an answer (not a defaulted one; each tick settles due asks first). A second fixes topic waits while one runs; a fixes topic with fewer than `CARETOOK_FIXES_MIN` (3) waiting items starts only when nothing else may; `idle` never starts. One planner at a time (`CARETOOK_MAX_PLANNERS`), a second while the first waits on an ask. No hold after planning.
 - **Its asks:** filed with `pnpm prd ask` (session `dispatch`), then a one-shot haiku tab pushes it. A later tick acts on the answer: "reopen again" resets the count, "hold the topic" flags the row `hold` (consumed once written).
 - **The context follow-up** (`dispatch-context.mjs`; `CARETOOK_CONTEXT_WATCH=off`): a live managed orchestrator, backlog or inbox session over the hard limit, unkept, is nudged `CARETOOK_CONTEXT_NUDGE_MIN` (15) after crossing it, then asked as long again ("rotate it now", or "leave it", the backlog default). It rotates once no `pnpm prd` or `pnpm backlog` command runs under it: an orchestrator mid-wave; backlog through `rotate-into.sh` (a newer brief, else `--no-brief`); inbox with none.
-- **The stuck orchestrator** (`dispatch-stuck.mjs`; `CARETOOK_STUCK_WATCH=off`): a managed orchestrator with a heartbeat, quiet `CARETOOK_STUCK_MIN` (30) (no agent heartbeat, call, non-wait command or question) or with a watch action unmarked that long: one waiting question, "rotate it now" (mid-wave) or "leave it". Tick gaps reset; several quiet: one report.
-- **The keep-alive** (`keep-alive.mjs`; `CARETOOK_KEEP_SESSIONS=off`, or pause): keeps one managed `backlog` and one `inbox` session open (live: a record, `rotating`, or a `--remote-control` process), outside the PRD slots. The inbox needs a trusted folder (opened by hand once). Three quick deaths ask whether to keep it.
-- **The pickup:** `prd.sh dev-sync` every `CARETOOK_PICKUP_EVERY` s (300; `off`), not while paused, at most 120 s; failures log a line.
+- **The stuck orchestrator** (`dispatch-stuck.mjs`; `CARETOOK_STUCK_WATCH=off`): a managed orchestrator with a heartbeat, quiet `CARETOOK_STUCK_MIN` (30) (no agent heartbeat, call, non-wait command or question) or with a watch action unmarked that long: one waiting question, "rotate it now" (mid-wave) or "leave it"; tick gaps reset.
+- **The keep-alive** (`keep-alive.mjs`; `CARETOOK_KEEP_SESSIONS=off`, or pause): keeps one managed `backlog` and one `inbox` session open (live: a record, `rotating`, or a `--remote-control` process), outside the PRD slots. The inbox needs a trusted folder (opened by hand once). Three quick deaths: ask.
+- **The pickup:** `prd.sh dev-sync` every `CARETOOK_PICKUP_EVERY` s (300; `off`), not while paused, at most 120 s.
 - **Session requests** (`session-requests.mjs`, `.loops/.requests/`): one per tick, after the keep-alive, opens `backlog-<name>` (Remote Control `backlog - <name>`), managed, not kept alive, or refuses a live name or past `CARETOOK_MAX_BACKLOG_SESSIONS` (4). A notice says which.
-- **Files:** `.loops/.dispatch.lock` (pid; a dead one is taken over), `.dispatch.json`, `.dispatch.log`. An idle tick every six hours runs `pnpm prd tidy --yes`.
+- **Files:** `.loops/.dispatch.lock` (pid; dead: taken over), `.dispatch.json`, `.dispatch.log`. An idle tick every six hours runs `pnpm prd tidy --yes`.
 
 ## The load gate
 
-- `load-gate.mjs`: busy over `CARETOOK_LOAD_BUSY` (5-minute load 20; 30 for quick and slice checks and starts, `CARETOOK_LOAD_LANE=light`); `CARETOOK_LOAD_GATE=off` or unreadable: never busy. Checks (in the lease), browser runs (before it) and slice starts wait, polling (`CARETOOK_LOAD_POLL`, 15 s) up to `CARETOOK_LOAD_WAIT` (600 s). `start` warns; the dispatcher starts or plans nothing.
+- `load-gate.mjs`: busy over `CARETOOK_LOAD_BUSY` (5-minute load 20; 30 for quick and slice checks and starts, `CARETOOK_LOAD_LANE=light`); `CARETOOK_LOAD_GATE=off` or unreadable: never busy. Checks (in the lease), browser runs and slice starts wait, polling (`CARETOOK_LOAD_POLL`, 15 s) up to `CARETOOK_LOAD_WAIT` (600 s). `start` warns; the dispatcher waits.
 
 ## The check runner
 
 - **Scripts:** `prompts/<kind>.sh` (two goldens: `vitest -u`), `slice-brief.mjs`, `ci-*.mjs`; lint at 6 GB; `pnpm prd tier`.
 - **The log:** `.check-times.log`, 18 fields, last: failed step, files, flaky ones, stopping limit, time verdict, step times.
-- **Time gate** (`time-gate.mjs`): a passed quick or slice check, quiet (load ≤ cores) at both ends, else `unjudged`; armed `fail` exits 125.
+- **Time gate** (`time-gate.mjs`): a passed quick or slice check, quiet (load ≤ cores) at both ends, else `unjudged`; armed `fail` exits 125; CI's `unit-N` and `components-N` steps alike. `--times` and `metrics` count tests, budget, silence and time apart.
 - **The limits** (`check-budget.mjs`): budget max(2× median, slowest + 20%) of the last 20 passes (mode, branch kind), load-scaled ×1–3, from 10 minutes to the limit (20, full 40, `CARETOOK_CHECK_LIMIT`; alone under 5 runs). Silence: `CARETOOK_CHECK_SILENCE` (480 s), scaled alike. A clock gap over `CARETOOK_CHECK_SLEEP_GAP` (30 s) is sleep. A breach: TERM the tree, KILL after 10 s, step and last 30 lines, exit 124.
 - **The rerun:** a failed test step reruns its failures once, one at a time; a pass there is logged flaky. None after an unhandled error or past `CARETOOK_CHECK_RERUN_MAX` (20) files.
-- **The run log** (`run-log.mjs`, silent on failure): `.loops/.run-log.jsonl` (`CARETOOK_RUN_LOG`): slice and landing spans, browser results, Codex verdicts per PR head. `pnpm prd metrics` adds the check and flake logs.
+- **The run log** (`run-log.mjs`, silent on failure): `.loops/.run-log.jsonl` (`CARETOOK_RUN_LOG`): slice and landing spans, browser results, Codex verdicts. `pnpm prd metrics` adds the check and flake logs.
 
 ## The asks queue
 
