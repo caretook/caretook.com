@@ -4,7 +4,8 @@
 #
 # One repo-relative glob per line: `*` stays inside a directory, `**` crosses them.
 # `check:<name>` is a browser check from scripts/loops/checks, as a whole.
-# scripts/ci/lists.test.mjs fails on a line that matches no test file or check.
+# scripts/ci/lists.test.mjs fails on a line that matches no test file or check, and on
+# a quarantine entry whose file is gone or whose name matches no test in it.
 
 # Sync and offline
 apps/web/app/lib/sync/**
