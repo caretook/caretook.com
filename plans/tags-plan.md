@@ -4,20 +4,22 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in `dev` (2026-11-26). **Wave 2:** slice 2 (the picker and chips) merged as b3fe1008 and its test fix as f71fed2a; worktree removed. Gate: components run 45767564258 on 1e90fcd1 `flake` (print.browser weekly chart, untouched file). Synced dev (dc1ada81: seed guard, tooling); docs folded into tags.md (_Screens_). PR #209 open; Codex out of credits (exit 4), so land --no-review. Recheck green: components run 45768746414 on e24fefd8. Browser checks (changed set) phase2, roundtrip, live-notes pass. Landing --no-review. Filed B-864 (fx.tag fixture id from raw name).
+**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Next: wave 3** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus), then wave 4 (slice 6). Sync dev first (`pnpm prd sync`).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Models:** slice 1 opus; slice 2 opus.
+**Models:** slices 1 and 2 opus.
 
-**Wave 1 landed** in `dev` as 465efcf through PR #206, tier `full` (run 45761975122 green on 98b38637), **without a Codex review (out of credits)**. Slice 1 merged as 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a; two opus agents, the second for the `roundtrip` step). Report a254; to-test `to-test/2026-11-26-0038-tags.md`. Docs: `docs/domain/tags.md` and its _Area index_ entry (sync.md and care-groups.md are at their budgets, so tags' sync and permission rules live in tags.md). Filed B-862 (roundtrip cleanup gap); noted B-808 (`ui.spec` flake). Dev moved twice during landing (tooling, then `ci.yml`/`vitest.config.ts`): `full` ran three times.
+**Wave 2 landed** in `dev` as ae9f865 through PR #209, tier `components` (run 45768746414 green on e24fefd8), **without a Codex review (out of credits)**. Slice 2 merged as b3fe1008 (491e3862) plus a test-expectation fix f71fed2a (5d091480): the first gate failed on inScreens and plannerEvents tests that listed the ⋯ items without Tags. Browser checks: the changed set only (phase2, roundtrip, live-notes), no `--suite` (the user asks before any). Report a257; to-test `to-test/2026-11-26-0146-tags.md`. Docs: tags.md _Screens_. Filed B-864 (fx.tag fixture id from raw name).
 
-**Lessons:** slice 1 was 46 files (the hook warned); its agent ran out of context before the browser step. Brief wave-2+ agents to keep context lean. `libLayout.test` needs a `docs/domain/<area>.md` for a new `lib/<area>/`.
+**Wave 1 landed** as 465efcf (PR #206, tier full), without Codex. Filed B-862 (roundtrip cleanup gap).
+
+**Lessons:** brief agents to keep context lean (slice 1 ran out; slice 2 passed its soft limit but finished). A new ⋯ item breaks `inScreens` and other component tests that list menu items: tell wave 3+ agents to grep the tests for the menu they change and update them in the slice. Slice 4 adds Tags to the Planner's ⋯ (`UpcomingList`) and chips there.
 
 | Slice | Wave | State       | Merge into `prd/tags` (slice commits)   |
 | ----- | ---- | ----------- | --------------------------------------- |
 | 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
-| 2     | 2    | merged      | b3fe1008, f71fed2a (491e3862, 5d091480) |
+| 2     | 2    | landed      | b3fe1008, f71fed2a (491e3862, 5d091480) |
 | 3     | 3    | not started |                                         |
 | 4     | 3    | not started |                                         |
 | 5     | 3    | not started |                                         |
