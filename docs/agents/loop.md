@@ -29,11 +29,11 @@
 - `roundtrip` (sheet entries converging across two devices, offline then reconnect, the viewer, reschedule, a series and its split, the sync matrix, removal, refused uploads, a connector write via `/mcp` with its tag); `phase2` (the timeline by sync, a server-linked provider, offline filtering); `live-notes` (documents across devices: typing, concurrent edits, offline, shared links).
 - `app-shell` (theme before first paint, sign-out, rename and members across devices, the details stream, `/admin`'s 404s and an audited banner); `invites` (account emails, email and link invites, join requests, access codes, through `/dev/mail.json`); `ui` (production CSS and the CSP: menu and sheet surfaces on a check build); `marketing` (the public site and headers).
 
-- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds a machine-wide `browser` lease, logs to the worktree's git dir. Run long ones under `caffeinate -i`.
+- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds a machine-wide `browser` lease, logs to the worktree's git dir. Long ones under `caffeinate -i`.
 - **`--changed`** runs what the diff needs; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list` (show only). **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (only tests tagged `@smoke`); `--verbose`; `--dev` (against the dev server).
 - **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`, the app writers; CI greps both out of production), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production`, so Better Auth's rate limits are on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`, so the limits apply per device.
 - **Limits, each a TIMEOUT:** silence (`CARETOOK_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`CARETOOK_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
-- **One automatic retry** when a failure looks like contention (load over 40, a timeout, a 401 or PSYNC_S2101), after waiting up to 5 minutes for the load to drop. A pass on the retry is **FLAKY** (passing, logged in `.loops/.browser-flakes.log`); a FLAKY lean-set step is a bug to file. Anything else is a real failure: debug it, and don't rerun by hand on top.
+- **One automatic retry** when a failure looks like contention (load over 40, a timeout, a 401 or PSYNC_S2101), after waiting up to 5 minutes for the load to drop. A pass on the retry is **FLAKY** (passing, logged in `.loops/.browser-flakes.log`); a FLAKY lean-set step is a bug to file. Anything else is real: debug it, no rerun by hand.
 - **Output is trimmed** to the ▶ and ■ lines, failures with their diagnostics, FLAKY lines and the table; the full log is named on the ■ line.
 
 ### Which checks a file needs
@@ -63,6 +63,7 @@
 
 ## Gotchas
 
+- Failed only on time (exit 125, CI's `time`): report it, don't trim others' tests.
 - The first check after a PowerSync restart can fail on a slow first sync: rerun once before debugging.
 - On the dev server (`--dev`), a first visit can re-optimize deps and reload mid-check, and a long-running server can serve stale deps after merges ("Invalid hook call"): rerun once, against a fresh server.
 - After a merge or sync that changes seeds or migrations, `pnpm datastore:reset`. Two branches' migrations conflict in drizzle's `meta/`: keep the target's, regenerate yours (`pnpm datastore:generate`), recheck its SQL order.
