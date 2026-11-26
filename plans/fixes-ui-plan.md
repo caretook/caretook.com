@@ -29,10 +29,10 @@ Notes for every wave:
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
-| 99 | B-899 | started (opus), worktree fixes-ui-99 | |
-| 100 | B-923 | handed off 6cb00e80 (opus), merges after 99 | |
-| 101 | B-924 | handed off e6b9fa01 (opus), merges after 100; docs: providers.md header line, ui-kit DetailHeader min-w-0 | |
-| 102 | B-925 | waits for 99 | |
+| 99 | B-899 | merged (opus); docs: timeline.md copy-link line | 63bebd6c |
+| 100 | B-923 | merged (opus) | 33df29e0 |
+| 101 | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0 |
+| 102 | B-925 | started (opus), worktree fixes-ui-102 | |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
