@@ -22,7 +22,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | ----- | ----- | --------------------- | ----- |
 | 78    | B-653 | agent working (opus)  |       |
 | 79    | B-870 | handed off (9afc7864) |       |
-| 80    | B-845 | agent working (opus)  |       |
+| 80    | B-845 | handed off (0463cea8) |       |
 | 81    | B-660 | handed off (71ff8b72) |       |
 | 82    | B-753 | blocked by 81         |       |
 | 83    | B-751 | handed off (d4bc2470) |       |
