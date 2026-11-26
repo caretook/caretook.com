@@ -84,7 +84,7 @@ export function DetailHeader({
           data-region="title"
           className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${hasDetails ? "" : "pt-1"}`.trim()}
         >
-          <h1 {...titleProps} className={`${TITLE_PAGE} wrap-break-word`}>
+          <h1 {...titleProps} className={`${TITLE_PAGE} min-w-0 wrap-break-word`}>
             {title}
           </h1>
           {shown(badges) && (

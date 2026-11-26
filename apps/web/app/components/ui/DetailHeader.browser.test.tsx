@@ -1,9 +1,9 @@
-import { Pill } from "lucide-react";
+import { Ellipsis, Pencil, Pill } from "lucide-react";
 import { describe, expect, test } from "vitest";
 
 import { rgba } from "../../../test/contrast";
 import { renderInRouter } from "../../../test/device";
-import { Badge, DetailHeader } from "./index";
+import { Badge, Button, DetailHeader } from "./index";
 
 const region = (name: string) => document.querySelector<HTMLElement>(`header [data-region="${name}"]`);
 
@@ -37,6 +37,42 @@ describe("DetailHeader", () => {
     expect(document.querySelector("header[data-example-header]")).toBeTruthy();
     // The icon is decorative.
     expect(region("icon")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  test.each([
+    ["a long name", "Cornerstone Community Pharmacy and Medical Supply of Springfield"],
+    ["one long word", "Supercalifragilisticexpialidociouspharmacyandmedicalsupply"],
+  ])("on a phone (375px), %s wraps beside Edit and ⋯, never under them", async (_, title) => {
+    await renderInRouter(
+      <main className="px-4">
+        <DetailHeader
+          icon={Pill}
+          title={title}
+          badges={<Badge>Primary</Badge>}
+          details="Pharmacy · 310 Main St"
+          actions={
+            <>
+              <Button variant="ghost" size="sm" icon={Pencil}>
+                Edit
+              </Button>
+              <Button variant="ghost" size="sm" icon={Ellipsis} label="Actions" />
+            </>
+          }
+        />
+      </main>,
+      { width: 375 },
+    );
+    const header = document.querySelector("header")!;
+    const box = header.getBoundingClientRect();
+    const h1 = header.querySelector("h1")!.getBoundingClientRect();
+    const actions = region("actions")!.getBoundingClientRect();
+    expect(h1.right).toBeLessThanOrEqual(actions.left);
+    expect(region("title")!.getBoundingClientRect().right).toBeLessThanOrEqual(actions.left);
+    expect(actions.right).toBeLessThanOrEqual(box.right);
+    expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(375);
+    // It wrapped onto more lines rather than running on.
+    expect(h1.height).toBeGreaterThan(40);
   });
 
   test("an empty region renders nothing", async () => {
