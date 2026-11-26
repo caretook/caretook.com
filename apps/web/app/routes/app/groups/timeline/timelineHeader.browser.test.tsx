@@ -353,7 +353,9 @@ describe("the care period in the day headers", () => {
     const change = today.querySelector<HTMLElement>("[data-period-change]")!;
     const icon = today.querySelector<SVGElement>("[data-period-line] > svg")!;
     expect(change.nextElementSibling).toBe(icon);
-    expect(change.getBoundingClientRect().right).toBeLessThanOrEqual(icon.getBoundingClientRect().left);
+    // Its box ends at the icon: its padding may reach up to 2.5px past the icon's edge (B-925).
+    expect(change.getBoundingClientRect().right).toBeLessThanOrEqual(icon.getBoundingClientRect().left + 2.5);
+    expect(change.getBoundingClientRect().left).toBeLessThan(icon.getBoundingClientRect().left);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   });
 
