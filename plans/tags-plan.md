@@ -10,16 +10,16 @@
 
 **Models:** slice 1 opus.
 
-**Wave 1:** slice 1 worktree `tags-1` (slot 3). First opus agent handed off c8980abb, 6fb4e555 (quick check passed) with the `roundtrip` E2E step missing (context limit); a second opus `--continue` agent is adding that step. Placeholder `docs/domain/tags.md` (libLayout.test needs it): replace at landing. B-548 claimed.
+**Wave 1:** slice 1 (two opus agents: build, then the `roundtrip` step) merged as 7e67f8a9; worktree `tags-1` kept until green. Gate: CI `full` (migration 0046_tags) requested. Filed B-862 (roundtrip cleanup gap, fixes-tooling). Placeholder `docs/domain/tags.md` (libLayout.test needs it): replace at landing.
 
-| Slice | Wave | State       | Merge into `prd/tags` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------- |
-| 1     | 1    | started     |                                       |
-| 2     | 2    | not started |                                       |
-| 3     | 3    | not started |                                       |
-| 4     | 3    | not started |                                       |
-| 5     | 3    | not started |                                       |
-| 6     | 4    | not started |                                       |
+| Slice | Wave | State       | Merge into `prd/tags` (slice commits)   |
+| ----- | ---- | ----------- | --------------------------------------- |
+| 1     | 1    | merged      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
+| 2     | 2    | not started |                                         |
+| 3     | 3    | not started |                                         |
+| 4     | 3    | not started |                                         |
+| 5     | 3    | not started |                                         |
+| 6     | 4    | not started |                                         |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
 
