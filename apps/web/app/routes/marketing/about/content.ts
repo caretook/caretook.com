@@ -33,7 +33,7 @@ export const content = {
       heading: "What we believe",
       paragraphs: [
         "The person being cared for comes first. Their information is shared only with the people they agree to, and those people get only the access they need.",
-        "Health information is private. We don't show ads, we don't sell data, no advertising or analytics tools can see your care data, and you can delete your data whenever you want.",
+        "Health information is private. We don't show ads, we don't sell data, no advertising or analytics tools can see your care data, and when you write to us, we'll delete your account and what's tied to it.",
         "Caretaking is hard enough. Caretook should be calm, quick and plain-spoken, and it should work in a waiting room with one bar of signal.",
       ],
     },

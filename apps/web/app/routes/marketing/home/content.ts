@@ -122,9 +122,13 @@ export const homeContent = {
       {
         icon: "noAiTraining",
         title: "Not for AI training",
-        body: "Caretook doesn't use AI on your information today. If we add AI features, their providers may not keep your data or train on it.",
+        body: "Caretook itself doesn't use AI on your information today. If you connect your own assistant (Claude or ChatGPT), what it reads goes to the AI vendor you chose. If we add AI features, their providers may not keep your data or train on it.",
       },
-      { icon: "delete", title: "Yours to delete", body: "You can delete your data whenever you want." },
+      {
+        icon: "delete",
+        title: "Yours to delete",
+        body: "Write to us from the contact page and we'll delete your account and what's tied to it.",
+      },
     ],
   } satisfies PromiseContent,
 
