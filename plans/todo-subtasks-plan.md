@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 5 landing, wave 6 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 5 landed, wave 6 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 5 landed** in `dev` as b391574 through PR #224, tier `components` (run 45850909018 on 85c8e905, green), **without Codex (out of credits)**. to-test `to-test/2026-11-26-1048-todo-subtasks.md`. **Next:** wave 6 (slice 6; stack no), from a fresh session after rotation.
 
 **Wave 5 (2026-11-26):** resumed after an interruption (no landing journal; no slice in flight). Ingest: nothing new for this topic. Sync: no merge needed (dev's changes share no file). Worktree `.loops/todo-subtasks-5` made (no stack); slice 5 agent (opus) spawned with slices 1–4's notes. Watch running. Slice 5 handed off (89b93a7d; quick check passed, 12/12 own component tests), merged at d5d2fd62. Notes: `useTodoSubtasks` (todoQuery parent + subtasksQuery), `TodoSubtasks` band, `TodoParentLink`; `TodoUndoStatus` got an optional `todoIds` filter (Status band's Undo now only its own tick). Docs folded (todos.md, trimmed to 10,238 B). Gate green: `components` run 45849486916 on dff7fc77. Slice 5 worktree removed. `prd sync` merged dev (85c8e905, tooling); `components` rerun on the synced tip running. Rerun green on 85c8e905 (quarantined timelineJumpPaging failed, not blocking). PR #224; Codex out of credits: landing `--no-review`. `prd browser --changed`: none needed. **Next:** wave 6 (slice 6, the parent's tick, delete and form; stack no), from a fresh session.
 
