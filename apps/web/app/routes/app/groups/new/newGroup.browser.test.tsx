@@ -53,7 +53,9 @@ const ROUTES: DeviceRoute[] = [
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: ROUTES, url: "/app/groups/new", ...options });
 
-const sheet = () => page.getByRole("dialog");
+// By name: the group menu's popover is a dialog too, so a bare `dialog` finds the
+// menu while the navigation it starts hasn't landed (B-769).
+const sheet = () => page.getByRole("dialog", { name: "New care group", exact: true });
 // By accessible name: a required label's `*` is aria-hidden, so it isn't part of it.
 const field = (label: string) => sheet().getByRole("textbox", { name: label, exact: true });
 
