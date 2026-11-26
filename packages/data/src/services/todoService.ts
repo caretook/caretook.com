@@ -41,6 +41,7 @@ import { isSystemUser, rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { linkIn, unlinkIn } from "./entryTodoService";
+import { copyLinks } from "./recordTagService";
 
 // Todos: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,
@@ -193,6 +194,9 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
     ? await todoModel.restore(id, content, tx)
     : await todoModel.create({ ...system(tx), data: next });
   if (isError(written)) return written;
+  // Its tags come along (tags PRD), with the ids the device's twin writes.
+  const tagged = await copyLinks(tx, "todo", todo.id, id);
+  if (tagged) return tagged;
   return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? next.id;
 };
 

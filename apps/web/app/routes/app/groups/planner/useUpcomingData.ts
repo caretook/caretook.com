@@ -8,8 +8,11 @@ import type { WithTodos } from "~/lib/todos/plannerTodos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { PastTextRow, RescheduledTargetRow } from "./upcomingQueries";
+import type { GroupTagRow, TagRow } from "~/lib/tags/tags.sync";
 
+import { activeTag } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
+import { useGroupRecordTags, useGroupTags } from "~/components/tags";
 import { matchesText, textTokens } from "~/lib/core/textFilter";
 import { localTimeZone } from "~/lib/core/format";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
@@ -63,7 +66,32 @@ export type UpcomingListData = {
   contactsOf: (entryId: string) => LinkedContact[] | undefined;
   /** The recipient's zone, which todos' due days and times are in (Upcoming only). */
   todoZone?: string;
+  /** The group's tags, A to Z (the Filter menu's Tag section). */
+  tags: TagRow[];
+  /** The tag filter in effect: `?tag=` when the group has it, else null. */
+  tag: TagRow | null;
+  /** A listed event's or todo's tags, for its chips. */
+  tagsOf: (target: "entry" | "todo", id: string) => GroupTagRow[] | undefined;
 };
+
+type TagRows = { tagRows: TagRow[]; entryTagRows: GroupTagRow[]; todoTagRows: GroupTagRow[] };
+
+/**
+ * The group's tags and each listed record's, live (one query per type),
+ * and the filter's tag (`asked`, from `?tag=`) only while the group has
+ * it: a deleted tag stops filtering (tags PRD).
+ */
+function useListTags(groupId: string, initial: TagRows, asked: string | null | undefined) {
+  const tags = useGroupTags(groupId, initial.tagRows);
+  const entryTags = useGroupRecordTags(groupId, "entry", initial.entryTagRows);
+  const todoTags = useGroupRecordTags(groupId, "todo", initial.todoTagRows);
+  return {
+    tags,
+    tag: activeTag(asked ?? null, tags),
+    todoTags,
+    tagsOf: (target: "entry" | "todo", id: string) => (target === "todo" ? todoTags : entryTags).get(id),
+  };
+}
 
 /** Where a cancelled event was rescheduled to. */
 export type RescheduledTarget = { id: string; occurredAt: string };
@@ -120,11 +148,13 @@ function useListSupport(
 /**
  * Everything Upcoming shows, live. `q` (the search box) keeps the entries
  * whose title, place or text and the todos whose title or assignee has every
- * word typed; Upcoming isn't paged, so it filters what it has.
+ * word typed; Upcoming isn't paged, so it filters what it has. `filters.tag`
+ * (`?tag=`) narrows events in their queries and todos here, once the group
+ * is known to have it.
  */
 export function useUpcomingData({
   groupId,
-  filters,
+  filters: asked,
   todosOnly = false,
   q = "",
   initial,
@@ -137,6 +167,8 @@ export function useUpcomingData({
   initial: UpcomingRows;
 }): UpcomingListData {
   const now = useNow(UPCOMING_TICK_MS);
+  const tagging = useListTags(groupId, initial, asked.tag);
+  const filters = { ...asked, tag: tagging.tag?.id ?? null };
   const queries = upcomingQueries(groupId, filters, now);
   const entryRows = useLiveQuery<EntryRow>(queries.entries.sql, queries.entries.params, initial.entryRows);
   const contactRows = useLiveQuery<ContactRow>(
@@ -164,8 +196,11 @@ export function useUpcomingData({
     days: UPCOMING_HORIZON_DAYS,
     initial: initial.todoRows,
   });
-  const matching = dueTodos.todos.filter((t) =>
-    matchesText(tokens, t.title, t.assigneeName, t.assigneeId ? support.nameOf(t.assigneeId) : null),
+  const { tag, todoTags } = tagging;
+  const matching = dueTodos.todos.filter(
+    (t) =>
+      (!tag || !!todoTags.get(t.id)?.some((l) => l.id === tag.id)) &&
+      matchesText(tokens, t.title, t.assigneeName, t.assigneeId ? support.nameOf(t.assigneeId) : null),
   );
   const todos = showsTodos(filters) ? plannerTodos(matching, at, todoZone) : [];
   return {
@@ -177,6 +212,9 @@ export function useUpcomingData({
     members: support.members,
     contactsOf: support.contactsOf,
     todoZone,
+    tags: tagging.tags,
+    tag: tagging.tag,
+    tagsOf: tagging.tagsOf,
   };
 }
 
@@ -195,7 +233,7 @@ export type PastData = UpcomingListData & {
  */
 export function usePastEvents({
   groupId,
-  filters,
+  filters: asked,
   q = "",
   initial,
 }: {
@@ -205,8 +243,10 @@ export function usePastEvents({
   initial: PastRows;
 }): PastData {
   const now = useNow(UPCOMING_TICK_MS);
+  const tagging = useListTags(groupId, initial, asked.tag);
+  const filters = { ...asked, tag: tagging.tag?.id ?? null };
   const { author } = filters;
-  const filterKey = `${author ?? ""}\n${q.trim()}`;
+  const filterKey = `${author ?? ""}\n${filters.tag ?? ""}\n${q.trim()}`;
   const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
   const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
@@ -239,6 +279,9 @@ export function usePastEvents({
     imageOf: support.imageOf,
     members: support.members,
     contactsOf: support.contactsOf,
+    tags: tagging.tags,
+    tag: tagging.tag,
+    tagsOf: tagging.tagsOf,
     hasOlder: page.hasOlder,
     loadingOlder: page.loading,
     loadOlder: () => {

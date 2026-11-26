@@ -8,10 +8,10 @@ import { groupRecordTagsQuery, recordTagsQuery, tagsQuery } from "~/lib/tags/tag
 const NO_TAGS: TagRow[] = [];
 const NO_LINKS: GroupTagRow[] = [];
 
-/** The group's tags, A to Z, live. */
-export function useGroupTags(groupId: string) {
+/** The group's tags, A to Z, live; `initial` is a loader's first rows. */
+export function useGroupTags(groupId: string, initial: TagRow[] = NO_TAGS) {
   const q = tagsQuery(groupId);
-  return useLiveQuery<TagRow>(q.sql, q.params, NO_TAGS);
+  return useLiveQuery<TagRow>(q.sql, q.params, initial);
 }
 
 /** One live record's tags, A to Z, live (none once it's deleted). */
@@ -22,11 +22,11 @@ export function useRecordTags(target: TagTarget, recordId: string) {
 
 /**
  * Every live record's tags of one type in the group, by record id, live: one
- * query for a whole list, never one per row.
+ * query for a whole list, never one per row. `initial`: a loader's rows.
  */
-export function useGroupRecordTags(groupId: string, target: TagTarget) {
+export function useGroupRecordTags(groupId: string, target: TagTarget, initial: GroupTagRow[] = NO_LINKS) {
   const q = groupRecordTagsQuery(groupId, target);
-  const rows = useLiveQuery<GroupTagRow>(q.sql, q.params, NO_LINKS);
+  const rows = useLiveQuery<GroupTagRow>(q.sql, q.params, initial);
   return useMemo(() => {
     const byRecord = new Map<string, GroupTagRow[]>();
     for (const row of rows) {
