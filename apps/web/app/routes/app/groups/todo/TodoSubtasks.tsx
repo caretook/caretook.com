@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import type { TodoTickProgress } from "~/components/todos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { canCompleteTodo, isTodoWriter } from "@caretook/data/schema";
@@ -16,7 +17,8 @@ import { createTodo } from "~/lib/todos/todos.sync";
  * The Subtasks band (todo-subtasks): each live subtask with its tick (for
  * whoever may complete it, with Undo as everywhere), its title opening its
  * page, "n of m done", and writers' inline "Add subtask" while the todo may
- * take one. No subtasks and no add: no band. The parent follows its
+ * take one. A subtask with open subtasks of its own has a disabled tick
+ * reading "n of m" (`progressOf`). No subtasks and no add: no band. The parent follows its
  * children on the device (the rollup), so the page shows it live.
  */
 export function TodoSubtasks({
@@ -24,12 +26,15 @@ export function TodoSubtasks({
   title,
   subtasks,
   progress,
+  progressOf,
   canAdd,
 }: {
   todoId: string;
   title: string;
   subtasks: LocalTodo[];
   progress: { done: number; total: number };
+  /** Each subtask's own progress, from the group's one query. */
+  progressOf: ReadonlyMap<string, TodoTickProgress>;
   canAdd: boolean;
 }) {
   const group = useGroup();
@@ -55,6 +60,7 @@ export function TodoSubtasks({
                     title={sub.title}
                     done={!!sub.doneAt}
                     disabled={tick.busy}
+                    progress={progressOf.get(sub.id)}
                     onChange={(done) => void (done ? tick.complete(sub) : tick.reopen(sub))}
                   />
                 ) : (

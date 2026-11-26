@@ -131,6 +131,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
                 title={todo.title}
                 done={!!todo.doneAt}
                 repeats={!!todo.repeatRule}
+                subtasks={tree.descendants}
                 busy={tick.busy}
                 onReopen={() => void tick.reopen(todo)}
                 onDelete={deleting}
@@ -173,6 +174,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
             title={todo.title}
             subtasks={tree.subtasks}
             progress={tree.progress}
+            progressOf={tree.progressOf}
             canAdd={tree.canAdd}
           />
 
@@ -186,6 +188,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
               done={!!todo.doneAt}
               busy={tick.busy}
               error={tick.error}
+              progress={tree.subtasks.length ? tree.progress : undefined}
               onComplete={() => void tick.complete(todo)}
               onReopen={() => void tick.reopen(todo)}
             />

@@ -10,7 +10,7 @@ import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
-import { todoQuery, toTodo, updateTodo } from "~/lib/todos/todos.sync";
+import { subtasksQuery, todoQuery, toTodo, updateTodo } from "~/lib/todos/todos.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { TodoForm } from "../TodoForm";
 import { todoFromForm } from "../todoFormData";
@@ -40,12 +40,13 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     todo: row ? toTodo(row) : null,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  const [memberRows, linkRows] = await Promise.all([
+  const [memberRows, linkRows, subtaskRows] = await Promise.all([
     loadMembers(db, group.id),
     // No appointment picker on edit: a todo's events are link rows, which the form leaves alone.
     loadLinkChoices(db, group.id, null),
+    readRows<TodoRow>(db, subtasksQuery(params.todoId)),
   ]);
-  return { todo: decision.sheet, memberRows, linkRows };
+  return { todo: decision.sheet, memberRows, linkRows, subtaskRows };
 }
 
 /** A local write; the list's live query shows it, and PowerSync uploads it. */
@@ -77,6 +78,10 @@ export default function EditTodoSheet({ loaderData, params }: Route.ComponentPro
   const rows = useLiveQuery<TodoRow>(query.sql, query.params, NO_ROWS);
   const live = rows[0] ? toTodo(rows[0]) : undefined;
   const gone = !!live?.deletedAt;
+  // A subtask, or a todo with subtasks, doesn't repeat (todo-subtasks): no Repeat.
+  const subQuery = subtasksQuery(params.todoId);
+  const subtaskRows = useLiveQuery<TodoRow>(subQuery.sql, subQuery.params, loaderData.subtaskRows);
+  const repeatable = !loaderData.todo.parentId && subtaskRows.length === 0;
   useEffect(() => {
     if (gone) close();
   }, [gone, close]);
@@ -93,6 +98,7 @@ export default function EditTodoSheet({ loaderData, params }: Route.ComponentPro
           group.recipient?.timeZone ?? null,
           Intl.DateTimeFormat().resolvedOptions().timeZone,
         )}
+        repeatable={repeatable}
         onDone={close}
         onCancel={close}
       />
