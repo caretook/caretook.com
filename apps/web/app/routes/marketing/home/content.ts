@@ -69,7 +69,6 @@ export const homeContent = {
   gallery: {
     id: "see-it",
     heading: "See it on a phone",
-    intro: "Real screens from Caretook, filled with made-up family data.",
     shots: [
       {
         name: "timeline-rows",

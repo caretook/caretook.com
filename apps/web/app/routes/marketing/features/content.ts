@@ -164,7 +164,7 @@ export const content = {
       points: [
         "Owners and admins manage who's in the group",
         "Caretakers add and edit entries",
-        "Viewers can follow along without changing anything",
+        "Viewers can follow along, and change nothing but ticking off a todo assigned to them",
         "Anyone can leave a group whenever they like",
       ],
       image: {
