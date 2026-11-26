@@ -13,7 +13,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
 | `orchestration-split-3` | done | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
-| `fixes-ui` | standing | — | `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/components/entry/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/lib/providers/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/components/ui/DetailHeader`, `apps/web/app/routes/app/groups/todo/TodoHeader.tsx`, `apps/web/app/routes/app/groups/period/PeriodHeader.tsx`, `apps/web/app/routes/app/groups/profile/ProfileHeader.tsx`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
@@ -296,7 +296,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-897 | bug | landed | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
-| B-899 | change | ready | fixes-ui | prd/fixes-ui | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
+| B-899 | change | landed | fixes-ui | prd/fixes-ui | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
 | B-900 | change | landed | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-902 | change | landed | fixes-ui | prd/fixes-ui | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
@@ -319,9 +319,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-920 | feature | triaged | symptom-catalog-3 |  | Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half) |
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
-| B-923 | change | ready | fixes-ui | prd/fixes-ui | Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed) |
-| B-924 | bug | ready | fixes-ui | prd/fixes-ui | Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge |
-| B-925 | bug | ready | fixes-ui | prd/fixes-ui | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
+| B-923 | change | landed | fixes-ui | prd/fixes-ui | Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed) |
+| B-924 | bug | landed | fixes-ui | prd/fixes-ui | Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge |
+| B-925 | bug | landed | fixes-ui | prd/fixes-ui | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
 | B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 | B-928 | bug | triaged | fixes-bug |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
@@ -2035,7 +2035,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-899 · change · Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: bfb256e0
@@ -2251,7 +2251,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-923 · change · Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: bfb256e0
@@ -2260,7 +2260,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-924 · bug · Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: bfb256e0
@@ -2269,7 +2269,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-925 · bug · Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: bb5db517
