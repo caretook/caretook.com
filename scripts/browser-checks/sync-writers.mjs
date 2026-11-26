@@ -20,7 +20,6 @@ import {
   conditionManagerId,
   entryProviderId,
   entryTodoId,
-  matrixTagName,
   medicationConditionId,
   recordTagId,
 } from "./sync-matrix.mjs";
@@ -181,7 +180,8 @@ export const SYNC_WRITERS = {
     (ids) => entryTodoId(ids.timeline_entry, ids.todo),
   ),
   // A new tag (its id from the group, the name and the next free counter).
-  tag: own("tags.createTag", (m, db, ctx) => m.tags.createTag(db, ctx.groupId, matrixTagName(ctx.tag))),
+  // Its name is sync-matrix.mjs's `matrixTagName`, spelled out: this runs in the page.
+  tag: own("tags.createTag", (m, db, ctx) => m.tags.createTag(db, ctx.groupId, `${ctx.tag} matrix tag`)),
   // The matrix tag on the matrix note (both written above).
   record_tag: own(
     "tags.tagRecord",
