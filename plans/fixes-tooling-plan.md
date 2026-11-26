@@ -9,7 +9,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
 - **Wave 9 landed** (2026-11-26): 9a (slice 69, B-869) as 62121513 (PR #219); 9b (slices 70–77, B-871..B-878) as 87ed1d1 (PR #220, `--no-review`: Codex out of credits; full green on ba7258ab, run 45831274258; sync was a no-op). Report filed; to-test/2026-11-26-0847-fixes-tooling.md. Worktrees 70–77 removed. Docs folded (92f66f82, ba7258ab): loop/orchestrator role-doc budget splits moved (halves still 15 KB), machinery.md context watch (120k orchestrator soft limit), dispatcher lookahead, Vitest sessions guard, rotate's context hold; auth.md (B-869); data-layer.md drizzle-zod rule (B-872). B-877's cause was the orchestrator's own `rotate --mid-wave --reason context` ending its slices; rotate now refuses that under the hard limit while a slice isn't handed off. Filed B-903 (harness backgrounds foreground commands past ~170 s; prompt rule candidate).
-- **Wave 10 (slices 78–85: B-653, B-870, B-845, B-660, B-753, B-751, B-608, B-609) started 2026-11-26** by the resumed session; all on opus. 82 waits for 81. Slice 79 changed `apps/web/app/lib/sync/index.ts` (watchLiveQuery holds the batched frame up to 500 ms while a first result is owed): fold into docs/domain/sync.md at landing, and its browser --changed may name the sync checks. B-865/B-866 closed (fixed by d2133f4e in wave 8; boundary test passes).
+- **Wave 10: all 8 slices merged; full CI on 1f42d112 (run 45843104778) failed: boundary.test.mjs (2 tests) trips on slice 82's ci-results/\*.progress.json written mid-run; fix sent back to slice 82's agent. Worktrees 78–85 kept until green.** Wave 10 (slices 78–85: B-653, B-870, B-845, B-660, B-753, B-751, B-608, B-609) started 2026-11-26** by the resumed session; all on opus. 82 waits for 81. Slice 79 changed `apps/web/app/lib/sync/index.ts` (watchLiveQuery holds the batched frame up to 500 ms while a first result is owed): fold into docs/domain/sync.md at landing, and its browser --changed may name the sync checks. B-865/B-866 closed (fixed by d2133f4e in wave 8; boundary test passes).
 - **Watch:** `land-gate.test.mjs`'s dev-brake test failed again under load ~120 in slice 72's check (passes alone 28/28). Earlier: timed out under load ~60 twice in wave 8. File it if CI shows it.
 - **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-619, B-667, B-681, B-720, B-721, B-722, B-749, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-851, B-852, B-862, B-864, B-880..B-883, B-903 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
 - **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
@@ -18,16 +18,16 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                 | Merge |
-| ----- | ----- | --------------------- | ----- |
-| 78    | B-653 | agent working (opus)  |       |
-| 79    | B-870 | handed off (9afc7864) |       |
-| 80    | B-845 | handed off (0463cea8) |       |
-| 81    | B-660 | handed off (71ff8b72) |       |
-| 82    | B-753 | blocked by 81         |       |
-| 83    | B-751 | handed off (d4bc2470) |       |
-| 84    | B-608 | handed off (a2045af5) |       |
-| 85    | B-609 | agent working (opus)  |       |
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 78    | B-653 | merged | 42cbac3a |
+| 79    | B-870 | merged | 703f7d67 |
+| 80    | B-845 | merged | cc58eade |
+| 81    | B-660 | merged | 2b445134 |
+| 82    | B-753 | merged | 16ef128c |
+| 83    | B-751 | merged | 5586ba9b |
+| 84    | B-608 | merged | c4527dc5 |
+| 85    | B-609 | merged | bb36eb88 |
 
 ## Wave 1
 
