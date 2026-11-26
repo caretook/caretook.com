@@ -19,14 +19,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 | Slice | Item         | State                       | Merge |
 | ----- | ------------ | --------------------------- | ----- |
-| 61    | B-239, B-240 | started (opus)              |       |
+| 61    | B-239, B-240 | merged (opus)               | 1699763a |
 | 62    | B-244        | started (opus)              |       |
-| 63    | B-867        | started (opus)              |       |
+| 63    | B-867        | handed off (opus) 77ff15e7  |       |
 | 64    | B-442        | started (opus)              |       |
 | 65    | B-443, B-447 | waiting for 66 (land.sh)    |       |
 | 66    | B-639, B-649 | started (opus)              |       |
 | 67    | B-738        | handed off (opus) 550389b1  |       |
-| 68    | B-545        | waiting for a lane (sonnet) |       |
+| 68    | B-545        | started (sonnet)            |       |
 
 ## Wave 1
 
