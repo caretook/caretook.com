@@ -20,14 +20,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 | Slice | Item  | State          | Merge |
 | ----- | ----- | -------------- | ----- |
-| 78    | B-653 | writing (opus) |       |
-| 79    | B-870 | writing (opus) |       |
-| 80    | B-845 | writing (opus) |       |
-| 81    | B-660 | writing (opus) |       |
+| 78    | B-653 | agent working (opus) |       |
+| 79    | B-870 | agent working (opus) |       |
+| 80    | B-845 | agent working (opus) |       |
+| 81    | B-660 | agent working (opus) |       |
 | 82    | B-753 | blocked by 81  |       |
-| 83    | B-751 | writing (opus) |       |
-| 84    | B-608 | writing (opus) |       |
-| 85    | B-609 | writing (opus) |       |
+| 83    | B-751 | agent working (opus) |       |
+| 84    | B-608 | agent working (opus) |       |
+| 85    | B-609 | agent working (opus) |       |
 
 ## Wave 1
 
