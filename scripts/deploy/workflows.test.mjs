@@ -247,7 +247,7 @@ describe("the deploy workflows", () => {
 
   it("gives each release suite run its own job, within one suite's limit", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    const capS = read("scripts/loops/checks")
+    const capS = read("scripts/project/checks")
       .split("\n")
       .filter((line) => !line.startsWith("#"))
       .map((line) => line.trim().split(/\s+/))

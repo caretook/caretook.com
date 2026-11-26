@@ -1,6 +1,6 @@
 # The browser checks: `pnpm prd browser` (browser.sh) reads this for the suite's
 # order, each check's cap and which checks never exit on their own.
-# scripts/loops/check-areas.d/ maps changed files to these names; a unit test
+# scripts/project/check-areas.d/ maps changed files to these names; a unit test
 # (checks.test.mjs) keeps the two in step.
 #
 # One check per line, in suite order:
