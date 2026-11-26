@@ -5,11 +5,15 @@ import { useSyncState } from "~/lib/sync";
 export const OFFLINE_TEXT = "You're offline. Changes save on this device and sync when you reconnect.";
 
 /**
- * How long the device must stay not connected before the banner shows: a cold
- * load is "not connected" until PowerSync connects, and a strip that appears
- * and goes would shift the page on every start.
+ * How long the device must stay not connected before the banner shows. A cold
+ * load is "not connected" until PowerSync connects, and PowerSync drops
+ * `connected` whenever its sync stream ends while the network is up (the
+ * service or a proxy closing a long-lived stream, a failed request), then
+ * waits its retry delay (`retryDelayMs`, 5 s ± 10% by default) before it
+ * reconnects (B-840). The grace outlasts that delay plus a reconnect, so only
+ * a drop that holds shows the strip.
  */
-export const OFFLINE_GRACE_MS = 3000;
+export const OFFLINE_GRACE_MS = 10_000;
 
 /**
  * A strip under the header on every /app page while the device is offline
