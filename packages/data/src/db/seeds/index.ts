@@ -27,6 +27,7 @@ import * as users from "./users";
 import * as conditions from "./conditions";
 import * as medicationConditions from "./medicationConditions";
 import * as conditionManagers from "./conditionManagers";
+import * as tags from "./tags";
 
 /**
  * Insert development data. Each seed must be idempotent (safe to re-run).
@@ -67,6 +68,7 @@ export const seed = async () => {
     await conditionManagers.seed();
     await appointmentSeries.seed();
     await tedderFamily.seed();
+    await tags.seed();
     // After every group exists.
     const { added } = await realOwners.seed();
     if (added) console.log(`Made real account(s) owners of seeded groups: ${added} membership(s) added`);

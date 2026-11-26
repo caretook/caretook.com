@@ -4,16 +4,22 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started. Starts after `symptom-catalog`.
+**Where it stands:** wave 1 starting (2026-11-25). `symptom-catalog` is done.
 
-| Slice | Wave | State       | Merge into `prd/tags` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------- |
-| 1     | 1    | not started |                                       |
-| 2     | 2    | not started |                                       |
-| 3     | 3    | not started |                                       |
-| 4     | 3    | not started |                                       |
-| 5     | 3    | not started |                                       |
-| 6     | 4    | not started |                                       |
+**Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+**Models:** slice 1 opus.
+
+**Wave 1:** slice 1 (two opus agents: build, then the `roundtrip` step) merged as 7e67f8a9. CI `full` green on 98e1019b (run 45759404517); `tags-1` removed. Dev synced (tooling only); `full` recheck green on 6479a4c1 (run 45760695334). `browser --changed`: 10/11 pass, `ui.spec` the known flake B-808 (noted; no UI in this wave). PR #206; Codex out of credits (exit 4): landing `--no-review`. Docs: `docs/domain/tags.md` written, _Area index_ entry added. Filed B-862 (roundtrip cleanup gap, fixes-tooling). **Landing wave 1 now.**
+
+| Slice | Wave | State       | Merge into `prd/tags` (slice commits)   |
+| ----- | ---- | ----------- | --------------------------------------- |
+| 1     | 1    | merged      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
+| 2     | 2    | not started |                                         |
+| 3     | 3    | not started |                                         |
+| 4     | 3    | not started |                                         |
+| 5     | 3    | not started |                                         |
+| 6     | 4    | not started |                                         |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
 

@@ -26,6 +26,7 @@ import { MEDICATIONS_PERMISSIONS } from "./medications";
 import { NOTIFICATIONS_PERMISSIONS } from "./notifications";
 import { PROFILES_PERMISSIONS } from "./profiles";
 import { PROVIDERS_PERMISSIONS } from "./providers";
+import { TAGS_PERMISSIONS } from "./tags";
 import { TODOS_PERMISSIONS } from "./todos";
 import { TIMELINE_PERMISSIONS } from "./timeline";
 
@@ -79,6 +80,7 @@ export const PERMISSIONS: Permissions = {
   ...NOTIFICATIONS_PERMISSIONS,
   ...PROFILES_PERMISSIONS,
   ...PROVIDERS_PERMISSIONS,
+  ...TAGS_PERMISSIONS,
   ...TODOS_PERMISSIONS,
   ...TIMELINE_PERMISSIONS,
 };

@@ -324,6 +324,61 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       `server ${onServer} (rows:entries/types); A ${JSON.stringify(await typesOn(A))}; B ${JSON.stringify(await typesOn(B))}`,
     );
 
+    // 3a'. The same new tag on one record from both members, each offline (tags):
+    // the tag's id comes from the group, the folded name and the next free
+    // counter, the link's from the tag and the record, so on reconnect they
+    // converge on one tag and one link.
+    const tagName = `${tag} same tag`;
+    const tagNameKey = tagName.toLowerCase();
+    const taggedEntry = psql(
+      `SELECT id FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND lower(details->>'name') = '${sameKey}' AND created_by = '${memberId}' AND deleted_at IS NULL`,
+    );
+    const entryOn = (page) => localRows(page, "SELECT id FROM timeline_entry WHERE id = ?", [taggedEntry]);
+    await until(async () => (await entryOn(A)).length === 1 && (await entryOn(B)).length === 1);
+    const tagBoth = (name) => `(async () => {
+      const m = await window.caretookModules();
+      const db = window.caretookSync;
+      const made = await m.tags.createTag(db, ${JSON.stringify(DEV_FAMILY)}, ${JSON.stringify(name)});
+      if (!made.ok) return made;
+      return { ...(await m.tags.tagRecord(db, made.id, "entry", ${JSON.stringify(taggedEntry)})), id: made.id };
+    })()`;
+    dA.offline(true);
+    dB.offline(true);
+    const tagA = await A.evaluate(tagBoth(tagName));
+    const tagB = await B.evaluate(tagBoth(tagName.toUpperCase()));
+    dA.offline(false);
+    dB.offline(false);
+    const tagsOn = (page) =>
+      localRows(
+        page,
+        `SELECT t.id, t.name, (SELECT count(*) FROM record_tag l WHERE l.tag_id = t.id AND l.entry_id = ?) AS links
+         FROM tag t WHERE t.group_id = ? AND t.name_key = ?`,
+        [taggedEntry, DEV_FAMILY, tagNameKey],
+      );
+    const tagsOnServer = await waitForSql(
+      `SELECT (SELECT count(*) FROM tag WHERE group_id = '${DEV_FAMILY}' AND name_key = '${tagNameKey}')
+        || ':' || (SELECT count(*) FROM record_tag l JOIN tag t ON t.id = l.tag_id
+          WHERE t.group_id = '${DEV_FAMILY}' AND t.name_key = '${tagNameKey}' AND l.entry_id = '${taggedEntry}')`,
+      (r) => r === "1:1",
+      30_000,
+    );
+    const tagsConverged = await until(async () => {
+      const [a, b] = [await tagsOn(A), await tagsOn(B)];
+      return (
+        a.length === 1 &&
+        b.length === 1 &&
+        a[0].id === b[0].id &&
+        a[0].name === b[0].name &&
+        a[0].links === 1 &&
+        b[0].links === 1
+      );
+    }, 30_000);
+    await check(
+      "tags: two members adding the same new tag to one record offline converge on one tag and one link",
+      !!tagA?.ok && !!tagB?.ok && tagA.id === tagB.id && tagsOnServer === "1:1" && !!tagsConverged,
+      `A ${JSON.stringify(tagA)}, B ${JSON.stringify(tagB)}; server ${tagsOnServer} (tags:links); A ${JSON.stringify(await tagsOn(A))}; B ${JSON.stringify(await tagsOn(B))}`,
+    );
+
     // 3b. A connector's write through /mcp reaches this device with its "via" tag.
     // The token comes from mintToken.ts (the OAuth dance in process, test-only);
     // the write is the assistant's own HTTP call.
@@ -1089,6 +1144,11 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       psql(
         `UPDATE timeline_entry SET deleted_at = coalesce(deleted_at, now()), symptom_type_id = NULL WHERE group_id = '${DEV_FAMILY}' AND details->>'name' ILIKE '${tag}%';
          DELETE FROM symptom_type WHERE group_id = '${DEV_FAMILY}' AND name ILIKE '${tag}%'`,
+      );
+      // 3a''s tag and its link (tags are never soft-deleted).
+      psql(
+        `DELETE FROM record_tag WHERE tag_id IN (SELECT id FROM tag WHERE group_id = '${DEV_FAMILY}' AND name ILIKE '${tag} same tag');
+         DELETE FROM tag WHERE group_id = '${DEV_FAMILY}' AND name ILIKE '${tag} same tag'`,
       );
       psql(writerCleanupSql({ timeline_entry: matrix.ids.entry }));
       psql(

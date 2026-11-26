@@ -7,6 +7,8 @@ import {
   conditionManagerId,
   entryProviderId,
   entryTodoId,
+  recordTagId,
+  tagId,
   getDb,
   medicationConditionId,
   symptomTypeId,
@@ -262,6 +264,28 @@ const UPLOAD_CASES: Record<string, (ids: Ids) => CrudOp[]> = {
     }),
     deleteOp("timeline_entry_todo", entryTodoId(ids.entry, ids.rows.todo!)),
   ],
+  // The group's tags (tags): a new tag is added (rename and delete come later).
+  tag: (ids) => [
+    putOp("tag", tagId(ids.groupId, "Paperwork"), {
+      group_id: ids.groupId,
+      name: "Paperwork",
+      name_key: "paperwork",
+      created_at: LATER,
+      updated_at: LATER,
+    }),
+  ],
+  // Which records carry which tags (tags): links are added and removed.
+  record_tag: (ids) => [
+    putOp("record_tag", recordTagId(tagId(ids.groupId, "Urgent"), ids.bareEntry), {
+      group_id: ids.groupId,
+      tag_id: tagId(ids.groupId, "Urgent"),
+      entry_id: ids.bareEntry,
+      todo_id: null,
+      provider_id: null,
+      medication_id: null,
+    }),
+    deleteOp("record_tag", recordTagId(tagId(ids.groupId, "Urgent"), ids.entry)),
+  ],
 };
 
 const BARE_GROUP = new Set(["care_recipient"]);
@@ -334,6 +358,12 @@ const groupWithRows = async ({ bare = false } = {}) => {
       group_id: ids.groupId,
       entry_id: ids.entry,
       todo_id: ids.rows.todo,
+    }),
+    putOp("tag", tagId(ids.groupId, "Urgent"), { group_id: ids.groupId, name: "Urgent", ...audits }),
+    putOp("record_tag", recordTagId(tagId(ids.groupId, "Urgent"), ids.entry), {
+      group_id: ids.groupId,
+      tag_id: tagId(ids.groupId, "Urgent"),
+      entry_id: ids.entry,
     }),
   ];
   const seeded = bare ? [] : await upload(owner, seed);

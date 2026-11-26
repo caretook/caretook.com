@@ -14,6 +14,10 @@ import {
   encodeNoteDoc,
   entryProviderId,
   entryTodoId,
+  recordTagId,
+  tagId,
+  tagKey,
+  tagName,
   medicationConditionId,
   noteDocFromText,
   symptomTypeRow,
@@ -684,6 +688,49 @@ export const entryTodo = (entryId: string, todoId: string, v: Partial<Values<"ti
     groupId,
     entryId,
     todoId,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by tags slice 1 ---------------------------------------------------
+
+/** A tag in the group's list, with its derived id and key ("Care home move" unless given). */
+export const tag = (name = "Care home move", v: Partial<Values<"tags">> = {}) => {
+  const created = hoursAgo(24 * 7);
+  return row("tags", {
+    id: tagId(v.groupId ?? groupId, name),
+    groupId,
+    name: tagName(name),
+    nameKey: tagKey(name),
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+/** A tag on a record: `target` names its column (`entryId` unless given). */
+export const recordTag = (
+  tagIdValue: string,
+  recordId: string,
+  target: "entryId" | "todoId" | "providerId" | "medicationId" = "entryId",
+  v: Partial<Values<"recordTags">> = {},
+) => {
+  const created = hoursAgo(1);
+  return row("recordTags", {
+    id: recordTagId(tagIdValue, recordId),
+    groupId,
+    tagId: tagIdValue,
+    entryId: null,
+    todoId: null,
+    providerId: null,
+    medicationId: null,
+    [target]: recordId,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,
