@@ -49,7 +49,7 @@ export const content = {
       heading: "Notes and events, written together",
       paragraphs: [
         "Start a note in one tap and just type: it's saved as you go. Your sister can open the same note and add to it at the same time, and you both see each other's words appear.",
-        "When someone is writing, the timeline says so, with a Join button, so the notes from an appointment end up in one place instead of three text threads.",
+        "When someone is writing, the timeline says so, with a Join button, so the notes from a visit end up in one place instead of three text threads.",
       ],
       points: [
         "Headings, bold and lists for visit notes",

@@ -78,6 +78,13 @@ describe("features content", () => {
     }
   });
 
+  // The app's word for a calendar item is "event" (docs/domain/appointments.md).
+  it("says event or visit, never appointment, on features and home", () => {
+    for (const text of [...strings(content), ...strings(homeContent)]) {
+      expect(/appointment/i.test(text), text).toBe(false);
+    }
+  });
+
   it("lists nothing as coming: no band for it, and no built feature said to be on its way", () => {
     expect(content).not.toHaveProperty("coming");
     for (const [page, value] of [

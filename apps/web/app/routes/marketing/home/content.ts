@@ -51,7 +51,7 @@ export const homeContent = {
       {
         icon: "notes",
         title: "Notes written together",
-        body: "Take notes at an appointment while your brother adds what he heard on the phone. You both see the note as it's written.",
+        body: "Take notes at a visit while your brother adds what he heard on the phone. You both see the note as it's written.",
       },
       {
         icon: "medications",
@@ -61,7 +61,7 @@ export const homeContent = {
       {
         icon: "planner",
         title: "What's coming up",
-        body: "Events and todos in one planner, each todo with a name on it. See them in your own calendar and get a reminder email.",
+        body: "Events and todos in one planner, with who's doing what. See them in your own calendar, with a reminder email if you want one.",
       },
     ],
   } satisfies FeatureGridContent,
