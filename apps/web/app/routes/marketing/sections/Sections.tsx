@@ -1,5 +1,6 @@
 import type { ButtonVariant } from "~/components/ui/plain";
 
+import { FullLogo } from "~/components/brand";
 import { Button } from "~/components/ui/plain";
 import { MARKETING_LINKS } from "../site/pages";
 import { MarketingIcon } from "./icons";
@@ -56,28 +57,14 @@ export function Hero({ content }: { content: HeroContent }) {
         )}
         {content.lockup ? (
           <>
-            <h1 id="hero-heading" className="font-bold tracking-tight" data-lockup>
-              <span className="block text-5xl leading-none sm:text-7xl" data-lockup-part="name">
-                {content.lockup.name}
-              </span>{" "}
-              <span
-                className="mt-2 block text-4xl leading-tight text-primary-ink italic sm:text-5xl"
-                data-lockup-part="tagline"
-              >
-                {content.lockup.tagline}
-              </span>
+            <h1 id="hero-heading" data-lockup>
+              <FullLogo size="hero" />
             </h1>
             <p
-              className="mt-4 max-w-2xl text-xl font-semibold text-balance sm:text-2xl"
+              className="mt-6 max-w-2xl text-xl font-semibold text-balance sm:text-2xl"
               data-lockup-part="descriptor"
             >
               {content.lockup.descriptor}
-            </p>
-            <p
-              className="mt-8 max-w-3xl text-2xl leading-tight font-semibold tracking-tight text-balance sm:text-3xl"
-              data-lockup-part="supporting"
-            >
-              {content.heading}
             </p>
           </>
         ) : (
