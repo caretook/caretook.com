@@ -12,6 +12,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 - **Wave 9 started 2026-11-26** (this session), on the user's word via the backlog session (caretook-com-27): B-869 first (session-end check, brakes staging; land as a `fix(...)` commit for `pnpm prd ci candidate fix`), then the token-use items B-873..B-878 (B-879 duplicates B-875, closes with slice 71), B-871, B-872. Slices 69–77, all on opus. B-865/B-866 were fixed by wave 8 (d2133f4e).
 - **Wave 9a landed** in dev as 62121513 (PR #219, `--no-review`: Codex out of credits; components green on ba0e6f2f, run 45819731070): slice 69, B-869. Report filed; backlog session told (for `pnpm prd ci candidate fix`). Docs trimmed under budget (07218824) since wave 8's fold had grown them. Slice 69's worktree can go (`pnpm prd rm fixes-tooling-69`). Filed B-884 (fixes-perf).
 - **Hand-over (rotated mid-wave for context, 2026-11-26):** slices 70–77 are the rest of wave 9 and land as the next landing. Merge order 70, 71, 72, 73 (regenerate the golden prompts after each; don't hand-resolve), then 74–77. Slice 71 handed off (692779eb, check passed). Slice 74 was sent slice 71's evidence: the harness backgrounds foreground commands past ~170–180 s, so an agent ending its turn there stops with no hand-off (the likely B-877 cause). B-879 dropped (dup of B-875). Skeptic s57's changes are folded into the slice text. Slice 73 handed off (300ef5a7, check passed): `pnpm prd anchors` warns only; it notes `scripts/loops/docs/orchestrator.md` is at 3766/3770 B and `planner.md` 5110/5120 B, so slices 70–72's additions will need trimming at merge; its run on today's plans flags slice 76's bare `backlog.json` and fixes-tooling slice 31 (no merge SHA row). To fold at the next landing: docs/domain/auth.md gains 'a fresh session's background recheck that answers signed out mid-navigation sends sign-in back to where that navigation was going while the address hasn't moved (B-869)' — trim auth.md by as much (it's near its 10 KB budget).
+- **Taken over after an interruption (2026-11-26):** no live agents; slices 70, 72, 74–77 respawned with `--continue` (opus); 71 and 73 stay handed off, waiting on 70 to merge first. Slice 69's worktree is already gone.
 - **Watch:** `land-gate.test.mjs`'s dev-brake test timed out under load ~60 in two slice checks in wave 8 (passes alone): file it if CI shows it.
 - **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-608, B-609, B-619, B-653, B-660, B-667, B-681, B-720, B-721, B-722, B-749, B-751, B-753, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-845, B-851, B-852, B-862, B-864 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
 - **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
@@ -23,14 +24,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | Slice | Item  | State               | Merge    |
 | ----- | ----- | ------------------- | -------- |
 | 69    | B-869 | landed 62121513     | bd9922d5 |
-| 70    | B-873 | in progress (opus)  |          |
+| 70    | B-873 | continued (opus)    |          |
 | 71    | B-875 | handed off 692779eb |          |
-| 72    | B-876 | in progress (opus)  |          |
+| 72    | B-876 | continued (opus)    |          |
 | 73    | B-874 | handed off 300ef5a7 |          |
-| 74    | B-877 | in progress (opus)  |          |
-| 75    | B-878 | in progress (opus)  |          |
-| 76    | B-871 | in progress (opus)  |          |
-| 77    | B-872 | in progress (opus)  |          |
+| 74    | B-877 | continued (opus)    |          |
+| 75    | B-878 | continued (opus)    |          |
+| 76    | B-871 | continued (opus)    |          |
+| 77    | B-872 | continued (opus)    |          |
 
 ## Wave 1
 
