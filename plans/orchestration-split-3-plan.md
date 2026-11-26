@@ -12,7 +12,7 @@
 
 **Wave 2 landed 2026-11-26 as ea90230** (PR #232, `--no-review`: Codex out of credits; full CI 45881677729 green on 7b7676ce, one quarantined browser test failed outside the branch; unsynced tip, dev's one commit shared no file). Slices 3 and 6 on opus; worktrees removed; report a284. Docs folded: `loop.md` and the orchestrator doc's _Rules across PRDs_ name `scripts/project/check-areas.d/` and `scripts/project/checks`. Carried for later: `use_node` now needs some `node` on PATH (no nvm.sh fallback); `session.sh` still starts `${CARETOOK_CLAUDE_BIN:-claude}` itself (slice 7: take it from host, e.g. a `host.mjs claude-bin` form); `host.mjs` holds `CARETOOK_CLAUDE_BIN` (slice 4); `_global`'s allowlist line stays until the core moves out; `scripts/ci/test-job.mjs` is still on the allowlist. The rest of the machinery doc (host layer CLIs) waits for the last landing. B-543 stays in progress until slice 5 lands.
 
-**Wave 3 under way** (2026-11-26): `pnpm prd sync` skipped the merge (dev shared no file, touched no `scripts/`). Slice 8 started (worktree `orchestration-split-3-8`, agent on opus). Slice 8 (the machine config under `~/.risa/` and the `work` switch, `RISA_WORK_SELF=1`): opus. Then slice 7 (Claude Code's files through host, `CLAUDE_CONFIG_DIR`) on top of it, opus; both touch `dispatch.mjs`, so one after the other. Tier: tooling only (`pnpm test:tooling`; run what `pnpm prd tier` proposes).
+**Wave 3 under way** (2026-11-26): `pnpm prd sync` skipped the merge (dev shared no file, touched no `scripts/`). Slice 8 (opus) merged as 09f81cfd; its worktree stays until the wave is green. Slice 7 started (worktree `orchestration-split-3-7`, agent on opus). Carried from slice 8: the dispatcher's keep-alive and session requests ignore the work switch (spec named only starts, plans, queues); the machinery doc needs the machine config at landing; Risa's risa.json sets `tool.self` at the move. Slice 8 (the machine config under `~/.risa/` and the `work` switch, `RISA_WORK_SELF=1`): opus. Then slice 7 (Claude Code's files through host, `CLAUDE_CONFIG_DIR`) on top of it, opus; both touch `dispatch.mjs`, so one after the other. Tier: tooling only (`pnpm test:tooling`; run what `pnpm prd tier` proposes).
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
 | ----- | ---- | ------- | -------------------------------------- |
@@ -20,8 +20,8 @@
 | 2     | 1    | landed  | 8338ca66 (dev 00c60f0c)                |
 | 3     | 2    | landed  | a9ca9561 (dev ea90230)                 |
 | 6     | 2    | landed  | 6b1ba139 (dev ea90230)                 |
-| 8     | 3    | started |                                        |
-| 7     | 3    | planned |                                        |
+| 8     | 3    | merged  | 09f81cfd                               |
+| 7     | 3    | started |                                        |
 | 4     | 4    | planned |                                        |
 | 5     | 5    | planned |                                        |
 
