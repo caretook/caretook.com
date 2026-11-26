@@ -2,7 +2,7 @@ import type { Route } from "./+types/route";
 
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
 import { Search } from "lucide-react";
-import { Wordmark } from "~/components/brand";
+import { FullLogo } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
 import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -68,7 +68,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
           <Link to={appUrls.home()} className="shrink-0 rounded-field">
-            <Wordmark wordHiddenBelow={groupId ? "sm" : undefined} />
+            <FullLogo wordHiddenBelow={groupId ? "sm" : undefined} />
           </Link>
           {groupFrame && <GroupMenu groupId={groupFrame} />}
         </div>

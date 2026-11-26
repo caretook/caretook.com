@@ -1,8 +1,6 @@
 - Follow the [rules across PRDs](orchestrator.md#rules-across-prds): say "adds a migration", never a number; plan a regions slice first when two PRDs share a hot file.
 - **Small fixes go to five standing topics**, `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit`: a plan each and no PRD, one slice and one item per fix, appended by its orchestrator before a wave; `prompt.sh` treats the plan as the whole spec. An item's topic is its category; [`plans/fixes-rules.md`](../../plans/fixes-rules.md) has the rules and the tie-break (`bug`, `perf`, `ui`, `tooling`, `nit`: for triage only). The order between the topics is the user's; never invent one. Never file a new fix as `quick-fixes`.
 
-For a planning agent: writing a PRD and its plan on `plan/<topic>` in `.loops/plan-<topic>` (stackless, from `dev`). Read [backlog](backlog.md) too: you triage items into the topic.
-
 ## What to ask
 
 Ask only when a wrong guess is costly to undo or the choice is the user's alone, and neither the items, the area docs nor [preferences](preferences.md) answer it:

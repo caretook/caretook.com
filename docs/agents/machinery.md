@@ -1,18 +1,10 @@
-# Machinery
-
-What runs `pnpm prd` (`scripts/loops/`).
-
-## Worktrees and leases
-
 - `new.sh <kind>`: `prd <topic>` (`.loops/<topic>`, from `dev`, a stack), `slice <topic> <n>` (`.loops/<topic>-<n>`, from `prd/<topic>`, a stack only for `Stack: yes` or `--stack`), `plan <topic>` and `hotfix <name>` (stackless, from `dev`). Options: `--slot N`, `--stack`/`--no-stack`, `--base B`. An existing branch is checked out. Secrets: the main checkout's env files.
 - **Slots** (1–19): atomic locks in `.loops/.slots/<N>`, busy too while a `.env` names one or a port listens. Ports: [loop](loop.md#your-worktree-and-stack).
 - **The shared test Postgres** (`pnpm prd test-db`, :5436, tmpfs, Compose project `caretook-shared-test`): a database per worktree (`rm.sh` drops it); `test-db down` drops all.
 - `pnpm prd status` flags landed `merged:` slice worktrees and `stopped stack:`s (over `CARETOOK_GC_STOPPED_HOURS`, 24); `gc` removes them on a yes. **The disk guard** refuses a stack or check build under `CARETOOK_MIN_FREE_GB` (10); `reclaim` frees merged worktrees, dangling Docker data, check builds and Vite caches (never in use).
 - **A merged slice is held** until its wave has landed and no run of its topic is out (`scripts/ci/outstanding.mjs`; unreadable GitHub holds too): `tidy`, `gc` and `reclaim` keep it and say why; `pnpm prd rm` doesn't check.
-- **`pnpm prd tidy`** lists leftovers as **safe** or **ask**. `--yes` removes the safe ones and reports the rest; `--json` lists. Never dirty worktrees, live caches, the main checkout, unmerged branches, sessions.
-- `rm.sh <name>` removes the worktree, stack, database files and slot, and the branch if merged; it refuses uncommitted changes, or a PRD with slice worktrees left, unless `--force`; `--no-registry` leaves the registry alone.
 - **`pnpm prd dev-sync`** (`land`; `pr`'s push when `origin/dev` is ahead) brings `dev` up to `origin`: a fast-forward, else a replay of backlog commits no other ref holds, else a merge. The inbox never stops it (`inbox-merge.mjs`); another file's conflict or edits do. `land` picks up only backlog files and CI's lists.
-- **Machine leases** (`lease.sh`, `lease.mjs`): `browser` 2, `check` 2, others 1 (`CARETOOK_<KIND>_SLOTS`), locks in `.loops/.lease/<kind>/<N>`, taken from dead holders. Bounded waits (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30), then 75. `CARETOOK_LEASES=off` takes none.
+- **Machine leases** (`lease.sh`; the core's Node tools `lease.mjs`, a project's code the config's `lease` hook): `browser` 2, `check` 2, others 1 (`CARETOOK_<KIND>_SLOTS`), locks in `.loops/.lease/<kind>/<N>`, taken from dead holders. Bounded waits (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30), then 75. `CARETOOK_LEASES=off` takes none.
 - **`pnpm prd wait [check|browser|<kind>] [--timeout S] [--worktree W]`** (`lease.sh wait`) waits until the worktree's lease, held or queued, is gone; 75 at the timeout (3600 s).
 
 ## Recorded sessions
@@ -30,7 +22,6 @@ What runs `pnpm prd` (`scripts/loops/`).
 - **`rotate --self [--brief <file>]`** finds the caller by its ancestor `claude` pid. A backlog session reopens fresh in the main checkout (same record and model), the brief on top of its prompt; an orchestrator rotates as plain `rotate`; other kinds and `slice/` branches are refused. `--brief-path` prints where to write the brief; a stale one is deleted at session start.
 - **Captains** (`captain.mjs`): the main backlog session's Remote Control name and tab title is a captain, drawn at each start, rotate, hand-off and reopen, never the last; the record stays `backlog`; a `--remote-control <Captain>` process is live. Its prompt names it (`CARETOOK_CAPTAIN`), never in questions or commands.
 - `rm.sh`, removing a merged `prd/` worktree whose _Status_ has no slice left, sets the registry's `done` flag (dropping `hold`), except for a `standing` topic.
-- `pnpm prd status` adds the recorded sessions, session requests, open asks, _Slices_ (working, handed off, waiting, fixing) and WORKERS ([heartbeat](#the-context-watch)).
 
 ## The context watch
 
