@@ -1,12 +1,12 @@
 # Todos
 
-PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tasks-2-plan.md) (B-222). A todo: a title, an optional assignee, due day and time, done or open, notes, up to one provider and one medication, and any number of linked notes and events. **Not entries:** completing one writes no timeline entry.
+PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tasks-2-plan.md) (B-222). A todo: a title, an assignee, a due day and time, done or open, notes, a provider and a medication, linked notes and events. **Not entries:** completing one writes no timeline entry.
 
 ## The table and its rules
 
 - **Table `todo`** (`0022_tasks` as `task`, renamed by `0032_todos`): `id` (UUID, device-made), `group_id`, `recipient_id` (composite FK to `care_recipient`), `title`, `assignee_id` (set null when the account is deleted), `assignee_name`, `due_on`, `due_time` (`HH:MM`), `done_at`, `done_by`, `provider_id`, `medication_id` (composite FKs, `NO ACTION`), `event_id` (legacy, below), `deleted_at`, timestamps, audits; unique `(group_id, id)`.
   - Checks: not both `assignee_id` and `assignee_name`; `due_time` needs `due_on`; `done_at` and `done_by` together.
-  - **Two hand edits in the SQL, kept when regenerating:** `event_id`'s composite FK to `timeline_entry` is `ON DELETE SET NULL ("event_id")`, and the `ALTER PUBLICATION` adding the table.
+  - **Two hand edits in the SQL (keep them):** `event_id`'s FK to `timeline_entry` is `ON DELETE SET NULL ("event_id")`, and the `ALTER PUBLICATION`.
   - `note_document.todo_id` (the `todo` subject; see [live-notes](live-notes.md)).
 - **Due time is wall-clock in the recipient's zone.** `db/schema/todos/todoRules.ts` (pure, both sides) has `todoState`, `todoOrder` (overdue first, undated last), `doneOrder`, `assigneeOf`, `localTime`, `TODO_WRITER_ROLES`/`isTodoWriter`, `canCompleteTodo` and `completionOnly`.
 - **Permissions** (`PERMISSIONS.todo`): read any member; create and delete (soft) writers; update writers and viewers. **The service limits viewers and easy roles** to completing their own todos (`todoService:completionOnly`, 403). A free-text assignee's todo: writers only.
@@ -19,7 +19,7 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tas
 
 - ✅ **`timeline_entry_todo`** links entries and todos many-to-many: id `entryTodoId` (UUID v5 of the pair), cascading composite FKs, unique pair, hard-delete unlink; PUT/DELETE via `linkTable`. No kind check; screens show links on `NOTE_DOCUMENT_KINDS` (notes, events) only. Soft deletes keep link rows. Who links: `WRITERS` ([care-groups](care-groups.md)).
 - ✅ **`todo.event_id` is legacy**, until a contract migration drops it; new clients never write it (0045 backfilled links from it). Only these touch it: `todoService` create/update mirrors an old client's `eventId` into link rows (change swaps, clear removes, unchanged no-op); `releaseEvent`; `entryTodoService.unlink` clears it when it names that entry.
-- ✅ **Touched:** a next occurrence with any link row counts as touched (server `isTouched`, device `reopenTodo`).
+- ✅ **Touched:** a next with any link row is touched (`isTouched`, `reopenTodo`).
 - ✅ **Device** (`lib/todos/entryTodos.sync.ts`): `linkTodo`, `unlinkTodo`, `entryTodoRow` (in your transaction); `entryTodosQuery`, `todoEntriesQuery`, `openTodoCountsQuery` (one group query), `linkableEntriesQuery`. `createTodo` writes the todo and its link rows in one transaction; `updateTodo` never carries `eventId`.
 
 ## Repeating todos (planner-2, B-248)
@@ -33,11 +33,11 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tas
 
 ## Subtasks (todo-subtasks, B-550)
 
-- ✅ **A subtask is a todo with `parent_id`** (`0047_todo_subtasks`): composite FK and index on `(group_id, parent_id)`. Set on create and upsert only.
-- ✅ **Tree rules** (`todoTree.ts`, pure, both sides): `MAX_TODO_DEPTH` 3, `depthOf`, `canHaveSubtask` (live, not repeating, within depth), `rollupOf` (live children only; none left: no change), `subtaskProgress`, `listsOnItsOwn` (top-level, or dated or assigned).
-- ✅ **Service:** a missing, deleted, other-group, repeating or too-deep parent is `todoService:badParent` (issue on `parentId`); a rule on a subtask or a todo with live subtasks is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
-- ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`, exported): after a child's create, complete, reopen or remove, `rollupOf` up to the top, as the system with the actor as `done_by` (a viewer's last subtask can complete a parent). A hand reopen of a parent reopens only it. `complete` with an open live subtask: `todoService:openSubtasks`.
-- ✅ **`remove` cascades** to live descendants in one statement, then rolls up; returns `{ ids }`.
+- ✅ **A subtask is a todo with `parent_id`** (`0047_todo_subtasks`; FK and index on `(group_id, parent_id)`), set on create and upsert only.
+- ✅ **Tree rules** (`todoTree.ts`, both sides): `MAX_TODO_DEPTH` 3, `depthOf`, `canHaveSubtask` (live, no repeat, within depth), `rollupOf` (live children; none left: no change), `subtaskProgress`, `listsOnItsOwn` (top-level, dated or assigned).
+- ✅ **Service:** a bad parent (missing, deleted, other group, repeating, too deep) is `todoService:badParent`; a rule on a subtask or a parent is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
+- ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`): after a child's create, complete, reopen or remove, up to the top, as the system with the actor as `done_by` (a viewer's last subtask can do it). A hand reopen reopens only that todo. `complete` with an open subtask: `todoService:openSubtasks`. `remove` cascades to live descendants, then rolls up; returns `{ ids }`.
+- ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants in its transaction. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. "Not saved" names the three. No device rollup yet.
 
 ## On the device (`lib/todos/todos.sync.ts`)
 
@@ -51,10 +51,10 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tas
 - **Sheets:** `todos/new` (`appUrls.newTodo`) and `todos/:todoId/edit` (`TodoForm`; the event picker on create only). They close back through link state (`TODO_SHEET_STATE`, `lib/todos/todoSheetLink.ts`) to their opener; a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos (B-689). `todos/new` prefills (`TODO_PREFILL_PARAMS`): `providerId`, `medicationId`, `entryId` (old `eventId` works), `dueOn`; from quick entry `title`, `assigneeId`, `dueTime`, `repeatRule` (ignored if it doesn't parse).
 - **The todo page** (`routes/app/groups/todo/`, `appUrls.todo`), banded ([ui-kit](ui-kit.md#bands)): `TodoHeader` (writers edit and delete), Details, Linked to (notes and events, newest first; a removed one reads "(removed)"; writers get Remove and "Link an entry", even empty), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted is a 404.
 - **The tick** (`TodoTick`, `useTodoTick`) on every todo surface.
-- **Easy roles** reach only the Planner (read-only) and a todo's page (no edit or delete; [app-shell](app-shell.md)), and tick only their own todos.
-- **Links and backlinks:** pickers (`todos/todoLinks.ts`). `LinkedTodos` lists open linked todos on a provider's and medication's page, with "Add todo" prefilled; hidden when empty, except a writer's lone "Add todo".
+- **Easy roles:** the Planner (read-only) and a todo's page (no edit or delete; [app-shell](app-shell.md)); they tick only their own.
+- **Links and backlinks:** pickers (`todos/todoLinks.ts`). `LinkedTodos`: open linked todos on a provider's and medication's page, with a prefilled "Add todo" (a writer's shows even empty).
 - **An entry's Todos** (`entry/EntryTodos.tsx`, notes and events): open todos (tick, Undo), done (newest 20, tick reopens); writers get Add todo (`?entryId=`), Link a todo (a ComboBox: open, unlinked, 20 at most) and Remove.
-- Elsewhere: the Planner ([appointments](appointments.md)), the Today card and open-todo marks ([timeline](timeline.md)), [search](search.md), quick entry ([assistant](assistant.md)).
+- Elsewhere: [appointments](appointments.md) (Planner), [timeline](timeline.md) (Today card, marks), [search](search.md), [assistant](assistant.md).
 
 ## Seeds and checks
 
