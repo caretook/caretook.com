@@ -436,7 +436,7 @@ jobs:
           done
 
   # The browser suite on the Docker stack, against a check build this job serves
-  # itself: browser.sh starts a server only in a loop worktree. The checks' caps
+  # itself, through the plain runner (scripts/project/browser-run.sh, no lease). The checks' caps
   # total about 26 minutes, and setup takes the rest of the limit.
   browser:
     needs:
@@ -496,7 +496,7 @@ jobs:
         run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: suite
         name: Browser suite
-        # Runs browser.sh --suite, then reruns each failed check once.
+        # Runs the suite's checks through the plain runner, then reruns each failed check once.
         run: node scripts/ci/browser-job.mjs
       - id: report
         name: Report each check's result
@@ -568,7 +568,7 @@ jobs:
         run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: suite
         name: Browser suite
-        # Runs browser.sh --suite, then reruns each failed check once.
+        # Runs the suite's checks through the plain runner, then reruns each failed check once.
         run: node scripts/ci/browser-job.mjs
       - id: report
         name: Report each check's result
@@ -640,7 +640,7 @@ jobs:
         run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: suite
         name: Browser suite
-        # Runs browser.sh --suite, then reruns each failed check once.
+        # Runs the suite's checks through the plain runner, then reruns each failed check once.
         run: node scripts/ci/browser-job.mjs
       - id: report
         name: Report each check's result
@@ -713,7 +713,7 @@ jobs:
         run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: suite
         name: Browser suite
-        # Runs browser.sh --suite, then reruns each failed check once.
+        # Runs the suite's checks through the plain runner, then reruns each failed check once.
         run: node scripts/ci/browser-job.mjs
       - id: report
         name: Report each check's result

@@ -6,10 +6,18 @@
 
 **Released 2026-11-26 by the user** (registry row `orchestration-split-3`, after `orchestration-split-2`, queued after fixes-ui and fixes-nit); the dispatcher opens it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Opus (the user, 2026-11-26; Fable before); each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slices 4 and 5 are scripted renames and slice 6 is moves: sonnet candidates once the script is written and reviewed. Slice 1 splits a 600-line gate: the likely Fable candidate.
 
+**Landing mode: run everything through** (dispatcher start, 2026-11-26): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+**2026-11-26, wave 1 started** (orchestrator on Opus): B-543 claimed for prd/orchestration-split-3. Worktrees `orchestration-split-3-1` (stack, slot 3) and `orchestration-split-3-2` (no stack) made; both slices spawned on **opus** (slice 1 judged opus-enough, not Fable: the gate split is mechanical extraction with tests to hold it). Wave 1 lands only when no other PRD, plan or hotfix worktree is open (open now: todo-subtasks-2, plan/self-recovery-2, plan/symptom-catalog-2).
+
+**Wave 1 merged** (slice 1 at dd630c96 → 41fa52cf; slice 2 at 3ee6fbb1 → 8338ca66). The wave's gate is a `full` CI run (ci.yml changed). Open: slice 1 didn't send a real check through the gate on a stack: run `pnpm prd browser sign-in` at the landing. Slice 1's agent ended at about 285k context, so any fix goes to a fresh `--continue` agent. Slice 1 chose `SHARED_PROJECTS = ["tooling:browser"]` in `scripts/project/test-projects.mjs` (the harness project holds both owners' tests until the move); reviewed, kept. Hook contract for the docs at the last landing: `hooks.browser list` prints `<check>\t<file>`; `run --output DIR <check> -- [args…]`; `serve … --fresh`.
+
+**Wave 1 green** (2026-11-26): full CI run 45874687474 on ca26aaf4 = flake (search.sync and timelineTags component tests, not this branch's files). `prd sync`: no merge needed. `prd browser sign-in` passes through the new gate on the stack (slice 1's open criterion, met). PR #230 open; Codex out of credits (exit 4): land `--no-review`, say so in the report. Slice worktrees removed. **Holding the landing** under _How to run this plan_ (no other PRD/plan/hotfix worktree open): fixes-ui (8 slices) and plan/self-recovery-2 are open; a background loop waits on `git worktree list`. **The user's word, via the backlog session (caretook-com-20):** coordinate, don't wait: the others park at a resync point; land on the backlog session's go, then tell it the landing is on dev so it releases them. Then: `pnpm prd land orchestration-split-3 --tier full --no-review -m "feat(orchestration-split-3): …"` (resync first if dev moved), docs, report, rotate.
+
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
 | ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | planned |                                        |
-| 2     | 1    | planned |                                        |
+| 1     | 1    | merged  | 41fa52cf                               |
+| 2     | 1    | merged  | 8338ca66                               |
 | 3     | 2    | planned |                                        |
 | 6     | 2    | planned |                                        |
 | 8     | 3    | planned |                                        |
