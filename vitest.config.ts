@@ -276,7 +276,7 @@ export default defineConfig({
           // The runner's test is the browser harness's (tooling:browser).
           exclude: [...PROJECT_UNIT, "project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       {
@@ -311,7 +311,7 @@ export default defineConfig({
           // Off for every spawned script (they pass process.env on): new.sh and
           // check-run.sh would otherwise poll the real machine's load, 15 s at a
           // time for up to 600 s. The gate's own tests set it back to "".
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       {
@@ -321,7 +321,7 @@ export default defineConfig({
           root: "./scripts",
           include: ["loops/browser.test.mjs", "project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       componentsProject("web:components", testZone(), await freePort()),
