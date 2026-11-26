@@ -384,8 +384,10 @@ export const todos = sqliteTable(
     repeatRule: text("repeat_rule"),
     repeatStartsOn: text("repeat_starts_on"),
     repeatId: text("repeat_id"),
+    // A subtask's parent todo (todo-subtasks); set on create only.
+    parentId: text("parent_id"),
   },
-  (t) => [index("todo_group").on(t.groupId)],
+  (t) => [index("todo_group").on(t.groupId), index("todo_parent").on(t.parentId)],
 );
 
 /**
