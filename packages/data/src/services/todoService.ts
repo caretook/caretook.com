@@ -19,6 +19,7 @@ import {
   MAX_TODO_DEPTH,
   REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
+  rollupOf,
   TODO_LIMITS,
   todoContentOf,
   todoContentZSchema,
@@ -307,6 +308,83 @@ const checkRepeatInTree = async (tx: Tx, todo: Todo) => {
   return hasSubtasks ? repeatWithSubtasks() : null;
 };
 
+const openSubtasks = () => newError({ code: "todoService:openSubtasks" });
+
+/** Whether the todo has a live subtask still open: then only its subtasks tick it. */
+const hasOpenSubtasks = async (tx: Tx, todo: Todo) => {
+  const child = await todoModel.get({
+    ...system(tx),
+    filter: {
+      groupId: { type: "eq", value: todo.groupId },
+      parentId: { type: "eq", value: todo.id },
+      doneAt: { type: "isNull" },
+    },
+  });
+  if (isError(child)) return child;
+  return !!child;
+};
+
+/**
+ * The ids of `todo`'s live descendants, all levels, read as the system.
+ * Bounded by `MAX_TODO_DEPTH`; a deleted subtask's own subtasks were
+ * deleted with it.
+ */
+const liveDescendantsOf = async (tx: Tx, todo: Todo) => {
+  const ids: string[] = [];
+  let level = [todo.id];
+  for (let depth = 1; level.length && depth < MAX_TODO_DEPTH + 1; depth++) {
+    const rows = await todoModel.list({
+      ...system(tx),
+      filter: { groupId: { type: "eq", value: todo.groupId }, parentId: { type: "inArray", value: level } },
+    });
+    if (isError(rows)) return rows;
+    level = rows.data.map((r) => r.id);
+    ids.push(...level);
+  }
+  return ids;
+};
+
+/**
+ * The rollup: recompute the todo `parentId` names from its live children
+ * (`rollupOf`), then its parent from theirs, up to the top. A parent whose
+ * every live child is done is completed, with `actorId` (whose change
+ * finished it) as `done_by` and `at` as `done_at`; a done one with an open
+ * child reopens. Written as the system, so a viewer's tick of their own last
+ * subtask completes a parent assigned to someone else. Decided by the rows
+ * alone, so it's idempotent and two devices' changes land on the same
+ * answer in either order. Runs in the caller's transaction; exported for
+ * the upload switch (a device's flagged parent write). Returns null, or an
+ * error.
+ */
+export const rollUp = async (tx: Tx, parentId: string | null, actorId: string, at: Date = new Date()) => {
+  let id = parentId;
+  for (let depth = 0; id && depth < MAX_TODO_DEPTH; depth++) {
+    const parent = await todoModel.getById(id, system(tx));
+    if (isError(parent)) return parent;
+    // A deleted parent (or none) stops the climb: its own parent no longer counts it.
+    if (!parent) return null;
+    const children = await todoModel.list({
+      ...system(tx),
+      filter: { groupId: { type: "eq", value: parent.groupId }, parentId: { type: "eq", value: parent.id } },
+    });
+    if (isError(children)) return children;
+    const step = rollupOf(parent, children.data);
+    if (step) {
+      const written = await write(
+        system(tx),
+        tx,
+        parent.id,
+        step === "complete" ? { doneAt: at.toISOString(), doneBy: actorId } : { doneAt: null, doneBy: null },
+      );
+      if (isError(written)) return written;
+    }
+    id = parent.parentId;
+  }
+  return null;
+};
+
+const actorIdOf = (ctx: ServiceContext) => ctx.authUser?.id ?? SYSTEM_USER.id;
+
 // ---------------------------------------------------------------------------
 // The mirror (planner-3): links are rows in `timeline_entry_todo`. New
 // clients never write `todo.event_id`; an old client's `eventId` on create
@@ -409,7 +487,10 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
     const mirrored = await mirrorEvent(ctx, tx, created, null, created.eventId);
     if (mirrored) return mirrored;
     const queued = await enqueueCalendarPush(tx, { todoId: created.id }, "todo");
-    return queued ?? created;
+    if (queued) return queued;
+    // A new open subtask reopens a done parent (and up the chain).
+    const rolled = await rollUp(tx, created.parentId, actorIdOf(ctx));
+    return rolled ?? created;
   }, ctx);
 
 /**
@@ -482,15 +563,21 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
       return isTodoCompleter(role) ? completionRefused() : rejectError(ctx.authUser);
     if (existing.doneAt) return existing;
+    // A parent is ticked by its subtasks (the rollup), never by hand while one is open.
+    const open = await hasOpenSubtasks(tx, existing);
+    if (isError(open)) return open;
+    if (open) return openSubtasks();
 
     const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
     // A device clock ahead of the server's: never in the future.
     const when = at.getTime() > Date.now() ? new Date() : at;
-    const done = await write(ctx, tx, id, {
-      doneAt: when.toISOString(),
-      doneBy: ctx.authUser?.id ?? SYSTEM_USER.id,
-    });
-    if (isError(done) || !existing.repeatRule) return done;
+    const done = await write(ctx, tx, id, { doneAt: when.toISOString(), doneBy: actorIdOf(ctx) });
+    if (isError(done)) return done;
+    if (existing.parentId) {
+      const rolled = await rollUp(tx, existing.parentId, actorIdOf(ctx), when);
+      if (rolled) return rolled;
+    }
+    if (!existing.repeatRule) return done;
 
     // A repeating todo: the next one, after the day it was ticked (the
     // device's tick time, so an offline tick and its twin agree on the day).
@@ -512,7 +599,12 @@ export const reopen = (ctx: ServiceContext, id: string) =>
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
       return isTodoCompleter(role) ? completionRefused() : rejectError(ctx.authUser);
     if (!existing.doneAt) return existing;
-    if (!existing.repeatRule) return write(ctx, tx, id, { doneAt: null, doneBy: null });
+    if (!existing.repeatRule) {
+      // Only this todo reopens (its subtasks stay as they are); a done parent above it follows.
+      const reopened = await write(ctx, tx, id, { doneAt: null, doneBy: null });
+      if (isError(reopened)) return reopened;
+      return (await rollUp(tx, existing.parentId, actorIdOf(ctx))) ?? reopened;
+    }
 
     // A repeating todo: the next one goes when nobody has touched it (open,
     // as ticking made it, no notes, no entry linking it). Otherwise both
@@ -740,16 +832,28 @@ export const upsert = (ctx: ServiceContext, input: TodoUpsertInput) =>
     return unchanged(visible);
   }, ctx);
 
-/** Soft delete (a mistake, a cancelled errand). Writers only. */
+/**
+ * Soft delete (a mistake, a cancelled errand). Writers only. Its live
+ * subtasks, all levels, go with it in the same statement; then its parent
+ * follows the children it has left (the rollup).
+ */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const res = await todoModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
-    if (!isError(res)) return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? res;
-    if (res.code !== "baseModel:remove:nothingRemoved") return res;
-    // Visible but not removable: a viewer. Otherwise gone, or never theirs.
-    const visible = await todoModel.getById(id, { ...ctx, tx });
-    if (isError(visible)) return visible;
-    return visible ? rejectError(ctx.authUser) : notFound();
+    const existing = await todoModel.getById(id, { ...ctx, tx });
+    if (isError(existing)) return existing;
+    if (!existing) return notFound();
+    const descendants = await liveDescendantsOf(tx, existing);
+    if (isError(descendants)) return descendants;
+
+    const ids = [...descendants, id];
+    const res = await todoModel.remove({ ...ctx, tx, filter: { id: { type: "inArray", value: ids } } });
+    if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return rejectError(ctx.authUser);
+    if (isError(res)) return res;
+    for (const todoId of res.ids) {
+      const queued = await enqueueCalendarPush(tx, { todoId }, "todo");
+      if (queued) return queued;
+    }
+    return (await rollUp(tx, existing.parentId, actorIdOf(ctx))) ?? res;
   }, ctx);
 
 /**

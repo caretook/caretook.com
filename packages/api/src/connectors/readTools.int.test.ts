@@ -777,6 +777,32 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(byTitle.get(lone.title)).toMatchObject({ eventId: null, linkedEntryIds: [] });
   });
 
+  it("list_todos: each todo has parentId, its parent's id for a subtask, else null (todo-subtasks)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const top = ok(
+      await todoService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        title: "Get ready for the hospital stay",
+      }),
+    )!;
+    const sub = ok(
+      await todoService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        title: "Pack a bag",
+        parentId: top.id,
+      }),
+    )!;
+    const token = await w.connect(w.viewer);
+
+    const listed = await callTool(handler, token, "list_todos");
+    const byId = new Map(
+      (listed.structuredContent.todos as { id: string; parentId: string | null }[]).map((t) => [t.id, t]),
+    );
+    expect(byId.get(top.id)).toMatchObject({ parentId: null });
+    expect(byId.get(sub.id)).toMatchObject({ parentId: top.id });
+  });
+
   it("list_providers: current by default, practice and pharmacy phones kept, an 'other' contact's left out", async () => {
     const handler = handlerAt();
     const w = await world();

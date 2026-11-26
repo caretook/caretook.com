@@ -29,7 +29,7 @@ const input = z.object({
 export const listTodos = defineTool({
   name: "list_todos",
   title: "List todos",
-  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), the linked event (eventId, the first) and every linked note and event (linkedEntryIds), state (overdue, today, upcoming, undated, done) and who finished it. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), the linked event (eventId, the first) and every linked note and event (linkedEntryIds), state (overdue, today, upcoming, undated, done), who finished it, and parentId (the todo it's a subtask of, or null; a todo is done when its subtasks all are). At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -69,6 +69,7 @@ export const listTodos = defineTool({
       return {
         id: t.id,
         title: t.title,
+        parentId: t.parentId,
         assignee:
           assignee.type === "member"
             ? { id: assignee.userId, name: who.get(assignee.userId) ?? null }
