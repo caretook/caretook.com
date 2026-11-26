@@ -332,7 +332,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-882 | chore | triaged | fixes-tooling |  | Model per role: Sonnet for slices whose plan spells out each edit, Haiku for reading check output (every slice runs on Opus now) |
 | B-883 | chore | triaged | fixes-tooling |  | Token use measured by price: a price-weighted before/after (cache writes ~3% of tokens but ~30% of cost) to judge B-873, B-875, B-876 |
 | B-884 | chore | triaged | fixes-perf |  | Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set |
-| B-885 | bug | in-progress | fixes-ui | prd/fixes-ui | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
+| B-885 | bug | ready | fixes-ui | prd/fixes-ui | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
 | B-886 | change | triaged | fixes-tooling |  | Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call |
 | B-887 | change | triaged | marketing |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
@@ -344,26 +344,26 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-894 | chore | triaged | tags-2 |  | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
 | B-895 | feature | triaged | tags-3 |  | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
-| B-897 | bug | in-progress | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
+| B-897 | bug | ready | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-899 | change | triaged | tags-3 |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
-| B-900 | change | in-progress | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
+| B-900 | change | ready | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
-| B-902 | change | in-progress | fixes-ui | prd/fixes-ui | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
+| B-902 | change | ready | fixes-ui | prd/fixes-ui | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
 | B-903 | bug | landed | fixes-tooling | prd/fixes-tooling | a slice agent's foreground command past ~170–180 s is moved to the background, and an agent ending its turn there stops without a hand-off |
-| B-904 | bug | in-progress | fixes-ui | prd/fixes-ui | Offline banner still shows at random on local dev while online, after the 10 s grace (B-840) |
+| B-904 | bug | ready | fixes-ui | prd/fixes-ui | Offline banner still shows at random on local dev while online, after the 10 s grace (B-840) |
 | B-905 | change | in-progress | fixes-ui | prd/fixes-ui | Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens |
-| B-906 | change | in-progress | fixes-ui | prd/fixes-ui | Timeline Today header: put the add-care-period button right next to the care period display so they read as related |
+| B-906 | change | ready | fixes-ui | prd/fixes-ui | Timeline Today header: put the add-care-period button right next to the care period display so they read as related |
 | B-907 | change | inbox |  |  | Tests: drop assertions that pin fixed UI copy word for word |
-| B-908 | change | in-progress | fixes-ui | prd/fixes-ui | One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs |
-| B-909 | change | in-progress | fixes-ui | prd/fixes-ui | Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default |
+| B-908 | change | ready | fixes-ui | prd/fixes-ui | One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs |
+| B-909 | change | ready | fixes-ui | prd/fixes-ui | Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default |
 | B-910 | chore | triaged | fixes-perf |  | Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3) |
 | B-911 | chore | triaged | fixes-tooling |  | pnpm prd wait check's default timeout outlasts the harness's ~170 s foreground limit, so a foreground wait is itself moved to the background; default it under 170 s (or say so in the loop doc) |
 | B-912 | plan | triaged | self-recovery-2 |  | Slices as their own headless sessions: started by a prd command, hand-offs to a file the orchestrator watches, so a slice survives an orchestrator rotation and can rotate or resume mid-slice itself |
 | B-913 | plan | triaged | self-recovery-2 |  | Any role's long work runs as a job the machinery owns, so a hand-off never interrupts it: commands (check, land, CI waits, deploys, dev servers), watchers with a follow-up action (durable triggers the dispatcher fires), side-work subagents (headless sessions); each writes a result file, the hand-off records job ids, and the next session re-attaches instead of rerunning or re-arming |
 | B-914 | plan | triaged |  |  | Flavor packs: every role gets a rank and a name from a swappable pack (default starfleet): backlog Admiral, orchestrator Captain, slice Pilot, inbox a random officer, hotfix chief engineer, planner science officer, recovery doctor; the user is the President |
 | B-915 | bug | triaged | fixes-tooling |  | A finished PRD whose last session ends before its registry row is marked done gets restarted by the dispatcher every tick: worktree, stack and a new orchestrator each time |
-| B-916 | feature | in-progress | fixes-ui | prd/fixes-ui | Printed weekly medication sheet: a way to mark a dose skipped or refused, not only given |
+| B-916 | feature | ready | fixes-ui | prd/fixes-ui | Printed weekly medication sheet: a way to mark a dose skipped or refused, not only given |
 | B-917 | feature | triaged | connectors-3 |  | Connector: a member's AI reads a photo of a hand-filled weekly medication sheet and logs its doses, adding only what isn't already logged |
 | B-918 | feature | triaged | care-booklet |  | Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed |
 | B-919 | feature | triaged | care-booklet |  | Printed medication guide page for each medication, as booklet pages |
@@ -2466,10 +2466,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-885 · bug · Frontpage hero CTA buttons wrap on mobile; they should fit side by side
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): Triage: layout fix on the public front page; small.
 
@@ -2585,10 +2585,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-897 · bug · Easy entry: medication autocomplete suggestion covers the event entry suggestion box
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Autocomplete suggestions should probably appear above the box, with the event entry suggestion box below.
 - 2026-11-26 (Robert Bo Davis): Triage: quick entry suggestion popovers (overlap; Tab behaviour) are look and flow, fixes-ui; take together
@@ -2616,10 +2616,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-900 · change · Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when…
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when there are several
 - 2026-11-26 (Robert Bo Davis): Triage: quick entry suggestion popovers (overlap; Tab behaviour) are look and flow, fixes-ui; take together
@@ -2636,10 +2636,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-902 · change · Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): From the user: 'to-do' with no colon should work, and so should 'add todo' or 'add to-do'. 'add' is a cue word when a type word (todo, to-do, note, event, …) follows it; when no kind can be read, 'add' is just part of the text (e.g. 'add salt to diet'). Today the prefixes are t:, task:, todo, to-do:, to do: (docs/domain/assistant.md). Triage: fixes-bug, since a type word the user expects to work is misread; a parser change in quickEntry with unit tests.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: the user's word: moved into fixes-ui to ship before the alpha tester call.
@@ -2655,13 +2655,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-904 · bug · Offline banner still shows at random on local dev while online, after the 10 s grace (B-840)
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): after B-840 (10 s grace, OfflineBanner.tsx) the banner still appears at random while online, mostly on local dev. Leads to check first: a cold dev load (Vite unbundled modules, the PowerSync worker and WASM) taking over 10 s to connect; dev server restarts or HMR reloads; the local PowerSync container closing streams or its token refresh (auth.ts 5-minute token) dropping connected for longer than the retry. Find which, log the disconnects' cause and timing; fix the cause, or only widen the grace on dev if it's dev-only. Triage: fixes-bug.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: the user's word: moved into fixes-ui to ship before the alpha tester call.
+- 2026-11-26 (slice/fixes-ui/89): Cause (slice 89): drops of PowerSync connected while navigator.onLine stays true: local PowerSync or dev-server restarts, reconnects slowed by a loaded machine. Idle probes: token refresh 25 ms, PowerSync restart 5 s, serve restart 2 s, HMR none. Fix: 10 s grace only when the browser is offline; 30 s while online (90 s on dev).
 
 ### B-905 · change · Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens
 
@@ -2674,10 +2675,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-906 · change · Timeline Today header: put the add-care-period button right next to the care period display so they read as related
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): the add-a-care-period icon on the Today header in the timeline sits too far from the care period display; move it much closer so the two read as one group. Triage: fixes-ui (layout).
 
@@ -2692,19 +2693,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-908 · change · One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user, 2026-11-26. One standard loading component with the main app loader's design (brand/AppLoading.tsx: the mark, spinner and message, centred), shown inside the /app frame with the header, and taking a custom message (example: FirstSyncPending's 'Getting your care groups…', which today is ui/Loading's small inline spinner). It has an optional, configurable 'Go back' button to cancel a load that hangs, plus a watcher that shows 'This looks hung? Go back?' on a very slow load (the threshold is configurable). Code read: ui/Loading (a small spinner or a Skeleton) is used in FirstSyncPending, the home route, RemindMeSheet, VisitPrepSheet, GoogleCard and the dev gallery's LoadingSection. AppLoading is root's HydrateFallback, runs before any script runs and has no header, so it stays as it is; the new component reuses its look. Put it in ui/ (components.md, ui-kit.md), add it to the /dev/ui gallery, move FirstSyncPending onto it, and decide where 'go back' leads when there's no history (the groups list or /app). Tests check structure and behaviour (the prompt shows after the threshold, and go back navigates), never the exact wording.
 
 ### B-909 · change · Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user, 2026-11-26. The providers list gets a layout choice like the timeline's: Condensed and Full, with the same icons (lucide List for Condensed, LayoutList for Full), and Condensed is the default. Use one shared component if at all possible. Code read: the timeline's choice is the Layout section of TimelineViewMenu.tsx (routes/app/groups/timeline; an eye-icon ui/Menu with a selection section), saved per user as userPreferences.timelineView ('rows' or 'cards', DEFAULT_TIMELINE_VIEW 'rows'; packages/data schema app-shell/userPreferences.ts) through useTimelineView and saveSettings. Lift the layout items and their icons into one shared piece (a ui/ or components/ layout-choice section or menu) used by both the timeline and providers. The providers list (routes/app/groups/providers, ProviderListItem.tsx, DirectoryResults.tsx) gets a dense row and today's fuller item. Saving it per user means a new optional providersView key in userPreferencesZSchema (strictObject, so the server must accept it before devices send it: expand first). Decide whether one key covers both lists or each list keeps its own; separate keys are suggested. Docs: providers.md, timeline.md, components.md.
 - 2026-11-26 (Robert Bo Davis): Decided by the user, 2026-11-26: separate settings. Providers gets its own providersView key (default Condensed), so the timeline's choice stays its own.
@@ -2765,10 +2766,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-916 · feature · Printed weekly medication sheet: a way to mark a dose skipped or refused, not only given
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): print/week (weeklySheet.ts): each slot needs room for given / skipped / refused (e.g. G S R marks or a legend), so the paper record matches the app's dose states. Pairs with the connector photo import (next item): marks should be easy for an AI to read.
 - 2026-11-26 (Robert Bo Davis): User: drop PrintAllergies and PrintConditions from the weekly sheet (they stay on the medication list print); use the freed room for the dose marks.
