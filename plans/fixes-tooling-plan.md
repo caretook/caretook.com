@@ -21,7 +21,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | Slice | Item  | State                 | Merge    |
 | ----- | ----- | --------------------- | -------- |
 | 86    | B-903 | merged                | 71787805 |
-| 87    | B-810 | started (opus)        |          |
+| 87    | B-810 | merged                | ac159a76 |
 | 88    | B-809 | started (opus)        |          |
 | 89    | B-465 | started (opus)        |          |
 | 90    | B-431 | started (opus)        |          |
