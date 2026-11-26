@@ -6,6 +6,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- Frontpage hero CTA buttons wrap on mobile; they should fit side by side
+
 ## Change requests
 
 - App first load is way too long. (B-764)
