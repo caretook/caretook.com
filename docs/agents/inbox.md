@@ -1,4 +1,4 @@
-- **A bare directory.** It runs in `$RISA_INBOX_DIR` (default `~/.caretook/inbox`), created when missing, so AGENTS.md and the project's memory don't load. It refuses a directory inside a git repository or under a `CLAUDE.md`, `CLAUDE.local.md` or `AGENTS.md`. A real session there loads no instruction or memory file (checked 2026-11-24).
+- **A bare directory.** It runs in `$RISA_INBOX_DIR` (default `~/.risa/inbox`), created when missing, so AGENTS.md and the project's memory don't load. It refuses a directory inside a git repository or under a `CLAUDE.md`, `CLAUDE.local.md` or `AGENTS.md`. A real session there loads no instruction or memory file (checked 2026-11-24).
 
 ## What it runs
 

@@ -54,8 +54,7 @@ beforeAll(() => {
     RISA_BROWSER_SLOTS: "1",
     RISA_BROWSER_WAIT: "60",
   };
-  for (const k of ["RISA_LEASES", "RISA_BROWSER_LEASES", "RISA_BROWSER_OLD_LEASES"])
-    delete env[k];
+  for (const k of ["RISA_LEASES", "RISA_BROWSER_LEASES", "RISA_BROWSER_OLD_LEASES"]) delete env[k];
 });
 afterEach(async () => {
   for (const release of releases.splice(0)) await release();
