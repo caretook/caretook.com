@@ -316,6 +316,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
 | B-856 | bug | dropped | marketing |  | Marketing pages have no light mode (dark only) |
+| B-857 | change | triaged | fixes-ui |  | Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537) |
 
 ## Items
 
@@ -2276,3 +2277,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-26, for the next marketing pass; pairs with B-836 (visual refresh). Check whether it should follow the system theme like the app
 - 2026-11-25 (Robert Bo Davis): User 2026-11-25: not a bug (user error); light mode works
+
+### B-857 · change · Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-25 (prd/fixes-ui): Found by fixes-ui slice 80 (B-833): the parser's preview wording for an appointmentWord or visit line still says Appointment; B-537 made Event the one word app-wide. Wording only, in the quick entry parser's titles and their tests.
