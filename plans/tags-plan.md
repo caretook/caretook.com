@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 starting** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus): synced (up to date), B-548 claimed; all three merged (b71903f5, 998d10d8, 5708c180); wave CI run 45780323886 (components, fe10c950): **brake**, both failures the branch's (blame): syncTags.int viewer PUT/DELETE refusal (slice 4's `link` replay change) and visitPrep Planner ⋯ list (slice 4's Tags item). Fix agent (opus, fresh `--continue`) in tags-4; then merge slice 4 again and rerun components. Slice 4's agent passed 230k context: a fix there goes to a fresh `--continue` agent. At landing fold into tags.md: `name_key` stays system-only (rename does two writes); a twin copies tags as the system; `link` returns an existing link before the rule (viewer replay); the Tag filter section exists twice (providers, medications) beside `lib/tags/tagFilter.ts`. Then wave 4 (slice 6).
+**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 starting** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus): synced (up to date), B-548 claimed; all three merged (b71903f5, 998d10d8, 5708c180); wave CI run 45780323886 (components, fe10c950): **brake**, both failures the branch's (blame): syncTags.int viewer PUT/DELETE refusal (slice 4's `link` replay change) and visitPrep Planner ⋯ list (slice 4's Tags item). Fix 26a8ed64 (test narrowed to an identical replay; no code change) merged again; components rerun out. Slice 4's agent passed 230k context: a fix there goes to a fresh `--continue` agent. At landing fold into tags.md: `name_key` stays system-only (rename does two writes); a twin copies tags as the system; `link` returns an existing link before the rule (viewer replay); the Tag filter section exists twice (providers, medications) beside `lib/tags/tagFilter.ts`. Then wave 4 (slice 6).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -21,7 +21,7 @@
 | 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
 | 2     | 2    | landed      | b3fe1008, f71fed2a (491e3862, 5d091480) |
 | 3     | 3    | merged      | b71903f5 (2dfe5297)                     |
-| 4     | 3    | merged      | 998d10d8 (0bc2c990)                     |
+| 4     | 3    | merged      | 998d10d8, c5ec876e (0bc2c990, 26a8ed64) |
 | 5     | 3    | merged      | 5708c180 (b52ced9d)                     |
 | 6     | 4    | not started |                                         |
 
