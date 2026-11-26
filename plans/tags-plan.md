@@ -4,11 +4,11 @@
 
 ## Status
 
-**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Next: wave 3** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus), then wave 4 (slice 6). Sync dev first (`pnpm prd sync`).
+**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 starting** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus): synced (up to date), B-548 claimed; worktrees tags-3/4/5 made and three opus agents spawned (2026-11-26), watch running. Then wave 4 (slice 6).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Models:** slices 1 and 2 opus.
+**Models:** slices 1 and 2 opus; 3, 4, 5 opus.
 
 **Wave 2 landed** in `dev` as ae9f865 through PR #209, tier `components` (run 45768746414 green on e24fefd8), **without a Codex review (out of credits)**. Slice 2 merged as b3fe1008 (491e3862) plus a test-expectation fix f71fed2a (5d091480): the first gate failed on inScreens and plannerEvents tests that listed the ⋯ items without Tags. Browser checks: the changed set only (phase2, roundtrip, live-notes), no `--suite` (the user asks before any). Report a257; to-test `to-test/2026-11-26-0146-tags.md`. Docs: tags.md _Screens_. Filed B-864 (fx.tag fixture id from raw name).
 
@@ -20,9 +20,9 @@
 | ----- | ---- | ----------- | --------------------------------------- |
 | 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
 | 2     | 2    | landed      | b3fe1008, f71fed2a (491e3862, 5d091480) |
-| 3     | 3    | not started |                                         |
-| 4     | 3    | not started |                                         |
-| 5     | 3    | not started |                                         |
+| 3     | 3    | in progress |                                         |
+| 4     | 3    | in progress |                                         |
+| 5     | 3    | in progress |                                         |
 | 6     | 4    | not started |                                         |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
