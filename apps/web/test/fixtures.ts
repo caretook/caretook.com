@@ -702,7 +702,7 @@ export const entryTodo = (entryId: string, todoId: string, v: Partial<Values<"ti
 export const tag = (name = "Care home move", v: Partial<Values<"tags">> = {}) => {
   const created = hoursAgo(24 * 7);
   return row("tags", {
-    id: tagId(v.groupId ?? groupId, name),
+    id: tagId(v.groupId ?? groupId, tagKey(name)),
     groupId,
     name: tagName(name),
     nameKey: tagKey(name),

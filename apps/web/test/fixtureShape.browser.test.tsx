@@ -1,6 +1,8 @@
 import type { Fixture } from "./fixtures";
 
 import { describe, expect, test } from "vitest";
+import { createTag } from "~/lib/tags/tags.sync";
+import { renderWithDevice } from "./device";
 import {
   allergy,
   condition,
@@ -19,6 +21,7 @@ import {
   symptomType,
   tag,
   todo,
+  TEST_GROUP,
   TEST_USER,
 } from "./fixtures";
 import { FIXTURE_SCHEMAS, fixtureProblems, NO_FIXTURE_SCHEMA, SYNCED_TABLES } from "./fixtureShape";
@@ -114,5 +117,13 @@ describe("device fixtures in the shape devices receive", () => {
       "created_at: a timestamp must be PowerSync's text (2026-11-17T21:45:25.229000Z)",
       "updated_at: a timestamp must be PowerSync's text (2026-11-17T21:45:25.229000Z)",
     ]);
+  });
+
+  test("a fixture tag has the id a device derives for its name, in any case or spacing", async () => {
+    const name = "  Care   HOME move ";
+    const device = await renderWithDevice({ element: <p>Device</p> });
+    const created = await createTag(device.db, TEST_GROUP.id, name);
+    expect(created).toEqual({ ok: true, id: tag(name).id });
+    expect(tag(name).id).toBe(tag("Care home move").id);
   });
 });
