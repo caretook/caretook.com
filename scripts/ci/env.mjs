@@ -37,6 +37,9 @@ export function ciEnv(
     DATABASE_URL: `postgresql://caretook:${password}@localhost:${CI_PG_PORT}/caretook`,
     DATABASE_CONNECT_TIMEOUT_MS: "10000",
     CARETOOK_INT_WORKERS: "3",
+    // The runner's 4 cores less one, as before the unit cap (vitest.config.ts):
+    // a CI job has its runner to itself.
+    CARETOOK_UNIT_WORKERS: "3",
     UV_THREADPOOL_SIZE: "8",
     APP_URL: "http://localhost:5173",
     BETTER_AUTH_URL: "http://localhost:5173",
