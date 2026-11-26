@@ -33,6 +33,7 @@ import {
 import * as todosRoute from "../todos/route";
 import * as pastRoute from "./past/route";
 import * as plannerRoute from "./route";
+import { UPCOMING_TICK_MS } from "./useUpcomingData";
 
 // The Planner on the test device (from upcoming.mjs; the section current in
 // the tab bar and the header is frame.browser.test.tsx's): the shared header on its three tabs (the heading,
@@ -293,14 +294,19 @@ describe("the list", () => {
     const device = await openPlanner();
     const mounted = document.querySelector("main[data-planner]");
     expect(rowOf(NURSE.id)?.heading).toBe("Now");
+    // The list rereads the clock on its tick (`UPCOMING_TICK_MS`), and each tick reruns its query: stepping
+    // hours tick by tick is hundreds of queries. Jump the clock (pending timers move with it), then one tick.
+    const jumpTo = async (at: number) => {
+      vi.setSystemTime(at);
+      await vi.advanceTimersByTimeAsync(UPCOMING_TICK_MS);
+      await device.settle();
+    };
     // 10:46: the visit has ended.
-    await vi.advanceTimersByTimeAsync(46 * MINUTE);
-    await device.settle();
+    await jumpTo(NOW.getTime() + 46 * MINUTE);
     await expect.poll(() => rowOf(NURSE.id)).toBeUndefined();
     expect(rowOf(THERAPY.id)?.heading).toBe("Today");
     // 2:01 PM: therapy has started (no end: it's past).
-    await vi.advanceTimersByTimeAsync(4 * 60 * MINUTE - 45 * MINUTE);
-    await device.settle();
+    await jumpTo(NOW.getTime() + (4 * 60 + 1) * MINUTE);
     await expect.poll(() => rowOf(THERAPY.id)).toBeUndefined();
     expect(listed()[0]?.id).toBe(CARDIOLOGY.id);
     expect(document.querySelector("main[data-planner]")).toBe(mounted);

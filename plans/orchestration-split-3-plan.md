@@ -4,7 +4,7 @@
 
 ## Status
 
-**On hold** (registry row `orchestration-split-3`, flag `hold`, after `orchestration-split-2`): the user lifts it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Fable; each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slices 4 and 5 are scripted renames and slice 6 is moves: sonnet candidates once the script is written and reviewed. Slice 1 splits a 600-line gate: the likely Fable candidate.
+**Released 2026-11-26 by the user** (registry row `orchestration-split-3`, after `orchestration-split-2`, queued after fixes-ui and fixes-nit); the dispatcher opens it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Opus (the user, 2026-11-26; Fable before); each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slices 4 and 5 are scripted renames and slice 6 is moves: sonnet candidates once the script is written and reviewed. Slice 1 splits a 600-line gate: the likely Fable candidate.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
 | ----- | ---- | ------- | -------------------------------------- |
@@ -12,6 +12,7 @@
 | 2     | 1    | planned |                                        |
 | 3     | 2    | planned |                                        |
 | 6     | 2    | planned |                                        |
+| 8     | 3    | planned |                                        |
 | 7     | 3    | planned |                                        |
 | 4     | 4    | planned |                                        |
 | 5     | 5    | planned |                                        |
@@ -23,12 +24,14 @@ As in [`orchestration-split-plan.md`](orchestration-split-plan.md), plus:
 - **The browser runner splits** (asked): Caretook owns a plain runner in `scripts/project/` (run these named checks with Playwright, write the results); the core owns the gate around it (load wait, caps, retries, hang watchdog, lease) and calls the runner through the config's browser hook. GitHub CI calls the plain runner with no lease, as today.
 - **Scripted renames are one change each**, checked by the lint, not split by file count.
 - **Names shared between worktrees keep their values.** The backlog lock, the checked and inbox-merged markers, the launchd label and the commit-status context are built from the config's project name and stay exactly what they are today (`caretook-…`, `com.caretook.prd-watchdog`, `caretook-ci`), so an unsynced worktree, the watchdog and the statuses already on GitHub all still match.
+- **The machine config, and Risa's own backlog off by default** (asked, the user 2026-11-26; slice 8): a machine config outside every repo lists the repos Risa works in, each with a switch for whether the dispatcher and the start commands may work on it. The switch is off by default for Risa's own repo, so after the move this machine keeps spending nothing on Risa's backlog; the user turns it on permanently in the machine config on their work machine, or for one shell or session here with an environment variable. Reads (status, backlog list, asks) work either way.
+- **A Claude config folder per project or role** (asked, the user 2026-11-26, nice to have; slice 7): every `claude` the core starts gets `CLAUDE_CONFIG_DIR` from the host module, so one machine can run one project, or only its orchestrators, on another Claude account.
 - **Caretook's own scripts never use the core's helpers.** Where one prints a hint that names a tool command, it reads the command name from `risa.json` itself (a few lines), or the hint names no command.
 
 ## How to run this plan
 
 - **Start only when** `orchestration-split-2` has landed and the tooling is quiet. **Slice 6 moves `scripts/loops/check-areas.d/` and the checks manifest,** which PRDs add to (_Rules across PRDs_; 84 and 45 commits in two weeks): it starts only when no running PRD or fixes wave has an unlanded change to either, and its landing updates that rule in the orchestrator doc.
-- **Wave 1:** slices 1 and 2 (1 owns `browser.sh`, `scripts/ci/browser-job.mjs`, the browser tests and the places that name the harness test's path; 2 owns `open-session.sh`, `autostart.mjs`, `ask.mjs` and the dispatcher's tab and notification calls). **Wave 2:** slices 3 and 6 (3 owns the callers of `claude`, `codex`, `gh` and Node; 6 owns the checks manifest and its parser, `check-areas.d/`, the check plan's rules file, `ci.yml`'s lint step and the deploy workflow test). **Wave 3:** slice 7 (Claude Code's files). **Wave 4:** slice 4. **Wave 5:** slice 5.
+- **Wave 1:** slices 1 and 2 (1 owns `browser.sh`, `scripts/ci/browser-job.mjs`, the browser tests and the places that name the harness test's path; 2 owns `open-session.sh`, `autostart.mjs`, `ask.mjs` and the dispatcher's tab and notification calls). **Wave 2:** slices 3 and 6 (3 owns the callers of `claude`, `codex`, `gh` and Node; 6 owns the checks manifest and its parser, `check-areas.d/`, the check plan's rules file, `ci.yml`'s lint step and the deploy workflow test). **Wave 3:** slice 8 (the machine config), then slice 7 (Claude Code's files) on top of it; both touch `dispatch.mjs`, so one after the other. **Wave 4:** slice 4. **Wave 5:** slice 5.
 - **Waves 4 and 5 run with the dispatcher paused** (`pnpm prd dispatch --pause`) and no other worktree of any kind open: they rename what running sessions read. The orchestrator resumes it after each.
 - **Tiers** (what the check plan proposes, once at landing): waves 1, 2, 4 and 5 touch `scripts/ci/`, `.github/` or `vitest.config.ts` (the sweep rewrites hints in the core's CI code): `full`; wave 3 is tooling only. Every wave runs `pnpm test:tooling`.
 - **Other worktrees** (PRD _Decisions_): wave 1 moves the browser runner; it lands only when no other PRD, plan or hotfix worktree is open.
@@ -147,10 +150,31 @@ Stack: no · Reads: docs/agents/machinery.md · Tests: unit
 **What to build**
 
 - Where Claude Code keeps its own files is the host module's: its config folder, the project transcripts, and the session settings files (`context-settings.json`, `inbox-settings.json`) whose status line and hooks feed `usage.mjs` and `context.mjs`. The shape Claude Code hands a status line and a `StopFailure` hook is read in one place.
+- **Which Claude config folder** (the user, 2026-11-26, nice to have): the host module sets `CLAUDE_CONFIG_DIR` on every `claude` it starts. Where it comes from, first found wins: `RISA_CLAUDE_CONFIG_DIR` in the environment, the machine config's entry for the repo (slice 8; per role if given, e.g. only orchestrators), `risa.json`'s project value, else Claude Code's default. Usage and context readings follow the folder, so each account's usage is read from its own files.
 - Its callers today: `session.sh`, `sessions.mjs`, `open-session.mjs`, `open-session.sh`, `heartbeat.mjs`, `resume.mjs`, `dispatch.mjs`, `autostart.mjs`, `bye.mjs`, `usage.mjs` and `context.mjs`; the slice lists what it found by grep in its hand-off.
 
 **Acceptance criteria**
 
+- Tests: with a config folder set, every `claude` the host module starts gets it as `CLAUDE_CONFIG_DIR`, and the usage and context readings read that folder's account; with none set, nothing changes.
 - The session, usage, context, drain, resume and heartbeat tests pass unchanged; the lint rule extends: no other core file names Claude Code's folders or parses its hook input.
 
-**Blocked by:** 3 (`dispatch.mjs`, `sessions.mjs`). **Blocks:** 4.
+**Blocked by:** 8 (the machine config; `dispatch.mjs`, `sessions.mjs`). **Blocks:** 4.
+
+## Slice 8: The machine config and the work switch
+
+Stack: no · Reads: docs/agents/machinery.md · Tests: unit
+
+**User stories:** 5 (added on the user's word, 2026-11-26).
+
+**What to build**
+
+- The machine config: one JSON file in the user's home (under `~/.risa/`, beside the releases), validated by a core loader, listing the repos Risa works in (path, and per repo a `work` switch and an optional `claudeConfigDir` for slice 7). Missing file: today's behaviour, the main checkout alone, switch on. The repo-finding function in `lib.sh` (stage 1a left it ready) reads it.
+- The `work` switch: when off for a repo, the dispatcher starts, plans and queues nothing there, and `start`, `queue`, `plan` and `slice` refuse with one line naming the switch and the variable. Off by default only for the tool's own repo (its `risa.json` says it is the tool); on for every other. An environment variable (`RISA_WORK_SELF=1`, named with the slice 4 prefix from the start) turns it on for the process that has it, so a dispatcher or session started with it works on Risa's backlog here, temporarily.
+- Reads stay open with the switch off: status, the backlog commands, asks, notices, doc.
+
+**Acceptance criteria**
+
+- Tests: no machine config behaves as today; a repo with `work: false` gets no start from the dispatcher's dry run (its row's reason names the switch) and `start` refuses; the variable lifts it for that process only; the tool's own repo defaults off, others on; a bad file fails with the loader's message.
+- The move runbook's step 4 writes this machine's config with Risa's switch off; the user sets it on in the work machine's config.
+
+**Blocked by:** 3 (`dispatch.mjs`). **Blocks:** 7.

@@ -15,8 +15,10 @@ import {
   isQuarantined,
   parseBrakeList,
   parseQuarantine,
+  namesTest,
   readLists,
   skipsTest,
+  staleEntries,
 } from "./lists.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -33,20 +35,6 @@ describe("the brake list", () => {
     expect(globToRegExp("a/**/*.ts").test("a/b/c.ts")).toBe(true);
     expect(globToRegExp("a/**").test("a/b/c.ts")).toBe(true);
     expect(isBrake("a.bts", ["a.ts"])).toBe(false);
-  });
-
-  it("has no line that matches no test file", async () => {
-    const { brakes } = await readLists(root);
-    const tests = execFileSync(
-      "git",
-      ["ls-files", "*.test.ts", "*.test.tsx", "*.test.mjs", "scripts/browser-checks/*.spec.mjs"],
-      {
-        cwd: root,
-        encoding: "utf8",
-        maxBuffer: 10_000_000,
-      },
-    ).split("\n");
-    expect(brakes.filter((glob) => !tests.some((f) => isBrake(f, [glob])))).toEqual([]);
   });
 
   it("reads a check: line as that browser check's spec", () => {
@@ -103,6 +91,56 @@ describe("the quarantine", () => {
     expect(skipsTest([entry], entry.file, "another", "")).toBe(false);
     expect(skipsTest([entry], entry.file, entry.name, "run")).toBe(false);
     expect(skipsTest([entry], entry.file, "another", "run")).toBe(true);
+  });
+});
+
+describe("stale entries", () => {
+  const source = `describe("suite", () => {
+  it("breaks", () => {});
+  it.each([["a", 1]])("counts %s to $n", () => {});
+  test(\`waits \${"long"}\`, () => {});
+});
+`;
+  const files = ["a/b.test.ts"];
+  const read = () => source;
+  const q = (/** @type {string} */ file, /** @type {string} */ name) => ({ file, name, item: "B-1" });
+
+  it("finds a name built from the file's titles, placeholders matching any text", () => {
+    expect(namesTest("suite breaks", source)).toBe(true);
+    expect(namesTest("suite counts a to 1", source)).toBe(true);
+    expect(namesTest("suite waits a while", source)).toBe(true);
+    expect(namesTest("suite mends", source)).toBe(false);
+    expect(namesTest("suite", "no tests here")).toBe(false);
+  });
+
+  it("flags a missing file, a missing title and an unmatched brake, and not a good entry", () => {
+    const lists = {
+      brakes: ["a/*.test.ts", "c/**"],
+      quarantine: [
+        q("a/b.test.ts", "suite breaks"),
+        q("a/gone.test.ts", "suite breaks"),
+        q("a/b.test.ts", "suite renamed"),
+      ],
+    };
+    expect(staleEntries(lists, files, read)).toEqual([
+      "brake: c/**",
+      "quarantine: a/gone.test.ts\tsuite breaks\tB-1 (no such file)",
+      "quarantine: a/b.test.ts\tsuite renamed\tB-1",
+    ]);
+  });
+
+  it("has none in the repo's lists: each brake matches a test file, each quarantined test exists", async () => {
+    const tests = execFileSync(
+      "git",
+      ["ls-files", "*.test.ts", "*.test.tsx", "*.test.mjs", "scripts/browser-checks/*.spec.mjs"],
+      { cwd: root, encoding: "utf8", maxBuffer: 10_000_000 },
+    )
+      .split("\n")
+      .filter(Boolean);
+    const stale = staleEntries(await readLists(root), tests, (file) =>
+      readFileSync(join(root, file), "utf8"),
+    );
+    expect(stale).toEqual([]);
   });
 });
 

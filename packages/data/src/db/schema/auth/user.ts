@@ -57,6 +57,10 @@ export type UserInsert = Omit<InferInsertModel<UserSchema>, ProtectedField>;
 export type UserUpdate = Partial<UserInsert>;
 export type User = UserSelect;
 
-export const userSelectZSchema = createSelectSchema(userSchema);
-export const userInsertZSchema = createInsertSchema(userSchema, { email: z.email() });
-export const userUpdateZSchema = createUpdateSchema(userSchema, { email: z.email() });
+// drizzle-zod's schemas are marked pure and take no calls as arguments, so a
+// bundle that doesn't use one (the web app) drops it, and with it drizzle-zod,
+// which would keep all of zod (its locales, JSON Schema) in the app (B-872).
+const email = z.email();
+export const userSelectZSchema = /* @__PURE__ */ createSelectSchema(userSchema);
+export const userInsertZSchema = /* @__PURE__ */ createInsertSchema(userSchema, { email });
+export const userUpdateZSchema = /* @__PURE__ */ createUpdateSchema(userSchema, { email });

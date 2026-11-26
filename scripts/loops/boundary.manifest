@@ -49,6 +49,7 @@ scripts/ci/lists.mjs project
 scripts/ci/lists.test.mjs project
 scripts/ci/outstanding.mjs core
 scripts/ci/outstanding.test.mjs core
+scripts/ci/progress-reporter.mjs project
 scripts/ci/promote.mjs core
 scripts/ci/promote.test.mjs core
 scripts/ci/quarantine-setup.mjs project
@@ -85,6 +86,8 @@ scripts/ci/verdict.mjs project
 scripts/ci/verdict.test.mjs project
 scripts/ci/zones.mjs project
 scripts/ci/zones.test.mjs project
+scripts/loops/anchors.mjs core
+scripts/loops/anchors.test.mjs core
 scripts/loops/ask.mjs core
 scripts/loops/ask.test.mjs core
 scripts/loops/asks.mjs core

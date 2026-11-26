@@ -31,6 +31,9 @@ pnpm prd <command>
 
   Start and stop work
     start <topic>             create (or resume) a PRD's worktree and stack; prints how to open its orchestrator
+    anchors [topic] [--base <ref>]   the plan's anchors on <ref> (default $trunk), run at PRD start: every
+                              backticked path in an unmerged slice exists there and every symbol named
+                              beside a path is in that file; only warns (exit 0): the misses, line numbers
     dispatch [--every <s>]    the dispatcher, left in a tab of its own: every minute it plans, starts and
                               reopens PRDs by itself, one action a tick, in the registry's row order
     dispatch --once|--dry-run one tick; --dry-run only shows the next action and every reason
@@ -159,9 +162,8 @@ pnpm prd <command>
                               integration and component test files the diff adds or edits, recorded with its
                               reason. On a ${slice_prefix} branch that is all (the slice check, against its ${prd_prefix}
                               branch). On a ${prd_prefix} or ${hotfix_prefix} branch it adds the integration tests related to
-                              the diff since the last full pass, and a diff touching a migration, seeds, the
-                              sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
-                              check; the tooling tests join when the diff touches the tooling
+                              the diff since the last full pass. It stays quick: what the diff needs beyond it
+                              is the landing's CI tier (\`tier\`); the tooling tests join when the diff touches the tooling
                               (docs and tooling-only changes need neither: prd doc orchestrator "The check gate")
     status-trim [topic] [--dry-run] [--next]   keep the plan's _Status_ short (after each landing): move the
                               hand-offs but the latest, and a fixes plan's landed waves (their paragraphs and
@@ -187,8 +189,9 @@ pnpm prd <command>
   CI (runs only on request; nothing starts it on a push to dev, staging or main, or on a PR)
     ci run <tier> [--ref <branch>] [--files <file>…] [--wait [min]]   push the commit to ci/<tier>/<branch>, which runs that tier (--files: only those test files, a verdict that is never a gate)
                               (static, unit, integration, components, full; each includes the ones before);
-                              --wait blocks for the verdict (0 green, 1 not green, 75 at the timeout)
-    ci [<branch>]             the latest whole-tier verdict for the branch's tip
+                              --wait blocks for the verdict, exiting by its kind: 0 green, 1 brake, 2 file,
+                              3 flake, 4 infra, 5 unknown, 6 time; 75 at the timeout
+    ci [<branch>]             the latest whole-tier verdict for the branch's tip (exits by kind, as above)
     tier [--base <ref>]       the CI tier this worktree's commits propose against <ref> (default $trunk), and why
 
   Land
@@ -212,7 +215,7 @@ pnpm prd <command>
                               a clean verdict carries over a plain dev merge
     pr <topic|${hotfix_prefix}name> [-m subject] [--tier <t> [--why "<reason>"]]   push dev (fast-forward only) and the branch, then open its PR into
                               dev, or update the open one (title: the landing subject; body: backlog items,
-                              the check pass); ${plan_prefix} branches are refused
+                              the tier and its CI verdict on the tip); ${plan_prefix} branches are refused
     dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
                               it): fast-forward, replay unshared backlog commits, or merge; never stops on the inbox
 
@@ -292,6 +295,12 @@ case $cmd in
     [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
     if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "status-trim: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
     exec node "$bin/status-trim.mjs" "$t" "$@"
+    ;;
+  anchors)
+    t=""
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
+    if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "anchors: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
+    exec node "$bin/anchors.mjs" "$t" --base "$trunk" --plans "$(config_get paths.plans)" "$@"
     ;;
   dispatch) exec node "$bin/dispatch.mjs" "$@" ;;
   recover) exec "$bin/recover.sh" "$@" ;;
@@ -521,7 +530,7 @@ case $cmd in
       *) die "sync: unknown option $1 (--force merges even when dev's changes don't need it)" ;;
     esac
     # CI reads the branch's own copy of its two lists, so a sync always brings
-    # dev's in. A list-only change keeps the recorded check (keeps_check).
+    # dev's in. A list-only change keeps a CI verdict (check-plan.mjs, keepsVerdict).
     lists=$(trunk_lists "$branch")
     if [[ -z $(trunk_drift "$branch") && -z $lists ]]; then
       echo "$branch is up to date with $trunk (only backlog commits are newer, if any)"

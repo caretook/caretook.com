@@ -8,29 +8,26 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-- **Wave 8 landed** in dev as 833615a5 (PR #216, `--no-review`: Codex out of credits; tier full green on 25a4f066, run 45811391363). The first sync missed dev's budget raise 1315ffa6 (B-868), so the synced run braked on the app bundle; `sync --force` fixed it. Report a265; worktrees 61–68 removed; docs folded (orchestrator.md _Landing a wave_ 4, `--force`, _What counts_; machinery.md leases, to-test file).
-- **Wave 9 started 2026-11-26** (this session), on the user's word via the backlog session (caretook-com-27): B-869 first (session-end check, brakes staging; land as a `fix(...)` commit for `pnpm prd ci candidate fix`), then the token-use items B-873..B-878 (B-879 duplicates B-875, closes with slice 71), B-871, B-872. Slices 69–77, all on opus. B-865/B-866 were fixed by wave 8 (d2133f4e).
-- **Wave 9a (slice 69 alone):** merged bd9922d5; components CI green on ba0e6f2f (run 45819731070); PR #219 open, Codex review waiting; then land with a `fix(fixes-tooling): …` subject (context kept for the landing). Filed B-884 (fixes-perf: the timeline loader's extra tag round).
-- **Slice 69 lands alone, first** (the user's word via caretook-com-27, 2026-11-26): once it hands off, merge it, run its CI tier, PR + review, land with a `fix(fixes-tooling): …` subject, then message caretook-com-27 the dev commit (for `pnpm prd ci candidate fix`). Slices 70–77 keep running and merge after that landing (their branches are on the same base); they land as the next wave, after the rotation.
-- **Watch:** `land-gate.test.mjs`'s dev-brake test timed out under load ~60 in two slice checks in wave 8 (passes alone): file it if CI shows it.
-- **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-608, B-609, B-619, B-653, B-660, B-667, B-681, B-720, B-721, B-722, B-749, B-751, B-753, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-845, B-851, B-852, B-862, B-864 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
+- **Wave 9 landed** (2026-11-26): 9a (slice 69, B-869) as 62121513 (PR #219); 9b (slices 70–77, B-871..B-878) as 87ed1d1 (PR #220, `--no-review`: Codex out of credits; full green on ba7258ab, run 45831274258; sync was a no-op). Report filed; to-test/2026-11-26-0847-fixes-tooling.md. Worktrees 70–77 removed. Docs folded (92f66f82, ba7258ab): loop/orchestrator role-doc budget splits moved (halves still 15 KB), machinery.md context watch (120k orchestrator soft limit), dispatcher lookahead, Vitest sessions guard, rotate's context hold; auth.md (B-869); data-layer.md drizzle-zod rule (B-872). B-877's cause was the orchestrator's own `rotate --mid-wave --reason context` ending its slices; rotate now refuses that under the hard limit while a slice isn't handed off. Filed B-903 (harness backgrounds foreground commands past ~170 s; prompt rule candidate).
+- **Wave 10: all 8 slices merged; full CI on 1f42d112 (run 45843104778) failed: boundary.test.mjs (2 tests) trips on slice 82's ci-results/\*.progress.json written mid-run; slice 82 fixed it (87e1b1c7: ci-results/ git-ignored), merged again as c59040b5; full green on 3b3fc3d2 (run 45846064683); sync a no-op; PR #223 open, Codex review out; browser --changed (roundtrip, live-notes, first-sync) running; worktrees 78–85 removed. Then: fold docs, land.** Wave 10 (slices 78–85: B-653, B-870, B-845, B-660, B-753, B-751, B-608, B-609) started 2026-11-26** by the resumed session; all on opus. 82 waits for 81. Slice 79 changed `apps/web/app/lib/sync/index.ts` (watchLiveQuery holds the batched frame up to 500 ms while a first result is owed): fold into docs/domain/sync.md at landing, and its browser --changed may name the sync checks. B-865/B-866 closed (fixed by d2133f4e in wave 8; boundary test passes).
+- **Watch:** `land-gate.test.mjs`'s dev-brake test failed again under load ~120 in slice 72's check (passes alone 28/28). Earlier: timed out under load ~60 twice in wave 8. File it if CI shows it.
+- **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-619, B-667, B-681, B-720, B-721, B-722, B-749, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-851, B-852, B-862, B-864, B-880..B-883, B-903 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
 - **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                    | Merge    |
-| ----- | ----- | ---------------------------------------- | -------- |
-| 69    | B-869 | merged, lands alone (wave 9a)            | bd9922d5 |
-| 70    | B-873 | in progress (opus)                       |          |
-| 71    | B-875 | handed off 692779eb, waits for 69 and 70 |          |
-| 72    | B-876 | in progress (opus)                       |          |
-| 73    | B-874 | in progress (opus)                       |          |
-| 74    | B-877 | in progress (opus)                       |          |
-| 75    | B-878 | in progress (opus)                       |          |
-| 76    | B-871 | in progress (opus)                       |          |
-| 77    | B-872 | in progress (opus)                       |          |
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 78    | B-653 | merged | 42cbac3a |
+| 79    | B-870 | merged | 703f7d67 |
+| 80    | B-845 | merged | cc58eade |
+| 81    | B-660 | merged | 2b445134 |
+| 82    | B-753 | merged | 16ef128c |
+| 83    | B-751 | merged | 5586ba9b |
+| 84    | B-608 | merged | c4527dc5 |
+| 85    | B-609 | merged | bb36eb88 |
 
 ## Wave 1
 
@@ -799,3 +796,78 @@ dev's app bundle reached 406,350 B gzip (163 B over), so 1315ffa6 (B-868) raised
 - Find what grew (`pnpm build:budget`, and the bundle's chunks against a build before the growth) and trim it without changing behaviour: a dependency pulled into the app chunk that belongs in a lazy route, a duplicated helper, dead code. Never touch a running topic's hot files.
 - Lower the ceiling in `scripts/build/budget.json` back to 406,187 B (or the new size plus the same margin, if lower) and say in the hand-off what was trimmed and the before/after bytes.
 - `pnpm build:budget` passes; any changed module keeps its tests passing (a unit or component test for a moved import if its behaviour could change).
+
+## Wave 10
+
+Started 2026-11-26 by the run-through orchestrator: the known flakes by cause (B-653, B-870, B-845), then CI verdict detail (B-660, B-753, B-751), then check flow and stale text (B-608, B-609). Each item's backlog notes (`pnpm backlog show B-<n>`) carry the details. Never touch a running topic's hot files (`pnpm backlog prd list`; todo-subtasks holds `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, the todo routes and `apps/web/app/lib/sync/schema.ts`). Slices 81 and 82 share `scripts/ci/` (82 waits for 81); slices 84 and 85 may both change prompts and their golden copies (`scripts/loops/sample-project/prompt-golden.txt`, `scripts/project/prompt-golden.txt`): the orchestrator merges in plan order and regenerates the golden rather than resolving it by hand.
+
+### Slice 78: the Planner tab's 'the list an item leaves' test doesn't flake (B-653)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, apps/web/app/routes/app/groups/planner/planner.browser.test.tsx · Tests: component
+
+It times out at 15 s stepping 4 h of fake timers under load (fails alone 3/3 at load ~18); an earlier attempt (fe811b8e) didn't hold in CI.
+
+- Find what the test waits on while it steps the clock and make it step in few large jumps on the real condition (never a sleep or a longer timeout alone); if the screen does real work per tick, say so in the hand-off.
+- The test passes 10 times in a row at the load of a parallel check (`CARETOOK_QUARANTINE=run`), and its quarantine entry (`scripts/ci/quarantine.txt`) goes.
+
+### Slice 79: timelineBack's 'back from the entry page three pages down' doesn't flake (B-870)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx · Tests: component
+
+Flaked on CI (passed on its rerun), after slice 59 (B-633) settled its siblings.
+
+- Find the race (a read before render, a scroll restored before the pages load) from the code and a loaded run, and wait on the real condition; fix the screen if it is the app's race (a component test for it), never a sleep or a longer timeout alone.
+- The test passes 10 times in a row at the load of a parallel check.
+
+### Slice 80: entryMentions leaves no unhandled rejection after its database closes (B-845)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md, apps/web/app/routes/app/groups/entry/useEntryMentions.ts, apps/web/app/lib/providers/providers.sync.ts · Tests: component
+
+`useEntryMentions` starts `linkProvider` without awaiting it, so after the last test ('mentioning a provider already linked makes no second link') the database closes and `liveProvider` rejects with 'Client has already been closed', failing a shard whose tests all pass.
+
+- Fix the cause: the hook's fire-and-forget work is awaited, cancelled on unmount, or its rejection caught and reported the way the app reports other failed writes; the test waits for the hook's work before it ends. Don't paper over it in the test setup.
+- Component test: unmounting while the link is in flight leaves no unhandled rejection; the existing tests pass.
+
+### Slice 81: CI verdicts keep each failed test's failure message (B-660)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, scripts/ci/ · Tests: unit
+
+A verdict names the failing test only, so a one-off flake leaves no number to diagnose (search run 45117253571).
+
+- The test job's report and the verdict keep each failed test's first failure message (trimmed, e.g. its first 500 characters, ANSI stripped), and `pnpm prd ci blame` and the filed backlog note print it beside the test.
+- Unit tests: a failing test's message reaches the verdict and the blame line, trimmed; a passing run carries none.
+
+### Slice 82: a hung shard names the file it's stuck on (B-753)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, scripts/ci/ · Tests: unit · Blocked by: slice 81
+
+A components shard hung in one file and was cancelled after 20 minutes; the verdict said only 'blame: unknown'.
+
+- The test job records the files it started and finished (or a per-file watchdog fails a file past a limit), so a cancelled or timed-out shard's verdict names the file still running, and blame files it against that file.
+- Unit tests: a shard report with a started-but-unfinished file names it in the verdict; a finished shard names none.
+
+### Slice 83: a quarantine or brake name that matches no test is flagged (B-751)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, scripts/ci/quarantine.txt, scripts/ci/brake-list.txt, scripts/ci/lists.mjs · Tests: unit
+
+Two providers.browser lines under B-568 name tests that no longer exist and are skipped silently.
+
+- A tooling check (a test in `pnpm test:tooling`, or a `pnpm prd ci` subcommand) lists each quarantine and brake entry whose file is missing or whose title matches no test in that file (a plain text search of the test titles is enough); remove the stale entries it finds today.
+- Unit test: an entry naming a missing file and one naming a missing title are flagged; a good one isn't.
+
+### Slice 84: a slice formats its changed files before its check, and the repo check uses Prettier's cache (B-608)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/loop.md, scripts/loops/prompts/slice.sh, scripts/loops/check-body.sh · Tests: unit
+
+The slice check failed on format twice in fixes-ui; a warm Prettier cache takes the whole-repo check from ~26 s to ~2.5 s.
+
+- The loop doc and slice prompt: before `pnpm prd check`, run `pnpm exec prettier --write --ignore-unknown` on the slice's changed files and commit.
+- `check-body.sh`'s `prettier --check` gains `--cache` (each worktree's default cache location).
+- Unit tests: the slice prompt and golden carry the line; the check body's Prettier command has `--cache`.
+
+### Slice 85: no stale check-gate text after test-gates (B-609)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, scripts/loops/prd.sh, scripts/loops/prompt.sh, scripts/loops/pr.sh, scripts/loops/ready.sh, scripts/loops/lib.sh · Tests: unit
+
+- `pnpm prd help` gives `ci run --wait`'s exits by kind (0–5, 75) and no quick-to-full escalation; the hotfix prompt names the CI tier step; the PR body and `ready` drop `checked_how`'s local check line for the CI verdict; `checked_ok` goes from `lib.sh` if only tests use it (and those tests with it).
+- Unit tests and golden prompts follow the text.

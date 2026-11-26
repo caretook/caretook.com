@@ -53,4 +53,5 @@ export type CareGroupJoinRequestSelect = InferSelectModel<CareGroupJoinRequestSc
 export type CareGroupJoinRequestInsert = Omit<InferInsertModel<CareGroupJoinRequestSchema>, ProtectedField>;
 export type CareGroupJoinRequest = CareGroupJoinRequestSelect;
 
-export const careGroupJoinRequestSelectZSchema = createSelectSchema(careGroupJoinRequestSchema);
+export const careGroupJoinRequestSelectZSchema =
+  /* @__PURE__ */ createSelectSchema(careGroupJoinRequestSchema);

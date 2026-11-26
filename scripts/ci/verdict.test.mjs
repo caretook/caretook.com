@@ -6,7 +6,15 @@ import { describe, expect, it } from "vitest";
 
 import { VERDICT_VERSION as READER_VERSION } from "./ci-runs.mjs";
 import { jobsFor } from "./tiers.mjs";
-import { VERDICT_VERSION, buildVerdict, mergeSummaries, summarizeJob, summarizeVitest } from "./verdict.mjs";
+import {
+  MAX_MESSAGE,
+  VERDICT_VERSION,
+  buildVerdict,
+  failureMessage,
+  mergeSummaries,
+  summarizeJob,
+  summarizeVitest,
+} from "./verdict.mjs";
 
 const ok = { result: "success" };
 const base = { commit: "c".repeat(40), runId: "1" };
@@ -216,6 +224,77 @@ describe("the verdict's kinds", () => {
   });
 });
 
+describe("a hung shard", () => {
+  const COMP = "apps/web/app/components/x/stuck.browser.test.tsx";
+  const DONE = "apps/web/app/components/x/done.browser.test.tsx";
+  const reads = (/** @type {Record<string, unknown>} */ files) => (/** @type {string} */ p) =>
+    files[p] ?? null;
+  const progress = (/** @type {object} */ o) => ({
+    limitSeconds: 300,
+    started: [DONE, COMP],
+    finished: [DONE],
+    failed: [],
+    timedOut: [],
+    ...o,
+  });
+
+  it("names the file its watchdog stopped, as a failed file, with no report", () => {
+    const s = summarizeJob(
+      ["r/c.json"],
+      "/w",
+      reads({ "r/c.progress.json": progress({ timedOut: [COMP] }) }),
+    );
+    expect(s.hung).toEqual([COMP]);
+    expect(s.files).toEqual([COMP]);
+  });
+
+  it("names a started-but-unfinished file when the run was killed from outside", () => {
+    const s = summarizeJob(["r/c.json"], "/w", reads({ "r/c.progress.json": progress({}) }));
+    expect(s.hung).toEqual([COMP]);
+  });
+
+  it("keeps the files the stopped run finished failed", () => {
+    const s = summarizeJob(
+      ["r/c.json"],
+      "/w",
+      reads({ "r/c.progress.json": progress({ failed: [DONE], timedOut: [COMP] }) }),
+    );
+    expect(s.files).toEqual([DONE, COMP]);
+  });
+
+  it("a finished shard names none", () => {
+    const report = {
+      testResults: [{ name: `/w/${DONE}`, status: "passed", assertionResults: [{ status: "passed" }] }],
+    };
+    const s = summarizeJob(
+      ["r/c.json"],
+      "/w",
+      reads({ "r/c.json": report, "r/c.progress.json": progress({ started: [DONE], finished: [DONE] }) }),
+    );
+    expect(s.hung).toEqual([]);
+    expect(s.files).toEqual([]);
+    const v = buildVerdict({
+      ...base,
+      tier: "unit",
+      needs: unitNeeds({ result: "success", outputs: { failures: JSON.stringify(s) } }),
+    });
+    expect(v.failed).not.toHaveProperty("hung");
+  });
+
+  it("is a file verdict naming the hung file, not unknown infra", () => {
+    const s = summarizeJob(
+      ["r/c.json"],
+      "/w",
+      reads({ "r/c.progress.json": progress({ timedOut: [COMP] }) }),
+    );
+    const v = unitVerdict({ result: "failure", outputs: { failures: JSON.stringify(s) } });
+    expect(v.kind).toBe("file");
+    expect(v.failed.hung).toEqual([COMP]);
+    expect(v.failed.files).toEqual([COMP]);
+    expect(v.infra.jobs).toEqual([]);
+  });
+});
+
 describe("a job's summary", () => {
   const report = (/** @type {string} */ status, names = { breaks: status }) => ({
     testResults: [
@@ -404,6 +483,80 @@ describe("the verdict", () => {
       truncated: false,
     });
     expect(summarizeVitest(null, "/w").reported).toBe(false);
+  });
+});
+
+describe("a failed test's message", () => {
+  const report = (/** @type {object[]} */ assertionResults) => ({
+    testResults: [{ name: "/w/a.test.ts", status: "failed", assertionResults }],
+  });
+
+  it("keeps the first message, ANSI stripped and trimmed", () => {
+    const s = summarizeVitest(
+      report([
+        {
+          status: "failed",
+          fullName: "search is fast",
+          failureMessages: [
+            "  \x1b[31mAssertionError: expected 812 to be below 500\x1b[39m\n  at x  ",
+            "second",
+          ],
+        },
+      ]),
+      "/w",
+    );
+    expect(s.tests).toEqual([
+      {
+        file: "a.test.ts",
+        name: "search is fast",
+        message: "AssertionError: expected 812 to be below 500\n  at x",
+      },
+    ]);
+  });
+
+  it("caps a long message", () => {
+    const message = failureMessage(["x".repeat(MAX_MESSAGE * 3)]);
+    expect(message).toHaveLength(MAX_MESSAGE);
+    expect(message?.endsWith("…")).toBe(true);
+  });
+
+  it("is absent when Vitest gave none, and a passing run carries none", () => {
+    expect(failureMessage(undefined)).toBeNull();
+    expect(failureMessage(["", "  "])).toBeNull();
+    const none = summarizeVitest(report([{ status: "failed", fullName: "t", failureMessages: [] }]), "/w");
+    expect(none.tests).toEqual([{ file: "a.test.ts", name: "t" }]);
+    const passed = summarizeVitest(
+      {
+        testResults: [
+          {
+            name: "/w/a.test.ts",
+            status: "passed",
+            assertionResults: [{ status: "passed", fullName: "t", failureMessages: ["stale"] }],
+          },
+        ],
+      },
+      "/w",
+    );
+    expect(passed.tests).toEqual([]);
+    expect(JSON.stringify(unitVerdict(ok))).not.toContain("message");
+  });
+
+  it("reaches the verdict's failures, what still failed after the rerun, and its flakes", () => {
+    const one = { file: "a.test.ts", name: "breaks", message: "expected 812 to be below 500" };
+    const two = { file: "b.test.ts", name: "breaks", message: "timed out in 5000ms" };
+    const v = unitVerdict(
+      failing({
+        files: ["a.test.ts", "b.test.ts"],
+        tests: [one, two],
+        rerun: { files: ["a.test.ts"], tests: [one] },
+      }),
+    );
+    expect(v.failed.tests).toEqual([
+      { job: "unit-1", ...one },
+      { job: "unit-1", ...two },
+    ]);
+    expect(v.afterRerun?.tests).toEqual([{ job: "unit-1", ...one }]);
+    expect(v.flaky).toEqual([{ job: "unit-1", ...two, brake: false }]);
   });
 });
 

@@ -11,12 +11,12 @@ export const BUDGETS = [
   // Caretook's additions. The generic docs are measured here until the move (residual).
   { pattern: "scripts/loops/docs/hotfix.md", bytes: 3 * KB },
   { pattern: "docs/agents/hotfix.md", bytes: 12 * KB },
-  { pattern: "scripts/loops/docs/loop.md", bytes: 1570 }, // the role was at 15358 B of 15 KB
-  { pattern: "docs/agents/loop.md", bytes: 15 * KB - 1570 },
+  { pattern: "scripts/loops/docs/loop.md", bytes: 2218 }, // the role was at 15358 B of 15 KB; _Reads and turns_ moved the split
+  { pattern: "docs/agents/loop.md", bytes: 15 * KB - 2218 },
   { pattern: "scripts/loops/docs/recovery.md", bytes: 5 * KB },
   { pattern: "docs/agents/recovery.md", bytes: 10 * KB },
-  { pattern: "scripts/loops/docs/orchestrator.md", bytes: 3770 }, // the role was at 15350 B of 15 KB, trimmed for room
-  { pattern: "docs/agents/orchestrator.md", bytes: 15 * KB - 3770 },
+  { pattern: "scripts/loops/docs/orchestrator.md", bytes: 3954 }, // the role was at 15350 B of 15 KB; the rotate hold moved the split
+  { pattern: "docs/agents/orchestrator.md", bytes: 15 * KB - 3954 },
   { pattern: "scripts/loops/docs/planner.md", bytes: 5 * KB },
   { pattern: "docs/agents/planner.md", bytes: 10 * KB },
   { pattern: "scripts/loops/docs/backlog.md", bytes: 3 * KB },

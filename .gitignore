@@ -23,3 +23,6 @@ dist/
 # Browser check screenshots (debug output)
 scripts/browser-checks/*.png
 to-test/
+
+# CI test steps' reports and progress files (scripts/ci/test-job.mjs, verdict.mjs)
+ci-results/
