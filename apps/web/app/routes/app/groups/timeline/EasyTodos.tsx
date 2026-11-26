@@ -3,7 +3,14 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { ListChecks } from "lucide-react";
 import { Link } from "react-router";
-import { TodoRepeatMark, TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
+import {
+  TodoPartOf,
+  TodoProgressMark,
+  TodoRepeatMark,
+  TodoTick,
+  TodoUndoStatus,
+  useTodoTick,
+} from "~/components/todos";
 import { ICON_LG, LINK, Message, Skeleton } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -14,7 +21,9 @@ import { useEasyTodos } from "./useEasyTodos";
 /**
  * Easy mode's "My todos" card (todos PRD): my open todos, overdue and
  * today first, at most five, each with a big tick (Undo for about 10 s) and
- * its title opening its page, and "See all" to the Todos list on Mine. The
+ * its title opening its page, and "See all" to the Todos list on Mine. A
+ * parent reads "n of m done" (its tick waits on open subtasks), a subtask
+ * "Part of <parent>" (todo-subtasks-2). The
  * easy roles, who have no Todos list, get every one of theirs and no "See all". Viewers get it too (they may
  * complete what they were given). Nothing when I have none. Not a tile:
  * the tiles open entry forms.
@@ -25,7 +34,7 @@ import { useEasyTodos } from "./useEasyTodos";
  */
 export function EasyTodos({ className = "" }: { className?: string }) {
   const group = useGroup();
-  const { todos, total, shown, ready, fresh, now, timeZone } = useEasyTodos(group.id);
+  const { todos, total, shown, ready, fresh, now, timeZone, progressOf, parentOf } = useEasyTodos(group.id);
   const { complete, reopen, busy, error } = useTodoTick(group.id);
   if (!ready)
     return (
@@ -51,6 +60,7 @@ export function EasyTodos({ className = "" }: { className?: string }) {
         <ul className="space-y-1" aria-label="My open todos">
           {todos.map((todo) => {
             const state = todoState(todo, now, timeZone);
+            const progress = progressOf(todo.id);
             return (
               <li
                 key={todo.id}
@@ -63,6 +73,8 @@ export function EasyTodos({ className = "" }: { className?: string }) {
                     title={todo.title}
                     done={!!todo.doneAt}
                     disabled={busy || !fresh}
+                    progress={progress}
+                    showCount={false}
                     large
                     onChange={(done) => tick(todo, done)}
                   />
@@ -81,7 +93,13 @@ export function EasyTodos({ className = "" }: { className?: string }) {
                   >
                     {dueText(todo, now, timeZone)}
                     <TodoRepeatMark todo={todo} className="ms-1.5" />
+                    <TodoProgressMark progress={progress} className="text-muted ms-1.5" />
                   </p>
+                  <TodoPartOf
+                    groupId={group.id}
+                    parent={todo.parentId ? parentOf(todo.parentId) : undefined}
+                    className="text-muted block text-base"
+                  />
                 </div>
               </li>
             );

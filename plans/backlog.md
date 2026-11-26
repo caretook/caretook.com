@@ -13,8 +13,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
 | `orchestration-split-3` | — | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
-| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
-| `todo-subtasks-2` | — | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
+| `fixes-ui` | standing | — | `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/sections/`, `apps/web/app/components/quick-entry/`, `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/routes/app/layout/OfflineBanner`, `apps/web/app/routes/app/layout/offlineBanner`, `apps/web/app/lib/sync/`, `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/routes/app/groups/timeline/DayHeader`, `apps/web/app/routes/app/groups/timeline/TimelineViewMenu`, `apps/web/app/components/shell/`, `apps/web/app/components/brand/`, `packages/data/src/db/schema/app-shell/userPreferences`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/print/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
 | `test-time-gates-2` | hold | `test-time-gates` | `.github/workflows/ci.yml`, `scripts/ci/tiers`, `scripts/ci/component-durations.json`, `scripts/ci/ci.test.mjs`, `scripts/ci/shards.test.mjs`, `scripts/ci/verdict.test.mjs`, `scripts/ci/browser-job.test.mjs`, `scripts/deploy/workflows.test.mjs`, `scripts/loops/time-gate`, `scripts/loops/recover.test`, `scripts/loops/recover-`, `scripts/loops/rotate.test`, `scripts/loops/rotate-` | — |
@@ -30,7 +30,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `account-security-2` | hold | `account-security` | `packages/auth/` | — |
 | `tags-2` | — | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `tags-3` | — | `tags-2` | `apps/web/app/routes/app/groups/timeline/CopyLinkButton.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryCard.tsx`, `apps/web/app/components/entry/entryActionItems`, `apps/web/app/components/entry/EntryActions.tsx`, `apps/web/app/lib/care-groups/urls.ts`, `apps/web/app/routes/app/groups/settings/`, `apps/web/app/routes/app/settings/account/AvatarCard.tsx`, `apps/web/app/lib/tags/`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/routes/app/groups/search/` | — |
-| `symptom-catalog-2` | — | `todo-subtasks` | — | — |
+| `symptom-catalog-2` | — | `tags-3` | `packages/data/src/db/schema/timeline/symptomType.ts`, `packages/data/src/models/symptomType/`, `packages/data/src/services/symptomTypeService.ts`, `packages/api/src/timeline/`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/symptomTypes.sync.ts`, `apps/web/app/lib/timeline/symptomCatalogPage.sync.ts`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/settings/`, `apps/web/app/lib/care-groups/urls.ts` | — |
+| `symptom-catalog-3` | — | `symptom-catalog-2` | `packages/data/src/db/schema/timeline/symptomCatalog.ts`, `packages/data/src/services/symptomTypeService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/timeline/`, `apps/web/app/lib/timeline/symptomTypes.sync.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/settings/symptoms/` | — |
 | `onboarding-2` | hold | — | `apps/web/app/routes/app/groups/setup/`, `apps/web/app/lib/app-shell/groupSetup`, `apps/web/app/lib/app-shell/setupNudges`, `apps/web/app/lib/app-shell/gettingStarted`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/components/ui/toastQueue.ts`, `apps/web/app/routes/app/groups/timeline/GettingStartedCard.tsx`, `apps/web/app/routes/app/groups/timeline/WelcomeCard.tsx`, `apps/web/test/device.tsx`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `packages/data/src/services/userService.ts`, `packages/data/src/db/seeds/setupDismissed`, `packages/api/src/app-shell/me.ts`, `scripts/browser-checks/first-sync.spec.mjs`, `scripts/browser-checks/invites.spec.mjs` | — |
 | `calendars-3` | — | `calendars-2` | `packages/notifications/`, `apps/web/app/lib/app-shell/serviceWorker`, `scripts/build/service-worker`, `apps/web/app/routes/app/groups/settings/calendar/`, `apps/web/app/lib/calendars/`, `apps/web/app/lib/auth/session`, `apps/web/app/lib/sync/client`, `apps/web/app/routes/marketing/privacy/`, `apps/web/app/routes/marketing/health-data-privacy/`, `packages/data/src/db/schema/auth/legalRules`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/services/calendar`, `packages/api/src/calendars/`, `packages/auth/src/authUser`, `ops/runbook.md` | to write (B-377): push notifications for event reminders; cut from calendars-2 to keep it small. Its planner asks about a web-push dependency and the push vendors. Builds on calendars-2 slice 3 (the outbox expiry) |
 | `staging-ship` | — | `test-gates-2`, `inbox-agent` | `scripts/loops/review.sh`, `scripts/loops/codex-review`, `scripts/loops/prd.sh`, `scripts/loops/land.sh`, `scripts/loops/lib.sh`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/ask`, `scripts/ci/candidate`, `scripts/ci/promote` | To write. Ship dev to staging in one command, Codex findings filed by tool, a staging to-test report (B-404, B-430, B-436). Cut from orchestration-3; doesn't need the dispatcher |
@@ -217,7 +218,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-542 | chore | staging | fixes-tooling | prd/fixes-tooling | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
-| B-543 | question | in-progress | orchestration-split | prd/orchestration-split-2 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
+| B-543 | question | in-progress | orchestration-split | prd/orchestration-split-3 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-545 | chore | staging | fixes-tooling | prd/fixes-tooling | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
 | B-550 | feature | landed | todo-subtasks | prd/todo-subtasks | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
@@ -228,8 +229,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights-2 |  | Ownership transfer: a last owner can hand a care group to another member |
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
-| B-608 | chore | landed | fixes-tooling | prd/fixes-tooling | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
-| B-609 | chore | landed | fixes-tooling | prd/fixes-tooling | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
+| B-608 | chore | staging | fixes-tooling | prd/fixes-tooling | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
+| B-609 | chore | staging | fixes-tooling | prd/fixes-tooling | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-623 | bug | staging | fixes-tooling | prd/fixes-tooling | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
@@ -238,8 +239,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
 | B-639 | bug | staging | fixes-tooling | prd/fixes-tooling | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
 | B-649 | bug | staging | fixes-tooling | prd/fixes-tooling | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
-| B-653 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
-| B-660 | chore | landed | fixes-tooling | prd/fixes-tooling | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
+| B-653 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
+| B-660 | chore | staging | fixes-tooling | prd/fixes-tooling | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
@@ -252,9 +253,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-738 | bug | staging | fixes-tooling | prd/fixes-tooling | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-bug |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
-| B-751 | chore | landed | fixes-tooling | prd/fixes-tooling | A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test |
+| B-751 | chore | staging | fixes-tooling | prd/fixes-tooling | A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test |
 | B-752 | bug | triaged | fixes-bug | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
-| B-753 | bug | landed | fixes-tooling | prd/fixes-tooling | CI doesn't name the file a hung shard is stuck on |
+| B-753 | bug | staging | fixes-tooling | prd/fixes-tooling | CI doesn't name the file a hung shard is stuck on |
 | B-754 | bug | staging | fixes-tooling | prd/fixes-tooling | backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44) |
 | B-755 | change | triaged | fixes-perf |  | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
@@ -300,7 +301,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-837 | change | triaged | test-time-gates-2 | prd/test-time-gates | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
-| B-845 | bug | landed | fixes-tooling | prd/fixes-tooling | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
+| B-845 | bug | staging | fixes-tooling | prd/fixes-tooling | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
@@ -313,25 +314,25 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-862 | chore | landed | fixes-tooling | prd/fixes-tooling | roundtrip.spec: a run that dies inside the matrix writer loop skips cleanup of rows it wrote, and the leftover breaks the next run on the same database |
 | B-863 | chore | triaged | fixes-perf |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-864 | bug | landed | fixes-tooling | prd/fixes-tooling | Test fixture fx.tag derives its id from the raw name (tagId(groupId, name)) instead of tagKey(name), so a fixture tag's id differs from the id a device derives for the same name |
-| B-865 | bug | landed | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
-| B-866 | bug | landed | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
+| B-865 | bug | staging | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
+| B-866 | bug | staging | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
 | B-867 | bug | staging | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
-| B-869 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
-| B-870 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
-| B-871 | bug | landed | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
-| B-872 | chore | landed | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
-| B-873 | change | landed | fixes-tooling | prd/fixes-tooling | Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks |
-| B-874 | change | landed | fixes-tooling | prd/fixes-tooling | Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start |
-| B-875 | change | landed | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
-| B-876 | change | landed | fixes-tooling | prd/fixes-tooling | Orchestrators rotate with a brief between waves once context passes ~120k |
-| B-877 | bug | landed | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
-| B-878 | change | landed | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
+| B-869 | bug | staging | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
+| B-870 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
+| B-871 | bug | staging | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
+| B-872 | chore | staging | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
+| B-873 | change | staging | fixes-tooling | prd/fixes-tooling | Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks |
+| B-874 | change | staging | fixes-tooling | prd/fixes-tooling | Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start |
+| B-875 | change | staging | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
+| B-876 | change | staging | fixes-tooling | prd/fixes-tooling | Orchestrators rotate with a brief between waves once context passes ~120k |
+| B-877 | bug | staging | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
+| B-878 | change | staging | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
 | B-880 | chore | triaged | fixes-tooling |  | Planners get the context watch: add plan sessions to the context hook (data-rights peaked 256k, onboarding-2 214k) |
 | B-881 | chore | triaged | fixes-tooling |  | Split a slice that looks like 200k+ context at planning or start: a rule in the planner and orchestrator docs, weighed against restart cost (orchestration-split-2 and tags slices ran 200-260k, 15-24M each) |
 | B-882 | chore | triaged | fixes-tooling |  | Model per role: Sonnet for slices whose plan spells out each edit, Haiku for reading check output (every slice runs on Opus now) |
 | B-883 | chore | triaged | fixes-tooling |  | Token use measured by price: a price-weighted before/after (cache writes ~3% of tokens but ~30% of cost) to judge B-873, B-875, B-876 |
 | B-884 | chore | triaged | fixes-perf |  | Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set |
-| B-885 | bug | triaged | fixes-ui |  | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
+| B-885 | bug | ready | fixes-ui | prd/fixes-ui | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
 | B-886 | change | triaged | fixes-tooling |  | Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call |
 | B-887 | change | triaged | marketing |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
@@ -343,29 +344,31 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-894 | chore | triaged | tags-2 |  | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
 | B-895 | feature | triaged | tags-3 |  | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
-| B-897 | bug | triaged | fixes-ui |  | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
+| B-897 | bug | ready | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-899 | change | triaged | tags-3 |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
-| B-900 | change | triaged | fixes-ui |  | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
+| B-900 | change | ready | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
-| B-902 | change | triaged | fixes-ui |  | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
+| B-902 | change | ready | fixes-ui | prd/fixes-ui | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
 | B-903 | bug | landed | fixes-tooling | prd/fixes-tooling | a slice agent's foreground command past ~170–180 s is moved to the background, and an agent ending its turn there stops without a hand-off |
-| B-904 | bug | triaged | fixes-ui |  | Offline banner still shows at random on local dev while online, after the 10 s grace (B-840) |
-| B-905 | change | triaged | fixes-ui |  | Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens |
-| B-906 | change | triaged | fixes-ui |  | Timeline Today header: put the add-care-period button right next to the care period display so they read as related |
+| B-904 | bug | ready | fixes-ui | prd/fixes-ui | Offline banner still shows at random on local dev while online, after the 10 s grace (B-840) |
+| B-905 | change | in-progress | fixes-ui | prd/fixes-ui | Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens |
+| B-906 | change | ready | fixes-ui | prd/fixes-ui | Timeline Today header: put the add-care-period button right next to the care period display so they read as related |
 | B-907 | change | inbox |  |  | Tests: drop assertions that pin fixed UI copy word for word |
-| B-908 | change | triaged | fixes-ui |  | One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs |
-| B-909 | change | triaged | fixes-ui |  | Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default |
+| B-908 | change | ready | fixes-ui | prd/fixes-ui | One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs |
+| B-909 | change | ready | fixes-ui | prd/fixes-ui | Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default |
 | B-910 | chore | triaged | fixes-perf |  | Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3) |
 | B-911 | chore | triaged | fixes-tooling |  | pnpm prd wait check's default timeout outlasts the harness's ~170 s foreground limit, so a foreground wait is itself moved to the background; default it under 170 s (or say so in the loop doc) |
 | B-912 | plan | triaged | self-recovery-2 |  | Slices as their own headless sessions: started by a prd command, hand-offs to a file the orchestrator watches, so a slice survives an orchestrator rotation and can rotate or resume mid-slice itself |
 | B-913 | plan | triaged | self-recovery-2 |  | Any role's long work runs as a job the machinery owns, so a hand-off never interrupts it: commands (check, land, CI waits, deploys, dev servers), watchers with a follow-up action (durable triggers the dispatcher fires), side-work subagents (headless sessions); each writes a result file, the hand-off records job ids, and the next session re-attaches instead of rerunning or re-arming |
 | B-914 | plan | triaged |  |  | Flavor packs: every role gets a rank and a name from a swappable pack (default starfleet): backlog Admiral, orchestrator Captain, slice Pilot, inbox a random officer, hotfix chief engineer, planner science officer, recovery doctor; the user is the President |
 | B-915 | bug | triaged | fixes-tooling |  | A finished PRD whose last session ends before its registry row is marked done gets restarted by the dispatcher every tick: worktree, stack and a new orchestrator each time |
-| B-916 | feature | triaged | fixes-ui |  | Printed weekly medication sheet: a way to mark a dose skipped or refused, not only given |
+| B-916 | feature | ready | fixes-ui | prd/fixes-ui | Printed weekly medication sheet: a way to mark a dose skipped or refused, not only given |
 | B-917 | feature | triaged | connectors-3 |  | Connector: a member's AI reads a photo of a hand-filled weekly medication sheet and logs its doses, adding only what isn't already logged |
 | B-918 | feature | triaged | care-booklet |  | Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed |
 | B-919 | feature | triaged | care-booklet |  | Printed medication guide page for each medication, as booklet pages |
+| B-920 | feature | triaged | symptom-catalog-3 |  | Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half) |
+| B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 
 ## Items
 
@@ -1288,14 +1291,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - status: in-progress
 - prd: orchestration-split
-- owner: prd/orchestration-split-2
-- commit:
+- owner: prd/orchestration-split-3
+- commit: ca26aaf4
 
 - 2026-11-22 (Robert Bo Davis): User 2026-11-22: tooling is robust enough to manage work across all projects on this machine; keep handrolling vs adopt a prebuilt option. Size: ~23k lines in scripts/loops, scripts/backlog, .githooks (~11k tests), 105 files tied to caretook. The top four registry rows (test-gates, agent-autonomy 1-3) are all orchestration. Decide before planning: freeze, extract, or replace.
 - 2026-11-22 (Robert Bo Davis): Deferred to after launch (user, 2026-11-22): the only other active project is a legacy BigCommerce Stencil site with no tests, a poor fit for this process, so no multi-project need yet. Revisit after launch.
 - 2026-11-23 (Robert Bo Davis): Sizing 2026-11-23 (estimate from measuring the code, no trial extraction): medium lift, about 2-3 PRDs to a separate tool proven on a second project. Size: ~34k lines in scripts/loops, scripts/backlog, .githooks (~17k code, ~16k tests) plus ~700 lines of role docs. Easier: no runtime package deps (only vitest in tests); app code calls it only from two test helpers (apps/web/test/browserLease.ts, packages/data/test/globalSetup.ts); most 'caretook' mentions are mechanical renames (CARETOOK_* env vars). Hard: (1) stack knowledge needs a per-project adapter (stack-lib.sh, browser.sh, test-db.sh, check-areas.d); (2) assumed paths and pnpm commands across ~40 files become config; (3) cutover: drain worktrees, pause the dispatcher, pin a tool version. Phases: (a) separate it, Caretook only, no behavior change, 1 PRD; (b) prove it on a small new repo with tests (Stencil is a poor fit), 1 PRD; (c) usable by others (install, docs, versioning, macOS/iTerm independence), open-ended, skip unless releasing. Recommendation: still after launch, once the tooling stops changing quickly.
 - 2026-11-24 (plan/orchestration-split): Planned 2026-11-24 with the user (big choices approved one at a time): Risa, an external tool at ~/git/risa that runs Claude in configured repos; Caretook becomes config, plans and its own scripts, no dependency on Risa. Stage 1 in place: orchestration-split (seams) and orchestration-split-2 (Caretook's parts, renames), both held; stage 2 a hand runbook (plans/orchestration-split-move.md); later items B-794..B-797 under risa-next (held).
 - 2026-11-24 (Robert Bo Davis): Landed 1297ec9c (2026-11-24): three held stage-1 topics (orchestration-split, -2, -3), the move runbook plans/orchestration-split-move.md, later items B-794..B-797 under risa-next (held). Three skeptics (two Opus, one Fable) sent it back; all fixed; their big choices went to the user.
+- 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 1 (browser runner split, host layer part 1) merged at 8338ca66; the item stays in progress until slice 5 lands
 
 ### B-544 · chore · vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405
 
@@ -1321,7 +1325,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: landed
 - prd: todo-subtasks
 - owner: prd/todo-subtasks
-- commit: bacd6b65
+- commit: 21e619f8
 
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): any depth in the model, limited to 3 levels in code; the parent auto-completes when its last subtask is done. Triage: new topic todo-subtasks (a parent_id on todo, sync, the Planner and todo screens). Depends on planner-3 (held, revising todo links), which owns todos/ and the todo schema; run it after.
 - 2026-11-25 (plan/todo-subtasks): Planned (todo-subtasks planner, 2026-11-25): PRD and plan in plans/todo-subtasks-{prd,plan}.md, six slices; runs after tags. Held after two skeptic send-backs (slice size), reworked; question a219.
@@ -1402,7 +1406,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-608 · chore · Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c4527dc5
@@ -1412,7 +1416,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-609 · chore · Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: bb36eb88
@@ -1438,6 +1442,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): Merged from B-492 (2026-11-23): flaky under load in full checks (7 runs at load 11-20), passes alone 3/3. The user's earlier call stands: re-measure after the test worker cap (B-542) and quarantine, fix only what still flakes.
 - 2026-11-25 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/test-time-gates.
 - 2026-11-26 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-tooling. First failure: AssertionError: {"knee":12.200000000011642,"short of breath":14.5,"\"short of breath\"":12,"walk -cane":6.7999999999883585,"pres":12.5,"the":60}: expected 60 to be less than 50 at http://127.0.0.1:45791/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:45791/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq--D.js?v=97064129:5247:20
+- 2026-11-26 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/todo-subtasks-2. First failure: AssertionError: {"knee":24.5,"short of breath":20.600000000034925,"\"short of breath\"":16.29999999998836,"walk -cane":7.100000000034925,"pres":5.2000000000116415,"the":53.600000000034925}: expected 53.600000000034925 to be less than 50 at http://127.0.0.1:41497/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:41497/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce339…
+- 2026-11-26 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/orchestration-split-3. First failure: AssertionError: {"knee":11.599999999976717,"short of breath":20,"\"short of breath\"":21.399999999965075,"walk -cane":5.899999999965075,"pres":5.100000000034925,"the":85.79999999998836}: expected 85.79999999998836 to be less than 50 at http://127.0.0.1:37765/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:37765/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/…
 
 ### B-623 · bug · Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title
 
@@ -1518,7 +1524,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-653 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once…
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c4527dc5
@@ -1534,7 +1540,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-660 · chore · CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c4527dc5
@@ -1682,7 +1688,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-751 · chore · A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c4527dc5
@@ -1703,7 +1709,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-753 · bug · CI doesn't name the file a hung shard is stuck on
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 16ef128c
@@ -2144,7 +2150,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-845 · bug · entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c4527dc5
@@ -2264,7 +2270,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-865 · bug · CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner:
 - commit: 8f5cf394
@@ -2283,7 +2289,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-866 · bug · CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner:
 - commit: 8f5cf394
@@ -2311,7 +2317,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-869 · bug · Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in)
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: ba0e6f2f
@@ -2322,7 +2328,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-870 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: c4527dc5
@@ -2332,7 +2338,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-871 · bug · A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten)
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2342,7 +2348,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-872 · chore · Win back the app bundle bytes: trim under the old 406,187 B ceiling
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2351,7 +2357,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-873 · change · Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 41d36b6f
@@ -2362,7 +2368,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-874 · change · Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 87a787e1
@@ -2373,7 +2379,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-875 · change · Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 41d36b6f
@@ -2384,7 +2390,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-876 · change · Orchestrators rotate with a brief between waves once context passes ~120k
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 87a787e1
@@ -2395,7 +2401,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-877 · bug · Find why fixes-tooling slice agents end early and get continued
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2406,7 +2412,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-878 · change · Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request
 
-- status: landed
+- status: staging
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: f71c773d
@@ -2462,10 +2468,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-885 · bug · Frontpage hero CTA buttons wrap on mobile; they should fit side by side
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): Triage: layout fix on the public front page; small.
 
@@ -2516,6 +2522,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: a management screen under group settings for the symptom catalog (symptom_type). Archive: hidden from pickers and new-name matching, history kept. Delete: must pick a replacement symptom; existing entries move to it (symptom_type_id and name, synced, audited). Today only list/ensure/add/backfill exist (symptomTypeService). Open for the planner: who may manage (owners only or writers), defaults deletable, archived names in filters and summaries, unarchive. New topic symptom-catalog (timeline area).
 - 2026-11-26 (Robert Bo Davis): Moved to symptom-catalog-2: symptom-catalog (which built the catalog) is done.
+- 2026-11-26 (plan/symptom-catalog-2): Planned in symptom-catalog-2 (plans/symptom-catalog-2-prd.md): archive, unarchive and the Symptoms page here; the delete-with-replacement half split off as B-920 (symptom-catalog-3).
 
 ### B-891 · feature · Tags management page under group settings: list, rename, delete (and merge?) the group's tags
 
@@ -2580,10 +2587,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-897 · bug · Easy entry: medication autocomplete suggestion covers the event entry suggestion box
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Autocomplete suggestions should probably appear above the box, with the event entry suggestion box below.
 - 2026-11-26 (Robert Bo Davis): Triage: quick entry suggestion popovers (overlap; Tab behaviour) are look and flow, fixes-ui; take together
@@ -2597,6 +2604,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm
 - 2026-11-26 (Robert Bo Davis): Triage: symptom matching in quick entry belongs with the symptom catalog follow-up
+- 2026-11-26 (plan/symptom-catalog-2): Planned in symptom-catalog-2 slice 2: Enter saves the closest similar name, the card offers the others and 'Add as new'.
 
 ### B-899 · change · Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
 
@@ -2610,10 +2618,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-900 · change · Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when…
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when there are several
 - 2026-11-26 (Robert Bo Davis): Triage: quick entry suggestion popovers (overlap; Tab behaviour) are look and flow, fixes-ui; take together
@@ -2630,10 +2638,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-902 · change · Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 8df165c5
 
 - 2026-11-26 (Robert Bo Davis): From the user: 'to-do' with no colon should work, and so should 'add todo' or 'add to-do'. 'add' is a cue word when a type word (todo, to-do, note, event, …) follows it; when no kind can be read, 'add' is just part of the text (e.g. 'add salt to diet'). Today the prefixes are t:, task:, todo, to-do:, to do: (docs/domain/assistant.md). Triage: fixes-bug, since a type word the user expects to work is misread; a parser change in quickEntry with unit tests.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: the user's word: moved into fixes-ui to ship before the alpha tester call.
@@ -2649,29 +2657,30 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-904 · bug · Offline banner still shows at random on local dev while online, after the 10 s grace (B-840)
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): after B-840 (10 s grace, OfflineBanner.tsx) the banner still appears at random while online, mostly on local dev. Leads to check first: a cold dev load (Vite unbundled modules, the PowerSync worker and WASM) taking over 10 s to connect; dev server restarts or HMR reloads; the local PowerSync container closing streams or its token refresh (auth.ts 5-minute token) dropping connected for longer than the retry. Find which, log the disconnects' cause and timing; fix the cause, or only widen the grace on dev if it's dev-only. Triage: fixes-bug.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: the user's word: moved into fixes-ui to ship before the alpha tester call.
+- 2026-11-26 (slice/fixes-ui/89): Cause (slice 89): drops of PowerSync connected while navigator.onLine stays true: local PowerSync or dev-server restarts, reconnects slowed by a loaded machine. Idle probes: token refresh 25 ms, PowerSync restart 5 s, serve restart 2 s, HMR none. Fix: 10 s grace only when the browser is offline; 30 s while online (90 s on dev).
 
 ### B-905 · change · Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): the offline banner should be a standard banner component and must not cause a page shift when it opens. Today OfflineBanner.tsx (routes/app/layout) is a hand-rolled <p> with Tailwind classes, not a ui/ primitive, and sits in the page's flow under the header on purpose (so it never covers the header, tab bar or a sheet), which pushes the page down when it appears. Use Notice (or add a banner variant to ui/, per docs/domain/ui-kit.md) and show it without moving content (e.g. overlaid under the header), keeping the live region and print:hidden. Same file as B-904 (it shows at random on local dev, fixes-bug). Triage: fixes-ui.
 
 ### B-906 · change · Timeline Today header: put the add-care-period button right next to the care period display so they read as related
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): the add-a-care-period icon on the Today header in the timeline sits too far from the care period display; move it much closer so the two read as one group. Triage: fixes-ui (layout).
 
@@ -2686,19 +2695,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-908 · change · One standard full-page loader: the app loader's look under the header, a custom message, and a go-back way out when a load hangs
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user, 2026-11-26. One standard loading component with the main app loader's design (brand/AppLoading.tsx: the mark, spinner and message, centred), shown inside the /app frame with the header, and taking a custom message (example: FirstSyncPending's 'Getting your care groups…', which today is ui/Loading's small inline spinner). It has an optional, configurable 'Go back' button to cancel a load that hangs, plus a watcher that shows 'This looks hung? Go back?' on a very slow load (the threshold is configurable). Code read: ui/Loading (a small spinner or a Skeleton) is used in FirstSyncPending, the home route, RemindMeSheet, VisitPrepSheet, GoogleCard and the dev gallery's LoadingSection. AppLoading is root's HydrateFallback, runs before any script runs and has no header, so it stays as it is; the new component reuses its look. Put it in ui/ (components.md, ui-kit.md), add it to the /dev/ui gallery, move FirstSyncPending onto it, and decide where 'go back' leads when there's no history (the groups list or /app). Tests check structure and behaviour (the prompt shows after the threshold, and go back navigates), never the exact wording.
 
 ### B-909 · change · Providers list: a Condensed and Full layout like the timeline's, with the same icons and a shared control, Condensed by default
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): From the user, 2026-11-26. The providers list gets a layout choice like the timeline's: Condensed and Full, with the same icons (lucide List for Condensed, LayoutList for Full), and Condensed is the default. Use one shared component if at all possible. Code read: the timeline's choice is the Layout section of TimelineViewMenu.tsx (routes/app/groups/timeline; an eye-icon ui/Menu with a selection section), saved per user as userPreferences.timelineView ('rows' or 'cards', DEFAULT_TIMELINE_VIEW 'rows'; packages/data schema app-shell/userPreferences.ts) through useTimelineView and saveSettings. Lift the layout items and their icons into one shared piece (a ui/ or components/ layout-choice section or menu) used by both the timeline and providers. The providers list (routes/app/groups/providers, ProviderListItem.tsx, DirectoryResults.tsx) gets a dense row and today's fuller item. Saving it per user means a new optional providersView key in userPreferencesZSchema (strictObject, so the server must accept it before devices send it: expand first). Decide whether one key covers both lists or each list keeps its own; separate keys are suggested. Docs: providers.md, timeline.md, components.md.
 - 2026-11-26 (Robert Bo Davis): Decided by the user, 2026-11-26: separate settings. Providers gets its own providersView key (default Condensed), so the timeline's choice stays its own.
@@ -2759,10 +2768,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-916 · feature · Printed weekly medication sheet: a way to mark a dose skipped or refused, not only given
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: f1180db4
 
 - 2026-11-26 (Robert Bo Davis): print/week (weeklySheet.ts): each slot needs room for given / skipped / refused (e.g. G S R marks or a legend), so the paper record matches the app's dose states. Pairs with the connector photo import (next item): marks should be easy for an AI to read.
 - 2026-11-26 (Robert Bo Davis): User: drop PrintAllergies and PrintConditions from the weekly sheet (they stay on the medication list print); use the freed room for the dose marks.
@@ -2793,3 +2802,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): User 2026-11-26: WAY off; after the care booklet. Needs a source for guide content (vendor or member-written) and a look at what we may print.
+
+### B-920 · feature · Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half)
+
+- status: triaged
+- prd: symptom-catalog-3
+- owner:
+- commit:
+
+- 2026-11-26 (plan/symptom-catalog-2): Split from B-890 by the symptom-catalog-2 planner (2026-11-26): B-890's archive half and the page are symptom-catalog-2; the delete half is symptom-catalog-3 so each topic stays about six slices. PRD: plans/symptom-catalog-2-prd.md; plan: plans/symptom-catalog-3-plan.md.
+
+### B-921 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): [ci-key 6efb926e1a4d] Flaked (passed on its rerun); found by prd/orchestration-split-3. First failure: AssertionError: expected '+1' to be null at http://127.0.0.1:36287/home/runner/work/caretook.com/caretook.com/apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx?import&browserv=1812567600000:129:25 at async http://127.0.0.1:36287/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq--D.js?v=b6978a4e:5247:20

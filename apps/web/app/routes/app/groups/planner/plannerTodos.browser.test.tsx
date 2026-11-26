@@ -187,3 +187,46 @@ describe("todos on the Planner tab", () => {
     expect(allTodos()).toEqual([]);
   });
 });
+
+describe("the tree on the Planner tab (todo-subtasks-2)", () => {
+  const PARENT = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0001";
+  const STEP = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0002";
+  const tree = () => [
+    todo({ id: PARENT, title: "Get ready for the hospital stay", dueOn: day(2) }),
+    todo({ id: STEP, title: "Arrange the dog sitter", parentId: PARENT, dueOn: day(1) }),
+    todo({ title: "Pack the bag", parentId: PARENT }),
+    todo({
+      title: "Print the medication list",
+      parentId: PARENT,
+      doneAt: at(new Date(Date.now() - 60_000)),
+      doneBy: TEST_USER.id,
+    }),
+  ];
+
+  test("Todos shows a parent's “n of m done” with a waiting tick, and a dated subtask with “Part of”", async () => {
+    await renderWithDevice({ route: ROUTES, url: `${PLANNER}?show=todos`, role: "owner", fixtures: tree() });
+    await expect
+      .poll(() => rowOf({ id: PARENT })?.querySelector("[data-todo-progress]")?.textContent)
+      .toBe("1 of 3 done");
+    await expect
+      .element(
+        page.getByRole("checkbox", { name: "“Get ready for the hospital stay”: 1 of 3 subtasks done" }),
+      )
+      .toBeDisabled();
+    // The row's mark says it; the tick shows no second count.
+    expect(rowOf({ id: PARENT })?.querySelector("[data-tick-progress]")).toBeNull();
+
+    expect(todoTitles(day(1))).toEqual(["Arrange the dog sitter"]);
+    const partOf = rowOf({ id: STEP })?.querySelector("[data-todo-part-of]");
+    expect(partOf?.textContent).toBe("Part of Get ready for the hospital stay");
+    const up = partOf!.querySelector<HTMLAnchorElement>("a")!;
+    expect(up.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/todos/${PARENT}`);
+    expect(rowOf({ id: PARENT })?.querySelector("[data-todo-part-of]")).toBeNull();
+    // The undated subtask shows on its parent's page only.
+    expect(allTodos()).toHaveLength(2);
+
+    // "Part of" sits above the row's own link: it opens the parent, not the subtask.
+    await userEvent.click(up);
+    await expect.element(page.getByRole("heading", { name: `Todo page ${PARENT}` })).toBeInTheDocument();
+  });
+});
