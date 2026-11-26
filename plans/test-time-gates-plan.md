@@ -7,15 +7,15 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 | Slice                                        | Wave | State   | Merge    |
 | -------------------------------------------- | ---- | ------- | -------- |
 | 1. The time gate and its data                | 1    | landed  | 3f65aebf |
-| 2. The quick check's times and its gate      | 2    | planned | —        |
+| 2. The quick check's times and its gate      | 2    | started | —        |
 | 3. Stops and breaches apart; the guards stay | 3    | planned | —        |
-| 4. CI's unit and component gates             | 2    | planned | —        |
+| 4. CI's unit and component gates             | 2    | started | —        |
 | 5. Component shards balanced                 | 3    | planned | —        |
 | 6. The unit job under the aim                | 3    | planned | —        |
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-25): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 - 2026-11-25: base 0a76460a (orchestration-split-2 landed). Backlog: B-837 (time gates, claimed), B-772, B-781, B-370; nothing new to propose.
-- **Wave 1 landed** 2026-11-25 as 1a0c1f98 (PR #202, tier full, --no-review: Codex out of credits; report filed). **Next: wave 2, slices 2 and 4 (both opus), ready now.**
+- **Wave 1 landed** 2026-11-25 as 1a0c1f98 (PR #202, tier full, --no-review: Codex out of credits; report filed). **Wave 2 started** 2026-11-25: dev force-synced in (32d34200, to pick up orchestration-split-2's moved paths); worktrees test-time-gates-2 and -4 made, one opus agent each spawned; watch running.
 - Wave 1: slice 1 (opus) handed off 58cf4ef5 (slice check passed), merged 3f65aebf. `time-gate.mjs` + `gates` in `scripts/ci/tiers.json` (read in `tier-data.mjs`), all unarmed; arm a measure with `armed: true`. Gate: requested `full` CI run (tier: scripts/ci). CI full run 45746430590 on ed22fc7a: `flake` (components-2 search.sync perf test, not ours; lands). Sync: no merge needed. Slice 1 worktree removed. PR #202 open; Codex review out. project-config doc folded (36cc5a26).
 
 ## Architectural decisions
