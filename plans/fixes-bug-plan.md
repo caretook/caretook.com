@@ -13,6 +13,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
+**Idle after wave 16** (landed 3dd61650, 2026-11-26; history has it). No triaged fixes-bug items are ready. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 17 (numbered from `status-trim --next`) from new triaged items (B-750 only once its notes name files; B-752 once B-753 lands). Standing topic: never `pnpm prd rm fixes-bug`.
+
 ## Wave 1
 
 Each item's backlog notes (`pnpm backlog show B-<n>`) carry the reviewer's file references; they came from a reading, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code.
