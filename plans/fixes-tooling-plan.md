@@ -18,16 +18,16 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                 | Merge |
-| ----- | ----- | --------------------- | ----- |
-| 78    | B-653 | agent working (opus)  |       |
-| 79    | B-870 | handed off (9afc7864) |       |
-| 80    | B-845 | handed off (0463cea8) |       |
-| 81    | B-660 | handed off (71ff8b72) |       |
-| 82    | B-753 | blocked by 81         |       |
-| 83    | B-751 | handed off (d4bc2470) |       |
-| 84    | B-608 | handed off (a2045af5) |       |
-| 85    | B-609 | agent working (opus)  |       |
+| Slice | Item  | State                | Merge    |
+| ----- | ----- | -------------------- | -------- |
+| 78    | B-653 | merged               | 42cbac3a |
+| 79    | B-870 | merged               | 703f7d67 |
+| 80    | B-845 | merged               | cc58eade |
+| 81    | B-660 | merged               | 2b445134 |
+| 82    | B-753 | agent working (opus) |          |
+| 83    | B-751 | merged               | 5586ba9b |
+| 84    | B-608 | merged               | c4527dc5 |
+| 85    | B-609 | agent working (opus) |          |
 
 ## Wave 1
 
