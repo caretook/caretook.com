@@ -15,7 +15,7 @@
 | 5     | 5    | planned       |                                                |
 | 6     | 6    | planned       |                                                |
 
-**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 (opus) handed off and merged at ffdfad37; migration 0047_todo_subtasks. `parent_id` already streamed in `sync-config.yaml` (rolesSql needs every column; device schema still slice 3). Wave gate: `full` CI run 45792344179 on 447e9d6e: **brake** — todoRename.int.test.ts (exact index list, new index) and the app bundle 163 B over budget, both sent back to slice 1's agent (fix in flight); a format warn on this plan file, fixed at 6265dad3.
+**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 (opus) handed off and merged at ffdfad37; migration 0047_todo_subtasks. `parent_id` already streamed in `sync-config.yaml` (rolesSql needs every column; device schema still slice 3). Wave gate: `full` CI run 45792344179 on 447e9d6e: **brake** — todoRename.int.test.ts (exact index list, new index) sent back to slice 1's agent (fix in flight); the app bundle 163 B over budget is dev's (blame; B-868, dev a84d6611 brakes on it too, so landing needs `--fixes B-868` or its fix in dev); a format warn on this plan file, fixed at 6265dad3.
 
 **Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 
