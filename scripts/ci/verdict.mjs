@@ -17,6 +17,10 @@
 // as one (release-jobs.mjs), and the second zone only reports unless its setting is `block`.
 // Each failed test carries its first failure message (`message`, ANSI stripped,
 // capped at MAX_MESSAGE), absent when Vitest gave none: blame and filing print it.
+// A hung file (one a test step's watchdog stopped, or left unfinished when the
+// step was killed: progress-reporter.mjs's <report>.progress.json) is a failed
+// file, listed in `failed.hung` too (absent with none); with no report, the files the run finished
+// failed still count.
 //
 //   node scripts/ci/verdict.mjs summarize <vitest.json>…   prints `failures=<json>`
 //     for $GITHUB_OUTPUT: each report with its .rerun.json, .quarantine.json and .time.json,
@@ -27,6 +31,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
 
 import { isBrake, isQuarantined, readLists } from "./lists.mjs";
+import { hungFiles, progressFileOf } from "./progress-reporter.mjs";
 import { BROWSER_RUNS, ZONE_JOBS, combineRepeats, summarizeZone } from "./release-jobs.mjs";
 import { FORCED_FLAKE_FILE, NARROWED_FILE, jobsFor, narrowedJobs } from "./tiers.mjs";
 import { SECOND_ZONE, SECOND_ZONE_MODE } from "./zones.mjs";
@@ -167,18 +172,43 @@ export function timeResult(result) {
 }
 
 /**
+ * A report's hung files and, when the report is missing (a stopped run writes
+ * none), the files its run finished failed: both from its progress file.
+ * @param {ReturnType<typeof summarizeVitest>} first
+ * @param {any} progress
+ */
+function progressFailures(first, progress) {
+  const hung = hungFiles(progress);
+  /** @type {string[]} */ const failed =
+    !first.reported && Array.isArray(progress?.failed) ? progress.failed : [];
+  return { hung, files: [...failed, ...hung] };
+}
+
+/**
  * One job's output: its first reports, what still failed after each rerun (null
- * when nothing reran), the quarantine step's results and each timed step's gate.
+ * when nothing reran), the quarantine step's results, each timed step's gate, and
+ * the files a stopped run hung on (`hung`, also in `files`).
  * @param {string[]} paths
  * @param {string} root
  * @param {(path: string) => any} readReport null for a missing file
  */
 export function summarizeJob(paths, root, readReport) {
-  const firsts = paths.map((p) => summarizeVitest(readReport(p), root));
+  const firsts = paths.map((p) => {
+    const first = summarizeVitest(readReport(p), root);
+    const extra = progressFailures(first, readReport(progressFileOf(p)));
+    const files = [...new Set([...first.files, ...extra.files])];
+    return {
+      ...first,
+      files: files.slice(0, MAX_TESTS),
+      truncated: first.truncated || files.length > MAX_TESTS,
+      hung: extra.hung,
+    };
+  });
   const reruns = paths.map((p) => readReport(p.replace(/\.json$/, ".rerun.json")));
   const after = firsts.map((first, i) => stillFailing(first, reruns[i], root));
   return {
     ...mergeSummaries(firsts),
+    hung: firsts.flatMap((f) => f.hung).slice(0, MAX_TESTS),
     rerun: reruns.some(Boolean)
       ? { files: after.flatMap((a) => a.files), tests: after.flatMap((a) => a.tests) }
       : null,
@@ -234,6 +264,7 @@ export function buildVerdict({
   /** @type {string[]} */ const infraJobs = [];
   /** @type {string[]} */ const brakeJobs = [];
   /** @type {string[]} */ const files = [];
+  /** @type {string[]} */ const hung = [];
   /** @typedef {{ job: string, file: string, name: string, message?: string }} JobTest */
   /** @type {JobTest[]} */ const tests = [];
   /** @type {string[]} */ const afterFiles = [];
@@ -281,6 +312,7 @@ export function buildVerdict({
     const hadQuarantined = before.length > beforeTests.length;
 
     files.push(...beforeFiles);
+    if (Array.isArray(summary?.hung)) hung.push(...summary.hung);
     tests.push(...beforeTests.map((t) => ({ job, ...t })));
 
     const rerun = summary?.rerun ?? null;
@@ -373,7 +405,15 @@ export function buildVerdict({
     // A proof run's forced check: this verdict never passes a gate.
     forcedFlake,
     kind,
-    failed: { jobs: [...failedJobs], files: [...new Set(files)], tests, truncated, unnamedJobs },
+    // `hung` (only when some): the files a stopped test step was stuck on, among `files`.
+    failed: {
+      jobs: [...failedJobs],
+      files: [...new Set(files)],
+      tests,
+      truncated,
+      unnamedJobs,
+      ...(hung.length ? { hung: [...new Set(hung)] } : {}),
+    },
     afterRerun: reran ? { files: [...new Set(afterFiles)], tests: afterTests } : null,
     flaky,
     brake: { jobs: brakeJobs, tests: brakeTests, files: [...new Set(brakeFiles)] },
