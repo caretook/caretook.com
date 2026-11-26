@@ -25,14 +25,7 @@ Notes for every wave:
 
 **Released 2026-11-26** by the backlog session (caretook-com-3c; ListAgents if it rotates again): orchestration-split-3 wave 5 is on dev (6265872b; that PRD is done). Synced: prd/fixes-ui merged dev as 95021acb (tooling and scripts only for us). Rotated right after so the next session runs on the new scripts. Reports go to caretook-com-3c.
 
-**Next wave (wave 18), to write now:** the backlog session asked for a recheck after this sync; the wave's CI run is the gate. Slices, in order:
-
-- B-899 (each timeline entry's get-link icon moves into the ⋯ menu, both views), moved from tags-3: **first, land it early**, because tags-2's quick tags (B-892) edit the same row files; set hot files to TimelineEntryRow.tsx, CopyLinkButton.tsx and the easy view's rows.
-- B-923: provider specialty suggests from a hardcoded list (free text still allowed; a native datalist first).
-- B-924: provider page header actions overlap the name on a phone; check the other DetailHeader pages (todo, period, profile, medication).
-- B-925: Today header, the Change care period arrows sit about 2px too far from the period's icon; DayHeader.tsx Change button -me-1.5 to -me-2 (both gaps 6px); check both views.
-
-Still held: B-325 (Capacitor). No slice in flight; slice worktrees removed.
+**Wave 18 (this session, 2026-11-26):** slices 99–102 written, all opus: 99 B-899 (copy link into ⋯, lands first for tags-2), 100 B-923 (specialty suggestions), 101 B-924 (provider header on a phone), 102 B-925 (care period arrows gap; after 99). The backlog session asked for a recheck after the 95021acb sync: the wave's CI run is the gate. Still held: B-325 (Capacitor).
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
@@ -1430,3 +1423,62 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domai
 
 - [ ] Component test (`medicationPassSchedule.browser.test.tsx` or the form test): choosing At set times opens the overlay; after choosing times and closing it, the summary lists them and Edit reopens it; saving sends the chosen times.
 - [ ] Component test: an existing medication on set times shows the summary, not the inline fields; an invalid amount reopens the overlay at that field.
+
+## Wave 18 (written 2026-11-26 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 99, 100 and 101 run in parallel; 102 waits for 99 (both edit `DayHeader.tsx`'s neighbourhood).
+
+## Slice 99: Timeline entry's copy-link moves into the ⋯ menu (B-899)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** Each timeline entry carries its own "get link" icon beside the ⋯ menu, in both the full and easy views, which crowds the row. tags-2's quick tags (B-892) will build on these rows, so this lands first.
+
+**Build.** Drop the per-entry `CopyLinkButton` from `routes/app/groups/timeline/TimelineEntryRow.tsx` (and the easy view's rows or `TimelineEntryCard.tsx`, wherever an entry shows one) and add a "Copy link" item to the entry's ⋯ menu (`components/entry/entryActionItems.ts`, `EntryActions.tsx`), copying the same path `timelineLinks.ts` gives today, with the same confirmation it shows now. Readers who can't write still get the item (copying a link isn't a write); if they have no ⋯ menu today, give them one with just that item. The day header's copy-link button stays as it is. Delete `CopyLinkButton.tsx` only if nothing uses it any more (the day header still does).
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineCopyLink.browser.test.tsx`, updated): an entry row shows no copy-link button; its ⋯ menu has "Copy link", which copies the entry's link, in the full and the easy view.
+- [ ] Component test: a reader (no write role) can open the menu and copy the link.
+- [ ] `entryActionItems.test.ts`: the copy-link item is present for writers and readers.
+
+## Slice 100: Provider specialty suggests common specialties (B-923)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md, docs/domain/ui-kit.md · Tests: component
+
+**Problem.** Specialty is free text in the provider form (Essentials tab), so people type it from scratch and spell it differently.
+
+**Build.** In `routes/app/groups/providers/ProviderForm.tsx`, give the specialty field a native `<datalist>` of suggestions per provider type, beside `SPECIALTY`: for clinicians a fixed list of common specialties (Primary care, Cardiology, Oncology, Neurology, Physical therapy, Dermatology, Gastroenterology, Endocrinology, Psychiatry, Orthopedics, …); for practices, pharmacies and other, a short list matching their label (e.g. Retail, Mail order, Compounding, Specialty for pharmacies). Typed values still save unchanged. Keep the list in a small pure module (e.g. `lib/providers/specialties.ts`) so it's testable. Use the kit combo box only if a datalist can't be made to work with the kit's `Field`; say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: each type has a non-empty, de-duplicated suggestion list.
+- [ ] Component test: the specialty input is linked to a datalist whose options are that type's suggestions, and changing the type changes them.
+- [ ] Component test: a value not in the list still saves.
+
+## Slice 101: Provider page header actions fit on a phone (B-924)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/providers.md · Tests: component
+
+**Problem.** On a phone, the provider page's Copy to another group, Tags and Edit buttons overlap the provider's name and Edit runs off the right edge (user screenshot, a pharmacy, dark theme). `components/ui/DetailHeader.tsx` expects Edit plus a ⋯ menu in a `shrink-0` actions column, but `routes/app/groups/provider/ProviderHeader.tsx` passes three labelled buttons.
+
+**Build.** On the provider page keep Edit and move Copy to another group and Tags into a ⋯ menu, matching the other DetailHeader pages (todo, period, profile, medication). Check those four pages for the same overflow at phone width and fix any that shows it the same way. Change `DetailHeader` itself only if the title can still be overlapped with a well-formed actions column (e.g. it needs `min-w-0` on the title); keep its API.
+
+**Acceptance criteria.**
+
+- [ ] Component test at phone width (375px): on the provider page the actions don't overlap the title and nothing overflows the header; Copy to another group and Tags are in the ⋯ menu and still work.
+- [ ] Component test (or the existing `DetailHeader.browser.test.tsx`): a long title wraps or truncates beside Edit and ⋯ without overlap.
+
+## Slice 102: Today header's Change care period arrows sit 6px from the icon (B-925)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/care-periods.md · Tests: component
+
+**Blocked by:** slice 99.
+
+**Problem.** After B-906, the Change care period arrows sit about 8px from the period's icon, against 6px between the icon and the text. In `routes/app/groups/timeline/DayHeader.tsx` (`DayPeriod`) the row's gap is `gap-1.5`; the Change button is a ghost sm square (32px box, 16px icon, 8px padding a side) pulled in by `-me-1.5`.
+
+**Build.** Change the Change button's `-me-1.5` to `-me-2` so both gaps are 6px; the hit box stays full size. Check both views (easy uses `ICON_LG` on the period icon) and adjust the easy one if its gap differs.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineCarePeriods.browser.test.tsx`): the gap from the arrows' icon to the period icon equals the period icon to text gap, within 1px, in the full and the easy view; the button's box is still 32px.
