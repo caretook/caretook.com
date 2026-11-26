@@ -22,19 +22,19 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State                                                                                     | Merge    |
-| ----- | ------------ | ----------------------------------------------------------------------------------------- | -------- |
-| 50    | B-766        | merged (check stopped on load 149; CI gates)                                              | 86103144 |
-| 51    | B-767        | working (opus)                                                                            | —        |
-| 52    | B-768        | handed off a574e9e2 (check failed only on load, untouched files); merge after 51          | —        |
-| 53    | B-542        | working (opus)                                                                            | —        |
-| 54    | B-623, B-860 | handed off 729a8858 (check passed); merge after 53                                        | —        |
-| 55    | B-807        | handed off cefd6394 (check passed); merge after 54                                        | —        |
-| 56    | B-754        | working (opus)                                                                            | —        |
-| 57    | B-824        | working (opus)                                                                            | —        |
-| 58    | B-769        | handed off 1bac753f (check passed); merge after 57                                        | —        |
-| 59    | B-633        | handed off 54294a9c (check passed; app-wide watchLiveQuery frame batching, see hand-over) | —        |
-| 60    | B-812        | working (opus)                                                                            | —        |
+| Slice | Item         | State                                                                                                | Merge    |
+| ----- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- |
+| 50    | B-766        | merged (check stopped on load 149; CI gates)                                                         | 86103144 |
+| 51    | B-767        | working (opus)                                                                                       | —        |
+| 52    | B-768        | handed off a574e9e2 (check failed only on load, untouched files); merge after 51                     | —        |
+| 53    | B-542        | working (opus)                                                                                       | —        |
+| 54    | B-623, B-860 | handed off 729a8858 (check passed); merge after 53                                                   | —        |
+| 55    | B-807        | handed off cefd6394 (check passed); merge after 54                                                   | —        |
+| 56    | B-754        | working (opus)                                                                                       | —        |
+| 57    | B-824        | working (opus)                                                                                       | —        |
+| 58    | B-769        | handed off 1bac753f (check passed); merge after 57                                                   | —        |
+| 59    | B-633        | handed off 54294a9c (check passed; app-wide watchLiveQuery frame batching, see hand-over)            | —        |
+| 60    | B-812        | handed off 67a3734c (check passed; docs to fold: orchestrator/planner last step is `rm` from inside) | —        |
 
 ## Wave 1
 
