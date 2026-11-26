@@ -327,7 +327,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 | B-928 | bug | triaged | fixes-tooling |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
 | B-929 | chore | triaged | orchestration-split-4 |  | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
-| B-930 | chore | in-progress | fixes-nit | prd/fixes-nit | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
+| B-930 | chore | ready | fixes-nit | prd/fixes-nit | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
 | B-931 | chore | triaged | fixes-nit |  | The UI kit's own primitives (ChipList, tabLook, DateTimeField) still use text-base-content opacity classes |
 
 ## Items
@@ -2326,10 +2326,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-930 · chore · Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit
 
-- status: in-progress
+- status: ready
 - prd: fixes-nit
 - owner: prd/fixes-nit
-- commit:
+- commit: 93466070
 
 - 2026-11-26 (prd/fixes-nit): Split from B-637 by the fixes-nit orchestrator (2026-11-26): 20 files is past the 12-file split rule. This half: settings/members (7 files) and app/settings account, contact, units, devices, timeline (5).
 
