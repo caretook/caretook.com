@@ -61,9 +61,21 @@ describe("budgets", () => {
     expect(budgetFor("docs/domain/sub/x.md")).toBeNull();
     expect(budgetFor("README.md")).toBeNull();
   });
-  it("a split role's two halves add up to the role's 15 KB", () => {
-    for (const role of ["hotfix", "loop", "recovery", "orchestrator", "planner", "backlog", "inbox"])
-      expect(budgetFor(`scripts/loops/docs/${role}.md`) + budgetFor(`docs/agents/${role}.md`)).toBe(15 * KB);
+  it("a split role's two halves add up to the role's figure", () => {
+    const roles = [
+      ["hotfix", "docs/agents/hotfix.md", 15 * KB],
+      ["loop", "docs/agents/loop.md", 15 * KB],
+      ["recovery", "docs/agents/recovery.md", 15 * KB],
+      ["orchestrator", "docs/agents/orchestrator.md", 15 * KB],
+      ["planner", "docs/agents/planner.md", 15 * KB],
+      ["backlog", "docs/agents/backlog.md", 15 * KB],
+      ["inbox", "docs/agents/inbox.md", 15 * KB],
+      ["machinery", "docs/agents/machinery.md", 15 * KB],
+      ["project-config", "docs/agents/project-config.md", 15 * KB],
+      ["orchestration", "docs/orchestration.md", 17 * KB],
+    ];
+    for (const [role, additions, figure] of roles)
+      expect(budgetFor(`scripts/loops/docs/${role}.md`) + budgetFor(additions)).toBe(figure);
   });
   it("measures a file a budget names by its path, outside docs/", () => {
     const sizes = docSizes(repo);
