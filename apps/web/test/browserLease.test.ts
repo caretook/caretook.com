@@ -1,7 +1,7 @@
 // The component tests' browser lease helper, through this repo's real lease
 // command (risa.json's hooks.lease) on a throwaway lease root, so it never
 // takes one of the machine's real leases.
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -13,12 +13,27 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { holdLease } from "./browserLease";
 
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
+const LEASE = (JSON.parse(readFileSync(join(REPO, "risa.json"), "utf8")) as { hooks: { lease: string } }).hooks
+  .lease;
+
+/**
+ * Whether this checkout can run its lease command: each word that names a
+ * program or a path resolves. A clone without the tool (CI after the move to
+ * an external Risa) skips the tests that need a real lease.
+ */
+function canRun(command: string, cwd: string): boolean {
+  const words = command.split(/\s+/).filter((w) => w && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w));
+  if (!words.length) return false;
+  const found = spawnSync("sh", ["-c", 'command -v "$1" >/dev/null', "x", words[0]], { cwd }).status === 0;
+  return found && words.slice(1).every((w) => !w.includes("/") || existsSync(resolve(cwd, w)));
+}
+const realLease = canRun(LEASE, REPO);
 
 let root: string;
 let main: string;
@@ -65,7 +80,7 @@ const repoWith = (name: string, hooks: Record<string, string>) => {
   return dir;
 };
 
-describe("the browser lease helper", () => {
+describe.skipIf(!realLease)("the browser lease helper, through the real lease command", () => {
   it("holds a lease until released", async () => {
     const lease = await hold();
     expect(lease.held).toBe(true);
@@ -76,10 +91,7 @@ describe("the browser lease helper", () => {
 
   it("and a check's lease of the same kind exclude each other", async () => {
     // The check's: the tool's own lease, through the same command.
-    const command = (
-      JSON.parse(readFileSync(join(REPO, "risa.json"), "utf8")) as { hooks: { lease: string } }
-    ).hooks.lease;
-    const check = spawn("sh", ["-c", `exec ${command} "$@"`, "lease", "browser", "--label", "pnpm check"], {
+    const check = spawn("sh", ["-c", `${LEASE} "$@"`, "lease", "browser", "--label", "pnpm check"], {
       cwd: REPO,
       env: { ...env },
       stdio: ["pipe", "pipe", "inherit"],
@@ -120,6 +132,30 @@ describe("the browser lease helper", () => {
     const lease = await hold();
     expect(lease.held).toBe(true);
     expect(held()).toBe(true);
+  });
+
+  it("runs a command with a leading env assignment, or a compound one", async () => {
+    // The real command, its paths made absolute, from another repo's config.
+    const real = LEASE.split(" ")
+      .map((w) => (w.includes("/") ? resolve(REPO, w) : w))
+      .join(" ");
+    for (const [i, lease] of [`SHAPED_LEASE=1 ${real}`, `true && ${real}`].entries()) {
+      const repo = repoWith(`shaped-${i}`, { lease });
+      const held1 = await hold({ repo });
+      expect(held1.held).toBe(true);
+      expect(held()).toBe(true);
+      await held1.release();
+      expect(held()).toBe(false);
+    }
+  });
+});
+
+describe("the browser lease helper", () => {
+  it("finds a command it can run, and not one it can't", () => {
+    expect(canRun("sh -c true", REPO)).toBe(true);
+    expect(canRun("A=1 sh", REPO)).toBe(true);
+    expect(canRun("no-such-lease-command hold", REPO)).toBe(false);
+    expect(canRun("bash scripts/no-such-lease.sh hold", REPO)).toBe(false);
   });
 
   it("fails loudly with no lease command, or one that can't run", async () => {
