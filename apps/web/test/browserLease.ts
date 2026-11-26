@@ -85,7 +85,9 @@ export function holdLease({
     return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
   const args = [kind, "--label", label, "--watch", String(watch)];
-  const child = spawn("sh", ["-c", `exec ${command} "$@"`, "lease", ...args], {
+  // As the core runs a hook (hooks.mjs): no `exec`, so a leading env assignment
+  // or a compound command works too; the arguments go after its last word.
+  const child = spawn("sh", ["-c", `${command} "$@"`, "lease", ...args], {
     cwd: repo,
     env,
     stdio: ["pipe", "pipe", "inherit"],

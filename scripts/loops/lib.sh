@@ -3,7 +3,10 @@
 
 # loops_lib_dir → this file's folder, absolute, resolved once as it is sourced:
 # `pnpm prd` runs it by a relative path, and a later `cd` (new.sh's into a new
-# worktree) would point a relative one at another checkout.
+# worktree) would point a relative one at another checkout. With CDPATH set, a
+# relative `cd` prints the folder it found, so $(cd … && pwd) would read it
+# twice: every script sources this first, so it goes here.
+unset CDPATH
 loops_lib_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # find_repo [DIR] → sets main, the repo's main checkout (its first worktree,
@@ -12,7 +15,7 @@ loops_lib_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # The one place a command finds its repo; risa's machine config will answer here.
 # False, main empty, outside a repo.
 find_repo() {
-  main=$(git -C "${1:-$loops_lib_dir}" worktree list --porcelain 2>/dev/null | awk 'NR==1{print $2}')
+  main=$(git -C "${1:-$loops_lib_dir}" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
   loops=$main/.loops
   [[ -n $main ]]
 }
@@ -61,6 +64,23 @@ unset _b _k
 # Backlog ids are <idPrefix>-<n> (config.mjs's backlogIds builds the rest from the
 # same value): backlog_id_prefix is "B-" here.
 backlog_id_prefix=$(config_get backlog.idPrefix)-
+# A former prefix (backlog.formerIdPrefix: B- for items moved in from another
+# backlog), else empty: everywhere an id is read, a former one is read too, as its
+# own (backlog_id_normalize B-772 → RISA-772); nothing new is made with it.
+# backlog_id_re matches an id of either, unanchored, for [[ =~ ]].
+backlog_former_prefix=$(config_get backlog.formerIdPrefix 2>/dev/null)- || backlog_former_prefix=""
+if [[ -n $backlog_former_prefix ]]; then
+  backlog_id_re="(${backlog_id_prefix}|${backlog_former_prefix})[0-9]+"
+else
+  backlog_id_re="${backlog_id_prefix}[0-9]+"
+fi
+backlog_id_normalize() {
+  if [[ -n $backlog_former_prefix && $1 == "$backlog_former_prefix"[0-9]* ]]; then
+    echo "$backlog_id_prefix${1#"$backlog_former_prefix"}"
+  else
+    echo "$1"
+  fi
+}
 
 # tool_command NAME → what the tool's own command NAME (prd, backlog) is called
 # in this repo: `pnpm prd` here (config.mjs's toolCommands in Node).
@@ -147,6 +167,20 @@ parent_of() {
     *) echo "$trunk" ;;
   esac
 }
+
+# branch_name BRANCH → what follows its kind's prefix (prd/x, plan/x, hotfix/x → x;
+# slice/x/2 → x/2), else the branch itself: config.mjs's nameOf in bash.
+branch_name() {
+  local p
+  for p in "$prd_prefix" "$slice_prefix" "$plan_prefix" "$hotfix_prefix"; do
+    [[ $1 == "$p"* ]] && { echo "${1#"$p"}"; return 0; }
+  done
+  echo "$1"
+}
+
+# re_escape TEXT → TEXT with every character a grep -E or [[ =~ ]] pattern reads
+# specially escaped, so a name from the config matches only itself.
+re_escape() { printf '%s\n' "$1" | sed 's/[][\.*^$+?(){}|]/\\&/g'; }
 
 # lease_slot N NAME → atomically claim slot N for NAME (mkdir is the lock).
 lease_slot() {

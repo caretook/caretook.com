@@ -27,11 +27,11 @@
     "hotfix": { "additions": "docs/agents/hotfix.md" },
     "inbox": { "additions": "docs/agents/inbox.md" },
     "loop": { "additions": "docs/agents/loop.md" },
-    "machinery": { "replacement": "docs/agents/machinery.md" },
-    "orchestration": { "replacement": "docs/orchestration.md" },
+    "machinery": { "additions": "docs/agents/machinery.md" },
+    "orchestration": { "additions": "docs/orchestration.md" },
     "orchestrator": { "additions": "docs/agents/orchestrator.md" },
     "planner": { "additions": "docs/agents/planner.md" },
-    "project-config": { "replacement": "docs/agents/project-config.md" },
+    "project-config": { "additions": "docs/agents/project-config.md" },
     "recovery": { "additions": "docs/agents/recovery.md" }
   },
   "branches": {

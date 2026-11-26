@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { notes, tryLines } from "./landing.mjs";
+import { notes, resetCommand, tryLines } from "./landing.mjs";
 
 const SCRIPT = new URL("./landing.mjs", import.meta.url).pathname;
 
@@ -36,5 +36,14 @@ describe("the landing hook", () => {
       execFileSync("node", [SCRIPT, ...args], { encoding: "utf8", input: "powersync/x\n" });
     expect(run("notes")).toBe(`${notes(["powersync/x"])[0]}\n`);
     expect(run("try", "/m")).toBe(`${tryLines("/m").join("\n")}\n`);
+  });
+});
+
+describe("the landing hook's reset command", () => {
+  it("is the config's commands.datastoreReset", () => {
+    const risa = JSON.parse(readFileSync(new URL("../../risa.json", import.meta.url), "utf8"));
+    expect(resetCommand()).toBe(risa.commands.datastoreReset);
+    expect(notes(["packages/data/src/db/seeds/a.ts"], "make reset")[0]).toContain("run `make reset` in");
+    expect(tryLines("/m", "make reset")[0]).toContain("or `make reset` if");
   });
 });
