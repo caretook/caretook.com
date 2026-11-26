@@ -14,8 +14,9 @@ import {
 
 // The offline banner (B-804) in the real /app frame around the probe: shown
 // under the header once PowerSync has been not connected for the grace
-// period, gone at once when it connects, and in the page's flow, clear of the
-// header and the phone tab bar. The grace is timed with fake timers, from a
+// period, gone at once when it connects, a kit Notice overlaid under the
+// header (B-905): it never moves the page, never covers the header, and stays
+// under the phone tab bar. The grace is timed with fake timers, from a
 // drop and from a cold load. A drop as long as PowerSync's retry cycle (it
 // drops `connected` for its 5 s retry delay while the network is up, B-840)
 // never shows it. With the browser still online (B-904: the sync service
@@ -33,7 +34,7 @@ const open = (options: Parameters<typeof renderWithDevice>[0] = {}) =>
   });
 
 const live = () => document.querySelector<HTMLElement>("[data-offline-banner]");
-const strip = () => live()?.querySelector("p") ?? null;
+const strip = () => live()?.querySelector<HTMLElement>("[data-offline-strip]") ?? null;
 
 type Device = Awaited<ReturnType<typeof open>>;
 
@@ -195,13 +196,23 @@ describe("the offline banner", () => {
     expect(strip()).toBeNull();
   });
 
-  test("at 420: under the header, above the tab bar, in the page's flow", async () => {
+  test("at 420: a kit Notice under the header, above the tab bar, and the page doesn't move", async () => {
     const device = await openThenDrop();
+    const main = document.querySelector("main");
+    const mainTop = main?.getBoundingClientRect().top;
+    expect(mainTop).toBeDefined();
     const banner = await passGrace(device);
     const region = live();
     expect(banner).not.toBeNull();
     expect(region).not.toBeNull();
     if (!banner || !region) return;
+    // The kit's notice: a soft warning alert, with no live region of its own inside the banner's.
+    expect(banner.classList.contains("alert")).toBe(true);
+    expect(banner.classList.contains("alert-warning")).toBe(true);
+    expect(banner.hasAttribute("role")).toBe(false);
+    expect(region.getAttribute("role")).toBe("status");
+    // Showing it doesn't shift the page.
+    expect(main?.getBoundingClientRect().top).toBe(mainTop);
     const header = document.querySelector("body header")?.getBoundingClientRect();
     const bar = document.querySelector<HTMLElement>("nav[data-tab-bar]")?.getBoundingClientRect();
     const box = banner.getBoundingClientRect();
@@ -209,10 +220,28 @@ describe("the offline banner", () => {
     expect(box.top).toBeGreaterThanOrEqual((header?.bottom ?? Infinity) - 0.5);
     expect(box.bottom).toBeLessThanOrEqual(bar?.top ?? -Infinity);
     expect(box.height).toBeGreaterThan(0);
-    // In flow, with no layer of its own: sheets (z-50) and the bar (z-40) stay above it.
-    expect(getComputedStyle(region).position).toBe("static");
-    expect(getComputedStyle(banner).position).toBe("static");
+    // Overlaid, on a layer under the tab bar (z-40) and sheets (z-50).
+    expect(getComputedStyle(region).position).toBe("absolute");
+    expect(Number(getComputedStyle(region).zIndex)).toBeLessThan(40);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+  });
+
+  test("scrolled: it moves with the page, never over the header", async () => {
+    const device = await openThenDrop();
+    const banner = await passGrace(device);
+    const header = document.querySelector("body header");
+    expect(banner).not.toBeNull();
+    expect(header).not.toBeNull();
+    if (!banner || !header) return;
+    // Enough page to scroll: the header and the banner go up together.
+    document.body.style.minHeight = "3000px";
+    window.scrollTo(0, 20);
+    await expect.poll(() => window.scrollY).toBe(20);
+    expect(banner.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      header.getBoundingClientRect().bottom - 0.5,
+    );
+    document.body.style.minHeight = "";
+    window.scrollTo(0, 0);
   });
 
   test("easy mode keeps it", async () => {
