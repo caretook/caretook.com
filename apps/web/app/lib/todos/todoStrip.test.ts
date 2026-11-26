@@ -126,3 +126,30 @@ describe("todoStripText and todoStripWho", () => {
     expect(todoStripWho({ mine: false })).toBe("everyone");
   });
 });
+
+describe("todoStrip and the tree (todo-subtasks-2)", () => {
+  const step = (title: string, dueOn: string | null, extra: Partial<TodoRuleFields> = {}) => ({
+    ...todo(title, dueOn, extra),
+    parentId: "Parent",
+  });
+
+  it("drops an undated, unassigned subtask and keeps a dated or assigned one", () => {
+    expect(todoStrip([step("Plain step", null)], NOW, LA, ME)).toBeNull();
+    const s = todoStrip(
+      [
+        step("Late step", "2026-11-17"),
+        step("My step", "2026-11-17", { assigneeId: ME }),
+        step("Plain step", null),
+      ],
+      NOW,
+      LA,
+      ME,
+    );
+    expect(s && { title: s.todo.title, mine: s.mine, more: s.more, overdue: s.overdue }).toEqual({
+      title: "My step",
+      mine: true,
+      more: 1,
+      overdue: 2,
+    });
+  });
+});
