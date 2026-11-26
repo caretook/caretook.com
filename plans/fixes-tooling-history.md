@@ -4,6 +4,21 @@ Finished-wave history moved out of [the plan](fixes-tooling-plan.md)'s _Status_ 
 
 ## Trimmed 2026-11-26
 
+**Wave 8 (2026-11-26, run-through; resumed after the wave 7 rotation).** Reconciled: no landing cut off, no slices in flight; `prd sync` needed no merge. Slices 61–68 written (landing, Codex, cleanup: B-239, B-240, B-244, B-867, B-442, B-443, B-447, B-639, B-649, B-738, B-545), items claimed, hot files set. Running about 5 at once (wave 7's lesson): first 61, 63, 64, 66, 67 (all opus); then 62, 65 (opus) and 68 (sonnet). 65 waits for 66 (both `land.sh`).
+
+| Slice | Item         | State                        | Merge    |
+| ----- | ------------ | ---------------------------- | -------- |
+| 68    | B-545        | merged (sonnet)              | 7b608d23 |
+| 67    | B-738        | merged (opus)                | a6ade197 |
+| 66    | B-639, B-649 | merged (opus), in 65's merge | ee34a22e |
+| 65    | B-443, B-447 | merged (opus)                | ee34a22e |
+| 64    | B-442        | merged (opus)                | 3c48b294 |
+| 63    | B-867        | merged (opus)                | 69bcc9c1 |
+| 62    | B-244        | merged (opus)                | 35e43036 |
+| 61    | B-239, B-240 | merged (opus)                | 1699763a |
+
+## Trimmed 2026-11-26
+
 | Slice | Item         | State                                                                   | Merge    |
 | ----- | ------------ | ----------------------------------------------------------------------- | -------- |
 | 60    | B-812        | merged (check passed)                                                   | e5f7b7cb |
