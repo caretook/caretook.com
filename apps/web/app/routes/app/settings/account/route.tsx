@@ -25,9 +25,9 @@ export default function AccountSettings({ loaderData }: Route.ComponentProps) {
       <AvatarCard userId={userId} name={name} email={email} />
       <SettingsCard>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-base-content/70">Name</dt>
+          <dt className="text-muted">Name</dt>
           <dd data-field="name">{name || "Not set"}</dd>
-          <dt className="text-base-content/70">Email</dt>
+          <dt className="text-muted">Email</dt>
           <dd data-field="email" className="break-all">
             {email}
           </dd>

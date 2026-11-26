@@ -49,7 +49,7 @@ export function SharingForm({
       <fieldset className="fieldset" aria-describedby={helpId}>
         <legend className="fieldset-legend">What this group sees</legend>
         {options.length === 0 ? (
-          <p className="text-base-content/70 text-sm" data-no-contact="">
+          <p className="text-muted text-sm" data-no-contact="">
             {NO_CONTACT_YET}{" "}
             <Link to={appUrls.settings("contact")} className="link">
               Add contact details
@@ -71,7 +71,7 @@ export function SharingForm({
             ))}
           </ul>
         )}
-        <p id={helpId} className="text-base-content/70 text-sm">
+        <p id={helpId} className="text-muted text-sm">
           {SHARING_HELP}{" "}
           {options.length > 0 && (
             <Link to={appUrls.settings("contact")} className="link">
