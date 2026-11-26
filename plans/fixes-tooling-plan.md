@@ -20,15 +20,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 | Slice | Item         | State           | Merge |
 | ----- | ------------ | --------------- | ----- |
-| 69    | B-869        | starting (opus) |       |
-| 70    | B-873        | starting (opus) |       |
-| 71    | B-875, B-879 | starting (opus) |       |
-| 72    | B-876        | starting (opus) |       |
-| 73    | B-874        | starting (opus) |       |
-| 74    | B-877        | starting (opus) |       |
-| 75    | B-878        | starting (opus) |       |
-| 76    | B-871        | starting (opus) |       |
-| 77    | B-872        | starting (opus) |       |
+| 69    | B-869        | in progress (opus) |       |
+| 70    | B-873        | in progress (opus) |       |
+| 71    | B-875, B-879 | in progress (opus) |       |
+| 72    | B-876        | in progress (opus) |       |
+| 73    | B-874        | in progress (opus) |       |
+| 74    | B-877        | in progress (opus) |       |
+| 75    | B-878        | in progress (opus) |       |
+| 76    | B-871        | in progress (opus) |       |
+| 77    | B-872        | in progress (opus) |       |
 
 ## Wave 1
 
