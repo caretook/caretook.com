@@ -10,6 +10,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
   CHANGES_SQL,
+  closeSchedule,
   daysAgo,
   dialogButton,
   errorOf,
@@ -231,6 +232,7 @@ describe("adding", () => {
     await waitUntil(() => times().length === 2, "two times");
     await pickTime(() => times()[0], "08:00");
     await pickTime(() => times()[1], "08:00");
+    await closeSchedule();
     await userEvent.click(submit());
     await expect.poll(() => errorOf("name")).toBe("Enter a name");
     expect(TIMES_ERROR()).toBe("List each time once");
@@ -294,6 +296,7 @@ describe("adding", () => {
     await waitUntil(() => times().length === 2, "two times");
     await pickTime(() => times()[0], "20:00");
     await pickTime(() => times()[1], "08:00");
+    await closeSchedule();
     await userEvent.fill(await found(() => field("strength")), "25 mg");
     await userEvent.fill(await found(() => field("dose")), "1 tablet");
     await showFormTab("Details");

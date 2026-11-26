@@ -17,7 +17,7 @@ import { CONDITION_IDS_PATH } from "~/lib/profiles/medicationConditions.sync";
 import { ConditionsField } from "./ConditionsField";
 import { FIELD, isFieldIssue } from "./medicationFormData";
 import { ProviderPickerField } from "./ProviderPickerField";
-import { ScheduleFields } from "./ScheduleFields";
+import { revealInSchedule, ScheduleFields } from "./ScheduleFields";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
@@ -159,8 +159,13 @@ export function MedicationForm({
             '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"]), [data-conditions-picker]:has([data-picker-error]) input:not([type="hidden"])',
           ));
     // On another tab, its tab opens first: on the next frame, outside this effect, where FormTabs'
-    // flushSync renders the switch before the focus (ProviderForm does the same).
-    if (target) requestAnimationFrame(() => revealField(form, target));
+    // flushSync renders the switch before the focus (ProviderForm does the same). A slot's field
+    // is in the schedule's overlay, which opens then and takes the focus.
+    if (target)
+      requestAnimationFrame(() => {
+        revealField(form, target);
+        revealInSchedule(target);
+      });
   }, [fetcher.state, fetcher.data, onDone]);
 
   const unshown = issues.filter((i) => !isFieldIssue(i.path));

@@ -345,6 +345,22 @@ export const showFormTab = async (label: "Essentials" | "Details" | "Refills") =
 };
 /** The sheet's Save, as a locator. */
 export const submit = () => getByCss('[role=dialog] [data-medication-form] button[type="submit"]');
+/** The schedule's At set times overlay (a native `<dialog>` inside the form; its fields are the form's). */
+export const SCHEDULE_OVERLAY = () =>
+  FORM()?.querySelector<HTMLDialogElement>("dialog[data-schedule-overlay]") ?? null;
+/** The form's one-line summary of the set times, under the Schedule choice. */
+export const scheduleSummary = () =>
+  FORM()?.querySelector("[data-schedule-summary-text]")?.textContent?.trim() ?? null;
+/** Close the set times overlay with Done. */
+export const closeSchedule = async () => {
+  await userEvent.click(await found(() => SCHEDULE_OVERLAY()?.querySelector("[data-schedule-done]")));
+  await waitUntil(() => SCHEDULE_OVERLAY()?.open === false, "the set times overlay to close");
+};
+/** Open the set times overlay from the summary's Edit times. */
+export const editSchedule = async () => {
+  await userEvent.click(await found(() => FORM()?.querySelector("[data-edit-schedule]")));
+  await waitUntil(() => SCHEDULE_OVERLAY()?.open === true, "the set times overlay");
+};
 export const times = () => [...(FORM()?.querySelectorAll<HTMLInputElement>('input[name="time"]') ?? [])];
 /** A field's message, through its `aria-describedby`. */
 export const errorOf = (name: string) => {

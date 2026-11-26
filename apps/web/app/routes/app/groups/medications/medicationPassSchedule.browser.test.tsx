@@ -5,6 +5,9 @@ import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import {
+  closeSchedule,
+  editSchedule,
+  errorOf,
   EVENING,
   field,
   FORM,
@@ -17,7 +20,10 @@ import {
   medPage,
   MORNING,
   RECIPIENT,
+  SCHEDULE_OVERLAY,
+  scheduleSummary,
   SHEET,
+  showFormTab,
   submit,
   times,
   openAddMedication,
@@ -78,6 +84,9 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await userEvent.click(
     await found(() => FORM()?.querySelector('input[name="scheduleType"][value="scheduled"]')),
   );
+  // At set times opens its overlay; the passes and times are in it.
+  await waitUntil(() => SCHEDULE_OVERLAY()?.open === true, "the set times overlay");
+  expect(scheduleSummary()).toBe("No times chosen yet.");
   await userEvent.click(await found(() => passBox(MORNING.id)));
   await expect.poll(() => passAmount(MORNING.id)).toBeTruthy();
   const placeholder = passAmount(MORNING.id)!.placeholder;
@@ -87,6 +96,13 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await expect.poll(() => times().length).toBe(1);
   await pickTime(() => times()[0], "14:00");
   await userEvent.fill(await found(() => timeAmounts()[0]), "12.5 mg");
+  // Closed, the form reads the chosen times in one line; Edit times reopens them as chosen.
+  await closeSchedule();
+  expect(scheduleSummary()).toBe(BY_PASS);
+  expect(passBox(MORNING.id).checkVisibility()).toBe(false);
+  await editSchedule();
+  expect(passAmount(MORNING.id)?.value).toBe("50 mg");
+  await closeSchedule();
   await userEvent.click(submit());
   await expect.poll(() => SHEET()).toBeNull();
   await device.settle();
@@ -153,6 +169,11 @@ describe("a schedule by passes", () => {
     await waitUntil(() => !!document.querySelector<HTMLElement>("main [data-edit-medication]"), "Edit");
     await userEvent.click(getByCss("main [data-edit-medication]"));
     await waitUntil(() => !!FORM() && !!passAmount(MORNING.id), "the edit sheet");
+    // Saved set times show as the summary, with the slots behind Edit times.
+    expect(scheduleSummary()).toBe(BY_PASS);
+    expect(SCHEDULE_OVERLAY()?.open).toBe(false);
+    expect(passBox(MORNING.id).checkVisibility()).toBe(false);
+    await editSchedule();
     expect(passBox(MORNING.id).checked).toBe(true);
     expect(passAmount(MORNING.id)?.value).toBe("50 mg");
     expect(passBox(EVENING.id).checked).toBe(true);
@@ -161,6 +182,8 @@ describe("a schedule by passes", () => {
 
     await userEvent.click(passBox(EVENING.id));
     await userEvent.fill(await found(() => passAmount(MORNING.id)), "75 mg");
+    await closeSchedule();
+    expect(scheduleSummary()).toBe("Morning (75 mg) and 14:00 (12.5 mg)");
     await userEvent.click(submit());
     await expect.poll(() => !SHEET() && page.location()).toBe(medicationUrl(id));
     await expect.poll(() => historyTexts()[0]).toBe("Removed from Evening; Morning amount 50 mg → 75 mg");
@@ -176,5 +199,40 @@ describe("a schedule by passes", () => {
         }),
       ),
     );
+  });
+});
+
+describe("the set times overlay (B-694)", () => {
+  /** Saved before the amount's limit: too long for a save now. */
+  const LONG = "1 tablet, crushed and mixed into applesauce ".repeat(3).trim();
+  const PROPRANOLOL = fx.medication({
+    name: "Propranolol",
+    dose: "10 mg",
+    schedule: { type: "scheduled", slots: [{ passId: MORNING.id, amount: LONG }, { passId: EVENING.id }] },
+  });
+
+  test("an invalid amount reopens the overlay at that field, from another tab too", async () => {
+    expect(LONG.length).toBeGreaterThan(120);
+    await renderWithDevice({
+      route: MEDICATION_ROUTES,
+      url: `${LIST}/${PROPRANOLOL.id}/edit`,
+      role: "caretaker",
+      fixtures: [RECIPIENT, MORNING, EVENING, PROPRANOLOL],
+    });
+    await waitUntil(() => !!FORM() && !!passAmount(MORNING.id), "the edit sheet");
+    expect(SCHEDULE_OVERLAY()?.open).toBe(false);
+    expect(scheduleSummary()).toMatch(/^Morning \(.+\) and Evening$/);
+
+    await showFormTab("Details");
+    await userEvent.click(submit());
+    await waitUntil(() => SCHEDULE_OVERLAY()?.open === true, "the overlay to reopen");
+    await expect.poll(() => document.activeElement).toBe(passAmount(MORNING.id));
+    expect(errorOf(`passAmount:${MORNING.id}`)).toBeTruthy();
+    // Closed again, the summary keeps the message.
+    await closeSchedule();
+    expect(FORM()?.querySelector("[data-schedule-summary-error]")?.textContent).toBe(
+      errorOf(`passAmount:${MORNING.id}`),
+    );
+    expect(SHEET()).not.toBeNull();
   });
 });
