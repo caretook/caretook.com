@@ -1,14 +1,16 @@
 import type { SubtaskProgressRow, TodoRow } from "./todos.sync";
 
-import { addDays, localDate } from "@caretook/data/schema";
+import { addDays, localDate, ROLLUP_METADATA } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
 import { hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
 import { readRows } from "../timeline/timeline.sync";
 import {
+  completeTodo,
   createTodo,
   progressByParent,
   removeTodo,
+  reopenTodo,
   subtasksQuery,
   subtaskProgressQuery,
   todoQuery,
@@ -54,8 +56,13 @@ const queued = (db: Db) =>
     .getAll<{ tx_id: number; data: string }>("SELECT tx_id, data FROM ps_crud ORDER BY id")
     .then((rows) =>
       rows.map((r) => {
-        const op = JSON.parse(r.data) as { op: string; id: string; data?: Record<string, unknown> };
-        return { tx: r.tx_id, op: op.op, id: op.id, data: op.data ?? {} };
+        const op = JSON.parse(r.data) as {
+          op: string;
+          id: string;
+          data?: Record<string, unknown>;
+          metadata?: string;
+        };
+        return { tx: r.tx_id, op: op.op, id: op.id, data: op.data ?? {}, metadata: op.metadata ?? null };
       }),
     );
 
@@ -161,5 +168,85 @@ describe("subtaskProgressQuery", () => {
       [SUB]: { done: 0, total: 1 },
       [OTHER_PARENT]: { done: 0, total: 1 },
     });
+  });
+});
+
+describe("the rollup on the device", () => {
+  const ok = <T extends { ok: boolean }>(res: T) => {
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    return res;
+  };
+  const doneOf = async (db: Db, todoId: string) => {
+    const t = await read(db, todoId);
+    return { doneAt: t?.doneAt ?? null, doneBy: t?.doneBy ?? null };
+  };
+
+  test("ticking the last open subtask marks the chain done in one local transaction, each parent flagged; reopening it reopens them", async () => {
+    const { db } = await device();
+    ok(await completeTodo(db, SUB_SUB));
+    const done = await doneOf(db, SUB_SUB);
+    expect(done.doneAt).not.toBeNull();
+    for (const parent of [SUB, TOP]) expect(await doneOf(db, parent)).toEqual(done);
+    const ticked = await queued(db);
+    expect(ticked.map((o) => `${o.op} ${o.id} ${o.metadata}`)).toEqual([
+      `PATCH ${SUB_SUB} null`,
+      `PATCH ${SUB} ${ROLLUP_METADATA}`,
+      `PATCH ${TOP} ${ROLLUP_METADATA}`,
+    ]);
+    expect(new Set(ticked.map((o) => o.tx)).size).toBe(1);
+    expect(ticked[2]?.data).toMatchObject({ done_by: TEST_USER.id });
+
+    ok(await reopenTodo(db, SUB_SUB));
+    for (const todoId of [SUB_SUB, SUB, TOP])
+      expect(await doneOf(db, todoId)).toEqual({ doneAt: null, doneBy: null });
+    const reopened = (await queued(db)).slice(ticked.length);
+    expect(reopened.map((o) => `${o.id} ${o.metadata}`)).toEqual([
+      `${SUB_SUB} null`,
+      `${SUB} ${ROLLUP_METADATA}`,
+      `${TOP} ${ROLLUP_METADATA}`,
+    ]);
+    expect(new Set(reopened.map((o) => o.tx)).size).toBe(1);
+  });
+
+  test("a step with an open sibling leaves the parent open; a parent reopened by hand leaves its subtasks done", async () => {
+    const SIBLING = id(50);
+    const { db } = await device([
+      ...tree,
+      todo({ id: SIBLING, title: "Print the medication list", parentId: TOP }),
+    ]);
+    ok(await completeTodo(db, SUB_SUB));
+    expect((await doneOf(db, SUB)).doneAt).not.toBeNull();
+    expect((await doneOf(db, TOP)).doneAt).toBeNull();
+    expect((await queued(db)).map((o) => o.id)).toEqual([SUB_SUB, SUB]);
+
+    ok(await reopenTodo(db, SUB));
+    expect((await doneOf(db, SUB)).doneAt).toBeNull();
+    expect((await doneOf(db, SUB_SUB)).doneAt).not.toBeNull();
+  });
+
+  test("a new subtask reopens a done parent; deleting the last open one finishes it", async () => {
+    const at = hoursAgo(2);
+    const { db } = await device([
+      todo({ id: TOP, title: "Get ready for the hospital stay", doneAt: at, doneBy: TEST_USER.id }),
+      todo({ id: SUB, title: "Pack a bag", parentId: TOP, doneAt: at, doneBy: TEST_USER.id }),
+    ]);
+    const made = ok(
+      await createTodo(db, TEST_GROUP.id, { title: "Print the medication list", parentId: TOP }),
+    );
+    if (!made.ok) throw new Error("not made");
+    expect(await doneOf(db, TOP)).toEqual({ doneAt: null, doneBy: null });
+    const added = await queued(db);
+    expect(added.map((o) => `${o.op} ${o.id} ${o.metadata}`)).toEqual([
+      `PUT ${made.id} null`,
+      `PATCH ${TOP} ${ROLLUP_METADATA}`,
+    ]);
+    expect(new Set(added.map((o) => o.tx)).size).toBe(1);
+
+    expect(await removeTodo(db, made.id)).toEqual({ ok: true });
+    expect((await doneOf(db, TOP)).doneAt).not.toBeNull();
+    expect((await queued(db)).slice(added.length).map((o) => `${o.id} ${o.metadata}`)).toEqual([
+      `${made.id} null`,
+      `${TOP} ${ROLLUP_METADATA}`,
+    ]);
   });
 });

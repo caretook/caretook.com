@@ -72,3 +72,11 @@ export const listsOnItsOwn = (todo: {
   assigneeId: string | null;
   assigneeName: string | null;
 }) => !todo.parentId || !!todo.dueOn || assigneeOf(todo).type !== "none";
+
+/**
+ * The upload's flag on a device's rollup write to a parent (its `_metadata`,
+ * as `UNDO_NEXT_METADATA`): the device's tick, reopen, remove or new subtask
+ * wrote the parent chain locally, and the server recomputes the parent from
+ * its own rows (`todoService.rollUpUploaded`), never as a complete or reopen.
+ */
+export const ROLLUP_METADATA = "todo:rollup";
