@@ -17,29 +17,18 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-**Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
+**Previous hand-over:** wave 16 landed 2026-11-26 as dev d6e934e9 through PR #231, `--no-review` (Codex out of credits), CI components green (run 45879574428, 200c4c14); report a283; to-test/2026-11-26-1413-fixes-ui.md. Slices 86–94 (B-885 sonnet; B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916 opus); rows in the history file. Parked mid-wave for orchestration-split-3 wave 1 (dev 00c60f0c, new browser.sh via hooks.browser) at the backlog session's request, then synced. Browser `--changed --base dev`: layout-offline, first-sync, marketing pass; ui failed once under load (0×0 sheet), passed alone twice: filed B-922 (fixes-tooling). Lesson: slice 93 ran to 13 files; split an item with a schema key, an API and two screens. Docs folded (5ef43e2c) into assistant, app-shell, ui-kit, providers, medications. Slice worktrees removed.
 
-**Previous hand-over:** wave 15 landed 2026-11-25 as dev 2584a81 through PR #203, `--no-review` (Codex out of credits), CI integration green (run 45750856542, de32eac7), landed on an unsynced tip (dev shared no file); to-test/2026-11-25-2254-fixes-ui.md. Slice 85 (B-857, quick entry previews say Event; sonnet). Docs folded into assistant.md (trimmed to stay under budget). Slice worktree removed.
+**Wave 17 (this session, 2026-11-26):** B-694 (Long create forms on tabs) released: the user approved every split today. Slices 95–98, all opus: 95 shared tabs component; 96 provider tabs and 97 medication tabs (both after 95, parallel); 98 schedule overlay (after 97). Synced: prd/fixes-ui up to date with dev. Still held: B-325 (Capacitor).
 
-**Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
+**Released 2026-11-26:** parked for orchestration-split-3 wave 4 (RISA\_\* rename) with slices 95–98 merged (code tip 118a7071) and slice worktrees removed; wave 4 landed in dev 48db0d34, synced as 1fa3670c. Now: components gate on the synced tip, then PR, review, land. **After landing: stay parked** (no new wave) for wave 5; reply "landed and parked" with the dev commit to the backlog session.
 
-**Landing:** CI components green on 200c4c14 (run 45879574428; quarantined emergency.browser failed, not ours). Docs folded (5ef43e2c). Synced (no-op). PR #231 open; Codex review waiting; `browser --changed --base dev` (layout-offline, first-sync, ui, marketing) running. Then land with `--tier components`.
-
-**Unparked:** split stage 1c wave 1 landed as dev 00c60f0c; synced (76b8ad63). New browser.sh (hooks.browser, scripts/project/browser-run.sh).
-
-To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait in /app; brand/LoadingMark shared with AppLoading; 92). medications.md line 10 (PrintAllergies tops only the list print; the weekly sheet has G/S/R marks; 94). providers.md: Condensed rows (default, `providersView`) carry one main contact action, overriding B-422's "rows carry no contact details", which now holds for Full (93). 91 kept B-618's order and tightened the Change button's gap (14 to 8 px): say so in the report. assistant.md Todos bullet: kind words todo/to-do/to do/task/note/event, colon optional, optional leading `add`; `add` without one stays text (88). sync.md/app-shell.md: the offline banner's grace is 10 s when the browser is offline, 30 s when online but unsynced, 90 s on dev (89). Lesson: 93 ran to 13 files; split such items. app-shell.md line 7 (OfflineBanner is a kit Notice overlaid under the header, not in flow) and ui-kit.md (Notice takes role="none") (90). Browser checks the wave needs: ui, marketing, first-sync.
-
-| Slice | Item         | State  | Merge    |
-| ----- | ------------ | ------ | -------- |
-| 86    | B-885        | merged | 39d0e40d |
-| 87    | B-897, B-900 | merged | bc45cde9 |
-| 88    | B-902        | merged | 8df165c5 |
-| 89    | B-904        | merged | 59623a1e |
-| 90    | B-905        | merged | 26b57cd9 |
-| 91    | B-906        | merged | 1fdf6bb0 |
-| 92    | B-908        | merged | e29899de |
-| 93    | B-909        | merged | 54443809 |
-| 94    | B-916        | merged | f1180db4 |
+| Slice | Item                   | State  | Merge    |
+| ----- | ---------------------- | ------ | -------- |
+| 95    | B-694 shared tabs      | merged | dcc18cf8 |
+| 96    | B-694 provider tabs    | merged | 87a0254d |
+| 97    | B-694 medication tabs  | merged | 0b99c357 |
+| 98    | B-694 schedule overlay | merged | 118a7071 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1374,3 +1363,63 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: u
 **Acceptance criteria.**
 
 - [ ] Unit test (`weeklySheet.test.ts`) or component test: each slot has the three marks; the legend is present; the weekly sheet no longer renders allergies or conditions, and the medication list print still does (`print.browser.test.tsx`).
+
+## Wave 17 (written 2026-11-26 by the orchestrator, from B-694 now that the user approved every split)
+
+B-694's notes are the spec; read them all (`pnpm backlog show B-694`). Approved splits: **Medication** Essentials (Name*, Type*, Strength and Dose each time on one row, side by side on phones too, Schedule, Prescriber, Pharmacy) | Details (Form, Directions, Conditions, Why it's taken, Started on) | Refills (Refills left, Rx number, Last filled, Quantity); **Provider** Essentials (Type*, Name*, Specialty, Practice for the types that have one, Phones) | More (Email, Address, Website, Primary, Past); **Condition** no tabs. Other forms unchanged.
+
+Every slice: no migration, no dependency; don't edit `docs/` or `apps/web/test/` (orchestration-split-3 holds them; the orchestrator folds docs at landing: say in the hand-off what the docs should record). If a slice runs past 12 files, hand off what's done and say so.
+
+## Slice 95: One shared tabs component: page tabs as links, form tabs as in-place panels (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Problem.** `components/ui/TabNav.tsx` is route links only; form tabs need the same look but must switch in place without navigating or unmounting fields.
+
+**Build.** One shared tabs piece in `components/ui/` that owns the look (bar, spacing, the whole-section current fill from B-683, icon, count, 320px phone width without horizontal scroll), with two behaviours: page tabs (refactor `TabNav` onto it: same props, links in a nav, `aria-current`, URLs unchanged, so its callers don't change) and form tabs (a tablist with panels switching in place; React Aria Tabs is allowed in `ui/`). Form tabs: every panel stays mounted (hidden ones keep their values and submit); a tab can show a "has content" marker and an error marker; a helper (or built-in behaviour) that, given a field name or element with an error, switches to the panel holding it and focuses the field, for both native validation (`invalid` events) and server issues. Export it from `components/ui/index.ts` and add both variants to the `/dev/ui` gallery (`routes/dev/ui/`).
+
+**Acceptance criteria.**
+
+- [ ] `TabNav.browser.test.tsx` passes unchanged (or with only import changes), including the dark contrast test.
+- [ ] Component test: form tabs switch panels in place with arrow keys and click; hidden panels stay in the DOM and their inputs keep typed values and are included in `FormData`.
+- [ ] Component test: an invalid field on a hidden panel switches to its tab, focuses it, and the tab shows an error marker; the content marker shows when told to.
+- [ ] The gallery test covers the new entry.
+
+## Slice 96: Provider form on two tabs, Essentials and More (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/providers.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 95.
+
+**Build.** `routes/app/groups/providers/ProviderForm.tsx` uses slice 95's form tabs to the approved split. Save (`FormFooter`) stays visible on every tab. Editing opens on Essentials; More shows the content marker when it holds a saved value. A server or native error on More switches there and focuses the field. The sheet's discard prompt (`providerSheetGuard.ts`) still counts fields on every tab.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a new provider saves from Essentials alone; a value typed on More survives switching back and is saved.
+- [ ] Component test: editing a provider with an email opens on Essentials with More marked; an invalid email switches to More and focuses it; the discard prompt fires for a change made only on More.
+
+## Slice 97: Medication form on three tabs, Essentials, Details and Refills (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 95.
+
+**Build.** `routes/app/groups/medications/MedicationForm.tsx` uses slice 95's form tabs to the approved split; Strength and Dose each time share one row, side by side on phones too. The tabs replace the "Prescription details" fold (`hasPrescriptionDetails`, `detailsOpen`, the `data-prescription-details` focus path): every type shows every field on its tab. Save stays visible on every tab; editing opens on Essentials, with the content marker on tabs holding saved values; errors switch tabs and focus the field; the discard prompt counts every tab. Leave the Schedule field as it is (slice 98 changes it). Update `medicationForm.browser.test.tsx` where it tested the fold.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a new medication saves from Essentials alone; values on Details and Refills survive switching and are saved.
+- [ ] Component test: editing one with an Rx number opens on Essentials with Refills marked; an error on Refills switches there and focuses the field; the fold is gone for every type.
+
+## Slice 98: Medication schedule: At set times opens an overlay, the form shows a summary (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 97.
+
+**Build.** In `ScheduleFields.tsx` (used by the medication form), choosing At set times opens an overlay (the passes or times and their amounts) instead of expanding inline; on closing it the form shows a short summary of the chosen times with a way to edit them, so Essentials stays about one iPhone 16 screen. The overlay's values still submit with the form (keep them in the form, e.g. mounted hidden inputs), errors in them reopen the overlay at the field, and the discard prompt still counts them. Use the kit's sheet or dialog patterns over a sheet (read ui-kit first).
+
+**Acceptance criteria.**
+
+- [ ] Component test (`medicationPassSchedule.browser.test.tsx` or the form test): choosing At set times opens the overlay; after choosing times and closing it, the summary lists them and Edit reopens it; saving sends the chosen times.
+- [ ] Component test: an existing medication on set times shows the summary, not the inline fields; an invalid amount reopens the overlay at that field.

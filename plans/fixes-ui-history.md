@@ -4,6 +4,24 @@ Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `p
 
 ## Trimmed 2026-11-26
 
+**Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
+
+**Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
+
+| Slice | Item         | State  | Merge    |
+| ----- | ------------ | ------ | -------- |
+| 94    | B-916        | merged | f1180db4 |
+| 93    | B-909        | merged | 54443809 |
+| 92    | B-908        | merged | e29899de |
+| 91    | B-906        | merged | 1fdf6bb0 |
+| 90    | B-905        | merged | 26b57cd9 |
+| 89    | B-904        | merged | 59623a1e |
+| 88    | B-902        | merged | 8df165c5 |
+| 87    | B-897, B-900 | merged | bc45cde9 |
+| 86    | B-885        | merged | 39d0e40d |
+
+## Trimmed 2026-11-26
+
 **Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
 
 ## Trimmed 2026-11-26
