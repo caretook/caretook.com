@@ -93,3 +93,6 @@ export type { SearchFilterBarProps } from "./SearchFilterBar";
 export { ToastRegion } from "./Toast";
 export { clearToasts, dismissToast, toast, TOAST_TIMEOUT } from "./toastQueue";
 export type { ToastAction, ToastOptions } from "./toastQueue";
+// fixes-ui (slice 92): the full-page loader inside the /app frame (B-908).
+export { PAGE_LOADING_SLOW_AFTER, PageLoading } from "./PageLoading";
+export type { PageLoadingProps } from "./PageLoading";
