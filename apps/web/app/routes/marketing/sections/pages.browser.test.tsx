@@ -38,7 +38,9 @@ test.each([420, 1280])(
     const part = (name: string) => document.querySelector(`[data-lockup-part="${name}"]`);
     expect(part("name")?.textContent).toBe("Caretook");
     expect(part("tagline")?.textContent).toBe("Care, taken.");
-    expect(part("descriptor")?.textContent).toBe("The free care notebook for families.");
+    expect(part("descriptor")?.textContent).toBe(
+      "The free care notebook for families, built by caregivers who've been there.",
+    );
     expect(part("supporting")?.textContent).toBe(heading);
     await expect.element(screen.getByText(lockup.descriptor, { exact: true })).toBeVisible();
     await expect.element(screen.getByText(heading, { exact: true })).toBeVisible();

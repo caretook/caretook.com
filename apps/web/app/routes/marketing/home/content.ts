@@ -30,7 +30,7 @@ export const homeContent = {
     lockup: {
       name: "Caretook",
       tagline: "Care, taken.",
-      descriptor: "The free care notebook for families.",
+      descriptor: "The free care notebook for families, built by caregivers who've been there.",
     },
     heading: "Keep track of someone's care, together.",
     lead: "Caretook is a shared place for a family to keep track of a loved one's care: what happened today, symptoms and vitals, medications, notes from visits, and the doctors and pharmacies to call. Everyone sees the same thing, on any phone, even offline.",
