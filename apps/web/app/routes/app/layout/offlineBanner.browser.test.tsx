@@ -9,8 +9,10 @@ import { OFFLINE_GRACE_MS, OFFLINE_TEXT } from "./OfflineBanner";
 // The offline banner (B-804) in the real /app frame around the probe: shown
 // under the header once PowerSync has been not connected for the grace
 // period, gone at once when it connects, and in the page's flow, clear of the
-// header and the phone tab bar. The grace is timed with fake timers from a
-// drop (the same path as a cold load's); the cold load itself on real time.
+// header and the phone tab bar. The grace is timed with fake timers, from a
+// drop and from a cold load. A drop as long as PowerSync's retry cycle (it
+// drops `connected` for its 5 s retry delay while the network is up, B-840)
+// never shows it.
 
 const url = `/app/groups/${TEST_GROUP.id}/timeline`;
 const open = (options: Parameters<typeof renderWithDevice>[0] = {}) =>
@@ -83,12 +85,25 @@ describe("the offline banner", () => {
     expect(strip()).toBeNull();
   });
 
+  test("a drop as long as PowerSync's retry cycle (5.5 s, then a reconnect) never shows it", async () => {
+    const device = await openThenDrop();
+    vi.advanceTimersByTime(7000);
+    await device.settle();
+    expect(strip()).toBeNull();
+    device.connect(true);
+    vi.advanceTimersByTime(OFFLINE_GRACE_MS * 2);
+    await device.settle();
+    expect(strip()).toBeNull();
+  });
+
   test("a cold load offline: nothing at first, the banner once the grace has passed", async () => {
-    const start = performance.now();
-    await open();
-    // (On a slow machine the render itself can outlast the grace.)
-    if (performance.now() - start < OFFLINE_GRACE_MS - 500) expect(strip()).toBeNull();
+    // Real time still moves (the render needs it); the grace moves by hand.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+    const device = await open();
+    expect(strip()).toBeNull();
     expect(live()).not.toBeNull();
+    vi.advanceTimersByTime(OFFLINE_GRACE_MS);
+    await device.settle();
     await found(strip);
   });
 
