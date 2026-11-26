@@ -19,7 +19,7 @@ export const homeContent = {
   meta: {
     title: "Caretook: Care, taken.",
     description:
-      "The free care notebook for families: a shared place to keep track of a loved one's care, with daily notes, symptoms and vitals, and visits. On any phone, even offline.",
+      "The free care notebook for families: a shared place to keep track of a loved one's care, with daily notes, symptoms and vitals, medications and visits. On any phone, even offline.",
   } satisfies PageMeta,
 
   hero: {
@@ -33,7 +33,7 @@ export const homeContent = {
       descriptor: "The free care notebook for families.",
     },
     heading: "Keep track of someone's care, together.",
-    lead: "Caretook is a shared place for a family to keep track of a loved one's care: what happened today, symptoms and vitals, notes from visits, and soon medications and providers. Everyone sees the same thing, on any phone, even offline.",
+    lead: "Caretook is a shared place for a family to keep track of a loved one's care: what happened today, symptoms and vitals, medications, notes from visits, and the doctors and pharmacies to call. Everyone sees the same thing, on any phone, even offline.",
     primary: { label: "Join the waitlist", href: MARKETING_LINKS.waitlist },
     secondary: { label: "Have an access code?", href: MARKETING_LINKS.join },
   } satisfies HeroContent,
@@ -46,22 +46,22 @@ export const homeContent = {
       {
         icon: "timeline",
         title: "One shared timeline",
-        body: "Log what happened today, a symptom, a reading or a visit in a few taps. Everyone in the family sees the same timeline, in order.",
+        body: "Log what happened today, a symptom, a reading or a visit in a few taps, or type it in one line. Everyone in the family sees the same timeline, in order.",
       },
       {
         icon: "notes",
         title: "Notes written together",
-        body: "Take notes at an appointment while your brother adds what he heard on the phone. You both see the note as it's written.",
+        body: "Take notes at a visit while your brother adds what he heard on the phone. You both see the note as it's written.",
       },
       {
-        icon: "vitals",
-        title: "Vitals at a glance",
-        body: "Blood pressure, temperature, weight, sleep and more, with the latest readings always at the top.",
+        icon: "medications",
+        title: "Medications and doses",
+        body: "One list of what they take, a schedule for today, and one tap to log a dose as given, skipped or refused.",
       },
       {
-        icon: "family",
-        title: "Family, with the right access",
-        body: "Caretakers can add and edit. Viewers can follow along without changing anything.",
+        icon: "planner",
+        title: "What's coming up",
+        body: "Events and todos in one planner, with who's doing what. See them in your own calendar, with a reminder email if you want one.",
       },
     ],
   } satisfies FeatureGridContent,
@@ -103,7 +103,7 @@ export const homeContent = {
       },
       {
         title: "Log from any phone",
-        body: "Add a note, a symptom or a reading in seconds, even with no signal. It syncs when you're back online.",
+        body: "Add a note, a reading or a dose in seconds, even with no signal. It syncs when you're back online.",
       },
     ],
   } satisfies StepsContent,

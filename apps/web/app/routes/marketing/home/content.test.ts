@@ -73,6 +73,15 @@ describe("homeContent", () => {
     }
   });
 
+  it("picks four or five things it helps with, medications among them, and nothing as coming", () => {
+    const { items } = homeContent.helps;
+    expect(items.length).toBeGreaterThanOrEqual(4);
+    expect(items.length).toBeLessThanOrEqual(5);
+    expect(items.map((i) => i.icon)).toContain("medications");
+    expect(homeContent.hero.lead).toMatch(/medications/);
+    expect(homeContent.hero.lead).not.toMatch(/\bsoon\b/i);
+  });
+
   it("keeps the privacy promise: no ads, not sold, no trackers, no AI training, deletion", () => {
     const text = homeContent.promise.items.map((i) => `${i.title} ${i.body}`).join(" ");
     for (const point of [/no ads/i, /sell/i, /trackers/i, /train/i, /delete/i]) expect(text).toMatch(point);
