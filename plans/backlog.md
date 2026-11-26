@@ -294,7 +294,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-829 | question | triaged | marketing |  | Research: compare Care Book to Caring Village |
 | B-830 | bug | triaged | fixes-bug |  | Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY |
 | B-831 | feature | triaged | data-rights |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
-| B-833 | change | in-progress | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
+| B-833 | change | ready | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | triaged | test-time-gates |  | Time limit gates for component tests, unit tests and the local quick check |
 | B-838 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
@@ -302,12 +302,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
 | B-842 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
-| B-843 | bug | in-progress | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
+| B-843 | bug | ready | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
 | B-844 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
 | B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 | B-846 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
 | B-847 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
-| B-848 | bug | in-progress | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
+| B-848 | bug | ready | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
 | B-849 | change | in-progress | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
 | B-850 | change | in-progress | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
@@ -2068,10 +2068,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-833 · change · Quick entry tips' examples should use the group's own provider and medication
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 4f356153
 
 - 2026-11-25 (Robert Bo Davis): Triage: fixes-ui (wording in the quick entry tips: the example names one of the group's own providers, falling back to a fictional one). Say 'event', not 'appointment' (B-537).
 - 2026-11-25 (Robert Bo Davis): Widened (the user, 2026-11-25): the medication example too. In quickEntryCopy.ts's QUICK_ENTRY_EXAMPLES, 'appt Dr Lee Friday 2pm' names one of the group's providers and 'gave metformin' one of the group's medications, each falling back to the fictional default when the group has none. The box's accessible description (QUICK_ENTRY_RULES) reads the same lines. Say 'event', not 'appt' (B-537).
@@ -2146,10 +2146,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-843 · bug · Group settings Members: pending-invite and invite-link cards are crowded on a phone
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 4f356153
 
 - 2026-11-25 (Robert Bo Davis): From a phone screenshot (2026-11-25, staging, dark theme). Invite links card: the details column squeezes to one word per line ('Used / 1 / of / 10 / times …') and 'Expires Dec' runs under the Copy and Share buttons. Pending invitations card: the email is cut to 'sam.invited@e…' and the meta wraps over five lines beside Resend and Revoke. Fix: at narrow widths put the actions on their own row under the details (or in a menu), let the email wrap or show it in full. The 'Couldn't load this link' error and greyed Copy/Share on the same card are B-830 (staging seed without INVITE_LINK_KEY), not this item.
 
@@ -2197,10 +2197,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-848 · bug · Right nav links overlap the recipient selector and header menu on medium-sized screens
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 4f356153
 
 - 2026-11-25 (Robert Bo Davis): Triage: header layout at medium widths (B-848) and View menu wording (B-849); small UI fixes
 
