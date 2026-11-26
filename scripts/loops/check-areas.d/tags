@@ -6,3 +6,6 @@ packages/data/src/db/schema/tags/        roundtrip
 apps/web/app/lib/tags/                   roundtrip
 # No browser check reads them; seeds/tags.test.ts checks them.
 packages/data/src/db/seeds/tags.ts       -
+# The chips and the picker sheet (slice 2) are component tests on the screens
+# that use them (timeline/timelineTags, entry/entryTags browser tests).
+apps/web/app/components/tags/            -
