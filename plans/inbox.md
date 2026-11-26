@@ -28,6 +28,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - nested todos (B-550)
 - Connector: tags and tagging (list tags, filter by a tag, add and remove tags on records) for groups that have turned on sharing medical information with connectors (B-861)
   The user's word 2026-11-25: connectors DO need tags when the group shares medical information; the tags PRD (B-548) keeps them out, so this follows it.
+- Backlog agent can hand off with instructions the next agent actually follows, continuing the work without asking its first question, when the user asked for a handoff that way
 
 ## Big plans
 
