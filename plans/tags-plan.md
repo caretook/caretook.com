@@ -10,7 +10,7 @@
 
 **Models:** slice 1 opus.
 
-**Wave 1:** slice 1 (two opus agents: build, then the `roundtrip` step) merged as 7e67f8a9. CI `full` green on 98e1019b (run 45759404517); `tags-1` removed. Dev synced (tooling only); `full` recheck requested on the synced tip. `browser --changed`: 10/11 pass, `ui.spec` the known flake B-808 (noted; no UI in this wave). PR #206 open; Codex review waiting. Filed B-862 (roundtrip cleanup gap, fixes-tooling). Placeholder `docs/domain/tags.md` (libLayout.test needs it): replace at landing.
+**Wave 1:** slice 1 (two opus agents: build, then the `roundtrip` step) merged as 7e67f8a9. CI `full` green on 98e1019b (run 45759404517); `tags-1` removed. Dev synced (tooling only); `full` recheck green on 6479a4c1 (run 45760695334). `browser --changed`: 10/11 pass, `ui.spec` the known flake B-808 (noted; no UI in this wave). PR #206; Codex out of credits (exit 4): landing `--no-review`. Docs: `docs/domain/tags.md` written, _Area index_ entry added. Filed B-862 (roundtrip cleanup gap, fixes-tooling). **Landing wave 1 now.**
 
 | Slice | Wave | State       | Merge into `prd/tags` (slice commits)   |
 | ----- | ---- | ----------- | --------------------------------------- |
