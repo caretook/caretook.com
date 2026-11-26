@@ -272,47 +272,54 @@ function InviteLink({
 
   return (
     <ListRow data-invite-link={link.id} data-link-state={link.state} className="space-y-1">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Link2 aria-hidden="true" className="text-base-content/60 size-5 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{label}</p>
-          <p className="text-base-content/70 text-sm" data-link-uses="">
-            {linkStatusLine(link)}
-            {link.sentBy?.name ? ` · Made by ${link.sentBy.name}` : ""}
-          </p>
+      {/* The details take the card's width; the actions go below them on a phone, beside them from 28rem (B-843). */}
+      <div className="flex items-start gap-3">
+        <Link2 aria-hidden="true" className="text-base-content/60 mt-0.5 size-5 shrink-0" />
+        <div className="@container min-w-0 flex-1">
+          <div className="flex flex-col gap-2 @md:flex-row @md:items-center">
+            <div className="min-w-0 flex-1 wrap-anywhere" data-link-details="">
+              <p className="font-medium">{label}</p>
+              <p className="text-base-content/70 text-sm" data-link-uses="">
+                {linkStatusLine(link)}
+                {link.sentBy?.name ? ` · Made by ${link.sentBy.name}` : ""}
+              </p>
+            </div>
+            <div data-link-actions="" className="flex shrink-0 flex-wrap items-center gap-2">
+              {active && (
+                <>
+                  <Button
+                    size="sm"
+                    icon={Copy}
+                    disabled={!url || revoking}
+                    aria-label={`Copy the ${label.toLowerCase()}`}
+                    onClick={copy}
+                  >
+                    Copy
+                  </Button>
+                  <Button
+                    size="sm"
+                    icon={Share2}
+                    disabled={!url || revoking}
+                    aria-label={`Share the ${label.toLowerCase()}`}
+                    onClick={share}
+                  >
+                    Share
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                busy={revoking}
+                busyLabel="Revoking…"
+                aria-label={`Revoke the ${label.toLowerCase()}`}
+                onClick={onRevoke}
+              >
+                Revoke
+              </Button>
+            </div>
+          </div>
         </div>
-        {active && (
-          <>
-            <Button
-              size="sm"
-              icon={Copy}
-              disabled={!url || revoking}
-              aria-label={`Copy the ${label.toLowerCase()}`}
-              onClick={copy}
-            >
-              Copy
-            </Button>
-            <Button
-              size="sm"
-              icon={Share2}
-              disabled={!url || revoking}
-              aria-label={`Share the ${label.toLowerCase()}`}
-              onClick={share}
-            >
-              Share
-            </Button>
-          </>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          busy={revoking}
-          busyLabel="Revoking…"
-          aria-label={`Revoke the ${label.toLowerCase()}`}
-          onClick={onRevoke}
-        >
-          Revoke
-        </Button>
       </div>
       <Message tone="success">
         {outcome === "copied" ? "Link copied." : outcome === "shared" ? "Link shared." : null}
