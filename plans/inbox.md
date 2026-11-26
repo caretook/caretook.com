@@ -21,6 +21,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation (B-887)
   Move this section so it's the first item after the timeline on the features page.
 - Features page should highlight easy mode (B-888)
+- Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm
 
 ## Feature requests
 
