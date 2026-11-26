@@ -18,7 +18,8 @@ import {
   UNDO_NEXT_METADATA,
 } from "@caretook/data/schema";
 import { eq, sql } from "drizzle-orm";
-import { noteDocuments, timelineEntryTodos, todos } from "../sync/schema";
+import { noteDocuments, recordTags, timelineEntryTodos, todos } from "../sync/schema";
+import { recordTagRow } from "../tags/tags.sync";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
 import { entryTodoRow } from "./entryTodos.sync";
 
@@ -135,6 +136,8 @@ export type TodosFilter = {
   userId?: string;
   /** At most this many (the Done list's pages). */
   limit?: number;
+  /** Only the todos carrying this tag (`?tag=`; tags PRD). */
+  tagId?: string | null;
 };
 
 const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unknown[] } => {
@@ -147,12 +150,22 @@ const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unkn
   return { sql: "", params: [] };
 };
 
+/** The chip's condition and the tag's, ANDed. */
+const filterCondition = (filter: TodosFilter): { sql: string; params: unknown[] } => {
+  const who = whoCondition(filter);
+  if (!filter.tagId) return who;
+  return {
+    sql: `${who.sql} AND id IN (SELECT todo_id FROM record_tag WHERE tag_id = ? AND todo_id IS NOT NULL)`,
+    params: [...who.params, filter.tagId],
+  };
+};
+
 /**
  * A group's live todos: open ones by due day (sort them with `todoOrder`,
  * which knows the zone), or done ones newest first.
  */
 export const todosQuery = (groupId: string, filter: TodosFilter = {}): LocalQuery => {
-  const who = whoCondition(filter);
+  const who = filterCondition(filter);
   return {
     sql: `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL
           AND done_at IS ${filter.done ? "NOT NULL" : "NULL"}${who.sql}
@@ -165,9 +178,9 @@ export const todosQuery = (groupId: string, filter: TodosFilter = {}): LocalQuer
 /** How many done todos the chip shows (the Done list's "Show more"). */
 export const doneCountQuery = (
   groupId: string,
-  filter: Pick<TodosFilter, "who" | "userId"> = {},
+  filter: Pick<TodosFilter, "who" | "userId" | "tagId"> = {},
 ): LocalQuery => {
-  const who = whoCondition(filter);
+  const who = filterCondition(filter);
   return {
     sql: `SELECT COUNT(*) AS count FROM todo WHERE group_id = ? AND deleted_at IS NULL AND done_at IS NOT NULL${who.sql}`,
     params: [groupId, ...who.params],
@@ -457,6 +470,15 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   const now = nowTimestamp();
   // The group and recipient never change; `event_id` isn't this device's to write.
   const { id, groupId, recipientId, eventId: _e, ...content } = next;
+  // The ticked todo's tags go on the next (tags PRD), with the link ids the
+  // server's copy derives, so a viewer's upload of them is a replay. Not a
+  // tagging: whoever may tick carries them (a restored next may have some).
+  const tagLinks = await readRows<{ tag_id: string }>(db, {
+    sql: `SELECT tag_id FROM record_tag WHERE todo_id = ?
+            AND tag_id NOT IN (SELECT tag_id FROM record_tag WHERE todo_id = ?)
+          ORDER BY created_at, id`,
+    params: [todo.id, id],
+  });
   return async (tx: Tx) => {
     if (row) {
       await tx
@@ -474,6 +496,9 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
         createdBy: db.userId,
         updatedBy: db.userId,
       });
+    }
+    for (const { tag_id: tagId } of tagLinks) {
+      await tx.insert(recordTags).values(recordTagRow(db, groupId, tagId, "todo", id));
     }
   };
 };

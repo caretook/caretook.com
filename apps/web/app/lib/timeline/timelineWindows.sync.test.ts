@@ -212,3 +212,36 @@ describe("a jump's bound (historyWindow's before)", () => {
     expect(medications.params).toEqual([GROUP, ...window.params]);
   });
 });
+
+describe("the tag (EntryFilters.tag)", () => {
+  const URGENT = "a1b2c3d4-0000-5000-8000-0000000000aa";
+  const TAGGED =
+    "timeline_entry.id IN (SELECT l.entry_id FROM record_tag l WHERE l.tag_id = ? AND l.group_id = timeline_entry.group_id)";
+  const match = { sql: "timeline_entry.id IN (SELECT x)", params: ["walk*", GROUP] };
+
+  it("narrows the history to entries carrying it, after the kind and author", () => {
+    const window = historyWindow(GROUP, { kind: "note", author: AUTHOR, tag: URGENT }, 30, CUTOFF);
+    expect(one(window.sql)).toContain(`AND kind = ? AND created_by = ? AND ${TAGGED} AND (NOT kind`);
+    expect(window.params).toEqual([GROUP, "note", AUTHOR, URGENT, local(CUTOFF), 31]);
+  });
+
+  it("with a search, both apply: the tag, then the match", () => {
+    const window = historyWindow(GROUP, { ...NONE, tag: URGENT, match }, 30, CUTOFF);
+    expect(one(window.sql)).toContain(`AND ${TAGGED} AND (timeline_entry.id IN (SELECT x)) AND (NOT kind`);
+    expect(window.params).toEqual([GROUP, URGENT, "walk*", GROUP, local(CUTOFF), 31]);
+  });
+
+  it("is in the shared window and upcoming, so the links, medications and paging follow it", () => {
+    const filters = { ...NONE, tag: URGENT };
+    expect(one(entryWindow(GROUP, filters, 30).sql)).toContain(TAGGED);
+    expect(one(timelineLinksQuery(GROUP, filters, 30, CUTOFF).sql)).toContain(TAGGED);
+    expect(one(timelineMedicationsQuery(GROUP, filters, 30, CUTOFF).sql)).toContain(TAGGED);
+    expect(one(upcomingWindow(GROUP, filters, NOW).sql)).toContain(TAGGED);
+  });
+
+  it("no tag is no condition", () => {
+    expect(historyWindow(GROUP, { ...NONE, tag: null }, 30, CUTOFF)).toEqual(
+      historyWindow(GROUP, NONE, 30, CUTOFF),
+    );
+  });
+});

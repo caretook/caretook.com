@@ -35,6 +35,15 @@ export const TODOS_ERRORS = {
     message: "You can only complete or reopen todos assigned to you",
     statusCode: 403,
   },
+  "todoService:badParent": {
+    message:
+      "A subtask's parent must be a live todo in this care group that doesn't repeat, at most 3 levels deep",
+    statusCode: 400,
+  },
+  "todoService:repeatWithSubtasks": {
+    message: "A subtask, or a todo with subtasks, can't repeat",
+    statusCode: 400,
+  },
   "entryTodoService:invalid": {
     message: "The todo link is invalid",
     statusCode: 400,

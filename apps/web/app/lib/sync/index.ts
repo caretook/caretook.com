@@ -54,6 +54,7 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
           medicationConditions: await import("../profiles/medicationConditions.sync"),
           notes: await import("../live-notes/notes.sync"),
           entryTodos: await import("../todos/entryTodos.sync"),
+          tags: await import("../tags/tags.sync"),
         });
       }
       // The search index follows the database (built in the background).
@@ -174,12 +175,34 @@ const subscribeToStatus = (onChange: () => void) =>
   ready ? ready.powersync.registerListener({ statusChanged: onChange }) : () => undefined;
 const firstSyncDoneSnapshot = () => !!ready && isFirstSyncDone(ready);
 
+// Watch results wait for the next frame and are handed over together, so React
+// renders them once (B-633). Each watch's result arrives in a task of its own,
+// and a screen's state update renders it at once: a screen mounting with a
+// dozen watches (the timeline back from an entry's page, three pages of rows)
+// rendered once per watch, and each later query waited behind the render
+// before it (fourteen ~70 ms renders in a row on a laptop, past 5 s on a
+// loaded CI runner). The timer is for a hidden page, which runs no frames.
+let waiting: (() => void)[] | null = null;
+const FRAMELESS_FLUSH_MS = 100;
+const flushResults = () => {
+  const due = waiting;
+  waiting = null;
+  for (const hand of due ?? []) hand();
+};
+const nextFrameResult = (hand: () => void) => {
+  if (waiting) return void waiting.push(hand);
+  waiting = [hand];
+  requestAnimationFrame(flushResults);
+  setTimeout(flushResults, FRAMELESS_FLUSH_MS);
+};
+
 /**
  * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
- * result to `onRows`; returns the cleanup. With no database open it watches
- * nothing: a component can still mount while sign-out is closing the
- * database (a watch result arriving mid-sign-out renders a new child), and
- * there's nothing left to show it then.
+ * result to `onRows`, at the next frame with every other watch's result that
+ * came in meanwhile (above); returns the cleanup, after which nothing more is
+ * passed. With no database open it watches nothing: a component can still
+ * mount while sign-out is closing the database (a watch result arriving
+ * mid-sign-out renders a new child), and there's nothing left to show it then.
  */
 export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
   if (!ready) return () => undefined;
@@ -189,7 +212,12 @@ export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (()
     watchSql,
     watchParams,
     {
-      onResult: (result) => onRows((result.rows?._array ?? []) as T[]),
+      onResult: (result) => {
+        const rows = (result.rows?._array ?? []) as T[];
+        nextFrameResult(() => {
+          if (!controller.signal.aborted) onRows(rows);
+        });
+      },
       onError: (error) => console.error("Local query failed", error),
     },
     { signal: controller.signal, throttleMs: 30 },

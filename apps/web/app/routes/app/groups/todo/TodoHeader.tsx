@@ -11,7 +11,8 @@ import { todoBadge } from "./todoPage";
  *
  * - `via`: the member's AI assistant it was added through ("via Claude"), when it was.
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Edit (the edit sheet) and ⋯ with Reopen and Delete, for writers.
+ * - `actions`: Edit (the edit sheet) and ⋯ with Tags, Reopen and Delete, for writers.
+ * - `tags`: its tags' chips, under the title (every role; tags PRD).
  */
 export function TodoHeader({
   title,
@@ -19,12 +20,14 @@ export function TodoHeader({
   editors,
   actions,
   via,
+  tags,
 }: {
   title: string;
   state: TodoState;
   via?: string | null;
   editors?: ReactNode;
   actions?: ReactNode;
+  tags?: ReactNode;
 }) {
   const badge = todoBadge(state);
   return (
@@ -45,6 +48,8 @@ export function TodoHeader({
           </>
         )
       }
+      details={tags}
+      detailsProps={{ "data-todo-tags": "" }}
       editors={editors}
       actions={actions}
     />

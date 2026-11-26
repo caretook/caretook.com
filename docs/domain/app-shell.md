@@ -4,7 +4,7 @@
 
 - header `group` (left): the Caretook link (mark only below `sm` on group routes), then `GroupMenu` on group routes. The header isn't sticky;
 - header `sections` (`hidden sm:flex`): `SectionNav` (icons only below `lg`, `sr-only`; `GroupMenu` truncates); `status`: `SyncIndicator` ("Offline · N waiting"; "N not saved" links to that page); `user`: `UserMenu`;
-- under the header: `Announcement` (right after `header`), then `OfflineBanner` (in flow; shows after 3 s not connected, `useSyncState`, so a cold load doesn't flash it);
+- under the header: `Announcement` (right after `header`), then `OfflineBanner` (in flow, `useSyncState`; after 10 s offline, past a cold load and PowerSync's 5 s retry);
 - the outlet, then `TabBar` (phones, group routes), then `ToastRegion`; `UpdateNotice` toasts "A new version is ready" · Reload.
 - **Starting up:** `root.tsx`'s `HydrateFallback` is `brand/AppLoading`, invisible for 300 ms by CSS (`[data-app-loading]`: it shows before scripts run).
 - **Typeface:** Atkinson Hyperlegible Next in `app/fonts/` (`SOURCE.txt`), preloaded by `root.tsx`.

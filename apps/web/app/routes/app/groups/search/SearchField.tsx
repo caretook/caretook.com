@@ -23,6 +23,7 @@ export function SearchField({
   groupId,
   urlQuery,
   period,
+  tag = null,
   label,
   onUsed,
 }: {
@@ -30,6 +31,8 @@ export function SearchField({
   urlQuery: string;
   /** The care period the search is narrowed to: kept as the text changes (and dropped with it). */
   period: string | null;
+  /** The tag filter: kept as the text changes. */
+  tag?: string | null;
   label: string;
   /** The search was used: the field was left, or submitted, with text in it. */
   onUsed: (q: string) => void;
@@ -60,7 +63,7 @@ export function SearchField({
 
   const commit = (value: string) => {
     clearTimeout(timer.current);
-    void navigate(appUrls.search(groupId, value, { period }), {
+    void navigate(appUrls.search(groupId, value, { period, tag }), {
       replace: true,
       preventScrollReset: true,
       state: FROM_FIELD,

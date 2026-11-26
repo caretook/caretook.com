@@ -184,6 +184,11 @@ export type { BackfillSummary as SymptomBackfillSummary } from "./symptomTypeSer
 import * as entryTodoService from "./entryTodoService";
 export { entryTodoService };
 
+import * as tagService from "./tagService";
+export { tagService };
+import * as recordTagService from "./recordTagService";
+export { recordTagService };
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -224,6 +229,8 @@ export const services = {
   reminderOverride: reminderOverrideService,
   symptomType: symptomTypeService,
   entryTodo: entryTodoService,
+  tag: tagService,
+  recordTag: recordTagService,
 };
 
 export type ServiceTypeMap = typeof services;

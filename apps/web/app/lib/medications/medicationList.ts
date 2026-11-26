@@ -1,9 +1,17 @@
 import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
 
-import { MEDICATION_STATUSES, MEDICATION_TYPES } from "@caretook/data/schema";
-import { fold, queryTokens } from "../providers/providerDirectory";
+import type { TagsByRecord } from "../providers/providerDirectory";
 
-// The medication list: its filters in the URL (`?q=`, `?status=`, `?type=`), the
+import {
+  MEDICATION_STATUSES,
+  MEDICATION_TYPES,
+  TAG_PARAM,
+  tagFromParams,
+  withTagParam,
+} from "@caretook/data/schema";
+import { fold, hasTag, queryTokens } from "../providers/providerDirectory";
+
+// The medication list: its filters in the URL (`?q=`, `?status=`, `?type=`, `?tag=`), the
 // display order, and search matching. Pure: no React or database here; the
 // list uses it, and web:unit tests it.
 //
@@ -18,6 +26,8 @@ export type MedicationFilters = {
   status: MedicationStatus | null;
   /** One type, or null for all of them. */
   type: MedicationType | null;
+  /** One tag's id (tags PRD), or null. Whether the group has it is the screen's to check (`activeTag`). */
+  tag?: string | null;
 };
 
 export const QUERY_PARAM = "q";
@@ -39,17 +49,19 @@ export const parseMedicationFilters = (search: string): MedicationFilters => {
     q: (params.get(QUERY_PARAM) ?? "").trim(),
     status: isMedicationStatus(status) ? status : null,
     type: isMedicationType(type) ? type : null,
+    tag: tagFromParams(params),
   };
 };
 
-/** `search` with the filters replaced: q, status, type, then whatever else was there. */
+/** `search` with the filters replaced: q, status, type, tag, then whatever else was there. */
 const withFilters = (search: string, next: MedicationFilters) => {
   const params = new URLSearchParams(search);
-  for (const key of [QUERY_PARAM, STATUS_PARAM, TYPE_PARAM]) params.delete(key);
-  const out = new URLSearchParams();
+  for (const key of [QUERY_PARAM, STATUS_PARAM, TYPE_PARAM, TAG_PARAM]) params.delete(key);
+  let out = new URLSearchParams();
   if (next.q) out.set(QUERY_PARAM, next.q);
   if (next.status) out.set(STATUS_PARAM, next.status);
   if (next.type) out.set(TYPE_PARAM, next.type);
+  out = withTagParam(out, next.tag ?? null);
   for (const [key, value] of params) out.append(key, value);
   const text = out.toString();
   return text ? `?${text}` : "";
@@ -64,8 +76,12 @@ const change = (search: string, patch: Partial<MedicationFilters>) => {
   // A status or type the module doesn't know ("all", a typo) is dropped on the next change.
   const tidy =
     (rawStatus === null || isMedicationStatus(rawStatus)) && (rawType === null || isMedicationType(rawType));
-  if (next.q === current.q && next.status === current.status && next.type === current.type && tidy)
-    return search;
+  const same =
+    next.q === current.q &&
+    next.status === current.status &&
+    next.type === current.type &&
+    next.tag === current.tag;
+  if (same && tidy) return search;
   return withFilters(search, next);
 };
 
@@ -85,6 +101,18 @@ export const setType = (search: string, type: MedicationType) =>
 
 /** Every type again. */
 export const clearType = (search: string) => change(search, { type: null });
+
+/** Show the medications with one tag (an id). Not an id changes nothing. */
+export const setTag = (search: string, tagId: string) => {
+  const tag = tagFromParams(withTagParam(new URLSearchParams(), tagId));
+  return tag ? change(search, { tag }) : search;
+};
+
+/** Every tag again. */
+export const clearTag = (search: string) => change(search, { tag: null });
+
+/** Clear filters: the status, type and tag, keeping the search. */
+export const clearFilters = (search: string) => change(search, { status: null, type: null, tag: null });
 
 // ---------------------------------------------------------------------------
 // Order and matching
@@ -125,14 +153,20 @@ export type MedicationList<M extends ListedMedication> = {
   stopped: M[];
 };
 
-/** The list for these filters: the medications that match the type, status and search, in display order. */
+/**
+ * The list for these filters: the medications that match the type, status,
+ * tag (by `tags`; pass the tag only once `activeTag` knows it) and search,
+ * in display order.
+ */
 export const medicationList = <M extends ListedMedication>(
   medications: readonly M[],
   filters: MedicationFilters,
+  tags?: TagsByRecord,
 ): MedicationList<M> => {
   const tokens = queryTokens(filters.q);
   const matching = medications
     .filter((m) => !filters.type || m.type === filters.type)
+    .filter((m) => hasTag(tags, m.id, filters.tag ?? null))
     .filter((m) => !filters.status || m.status === filters.status)
     .filter((m) => matchesMedication(m, tokens))
     .sort(compareMedications);

@@ -36,4 +36,13 @@ describe("seed", () => {
     expect(isError(res) && res.code).toBe("db:seed:password");
     expect(await seededAdmin()).toEqual([]);
   });
+
+  it("refuses staging without INVITE_LINK_KEY (B-830)", async () => {
+    vi.stubEnv("APP_ENV", "staging");
+    vi.stubEnv("SEED_USER_PASSWORD", "a-long-fictional-staging-password");
+    vi.stubEnv("INVITE_LINK_KEY", "");
+    const res = await seed();
+    expect(isError(res) && res.code).toBe("db:seed:linkKey");
+    expect(await seededAdmin()).toEqual([]);
+  });
 });
