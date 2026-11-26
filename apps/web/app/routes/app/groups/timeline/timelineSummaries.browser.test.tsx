@@ -146,7 +146,10 @@ describe("the day summary", () => {
     await waitUntil(() => summaries().length === 2);
     const choose = async (mode: string) => {
       await userEvent.click(device.screen.getByRole("button", { name: "View options" }));
-      await userEvent.click(device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }));
+      // The Layout choice "Full" comes first in the menu; the summary mode is the last match.
+      await userEvent.click(
+        device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }).last(),
+      );
     };
 
     await choose("Full");
