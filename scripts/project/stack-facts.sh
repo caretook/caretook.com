@@ -280,6 +280,8 @@ docker_kb() {
 # uses (stack.sh leftovers): volume=, image= and kept= lines. The PROJECTs are
 # in use, and so are the main checkout's (caretook) and the shared test
 # Postgres's, and each PROJECT's -test (worktrees made before the shared one).
+# The plain read (tidy's) lists dangling volumes alone, cheaply, and gives their
+# size as ?; --all reads every volume's size (docker system df -v).
 leftovers() {
   local used vname vsize links labels vproj others=0 id isize shared p
   docker info >/dev/null 2>&1 || { echo "kept=Docker isn't running: volumes and images not checked"; return 0; }
@@ -298,11 +300,15 @@ leftovers() {
     elif [[ $used == *" $vproj "* ]]; then
       [[ -z $all ]] || echo "kept=volume $vname: $vproj is still in use (the main checkout, the shared test Postgres or a worktree's stack)"
     elif [[ $vproj =~ ^caretook-loop[0-9]+(-test)?$ ]]; then
-      echo "volume=$vname $(docker_kb "$vsize") dangling; no worktree uses $vproj"
+      echo "volume=$vname $([[ $vsize == "?" ]] && echo "?" || docker_kb "$vsize") dangling; no worktree uses $vproj"
     else
       others=$((others + 1))
     fi
-  done < <(docker system df -v --format '{{range .Volumes}}{{.Name}} {{.Size}} {{.Links}} {{.Labels}}{{println}}{{end}}' 2>/dev/null || true)
+  done < <(if [[ -n $all ]]; then
+    docker system df -v --format '{{range .Volumes}}{{.Name}} {{.Size}} {{.Links}} {{.Labels}}{{println}}{{end}}'
+  else
+    docker volume ls --filter dangling=true --format '{{.Name}} ? 0 {{.Labels}}'
+  fi 2>/dev/null || true)
   [[ -z $all ]] && return 0
   ((others == 0)) || echo "kept=$others dangling volume(s) of other Compose projects, or named outside Compose: not caretook's, left alone"
   while read -r id isize; do

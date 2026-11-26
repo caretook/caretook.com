@@ -34,6 +34,7 @@ case $1 in
   inspect) [[ -z \${FAKE_INSPECT:-} ]] || echo "$FAKE_INSPECT" ;;
   info) countdown boot && exit 1; exit "\${FAKE_INFO:-0}" ;;
   system) [[ -z \${FAKE_DF:-} ]] || echo "$FAKE_DF" ;;
+  volume) [[ $2 != ls || -z \${FAKE_VOLUMES:-} ]] || echo "$FAKE_VOLUMES" ;;
   images) [[ -z \${FAKE_IMAGES:-} ]] || echo "$FAKE_IMAGES" ;;
 esac
 exit 0
@@ -346,11 +347,20 @@ describe("stop, start, stopped_secs, engine and leftovers", () => {
       "abc123 21.03kB 0 com.docker.volume.anonymous=",
       "linked 1MB 1 com.docker.compose.project=caretook-loop9",
     ].join("\n");
-    const e = { env: { FAKE_DF: df, FAKE_IMAGES: "sha256img 2GB" } };
+    // The plain read (tidy's): Docker's dangling listing, no sizes.
+    const dangling = df
+      .split("\n")
+      .filter((l) => l.split(" ")[2] === "0")
+      .map((l) => l.replace(/ \S+ 0 /, " ? 0 "))
+      .join("\n");
+    const e = { env: { FAKE_DF: df, FAKE_VOLUMES: dangling, FAKE_IMAGES: "sha256img 2GB" } };
     expect(ok(["leftovers", "caretook-loop6"], e).trim().split("\n")).toEqual([
-      "volume=caretook-loop9_data 12500 dangling; no worktree uses caretook-loop9",
+      "volume=caretook-loop9_data ? dangling; no worktree uses caretook-loop9",
     ]);
+    expect(calls()).toMatch(/^docker volume ls --filter dangling=true /m);
+    expect(calls()).not.toMatch(/docker system df/);
     const all = ok(["leftovers", "--all", "caretook-loop6"], e);
+    expect(all).toMatch(/^volume=caretook-loop9_data 12500 dangling; no worktree uses caretook-loop9$/m);
     expect(all).toMatch(/^volume=abc123 21 dangling, anonymous$/m);
     expect(all).toMatch(/^image=sha256img 2000000 dangling \(untagged\)$/m);
     expect(all).toMatch(/^kept=volume caretook-loop6_data: caretook-loop6 is still in use/m);
