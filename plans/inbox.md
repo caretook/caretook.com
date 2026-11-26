@@ -32,6 +32,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 - Tags on everything so users can organize data how they want. (B-548)
 - nested todos (B-550)
+- Connector: tags and tagging (list tags, filter by a tag, add and remove tags on records) for groups that have turned on sharing medical information with connectors
+  The user's word 2026-11-25: connectors DO need tags when the group shares medical information; the tags PRD (B-548) keeps them out, so this follows it.
 
 ## Big plans
 
