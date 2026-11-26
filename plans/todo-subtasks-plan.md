@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 3 running.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 3 landed, wave 4 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 3 landed** in `dev` as 9e36c09d through PR #221, tier `full` (run 45836811361 on 12fd15ff, green), **without Codex (out of credits)**. to-test `to-test/2026-11-26-0923-todo-subtasks.md`. **Next:** wave 4 (slice 4, the device rollup; gate `roundtrip` per the plan), from a fresh session after rotation.
 
 **Wave 3 (2026-11-26):** resumed on the backlog session's word (the pause is lifted; ask a266 dismissed). Ingest: nothing new for this topic. Dev synced at ebf957fb (no migrations; schema tidy only). Worktree `.loops/todo-subtasks-3` (slot 3) made; slice 3 agent (opus) spawned, told to add the `openSubtasks`/`badParent`/`repeatWithSubtasks` wording on the "Not saved" page. Slice 3 handed off (181f873c; quick check passed), merged at 12fd15ff. Gate: `full` CI (tier tool said `components`; the plan's `full` for the device schema and upload registry), run 45836811361 on 12fd15ff **green**. Slice 3 worktree removed. Sync: up to date with dev. Docs folded (todos.md _Subtasks_ device bullet, sync.md `createOnly`; trimmed under budget). Next: PR, Codex review, land `--tier full`. Slice 3 notes: `subtaskProgressQuery(groupId)` + `progressByParent`, `subtasksQuery`; `removeTodo` returns `{ ok }`; `updateTodo` also refuses a repeat on a subtask or parent; `createOnly: { parent_id }` in syncRegistry.
 
