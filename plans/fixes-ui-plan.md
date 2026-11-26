@@ -21,7 +21,7 @@ Notes for every wave:
 
 **Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
 
-**Wave 15 (2026-11-25):** ingest and list done; prd/fixes-ui up to date with dev. Slice 85 (B-857, quick entry previews say Event) on sonnet, handed off (4ae8d799) and merged as 5f191304; CI integration run requested (the wave gate). Worktree fixes-ui-85 kept until green. Still held: B-694 (the user approves each form live), B-325 (Capacitor). Hot files: `packages/data/src/db/schema/assistant/`.
+**Wave 15 (2026-11-25):** ingest and list done; prd/fixes-ui up to date with dev. Slice 85 (B-857, quick entry previews say Event) on sonnet, handed off (4ae8d799) and merged as 5f191304; CI integration green (run 45750856542, de32eac7); sync needed no merge; worktree removed; PR #203 open, Codex review waiting. Browser checks: none needed (`--changed`). Still held: B-694 (the user approves each form live), B-325 (Capacitor). Hot files: `packages/data/src/db/schema/assistant/`.
 
 | Slice | Item  | State            | Merge |
 | ----- | ----- | ---------------- | ----- |
