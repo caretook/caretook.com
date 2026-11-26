@@ -14,7 +14,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | --- | ----- | ----- | --------- | ------------- |
 | `test-time-gates` | — | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
 | `test-time-gates-2` | — | `test-time-gates` | — | — |
-| `fixes-ui` | standing | — | `apps/web/app/routes/app/home/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/layout/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/components/entry/`, `apps/web/app/components/notes/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `packages/data/src/db/schema/assistant/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `tags` | — | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `todo-subtasks` | — | `planner-3`, `tags` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/app-shell/unsavedChanges.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
@@ -22,7 +22,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
-| `data-rights` | hold | — | `packages/api/`, `apps/web/app/lib/sync/client.ts`, `packages/auth/` | to write (B-52, B-53, B-84) · Hot files: `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
+| `data-rights` | hold | — | `packages/data/src/db/schema/core/scrub`, `packages/data/src/db/migrations/`, `packages/data/src/services/careGroupService`, `packages/data/src/services/careGroupInviteService`, `packages/data/src/services/joinRequestService`, `packages/data/src/services/todoService.ts`, `packages/data/src/db/schema/care-groups/careGroupConsent`, `packages/data/src/db/schema/auth/legalAcceptance`, `packages/data/src/db/schema/admin/adminAudit`, `packages/api/src/care-groups/`, `apps/web/app/lib/providers/`, `apps/web/app/lib/medications/`, `apps/web/app/lib/profiles/`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/entryDisplay`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/components/entry/`, `apps/web/app/components/providers/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/pass/`, `apps/web/app/routes/app/groups/settings/details/`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/app-shell.spec.mjs` | plans/data-rights-prd.md; held after two plan send-backs (s49, s51), user chose the carve-out (a243) |
 | `data-rights-2` | hold | `data-rights` | — | Follow-on of data-rights: export, staff tooling, legal text and change notice, inactive-group scrub, retention sweep, Google calendar removal on delete |
 | `account-security` | hold | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `account-security-2` | hold | `account-security` | `packages/auth/` | — |
@@ -292,13 +292,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-814 | feature | triaged | usage-aware-drain |  | Orchestrator picks the usage drain line from the current Claude plan (e.g. ultra vs smaller plans) instead of one fixed percent |
 | B-815 | change | triaged | risa-next |  | Orchestrator summary for backlog handoff should include the ability to pass on directives from the… |
 | B-816 | question | triaged | risa-next |  | Should the orchestrator PRDQ be slice-based instead of PRD-based? |
-| B-819 | change | ready | fixes-ui | prd/fixes-ui | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
+| B-819 | change | landed | fixes-ui | prd/fixes-ui | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
 | B-820 | feature | triaged | risa-next |  | Risa: cross-repo topics: a Risa topic can change a configured subproject's code (Caretook), each side passing its own repo's checks |
 | B-824 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-829 | question | triaged | marketing |  | Research: compare Care Book to Caring Village |
 | B-830 | bug | triaged | fixes-bug |  | Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
-| B-833 | change | ready | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
+| B-833 | change | landed | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | in-progress | test-time-gates | prd/test-time-gates | Time limit gates for component tests, unit tests and the local quick check |
 | B-838 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
@@ -306,21 +306,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
 | B-842 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
-| B-843 | bug | ready | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
+| B-843 | bug | landed | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
 | B-844 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
 | B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 | B-846 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
 | B-847 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
-| B-848 | bug | ready | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
-| B-849 | change | ready | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
-| B-850 | change | ready | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
+| B-848 | bug | landed | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
+| B-849 | change | landed | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
+| B-850 | change | landed | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
 | B-856 | bug | dropped | marketing |  | Marketing pages have no light mode (dark only) |
-| B-857 | change | triaged | fixes-ui |  | Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537) |
+| B-857 | change | in-progress | fixes-ui | prd/fixes-ui | Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537) |
 | B-858 | feature | triaged | onboarding-3 |  | Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants |
 | B-859 | change | triaged | test-time-gates-2 |  | Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates |
 
@@ -2057,7 +2057,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-819 · change · Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: cf023ddf
@@ -2114,7 +2114,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-833 · change · Quick entry tips' examples should use the group's own provider and medication
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4f356153
@@ -2192,7 +2192,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-843 · bug · Group settings Members: pending-invite and invite-link cards are crowded on a phone
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4f356153
@@ -2243,7 +2243,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-848 · bug · Right nav links overlap the recipient selector and header menu on medium-sized screens
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4f356153
@@ -2252,7 +2252,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-849 · change · Rename timeline View menu labels from Rows and Cards to Condensed and Full
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: c492621a
@@ -2261,7 +2261,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-850 · change · Timeline Full view should show live notes with their rich text formatting
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: c492621a
@@ -2325,9 +2325,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-857 · change · Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537)
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-25 (prd/fixes-ui): Found by fixes-ui slice 80 (B-833): the parser's preview wording for an appointmentWord or visit line still says Appointment; B-537 made Event the one word app-wide. Wording only, in the quick entry parser's titles and their tests.
