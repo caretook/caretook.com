@@ -11,7 +11,7 @@ import { VERDICT_VERSION, buildVerdict, mergeSummaries, summarizeJob, summarizeV
 const ok = { result: "success" };
 const base = { commit: "c".repeat(40), runId: "1" };
 const brakes = ["packages/api/src/sync*.test.ts"];
-const unitNeeds = (/** @type {object} */ unit) => ({ plan: ok, static: ok, unit });
+const unitNeeds = (/** @type {object} */ unit) => ({ plan: ok, static: ok, "unit-1": unit, "unit-2": ok });
 const failing = (/** @type {object} */ summary) => ({
   result: "failure",
   outputs: {
@@ -34,7 +34,8 @@ describe("the verdict's kinds", () => {
     const needs = {
       plan: ok,
       static: ok,
-      unit: ok,
+      "unit-2": ok,
+      "unit-1": ok,
       integration: ok,
       "components-1": ok,
       "components-2": ok,
@@ -83,13 +84,15 @@ describe("the verdict's kinds", () => {
     const needs = {
       plan: ok,
       static: { result: "failure", outputs: { started: "true" } },
-      unit: { result: "failure" },
+      "unit-2": ok,
+      "unit-1": { result: "failure" },
     };
     expect(buildVerdict({ ...base, tier: "unit", needs }).kind).toBe("brake");
     const partial = {
       plan: ok,
       static: ok,
-      unit: failing({ files: ["a.test.ts"], tests: [test("a.test.ts")] }),
+      "unit-2": ok,
+      "unit-1": failing({ files: ["a.test.ts"], tests: [test("a.test.ts")] }),
       integration: { result: "failure" },
     };
     expect(buildVerdict({ ...base, tier: "integration", needs: partial }).kind).toBe("infra");
@@ -105,7 +108,7 @@ describe("the verdict's kinds", () => {
       }).outputs,
     });
     expect(v.kind).toBe("flake");
-    expect(v.flaky).toEqual([{ job: "unit", file: "a.test.ts", name: "breaks", brake: false }]);
+    expect(v.flaky).toEqual([{ job: "unit-1", file: "a.test.ts", name: "breaks", brake: false }]);
     expect(v.afterRerun).toEqual({ files: [], tests: [] });
   });
 
@@ -123,7 +126,7 @@ describe("the verdict's kinds", () => {
     const late = { measure: "unit", seconds: 400, verdict: "fail", armed: true };
     const v = unitVerdict(failing({ time: [late] }));
     expect(v.kind).toBe("time");
-    expect(v.time).toEqual({ jobs: ["unit"], breaches: [{ job: "unit", ...late }] });
+    expect(v.time).toEqual({ jobs: ["unit-1"], breaches: [{ job: "unit-1", ...late }] });
     expect(v.failed.unnamedJobs).toEqual([]);
     const flaked = unitVerdict(
       failing({
@@ -141,7 +144,7 @@ describe("the verdict's kinds", () => {
     const late = { measure: "unit", seconds: 400, verdict: "fail", armed: true };
     const v = unitVerdict(failing({ files: ["a.test.ts"], tests: [test("a.test.ts")], time: [late] }));
     expect(v.kind).toBe("file");
-    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit", ...late }] });
+    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit-1", ...late }] });
   });
 
   it("an unarmed breach only lists its warning, and a step under its aim nothing", () => {
@@ -149,7 +152,7 @@ describe("the verdict's kinds", () => {
     const ok = { measure: "unit", seconds: 100, verdict: "ok", armed: false };
     const v = unitVerdict({ result: "success", outputs: failing({ time: [warned, ok] }).outputs });
     expect(v.kind).toBe("green");
-    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit", ...warned }] });
+    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit-1", ...warned }] });
   });
 
   it("a mix of flake and file is file, naming each", () => {
@@ -162,7 +165,7 @@ describe("the verdict's kinds", () => {
     );
     expect(v.kind).toBe("file");
     expect(v.flaky.map((t) => t.file)).toEqual(["a.test.ts"]);
-    expect(v.afterRerun?.tests).toEqual([{ job: "unit", file: "b.test.ts", name: "breaks" }]);
+    expect(v.afterRerun?.tests).toEqual([{ job: "unit-1", file: "b.test.ts", name: "breaks" }]);
     expect(v.failed.files).toEqual(["a.test.ts", "b.test.ts"]);
   });
 
@@ -170,7 +173,7 @@ describe("the verdict's kinds", () => {
     const quarantine = [{ file: "q.test.ts", name: "breaks", item: "B-1" }];
     const v = unitVerdict(failing({ files: ["q.test.ts"], tests: [test("q.test.ts")] }), { quarantine });
     expect(v.kind).toBe("green");
-    expect(v.quarantined).toEqual([{ job: "unit", file: "q.test.ts", name: "breaks", status: "failed" }]);
+    expect(v.quarantined).toEqual([{ job: "unit-1", file: "q.test.ts", name: "breaks", status: "failed" }]);
   });
 
   it("carries the quarantine step's results and stays green", () => {
@@ -180,14 +183,14 @@ describe("the verdict's kinds", () => {
       outputs: { failures: JSON.stringify({ reported: true, total: 1, files: [], tests: [], quarantined }) },
     });
     expect(v.kind).toBe("green");
-    expect(v.quarantined).toEqual([{ job: "unit", ...quarantined[0] }]);
+    expect(v.quarantined).toEqual([{ job: "unit-1", ...quarantined[0] }]);
   });
 
   it("names the tier, and a unit run with no integration job is not infra", () => {
     const v = buildVerdict({
       ...base,
       tier: "unit",
-      needs: { plan: ok, static: ok, unit: ok, integration: { result: "skipped" } },
+      needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": ok, integration: { result: "skipped" } },
     });
     expect(v).toMatchObject({ kind: "green", tier: "unit", ranTier: "unit" });
   });
@@ -198,7 +201,7 @@ describe("the verdict's kinds", () => {
     const v = buildVerdict({
       ...base,
       tier: "integration",
-      needs: { plan: ok, static: { result: "skipped" }, unit: ok, integration: ok },
+      needs: { plan: ok, static: { result: "skipped" }, "unit-2": ok, "unit-1": ok, integration: ok },
       narrowed: { target, files },
     });
     expect(v).toMatchObject({ kind: "green", narrowed: true, narrowedFiles: files, target });
@@ -295,7 +298,7 @@ describe("the verdict", () => {
     const v = buildVerdict({
       ...base,
       tier: "unit",
-      needs: { plan: ok, static: ok, unit: ok, integration: { result: "skipped" } },
+      needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": ok, integration: { result: "skipped" } },
     });
     expect(v).toMatchObject({ version: 1, kind: "green", tier: "unit", ranTier: "unit", narrowed: false });
   });
@@ -309,19 +312,22 @@ describe("the verdict", () => {
     const v = buildVerdict({
       ...base,
       tier: "unit",
-      needs: { plan: ok, static: ok, unit: { result: "failure", outputs: { failures } } },
+      needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": { result: "failure", outputs: { failures } } },
     });
     expect(v.kind).toBe("file");
     expect(v.failed).toEqual({
-      jobs: ["unit"],
+      jobs: ["unit-1"],
       files: ["a.test.ts"],
-      tests: [{ job: "unit", file: "a.test.ts", name: "breaks" }],
+      tests: [{ job: "unit-1", file: "a.test.ts", name: "breaks" }],
       truncated: false,
       unnamedJobs: [],
     });
     expect(
-      buildVerdict({ ...base, tier: "unit", needs: { plan: ok, static: ok, unit: { result: "skipped" } } })
-        .kind,
+      buildVerdict({
+        ...base,
+        tier: "unit",
+        needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": { result: "skipped" } },
+      }).kind,
     ).toBe("infra");
     expect(
       buildVerdict({ ...base, tier: "static", needs: { plan: { result: "failure" } } }).failed.jobs,
@@ -332,7 +338,8 @@ describe("the verdict", () => {
     const needs = {
       plan: ok,
       static: ok,
-      unit: ok,
+      "unit-2": ok,
+      "unit-1": ok,
       integration: ok,
       "components-1": ok,
       "components-2": ok,
