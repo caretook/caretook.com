@@ -9,17 +9,25 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
 - **Wave 10 landed** (2026-11-26) as 55c7d68 (PR #223, `--no-review`: Codex out of credits; full green on 3b3fc3d2, run 45846064683; landed on an unsynced tip, dev shared no file). Slices 78–85 (B-653, B-870, B-845, B-660, B-753, B-751, B-608, B-609), all opus; 82 needed one fix (`ci-results/` git-ignored). Report filed; to-test/2026-11-26-1033-fixes-tooling.md. Worktrees removed. Docs folded: sync.md (first-result hold), project-config.md (progress reporter, verdict fields, stale list entries), loop.md trimmed to budget. B-865/B-866 closed. A worktree's roundtrip check failed 3/3 on a stale datastore (42703) until `pnpm datastore:reset`: reset before browser checks after dev's migrations land.
-- **Hand-over (idle, rotating after wave 10 for context):** no slice in flight. Next session: wave boundary (`pnpm backlog ingest`, list), pick wave 11 from the waiting items, number from `pnpm prd status-trim fixes-tooling --next`, check running topics' hot files, set hot files, start.
+- **Wave 11 started** (2026-11-26): slices 86–93 (B-903, B-810, B-809, B-465, B-431, B-432, B-862, B-864), all opus; 91 waits for 90 (both change `land.sh`).
 - **Watch:** `land-gate.test.mjs`'s dev-brake test failed again under load ~120 in slice 72's check (passes alone 28/28). Earlier: timed out under load ~60 twice in wave 8. File it if CI shows it.
-- **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-619, B-667, B-681, B-720, B-721, B-722, B-749, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-851, B-852, B-862, B-864, B-880..B-883, B-903 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
+- **Waiting triaged items for later waves:** B-375, B-459, B-477, B-619, B-667, B-681, B-720, B-721, B-722, B-749, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-813, B-839, B-851, B-852, B-880..B-883, B-886, B-889 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
 - **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State          | Merge |
+| ----- | ----- | -------------- | ----- |
+| 86    | B-903 | started (opus) |       |
+| 87    | B-810 | started (opus) |       |
+| 88    | B-809 | started (opus) |       |
+| 89    | B-465 | started (opus) |       |
+| 90    | B-431 | started (opus) |       |
+| 91    | B-432 | waits for 90   |       |
+| 92    | B-862 | started (opus) |       |
+| 93    | B-864 | started (opus) |       |
 
 ## Wave 1
 
@@ -863,3 +871,81 @@ Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, scripts/loop
 
 - `pnpm prd help` gives `ci run --wait`'s exits by kind (0–5, 75) and no quick-to-full escalation; the hotfix prompt names the CI tier step; the PR body and `ready` drop `checked_how`'s local check line for the CI verdict; `checked_ok` goes from `lib.sh` if only tests use it (and those tests with it).
 - Unit tests and golden prompts follow the text.
+
+## Wave 11
+
+Started 2026-11-26 by the run-through orchestrator: sessions and the dispatcher (B-903, B-810, B-809), landing and cleanup (B-465, B-431, B-432), then two browser-harness and fixture fixes (B-862, B-864). Each item's backlog notes (`pnpm backlog show B-<n>`) carry the details. Never touch a running topic's hot files (`pnpm backlog prd list`; todo-subtasks holds `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, the todo routes, `apps/web/app/lib/sync/schema.ts` and `scripts/browser-checks/sync-matrix.mjs`). Slices 90 and 91 both change `scripts/loops/land.sh` (91 waits for 90); slice 86 changes prompts and their golden copies (`scripts/loops/sample-project/prompt-golden.txt`, `scripts/project/prompt-golden.txt`): regenerate the golden rather than resolving it by hand.
+
+### Slice 86: a slice agent runs its long check in the background and never ends its turn before the hand-off (B-903)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/loop.md, scripts/loops/prompts/ · Tests: unit
+
+The harness moves a foreground command past ~170–180 s to the background; an agent that then ends its turn stops without a hand-off.
+
+- The loop doc and the slice prompt (and its `--continue` form) say: run `pnpm prd check` (and any command likely past ~2 min) with `run_in_background`, wait with `pnpm prd wait check` (rerun on 75), and never end the turn before the hand-off is written. Keep `loop.md` within its byte budget (trim at least what you add).
+- Unit test: the prompt golden test (`prompt-golden.test.mjs`) carries the new lines; regenerate both golden files.
+
+### Slice 87: `pnpm prd end <name>` ends the live session, not a stale pid (B-810)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/machinery.md · Tests: unit
+
+Ending prd-planner-3 killed the record's old pid 46403 while the dispatcher-reopened session (pid 77478) kept running.
+
+- A reopened session's record carries the new session's pid (find where a reopen or rotation leaves the old pid: `open-session.*`, `session.sh`, `rotate*`, `sessions.mjs`), and `end-session.sh` checks that the pid it would end is a live claude process of that session (its `dir`, or its ancestry) before sending TERM; when it isn't, it says so and refuses rather than killing another process.
+- Unit tests (`sessions.test.mjs` or a new `end-session` test): a record with a stale pid isn't killed; a reopened record ends the live one.
+
+### Slice 88: the dispatcher picks up new code on dev (B-809)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/machinery.md · Tests: unit
+
+The dispatcher started 2026-11-24 08:07 kept running its old code after the usage drain landed (B-407, 17:55), and started work at 85% weekly usage while `dispatch --dry-run` said draining.
+
+- Each tick the dispatcher compares a hash of the code it runs (the `scripts/loops/` files it loads, or the tree's hash at its start) with the main checkout's; when it changed, it re-execs itself between ticks (never mid-start), logs it, and `pnpm prd status` shows the dispatcher's code as current or stale.
+- Unit tests (`dispatch.test.mjs`): a changed hash re-execs between ticks; an unchanged one doesn't; status shows stale code.
+
+### Slice 89: `pnpm prd down` stops when the dispatcher won't stop (B-465)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/recovery.md · Tests: unit
+
+`down.sh` (~50) sets `failed=1` when the dispatcher doesn't stop in time (mid `new.sh`) but goes on stopping servers, stacks and the test Postgres, racing a start against the shutdown (Codex P2 on PR #41).
+
+- When the dispatcher fails to stop, `down` stops there: it stops nothing else, keeps the down record for a retry, and says how to retry.
+- Unit test: a dispatcher that won't stop leaves servers, stacks and the test database untouched and the record in place; a clean stop still stops them all.
+
+### Slice 90: a landed topic is marked done and never started again (B-431)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/orchestrator.md, scripts/loops/docs/machinery.md · Tests: unit
+
+planner-3 landed with its row still planned: the orchestrator's 'landed' commit after the final land left `prd/planner-3` unmerged, so `pnpm prd rm` kept the branch and didn't set `done`, and the dispatcher reopened the topic 9 times, blocking the lane for 5 h.
+
+- `pnpm prd rm` (and `land` at a topic's last landing) marks the topic done when every one of its items is landed and its plan has no slice left to run, even if the branch carries docs-only commits past dev's merge (it lands or drops that tail and says which); a standing topic is never marked done.
+- The dispatcher never starts or reopens a topic whose last landing is in dev with no slice left (a guard beside the `done` flag).
+- Unit tests (`land.test.mjs` / `dispatch-pick.test.mjs`, or the rm test): a docs-only tail after the landing still marks done; the dispatcher skips a landed topic; a standing topic stays.
+
+### Slice 91: a landing that changes dependencies brings the main checkout's install up to date (B-432)
+
+Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/machinery.md · Tests: unit
+
+`land.sh` (~587) and `ready.sh` (~119) only print a `pnpm install` reminder, so an unattended landing leaves the main checkout stale. The main checkout is the user's: change it only in the narrow safe case.
+
+- After a landing whose merge changes `pnpm-lock.yaml` or a `package.json`, `land` runs `pnpm install --frozen-lockfile` in the main checkout only when it is on `dev`, at the landed tip and clean of changes to those files; otherwise (or when the install fails) it prints why and files a notice for the dev keeper (`pnpm prd ask --report` or the notices list), never a retry or a fix.
+- Unit test (`land.test.mjs`): the safe case runs the install; a dirty or off-dev checkout files the notice and installs nothing.
+- Waits for slice 90 (both change `land.sh`).
+
+### Slice 92: roundtrip.spec cleans up the rows a dying run wrote (B-862)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, scripts/browser-checks/roundtrip.spec.mjs · Tests: e2e:roundtrip
+
+`matrix.ids` is filled only after the writer loop (~714), so a mid-loop failure skips cleanup and the leftover (a matrix allergy row) breaks the next run on the same database.
+
+- Record each writer's ids as it returns (or clean by the run's prefix), so cleanup removes every row the run wrote however far it got. Don't touch `sync-matrix.mjs` (todo-subtasks' hot file): if the fix needs it, say so in the hand-off and stop.
+- e2e: roundtrip passes, and a run forced to fail mid-loop (a temporary throw, shown in the hand-off and removed) leaves no matrix rows; the next run passes.
+
+### Slice 93: the fixture tag's id matches a device's (B-864)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/components.md · Tests: component
+
+`apps/web/test/fixtures.ts` `tag()` (~705) derives its id with `tagId(groupId, name)` from the raw name, not `tagKey(name)`, so a fixture tag's id differs from the id a device derives for the same name.
+
+- The fixture derives the id from `tagKey(name)` the way the app does.
+- Component test (beside the fixture's other tests, or a tags one): a fixture tag named with mixed case and spaces has the id a device derives for that name; existing tag tests pass.
