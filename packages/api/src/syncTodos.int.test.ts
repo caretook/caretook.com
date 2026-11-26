@@ -1,6 +1,6 @@
 import type { AuthUser } from "@caretook/data";
 
-import { todoService, UNDO_NEXT_METADATA } from "@caretook/data";
+import { ROLLUP_METADATA, todoService, UNDO_NEXT_METADATA } from "@caretook/data";
 import { nextTodoId } from "@caretook/data/series";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -511,5 +511,143 @@ describe("sync.upload: subtasks (todo-subtasks)", () => {
     ).toEqual(["applied", "applied", "todoService:badParent"]);
     expect(await todoService.getById(owner.ctx, tooDeep)).toBeNull();
     expect(await todoService.getById(owner.ctx, orphan)).toBeNull();
+  });
+});
+
+describe("sync.upload: the device's rollup (todo-subtasks)", () => {
+  /**
+   * "Get ready for the hospital stay" (member@'s owner) with a done step and
+   * the viewer's open one, its last; an outsider who isn't a member.
+   */
+  const hospitalStay = async () => {
+    const world = await setup();
+    const { group, owner, viewer } = world;
+    const add = async (title: string, more: { parentId?: string; assigneeId?: string } = {}) =>
+      ok(await todoService.create(owner.ctx, { groupId: group.id, title, ...more }))!.id;
+    const top = await add("Get ready for the hospital stay");
+    const packed = await add("Pack an overnight bag", { parentId: top });
+    ok(await todoService.complete(owner.ctx, packed));
+    const charge = await add("Charge the phone and tablet", { parentId: top, assigneeId: viewer.user.id });
+    const outsider = await createUser("outsider");
+    return {
+      ...world,
+      top,
+      packed,
+      charge,
+      outsider: { ...outsider, api: clientFor(outsider.ctx.authUser) },
+    };
+  };
+  const tick = (id: string, by: string) => ({
+    op: "PATCH" as const,
+    table: "todo",
+    id,
+    data: { done_at: AT, done_by: by },
+  });
+  /** The device's flagged write to a parent: done (with its tick time) or open. */
+  const rolled = (id: string, by: string | null) => ({
+    op: "PATCH" as const,
+    table: "todo",
+    id,
+    data: by ? { done_at: AT, done_by: by } : { done_at: null, done_by: null },
+    metadata: ROLLUP_METADATA,
+  });
+  const doneOf = async (ctx: { authUser: AuthUser }, id: string) => {
+    const todo = ok(await todoService.getById(ctx, id))!;
+    return { doneAt: todo.doneAt, doneBy: todo.doneBy };
+  };
+
+  it("a viewer's last subtask and the flagged parent write finish the parent, done by the viewer", async () => {
+    const { owner, viewer, top, charge } = await hospitalStay();
+    expect(await outcomes(viewer.api, [tick(charge, viewer.user.id), rolled(top, viewer.user.id)])).toEqual([
+      "applied",
+      "applied",
+    ]);
+    expect(await doneOf(owner.ctx, top)).toEqual({
+      doneAt: "2026-11-10 22:20:00+00",
+      doneBy: viewer.user.id,
+    });
+  });
+
+  it("recomputes from the server's rows: never completionOnly, a flagged done with an open child changes nothing", async () => {
+    const { owner, viewer, outsider, top } = await hospitalStay();
+    // The parent isn't the viewer's, and the viewer's step is still open on the server.
+    expect(await outcomes(viewer.api, [rolled(top, viewer.user.id)])).toEqual(["applied"]);
+    expect(await doneOf(owner.ctx, top)).toEqual({ doneAt: null, doneBy: null });
+    // A non-member is refused, as on any todo.
+    expect((await upload(outsider.api, [rolled(top, outsider.user.id)]))[0]?.status).toBe("rejected");
+  });
+
+  it("uploaded after a server change that reopened the parent, it leaves the server's answer", async () => {
+    const { owner, viewer, top, packed, charge } = await hospitalStay();
+    // The viewer's tick reached the server first (the parent finished there)…
+    expect(await outcomes(viewer.api, [tick(charge, viewer.user.id)])).toEqual(["applied"]);
+    expect((await doneOf(owner.ctx, top)).doneAt).not.toBeNull();
+    // …then member@ reopened a step, which reopens the parent.
+    ok(await todoService.reopen(owner.ctx, packed));
+    expect(await doneOf(owner.ctx, top)).toEqual({ doneAt: null, doneBy: null });
+
+    expect(await outcomes(viewer.api, [rolled(top, viewer.user.id)])).toEqual(["applied"]);
+    expect(await doneOf(owner.ctx, top)).toEqual({ doneAt: null, doneBy: null });
+  });
+
+  for (const order of ["the tick first", "the new subtask first"] as const) {
+    it(`two devices offline, one ticks the last subtask and one adds an open one: the parent ends open (${order})`, async () => {
+      const { group, recipient, owner, viewer, top, charge } = await hospitalStay();
+      // The viewer's device: its tick and the parent it finished.
+      const ticked = [tick(charge, viewer.user.id), rolled(top, viewer.user.id)];
+      // member@'s device: a new open step (the parent was open there, so nothing flagged).
+      const step = randomUUID();
+      const added = [
+        {
+          op: "PUT" as const,
+          table: "todo",
+          id: step,
+          data: todoRow(group.id, recipient.id, {
+            title: "Print the medication list",
+            due_on: null,
+            parent_id: top,
+          }),
+        },
+      ];
+      const [first, second] =
+        order === "the tick first"
+          ? [
+              [viewer, ticked],
+              [owner, added],
+            ]
+          : [
+              [owner, added],
+              [viewer, ticked],
+            ];
+      for (const [who, ops] of [first, second] as const) {
+        expect((await upload(who.api, ops)).every((r) => r.status === "applied")).toBe(true);
+      }
+      expect(await doneOf(owner.ctx, top)).toEqual({ doneAt: null, doneBy: null });
+    });
+  }
+
+  it("a late flagged write re-completes a parent someone unticked by hand while every child is done", async () => {
+    const { owner, viewer, top, charge } = await hospitalStay();
+    expect(await outcomes(viewer.api, [tick(charge, viewer.user.id)])).toEqual(["applied"]);
+    ok(await todoService.reopen(owner.ctx, top));
+    expect(await doneOf(owner.ctx, top)).toEqual({ doneAt: null, doneBy: null });
+
+    expect(await outcomes(viewer.api, [rolled(top, viewer.user.id)])).toEqual(["applied"]);
+    expect(await doneOf(owner.ctx, top)).toEqual({
+      doneAt: "2026-11-10 22:20:00+00",
+      doneBy: viewer.user.id,
+    });
+  });
+
+  it("a flagged reopen follows the children too; an unflagged done PATCH is still a complete", async () => {
+    const { owner, viewer, top, charge } = await hospitalStay();
+    expect(await outcomes(viewer.api, [tick(charge, viewer.user.id)])).toEqual(["applied"]);
+    // Every step is done on the server, so a device's flagged reopen of the parent leaves it done.
+    expect(await outcomes(viewer.api, [rolled(top, null)])).toEqual(["applied"]);
+    expect((await doneOf(owner.ctx, top)).doneAt).not.toBeNull();
+
+    // A hand tick of a parent with an open step (no flag) is the ordinary complete, refused.
+    ok(await todoService.reopen(viewer.ctx, charge));
+    expect(await outcomes(owner.api, [tick(top, owner.user.id)])).toEqual(["todoService:openSubtasks"]);
   });
 });

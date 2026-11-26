@@ -17,6 +17,7 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  ROLLUP_METADATA,
   symptomTypeService,
   tagService,
   timelineEntryService,
@@ -414,6 +415,10 @@ const todo = softDelete({
   afterPut: async (ctx, op) => (op.data?.done_at ? setTodoDone(ctx, op.id, op.data.done_at) : applied),
   patch: async (ctx, op, { remove, update }) => {
     const data = op.data ?? {};
+    // A device's rollup of a parent (todo-subtasks): the server recomputes it
+    // from its own rows; an unflagged done PATCH is still a complete or reopen.
+    if (op.metadata === ROLLUP_METADATA)
+      return outcome(await todoService.rollUpUploaded(ctx, op.id, { doneAt: timestamp(data.done_at) }));
     // An Undo's soft delete of the next occurrence: only an untouched one goes (B-382).
     if (data.deleted_at && op.metadata === UNDO_NEXT_METADATA)
       return outcome(await todoService.removeUndoneNext(ctx, op.id));
