@@ -315,7 +315,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-866 | bug | triaged | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
 | B-867 | bug | landed | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
 | B-868 | bug | landed | fixes-bug |  | CI: the build job fails on dev |
-| B-869 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
+| B-869 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
 | B-870 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 | B-871 | bug | in-progress | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
 | B-872 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
@@ -330,6 +330,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-881 | chore | triaged | fixes-tooling |  | Long slice agents: the orchestrator splits a slice or hands it off past ~150k context, weighed against restart cost (orchestration-split-2 and tags slices ran 200-260k, 15-24M each) |
 | B-882 | chore | triaged | fixes-tooling |  | Model per role: Sonnet for slices whose plan spells out each edit, Haiku for reading check output (every slice runs on Opus now) |
 | B-883 | chore | triaged | fixes-tooling |  | Token use measured by price: a price-weighted before/after (cache writes ~3% of tokens but ~30% of cost) to judge B-873, B-875, B-876 |
+| B-884 | chore | triaged | fixes-perf |  | Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set |
+| B-885 | bug | triaged | fixes-ui |  | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
+| B-886 | change | inbox |  |  | Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call |
+| B-887 | change | inbox |  |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
+| B-888 | change | inbox |  |  | Features page should highlight easy mode |
+| B-889 | feature | inbox |  |  | Backlog agent can hand off with instructions the next agent actually follows, continuing the work… |
 
 ## Items
 
@@ -2293,13 +2299,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-869 · bug · Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in)
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: ba0e6f2f
 
 - 2026-11-26 (prd/todo-subtasks): Found by todo-subtasks wave 1 (2026-11-26): fails 4/4 on prd/todo-subtasks and 2/2 on dev 0005f796 itself at load ~11 (session-end-20261126-054837.log), so not load. Step at session-end.spec.mjs:231 (went-ahead flag null), once :234 (redirectTo lacks kind=symptom). Suspect: tags wave 4 (4c64a097) changed TimelineFilters/timelineFilters and ran no browser checks. Could be fixes-bug if the app, not the spec, regressed.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: brakes staging (failed with its retry on candidate run 45806347877). Suspect wave 7's watchLiveQuery frame batching (B-633): rows land up to a frame/100 ms later, so the redirect to /sign-in wins; unconfirmed. User's word: fix ASAP, before the staging re-cut.
+- 2026-11-26 (slice/fixes-tooling/69): slice 69 (074a24b1): cause = a race, not B-633. A fresh session's background recheck got 'signed out' (~10 ms locally, ~60 ms more to close the device) before the timeline loader's two DB rounds (the tag read from tags slice 6, a5b63301, is the first, ~37 ms) committed the ?kind=symptom address, so location.assign used the old URL (redirectTo lost kind=symptom) or unloaded the page before the filtered list showed. Fix: session.ts recheck uses the navigation's target while the address hasn't moved (unit-tested); the spec holds get-session until the filtered timeline shows. Follow-up idea: read tags in the loader's second round unless ?tag= is set.
 
 ### B-870 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
 
@@ -2438,3 +2445,53 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: from the token-use skeptic (s57), filed on the user's word. Scripts in .loops/token-analysis/.
+
+### B-884 · chore · Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-26 (prd/fixes-tooling): Found by fixes-tooling slice 69 (B-869, 2026-11-26) timing the session-end race: the extra round made the timeline navigation slow enough that a background recheck answered before the address changed.
+
+### B-885 · bug · Frontpage hero CTA buttons wrap on mobile; they should fit side by side
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): Triage: layout fix on the public front page; small.
+
+### B-886 · change · Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-887 · change · Features page "Type it the way you'd say it" section should highlight more that users can just say…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the inbox: Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation / Move this section so it's the first item after the timeline on the features page.
+
+### B-888 · change · Features page should highlight easy mode
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-889 · feature · Backlog agent can hand off with instructions the next agent actually follows, continuing the work…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the inbox: Backlog agent can hand off with instructions the next agent actually follows, continuing the work without asking its first question, when the user asked for a handoff that way

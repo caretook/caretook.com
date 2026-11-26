@@ -6,7 +6,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
-- Frontpage hero CTA buttons wrap on mobile; they should fit side by side
+- Frontpage hero CTA buttons wrap on mobile; they should fit side by side (B-885)
 
 ## Change requests
 
@@ -17,10 +17,10 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Orchestrator summary for backlog handoff should include the ability to pass on directives from the user more clearly and directly. (B-815)
 - Time limit gate for component tests to keep them from growing too long (B-837)
   5 minute goal, 6 minute hard cutoff.
-- Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call
-- Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation
+- Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call (B-886)
+- Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation (B-887)
   Move this section so it's the first item after the timeline on the features page.
-- Features page should highlight easy mode
+- Features page should highlight easy mode (B-888)
 
 ## Feature requests
 
@@ -33,7 +33,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - nested todos (B-550)
 - Connector: tags and tagging (list tags, filter by a tag, add and remove tags on records) for groups that have turned on sharing medical information with connectors (B-861)
   The user's word 2026-11-25: connectors DO need tags when the group shares medical information; the tags PRD (B-548) keeps them out, so this follows it.
-- Backlog agent can hand off with instructions the next agent actually follows, continuing the work without asking its first question, when the user asked for a handoff that way
+- Backlog agent can hand off with instructions the next agent actually follows, continuing the work without asking its first question, when the user asked for a handoff that way (B-889)
 
 ## Big plans
 
