@@ -2,9 +2,8 @@ import type { CtaBandContent, PageIntroContent, PageMeta, ProseContent } from ".
 import { MARKETING_LINKS, pagePath } from "../site/pages";
 
 /**
- * About page copy (draft: the user edits it), but for the founder story
- * ("who") and the two bios under it: those are the founders' own words,
- * approved on 2026-11-25 and kept word for word (`content.test.ts` holds them).
+ * About page copy. The founder story, bios and thanks are the founders' own
+ * words: change them only on the user's word.
  * The co-founder is named Tedder, with no pronoun.
  */
 export const content = {
@@ -43,23 +42,42 @@ export const content = {
       paragraphs: [
         "We're Bo and Tedder, partners in Mars Hill, North Carolina, and we've both been family caregivers.",
         "In early 2025, Tedder's father was diagnosed with stage IV lung cancer and died within a few months. Bo's father lived with multiple sclerosis for decades. Bo and his mother cared for him nearly full time through his last two years, until he died in hospice in the fall of 2026.",
-        "The illnesses were different, but the work was the same. We kept medical details straight, tracked medications, kept doctors and family on the same page, and made hard decisions without all the facts. The timeline, printable medication sheets and visit notes we pieced together turned out to be the most useful things we had. Bringing all of it to an AI assistant helped us make sense of everything and keep up with the constant choices.",
+        "The illnesses were different, but the work was the same. We kept medical details straight, tracked medications, kept doctors and family on the same page, and made hard decisions without all the facts. The timeline, printable medication sheets and visit notes we pieced together with the help of Tedder's kid turned out to be the most useful things we had. Bringing all of it to an AI assistant helped us make sense of everything and keep up with the constant choices.",
         "We came to it from different directions. Tedder brought clinical and disaster resilience training to the hard conversations and the crises. Bo brought twenty years of building software and the habit of turning a mess into a system. Between us, we could see how those rough tools could become something better, for families who don't have the time to build their own.",
         "We cared for each other through both losses. Caretook is the tool we wish we'd had the energy to build while we were in the middle of it, made for any family managing long-term care, so the next family doesn't have to start from scratch.",
       ],
     },
     {
-      id: "tedder",
-      heading: "Tedder, MS, MSW, LCSW, LCASA",
-      paragraphs: [
-        "Co-founder. Master's degrees in social work and disaster resilience leadership from Tulane University.",
+      id: "who-we-are",
+      heading: "Who we are",
+      paragraphs: [],
+      subsections: [
+        {
+          heading: "Tedder, LCSW",
+          label: "Co-founder",
+          paragraphs: [
+            "Master's degrees in social work and disaster resilience leadership from Tulane University.",
+          ],
+        },
+        {
+          heading: "Bo Davis",
+          label: "Co-founder",
+          paragraphs: ["Startup CTO who's spent 20 years building software and leading teams."],
+        },
       ],
     },
     {
-      id: "bo",
-      heading: "Bo Davis",
-      paragraphs: [
-        "Co-founder. 20 years building software and leading technology teams, including as a startup CTO.",
+      id: "thanks",
+      heading: "Special thanks",
+      paragraphs: [],
+      subsections: [
+        {
+          heading: "Kal Tedder",
+          label: "Tedder's kid",
+          paragraphs: [
+            "Kal did much of the work on the first documents we kept, the timeline and medication sheets Caretook grew from.",
+          ],
+        },
       ],
     },
   ] satisfies ProseContent[],

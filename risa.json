@@ -58,6 +58,7 @@
     "toolingTests": "pnpm test:tooling",
     "log": "pnpm log",
     "docBudget": "pnpm docs:budget",
+    "format": "pnpm exec prettier --write --ignore-unknown",
     "datastoreStart": "pnpm datastore:start",
     "datastoreReset": "pnpm datastore:reset",
     "datastoreSeed": "pnpm datastore:seed",

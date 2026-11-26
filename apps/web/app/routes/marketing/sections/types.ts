@@ -91,6 +91,8 @@ export type ProseContent = {
   paragraphs: string[];
   /** Copy the team still has to write: shown with a "To be written" badge. */
   placeholder?: boolean;
+  /** Smaller headed blocks (an `h3` each) after the paragraphs, such as bios. */
+  subsections?: { heading: string; label?: string; paragraphs: string[] }[];
 };
 
 export type FaqItem = {

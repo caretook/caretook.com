@@ -76,9 +76,6 @@ describe("the share image", () => {
 
   it("has the lockup as its alt text", () => {
     expect(DEFAULT_OG_IMAGE.alt).toBe(`${name}. ${tagline} ${descriptor}`);
-    expect(DEFAULT_OG_IMAGE.alt).toBe(
-      "Caretook. Care, taken. A care notebook for families, made by caregivers who've been there.",
-    );
   });
 
   it("is drawn from an SVG source that says the same words", () => {

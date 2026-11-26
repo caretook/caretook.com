@@ -86,7 +86,7 @@ Stack: yes · Reads: docs/domain/marketing.md · Tests: unit, e2e:marketing
 
 **User stories:** US 7. **Blocked by:** 3. **Blocks:** none.
 
-Put the approved founder story and bios on About exactly as written below (the user approved them on 2026-11-25; their partner, Tedder, reads them before the wave lands: the orchestrator's landing report asks). Add "built by caregivers who've been there" back to the descriptor on home and in the meta module. Don't edit the text; a word that breaks a content test is a question for the user, not a rewrite. Name the co-founder **Tedder**, never another name, and use no pronouns for Tedder.
+Put the approved founder story and bios on About exactly as written below (the user approved them on 2026-11-25, and the credential trim and the thanks to Kal on 2026-11-26; their partner, Tedder, reads them before the wave lands: the orchestrator's landing report asks). Add "built by caregivers who've been there" back to the descriptor on home and in the meta module. Don't edit the text; a word that breaks a content test is a question for the user, not a rewrite. Name the co-founder **Tedder**, never another name, and use no pronouns for Tedder.
 
 > **Why we built Caretook**
 >
@@ -94,16 +94,19 @@ Put the approved founder story and bios on About exactly as written below (the u
 >
 > In early 2025, Tedder's father was diagnosed with stage IV lung cancer and died within a few months. Bo's father lived with multiple sclerosis for decades. Bo and his mother cared for him nearly full time through his last two years, until he died in hospice in the fall of 2026.
 >
-> The illnesses were different, but the work was the same. We kept medical details straight, tracked medications, kept doctors and family on the same page, and made hard decisions without all the facts. The timeline, printable medication sheets and visit notes we pieced together turned out to be the most useful things we had. Bringing all of it to an AI assistant helped us make sense of everything and keep up with the constant choices.
+> The illnesses were different, but the work was the same. We kept medical details straight, tracked medications, kept doctors and family on the same page, and made hard decisions without all the facts. The timeline, printable medication sheets and visit notes we pieced together with the help of Tedder's kid turned out to be the most useful things we had. Bringing all of it to an AI assistant helped us make sense of everything and keep up with the constant choices.
 >
 > We came to it from different directions. Tedder brought clinical and disaster resilience training to the hard conversations and the crises. Bo brought twenty years of building software and the habit of turning a mess into a system. Between us, we could see how those rough tools could become something better, for families who don't have the time to build their own.
 >
 > We cared for each other through both losses. Caretook is the tool we wish we'd had the energy to build while we were in the middle of it, made for any family managing long-term care, so the next family doesn't have to start from scratch.
 >
-> **Tedder, MS, MSW, LCSW, LCASA**
+> **Tedder, LCSW**
 > Co-founder. Master's degrees in social work and disaster resilience leadership from Tulane University.
 >
 > **Bo Davis**
 > Co-founder. 20 years building software and leading technology teams, including as a startup CTO.
+>
+> **Kal Tedder**
+> Tedder's kid. Kal did much of the work on the first documents we kept, the timeline and medication sheets Caretook grew from.
 
 **Acceptance:** the content test checks the story's heading, both bios and the descriptor; the `marketing` check passes; the hand-off shows About and home.

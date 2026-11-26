@@ -75,6 +75,53 @@ export const skipsTest = (entries, file, name, mode) =>
 /** The quarantine mode of this run: "run" in a CI quarantine step, else "". CI's env leaves it unset. */
 export const quarantineMode = (env = process.env) => env.CARETOOK_QUARANTINE ?? "";
 
+/**
+ * The test titles a file declares (`describe`, `it`, `test`, with any modifiers),
+ * each as a pattern (an `it.each` table's title too): a placeholder (`%s`, `$name`) or a template's
+ * `${…}` matches any text. A plain text search, not a parse.
+ * @param {string} source
+ */
+export function testTitles(source) {
+  const call = /(?:\b(?:describe|it|test)(?:\.\w+)*\(|\]\s*\)\()\s*(["'`])((?:\\.|(?!\1).)*?)\1/gs;
+  const escape = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [...source.matchAll(call)].map(([, , title = ""]) =>
+    title
+      .split(/(\$\{[^}]*\}|%[sdifjoO#%]|\$[\w.]+)/)
+      .map((part, i) => (i % 2 ? ".+?" : escape(part.replace(/\\(.)/g, "$1"))))
+      .join(""),
+  );
+}
+
+/**
+ * Whether a full test name (its suites' titles and its own, joined by spaces)
+ * can be built from the titles a file declares.
+ * @param {string} name
+ * @param {string} source the test file's text
+ */
+export function namesTest(name, source) {
+  const titles = testTitles(source).filter(Boolean);
+  if (!titles.length) return false;
+  const one = `(?:${titles.join("|")})`;
+  return new RegExp(`^${one}(?: ${one})*$`, "s").test(name);
+}
+
+/**
+ * The entries of both lists that name nothing: a brake glob that matches no test
+ * file, and a quarantine entry whose file is gone or names no such test.
+ * @param {{ brakes: string[], quarantine: QuarantineEntry[] }} lists
+ * @param {string[]} files the repo's test files, repo-relative
+ * @param {(file: string) => string} read a test file's text
+ */
+export function staleEntries({ brakes, quarantine }, files, read) {
+  const have = new Set(files);
+  return [
+    ...brakes.filter((glob) => !files.some((f) => isBrake(f, [glob]))).map((glob) => `brake: ${glob}`),
+    ...quarantine
+      .filter((e) => !have.has(e.file) || !namesTest(e.name, read(e.file)))
+      .map((e) => `quarantine: ${e.file}\t${e.name}\t${e.item}${have.has(e.file) ? "" : " (no such file)"}`),
+  ];
+}
+
 /** Both lists, from the repo at `root`. */
 export async function readLists(root = process.cwd()) {
   const { readFileSync } = await import("node:fs");

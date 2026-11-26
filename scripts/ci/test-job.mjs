@@ -19,14 +19,19 @@
 // reads it), prints the gate's lines in the log and the job summary, and fails the
 // step on an armed `fail` even when every test passed: the verdict reads that as
 // its own kind, `time`. A narrowed run isn't timed: it runs a few files, never a gate.
+//
+// Every Vitest run also gets progress-reporter.mjs: <report>.progress.json records
+// the files it started and finished, and a file past its limit stops the run, so a
+// hung shard's verdict names the file it was stuck on (verdict.mjs's `hung`).
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { timeGate } from "../loops/time-gate.mjs";
 import { tierData } from "./tier-data.mjs";
 import { parseQuarantine } from "./lists.mjs";
+import { progressFileOf } from "./progress-reporter.mjs";
 import { NARROWED_FILE, fileGroup } from "./tiers.mjs";
 
 export const MAX_RERUN_FILES = 20;
@@ -80,6 +85,23 @@ export function failedFiles(/** @type {string | null} */ text, /** @type {string
 function narrowedFiles(/** @type {JobIo} */ io) {
   const text = io.readText(NARROWED_FILE);
   return text ? /** @type {string[]} */ (JSON.parse(text).files) : null;
+}
+
+const PROGRESS_REPORTER = fileURLToPath(new URL("./progress-reporter.mjs", import.meta.url));
+
+/**
+ * A Vitest run with the progress reporter beside its own (its CLI reporters
+ * replace the config's, so a run naming none keeps `default`), writing beside its report.
+ * @param {string[]} args @returns {{ args: string[], env: Record<string, string> }}
+ */
+export function withProgress(args) {
+  const out = args.find((a) => a.startsWith(OUTPUT));
+  if (!out) return { args, env: {} };
+  const own = args.some((a) => a === "--reporter" || a.startsWith("--reporter="));
+  return {
+    args: [`--reporter=${PROGRESS_REPORTER}`, ...(own ? [] : ["--reporter=default"]), ...args],
+    env: { CARETOOK_CI_PROGRESS: progressFileOf(out.slice(OUTPUT.length)) },
+  };
 }
 
 /** Each file's seconds in a Vitest report, repo-relative; [] for a missing or broken one. */
@@ -199,11 +221,15 @@ export function runQuarantine(args, io) {
 
 /** @returns {JobIo} */
 const realIo = () => ({
-  run: (args, env) =>
-    spawnSync("pnpm", ["exec", "vitest", "run", ...args], {
-      stdio: "inherit",
-      env: { ...process.env, ...env },
-    }).status ?? 1,
+  run: (args, env) => {
+    const run = withProgress(args);
+    return (
+      spawnSync("pnpm", ["exec", "vitest", "run", ...run.args], {
+        stdio: "inherit",
+        env: { ...process.env, ...run.env, ...env },
+      }).status ?? 1
+    );
+  },
   readText: (path) => (existsSync(path) ? readFileSync(path, "utf8") : null),
   log: (line) => console.log(`test-job: ${line}`),
   root: process.cwd(),
