@@ -8,34 +8,18 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-**Hand-off (2026-11-26, wave 7 mid-wave; rotated for context).** Resumed after the post-wave-6 pause. B-771 was fixed on dev by a hotfix (e19c42ab). Wave 7 = slices 50–60, all opus. Deferred for tags' hot files: B-653, B-776, B-619, B-839, B-845, B-864. ~40 other triaged items wait for wave 8+.
+**Hand-off (2026-11-26, after wave 7 landed; rotating).** Wave 7 (slices 50–60, all opus) landed in dev as a84d6611 (land pushed 4a1827d) through PR #211, tier full, `--no-review` (Codex out of credits); the full run's verdict was `file` with both failures dev's (boundary.test.mjs: B-865, B-866, fixes-bug). Docs folded (7297baa3). All slice worktrees removed; report filed.
 
-- **Merged:** 50 (86103144), 51 (4bf25df7), 52 (dd8d3a21), 53 (f1166303), 54 (793bcf65), 55 (42781ced), 56 (729eeed7), 57 (0783ecf7), 58 (c1fb36b0), 59 (7975988e), 60 (e5f7b7cb). All 11 merged; items ready. Wave gate: `pnpm prd ci run full --wait` (tier full: scripts/ci/env.mjs). **Accepted, to merge in plan order:** 52 (a574e9e2), 54 (729a8858), 55 (cefd6394), 58 (1bac753f), 59 (54294a9c). **Not handed off at rotation:** 51 (d1b105de committed), 53 (44dd2730), 56 (db33b7f7), 57 (86fbcf8b), 60 (01aacbef; 4 files uncommitted). The fresh session respawns them with `--continue`; each should send its hand-off.
-- **Load:** 11 slices at once pushed load to 150–220. Slices 50 and 52 saw their checks fail on load in files they don't touch (land-gate, prompt-golden, the time budget); the files pass alone. Accepted: the wave's CI run is the gate. Next wave: run fewer slices at once.
-- **Slice 59 reaches past tooling:** `apps/web/app/lib/sync/index.ts` `watchLiveQuery` now hands results to React at the next frame, batched, with a 100 ms fallback for a hidden page. The cause: about 35 watches after Back each rendered the 3-page timeline, about 70 ms each. That affects every live query. Sent to the backlog session (caretook-com-24) as an FYI. **Its reply: no objection, merge it this wave** (a separate `--no-ff` merge, so it reverts alone). Gate it on the full CI component run plus the integration tier and the browser sync round-trip. If a sync or offline test turns red or flaky after it: drop 59 from the wave, file it for a sync topic, land the rest, never force it. Note it in sync.md at landing. Also: the timelineBack (B-633) and newGroup (B-769) lines in `scripts/ci/quarantine.txt` can go once they're done (`pnpm prd ci` writes that file).
-- **Docs to fold at landing:** prd.sh's help heredoc is unquoted, so backticks and `$` need escaping (B-766). The planner's slice fields: `Blocked by: slice 3 | 3 | 1, 2 | none` (B-768; `Blocks:` is still unknown). machinery/orchestrator: status-trim puts back a fixes plan's missing slice table (B-807). Only Vitest's own report line counts as an unhandled error (B-623). components.md Gotchas: a menu's popover is a `dialog`, so find a sheet by name (B-769). sync.md: live query results are handed over at the next frame, together (B-633).
-- **Resumed (2026-11-26, session fixes-tooling-95):** no live agents found; respawned 51, 53, 56, 57, 60 with `--continue` (opus) to write their hand-offs (60 has a further commit 67a3734c, all clean). Watch running.
-- **Wave gate:** full run 45784130450 on 3cc9c483: verdict `file`; blame: both failures dev's (boundary.test.mjs, filed B-865, B-866), so it lands. The quarantined B-824 case still FAILED on CI: sent back to slice 57's agent as a fix request (worktree fixes-tooling-57 kept; others removed). Sync: no merge needed. PR #211 opened; Codex out of credits (review exit 4), so land with `--no-review` and say so. Docs folded (7297baa3). 57's fix request: no commit; the CI failure is a real lease.sh exclusivity bug, filed B-867 (fixes-tooling, triaged; B-824's quarantine stays). Next: status-trim, `pnpm prd land fixes-tooling --tier full --no-review -m …`, report, rotate.
-- **Docs to fold at landing (more):** Quarantine lines for B-633, B-769, B-824 can go (`pnpm prd ci` owns quarantine.txt). Docs to fold also: B-767 one comma-joined Backlog-Tool trailer (backlog.md); B-542 CARETOOK_UNIT_WORKERS (loop.md Tests); B-812 last step is `pnpm prd rm` from inside (orchestrator/planner/machinery); B-754 fixtures as files, not CLI calls (loop Tests); B-824 quarantined tests run only with CARETOOK_QUARANTINE=run.
-- Note: `pnpm prd watch --mark <n>` takes only nudged|replied|restarted|left|asked (there's no hand-off mark).
+- **Next (wave 8):** at the boundary, `pnpm backlog ingest`, `pnpm backlog list`; append a slice per waiting triaged item (numbered from `pnpm prd status-trim fixes-tooling --next`), skipping any that touch a running topic's hot files (`pnpm backlog prd list`; tags' were the reason for deferring B-653, B-776, B-619, B-839, B-845, B-864: recheck). New: B-867 (lease.sh: two takers can claim one check slot on CI; B-824's quarantine line stays until it lands).
+- **Lessons:** 11 slices at once pushed load to 150–220 and failed checks on load in untouched files: run about 4–5 at once. Respawned `--continue` agents only re-ran checks (~40 min each under lease contention).
+- **Follow-ups for later:** B-542's cap is 4 (unit tests +50% alone); a proposal of half the cores with no ceiling (5 here, +26%) is noted on the item. The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them.
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State                                                                   | Merge    |
-| ----- | ------------ | ----------------------------------------------------------------------- | -------- |
-| 50    | B-766        | merged (check stopped on load 149; CI gates)                            | 86103144 |
-| 51    | B-767        | merged (check passed)                                                   | 4bf25df7 |
-| 52    | B-768        | merged (check failed only on load, untouched files)                     | dd8d3a21 |
-| 53    | B-542        | merged (check passed; cap 4 = +50% unit time, proposal 5 noted on item) | f1166303 |
-| 54    | B-623, B-860 | merged (check passed)                                                   | 793bcf65 |
-| 55    | B-807        | merged (check passed)                                                   | 42781ced |
-| 56    | B-754        | merged (check passed)                                                   | 729eeed7 |
-| 57    | B-824        | merged (check passed; 20/20 under load)                                 | 0783ecf7 |
-| 58    | B-769        | merged (check passed)                                                   | c1fb36b0 |
-| 59    | B-633        | merged (check passed; app-wide, revert alone if sync goes red)          | 7975988e |
-| 60    | B-812        | merged (check passed)                                                   | e5f7b7cb |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1
 
