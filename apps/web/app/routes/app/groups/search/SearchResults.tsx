@@ -43,7 +43,9 @@ export function SearchResults({
   preparing: boolean;
   unavailable: boolean;
 }) {
-  const searching = data.q.trim() !== "";
+  const text = data.q.trim() !== "";
+  // A tag with no text lists what carries it (`loadSearch`), without the index.
+  const listing = !text && !!data.tag;
   const now = new Date();
   // The results' own search (they can be the previous text's for a moment), for marking matches.
   const search = useMemo(() => parseSearch(data.q), [data.q]);
@@ -56,15 +58,17 @@ export function SearchResults({
   // Only which one: the sheet reads the row as it is now, so synced edits and deletes show (B-469).
   const [opened, setOpened] = useState<EasyOpenedRef | null>(null);
   const open = (item: EasyOpenedRef) => (group.easyRole ? () => setOpened(item) : undefined);
-  const status = unavailable
-    ? "Search isn't available on this device right now."
-    : preparing && !data.sections.length
-      ? "Preparing search…"
-      : !searching
-        ? ""
-        : data.empty
-          ? "Add a word to search for: a search of only -exclusions matches nothing."
-          : resultCountText(data.sections, data.q);
+  const status = listing
+    ? resultCountText(data.sections, data.q, data.tagName)
+    : unavailable
+      ? "Search isn't available on this device right now."
+      : preparing && !data.sections.length
+        ? "Preparing search…"
+        : !text
+          ? ""
+          : data.empty
+            ? "Add a word to search for: a search of only -exclusions matches nothing."
+            : resultCountText(data.sections, data.q, data.tagName);
 
   return (
     <>
@@ -157,6 +161,7 @@ export function SearchResults({
             groupId={groupId}
             q={data.q}
             period={data.period}
+            tag={data.tag}
             timeline={!group.easyRole}
           />
         </section>
@@ -176,26 +181,31 @@ export function SearchResults({
 
 /**
  * "Show all N" (or "Show fewer") for the section, and, under entries, "See
- * all N in timeline" (with the care period, as the timeline's period chip).
+ * all N in timeline" (with the care period, as the timeline's period chip, and the tag).
  */
 function SectionLinks({
   section,
   groupId,
   q,
   period,
+  tag,
   timeline: seeTimeline,
 }: {
   section: ResultSection;
   groupId: string;
   q: string;
   period: string | null;
+  tag: string | null;
   /** Whether entries offer "See all N in timeline". */
   timeline: boolean;
 }) {
   const toggle = section.full
-    ? { label: "Show fewer", to: appUrls.search(groupId, q, { period }) }
+    ? { label: "Show fewer", to: appUrls.search(groupId, q, { period, tag }) }
     : section.hidden > 0
-      ? { label: `Show all ${section.total}`, to: appUrls.search(groupId, q, { all: section.type, period }) }
+      ? {
+          label: `Show all ${section.total}`,
+          to: appUrls.search(groupId, q, { all: section.type, period, tag }),
+        }
       : null;
   const timeline = seeTimeline && section.type === "entry";
   if (!toggle && !timeline) return null;
@@ -215,7 +225,7 @@ function SectionLinks({
       )}
       {timeline && (
         <Link
-          to={appUrls.timeline(groupId, { q: q.trim(), period })}
+          to={appUrls.timeline(groupId, { q: q.trim(), period, tag })}
           className={`${LINK} link-hover`}
           data-see-timeline
         >

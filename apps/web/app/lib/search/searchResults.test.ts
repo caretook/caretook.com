@@ -30,9 +30,10 @@ describe("parseSearchPage", () => {
       q: "knee pain",
       all: "entry",
       period: null,
+      tag: null,
     });
-    expect(parseSearchPage("?q= knee ")).toEqual({ q: " knee ", all: null, period: null });
-    expect(parseSearchPage("")).toEqual({ q: "", all: null, period: null });
+    expect(parseSearchPage("?q= knee ")).toEqual({ q: " knee ", all: null, period: null, tag: null });
+    expect(parseSearchPage("")).toEqual({ q: "", all: null, period: null, tag: null });
   });
 
   it("drops an unknown section, and a section without a search", () => {
@@ -47,6 +48,20 @@ describe("parseSearchPage", () => {
     expect(parseSearchPage(`?period=${PERIOD}`).period).toBeNull();
     expect(parseSearchPage(`?q=%20&period=${PERIOD}`).period).toBeNull();
     expect(parseSearchPage("?q=knee&period=rehab").period).toBeNull();
+  });
+
+  it("reads a tag (lower-case, only an id), with or without a search; with one, a full section needs no text", () => {
+    const TAG = "9a77e3f1-5d1a-4c2e-0b6f-3c1e2b8c0bbb";
+    expect(parseSearchPage(`?tag=${TAG.toUpperCase()}`)).toEqual({
+      q: "",
+      all: null,
+      period: null,
+      tag: TAG,
+    });
+    expect(parseSearchPage(`?q=knee&tag=${TAG}`).tag).toBe(TAG);
+    expect(parseSearchPage("?tag=urgent").tag).toBeNull();
+    expect(parseSearchPage(`?tag=${TAG}&all=todo`).all).toBe("todo");
+    expect(parseSearchPage(`?tag=${TAG}&period=${PERIOD}`).period).toBeNull();
   });
 
   it("caps the text at the parser's length", () => {
@@ -177,5 +192,11 @@ describe("resultCountText", () => {
 
   it("says when nothing matched, naming the search", () => {
     expect(resultCountText([], " knee ")).toBe("No matches for “knee”");
+  });
+
+  it("names the tag: with text, and with none", () => {
+    expect(resultCountText([], "knee", "Urgent")).toBe("No matches for “knee” tagged “Urgent”");
+    expect(resultCountText([], " ", "Urgent")).toBe("Nothing is tagged “Urgent”");
+    expect(resultCountText(sections({ todo: 2 }), "", "Urgent")).toBe("2 todos");
   });
 });

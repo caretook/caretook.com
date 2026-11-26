@@ -1,11 +1,13 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
-import { SEARCH_MAX_LENGTH, VITAL_TYPES } from "@caretook/data/schema";
+import { SEARCH_MAX_LENGTH, TAG_PARAM, tagFromParams, VITAL_TYPES } from "@caretook/data/schema";
 
 // The timeline's filters live in the URL: `?kind=<kind>&author=<userId>`
 // and the search `?q=<text>` (narrowed to one care period by `?period=<id>`
 // while it's on), with `?vital=<type>` under `kind=vital` and the repeated
-// `?symptom=<id>` (catalog rows, any of them) under `kind=symptom`.
+// `?symptom=<id>` (catalog rows, any of them) under `kind=symptom`, and
+// `?tag=<id>` (one tag; the param is tagRules' `TAG_PARAM`, and whether it's
+// one of the group's tags is the screen's to check).
 // This module owns that state: reading it from a search string, and the
 // search string for each change. No React or database here; every filter
 // control (the chips, a row's kind icon and author, the author chip) is a
@@ -36,6 +38,8 @@ export type TimelineFilters = {
    * search (`q`): without one it reads as null, and clearing the search clears it.
    */
   period: string | null;
+  /** One tag's id (`?tag=`, lower-case), or null for every entry. Whether the group has it isn't checked here. */
+  tag: string | null;
 };
 
 export const KIND_PARAM = "kind";
@@ -93,13 +97,15 @@ export const parseFilters = (search: string): TimelineFilters => {
     vital: kind === "vital" ? vitalType(params.get(VITAL_PARAM)) : null,
     symptoms: kind === "symptom" ? symptomIds(params.getAll(SYMPTOM_PARAM)) : [],
     period: q && isRowId(period) ? period.toLowerCase() : null,
+    tag: tagFromParams(params),
   };
 };
 
-/** True when any filter (kind, author or search) is on. */
-export const hasFilters = (filters: TimelineFilters) => !!filters.kind || !!filters.author || !!filters.q;
+/** True when any filter (kind, author, tag or search) is on. */
+export const hasFilters = (filters: TimelineFilters) =>
+  !!filters.kind || !!filters.author || !!filters.tag || !!filters.q;
 
-/** `search` with the filters replaced: kind first, then author, then q, then period, then vital or the symptoms, then whatever else was there. */
+/** `search` with the filters replaced: kind first, then author, then q, then period, then vital or the symptoms, then the tag, then whatever else was there. */
 const withFilters = (search: string, next: TimelineFilters) => {
   const params = new URLSearchParams(search);
   params.delete(KIND_PARAM);
@@ -108,6 +114,7 @@ const withFilters = (search: string, next: TimelineFilters) => {
   params.delete(VITAL_PARAM);
   params.delete(SYMPTOM_PARAM);
   params.delete(PERIOD_PARAM);
+  params.delete(TAG_PARAM);
   // Any filter change starts again from the newest entry.
   params.delete(DAY_PARAM);
   const out = new URLSearchParams();
@@ -117,6 +124,7 @@ const withFilters = (search: string, next: TimelineFilters) => {
   if (next.q && next.period) out.set(PERIOD_PARAM, next.period);
   if (next.vital && next.kind === "vital") out.set(VITAL_PARAM, next.vital);
   if (next.kind === "symptom") for (const id of next.symptoms) out.append(SYMPTOM_PARAM, id);
+  if (next.tag) out.set(TAG_PARAM, next.tag);
   for (const [key, value] of params) out.append(key, value);
   const text = out.toString();
   return text ? `?${text}` : "";
@@ -133,6 +141,7 @@ const change = (search: string, patch: Partial<TimelineFilters>) => {
     next.author === current.author &&
     next.q === current.q &&
     next.period === current.period &&
+    next.tag === current.tag &&
     (next.kind === "vital" ? next.vital : null) === current.vital &&
     sameIds(next.kind === "symptom" ? next.symptoms : [], current.symptoms)
   )
@@ -154,8 +163,16 @@ export const clearKind = (search: string) => change(search, { kind: null });
 /** Everyone's entries again; the kind filter stays. */
 export const clearAuthor = (search: string) => change(search, { author: null });
 
-/** No filters and no search or period. */
-export const clearFilters = (search: string) => change(search, { kind: null, author: null, q: "" });
+/** Show only the entries carrying one tag; the other filters stay. An id that isn't a row id changes nothing. */
+export const setTag = (search: string, tag: string) =>
+  isRowId(tag) ? change(search, { tag: tag.toLowerCase() }) : search;
+
+/** Every entry again, tagged or not; the other filters stay. */
+export const clearTag = (search: string) => change(search, { tag: null });
+
+/** No filters (the tag too) and no search or period. */
+export const clearFilters = (search: string) =>
+  change(search, { kind: null, author: null, q: "", tag: null });
 
 /** Search for `q` (trimmed and capped); blank text clears the search. The other filters stay. */
 export const setQuery = (search: string, q: string) => change(search, { q: normalizeQuery(q) });
@@ -229,7 +246,7 @@ export const readDay = (search: string, today: string) => {
   return isCalendarDay(day) && day <= today && !normalizeQuery(params.get(QUERY_PARAM)) ? day : null;
 };
 
-/** Jump to `day`: the kind, author, vital and symptom filters stay, the search and its period end. An invalid day changes nothing. */
+/** Jump to `day`: the kind, author, vital, symptom and tag filters stay, the search and its period end. An invalid day changes nothing. */
 export const setDay = (search: string, day: string) => {
   if (!isCalendarDay(day)) return search;
   const params = new URLSearchParams(withFilters(search, { ...parseFilters(search), q: "", period: null }));

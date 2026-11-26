@@ -9,6 +9,8 @@ import {
   parseSearch,
   providerSearchDocument,
   SEARCH_ITEM_TYPES,
+  TAG_TARGET_COLUMNS,
+  TAG_TARGETS,
   todoSearchDocument,
   toFtsMatch,
 } from "@caretook/data/schema";
@@ -625,50 +627,60 @@ export type SearchLimits = Partial<Record<SearchItemType, number>>;
 const DEFAULT_LIMIT = 5;
 
 /**
+ * A condition on a search item (`i`) for the items carrying one tag (tags
+ * PRD), each taggable type by its `record_tag` column. Conditions can't carry
+ * a tag, so none pass. The tags stay out of the index: this joins the links.
+ */
+const taggedItemCondition = (tagId: string) => ({
+  sql: `(${TAG_TARGETS.map(
+    (t) =>
+      `(i.item_type = '${t}' AND i.item_id IN (SELECT l.${TAG_TARGET_COLUMNS[t]} FROM record_tag l WHERE l.tag_id = ? AND l.group_id = i.group_id))`,
+  ).join(" OR ")})`,
+  params: TAG_TARGETS.map(() => tagId),
+});
+
+/**
  * The search page's query: every matching item of the group, best first
  * (title matches, rank, newest). With a `range` (a care period's dates),
  * only entries within it: providers, medications, todos and conditions aren't dated by it, so none.
+ * With a `tag`, only the items carrying it (no conditions).
  */
-export const searchGroupQuery = (groupId: string, parsed: ParsedSearch, range?: SearchRange | null) => {
+export const searchGroupQuery = (
+  groupId: string,
+  parsed: ParsedSearch,
+  range?: SearchRange | null,
+  tag?: string | null,
+) => {
   const match = toFtsMatch(parsed);
   const titleMatch = toFtsMatch(parsed, { columns: ["title"] });
   if (!match || !titleMatch) return null;
   const within = range ? entryRangeCondition("e.occurred_at", range) : null;
+  const tagged = tag ? taggedItemCondition(tag) : null;
   return {
     sql: `SELECT i.item_id AS id, i.item_type AS type, bm25(search_fts, ${WEIGHTS}) AS rank,
                  i.rowid IN (SELECT rowid FROM search_fts WHERE search_fts MATCH ?) AS title_match,
                  e.occurred_at
           FROM search_fts JOIN search_item i ON i.rowid = search_fts.rowid
           LEFT JOIN timeline_entry e ON i.item_type = 'entry' AND e.id = i.item_id
-          WHERE search_fts MATCH ? AND i.group_id = ?${within ? ` AND i.item_type = 'entry' AND ${within.sql}` : ""}
+          WHERE search_fts MATCH ? AND i.group_id = ?${within ? ` AND i.item_type = 'entry' AND ${within.sql}` : ""}${tagged ? ` AND ${tagged.sql}` : ""}
           ORDER BY title_match DESC, rank, e.occurred_at DESC`,
-    params: [titleMatch, match, groupId, ...(within?.params ?? [])],
+    params: [titleMatch, match, groupId, ...(within?.params ?? []), ...(tagged?.params ?? [])],
   };
 };
 
 type HitRow = { id: string; type: string; rank: number; title_match: number; occurred_at: string | null };
 
-/**
- * The group's matches by type, the first few of each (`limits`, default 5)
- * with each type's total; with a `range`, only the entries within it.
- */
-export const searchGroup = async (
-  db: SyncDb,
-  groupId: string,
-  parsed: ParsedSearch,
-  limits: SearchLimits = {},
-  range: SearchRange | null = null,
-): Promise<SearchResults> => {
-  const results: SearchResults = {
-    entry: { hits: [], total: 0 },
-    provider: { hits: [], total: 0 },
-    medication: { hits: [], total: 0 },
-    todo: { hits: [], total: 0 },
-    condition: { hits: [], total: 0 },
-  };
-  const query = searchGroupQuery(groupId, parsed, range);
-  if (!query) return results;
-  const rows = await db.powersync.getAll<HitRow>(query.sql, query.params);
+const noResults = (): SearchResults => ({
+  entry: { hits: [], total: 0 },
+  provider: { hits: [], total: 0 },
+  medication: { hits: [], total: 0 },
+  todo: { hits: [], total: 0 },
+  condition: { hits: [], total: 0 },
+});
+
+/** Hit rows into sections: each type's total, and its first few (`limits`). */
+const toResults = (rows: readonly HitRow[], limits: SearchLimits): SearchResults => {
+  const results = noResults();
   for (const row of rows) {
     const section = results[row.type as SearchItemType] as SearchSection | undefined;
     if (!section) continue;
@@ -683,4 +695,58 @@ export const searchGroup = async (
     });
   }
   return results;
+};
+
+/**
+ * The group's matches by type, the first few of each (`limits`, default 5)
+ * with each type's total; with a `range`, only the entries within it; with
+ * a `tag`, only the items carrying it.
+ */
+export const searchGroup = async (
+  db: SyncDb,
+  groupId: string,
+  parsed: ParsedSearch,
+  limits: SearchLimits = {},
+  range: SearchRange | null = null,
+  tag: string | null = null,
+): Promise<SearchResults> => {
+  const query = searchGroupQuery(groupId, parsed, range, tag);
+  if (!query) return noResults();
+  return toResults(await db.powersync.getAll<HitRow>(query.sql, query.params), limits);
+};
+
+/** The table of each taggable type, and what its list sorts by (entries newest first, the rest by name). */
+const TAGGED_SOURCES = {
+  entry: { table: "timeline_entry", name: "NULL", at: "r.occurred_at" },
+  provider: { table: "provider", name: "r.name", at: "NULL" },
+  medication: { table: "medication", name: "r.name", at: "NULL" },
+  todo: { table: "todo", name: "r.title", at: "NULL" },
+} as const;
+
+/**
+ * The search page with a tag and no text: every live item of the group
+ * carrying `tagId`, by type (no conditions: they can't carry one). Entries
+ * newest first, the rest A to Z; the index isn't read, so this works while
+ * it's still being prepared.
+ */
+export const taggedItemsQuery = (groupId: string, tagId: string) => ({
+  sql: `SELECT id, type, 0 AS rank, 0 AS title_match, occurred_at FROM (${TAG_TARGETS.map((t) => {
+    const source = TAGGED_SOURCES[t];
+    return `SELECT r.id, '${t}' AS type, ${source.at} AS occurred_at, ${source.name} AS sort_name
+            FROM record_tag l JOIN ${source.table} r ON r.id = l.${TAG_TARGET_COLUMNS[t]} AND r.group_id = l.group_id
+            WHERE l.tag_id = ? AND l.group_id = ? AND r.deleted_at IS NULL`;
+  }).join(" UNION ALL ")})
+        ORDER BY type, occurred_at DESC, sort_name COLLATE NOCASE, id`,
+  params: TAG_TARGETS.flatMap(() => [tagId, groupId]),
+});
+
+/** `taggedItemsQuery`'s items, the first few of each type (`limits`) with each type's total, in its order. */
+export const taggedItems = async (db: SyncDb, groupId: string, tagId: string, limits: SearchLimits = {}) => {
+  const q = taggedItemsQuery(groupId, tagId);
+  const rows = await db.powersync.getAll<HitRow>(q.sql, q.params);
+  // Each type's place in its list is its rank, so the page's order (rank, then newest) keeps it.
+  return toResults(
+    rows.map((row, i) => ({ ...row, rank: i })),
+    limits,
+  );
 };
