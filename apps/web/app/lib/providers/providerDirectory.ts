@@ -1,8 +1,8 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 
-import { PROVIDER_TYPES } from "@caretook/data/schema";
+import { PROVIDER_TYPES, TAG_PARAM, tagFromParams, withTagParam } from "@caretook/data/schema";
 
-// The provider directory's list: its filters in the URL (`?q=`, `?type=`),
+// The provider directory's list: its filters in the URL (`?q=`, `?type=`, `?tag=`),
 // the display order, and search matching. Pure: no React or database here;
 // the list, and later the With picker, use it, and web:unit tests it.
 //
@@ -15,6 +15,8 @@ export type DirectoryFilters = {
   q: string;
   /** One type of provider, or null for every type. */
   type: ProviderType | null;
+  /** One tag's id (tags PRD), or null. Whether the group has it is the screen's to check (`activeTag`). */
+  tag?: string | null;
 };
 
 export const QUERY_PARAM = "q";
@@ -38,16 +40,18 @@ export const parseDirectoryFilters = (search: string): DirectoryFilters => {
   return {
     q: (params.get(QUERY_PARAM) ?? "").trim(),
     type: isProviderType(type) ? type : null,
+    tag: tagFromParams(params),
   };
 };
 
-/** `search` with the filters replaced: q, type, then whatever else was there. */
+/** `search` with the filters replaced: q, type, tag, then whatever else was there. */
 const withFilters = (search: string, next: DirectoryFilters) => {
   const params = new URLSearchParams(search);
-  for (const key of [QUERY_PARAM, TYPE_PARAM]) params.delete(key);
-  const out = new URLSearchParams();
+  for (const key of [QUERY_PARAM, TYPE_PARAM, TAG_PARAM]) params.delete(key);
+  let out = new URLSearchParams();
   if (next.q) out.set(QUERY_PARAM, next.q);
   if (next.type) out.set(TYPE_PARAM, next.type);
+  out = withTagParam(out, next.tag ?? null);
   for (const [key, value] of params) out.append(key, value);
   const text = out.toString();
   return text ? `?${text}` : "";
@@ -56,7 +60,7 @@ const withFilters = (search: string, next: DirectoryFilters) => {
 const change = (search: string, patch: Partial<DirectoryFilters>) => {
   const current = parseDirectoryFilters(search);
   const next = { ...current, ...patch };
-  if (next.q === current.q && next.type === current.type) return search;
+  if (next.q === current.q && next.type === current.type && next.tag === current.tag) return search;
   return withFilters(search, next);
 };
 
@@ -69,6 +73,18 @@ export const setType = (search: string, type: ProviderType) =>
 
 /** Every type again. */
 export const clearType = (search: string) => change(search, { type: null });
+
+/** Show the providers with one tag (an id). */
+export const setTag = (search: string, tagId: string) => {
+  const tag = tagFromParams(withTagParam(new URLSearchParams(), tagId));
+  return tag ? change(search, { tag }) : search;
+};
+
+/** Every tag again. */
+export const clearTag = (search: string) => change(search, { tag: null });
+
+/** Clear filters: the type and the tag, keeping the search. */
+export const clearFilters = (search: string) => change(search, { type: null, tag: null });
 
 // ---------------------------------------------------------------------------
 // Order and matching
@@ -121,18 +137,28 @@ export type DirectoryList<P extends ListedProvider> = {
   past: P[];
 };
 
+/** Each record's tags by its id (`useGroupRecordTags`). */
+export type TagsByRecord = ReadonlyMap<string, readonly { id: string; name: string }[]>;
+
+/** Whether a record carries the tag; no tag (null) keeps every record. */
+export const hasTag = (tags: TagsByRecord | undefined, recordId: string, tagId: string | null) =>
+  !tagId || !!tags?.get(recordId)?.some((t) => t.id === tagId);
+
 /**
- * The list for these filters: the providers that match the type and search,
- * in display order, split into current and past.
+ * The list for these filters: the providers that match the type, the tag
+ * (by `tags`; pass the tag only once `activeTag` knows it) and search, in
+ * display order, split into current and past.
  */
 export const directoryList = <P extends ListedProvider>(
   providers: readonly P[],
   filters: DirectoryFilters,
+  tags?: TagsByRecord,
 ): DirectoryList<P> => {
   const names = new Map(providers.map((p) => [p.id, p.name]));
   const tokens = queryTokens(filters.q);
   const matching = providers
     .filter((p) => !filters.type || p.type === filters.type)
+    .filter((p) => hasTag(tags, p.id, filters.tag ?? null))
     .filter((p) => matchesQuery(p, tokens, p.practiceId ? names.get(p.practiceId) : null))
     .sort(compareProviders);
   return {

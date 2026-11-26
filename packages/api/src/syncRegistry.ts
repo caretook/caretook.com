@@ -518,13 +518,31 @@ const symptomType: UploadEntry = {
 // tag: a group's shared tags (tags). A device adds one (PUT) under the id it
 // derives from the group, the name and a counter; a replay, or another
 // device's PUT of that id, returns the one tag, even renamed. A name another
-// tag holds is `tagService:nameTaken`. Loggers only. Rename (a name PATCH)
-// and delete come with tags slice 3; until then both are read-only.
+// tag holds is `tagService:nameTaken`. Loggers only. A PATCH of `name` is a
+// rename (the server derives `name_key`; the device's is ignored): an Easy
+// helper's of a tag someone else created is `permissions:unauthorized`, as
+// `softDelete`'s refused own-row update. A DELETE is an owner's hard delete
+// (links cascade); a deleted tag's is a replay.
+const tagColumns = columnsOf({ fixed: ["group_id"], content: ["name"], serverSet: ["name_key"] });
+const tagKnown = new Set(Object.values(tagColumns).flat());
+
 const tag: UploadEntry = {
-  columns: columnsOf({ fixed: ["group_id"], content: ["name"], serverSet: ["name_key"] }),
+  columns: tagColumns,
   handle: async (ctx, op) => {
-    if (op.op !== "PUT") return readOnly("tag", op.op);
-    const of = (column: string) => text(op.data?.[column]) ?? "";
+    if (op.op === "DELETE") {
+      const res = await tagService.remove(ctx, op.id);
+      return isError(res) && res.code === "tagService:notFound" ? applied : outcome(res);
+    }
+    const data = op.data ?? {};
+    if (op.op === "PATCH") {
+      const unknown = Object.keys(data).filter((c) => !tagKnown.has(c));
+      if (unknown.length > 0)
+        return newError({ code: "sync:unknownColumn", meta: { table: op.table, columns: unknown } });
+      if ("group_id" in data) return newError({ code: "tagService:immutable" });
+      if (!("name" in data)) return applied;
+      return outcome(await tagService.rename(ctx, op.id, text(data.name) ?? ""));
+    }
+    const of = (column: string) => text(data[column]) ?? "";
     return outcome(await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name") }));
   },
 };

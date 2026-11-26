@@ -9,6 +9,8 @@ import {
   TAG_TARGETS,
   activeTag,
   canCreateTag,
+  canDeleteTag,
+  canRenameTag,
   canTagRecord,
   isTagIdFor,
   nextTagId,
@@ -175,6 +177,50 @@ describe("canTagRecord", () => {
   it("anyone who may log creates a tag", () => {
     expect(GROUP_ROLE_NAMES.filter(canCreateTag)).toEqual(["owner", "admin", "caretaker", "easy_helper"]);
     expect(canCreateTag(null)).toBe(false);
+  });
+});
+
+describe("canRenameTag and canDeleteTag", () => {
+  const me = randomUUID();
+  const own = { createdBy: me };
+  const theirs = { createdBy: randomUUID() };
+
+  it("owners, admins and caretakers rename any tag", () => {
+    for (const role of ["owner", "admin", "caretaker"]) {
+      expect(canRenameTag(role, own, me)).toBe(true);
+      expect(canRenameTag(role, theirs, me)).toBe(true);
+    }
+  });
+
+  it("an Easy helper renames only a tag they created", () => {
+    expect(canRenameTag("easy_helper", own, me)).toBe(true);
+    expect(canRenameTag("easy_helper", theirs, me)).toBe(false);
+    expect(canRenameTag("easy_helper", { createdBy: null }, null)).toBe(false);
+    expect(canRenameTag("easy_helper", own, null)).toBe(false);
+  });
+
+  it("viewers, Easy viewers and non-members never rename, even a tag they created", () => {
+    for (const role of ["viewer", "easy_viewer", null, undefined, "stranger"])
+      expect(canRenameTag(role, own, me)).toBe(false);
+  });
+
+  it("covers every group role", () => {
+    expect(GROUP_ROLE_NAMES.filter((role) => canRenameTag(role, own, me))).toEqual([
+      "owner",
+      "admin",
+      "caretaker",
+      "easy_helper",
+    ]);
+    expect(GROUP_ROLE_NAMES.filter((role) => canRenameTag(role, theirs, me))).toEqual([
+      "owner",
+      "admin",
+      "caretaker",
+    ]);
+  });
+
+  it("only owners delete a tag", () => {
+    expect(GROUP_ROLE_NAMES.filter(canDeleteTag)).toEqual(["owner"]);
+    expect(canDeleteTag(null)).toBe(false);
   });
 });
 
