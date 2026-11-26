@@ -5,7 +5,7 @@
 # it only through the hooks.
 
 # The main checkout (the repo's first worktree) and its .loops worktrees.
-main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain 2>/dev/null | awk 'NR==1{print $2}')
+main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
 loops=$main/.loops
 
 die() { echo "$*" >&2; exit 1; }
