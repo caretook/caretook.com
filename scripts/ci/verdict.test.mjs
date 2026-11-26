@@ -119,6 +119,39 @@ describe("the verdict's kinds", () => {
     expect(v.flaky[0]?.brake).toBe(true);
   });
 
+  it("a timed step past its armed cutoff, its tests passing, is time: not file, not a flake", () => {
+    const late = { measure: "unit", seconds: 400, verdict: "fail", armed: true };
+    const v = unitVerdict(failing({ time: [late] }));
+    expect(v.kind).toBe("time");
+    expect(v.time).toEqual({ jobs: ["unit"], breaches: [{ job: "unit", ...late }] });
+    expect(v.failed.unnamedJobs).toEqual([]);
+    const flaked = unitVerdict(
+      failing({
+        files: ["a.test.ts"],
+        tests: [test("a.test.ts")],
+        rerun: { files: [], tests: [] },
+        time: [late],
+      }),
+    );
+    expect(flaked.kind).toBe("time");
+    expect(flaked.flaky.map((t) => t.file)).toEqual(["a.test.ts"]);
+  });
+
+  it("a real failure beside a time breach is file, the breach still listed", () => {
+    const late = { measure: "unit", seconds: 400, verdict: "fail", armed: true };
+    const v = unitVerdict(failing({ files: ["a.test.ts"], tests: [test("a.test.ts")], time: [late] }));
+    expect(v.kind).toBe("file");
+    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit", ...late }] });
+  });
+
+  it("an unarmed breach only lists its warning, and a step under its aim nothing", () => {
+    const warned = { measure: "components", seconds: 400, verdict: "warn", armed: false };
+    const ok = { measure: "unit", seconds: 100, verdict: "ok", armed: false };
+    const v = unitVerdict({ result: "success", outputs: failing({ time: [warned, ok] }).outputs });
+    expect(v.kind).toBe("green");
+    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit", ...warned }] });
+  });
+
   it("a mix of flake and file is file, naming each", () => {
     const v = unitVerdict(
       failing({
@@ -235,6 +268,25 @@ describe("a job's summary", () => {
     );
     expect(s.rerun).toBeNull();
     expect(s.quarantined).toEqual([{ file: "a.test.ts", name: "breaks", status: "failed" }]);
+    expect(s.time).toEqual([]);
+  });
+
+  it("carries a timed step's gate result, kept small", () => {
+    const gate = {
+      measure: "unit",
+      seconds: 330,
+      aim: 300,
+      cutoff: 360,
+      armed: false,
+      verdict: "warn",
+      lines: ["x"],
+    };
+    const s = summarizeJob(
+      ["r/u.json"],
+      "/w",
+      reads({ "r/u.json": report("passed"), "r/u.time.json": gate }),
+    );
+    expect(s.time).toEqual([{ measure: "unit", seconds: 330, verdict: "warn", armed: false }]);
   });
 });
 
@@ -416,5 +468,18 @@ describe("the verdict fixtures", () => {
   ])("%s is what a green %s run builds", (name, tier) => {
     const want = fixture(name);
     expect(green(tier, want.commit, want.runId)).toEqual(want);
+  });
+
+  it("branch-time-failure.json is what a unit job failed on time builds: time, not file or flake", () => {
+    const want = fixture("branch-time-failure.json");
+    const unit = failing({
+      files: ["scripts/loops/fictional.test.mjs"],
+      tests: [test("scripts/loops/fictional.test.mjs")],
+      rerun: { files: [], tests: [] },
+      time: [{ measure: "unit", seconds: 400, verdict: "fail", armed: true }],
+    });
+    const v = buildVerdict({ commit: want.commit, runId: want.runId, tier: "unit", needs: unitNeeds(unit) });
+    expect(v).toEqual(want);
+    expect(v.kind).toBe("time");
   });
 });
