@@ -323,6 +323,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-857 | change | ready | fixes-ui | prd/fixes-ui | Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537) |
 | B-858 | feature | triaged | onboarding-3 |  | Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants |
 | B-859 | change | triaged | test-time-gates-2 |  | Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates |
+| B-860 | bug | triaged | fixes-tooling |  | check-tooling: the tooling step reports 'an unhandled error, so no rerun' when none happened; its regex likely matches test names in the output |
 
 ## Items
 
@@ -2352,3 +2353,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-25: queue right after test-time-gates, faster tests speed up everything. Scope moved out of test-time-gates (plans/test-time-gates-prd.md, Out of scope): a 4th component shard or trims of the slowest timeline/planner files if balancing leaves one over 5 min; trim the quick check from the step times test-time-gates records (tooling step split, integration beside unit); then arm components and quick. Continues B-837 and B-772.
 - 2026-11-25 (Robert Bo Davis): Filed by the backlog session; queued right after test-time-gates
+
+### B-860 · bug · check-tooling: the tooling step reports 'an unhandled error, so no rerun' when none happened; its regex likely matches test names in the output
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-25 (prd/test-time-gates): Seen by test-time-gates slice 2's slice check (2026-11-25) on slice/test-time-gates/2: the first check's tooling step skipped its rerun on a phantom unhandled error, probably matching a test title like "doesn't rerun after an unhandled error".
