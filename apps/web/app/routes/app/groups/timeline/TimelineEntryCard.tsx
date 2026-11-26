@@ -2,6 +2,7 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import { TagChips } from "~/components/tags";
 import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
@@ -28,6 +29,8 @@ export function TimelineEntryCard({
   richText,
   search,
   openTodos,
+  tags,
+  onTags,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -58,6 +61,7 @@ export function TimelineEntryCard({
           <>
             {cancelled && <CancelledBadge label={cancelled} />}
             <OpenTodosMark count={openTodos} />
+            <TagChips tags={tags} />
             <p className="text-faint inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
               <ViaTag via={entry.via} className="ml-1.5" />
@@ -67,11 +71,12 @@ export function TimelineEntryCard({
         }
       />
       <EntryCopyLink entry={entry} />
-      {(onDelete || canHaveNoteDocument(entry.kind)) && (
+      {(onDelete || onTags || canHaveNoteDocument(entry.kind)) && (
         <EntryActions
           kind={entry.kind}
           label={actionsLabel(entry)}
           onEdit={onEdit}
+          onTags={onTags}
           cancel={cancel}
           onRemind={onRemind}
           printHref={
