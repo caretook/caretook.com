@@ -19,13 +19,23 @@ const noOffers = () => NO_OFFERS;
  * (named "Undo <title>") that reopens only that todo. The region is always
  * rendered (empty when there's nothing to undo), so the announcement isn't
  * lost, and it's a list even for one line, with `aria-atomic="false"` and
- * additions only, so a new tick announces just its own line.
+ * additions only, so a new tick announces just its own line. `todoIds`
+ * keeps it to those todos' ticks (a page with two regions: the todo's own
+ * Status, its Subtasks).
  */
-export function TodoUndoStatus({ groupId, className = "" }: { groupId: string; className?: string }) {
+export function TodoUndoStatus({
+  groupId,
+  todoIds,
+  className = "",
+}: {
+  groupId: string;
+  todoIds?: readonly string[];
+  className?: string;
+}) {
   const all = useSyncExternalStore(subscribeTodoUndo, todoUndoSnapshot, noOffers);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<ReadonlySet<string>>(() => new Set());
-  const shown = all.length ? todoUndoFor(groupId) : [];
+  const shown = all.length ? todoUndoFor(groupId).filter((o) => !todoIds || todoIds.includes(o.todoId)) : [];
   const nextExpiry = shown.length ? Math.min(...shown.map((o) => o.expiresAt)) : null;
 
   // Each line clears itself when its time is up.
