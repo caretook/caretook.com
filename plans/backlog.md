@@ -324,6 +324,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-925 | bug | ready | fixes-ui | prd/fixes-ui | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
 | B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
+| B-928 | bug | triaged | fixes-bug |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
 
 ## Items
 
@@ -2292,3 +2293,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/orchestration-split-3): Carried from orchestration-split-3 wave 3 (slice 7): usage and context follow each session's folder, the drain doesn't yet
+
+### B-928 · bug · CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi…
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-26 (prd/fixes-ui): [ci-key 10e15235c957] Fails on dev too; found by 9ccd9e8d in https://github.com/caretook/caretook.com/actions/runs/45903344661. First failure: AssertionError: expected '# The project config and the core\'s …' to be '# The project config and the core\'s …' // Object.is equality at /home/runner/work/caretook.com/caretook.com/scripts/loops/doc.test.mjs:194:45 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2885:79 at file:///home/runne…
+- 2026-11-26 (prd/fixes-ui): Fails on dev too; found by 9ccd9e8d in https://github.com/caretook/caretook.com/actions/runs/45903344661. First failure: AssertionError: expected '# The project config and the core\'s …' to be '# The project config and the core\'s …' // Object.is equality at /home/runner/work/caretook.com/caretook.com/scripts/loops/doc.test.mjs:194:45 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2885:79 at file:///home/runne…
