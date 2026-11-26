@@ -23,6 +23,8 @@ One shared tag list per care group; tags go on timeline entries (events included
 - **Tag filters:** a Tag section (none when the group has no tags) on the Todos tab, Planner Upcoming (carried to Past as a chip), Providers and the Medications list; `?tag=` through `activeTag`, so a deleted tag is no filter. `lib/tags/tagFilter.ts` builds the Todos and Planner sections; providers and medications have their own copies (fold them in when one changes).
 - **Chips** (`TagChips`): on timeline, Planner, todo, provider and medication rows and cards, two then "+N" (`ROW_CHIPS`), for every role and in the easy view; the entry page shows them all, since a viewer has no other way to see the rest.
 - **`EntryFilters.tag`** (`timeline.sync.ts`): a `record_tag` subquery ANDed before `match`, in every window, link and medication query.
+- **Timeline filter:** `?tag=` lives in `timelineFilters` (`setTag`, `clearTag`, part of `clearFilters`; a tag change clears `?day=`), a Tag section in the filter sheet and a removable chip. It narrows the history only: the Next strip, Today card and Latest vitals ignore it, and `summariesOff` counts it as a filter.
+- **Search** (`search.sync.ts`): `?tag=` (`SEARCH_TAG_PARAM`) is a `record_tag` subquery per taggable type, so conditions drop out and the index never stores tags; a tag with no text lists each type's live records (`taggedItems`) without the index. The page reruns on `record_tag` changes, since they don't touch the index; recent searches hide while a tag is on.
 - **Reschedule** copies the old event's tags to the new one in its one transaction, with derived link ids; the cancelled event keeps its own.
 
 ## Limits
