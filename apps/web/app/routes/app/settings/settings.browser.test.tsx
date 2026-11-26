@@ -2,8 +2,8 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { legalLinks } from "~/lib/auth/legalLinks";
 import * as home from "~/routes/app/home/route";
-import { legalLinks } from "./account/legalLinks";
 import * as account from "./account/route";
 import * as settingsIndex from "./index/route";
 import * as settingsLayout from "./layout/route";
