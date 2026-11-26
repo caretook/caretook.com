@@ -14,9 +14,18 @@ export type PageMeta = {
 
 export type Cta = { label: string; href: string };
 
+/** The brand lockup a hero leads with: the name, the tagline, then one descriptor line. */
+export type HeroLockup = {
+  name: string;
+  tagline: string;
+  descriptor: string;
+};
+
 export type HeroContent = {
   eyebrow?: string;
-  /** The page's only `h1`. */
+  /** Home's lockup. With it, the name and tagline are the page's only `h1`. */
+  lockup?: HeroLockup;
+  /** The page's only `h1`; under a lockup, the supporting line below it. */
   heading: string;
   lead: string;
   primary: Cta;
