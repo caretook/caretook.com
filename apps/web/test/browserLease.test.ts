@@ -19,8 +19,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { holdLease } from "./browserLease";
 
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
-const LEASE = (JSON.parse(readFileSync(join(REPO, "risa.json"), "utf8")) as { hooks: { lease: string } }).hooks
-  .lease;
+const LEASE = (JSON.parse(readFileSync(join(REPO, "risa.json"), "utf8")) as { hooks: { lease: string } })
+  .hooks.lease;
 
 /**
  * Whether this checkout can run its lease command: each word that names a
