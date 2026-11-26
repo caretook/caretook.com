@@ -8,14 +8,14 @@
 
 | Slice | Wave | State   | Merge into `prd/todo-subtasks` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | started (opus) |                                                |
+| 1     | 1    | merged (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
 | 2     | 2    | planned |                                                |
 | 3     | 3    | planned |                                                |
 | 4     | 4    | planned |                                                |
 | 5     | 5    | planned |                                                |
 | 6     | 6    | planned |                                                |
 
-**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 agent spawned on opus; a background `prd watch --wait` runs. Wave gate: `full` (migration).
+**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 (opus) handed off and merged at ffdfad37; migration 0047_todo_subtasks. `parent_id` already streamed in `sync-config.yaml` (rolesSql needs every column; device schema still slice 3). Wave gate: `full` CI run requested.
 
 **Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 
