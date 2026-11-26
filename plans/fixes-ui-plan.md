@@ -21,9 +21,9 @@ Notes for every wave:
 
 **Wave 17 (this session, 2026-11-26):** B-694 (Long create forms on tabs) released: the user approved every split today. Slices 95–98, all opus: 95 shared tabs component; 96 provider tabs and 97 medication tabs (both after 95, parallel); 98 schedule overlay (after 97). Synced: prd/fixes-ui up to date with dev. Still held: B-325 (Capacitor).
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
-| 95 | B-694 shared tabs | started, opus | |
+| Slice | Item              | State         | Merge |
+| ----- | ----------------- | ------------- | ----- |
+| 95    | B-694 shared tabs | started, opus |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
