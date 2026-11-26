@@ -37,24 +37,22 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55), [`tasks-2`](../../plans/tas
 - ✅ **Tree rules** (`todoTree.ts`, both sides): `MAX_TODO_DEPTH` 3, `depthOf`, `canHaveSubtask` (live, no repeat, within depth), `rollupOf` (live children; none left: no change), `subtaskProgress`, `listsOnItsOwn` (top-level, dated or assigned).
 - ✅ **Service:** a bad parent (missing, deleted, other group, repeating, too deep) is `todoService:badParent`; a rule on a subtask or a parent is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
 - ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`): after a child's create, complete, reopen or remove, up to the top, as the system with the actor as `done_by` (a viewer's last subtask can do it). A hand reopen reopens only that todo. `complete` with an open subtask: `todoService:openSubtasks`. `remove` cascades to live descendants, then rolls up; returns `{ ids }`.
-- ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants in its transaction. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. "Not saved" names the three. No device rollup yet.
+- ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants in its transaction. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. "Not saved" names the three. Rollup: `planRollup` writes the parent chain in the change's transaction, flagged `ROLLUP_METADATA`; `todoOp` sends it to `rollUpUploaded` (any member; the server's rows decide). Only the server refuses a hand tick of a parent with open subtasks.
 
 ## On the device (`lib/todos/todos.sync.ts`)
 
-- `todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo` (over `plannedTodo`, quick entry's too), `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. A done-only change is a PATCH of `done_at`/`done_by` that the server maps to `complete` or `reopen`.
+- `todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo` (over `plannedTodo`), `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. An unflagged done PATCH maps to `complete` or `reopen`.
 - `dueTodosQuery`, `dueTodosThrough` and `useDueTodos` feed the Planner, the Today card and the easy view; `linkedTodosQuery`, `linkOf` and `TodoLink` serve provider and medication links.
-- Wording in `todoDisplay.ts`; the filter and sections in `todoList.ts`; the tick's Undo in `todoUndo.ts`: newest first, each 10 s; `TodoUndoStatus` ("Undo <title>", not a `Notice`: it stays mounted). A failed tick or Undo says so.
+- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; the tick's Undo in `todoUndo.ts`: newest first, each 10 s; `TodoUndoStatus` ("Undo <title>", not a `Notice`: it stays mounted). A failed tick or Undo says so.
 
 ## Screens
 
 - **The Todos tab** (`routes/app/groups/todos/`, `appUrls.todos`; the Planner's): no Add button of its own. "Assigned to" (Everyone, Mine, Unassigned; `?who=`); sections Overdue, Today, by day, No date; Done newest first, 20 a page. Rows open the todo page.
 - **Sheets:** `todos/new` (`appUrls.newTodo`) and `todos/:todoId/edit` (`TodoForm`; the event picker on create only). They close back through link state (`TODO_SHEET_STATE`, `lib/todos/todoSheetLink.ts`) to their opener; a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos (B-689). `todos/new` prefills (`TODO_PREFILL_PARAMS`): `providerId`, `medicationId`, `entryId` (old `eventId` works), `dueOn`; from quick entry `title`, `assigneeId`, `dueTime`, `repeatRule` (ignored if it doesn't parse).
 - **The todo page** (`routes/app/groups/todo/`, `appUrls.todo`), banded ([ui-kit](ui-kit.md#bands)): `TodoHeader` (writers edit and delete), Details, Linked to (notes and events, newest first; a removed one reads "(removed)"; writers get Remove and "Link an entry", even empty), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted is a 404.
-- **The tick** (`TodoTick`, `useTodoTick`) on every todo surface.
-- **Easy roles:** the Planner (read-only) and a todo's page (no edit or delete; [app-shell](app-shell.md)); they tick only their own.
+- **The tick** (`TodoTick`, `useTodoTick`) everywhere. **Easy roles:** the Planner (read-only) and a todo's page (no edit or delete; [app-shell](app-shell.md)); they tick only their own.
 - **Links and backlinks:** pickers (`todos/todoLinks.ts`). `LinkedTodos`: open linked todos on a provider's and medication's page, with a prefilled "Add todo" (a writer's shows even empty).
 - **An entry's Todos** (`entry/EntryTodos.tsx`, notes and events): open todos (tick, Undo), done (newest 20, tick reopens); writers get Add todo (`?entryId=`), Link a todo (a ComboBox: open, unlinked, 20 at most) and Remove.
-- Elsewhere: [appointments](appointments.md) (Planner), [timeline](timeline.md) (Today card, marks), [search](search.md), [assistant](assistant.md).
 
 ## Seeds and checks
 
