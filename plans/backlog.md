@@ -20,8 +20,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `fixes-tooling` | standing | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
-| `sync-safety-2` | hold | `sync-safety` | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`, `apps/web/app/lib/todos/` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** Its planner was stopped mid-plan: uncommitted drafts plans/sync-safety-2-prd.md and -plan.md are in .loops/plan-sync-safety-2. Released 2026-11-23 by the user. to write (B-294 to B-296, B-382 to B-384, B-387): cut from sync-safety by its planner, 2026-11-21: device transactions applied atomically, device clocks on change entries, the stale tab, and the repeating-todo races |
+| `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
 | `data-rights` | — | — | `packages/api/`, `apps/web/app/lib/sync/client.ts`, `packages/auth/` | to write (B-52, B-53, B-84) · Hot files: `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
+| `data-rights-2` | — | `data-rights` | — | Follow-on of data-rights: export, staff tooling, legal text and change notice, inactive-group scrub, retention sweep, Google calendar removal on delete |
 | `account-security` | — | — | `packages/auth/` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `todo-subtasks-2` | — | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `onboarding-2` | — | — | — | — |
@@ -115,6 +116,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `risa-next` | hold | `orchestration-split-3` | — | — |
 | `usage-aware-drain` | hold | `orchestration-split-3` | — | Plan-aware drain line, after the orchestrator split |
 | `test-time-gates-2` | — | `test-time-gates` | — | — |
+| `sync-safety-3` | — | `sync-safety-2` | — | to write (B-294): atomic device writes, cut from sync-safety-2 2026-11-25; start from plans/sync-safety-3-notes.md (thread the context's transaction through the services first) |
 
 ## Summary
 
@@ -124,7 +126,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
+| B-52 | feature | triaged | data-rights-2 |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
@@ -140,7 +142,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-244 | chore | triaged | fixes-tooling |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
-| B-294 | bug | triaged | sync-safety-2 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
+| B-294 | bug | triaged | sync-safety-3 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
 | B-311 | bug | triaged | fixes-perf |  | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
@@ -173,9 +175,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-353 | chore | triaged | hosting |  | Write the breach and incident procedure (FTC Health Breach Notification Rule): ops/break-glass.md and the privacy draft both refer to one that doesn't exist |
 | B-354 | question | triaged | hosting |  | The whole user table (emails, roles, disabled reasons) is granted to replication and lands in PowerSync Cloud storage: move the public profile to its own table? |
 | B-355 | chore | triaged | hosting |  | Hand checks before launch nothing tracks: the Google smoke test against real Google, Google OAuth app verification, the connector's vendor steps (Claude, ChatGPT) |
-| B-356 | feature | triaged | data-rights |  | A staff procedure and tooling for deletion and export requests before self-service ships (the privacy draft promises deletion within 45 days; nothing can delete an account or group) |
+| B-356 | feature | triaged | data-rights-2 |  | A staff procedure and tooling for deletion and export requests before self-service ships (the privacy draft promises deletion within 45 days; nothing can delete an account or group) |
 | B-357 | question | triaged | data-rights |  | Consent evidence is deleted with the user or group (care_group_consent, connector_grant cascade), and the audit log loses target_user_id: keep them? |
-| B-358 | question | triaged | data-rights |  | Should the legal drafts promise only what is built (deletion, 'permanently removed' entries, backups, at-rest encryption), and who fills the placeholders ([Company legal name], [privacy email], [backup retention period])? |
+| B-358 | question | triaged | data-rights-2 |  | Should the legal drafts promise only what is built (deletion, 'permanently removed' entries, backups, at-rest encryption), and who fills the placeholders ([Company legal name], [privacy email], [backup retention period])? |
 | B-361 | change | triaged | code-health |  | A @caretook/data/domain export for the pure logic now living under db/schema (quick entry parser, due doses, medication display, series edits: about half that folder) |
 | B-362 | change | triaged | code-health-2 |  | A soft-delete model factory and a shared upsert helper: nine models are the same file, twelve upserts repeat the exists-as-system, visible-as-actor sequence, 'invalid' is defined 18 times |
 | B-363 | change | triaged | code-health-2 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
@@ -217,7 +219,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
-| B-562 | change | triaged | data-rights |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
+| B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
@@ -293,7 +295,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-824 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-829 | question | triaged | marketing |  | Research: compare Care Book to Caring Village |
 | B-830 | bug | triaged | fixes-bug |  | Staging's seeded invite link shows 'Couldn't load this link': the Seed and Reset staging Actions seal it without INVITE_LINK_KEY |
-| B-831 | feature | triaged | data-rights |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
+| B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
 | B-833 | change | ready | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | in-progress | test-time-gates | prd/test-time-gates | Time limit gates for component tests, unit tests and the local quick check |
@@ -354,11 +356,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
 - status: triaged
-- prd: data-rights
+- prd: data-rights-2
 - owner:
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'data-rights' (to write): export everything you can see (per group and per account) to a file. Compliance (AGENTS.md) already requires user data deletion; export belongs with it.
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): moved to the follow-on data-rights-2 to keep data-rights at six slices; data-rights builds scrub-on-delete, hand-over, group and account deletion and kept consent evidence (plans/data-rights-prd.md, Out of scope). data-rights-2 also adds the retention sweep and removing Caretook's Google calendar on delete.
 
 ### B-53 · feature · Ability to delete ALL data from the app.
 
@@ -369,6 +372,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-18 (Robert Bo Davis): Proposed for 'data-rights' with B-52. Needs scoping in the PRD: 'delete ALL data' could mean this device's copy, one group (owners), or the whole account. Ties to the open question about a last owner deleting their account.
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-1 is filed as B-84 for data-rights: soft delete scrubs content; plan it with delete-all.
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): planned in plans/data-rights-plan.md. User answered (a238-a240, as recommended): scrub at once, names too, already-deleted rows included; a last owner hands over or deletes first; consent evidence kept with bare ids until a retention period.
 
 ### B-54 · feature · privacy policy and terms of service.
 
@@ -399,6 +403,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-1 (launch): soft-deleted rows keep title, body, details and the document, and sync to every member's device. Scrub to a tombstone and purge later. The undo window and retention are open for the data-rights interview (user, 2026-11-19).
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): planned in plans/data-rights-plan.md. User answered (a238-a240, as recommended): scrub at once, names too, already-deleted rows included; a last owner hands over or deletes first; consent evidence kept with bare ids until a retention period.
 
 ### B-85 · feature · Two-factor sign-in, required for owners, admins and staff; breached-password check
 
@@ -526,12 +531,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-294 · bug · Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused
 
 - status: triaged
-- prd: sync-safety-2
+- prd: sync-safety-3
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Example: a series split in lib/appointments/series.sync.ts:433-521. Design finding: upload by device transaction and apply it atomically. Related: removePass rewrites every medication's schedule from the device's possibly stale copy (medicationPasses.sync.ts:283-287).
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
+- 2026-11-25 (plan/sync-safety-2): Moved from sync-safety-2 to sync-safety-3 on the user's word (ask a237, 2026-11-25): the 12 services the upload calls open their own transactions (~62 withTransaction calls with no tx), so they must first join a shared one. Design and skeptic findings: plans/sync-safety-3-notes.md.
 
 ### B-295 · bug · System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable
 
@@ -542,6 +548,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. medicationService.ts:73,185; medicationPassService.ts:119; recipientConditionService.ts:173. Clamp the future side to server time. Low.
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
+- 2026-11-25 (plan/sync-safety-2): Planned in plans/sync-safety-2-plan.md (2026-11-25): slice 1 B-295, slice 2 B-383/B-384, slice 3 B-387, slice 4 B-296/B-730.
 
 ### B-296 · bug · A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database
 
@@ -552,6 +559,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. lib/sync/index.ts:28. Traced by reading only. Low.
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
+- 2026-11-25 (plan/sync-safety-2): Planned in plans/sync-safety-2-plan.md (2026-11-25): slice 1 B-295, slice 2 B-383/B-384, slice 3 B-387, slice 4 B-296/B-730.
 
 ### B-311 · bug · The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device)
 
@@ -834,11 +842,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-356 · feature · A staff procedure and tooling for deletion and export requests before self-service ships (the privacy draft promises deletion within 45 days; nothing can delete an account or group)
 
 - status: triaged
-- prd: data-rights
+- prd: data-rights-2
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/auth/src/auth.ts:158 has deleteUser off; userService.remove has no caller; no group deletion exists. A direct row delete cascades memberships past ensureAnotherOwner and leaves the group ownerless, with the Google token unrevoked (AGENTS.md's open question).
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): moved to the follow-on data-rights-2 to keep data-rights at six slices; data-rights builds scrub-on-delete, hand-over, group and account deletion and kept consent evidence (plans/data-rights-prd.md, Out of scope). data-rights-2 also adds the retention sweep and removing Caretook's Google calendar on delete.
 
 ### B-357 · question · Consent evidence is deleted with the user or group (care_group_consent, connector_grant cascade), and the audit log loses target_user_id: keep them?
 
@@ -848,15 +857,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Design finding from the database review.
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): planned in plans/data-rights-plan.md. User answered (a238-a240, as recommended): scrub at once, names too, already-deleted rows included; a last owner hands over or deletes first; consent evidence kept with bare ids until a retention period.
 
 ### B-358 · question · Should the legal drafts promise only what is built (deletion, 'permanently removed' entries, backups, at-rest encryption), and who fills the placeholders ([Company legal name], [privacy email], [backup retention period])?
 
 - status: triaged
-- prd: data-rights
+- prd: data-rights-2
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. marketing privacy/content.ts:177-188 and the FAQ. Goes with B-54.
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): moved to the follow-on data-rights-2 to keep data-rights at six slices; data-rights builds scrub-on-delete, hand-over, group and account deletion and kept consent evidence (plans/data-rights-prd.md, Out of scope). data-rights-2 also adds the retention sweep and removing Caretook's Google calendar on delete.
 
 ### B-361 · change · A @caretook/data/domain export for the pure logic now living under db/schema (quick entry parser, due doses, medication display, series edits: about half that folder)
 
@@ -1005,6 +1016,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
 - 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
+- 2026-11-25 (plan/sync-safety-2): Planned in plans/sync-safety-2-plan.md (2026-11-25): slice 1 B-295, slice 2 B-383/B-384, slice 3 B-387, slice 4 B-296/B-730.
 
 ### B-384 · bug · Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete)
 
@@ -1017,6 +1029,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
 - 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
+- 2026-11-25 (plan/sync-safety-2): Planned in plans/sync-safety-2-plan.md (2026-11-25): slice 1 B-295, slice 2 B-383/B-384, slice 3 B-387, slice 4 B-296/B-730.
 
 ### B-387 · bug · Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin
 
@@ -1029,6 +1042,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
 - 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
+- 2026-11-25 (plan/sync-safety-2): Planned in plans/sync-safety-2-plan.md (2026-11-25): slice 1 B-295, slice 2 B-383/B-384, slice 3 B-387, slice 4 B-296/B-730.
 
 ### B-404 · feature · One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is
 
@@ -1294,12 +1308,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-562 · change · Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet
 
 - status: triaged
-- prd: data-rights
+- prd: data-rights-2
 - owner:
 - commit:
 
 - 2026-11-22 (plan/onboarding): From the onboarding skeptic (2026-11-22). onboarding records versions but builds no re-ask, by the user's answer on existing accounts; this needs a decision before the legal text changes materially.
 - 2026-11-22 (Robert Bo Davis): Triage: data-rights, beside B-358 (what the legal drafts may promise); it is a consent and notice duty to users. Needs a decision before the legal text changes materially.
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): moved to the follow-on data-rights-2 to keep data-rights at six slices; data-rights builds scrub-on-delete, hand-over, group and account deletion and kept consent evidence (plans/data-rights-prd.md, Out of scope). data-rights-2 also adds the retention sweep and removing Caretook's Google calendar on delete.
 
 ### B-563 · feature · Accessibility statement page
 
@@ -1330,6 +1345,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22): careGroupMemberService says the last owner must hand over ownership first, and no flow does. Related to the open question on a last owner deleting their account.
 - 2026-11-22 (Robert Bo Davis): Triage: data-rights, because it decides what account deletion does for a last owner (the open question in AGENTS.md).
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): planned in plans/data-rights-plan.md. User answered (a238-a240, as recommended): scrub at once, names too, already-deleted rows included; a last owner hands over or deletes first; consent evidence kept with bare ids until a retention period.
 
 ### B-584 · chore · Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone
 
@@ -1587,6 +1603,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (prd/sync-safety): Found in sync-safety slice 4's hand-off (B-290): the caretook:sign-out-pending marker is finished by resolveUser, which signs out the new session too. Guard the magic-link and invite landings like sign-in.tsx's loader.
+- 2026-11-25 (plan/sync-safety-2): Planned in plans/sync-safety-2-plan.md (2026-11-25): slice 1 B-295, slice 2 B-383/B-384, slice 3 B-387, slice 4 B-296/B-730.
 
 ### B-738 · bug · Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run
 
@@ -1915,6 +1932,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): Likely answer: iOS installed PWAs have no Background Sync (WebKit), so pending uploads wait until the app is opened. Chrome/Android has the Background Sync API, but PowerSync's upload queue runs in the page, so today it waits too. Options: sync on open/focus (now), a service-worker sync on Android only, or native (Capacitor) background tasks later.
+- 2026-11-25 (plan/sync-safety-2): Answered in plans/sync-safety-2 (2026-11-25): no background upload; queued changes upload while the app is open, on open and on reconnect. iOS has no Background Sync and PowerSync's queue runs in the page; native background tasks wait for Capacitor. Written into docs/domain/sync.md; done at the plan's landing.
 
 ### B-807 · bug · CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev
 
@@ -2061,11 +2079,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-831 · feature · Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically
 
 - status: triaged
-- prd: data-rights
+- prd: data-rights-2
 - owner:
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): User request 2026-11-25: a group none of whose members has signed in for the last X days starts a cycle of reminder emails, then an automatic data scrub of that group. Joins the data rights PRD (user's choice); plan after the Sat 2026-11-28 reset. Open for planning: X and the reminder schedule; who is emailed (owners, all members); what counts as activity (sign-in only, or sync and connector use); what a sign-in or reply does to the cycle; what is scrubbed (the group's rows, files, live notes, sync buckets, backups) and whether the group shell or accounts remain; audit trail; the cron (calendars' sweep pattern); staff override; and the promise in the privacy policy (B-358).
+- 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): moved to the follow-on data-rights-2 to keep data-rights at six slices; data-rights builds scrub-on-delete, hand-over, group and account deletion and kept consent evidence (plans/data-rights-prd.md, Out of scope). data-rights-2 also adds the retention sweep and removing Caretook's Google calendar on delete.
 
 ### B-833 · change · Quick entry tips' examples should use the group's own provider and medication
 
