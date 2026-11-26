@@ -14,19 +14,19 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State          | Merge |
-| ----- | ------------ | -------------- | ----- |
-| 50    | B-766        | working (opus) | —     |
-| 51    | B-767        | working (opus) | —     |
-| 52    | B-768        | working (opus) | —     |
-| 53    | B-542        | working (opus) | —     |
-| 54    | B-623, B-860 | working (opus) | —     |
-| 55    | B-807        | working (opus) | —     |
-| 56    | B-754        | working (opus) | —     |
-| 57    | B-824        | working (opus) | —     |
-| 58    | B-769        | working (opus) | —     |
-| 59    | B-633        | working (opus) | —     |
-| 60    | B-812        | working (opus) | —     |
+| Slice | Item         | State                                        | Merge    |
+| ----- | ------------ | -------------------------------------------- | -------- |
+| 50    | B-766        | merged (check stopped on load 149; CI gates) | 86103144 |
+| 51    | B-767        | working (opus)                               | —        |
+| 52    | B-768        | working (opus)                               | —        |
+| 53    | B-542        | working (opus)                               | —        |
+| 54    | B-623, B-860 | working (opus)                               | —        |
+| 55    | B-807        | working (opus)                               | —        |
+| 56    | B-754        | working (opus)                               | —        |
+| 57    | B-824        | working (opus)                               | —        |
+| 58    | B-769        | working (opus)                               | —        |
+| 59    | B-633        | working (opus)                               | —        |
+| 60    | B-812        | working (opus)                               | —        |
 
 ## Wave 1
 
