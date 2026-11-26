@@ -5,7 +5,7 @@ import { nextTodoId } from "@caretook/data/series";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { clientFor, upload } from "./testing";
+import { clientFor, outcomes, upload } from "./testing";
 
 // sync.upload for todos: rows as a device's SQLite holds them (snake_case,
 // PowerSync's timestamps). Each test makes its own users and group.
@@ -457,5 +457,59 @@ describe("sync.upload: repeating todos", () => {
     expect((await upload(viewer.api, skip)).map((r) => r.status)).toEqual(["rejected", "applied"]);
     expect(await todoService.getById(owner.ctx, next.id, { includeDeleted: true })).toBeNull();
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
+  });
+});
+
+describe("sync.upload: subtasks (todo-subtasks)", () => {
+  const put = (id: string, data: Record<string, unknown>) => ({
+    op: "PUT" as const,
+    table: "todo",
+    id,
+    data,
+  });
+
+  it("lands a device's subtask with its parent; a later PATCH of parent_id leaves it", async () => {
+    const { group, recipient, owner } = await setup();
+    const [top, sub] = [randomUUID(), randomUUID()];
+    const rows = [
+      put(top, todoRow(group.id, recipient.id, { title: "Get ready for the hospital stay" })),
+      put(sub, todoRow(group.id, recipient.id, { title: "Pack a bag", due_on: null, parent_id: top })),
+    ];
+    expect(await upload(owner.api, rows)).toEqual([
+      { id: top, status: "applied" },
+      { id: sub, status: "applied" },
+    ]);
+    expect(ok(await todoService.getById(owner.ctx, sub))).toMatchObject({ parentId: top });
+
+    const move = { op: "PATCH" as const, table: "todo", id: sub, data: { parent_id: null } };
+    expect(await upload(owner.api, [move])).toEqual([{ id: sub, status: "applied" }]);
+    expect(ok(await todoService.getById(owner.ctx, sub))).toMatchObject({ parentId: top });
+  });
+
+  it("refuses one past the depth limit, or under a deleted parent, with badParent", async () => {
+    const { group, recipient, owner } = await setup();
+    const [top, sub, subSub, tooDeep] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    const row = (title: string, parentId: string | null) =>
+      todoRow(group.id, recipient.id, { title, due_on: null, parent_id: parentId });
+    expect(
+      await outcomes(owner.api, [
+        put(top, row("Get ready for the hospital stay", null)),
+        put(sub, row("Pack a bag", top)),
+        put(subSub, row("Find the charger", sub)),
+        put(tooDeep, row("Too deep", subSub)),
+      ]),
+    ).toEqual(["applied", "applied", "applied", "todoService:badParent"]);
+
+    const gone = randomUUID();
+    const orphan = randomUUID();
+    expect(
+      await outcomes(owner.api, [
+        put(gone, row("Call the dog sitter", null)),
+        { op: "DELETE", table: "todo", id: gone },
+        put(orphan, row("Leave the key", gone)),
+      ]),
+    ).toEqual(["applied", "applied", "todoService:badParent"]);
+    expect(await todoService.getById(owner.ctx, tooDeep)).toBeNull();
+    expect(await todoService.getById(owner.ctx, orphan)).toBeNull();
   });
 });
