@@ -4,7 +4,11 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 2 green, landing (PR #217).** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 2 landed, wave 3 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 2 landed** in `dev` as 588c2017 through PR #217, tier `integration` (run 45811545080 on 2a6745f8: file, only boundary.test, dev's B-865/B-866), **without Codex (out of credits)**; a live dev brake (B-868) needed `prd sync --force` (2a6745f8, plans and build budget only) and a quick check (passed). Report a264; to-test `to-test/2026-11-26-0639-todo-subtasks.md`. Slice 2 worktree removed.
+
+**Next:** wave 3 (slice 3, subtasks reach the device: a sync column, so the `full` gate), from a fresh session. Slice 3 should add `todoService:openSubtasks` wording beside `badParent` on the "Not saved" page.
 
 **Wave 1 landed** in `dev` as 1b34ce24 through PR #214, tier `full` (run 45797912432 on 39c49a52: brake, every failure dev's: boundary.test B-865/B-866, build budget B-868, landed `--fixes B-868`), **without Codex (out of credits)**. Slice 1 merged ffdfad37 plus fix 12904700 (todoRename's exact index list). Migration `0047_todo_subtasks`; `parent_id` already in the `todo` stream (rolesSql needs it; device schema is slice 3). Browser lean set 10/11; session-end fails on dev too: filed B-869. to-test `to-test/2026-11-26-0600-todo-subtasks.md`. Docs: todos.md _Subtasks_ (trimmed to stay under budget). Slice 1 worktree removed.
 
@@ -13,7 +17,7 @@
 | Slice | Wave | State         | Merge into `prd/todo-subtasks` (slice commits) |
 | ----- | ---- | ------------- | ---------------------------------------------- |
 | 1     | 1    | landed (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
-| 2     | 2    | merged (opus) | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
+| 2     | 2    | landed (opus) | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
 | 3     | 3    | planned       |                                                |
 | 4     | 4    | planned       |                                                |
 | 5     | 5    | planned       |                                                |
