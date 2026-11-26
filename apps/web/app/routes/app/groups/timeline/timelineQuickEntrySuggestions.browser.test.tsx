@@ -14,8 +14,9 @@ import { rowWith, TIMELINE_URL } from "./timelineWorld";
 import { waitUntil } from "../../../../../test/found";
 
 // Quick entry's suggestions on the timeline, on the test device (offline
-// throughout, so they all work offline): name autocomplete floating under
-// the field while typing; your recent lines and what the group usually logs
+// throughout, so they all work offline): name autocomplete floating above
+// the field while typing (Tab completes a lone name, or moves to the first
+// of several); your recent lines and what the group usually logs
 // around now, behind the Sparkles button in the empty box; and the static
 // placeholder. Every chip only fills the box; Save is still yours.
 
@@ -58,6 +59,10 @@ const openSuggestions = async () => {
   await userEvent.click(suggestButton());
   await expect.element(suggestions()).toBeVisible();
 };
+const overlay = () => document.querySelector<HTMLElement>("[data-quick-completions]");
+const overlayRect = () => overlay()!.getBoundingClientRect();
+const intersects = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 const cardsTop = () => document.querySelector("[data-quick-cards]")?.getBoundingClientRect().top;
 const chipLabels = (list: ReturnType<typeof names>) =>
   [...(list.query()?.querySelectorAll("button") ?? [])].map((b) => b.textContent);
@@ -193,16 +198,14 @@ describe("name autocomplete", () => {
     await expect.element(box()).toHaveValue("appt Dr. Sandra Lee ");
   });
 
-  test("the names float under the field: the cards don't move, Escape hides them, and a name still completes", async () => {
+  test("the names float above the field: the cards don't move, Escape hides them, and a name still completes", async () => {
     await open();
     await userEvent.fill(box(), "gave met");
     await waitUntil(() => cardKinds().length > 0, "the cards");
     await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
     const shown = cardsTop();
-    // Over the cards, not above them in the flow.
-    const overlay = document.querySelector("[data-quick-completions]")!.getBoundingClientRect();
-    expect(overlay.top).toBeGreaterThanOrEqual(field().getBoundingClientRect().bottom);
-    expect(overlay.bottom).toBeGreaterThan(shown!);
+    expect(overlay()?.dataset.quickCompletions).toBe("above");
+    expect(overlayRect().bottom).toBeLessThanOrEqual(field().getBoundingClientRect().top);
 
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !names().query(), "the names to hide");
@@ -216,6 +219,85 @@ describe("name autocomplete", () => {
     await userEvent.click(names().getByRole("button", { name: "Metformin" }));
     await expect.element(box()).toHaveValue("gave Metformin ");
     await waitUntil(() => document.activeElement === field(), "focus back in the box");
+  });
+
+  test("typing a medication name under an event's card, the names sit above the field, clear of the cards (B-897)", async () => {
+    await open();
+    await userEvent.fill(box(), "appt dr lee tomorrow, gave met");
+    await waitUntil(() => cardKinds().includes("event"), "the event card");
+    await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
+    const names_ = overlayRect();
+    const cards = document.querySelector("[data-quick-cards]")!.getBoundingClientRect();
+    expect(names_.bottom).toBeLessThanOrEqual(field().getBoundingClientRect().top);
+    expect(intersects(names_, cards)).toBe(false);
+  });
+
+  test("with no room above (the field at the top of the screen), the names open under it and push the cards down", async () => {
+    await open();
+    await userEvent.fill(box(), "appt dr lee tomorrow, gave met");
+    await waitUntil(() => cardKinds().includes("event"), "the event card");
+    await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
+    // Bring the field to the very top, then retype so the names place themselves again.
+    const section = field().closest<HTMLElement>("[data-quick-entry]")!;
+    section.style.transform = `translateY(${4 - field().getBoundingClientRect().top}px)`;
+    try {
+      await userEvent.keyboard("{Backspace}");
+      await waitUntil(() => chipLabels(names()).length === 2, "the names again");
+      await userEvent.keyboard("t");
+      await waitUntil(() => overlay()?.dataset.quickCompletions === "below", "the names below");
+      const names_ = overlayRect();
+      expect(names_.top).toBeGreaterThanOrEqual(field().getBoundingClientRect().bottom);
+      const cards = document.querySelector("[data-quick-cards]")!.getBoundingClientRect();
+      expect(intersects(names_, cards)).toBe(false);
+    } finally {
+      section.style.transform = "";
+    }
+  });
+
+  test("Tab with one name completes it and stays in the field (B-900)", async () => {
+    await open();
+    await userEvent.fill(box(), "gave metf");
+    await waitUntil(() => chipLabels(names()).join() === "Metformin", "Metformin");
+    await userEvent.keyboard("{Tab}");
+    await expect.element(box()).toHaveValue("gave Metformin ");
+    expect(document.activeElement).toBe(field());
+    expect(field().selectionStart).toBe(field().value.length);
+  });
+
+  test("Tab with several names moves to the first; the arrows move between them and Enter picks one", async () => {
+    const device = await open();
+    await userEvent.fill(box(), "gave met");
+    await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
+    await userEvent.keyboard("{Tab}");
+    await waitUntil(() => document.activeElement?.textContent === "Metformin", "focus on Metformin");
+    expect(box().element()).toHaveValue("gave met");
+    await userEvent.keyboard("{ArrowRight}");
+    await waitUntil(() => document.activeElement?.textContent === "Metoprolol", "focus on Metoprolol");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(box()).toHaveValue("gave Metoprolol ");
+    await waitUntil(() => document.activeElement === field(), "focus back in the box");
+    expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'dose'")).toHaveLength(0);
+
+    // Escape from a chip still closes the list, back in the field.
+    await userEvent.keyboard("{Backspace}{Backspace}{Backspace}");
+    await waitUntil(() => chipLabels(names()).length > 0, "the names again");
+    await userEvent.fill(box(), "gave met");
+    await waitUntil(() => chipLabels(names()).length === 2, "both names");
+    await userEvent.keyboard("{Tab}");
+    await waitUntil(() => document.activeElement?.textContent === "Metformin", "focus on Metformin");
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !names().query(), "the names to hide");
+    expect(document.activeElement).toBe(field());
+  });
+
+  test("Tab with no names leaves the field as usual", async () => {
+    await open();
+    await userEvent.fill(box(), "pain 4 left knee");
+    await waitUntil(() => cardKinds().length > 0, "the card");
+    expect(names().query()).toBeNull();
+    await userEvent.keyboard("{Tab}");
+    await waitUntil(() => document.activeElement !== field(), "focus to leave the box");
+    await expect.element(box()).toHaveValue("pain 4 left knee");
   });
 
   test("leaving the field hides the names", async () => {
