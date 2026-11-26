@@ -5,10 +5,12 @@ import { Button, Message, Section } from "~/components/ui";
 /**
  * The complete or reopen button, for whoever may complete the todo
  * (`canCompleteTodo`: writers, or a viewer it's assigned to), with the
- * shared Undo status after a tick and the write's error.
+ * shared Undo status after its own tick (a subtask's shows in Subtasks)
+ * and the write's error.
  */
 export function TodoCompletion({
   groupId,
+  todoId,
   title,
   done,
   busy,
@@ -17,6 +19,7 @@ export function TodoCompletion({
   onReopen,
 }: {
   groupId: string;
+  todoId: string;
   title: string;
   done: boolean;
   busy: boolean;
@@ -50,7 +53,7 @@ export function TodoCompletion({
           Mark done
         </Button>
       )}
-      <TodoUndoStatus groupId={groupId} />
+      <TodoUndoStatus groupId={groupId} todoIds={[todoId]} />
       {error && <Message tone="error">{error}</Message>}
     </Section>
   );

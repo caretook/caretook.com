@@ -22,8 +22,10 @@ import { TodoCompletion } from "./TodoCompletion";
 import { TodoDetails } from "./TodoDetails";
 import { TodoHeader } from "./TodoHeader";
 import { TodoLinks } from "./TodoLinks";
+import { TodoParentLink, TodoSubtasks } from "./TodoSubtasks";
 import { useTodoNotes } from "./useTodoNotes";
 import { useTodoPage } from "./useTodoPage";
+import { useTodoSubtasks } from "./useTodoSubtasks";
 
 // Shared by web + native. A todo's page: who it's for, when it's due, who
 // finished it, the complete or reopen button for whoever may complete it,
@@ -90,6 +92,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
   const listLabel = group.easyRole ? "Timeline" : "Todos";
   const page = useTodoPage(groupId, todoId, loaderData);
   const { todo, deleted } = page;
+  const tree = useTodoSubtasks(todo, loaderData);
   const tick = useTodoTick(groupId);
   const mayComplete = canCompleteTodo({ role: group.role, userId: group.userId, todo: todo });
   const { ensureSaved, saveError } = useTodoNotes(todoId, loaderData.hasDocument);
@@ -141,6 +144,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
           }
           tags={!deleted && tags.length > 0 && <TagChips tags={tags} max={null} />}
         />
+        {!deleted && <TodoParentLink groupId={groupId} parent={tree.parent} />}
         {tagPicker.sheet}
       </Section>
 
@@ -164,11 +168,20 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
             zoneNote={page.zoneNote}
           />
 
+          <TodoSubtasks
+            todoId={todoId}
+            title={todo.title}
+            subtasks={tree.subtasks}
+            progress={tree.progress}
+            canAdd={tree.canAdd}
+          />
+
           <TodoLinks groupId={groupId} todo={todo} loaded={loaderData.linkRows} linkPages={!group.easyRole} />
 
           {mayComplete && (
             <TodoCompletion
               groupId={groupId}
+              todoId={todoId}
               title={todo.title}
               done={!!todo.doneAt}
               busy={tick.busy}
