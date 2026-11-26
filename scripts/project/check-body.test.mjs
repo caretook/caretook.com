@@ -18,7 +18,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { failedFiles, slowestFiles, stepOf } from "./check-failed.mjs";
+import { failedFiles, slowestFiles, stepOf, unhandledError } from "./check-failed.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 let root, bin, calls, state;
@@ -37,6 +37,7 @@ if (process.env.STUB_FAIL && line.includes(process.env.STUB_FAIL)) process.exit(
 const out = args.find((a) => a.startsWith("--outputFile.json="))?.split("=")[1];
 if (!out) process.exit(0);
 if (process.env.STUB_UNHANDLED) console.log("Vitest caught 1 unhandled error during the test run");
+if (process.env.STUB_TITLE) console.log(" \u2713 scripts/x.test.mjs > the check > " + process.env.STUB_TITLE + " 12ms");
 const seen = process.env.STUB_CALLS + ".seen";
 const counts = fs.existsSync(seen) ? JSON.parse(fs.readFileSync(seen, "utf8")) : {};
 const rerun = args.includes("--no-file-parallelism");
@@ -92,6 +93,7 @@ const body = (args, fail = "", extra = {}) => {
       STUB_TESTS: "",
       STUB_TIMES: "",
       STUB_UNHANDLED: "",
+      STUB_TITLE: "",
       CARETOOK_CHECK_STATE: state,
       CARETOOK_CHECK_COUNTS: "",
       ...extra,
@@ -295,6 +297,17 @@ describe("check-body.sh reruns a failed test file", () => {
     expect(r.ran.some((c) => c.includes("--no-file-parallelism"))).toBe(false);
   });
 
+  it("reruns when only a passing test's title says unhandled error (B-623, B-860)", () => {
+    const r = body(["slice", "base"], "", {
+      STUB_TESTS: "a.test.ts:1",
+      STUB_TITLE: "doesn't rerun after an Unhandled Error or an unhandled error",
+    });
+    expect(r.status).toBe(0);
+    expect(r.flaky).toEqual(["a.test.ts"]);
+    expect(r.out).not.toContain("an unhandled error, so no rerun");
+    expect(r.ran.some((c) => c.includes("--no-file-parallelism"))).toBe(true);
+  });
+
   it("doesn't rerun past the limit of failed files", () => {
     const r = body(["slice", "base"], "", {
       STUB_TESTS: "a.test.ts:1,b.test.ts:1",
@@ -307,6 +320,24 @@ describe("check-body.sh reruns a failed test file", () => {
 });
 
 describe("check-failed.mjs", () => {
+  it("finds an unhandled error only in Vitest's own report line, never in a test's title", () => {
+    expect(unhandledError("\nVitest caught 1 unhandled error during the test run.\nThis might cause")).toBe(
+      true,
+    );
+    expect(unhandledError("\x1b[31m\x1b[1m\nVitest caught 2 unhandled errors during the test run.")).toBe(
+      true,
+    );
+    expect(unhandledError("x\n\x1b[31mVitest caught 1 unhandled error during the test run.")).toBe(true);
+    expect(unhandledError("There were unhandled errors during test collection\n")).toBe(true);
+    expect(
+      unhandledError(
+        " ✓ scripts/x.test.ts > the check > doesn't rerun after an unhandled error 12ms\n" +
+          " ✓ scripts/x.test.ts > Unhandled Error and Unhandled Rejection are named 3ms\n" +
+          " ✓ a > says Vitest caught 1 unhandled error during the test run 1ms\n",
+      ),
+    ).toBe(false);
+  });
+
   it("names the failed files relative to the directory, and nothing from a broken report", () => {
     const report = JSON.stringify({
       testResults: [

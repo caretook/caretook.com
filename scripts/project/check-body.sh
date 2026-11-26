@@ -88,7 +88,7 @@ tests() {
   while IFS= read -r f; do [[ -z $f ]] || failed+=("$f"); done < <(node "$here/check-failed.mjs" "$json")
   if [[ $name == tests ]]; then name=$(node "$here/check-failed.mjs" --step ${failed[@]+"${failed[@]}"}); step "$name"; fi
   if ((${#failed[@]} == 0)); then echo "$name failed with no test file to rerun"; exit "$code"; fi
-  if grep -qE 'Unhandled (Error|Rejection)|unhandled error' "$out"; then
+  if node "$here/check-failed.mjs" --unhandled "$out"; then
     echo "$name: an unhandled error, so no rerun"; record failed "${failed[@]}"; exit "$code"
   fi
   if ((${#failed[@]} > ${CARETOOK_CHECK_RERUN_MAX:-20})); then
