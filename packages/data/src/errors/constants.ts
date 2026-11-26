@@ -46,6 +46,9 @@ export const DB_ERRORS = {
   "db:seed:appEnv": {
     message: 'Refusing to seed: APP_ENV must be "staging" or unset',
   },
+  "db:seed:linkKey": {
+    message: "Refusing to seed staging without INVITE_LINK_KEY (the server's key, so seeded links open)",
+  },
   "db:reset": {
     message: "Failed to reset staging",
   },

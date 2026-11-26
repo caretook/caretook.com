@@ -355,6 +355,11 @@ describe("the deploy workflows", () => {
     expect(reset.on.workflow_dispatch.inputs.confirm.required).toBe("true");
     expect(reset.concurrency.group).toBe("seed-staging");
     expect(reset.jobs.reset.steps.at(-1).env.APP_ENV).toBe("staging");
+    // Both seed with the server's INVITE_LINK_KEY, so seeded links open on staging (B-830).
+    const seedStep = parseYaml(read(".github/workflows/seed-staging.yml")).jobs.seed.steps.at(-1);
+    for (const step of [seedStep, reset.jobs.reset.steps.at(-1)]) {
+      expect(step.env.INVITE_LINK_KEY).toBe("${{ secrets.INVITE_LINK_KEY }}");
+    }
     for (const path of [
       ".github/workflows/admin-grant.yml",
       ".github/workflows/db-access.yml",

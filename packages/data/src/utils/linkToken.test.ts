@@ -38,4 +38,22 @@ describe("link tokens at rest", () => {
     expect(linkKeyConfigured({ ...check, APP_URL: "http://localhost:6573" })).toBe(true);
     expect(linkKeyConfigured({ ...check, APP_URL: "https://caretook.com" })).toBe(false);
   });
+
+  it("needs INVITE_LINK_KEY on staging, even outside NODE_ENV=production (the seed)", () => {
+    const staging = (key?: string) => ({ ...env(key, "development"), APP_ENV: "staging" });
+    expect(linkKeyConfigured(staging())).toBe(false);
+    expect(sealLinkToken("t", ID, staging())).toBeNull();
+    expect(linkKeyConfigured({ ...staging(), INVITE_LINK_KEY: " " })).toBe(false);
+
+    const sealed = sealLinkToken("tok_staging", ID, staging("k-staging")) ?? "";
+    expect(sealed).toBeTruthy();
+    // The staging server opens it with the same key; a dev-key seal doesn't.
+    const server = { ...env("k-staging", "production"), APP_ENV: "staging" };
+    expect(openLinkToken(sealed, ID, server)).toBe("tok_staging");
+    expect(openLinkToken(sealLinkToken("tok_staging", ID, env()) ?? "", ID, server)).toBeNull();
+
+    // Local dev (no APP_ENV) still seals with the dev key.
+    const dev = sealLinkToken("tok_dev", ID, env(undefined, "development")) ?? "";
+    expect(openLinkToken(dev, ID, env(undefined, "test"))).toBe("tok_dev");
+  });
 });
