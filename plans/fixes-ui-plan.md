@@ -19,16 +19,13 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-**Wave 14 (2026-11-25, this session):** synced dev (d2d851b7) into prd/fixes-ui first. Slices 79–84: B-819 no-group loading (opus), B-833 quick entry tips use the group's names (opus), B-843 members invite cards on a phone (opus), B-848 header overlap at medium widths (opus), B-849 View menu Condensed/Full (sonnet, a rename), B-850 Full view rich live notes (opus; may outgrow a fix). All six run at once; hot files set on the registry row; items claimed. All six merged. CI components run 45742849440 (a9c81be4): brake; blame: branch's timelineRichText.browser.test ("Cards" after 83's rename, sent to 84) and groupChoicePending.browser.test (loads read before the loader ran, sent to 79); groups.int admin codes flaky (not ours). Fixes merged: 79 (10ee64c0), 84 (8ccf1fef); CI components green (run 45744852768, 39c3f1a4). Synced dev (local 731fa6da); slice worktrees removed; recheck components on the synced tip out; `browser --suite` blocked by the permission classifier (as in wave 5), `browser --changed --base dev` 5/6: layout-offline.spec failed on the old "Cards" label (slice 83 missed scripts/browser-checks); fixed by a sonnet fix agent (merge 858da9a4), layout-offline then passed. Recheck components green on the synced tip (run 45746157575, 6759b1b2). PR and Codex review next, then land. Slice 83 also renamed Settings > Timeline layout and edited docs/domain/timeline.md (a loop shouldn't; kept as the wave's fold). Slice 80 added "event"/"events" as quick entry `appointmentWord` rows (packages/data vocabulary); the parser's preview still titles events "Appointment with …" (follow-up, B-537 wording). At landing fold into live-notes.md: Full view cards render a note's formatting from its Yjs snapshot via `lib/live-notes/noteRichText.ts` and `components/entry/NoteRichText.tsx` (no Tiptap on the timeline; cache per doc in notes.sync.ts; mentions show their typed name) (slice 84). At landing fold into app-shell.md: header section links are icons only (label sr-only, `title` hint) from `sm` to `lg`; the group menu trigger shrinks and truncates (slice 82). Still held: B-694 (the user approves each form live), B-325 (Capacitor). Wave 13 landed as dev 62ebbeeb (PR #190), details in the history file.
+**Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
 
-| Slice | Item  | State           | Merge    |
-| ----- | ----- | --------------- | -------- |
-| 79    | B-819 | merged (opus)   | cf023ddf |
-| 80    | B-833 | merged (opus)   | 3632f035 |
-| 81    | B-843 | merged (opus)   | 606ed5da |
-| 82    | B-848 | merged (opus)   | 4f356153 |
-| 83    | B-849 | merged (sonnet) | df82660c |
-| 84    | B-850 | merged (opus)   | c492621a |
+**Wave 15 (2026-11-25):** ingest and list done; prd/fixes-ui up to date with dev. Slice 85 (B-857, quick entry previews say Event) on sonnet, handed off (4ae8d799) and merged as 5f191304; CI integration green (run 45750856542, de32eac7); sync needed no merge; worktree removed; PR #203 open, Codex review waiting. Browser checks: none needed (`--changed`). Still held: B-694 (the user approves each form live), B-325 (Capacitor). Hot files: `packages/data/src/db/schema/assistant/`.
+
+| Slice | Item  | State            | Merge |
+| ----- | ----- | ---------------- | ----- |
+| 85    | B-857 | started (sonnet) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1233,3 +1230,18 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component test: in Full view a live note with a heading, a list and bold text renders them as `h`, `li` and `strong` elements, not editable.
 - [ ] Component test: in Condensed view the same note still shows its plain two-line clamp.
+
+## Wave 15 (written 2026-11-25 by the orchestrator, from the triaged fixes-ui items)
+
+## Slice 85: Quick entry previews title events with Event, not Appointment (B-857)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/appointments.md · Tests: unit (`packages/data`)
+
+**Problem.** Quick entry's parser still titles an event line "Appointment with <provider>", "<words> appointment" or "Appointment" (`packages/data/src/db/schema/assistant/quickEntry.ts`, the `title` for a keyword line, near line 1728). B-537 made Event the one word app-wide.
+
+**Build.** The titles become "Event with <provider>", the typed words alone, capitalized ("Dental cleaning", not "Dental cleaning event"), and "Event". The parser still recognizes "appointment", "appt" and "visit" as keywords: only its output wording changes. Update `quickEntry.test.ts`, `quickEntryPreview.test.ts` and any other test, browser check (`scripts/browser-checks/`) or connector text that asserts the old titles (grep for "Appointment with" and `appointment"`).
+
+**Acceptance criteria.**
+
+- [ ] Unit test: "appointment with Dr. Lee tomorrow 3pm" previews the title "Event with <provider>"; "dental cleaning appt friday" previews "Dental cleaning"; a bare "appointment tomorrow" previews "Event".
+- [ ] No test, browser check or screen still expects an "Appointment" title from quick entry.
