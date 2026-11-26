@@ -8,31 +8,18 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-- **Wave 8 landed** in dev as 833615a5 (PR #216, `--no-review`: Codex out of credits; tier full green on 25a4f066, run 45811391363). The first sync missed dev's budget raise 1315ffa6 (B-868), so the synced run braked on the app bundle; `sync --force` fixed it. Report a265; worktrees 61–68 removed; docs folded (orchestrator.md _Landing a wave_ 4, `--force`, _What counts_; machinery.md leases, to-test file).
-- **Wave 9 started 2026-11-26** (this session), on the user's word via the backlog session (caretook-com-27): B-869 first (session-end check, brakes staging; land as a `fix(...)` commit for `pnpm prd ci candidate fix`), then the token-use items B-873..B-878 (B-879 duplicates B-875, closes with slice 71), B-871, B-872. Slices 69–77, all on opus. B-865/B-866 were fixed by wave 8 (d2133f4e).
-- **Wave 9a landed** in dev as 62121513 (PR #219, `--no-review`: Codex out of credits; components green on ba0e6f2f, run 45819731070): slice 69, B-869. Report filed; backlog session told (for `pnpm prd ci candidate fix`). Docs trimmed under budget (07218824) since wave 8's fold had grown them. Slice 69's worktree can go (`pnpm prd rm fixes-tooling-69`). Filed B-884 (fixes-perf).
-- **Hand-over (rotated mid-wave for context, 2026-11-26):** slices 70–77 are the rest of wave 9 and land as the next landing. Merge order 70, 71, 72, 73 (regenerate the golden prompts after each; don't hand-resolve), then 74–77. Slice 71 handed off (692779eb, check passed). Slice 74 was sent slice 71's evidence: the harness backgrounds foreground commands past ~170–180 s, so an agent ending its turn there stops with no hand-off (the likely B-877 cause). B-879 dropped (dup of B-875). Skeptic s57's changes are folded into the slice text. Slice 73 handed off (300ef5a7, check passed): `pnpm prd anchors` warns only; it notes `scripts/loops/docs/orchestrator.md` is at 3766/3770 B and `planner.md` 5110/5120 B, so slices 70–72's additions will need trimming at merge; its run on today's plans flags slice 76's bare `backlog.json` and fixes-tooling slice 31 (no merge SHA row). To fold at the next landing: docs/domain/auth.md gains 'a fresh session's background recheck that answers signed out mid-navigation sends sign-in back to where that navigation was going while the address hasn't moved (B-869)' — trim auth.md by as much (it's near its 10 KB budget).
-- **Taken over after an interruption (2026-11-26):** no live agents; slices 70, 72, 74–77 respawned with `--continue` (opus); 71 and 73 stay handed off, waiting on 70 to merge first. Slice 69's worktree is already gone.
-- **All of 70–77 merged** (f71c773d); docs folded and trimmed under budget (92f66f82, ba7258ab: role budget splits moved, halves still 15 KB). Filed B-903 (harness backgrounds foreground commands past ~170 s). **Full CI run out** on ba7258ab; then sync, PR, land as `fix(...)`/`feat` per the landing mode. This session is past the 120k soft limit: rotate after this landing.
+- **Wave 9 landed** (2026-11-26): 9a (slice 69, B-869) as 62121513 (PR #219); 9b (slices 70–77, B-871..B-878) as 87ed1d1 (PR #220, `--no-review`: Codex out of credits; full green on ba7258ab, run 45831274258; sync was a no-op). Report filed; to-test/2026-11-26-0847-fixes-tooling.md. Worktrees 70–77 removed. Docs folded (92f66f82, ba7258ab): loop/orchestrator role-doc budget splits moved (halves still 15 KB), machinery.md context watch (120k orchestrator soft limit), dispatcher lookahead, Vitest sessions guard, rotate's context hold; auth.md (B-869); data-layer.md drizzle-zod rule (B-872). B-877's cause was the orchestrator's own `rotate --mid-wave --reason context` ending its slices; rotate now refuses that under the hard limit while a slice isn't handed off. Filed B-903 (harness backgrounds foreground commands past ~170 s; prompt rule candidate).
+- **Hand-over (idle, rotated after landing wave 9 for context):** no slice in flight. Next session: wave boundary (`pnpm backlog ingest` was clean at 87ed1d1), pick wave 10 from the waiting items, number from `pnpm prd status-trim fixes-tooling --next`, check running topics' hot files (`pnpm backlog prd list`: todo-subtasks is running), set hot files, start.
 - **Watch:** `land-gate.test.mjs`'s dev-brake test failed again under load ~120 in slice 72's check (passes alone 28/28). Earlier: timed out under load ~60 twice in wave 8. File it if CI shows it.
-- **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-608, B-609, B-619, B-653, B-660, B-667, B-681, B-720, B-721, B-722, B-749, B-751, B-753, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-845, B-851, B-852, B-862, B-864 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
+- **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-608, B-609, B-619, B-653, B-660, B-667, B-681, B-720, B-721, B-722, B-749, B-751, B-753, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-845, B-851, B-852, B-862, B-864, B-880..B-884, B-903 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
 - **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State           | Merge    |
-| ----- | ----- | --------------- | -------- |
-| 69    | B-869 | landed 62121513 | bd9922d5 |
-| 70    | B-873 | merged          | d7dd060b |
-| 71    | B-875 | merged          | 41d36b6f |
-| 72    | B-876 | merged          | c39c1b2a |
-| 73    | B-874 | merged          | 87a787e1 |
-| 74    | B-877 | merged          | 261f9fcf |
-| 75    | B-878 | merged          | 7939987b |
-| 76    | B-871 | merged          | a909c5f7 |
-| 77    | B-872 | merged          | f71c773d |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1
 
