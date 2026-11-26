@@ -80,9 +80,14 @@ export type CareGroupInviteInsert = Omit<InferInsertModel<CareGroupInviteSchema>
 export type CareGroupInviteUpdate = Partial<CareGroupInviteInsert>;
 export type CareGroupInvite = CareGroupInviteSelect;
 
-export const careGroupInviteSelectZSchema = createSelectSchema(careGroupInviteSchema).omit({
+export const careGroupInviteSelectZSchema = /* @__PURE__ */ createSelectSchema(careGroupInviteSchema).omit({
   tokenHash: true,
   tokenCiphertext: true,
 });
-export const careGroupInviteInsertZSchema = createInsertSchema(careGroupInviteSchema, { email: z.email() });
-export const careGroupInviteUpdateZSchema = createUpdateSchema(careGroupInviteSchema, { email: z.email() });
+const email = z.email();
+export const careGroupInviteInsertZSchema = /* @__PURE__ */ createInsertSchema(careGroupInviteSchema, {
+  email,
+});
+export const careGroupInviteUpdateZSchema = /* @__PURE__ */ createUpdateSchema(careGroupInviteSchema, {
+  email,
+});

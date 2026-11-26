@@ -43,6 +43,15 @@ export type CareGroup = CareGroupSelect;
 const name = z.string().trim().min(1).max(120);
 const easyTiles = easyTilesZSchema.nullable();
 
-export const careGroupSelectZSchema = createSelectSchema(careGroupSchema, { easyTiles });
-export const careGroupInsertZSchema = createInsertSchema(careGroupSchema, { name, easyTiles });
-export const careGroupUpdateZSchema = createUpdateSchema(careGroupSchema, { name, easyTiles });
+export const careGroupSelectZSchema = /* @__PURE__ */ createSelectSchema(careGroupSchema, { easyTiles });
+export const careGroupInsertZSchema = /* @__PURE__ */ createInsertSchema(careGroupSchema, {
+  name,
+  easyTiles,
+});
+export const careGroupUpdateZSchema = /* @__PURE__ */ createUpdateSchema(careGroupSchema, {
+  name,
+  easyTiles,
+});
+
+/** A group's name, as the web app parses it (plain zod: see careRecipientProfileZSchema, B-872). */
+export const careGroupNameZSchema = z.object({ name });
