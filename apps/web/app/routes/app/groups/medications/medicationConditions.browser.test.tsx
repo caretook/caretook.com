@@ -21,6 +21,7 @@ import {
   MORNING,
   option,
   SHEET,
+  showFormTab,
   submit,
 } from "./medicationWorld";
 
@@ -130,6 +131,8 @@ describe("the For field", () => {
     const device = await open(editUrl(METFORMIN.id));
     await waitUntil(() => chips().length > 0, "the For chips");
     expect(chips()).toEqual(["Type 2 diabetes"]);
+    // The For field is on the Details tab.
+    await showFormTab("Details");
     await userEvent.click(await found(pickerInput));
     // Active ones not chosen, most recent since first; no resolved or deleted one.
     await waitUntil(() => options().length > 0, "the options");
@@ -157,6 +160,7 @@ describe("the For field", () => {
   test("dropping every condition unlinks them, and the page's For row goes", async () => {
     const device = await open(editUrl(LISINOPRIL.id));
     await waitUntil(() => chips().length > 0, "the For chips");
+    await showFormTab("Details");
     await userEvent.click(
       await found(() =>
         picker()?.querySelector<HTMLElement>('button[aria-label="Remove High blood pressure"]'),
@@ -177,6 +181,7 @@ describe("the For field", () => {
 
   test("a resolved condition isn't offered to another medication", async () => {
     await open(editUrl(LATANOPROST.id));
+    await showFormTab("Details");
     await userEvent.click(await found(pickerInput));
     await waitUntil(() => options().length > 0, "the options");
     expect(options()).toEqual(["Glaucoma", "Type 2 diabetes", "High blood pressure"]);
@@ -186,6 +191,7 @@ describe("the For field", () => {
     const device = await open(`${LIST}/new`);
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "Amlodipine");
+    await showFormTab("Details");
     await userEvent.fill(await found(() => field("reason")), "Swelling too");
     await pickCondition("High blood pressure");
     await pickCondition("Glaucoma");

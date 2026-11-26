@@ -4,7 +4,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 import { zonedInstant } from "@caretook/data/schema";
 import { userEvent } from "vitest/browser";
 import { at, fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import * as medicationPage from "../medication/route";
 import * as doseSheet from "../timeline/new-dose/route";
@@ -327,6 +327,22 @@ export const SHEET = () => document.querySelector<HTMLElement>("[role=dialog]");
 export const FORM = () => document.querySelector<HTMLFormElement>("[role=dialog] [data-medication-form]");
 export const field = <T extends HTMLElement = HTMLInputElement>(name: string) =>
   FORM()?.querySelector<T>(`[name="${name}"]`) ?? null;
+/** The form's section tabs (Essentials, Details, Refills). */
+export const formTab = (label: "Essentials" | "Details" | "Refills") =>
+  [...(FORM()?.querySelectorAll<HTMLElement>('[role="tablist"] [role="tab"]') ?? [])].find(
+    (t) => t.textContent?.trim() === label,
+  ) ?? null;
+/** The form tab that's open. */
+export const openFormTab = () =>
+  FORM()?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.textContent?.trim() ?? null;
+/** A form tab's marker: "content" (saved values on it), "error", or null. */
+export const formTabMarker = (label: "Essentials" | "Details" | "Refills") =>
+  formTab(label)?.querySelector("[data-tab-marker]")?.getAttribute("data-tab-marker") ?? null;
+/** Open a form tab (its fields are hidden until then). */
+export const showFormTab = async (label: "Essentials" | "Details" | "Refills") => {
+  await userEvent.click(await found(() => formTab(label), { message: `the ${label} tab` }));
+  await waitUntil(() => openFormTab() === label, `the ${label} tab open`);
+};
 /** The sheet's Save, as a locator. */
 export const submit = () => getByCss('[role=dialog] [data-medication-form] button[type="submit"]');
 export const times = () => [...(FORM()?.querySelectorAll<HTMLInputElement>('input[name="time"]') ?? [])];
