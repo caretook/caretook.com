@@ -4,6 +4,19 @@ Finished-wave history moved out of [the plan](fixes-tooling-plan.md)'s _Status_ 
 
 ## Trimmed 2026-11-26
 
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 85    | B-609 | merged | bb36eb88 |
+| 84    | B-608 | merged | c4527dc5 |
+| 83    | B-751 | merged | 5586ba9b |
+| 82    | B-753 | merged | 16ef128c |
+| 81    | B-660 | merged | 2b445134 |
+| 80    | B-845 | merged | cc58eade |
+| 79    | B-870 | merged | 703f7d67 |
+| 78    | B-653 | merged | 42cbac3a |
+
+## Trimmed 2026-11-26
+
 | Slice | Item  | State           | Merge    |
 | ----- | ----- | --------------- | -------- |
 | 77    | B-872 | merged          | f71c773d |
