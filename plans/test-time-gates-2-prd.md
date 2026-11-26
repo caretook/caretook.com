@@ -59,7 +59,6 @@ Bring every component shard well under 5 minutes with a fourth shard and a fresh
 - A scheduled or automatic refresh of the durations table.
 - The unit shards balanced by duration (B-863, `fixes-perf`).
 - The quick check's integration step run beside its unit step (B-859 names it as a possible trim): `fixes-perf` if the quick gate warns again.
-- The tooling step's phantom "unhandled error" (B-860, `fixes-tooling`).
 - Gating the integration job, the browser checks or the full check.
 
 ## Notes
@@ -67,3 +66,4 @@ Bring every component shard well under 5 minutes with a fourth shard and a fresh
 - Measured 2026-11-26, on test-time-gates' last green `full` run (45760650119): components-1 309 s (warn, not armed), -2 266 s, -3 259 s; unit-1 179 s, unit-2 145 s. Branches not yet synced with the balancer (`prd/tags`, run 45760695334): 513, 510 and 470 s.
 - The durations table: `web:components` 214 files, 1567 s summed; `web:components:ny` 64 files, 867 s (stale: the New York run is now 6 files). Slowest: `inScreens` 59 s, `timelineHeader` 58 s, `timelineSearch` 48 s, `timelineLayout` 38 s, `entry` 36 s.
 - The check log's last quick or slice checks: 449 to 643 s at loads of 20 to 70 (tooling step 271 to 513 s); after the `land.test.mjs` split, 287 s at loads of 8 to 16 on 10 cores (`static` 72, `unit` 33, `tooling` 180). Every one unjudged.
+- Since these numbers, `dev` capped the unit projects' workers at half the cores, at most 4 (B-542, 44dd2730; the tooling projects keep Vitest's default), and fixed the tooling step's phantom "unhandled error" (B-860, 729a8858). The quick check's `unit` step may run a little slower and its end load a little lower; slice 2's quiet run measures both.
