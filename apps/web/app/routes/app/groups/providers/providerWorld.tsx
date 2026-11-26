@@ -263,7 +263,7 @@ export const chips = () =>
     id: li.dataset.chip!,
     text: li.textContent.trim(),
     href: li.querySelector("a")?.getAttribute("href") ?? null,
-    muted: li.className.includes("text-base-content/50"),
+    muted: /\btext-(faint|base-content\/50)\b/.test(li.className),
     remove: !!li.querySelector("button"),
   }));
 export const SUGGESTIONS = () => WITH()?.querySelector<HTMLElement>("[data-provider-suggestions]") ?? null;

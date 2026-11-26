@@ -60,14 +60,14 @@ export function FeedCard({ settings, online }: CalendarCardProps) {
   return (
     <>
       <SettingsCard id="calendar-feed" title="Calendar feed">
-        <p className="text-base-content/70 text-sm">{FEED_EXPLAINED}</p>
+        <p className="text-muted text-sm">{FEED_EXPLAINED}</p>
         {!settings ? (
           <p className="text-sm" data-feed-unknown="">
             Needs a connection to show your feed.
           </p>
         ) : (
           <>
-            <p className="text-base-content/70 text-sm" data-feed-says="">
+            <p className="text-muted text-sm" data-feed-says="">
               {FEED_SAYS[settings.shareLevel]}
             </p>
             {!active && (

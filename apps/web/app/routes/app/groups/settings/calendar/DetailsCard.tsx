@@ -30,7 +30,7 @@ export function DetailsCard({
 
   return (
     <SettingsCard id="details-outside" title="Details outside Caretook">
-      <p className="text-base-content/70 text-sm">{detailsExplained(recipient)}</p>
+      <p className="text-muted text-sm">{detailsExplained(recipient)}</p>
       {state.kind === "unknown" ? (
         <p className="text-sm" data-details-unknown="">
           Needs a connection to show your choice.
@@ -56,7 +56,7 @@ export function DetailsCard({
             </p>
           )}
           {state.on && settings?.detailsConsentAt && (
-            <p className="text-base-content/70 text-sm" data-details-agreed="">
+            <p className="text-muted text-sm" data-details-agreed="">
               You agreed on {agreedOn(settings.detailsConsentAt)}.
             </p>
           )}

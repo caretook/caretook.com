@@ -47,9 +47,7 @@ export function EasyTilesCard({
   const mode = setting?.mode ?? "learned";
   return (
     <SettingsCard id="easy-tiles" title="Easy mode tiles">
-      <p className="text-base-content/70 text-sm">
-        Easy mode shows four big buttons that each open one short form.
-      </p>
+      <p className="text-muted text-sm">Easy mode shows four big buttons that each open one short form.</p>
       {editable ? (
         // Keyed on the saved choice: a synced change resets the form.
         <EasyTilesForm key={JSON.stringify(setting)} setting={setting} words={words} />
@@ -73,7 +71,7 @@ function EasyTilesForm({ setting, words }: { setting: EasyTiles | null; words: R
     <fetcher.Form method="post" noValidate className="space-y-3" data-easy-tiles-form="">
       <input type="hidden" name="intent" value="easyTiles" />
       <ChoiceGroup name="mode" label="Tiles" options={MODE_OPTIONS} value={mode} onChange={setMode} />
-      <p className="text-base-content/70 text-sm">
+      <p className="text-muted text-sm">
         {MODE_HELP[mode]}
         {mode === "fixed" && ` ${labels(FIXED_TILES, words)}.`}
       </p>
