@@ -57,7 +57,7 @@ export const content = {
         {
           question: "What's the difference between a viewer and a caretaker?",
           answer: [
-            "Caretakers can add, edit and delete entries and write notes. Viewers can see everything in the care group but can't change anything, which suits a relative who wants to stay informed.",
+            "Caretakers can add, edit and delete entries and write notes. Viewers can follow the timeline, medications and planner but can't change them, apart from ticking off a todo assigned to them, which suits a relative who wants to stay informed. A viewer doesn't see the phone, address or insurance of the person being cared for.",
             "Owners and admins can also manage the group: rename it, update the profile of the person being cared for, change roles and remove members.",
           ],
         },

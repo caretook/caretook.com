@@ -1,10 +1,4 @@
-import type {
-  CtaBandContent,
-  FeatureGridContent,
-  PageMeta,
-  PageIntroContent,
-  ShowcaseContent,
-} from "../sections/types";
+import type { CtaBandContent, PageMeta, PageIntroContent, ShowcaseContent } from "../sections/types";
 import { MARKETING_LINKS } from "../site/pages";
 import { PRICE_HEADLINE } from "../site/price";
 
@@ -12,18 +6,22 @@ import { PRICE_HEADLINE } from "../site/price";
  * Features page copy (draft: the user edits it). Change the words here; the
  * layout is in the section components and `route.tsx`. Screenshots are named
  * from `site/screenshots.ts`, with alt text saying what each one shows.
+ *
+ * Every block says only what the app does today, written from its area doc
+ * (docs/domain/); a block without a screenshot shows its icon alone. Nothing
+ * is listed as coming.
  */
 export const content = {
   meta: {
     title: "Features",
     description:
-      "What's in Caretook, the free care notebook for families: a shared timeline, notes written together, vitals, a provider directory, sharing with the right access, and offline use.",
+      "What's in Caretook, the free care notebook for families: a shared timeline, notes written together, medications, todos and a planner, providers, and sharing with the right access.",
   } satisfies PageMeta,
 
   intro: {
     eyebrow: PRICE_HEADLINE,
     heading: "Everything your family needs to keep track, in one place",
-    lead: "Caretook keeps a loved one's care in one shared timeline: what happened today, how they're feeling, their readings, and the notes from every visit. Here's how each part works.",
+    lead: "Caretook keeps a loved one's care in one shared place: what happened today, their medications and readings, what's coming up, and the notes from every visit. Here's how each part works.",
   } satisfies PageIntroContent,
 
   showcases: [
@@ -51,7 +49,7 @@ export const content = {
       heading: "Notes and events, written together",
       paragraphs: [
         "Start a note in one tap and just type: it's saved as you go. Your sister can open the same note and add to it at the same time, and you both see each other's words appear.",
-        "When someone is writing, the timeline says so, with a Join button, so the notes from an appointment end up in one place instead of three text threads.",
+        "When someone is writing, the timeline says so, with a Join button, so the notes from a visit end up in one place instead of three text threads.",
       ],
       points: [
         "Headings, bold and lists for visit notes",
@@ -76,6 +74,21 @@ export const content = {
       },
     },
     {
+      id: "quick-entry",
+      icon: "quickEntry",
+      heading: "Type it the way you'd say it",
+      paragraphs: [
+        "A box on the timeline takes a plain line, like “bp 130/85 hr 72, gave metformin, pain 4 left knee”, and turns it into separate entries: the readings, a dose and a symptom.",
+        "Each part shows as a card before anything is saved, so you can check it, change what kind of entry it is, or remove it. One Save writes them all, with a few seconds to undo.",
+      ],
+      points: [
+        "Readings, symptoms, doses, notes, events and todos",
+        "Understands times like “last night” or “Friday 2pm”",
+        "Runs on your phone: what you type isn't sent to an AI service",
+        "Speak it with your keyboard's dictation",
+      ],
+    },
+    {
       id: "vitals",
       icon: "vitals",
       heading: "Vitals at a glance",
@@ -89,6 +102,59 @@ export const content = {
       },
     },
     {
+      id: "medications",
+      icon: "medications",
+      heading: "Medications and doses",
+      paragraphs: [
+        "Keep every medication in one list the whole care group shares: prescriptions, over-the-counter medicines and supplements, each with its dose, directions, what it's for, the prescriber and the pharmacy. Stopped ones stay on record, with when and why.",
+        "Group doses into med times like Morning and Evening. Today's schedule shows what's due and what's overdue, and logging a dose takes one tap: given, skipped or refused.",
+      ],
+      points: [
+        "Mark a whole med time as given in one tap",
+        "As-needed medications, with a check before you pass the daily maximum you set",
+        "Doses and medication changes show on the timeline",
+        "Allergies beside the list, and a warning when a medication's name matches one",
+      ],
+    },
+    {
+      id: "todos",
+      icon: "todos",
+      heading: "Todos, with a name on them",
+      paragraphs: [
+        "Write down what needs doing and who's doing it: call the pharmacy, book the follow-up, pick up the prescription. A todo can have a person, a due day and time, and its own notes.",
+      ],
+      points: [
+        "Repeat a todo daily, weekly or monthly",
+        "Link a todo to a provider, a medication, a note or an event",
+        "Show only the ones assigned to you",
+        "Viewers can tick off the todos assigned to them",
+      ],
+    },
+    {
+      id: "planner",
+      icon: "planner",
+      heading: "A planner for what's coming up",
+      paragraphs: [
+        "The Planner lists upcoming events and todos together by day, soonest first, with past events one tab away. An event can repeat, be rescheduled, or be cancelled with the reason kept.",
+        "Before a visit, Prepare for this visit gathers what has changed since the last one with that provider (medication changes, readings and symptoms) and puts it at the top of the event's notes.",
+      ],
+    },
+    {
+      id: "calendars",
+      icon: "calendars",
+      heading: "In your own calendar, with reminders",
+      paragraphs: [
+        "Each person can see the care group's events and dated todos in the calendar they already use: subscribe to a calendar feed with a link of your own, or connect Google Calendar. When a caretaker moves an event's time in Google Calendar, it moves in Caretook too.",
+        "Turn on reminder emails and choose when they arrive, from the evening before to 30 minutes ahead. It's all in Group settings, under Calendar & reminders.",
+      ],
+      points: [
+        "Reminders are off until you turn them on, and each person sets their own",
+        "A todo's reminder goes only to the person it's assigned to",
+        "Outside Caretook, an event shows only who it's for and when, unless you choose to include the details",
+        "With Google, Caretook adds a calendar of its own and can't see your others",
+      ],
+    },
+    {
       id: "sharing",
       icon: "invite",
       heading: "Family, with the right access",
@@ -98,7 +164,7 @@ export const content = {
       points: [
         "Owners and admins manage who's in the group",
         "Caretakers add and edit entries",
-        "Viewers can follow along without changing anything",
+        "Viewers can follow along, and change nothing but ticking off a todo assigned to them",
         "Anyone can leave a group whenever they like",
       ],
       image: {
@@ -117,7 +183,77 @@ export const content = {
       points: [
         "Mark the main doctor, and keep past providers for the record",
         "Clinicians linked to their practice",
-        "Shared notes for each provider",
+        "Call, get directions or open the website from a provider's page",
+        "Mention a provider in a note with @",
+      ],
+    },
+    {
+      id: "care-periods",
+      icon: "carePeriods",
+      heading: "Home, hospital, rehab: where they are now",
+      paragraphs: [
+        "Record where your loved one is staying and when that changed: home, the emergency room, hospital, rehab, assisted living, memory care, a nursing home or hospice. The timeline shows it on each day, like “In hospital · day 4”.",
+        "Each stay keeps its place, the room and bed, and its own shared notes.",
+      ],
+      points: [
+        "A marker on the timeline where each stay began",
+        "Suggested when an event mentions being admitted or discharged",
+        "Search within one stay",
+      ],
+    },
+    {
+      id: "profile",
+      icon: "profile",
+      heading: "A profile of the person you care for",
+      paragraphs: [
+        "One page for the facts people keep asking for: name, birthday and age, blood type, code status, language, conditions and allergies, and a note for anyone helping.",
+        "Their phone, address and insurance are on it too, shown only to owners, admins and caretakers.",
+      ],
+      points: [
+        "Conditions, with who diagnosed and who manages each",
+        "Average readings over the last 7 and 30 days",
+        "Emergency contacts, in the order to call",
+        "Each family member chooses which of their own contact details the group sees",
+      ],
+    },
+    {
+      id: "printouts",
+      icon: "print",
+      heading: "Sheets to print",
+      paragraphs: ["Some things are easier on paper. Caretook prints three sheets:"],
+      points: [
+        "The medication list: current medications by type, and recently stopped ones with why, under the allergies and conditions",
+        "The weekly bedside sheet: seven days of medications, grouped by med time",
+        "The profile sheet for emergencies: basics, contacts, insurance, medications, allergies, conditions and the care team",
+      ],
+    },
+    {
+      id: "search",
+      icon: "search",
+      heading: "Find anything, even offline",
+      paragraphs: [
+        "Search a care group from the magnifier in the header: timeline entries, providers, medications, conditions and todos. The search runs on your phone, so it works with no signal.",
+      ],
+      points: [
+        "Matches are highlighted, with the words around them",
+        "Put a phrase in quotes, or leave a word out with a minus sign",
+        "Narrow a search to one care period",
+      ],
+    },
+    {
+      id: "assistants",
+      icon: "assistant",
+      heading: "Connect your own Claude or ChatGPT",
+      paragraphs: [
+        "If you already use Claude or ChatGPT, you can connect it to a care group and ask it to catch you up, or to help you get ready for an event. It reads what you can see in that group, and if you can add entries, it can add them for you, each marked with the assistant's name.",
+        "It's off until an owner turns it on in Group settings, under Assistants. The address to give your assistant and the steps for each one are there and in Settings, under Devices, where you can also disconnect.",
+        "It's your assistant, under its maker's terms: what it reads goes to the AI vendor you chose. Caretook itself doesn't use AI on your information.",
+      ],
+      points: [
+        "One care group for each connection",
+        "A viewer's assistant can read but not add",
+        "Owners can make every connection read-only, or switch them all off",
+        "Phone numbers, emails and addresses of family members and the person cared for are never sent",
       ],
     },
     {
@@ -129,19 +265,6 @@ export const content = {
       ],
     },
   ] satisfies ShowcaseContent[],
-
-  coming: {
-    id: "coming-soon",
-    heading: "Coming soon",
-    intro: "We're building this next, with the families using Caretook now.",
-    items: [
-      {
-        icon: "medications",
-        title: "Medications",
-        body: "A list of current and past medications, with doses and why they were stopped, and a sheet you can print for the next appointment.",
-      },
-    ],
-  } satisfies FeatureGridContent,
 
   cta: {
     id: "get-started",

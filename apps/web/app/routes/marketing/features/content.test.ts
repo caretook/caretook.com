@@ -2,9 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import { MARKETING_ICONS } from "../sections/icons";
 import { MARKETING_LINKS } from "../site/pages";
+import { content as faq } from "../faq/content";
+import { homeContent } from "../home/content";
 import { content } from "./content";
 
 const nonEmpty = (s: string | undefined) => typeof s === "string" && s.trim().length > 0;
+
+/** Every string in a value, however deep. */
+function strings(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(strings);
+  if (value && typeof value === "object") return Object.values(value).flatMap(strings);
+  return [];
+}
 
 describe("features content", () => {
   it("has a title and a search-length description", () => {
@@ -33,9 +43,63 @@ describe("features content", () => {
     }
   });
 
-  it("has providers as a main feature, and a known icon for everything coming", () => {
-    expect(content.showcases.map((s) => s.id)).toContain("providers");
-    for (const item of content.coming.items) expect(MARKETING_ICONS).toHaveProperty(item.icon);
+  // Everything built is a main block (plans/marketing-2-prd.md, US 3 and 4).
+  it("has a block for every part of the app that exists today", () => {
+    const ids = content.showcases.map((s) => s.id);
+    for (const id of [
+      "quick-entry",
+      "vitals",
+      "medications",
+      "todos",
+      "planner",
+      "calendars",
+      "providers",
+      "care-periods",
+      "profile",
+      "printouts",
+      "search",
+      "assistants",
+    ]) {
+      expect(ids, id).toContain(id);
+    }
+  });
+
+  it("names only the printouts that exist: the medication list, the weekly bedside sheet and the profile", () => {
+    const printouts = content.showcases.find((s) => s.id === "printouts");
+    expect(printouts?.points).toHaveLength(3);
+    expect(printouts?.points?.join(" ")).toMatch(/medication list.*weekly bedside sheet.*profile sheet/i);
+  });
+
+  it("says where your own Claude or ChatGPT is set up", () => {
+    const assistants = content.showcases.find((s) => s.id === "assistants");
+    const text = [assistants?.heading, ...(assistants?.paragraphs ?? [])].join(" ");
+    for (const word of ["Claude", "ChatGPT", "Group settings, under Assistants", "Settings, under Devices"]) {
+      expect(text).toContain(word);
+    }
+  });
+
+  // The app's word for a calendar item is "event" (docs/domain/appointments.md).
+  it("says event or visit, never appointment, on features and home", () => {
+    for (const text of [...strings(content), ...strings(homeContent)]) {
+      expect(/appointment/i.test(text), text).toBe(false);
+    }
+  });
+
+  it("lists nothing as coming: no band for it, and no built feature said to be on its way", () => {
+    expect(content).not.toHaveProperty("coming");
+    for (const [page, value] of [
+      ["features", content],
+      ["home", homeContent],
+      ["FAQ", faq],
+    ] as const) {
+      for (const text of strings(value)) {
+        // "as soon as you're back online" is the one "soon" that stays.
+        expect(
+          /coming[\s-]+soon|(?<!\bas )\bsoon\b|\bnot yet\b|\bon the way\b/i.test(text),
+          `${page}: "${text}"`,
+        ).toBe(false);
+      }
+    }
   });
 
   it("ends with both calls to action", () => {
