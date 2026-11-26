@@ -17,16 +17,16 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State                       | Merge |
-| ----- | ------------ | --------------------------- | ----- |
-| 61    | B-239, B-240 | merged (opus)               | 1699763a |
-| 62    | B-244        | started (opus)              |       |
-| 63    | B-867        | handed off (opus) 77ff15e7  |       |
-| 64    | B-442        | started (opus)              |       |
-| 65    | B-443, B-447 | waiting for 66 (land.sh)    |       |
-| 66    | B-639, B-649 | started (opus)              |       |
-| 67    | B-738        | handed off (opus) 550389b1  |       |
-| 68    | B-545        | started (sonnet)            |       |
+| Slice | Item         | State                        | Merge    |
+| ----- | ------------ | ---------------------------- | -------- |
+| 61    | B-239, B-240 | merged (opus)                | 1699763a |
+| 62    | B-244        | merged (opus)                | 35e43036 |
+| 63    | B-867        | merged (opus)                | 69bcc9c1 |
+| 64    | B-442        | merged (opus)                | 3c48b294 |
+| 65    | B-443, B-447 | merged (opus)                | ee34a22e |
+| 66    | B-639, B-649 | merged (opus), in 65's merge | ee34a22e |
+| 67    | B-738        | merged (opus)                | a6ade197 |
+| 68    | B-545        | merged (sonnet)              | 7b608d23 |
 
 ## Wave 1
 
