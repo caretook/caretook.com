@@ -29,6 +29,7 @@ Stack: no · Reads: docs/agents/loop.md, docs/domain/sync.md · Tests: unit, e2e
 - **`Stack: yes|no`**: whether the worktree needs a Docker stack (database, PowerSync, dev server, browser checks). `new.sh slice` reads it. Say yes only when needed: stackless worktrees still run integration tests.
 - **`Reads:`** the docs the loop reads besides the core, from the _Area index_ (comma-separated; `none`).
 - **`Tests:`** `unit`, `integration`, `component`, `e2e:<check>` (comma-separated).
+- **`Blocked by:`** `slice 3`, `3`, `1, 2` or `none` (optional; `Blocks:` stays in the body).
 - `·`, `;` or `|` separate fields; names are case-insensitive. A missing field means no stack and nothing extra to read, and `prompt.sh slice` warns. The parser is `scripts/loops/slice-fields.mjs`.
 
 ## The test budget
@@ -41,7 +42,7 @@ A `plan/<topic>` branch touches no code, so its agent lands it whenever the PRD 
 
 1. Commit both files (`docs(<topic>): …`). Through `pnpm backlog`, set the items' `prd=<topic> status=triaged` with a note, and the topic's row: `prd set <topic> after=… hot=…` (path prefixes; never a hand edit), after `pnpm backlog prd add <topic>` only when `prd list` has no row yet. After `pnpm prd rm plan-<topic>` and the report, `cd` to the main checkout and `pnpm prd end`.
 2. Check `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it isn't a planning branch: ask first.
-3. `pnpm prd sync` if `dev` moved, then `pnpm prd land plan/<topic> -m "docs(<topic>): PRD and plan for … (B-<n>, …)"` (plain: no check gate applies, so never `--force`) and `pnpm prd rm plan-<topic>`.
+3. `pnpm prd sync` if `dev` moved, then `pnpm prd land plan/<topic> -m "docs(<topic>): PRD and plan for … (B-<n>, …)"` (plain: no check gate applies, so never `--force`) then the report, and `pnpm prd rm plan-<topic>` from the worktree as the last step (it ends the session; if it refuses, run the line it prints).
 4. **Report:** the _Decisions_ table's `assumed` rows (the top five, the costliest first), what the skeptic changed, and how to start it: `pnpm prd start <topic>` or `pnpm prd queue <topic>`. A veto is a docs edit until its slice starts: the user tells any planning or backlog session.
 
 **Bye:** a message of just 'bye' runs `pnpm prd bye` after your own checks: the plan landed (or the user keeps it out), the report filed.

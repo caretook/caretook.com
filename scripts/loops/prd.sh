@@ -40,7 +40,7 @@ pnpm prd <command>
     plan <topic> [--open] [${backlog_id_prefix}n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
-                              (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
+                              (on opus, a \`design\` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next; its Remote Control
                               name and tab title are a captain's, a new one each session; its record stays backlog)
     inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
@@ -56,6 +56,7 @@ pnpm prd <command>
                               (pnpm prd check there, then pnpm prd land ${hotfix_prefix}<name> on your word)
     stack up|down [name]      add or remove a worktree's dev stack (slot, env files, Compose, seed)
     rm <name> [--force]       remove a worktree, its stack, its test database and, if merged, its branch
+                              (from inside a ${prd_prefix} or ${plan_prefix} worktree, by its own session: then ends it)
     gc [--list|--yes]         merged slice worktrees and stacks stopped over a day: list, ask, remove
     reclaim [--list|--yes]    disk: merged worktrees, dangling Docker volumes and images, check builds and
                               Vite caches, with sizes; frees them after a yes
@@ -89,7 +90,7 @@ pnpm prd <command>
                               backlog and recovery sessions (main checkout) always open fresh
                               (--background: iTerm2 stays where it is and the selected tab stays selected)
     end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
-                              orchestrator or planner, after pnpm prd rm); its tab closes
+                              session; pnpm prd rm ends a finished orchestrator or planner itself); its tab closes
     bye [--dry-run] [--json]  a session's hand-over check, when the user says just "bye": clean (no uncommitted or
                               unpushed work, worktree, branch, stack, server, running lease, background job or open
                               question of its own left), it prints the hand-off line, releases its leases and ends the

@@ -1,4 +1,4 @@
-- `new.sh <kind>`: `prd <topic>` (`.loops/<topic>`, from `dev`, a stack), `slice <topic> <n>` (`.loops/<topic>-<n>`, from `prd/<topic>`, a stack only for `Stack: yes` or `--stack`), `plan <topic>` and `hotfix <name>` (stackless, from `dev`). Options: `--slot N`, `--stack`/`--no-stack`, `--base B`. An existing branch is checked out. Secrets: the main checkout's env files.
+- `new.sh <kind>`: `prd <topic>` (`.loops/<topic>`, from `dev`, a stack), `slice <topic> <n>` (`.loops/<topic>-<n>`, from `prd/<topic>`, a stack only for `Stack: yes` or `--stack`), `plan <topic>` and `hotfix <name>` (stackless, from `dev`). Options: `--slot N`, `--stack`/`--no-stack`, `--base B`. Reuses a branch; env files from the main checkout.
 - **Slots** (1–19): atomic locks in `.loops/.slots/<N>`, busy too while a `.env` names one or a port listens. Ports: [loop](loop.md#your-worktree-and-stack).
 - **The shared test Postgres** (`pnpm prd test-db`, :5436, tmpfs, Compose project `caretook-shared-test`): a database per worktree (`rm.sh` drops it); `test-db down` drops all.
 - `pnpm prd status` flags landed `merged:` slice worktrees and `stopped stack:`s (over `CARETOOK_GC_STOPPED_HOURS`, 24); `gc` removes them on a yes. **The disk guard** refuses a stack or check build under `CARETOOK_MIN_FREE_GB` (10); `reclaim` frees merged worktrees, dangling Docker data, check builds and Vite caches (never in use).
@@ -17,7 +17,7 @@
 
 ## Rotation
 
-- **`pnpm prd rotate [<topic>] [--mid-wave] [--reason <text>]`** (`rotate.sh`) finds the session (the `prd-<topic>` record, else the ancestor `claude`) and opens `rotate-into.sh` in a background tab. It refuses with uncommitted plan changes, a requested run out or GitHub unreadable, slice worktrees left (those two unless `--mid-wave`), or no session. A leftover `ci/` ref counts as out.
+- **`pnpm prd rotate [<topic>] [--mid-wave] [--reason <text>]`** (`rotate.sh`) finds the session (`prd-<topic>`'s record, else the ancestor `claude`), opens `rotate-into.sh` in a background tab. It refuses on uncommitted plan changes, a requested run out or GitHub unreadable, slice worktrees left (those two unless `--mid-wave`), no session. A leftover `ci/` ref counts as out.
 - `rotate-into.sh <name> <pid>` sets `rotating`, ends the pid (as `end`; `CARETOOK_ROTATE_WAIT`, 20 s), waits for the recorded end, then execs `session.sh` with `prompt.sh orchestrator <topic> --resume` (`--auto` from the record or _Status_): fresh, the same name.
 - **`rotate --self [--brief <file>]`** finds the caller by its ancestor `claude` pid. A backlog session reopens fresh in the main checkout (same record and model), the brief on top of its prompt; an orchestrator rotates as plain `rotate`; other kinds and `slice/` branches are refused. `--brief-path` prints where to write the brief; a stale one is deleted at session start.
 - **Captains** (`captain.mjs`): the main backlog session's Remote Control name and tab title is a captain, drawn at each start, rotate, hand-off and reopen, never the last; the record stays `backlog`; a `--remote-control <Captain>` process is live. Its prompt names it (`CARETOOK_CAPTAIN`), never in questions or commands.
@@ -54,7 +54,7 @@
 - **The log:** `.check-times.log`, 18 fields, last: failed step, files, flaky ones, stopping limit, time verdict, step times.
 - **Time gate** (`time-gate.mjs`): a passed quick or slice check, quiet (load ≤ cores) at both ends, else `unjudged`; armed `fail` exits 125; CI's `unit-N` and `components-N` steps alike. `--times` and `metrics` count tests, budget, silence and time apart.
 - **The limits** (`check-budget.mjs`): budget max(2× median, slowest + 20%) of the last 20 passes (mode, branch kind), load-scaled ×1–3, from 10 minutes to the limit (20, full 40, `CARETOOK_CHECK_LIMIT`; alone under 5 runs). Silence: `CARETOOK_CHECK_SILENCE` (480 s), scaled alike. A clock gap over `CARETOOK_CHECK_SLEEP_GAP` (30 s) is sleep. A breach: TERM the tree, KILL after 10 s, step and last 30 lines, exit 124.
-- **The rerun:** a failed test step reruns its failures once, one at a time; a pass there is logged flaky. None after an unhandled error or past `CARETOOK_CHECK_RERUN_MAX` (20) files.
+- **The rerun:** a failed test step reruns its failures once, one at a time; a pass there is logged flaky. None after an unhandled error (Vitest's report line only) or past `CARETOOK_CHECK_RERUN_MAX` (20) files.
 - **The run log** (`run-log.mjs`, silent on failure): `.loops/.run-log.jsonl` (`CARETOOK_RUN_LOG`): slice and landing spans, browser results, Codex verdicts. `pnpm prd metrics` adds the check and flake logs.
 
 ## The asks queue

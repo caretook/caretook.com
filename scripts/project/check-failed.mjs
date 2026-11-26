@@ -7,6 +7,9 @@
 //   node check-failed.mjs --slowest <report.json>
 //                                         its ten slowest files, `<seconds> <file>`
 //                                         lines, slowest first
+//   node check-failed.mjs --unhandled <log>
+//                                         exits 0 when the run's output reports an
+//                                         unhandled error, else 1
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
@@ -63,6 +66,23 @@ export function slowestFiles(text, cwd, n = SLOWEST) {
     .slice(0, n);
 }
 
+/**
+ * Whether a Vitest run's output reports an unhandled error: only the runner's own
+ * report line (`Vitest caught N unhandled error(s) during the test run`, or a
+ * collection's `There were unhandled errors during test collection`), at a line's
+ * start, colours stripped, so a test's title that says "unhandled error" (a `✓`
+ * line, its file and describe first) never counts.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function unhandledError(text) {
+  // eslint-disable-next-line no-control-regex -- the colour codes themselves
+  const plain = text.replace(/\x1b\[[0-9;]*m/g, "");
+  return /^(Vitest caught \d+ unhandled errors? during the test run|There were unhandled errors during test collection)/m.test(
+    plain,
+  );
+}
+
 /** The step a mixed test run's failures count under: the cheapest kind that failed. */
 export function stepOf(files) {
   if (files.some((f) => !/\.(int\.test\.ts|browser\.test\.tsx)$/.test(f))) return "unit";
@@ -81,6 +101,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   };
   if (args[0] === "--step") {
     console.log(stepOf(args.slice(1)));
+  } else if (args[0] === "--unhandled") {
+    process.exitCode = unhandledError(report(args[1])) ? 0 : 1;
   } else if (args[0] === "--slowest") {
     for (const f of slowestFiles(report(args[1]), process.cwd())) console.log(`${f.seconds} ${f.name}`);
   } else {
