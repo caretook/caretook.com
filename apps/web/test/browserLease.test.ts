@@ -49,12 +49,12 @@ beforeAll(() => {
   leases = join(root, "leases");
   env = {
     ...process.env,
-    CARETOOK_LEASE_ROOT: leases,
-    CARETOOK_LEASE_POLL: "1",
-    CARETOOK_BROWSER_SLOTS: "1",
-    CARETOOK_BROWSER_WAIT: "60",
+    RISA_LEASE_ROOT: leases,
+    RISA_LEASE_POLL: "1",
+    RISA_BROWSER_SLOTS: "1",
+    RISA_BROWSER_WAIT: "60",
   };
-  for (const k of ["CARETOOK_LEASES", "CARETOOK_BROWSER_LEASES", "CARETOOK_BROWSER_OLD_LEASES"])
+  for (const k of ["RISA_LEASES", "RISA_BROWSER_LEASES", "RISA_BROWSER_OLD_LEASES"])
     delete env[k];
 });
 afterEach(async () => {
