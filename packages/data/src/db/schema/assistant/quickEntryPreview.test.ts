@@ -81,7 +81,7 @@ describe("actionPreview", () => {
       actionPreview(
         {
           type: "addEvent",
-          title: "Appointment with Dr. Sandra Lee",
+          title: "Event with Dr. Sandra Lee",
           occurredAt: "2026-11-24T22:00:00.000Z",
           allDay: false,
           place: "12 River Rd",
@@ -91,7 +91,7 @@ describe("actionPreview", () => {
         context,
       ),
     ).toEqual({
-      title: "Appointment with Dr. Sandra Lee",
+      title: "Event with Dr. Sandra Lee",
       detail: "12 River Rd · with Dr. Sandra Lee",
       when: "Tuesday, Nov 24 2:00 PM",
     });
