@@ -7,6 +7,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 ## Bugs/Nits
 
 - Frontpage hero CTA buttons wrap on mobile; they should fit side by side (B-885)
+- Easy entry: medication autocomplete suggestion covers the event entry suggestion box
+  Autocomplete suggestions should probably appear above the box, with the event entry suggestion box below.
 
 ## Change requests
 
