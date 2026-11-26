@@ -19,16 +19,16 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-**Wave 14 (2026-11-25, this session):** synced dev (d2d851b7) into prd/fixes-ui first. Slices 79–84: B-819 no-group loading (opus), B-833 quick entry tips use the group's names (opus), B-843 members invite cards on a phone (opus), B-848 header overlap at medium widths (opus), B-849 View menu Condensed/Full (sonnet, a rename), B-850 Full view rich live notes (opus; may outgrow a fix). All six run at once; hot files set on the registry row; items claimed. Still held: B-694 (the user approves each form live), B-325 (Capacitor). Wave 13 landed as dev 62ebbeeb (PR #190), details in the history file.
+**Wave 14 (2026-11-25, this session):** synced dev (d2d851b7) into prd/fixes-ui first. Slices 79–84: B-819 no-group loading (opus), B-833 quick entry tips use the group's names (opus), B-843 members invite cards on a phone (opus), B-848 header overlap at medium widths (opus), B-849 View menu Condensed/Full (sonnet, a rename), B-850 Full view rich live notes (opus; may outgrow a fix). All six run at once; hot files set on the registry row; items claimed. All six merged; wave CI run next. Slice 83 also renamed Settings > Timeline layout and edited docs/domain/timeline.md (a loop shouldn't; kept as the wave's fold). Slice 80 added "event"/"events" as quick entry `appointmentWord` rows (packages/data vocabulary); the parser's preview still titles events "Appointment with …" (follow-up, B-537 wording). At landing fold into live-notes.md: Full view cards render a note's formatting from its Yjs snapshot via `lib/live-notes/noteRichText.ts` and `components/entry/NoteRichText.tsx` (no Tiptap on the timeline; cache per doc in notes.sync.ts; mentions show their typed name) (slice 84). At landing fold into app-shell.md: header section links are icons only (label sr-only, `title` hint) from `sm` to `lg`; the group menu trigger shrinks and truncates (slice 82). Still held: B-694 (the user approves each form live), B-325 (Capacitor). Wave 13 landed as dev 62ebbeeb (PR #190), details in the history file.
 
-| Slice | Item  | State                                                                     | Merge |
-| ----- | ----- | ------------------------------------------------------------------------- | ----- |
-| 79    | B-819 | handed off 24f4ce6c; rerunning check after the plan-format fix (4c67593c) |       |
-| 80    | B-833 | agent working (opus)                                                      |       |
-| 81    | B-843 | agent working (opus)                                                      |       |
-| 82    | B-848 | agent working (opus)                                                      |       |
-| 83    | B-849 | agent working (sonnet)                                                    |       |
-| 84    | B-850 | agent working (opus)                                                      |       |
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 79    | B-819 | merged (opus)   | cf023ddf |
+| 80    | B-833 | merged (opus)   | 3632f035 |
+| 81    | B-843 | merged (opus)   | 606ed5da |
+| 82    | B-848 | merged (opus)   | 4f356153 |
+| 83    | B-849 | merged (sonnet) | df82660c |
+| 84    | B-850 | merged (opus)   | c492621a |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 

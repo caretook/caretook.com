@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { IconButton, SURFACE } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { dismissTips, takeTipsFocus } from "~/lib/assistant/quickEntryTips";
-import { QUICK_ENTRY_EXAMPLES } from "./quickEntryCopy";
 
 /** How soon after a press on the field, or a Tab, its focus counts as the user's own. */
 const GESTURE_MS = 1000;
@@ -60,14 +59,21 @@ export function useQuickEntryTips(field: RefObject<HTMLTextAreaElement | null>, 
 }
 
 /**
- * "Why don't you try": the four example lines, the two shorthands and the
+ * "Why don't you try": the four example lines (`quickEntryExamples`, naming
+ * the group's own provider and medication), the two shorthands and the
  * commas, floating under the field (inside its `relative` wrapper) so nothing
  * below moves; at phone width it scrolls inside itself. A press on it never
  * takes focus from the field. Its words are hidden from screen readers: the
- * box's description says the same (`QUICK_ENTRY_RULES`). It fades in like the
+ * box's description says the same (`quickEntryRules`). It fades in like the
  * kit's overlays (`motion-overlay`; none under reduced motion).
  */
-export function QuickEntryTips({ onDismiss }: { onDismiss: () => void }) {
+export function QuickEntryTips({
+  examples,
+  onDismiss,
+}: {
+  examples: readonly string[];
+  onDismiss: () => void;
+}) {
   const [entering, setEntering] = useState(true);
   useEffect(() => {
     // Two frames: the hidden first style is drawn before the fade starts.
@@ -87,7 +93,7 @@ export function QuickEntryTips({ onDismiss }: { onDismiss: () => void }) {
       <div aria-hidden="true" className="min-w-0 flex-1 space-y-2 text-sm">
         <p className="font-semibold">Why don’t you try</p>
         <ul className="space-y-1">
-          {QUICK_ENTRY_EXAMPLES.map((line) => (
+          {examples.map((line) => (
             <li key={line} className="font-mono break-words">
               {line}
             </li>

@@ -59,7 +59,7 @@ describe("pass logs", () => {
     await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
     await waitUntil(() => row()?.querySelector("[data-pass-log-doses]")?.hasAttribute("data-open") === true);
     await expect.poll(() => row()?.querySelectorAll("[data-pass-log-doses] li").length).toBe(2);
-    await setView("Cards");
+    await setView("Full");
     await waitUntil(() => text() === "Morning: 1 given, 1 refused");
     expect(tagged()).toBe(1);
   });
@@ -174,7 +174,7 @@ describe("Live now and the live dot", () => {
     await waitUntil(() => bannerId() === second.entry.id, "the banner");
     await expect.poll(() => BANNER()?.innerText.replace(/\s+/g, " ")).toMatch(/· \+1 more/);
     expect(!!dotOf("Lunch") && !!dotOf("PT visit")).toBe(true);
-    await setView("Cards");
+    await setView("Full");
     expect(dotOf("PT visit")).toBeTruthy();
     await userEvent.click(await found(() => BANNER()?.querySelector("a")));
     await expect
