@@ -127,6 +127,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
 
         <MedicationHeader
           medication={medication}
+          showTags={!deleted}
           editors={
             !deleted && <EditorAvatars documentId={medicationId} groupId={groupId} viewerId={db.userId} />
           }

@@ -2,9 +2,11 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 
-import { Pencil } from "lucide-react";
+import { canTagRecord } from "@caretook/data/schema";
+import { Pencil, Tag } from "lucide-react";
 import { useState } from "react";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
+import { TagChips, useRecordTags, useTagPicker } from "~/components/tags";
 import { LinkedTodos } from "~/components/todos";
 import { BackLink, Button, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -54,7 +56,7 @@ export default function Provider(props: Route.ComponentProps) {
 function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const { groupId, providerId } = params;
   // Live: a role changed on another device shows without a reload.
-  const { canWrite, displayName } = useGroup();
+  const { canWrite, displayName, role, userId } = useGroup();
   const [copyStatus, setCopyStatus] = useState("");
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
@@ -66,6 +68,11 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toProvider(rows[0]) : null;
   const provider = live ?? loaderData.provider;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
+  // Tags (tags PRD): every chip for every role; Tags for whoever may tag it.
+  const tags = useRecordTags("provider", providerId);
+  const tagPicker = useTagPicker();
+  const mayTag =
+    !deleted && canTagRecord(role, { target: "provider", createdBy: provider.createdBy }, userId);
 
   const { ensureSaved, saveError } = useProviderNotes(providerId, loaderData.hasDocument);
   // The group's providers, for mentions in the notes (chips only: nothing links here).
@@ -78,6 +85,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
 
         <ProviderHeader
           provider={provider}
+          tags={!deleted && <TagChips tags={tags} max={null} className="mt-1" />}
           editors={
             !deleted && <EditorAvatars documentId={providerId} groupId={groupId} viewerId={db.userId} />
           }
@@ -86,6 +94,19 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
             !deleted && (
               <>
                 <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
+                {mayTag && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={Tag}
+                    onClick={() =>
+                      tagPicker.ask({ target: "provider", recordId: providerId, label: provider.name })
+                    }
+                    data-tag-record=""
+                  >
+                    Tags
+                  </Button>
+                )}
                 <Button
                   to={appUrls.editProvider(groupId, providerId)}
                   // Closing the sheet goes back here.
@@ -104,6 +125,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
         />
 
         <Message data-copy-status="">{copyStatus}</Message>
+        {tagPicker.sheet}
       </Section>
 
       {deleted ? (

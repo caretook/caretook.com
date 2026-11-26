@@ -3,6 +3,7 @@ import type { DueDoses } from "~/lib/medications/dueDoses";
 import type { MedicationList as Listed } from "~/lib/medications/medicationList";
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
+import type { TagsByRecord } from "~/lib/providers/providerDirectory";
 
 import { EmptyState, List, TITLE_SUB } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
@@ -20,16 +21,24 @@ function Rows({
   passes,
   label,
   logging,
+  recordTags,
 }: {
   medications: LocalMedication[];
   passes: readonly SchedulePass[];
   label: string;
   logging: Logging;
+  recordTags?: TagsByRecord;
 }) {
   return (
     <List label={label}>
       {medications.map((m) => (
-        <MedicationListItem key={m.id} medication={m} passes={passes} {...logging} />
+        <MedicationListItem
+          key={m.id}
+          medication={m}
+          passes={passes}
+          tags={recordTags?.get(m.id)}
+          {...logging}
+        />
       ))}
     </List>
   );
@@ -50,6 +59,8 @@ export function MedicationList({
   type = null,
   due,
   dueReady,
+  tagged = false,
+  recordTags,
 }: {
   /** Every medication in the group (not deleted), before filtering. */
   total: number;
@@ -63,6 +74,10 @@ export function MedicationList({
   /** Today's doses (`useDueDoses`), for an as-needed Log's warnings. */
   due: DueDoses;
   dueReady: boolean;
+  /** Whether a tag filters the list. */
+  tagged?: boolean;
+  /** Each medication's tags, for the rows' chips. */
+  recordTags?: TagsByRecord;
 }) {
   const shown = list.current.length + list.stopped.length;
   const what = `${[
@@ -73,7 +88,7 @@ export function MedicationList({
     .join(" ")} medications`.trim();
   const { easyRole, canWrite } = useGroup();
   const logging = { canWrite, due, dueReady };
-  const filtered = !!text.trim() || !!status || !!type;
+  const filtered = !!text.trim() || !!status || !!type || tagged;
   const emptyMark = filtered ? undefined : sectionAccent("medications", { easy: easyRole });
   return (
     <>
@@ -97,7 +112,13 @@ export function MedicationList({
         )}
 
         {list.current.length > 0 && (
-          <Rows medications={list.current} label="Current medications" passes={passes} logging={logging} />
+          <Rows
+            medications={list.current}
+            label="Current medications"
+            passes={passes}
+            logging={logging}
+            recordTags={recordTags}
+          />
         )}
 
         {list.stopped.length > 0 && (
@@ -111,6 +132,7 @@ export function MedicationList({
               medications={list.stopped}
               passes={passes}
               logging={logging}
+              recordTags={recordTags}
               label={
                 status ? `${STATUS_LABELS[status]} medications` : "Completed and discontinued medications"
               }

@@ -5,6 +5,7 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { Plus } from "lucide-react";
 import { useLocation } from "react-router";
 import { MedicationCard } from "~/components/medications";
+import { TagChips } from "~/components/tags";
 import { Badge, Button, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
@@ -25,7 +26,8 @@ import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
  * current one: a scheduled medication opens the Dose sheet on it, over the
  * list (closing or saving it comes back to the list, search kept), an
  * as-needed one logs a dose now (asking first past its maximum, once
- * today's doses are known: `dueReady`). A stopped one has no Log.
+ * today's doses are known: `dueReady`). A stopped one has no Log. Its tags
+ * show as chips (two, then "+N"; tags PRD) for every role.
  */
 export function MedicationListItem({
   medication,
@@ -33,6 +35,7 @@ export function MedicationListItem({
   canWrite,
   due,
   dueReady,
+  tags,
 }: {
   medication: LocalMedication;
   passes: readonly SchedulePass[];
@@ -40,6 +43,7 @@ export function MedicationListItem({
   /** Today's doses, for an as-needed Log's warnings. */
   due: DueDoses;
   dueReady: boolean;
+  tags?: readonly { id: string; name: string }[];
 }) {
   const stopped = stoppedText(medication);
   const badge = medicationTypeBadge(medication.type);
@@ -102,6 +106,7 @@ export function MedicationListItem({
           {stopped}
         </p>
       )}
+      <TagChips tags={tags} className="mt-0.5" />
     </MedicationCard>
   );
 }
