@@ -5,8 +5,10 @@ import { isError } from "../errors";
 import { SYSTEM_USER } from "../constants";
 import { getDb } from "./client";
 import { resetStaging, wipeStaging } from "./resetStaging";
+import { openLinkToken } from "../utils/linkToken";
 import {
   accountSchema,
+  careGroupInviteSchema,
   careGroupMemberSchema,
   careGroupSchema,
   DEFAULT_SYMPTOMS,
@@ -16,7 +18,9 @@ import {
   timelineEntrySchema,
   userSchema,
 } from "./schema";
+import { seed } from "./seeds";
 import { DEV_GROUP_ID } from "./seeds/careGroups";
+import { LINK_INVITE_ID, LINK_TOKEN } from "./seeds/invites";
 
 // Reset staging (B-449) against the test database: the wipe keeps real
 // sign-ins and nothing else, and the seed that follows makes them owners of
@@ -28,6 +32,7 @@ const audits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
 const staging = () => {
   vi.stubEnv("APP_ENV", "staging");
   vi.stubEnv("SEED_USER_PASSWORD", "a-long-fictional-staging-password");
+  vi.stubEnv("INVITE_LINK_KEY", "a-fictional-invite-link-key");
 };
 
 const emails = async () =>
@@ -115,6 +120,24 @@ describe("resetStaging", () => {
     expect(groupIds).toContain(DEV_GROUP_ID);
     expect(groupIds).not.toContain(own!.id);
     expect(groupIds).not.toContain(theirs!.id);
+
+    // The seeded viewer link is sealed with staging's own key, so its server
+    // can copy it (B-830); a seed run again reseals one sealed with another key.
+    const sealedLink = async () =>
+      (
+        await db
+          .select({ sealed: careGroupInviteSchema.tokenCiphertext })
+          .from(careGroupInviteSchema)
+          .where(eq(careGroupInviteSchema.id, LINK_INVITE_ID))
+      )[0]?.sealed ?? "";
+    expect(openLinkToken(await sealedLink(), LINK_INVITE_ID)).toBe(LINK_TOKEN);
+    await db
+      .update(careGroupInviteSchema)
+      .set({ tokenCiphertext: "sealed-with-another-key" })
+      .where(eq(careGroupInviteSchema.id, LINK_INVITE_ID));
+    const again = await seed();
+    expect(isError(again) ? again : null).toBeNull();
+    expect(openLinkToken(await sealedLink(), LINK_INVITE_ID)).toBe(LINK_TOKEN);
 
     // The seed's last step fills the symptom catalog (symptom-catalog slice 1):
     // Dev Family has every default and the names its entries use.

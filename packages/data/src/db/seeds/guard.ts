@@ -5,6 +5,8 @@
  * - Never with `APP_ENV=production`: fictional data must never sit beside real data.
  * - On staging (`APP_ENV=staging`, a hosted database) only with a secret
  *   `SEED_USER_PASSWORD`: staging is public, and the dev password is in this repo.
+ *   And with `INVITE_LINK_KEY`, so the seeded link invite is sealed with the
+ *   key staging's server opens it with (B-830).
  * - Otherwise only a local database, and never with `NODE_ENV=production`.
  */
 
@@ -18,9 +20,11 @@ export type SeedEnv = {
   NODE_ENV?: string;
   DATABASE_URL?: string;
   SEED_USER_PASSWORD?: string;
+  INVITE_LINK_KEY?: string;
 };
 
-export type SeedRefusal = "db:seed:production" | "db:seed:notLocal" | "db:seed:password" | "db:seed:appEnv";
+export type SeedRefusal =
+  "db:seed:production" | "db:seed:notLocal" | "db:seed:password" | "db:seed:appEnv" | "db:seed:linkKey";
 
 const isLocal = (url: string | undefined) => {
   try {
@@ -36,7 +40,8 @@ export const seedRefusal = (env: SeedEnv): SeedRefusal | null => {
   if (appEnv === "production") return "db:seed:production";
   if (appEnv === "staging") {
     const password = env.SEED_USER_PASSWORD?.trim();
-    return !password || password === DEV_SEED_PASSWORD ? "db:seed:password" : null;
+    if (!password || password === DEV_SEED_PASSWORD) return "db:seed:password";
+    return env.INVITE_LINK_KEY?.trim() ? null : "db:seed:linkKey";
   }
   if (appEnv) return "db:seed:appEnv";
   if (env.NODE_ENV === "production") return "db:seed:production";
