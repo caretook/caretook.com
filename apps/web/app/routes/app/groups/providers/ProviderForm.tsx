@@ -90,8 +90,9 @@ export function ProviderForm({
     if (fetcher.state !== "idle" || !fetcher.data || handled.current === fetcher.data) return;
     handled.current = fetcher.data;
     if (fetcher.data.ok) onDone("id" in fetcher.data ? fetcher.data.id : undefined);
-    // On another tab, it switches there.
-    else revealField(formRef.current);
+    // On another tab, it switches there: a frame later, as FormTabs can't switch
+    // synchronously from inside an effect (its flushSync is a no-op here).
+    else requestAnimationFrame(() => revealField(formRef.current));
   }, [fetcher.state, fetcher.data, onDone]);
 
   const choices = practices.filter((p) => p.id !== provider?.id);
