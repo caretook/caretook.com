@@ -296,7 +296,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-897 | bug | landed | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
-| B-899 | change | triaged | tags-3 |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
+| B-899 | change | triaged | fixes-ui |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
 | B-900 | change | landed | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-902 | change | landed | fixes-ui | prd/fixes-ui | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
@@ -321,6 +321,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-923 | change | triaged | fixes-ui |  | Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed) |
 | B-924 | bug | triaged | fixes-ui |  | Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge |
+| B-925 | bug | triaged | fixes-ui |  | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
 
 ## Items
 
@@ -2030,12 +2031,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-899 · change · Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
 
 - status: triaged
-- prd: tags-3
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): Triage: same timeline rows in both views as the quick-tag component (B-892); fold in to avoid a hot-file clash
 - 2026-11-26 (plan/tags-2): Planned in plans/tags-3-plan.md, the follow-on of tags-2 (cut to keep each topic about six slices): copy link into ⋯, the Tags page, merge, search by tag
+- 2026-11-26 (Robert Bo Davis): 2026-11-26, user decision: moved from tags-3 to fixes-ui, for its next wave after orchestration split wave 5 (with B-923, B-924). It should land before tags-2 starts, so tags-2's quick tags (B-892) build on the changed rows. tags-3 drops its copy-link slice (plans/tags-3-plan.md, the B-899 slice): its planner or orchestrator removes it.
 
 ### B-900 · change · Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when…
 
@@ -2259,3 +2261,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/fixes-ui): User screenshot 2026-11-26 (Cornerstone Pharmacy, dark theme, phone width): the actions sit on top of the title and Edit is cut off. Cause: DetailHeader (components/ui/DetailHeader.tsx) is built for 'Edit and a ⋯ menu' in a shrink-0 actions column, but routes/app/groups/provider/ProviderHeader.tsx passes three labelled buttons. Likely fix: on the provider page, keep Edit and move Copy to another group and Tags into a ⋯ menu (match the other DetailHeader pages: todo, period, profile, medication); check those for the same overflow. Component test at phone width: the actions don't overlap the title and nothing overflows.
+
+### B-925 · bug · Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): 2026-11-26, user (backlog session): still a little too far after B-906. DayHeader.tsx DayPeriod: the row's gap is gap-1.5 (6px); the Change button is a ghost sm square (32px box, 16px icon, 8px padding a side) pulled in by -me-1.5 (6px), so arrows to icon is 8px against 6px for icon to text. Fix: -me-2 so both are 6px; the hit box stays full size. Check both views (easy uses ICON_LG on the period icon). Next fixes-ui wave, with B-899, B-923, B-924.
