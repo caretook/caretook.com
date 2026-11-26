@@ -317,14 +317,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-867 | bug | staging | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
 | B-869 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
 | B-870 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
-| B-871 | bug | in-progress | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
-| B-872 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
+| B-871 | bug | ready | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
+| B-872 | chore | ready | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
 | B-873 | change | ready | fixes-tooling | prd/fixes-tooling | Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks |
 | B-874 | change | ready | fixes-tooling | prd/fixes-tooling | Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start |
 | B-875 | change | ready | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
 | B-876 | change | ready | fixes-tooling | prd/fixes-tooling | Orchestrators rotate with a brief between waves once context passes ~120k |
-| B-877 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
-| B-878 | change | in-progress | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
+| B-877 | bug | ready | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
+| B-878 | change | ready | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
 | B-880 | chore | triaged | fixes-tooling |  | Planners get the context watch: add plan sessions to the context hook (data-rights peaked 256k, onboarding-2 214k) |
 | B-881 | chore | triaged | fixes-tooling |  | Long slice agents: the orchestrator splits a slice or hands it off past ~150k context, weighed against restart cost (orchestration-split-2 and tags slices ran 200-260k, 15-24M each) |
 | B-882 | chore | triaged | fixes-tooling |  | Model per role: Sonnet for slices whose plan spells out each edit, Haiku for reading check output (every slice runs on Opus now) |
@@ -347,6 +347,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-899 | change | triaged | tags-2 |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
 | B-900 | change | triaged | fixes-ui |  | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
+| B-902 | change | triaged | fixes-bug |  | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
+| B-903 | bug | triaged | fixes-tooling |  | a slice agent's foreground command past ~170–180 s is moved to the background, and an agent ending its turn there stops without a hand-off |
+| B-904 | bug | triaged | fixes-bug |  | Offline banner still shows at random on local dev while online, after the 10 s grace (B-840) |
+| B-905 | change | triaged | fixes-ui |  | Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens |
+| B-906 | change | triaged | fixes-ui |  | Timeline Today header: put the add-care-period button right next to the care period display so they read as related |
 
 ## Items
 
@@ -2307,20 +2312,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-871 · bug · A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten)
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: f71c773d
 
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: .loops/.sessions/prd-u.json (kind prd, started 11:08Z, dead pid) appeared beside an overwritten backlog.json (kind prd, same start); repaired with sessions.mjs set backlog --if-pid. Likely a tooling test not isolating CARETOOK state dir. Stale prd-u.json removed.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26 11:57Z: happened again (backlog.json kind prd pid 58061, prd-u.json pid 60517, both 11:57:19-20Z); repaired again.
 
 ### B-872 · chore · Win back the app bundle bytes: trim under the old 406,187 B ceiling
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: f71c773d
 
 - 2026-11-26 (Robert Bo Davis): B-868: dev's app bundle hit 406,350 B gzip, 163 B over; ceiling raised to 408,500 on 2026-11-26 to unblock staging (user's word). Find what grew and trim, then lower the ceiling back.
 
@@ -2370,10 +2375,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-877 · bug · Find why fixes-tooling slice agents end early and get continued
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: f71c773d
 
 - 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. 5 of 24 fixes-tooling slice agents overnight were 'continue' restarts (slices 51, 53, 56, 57, 60); each reloads the base and rediscovers. Cause not yet known.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
@@ -2381,10 +2386,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-878 · change · Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: f71c773d
 
 - 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. User chose cap+1 (2026-11-26). Overnight 5 planners (~75M, 15%) wrote plans for topics now on hold: data-rights, account-security, onboarding-2, sync-safety-2, test-time-gates-2. Early planning on request stays.
 - 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
@@ -2595,3 +2600,48 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Onboarding plan for invited users, based on their user type (we already have one for care group creators)
 - 2026-11-26 (Robert Bo Davis): Triage: onboarding for invited members by user type; beside the other onboarding-3 items (held)
+
+### B-902 · change · Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user: 'to-do' with no colon should work, and so should 'add todo' or 'add to-do'. 'add' is a cue word when a type word (todo, to-do, note, event, …) follows it; when no kind can be read, 'add' is just part of the text (e.g. 'add salt to diet'). Today the prefixes are t:, task:, todo, to-do:, to do: (docs/domain/assistant.md). Triage: fixes-bug, since a type word the user expects to work is misread; a parser change in quickEntry with unit tests.
+
+### B-903 · bug · a slice agent's foreground command past ~170–180 s is moved to the background, and an agent ending its turn there stops without a hand-off
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/fixes-tooling): Found in wave 9 (slice 71 evidence, confirmed as plausible by slice 74's B-877 study, which traced 2026-11-26's restarts to the orchestrator's context rotation instead). Harness behaviour, not our code: the loop doc and slice prompt could say to run long checks with run_in_background and wait with pnpm prd wait check, never ending the turn before the hand-off (slice 71 dropped that rule, holding it for slice 74).
+
+### B-904 · bug · Offline banner still shows at random on local dev while online, after the 10 s grace (B-840)
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): after B-840 (10 s grace, OfflineBanner.tsx) the banner still appears at random while online, mostly on local dev. Leads to check first: a cold dev load (Vite unbundled modules, the PowerSync worker and WASM) taking over 10 s to connect; dev server restarts or HMR reloads; the local PowerSync container closing streams or its token refresh (auth.ts 5-minute token) dropping connected for longer than the retry. Find which, log the disconnects' cause and timing; fix the cause, or only widen the grace on dev if it's dev-only. Triage: fixes-bug.
+
+### B-905 · change · Offline banner: build it from the UI kit (Notice, or a kit banner) and stop it shifting the page when it opens
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): the offline banner should be a standard banner component and must not cause a page shift when it opens. Today OfflineBanner.tsx (routes/app/layout) is a hand-rolled <p> with Tailwind classes, not a ui/ primitive, and sits in the page's flow under the header on purpose (so it never covers the header, tab bar or a sheet), which pushes the page down when it appears. Use Notice (or add a banner variant to ui/, per docs/domain/ui-kit.md) and show it without moving content (e.g. overlaid under the header), keeping the live region and print:hidden. Same file as B-904 (it shows at random on local dev, fixes-bug). Triage: fixes-ui.
+
+### B-906 · change · Timeline Today header: put the add-care-period button right next to the care period display so they read as related
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user (2026-11-26): the add-a-care-period icon on the Today header in the timeline sits too far from the care period display; move it much closer so the two read as one group. Triage: fixes-ui (layout).
