@@ -8,7 +8,7 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 | -------------------------------------------- | ---- | ---------- | -------- |
 | 1. The time gate and its data                | 1    | landed     | 3f65aebf |
 | 2. The quick check's times and its gate      | 2    | landed     | a8f60413 |
-| 3. Stops and breaches apart; the guards stay | 3    | started    | —        |
+| 3. Stops and breaches apart; the guards stay | 3    | merged     | 4dbb7499 |
 | 4. CI's unit and component gates             | 2    | landed     | 2b1758f0 |
 | 5. Component shards balanced                 | 3    | started    | —        |
 | 6. The unit job under the aim                | 3    | handed off | —        |
