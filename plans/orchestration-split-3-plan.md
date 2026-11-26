@@ -18,20 +18,20 @@
 
 **Dispatcher still paused** through wave 5. Ask a287 answered (inbox moved to `~/.risa/inbox` and trusted, relayed by the backlog session; verified on disk). Resume the dispatcher (`pnpm prd dispatch --resume`) once wave 5 lands, and tell caretook-com-6d so it releases fixes-ui.
 
-**Wave 5 running (orchestrator session orchestration-split-3-77, 2026-11-26):** fixes-ui landed wave 17 (dev 919af00d) and parked; the backlog session (caretook-com-6d) gave the go past the open-worktree gate on the user's standing decision, and wants a message when wave 5 lands so it can release fixes-ui (it rotated: now caretook-com-3c). Synced (no merge needed). Slice 5 worktree made, agent on opus (real logic). It handed off 6bdd8eeb + 6d8bd015 (536 strings swept via `toolCmd`/`prd_cmd`/`{{prd}}`, the `tool-command` lint rule, Caretook's hints via `risa.mjs tool`, `stack.checkBuild`); the slice check's only failure, two `stack.test.mjs` rm.sh tests, fails on the base branch locally too (environment; CI is the gate). Left: about 95 `app-path` findings in core tests onto the sample project; a second opus agent (`--continue`) is on it. Kept on the allowlist with reasons, waiting for the move: the PRD's named residuals plus hooks.lease, test-job.mjs, verdict.test, boundary ROOTS, shared-names.test, `_global`, doc-budget.test, test-projects.test (carried from earlier waves).
+**Wave 5 running (orchestrator session orchestration-split-3-77, 2026-11-26):** fixes-ui landed wave 17 (dev 919af00d) and parked; the backlog session (caretook-com-6d) gave the go past the open-worktree gate on the user's standing decision, and wants a message when wave 5 lands so it can release fixes-ui (it rotated: now caretook-com-3c). Synced (no merge needed). Slice 5 worktree made, agent on opus (real logic). It handed off 6bdd8eeb + 6d8bd015 (536 strings swept via `toolCmd`/`prd_cmd`/`{{prd}}`, the `tool-command` lint rule, Caretook's hints via `risa.mjs tool`, `stack.checkBuild`); the slice check's only failure, two `stack.test.mjs` rm.sh tests, fails on the base branch locally too (environment; CI is the gate). Left: about 95 `app-path` findings in core tests onto the sample project; a second opus agent (`--continue`) did it in ea1bba0b (allowlist 181 → 82 findings, 40 → 22 lines; `sampleFoldersConfig` in `config-fixture.mjs`). Merged as db53734e; full CI running. Kept on the allowlist with reasons, waiting for the move: the PRD's named residuals plus hooks.lease, test-job.mjs, verdict.test, boundary ROOTS, shared-names.test, `_global`, doc-budget.test, test-projects.test (carried from earlier waves).
 
 **Next: wave 5** (slice 5, the command-name sweep and residual list; opus). It runs with the dispatcher paused and no other worktree open, like wave 4: coordinate with the backlog session first (caretook-com-6d; told at landing it may release fixes-ui, and that wave 5 needs it parked again). First `pnpm prd sync`. Tier: full. Last landing: the docs list in _How to run this plan_, then `pnpm prd rm orchestration-split-3`.
 
-| Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
-| ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | landed  | 41fa52cf (dev 00c60f0c)                |
-| 2     | 1    | landed  | 8338ca66 (dev 00c60f0c)                |
-| 3     | 2    | landed  | a9ca9561 (dev ea90230)                 |
-| 6     | 2    | landed  | 6b1ba139 (dev ea90230)                 |
-| 8     | 3    | landed  | 09f81cfd (dev 7d4201a2)                |
-| 7     | 3    | landed  | 94a42c1a (dev 7d4201a2)                |
-| 4     | 4    | landed  | d5ea9c23 (dev 48db0d34)                |
-| 5     | 5    | running |                                        |
+| Slice | Wave | State  | Merge into `prd/orchestration-split-3` |
+| ----- | ---- | ------ | -------------------------------------- |
+| 1     | 1    | landed | 41fa52cf (dev 00c60f0c)                |
+| 2     | 1    | landed | 8338ca66 (dev 00c60f0c)                |
+| 3     | 2    | landed | a9ca9561 (dev ea90230)                 |
+| 6     | 2    | landed | 6b1ba139 (dev ea90230)                 |
+| 8     | 3    | landed | 09f81cfd (dev 7d4201a2)                |
+| 7     | 3    | landed | 94a42c1a (dev 7d4201a2)                |
+| 4     | 4    | landed | d5ea9c23 (dev 48db0d34)                |
+| 5     | 5    | merged | db53734e                               |
 
 ## Architectural decisions
 
