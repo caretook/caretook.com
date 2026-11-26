@@ -224,11 +224,18 @@ const check = () =>
  * (the device is wiped or kept already, by `resolveUser`) is a full navigation to
  * sign-in, unverified to verify-email, and someone else's session a reload.
  * A rate limit or no answer does nothing: the next navigation asks again.
+ *
+ * "Now" is where the navigation that asked (`going`) is headed while it's
+ * still loading: the address bar changes only once its loaders are done, and
+ * an answer that comes first would send sign-in back to the page the user was
+ * leaving (B-869). Once the address has moved on, it's the address.
  */
-const recheck = (userId: string) => {
+const recheck = (userId: string, going: string) => {
+  const from = window.location.href;
+  const here = () => (window.location.href === from ? going : window.location.href);
   check().then(
     (session) => {
-      if (session === "signedOut") window.location.assign(signInUrl(new Request(window.location.href)));
+      if (session === "signedOut") window.location.assign(signInUrl(new Request(here())));
       else if (session === "unverified") window.location.assign(accountUrls.verifyEmail());
       else if (typeof session !== "string" && session.user.id !== userId) window.location.reload();
     },
@@ -237,18 +244,18 @@ const recheck = (userId: string) => {
 };
 
 /** The session at once when it's fresh (rechecking it in the background when due), else null. */
-const freshSession = (): Session | null => {
+const freshSession = (request: Request): Session | null => {
   if (!known || known.epoch !== sessionEpoch() || cachedUser()?.id !== known.user.id) return null;
   const confirmed = lastConfirmed(known.user.id);
   const now = Date.now();
   if (sessionFreshness(confirmed, now) !== "fresh") return null;
-  if (shouldRecheck(confirmed, now)) recheck(known.user.id);
+  if (shouldRecheck(confirmed, now)) recheck(known.user.id, request.url);
   return { user: known.user, db: known.db };
 };
 
 /** The user and their open local database, or a redirect to sign-in. */
 export const requireSession = async (request: Request): Promise<Session> => {
-  const fresh = freshSession();
+  const fresh = freshSession(request);
   if (fresh) return fresh;
   const session = await check();
   if (session === "unverified") throw redirect(accountUrls.verifyEmail());
