@@ -23,12 +23,12 @@ Notes for every wave:
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
-| 79 | B-819 | starting | |
-| 80 | B-833 | starting | |
-| 81 | B-843 | starting | |
-| 82 | B-848 | starting | |
-| 83 | B-849 | starting | |
-| 84 | B-850 | starting | |
+| 79 | B-819 | agent working (opus) | |
+| 80 | B-833 | agent working (opus) | |
+| 81 | B-843 | agent working (opus) | |
+| 82 | B-848 | agent working (opus) | |
+| 83 | B-849 | agent working (sonnet) | |
+| 84 | B-850 | agent working (opus) | |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
