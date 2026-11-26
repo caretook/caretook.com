@@ -37,6 +37,8 @@ describe("the tier by rule", () => {
     ["scripts/loops/lib.sh", "integration", "the browser harness"],
     ["scripts/loops/lease.sh", "integration", "the browser harness"],
     ["scripts/project/serve.sh", "integration", "the browser harness"],
+    ["scripts/project/browser-run.sh", "integration", "the browser harness"],
+    ["scripts/project/browser-run.test.mjs", "integration", "the browser harness"],
     ["scripts/loops/checks", "integration", "the browser harness"],
     ["scripts/loops/check-areas.d/timeline", "integration", "the browser harness"],
     ["scripts/project/check-areas.mjs", "integration", "the browser harness"],
@@ -169,6 +171,7 @@ describe("what pnpm test:tooling runs", () => {
   it.each([
     "scripts/loops/browser.sh",
     "scripts/project/serve.sh",
+    "scripts/project/browser-run.sh",
     "scripts/loops/checks",
     "scripts/project/check-areas.mjs",
     "scripts/loops/check-areas.d/timeline",

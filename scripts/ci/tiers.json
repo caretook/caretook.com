@@ -12,6 +12,7 @@
   "fileGroups": [
     { "group": "browser", "pattern": "scripts/browser-checks/*.spec.mjs", "tier": "candidate" },
     { "group": "browser-tooling", "pattern": "scripts/loops/browser.test.mjs", "tier": "integration" },
+    { "group": "browser-tooling", "pattern": "scripts/project/browser-run.test.mjs", "tier": "integration" },
     { "group": "integration", "pattern": "*.int.test.ts", "tier": "integration" },
     { "group": "components", "pattern": "*.browser.test.tsx", "tier": "components" },
     { "group": "unit", "pattern": "*", "tier": "unit" }
