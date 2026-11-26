@@ -2,7 +2,7 @@ import type { NewProviderDraft, ProviderType } from "@caretook/data/schema";
 import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { PROVIDER_LIMITS, PROVIDER_TYPES } from "@caretook/data/schema";
 import { PhoneFields } from "~/components/contact";
@@ -17,6 +17,7 @@ import {
   revealField,
 } from "~/components/ui";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
+import { SPECIALTY_SUGGESTIONS } from "~/lib/providers/specialties";
 import { FIELD, hasPractice } from "./providerFormData";
 
 /** What the specialty field is called, and an example, per type. */
@@ -79,6 +80,7 @@ export function ProviderForm({
   const fetcher = useFetcher<ActionResult | CreateResult>();
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<ProviderType>(provider?.type ?? initialType);
+  const specialtyListId = useId();
 
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   const issues = result && !result.ok ? result.issues : [];
@@ -155,9 +157,16 @@ export function ProviderForm({
                       defaultValue={provider?.specialty ?? draft?.specialty ?? ""}
                       placeholder={meta.placeholder}
                       autoComplete="off"
+                      list={specialtyListId}
                     />
                   )}
                 </Field>
+                {/* Suggestions only (B-923): a typed value saves as typed. */}
+                <datalist id={specialtyListId} data-specialty-suggestions>
+                  {SPECIALTY_SUGGESTIONS[type].map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
 
                 {hasPractice(type) && (
                   <Field label="Practice" kind="select" error={issueFor(issues, "practiceId")}>

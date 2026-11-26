@@ -13,6 +13,7 @@ import {
   removeProvider,
   updateProvider,
 } from "~/lib/providers/providers.sync";
+import { SPECIALTY_SUGGESTIONS } from "~/lib/providers/specialties";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import { requiredLabels, saysOptional } from "../../../../../test/required";
@@ -534,6 +535,42 @@ describe("the form's two tabs, Essentials and More (B-694)", () => {
     await userEvent.keyboard("{Escape}");
     await expect.element(page.getByRole("heading", { name: "Discard changes?" })).toBeVisible();
     expect(device.location()).toBe(`${PROVIDERS_URL}/${KIM.id}/edit`);
+  });
+});
+
+describe("specialty suggestions (B-923)", () => {
+  /** The datalist the specialty input names, and its options' values. */
+  const suggestions = () => {
+    const id = field("specialty")?.getAttribute("list");
+    const list = id ? document.getElementById(id) : null;
+    if (!(list instanceof HTMLDataListElement)) return null;
+    return [...list.options].map((o) => o.value);
+  };
+  const pickType = async (type: string) =>
+    userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>(`[name="type"][value="${type}"]`)),
+    );
+
+  test("the specialty input is linked to a datalist of its type's suggestions, which follow the type", async () => {
+    await open({ role: "caretaker" });
+    await openAdd();
+    await expect.poll(suggestions).toEqual([...SPECIALTY_SUGGESTIONS.clinician]);
+    for (const type of ["pharmacy", "practice", "other", "clinician"] as const) {
+      await pickType(type);
+      await expect.poll(suggestions).toEqual([...SPECIALTY_SUGGESTIONS[type]]);
+    }
+  });
+
+  test("a value not in the list saves as typed", async () => {
+    const device = await open({ role: "caretaker" });
+    await openAdd();
+    await fill("name", "Dr. Iris Fenwick");
+    await fill("specialty", "Sleep medicine (pediatric)");
+    expect(suggestions()).not.toContain("Sleep medicine (pediatric)");
+    await userEvent.click(submit());
+    await expect
+      .poll(async () => (await storedNamed(device, "Dr. Iris Fenwick"))?.specialty)
+      .toBe("Sleep medicine (pediatric)");
   });
 });
 
