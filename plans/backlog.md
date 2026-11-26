@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `orchestration-split-3` | — | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
+| `orchestration-split-3` | done | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
 | `fixes-ui` | standing | — | `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
@@ -225,7 +225,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
-| B-694 | change | in-progress | fixes-ui | prd/fixes-ui | Long create forms: core fields on the first tab, the rest on other tabs |
+| B-694 | change | landed | fixes-ui | prd/fixes-ui | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-720 | chore | triaged | fixes-tooling |  | Confirm dev syncs that share no files with a branch no longer trigger a second CI run |
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
@@ -296,7 +296,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-897 | bug | landed | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
-| B-899 | change | triaged | tags-3 |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
+| B-899 | change | triaged | fixes-ui |  | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
 | B-900 | change | landed | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-902 | change | landed | fixes-ui | prd/fixes-ui | Quick entry type words without a colon, and 'add' as a cue word: 'to-do call the pharmacy', 'add todo …', 'add to-do …', 'add note …', 'add event …' pick that kind; 'add' not followed by a type word stays part of the text |
@@ -319,6 +319,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-920 | feature | triaged | symptom-catalog-3 |  | Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half) |
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
+| B-923 | change | triaged | fixes-ui |  | Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed) |
+| B-924 | bug | triaged | fixes-ui |  | Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge |
+| B-925 | bug | triaged | fixes-ui |  | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
+| B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
+| B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 
 ## Items
 
@@ -1139,6 +1144,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (plan/orchestration-split): Planned 2026-11-24 with the user (big choices approved one at a time): Risa, an external tool at ~/git/risa that runs Claude in configured repos; Caretook becomes config, plans and its own scripts, no dependency on Risa. Stage 1 in place: orchestration-split (seams) and orchestration-split-2 (Caretook's parts, renames), both held; stage 2 a hand runbook (plans/orchestration-split-move.md); later items B-794..B-797 under risa-next (held).
 - 2026-11-24 (Robert Bo Davis): Landed 1297ec9c (2026-11-24): three held stage-1 topics (orchestration-split, -2, -3), the move runbook plans/orchestration-split-move.md, later items B-794..B-797 under risa-next (held). Three skeptics (two Opus, one Fable) sent it back; all fixed; their big choices went to the user.
 - 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 1 (browser runner split, host layer part 1) merged at 8338ca66; the item stays in progress until slice 5 lands
+- 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 5 (slice 5: command names from the config, the tool-command lint, the residual list) merged at db53734e; all three stage-1 topics then done; the hand move (plans/orchestration-split-move.md) closes the item
 
 ### B-544 · chore · vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405
 
@@ -1330,10 +1336,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-694 · change · Long create forms: core fields on the first tab, the rest on other tabs
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: f375234f
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev: new-item forms that are complex should show a core set of required and key optional fields, with the rest in an Advanced options dropdown, so first entry is less confusing. No shared disclosure exists in the app yet (no <details> in app forms): add one to ui/, native <details> first. Default scope, for the user's review: MedicationForm (core: name, type, strength, dose, schedule; advanced: form, directions, why it's taken, started on, refills, Rx number), ProviderForm (core: type, name, phone; advanced: practice, email, address, website, status), ConditionForm (core: name, status; advanced: since, note, diagnosed by, managed by). Short forms stay as they are: todo, care period, timeline entry, allergy. Rules: creating starts collapsed; editing opens the section when any advanced field has a value, so saved data is never hidden; a validation error inside it opens it and focuses the field; values survive collapsing; the discard prompt still counts them. Coordinate with B-684 required asterisks and B-686 provider phone type, same forms.
 - 2026-11-23 (Robert Bo Davis): USER APPROVAL REQUIRED, do not build unattended: the user wants this done in live sessions and approves each form's breakdown (which fields are core, which go under Advanced options) before that form is changed. The split in the first note is only a starting proposal. Go one form at a time: show the proposed split, get the user's approval, then build. A dispatcher or fixes-ui loop must leave this item out of its slices.
@@ -2028,12 +2034,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-899 · change · Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu
 
 - status: triaged
-- prd: tags-3
+- prd: fixes-ui
 - owner:
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): Triage: same timeline rows in both views as the quick-tag component (B-892); fold in to avoid a hot-file clash
 - 2026-11-26 (plan/tags-2): Planned in plans/tags-3-plan.md, the follow-on of tags-2 (cut to keep each topic about six slices): copy link into ⋯, the Tags page, merge, search by tag
+- 2026-11-26 (Robert Bo Davis): 2026-11-26, user decision: moved from tags-3 to fixes-ui, for its next wave after orchestration split wave 5 (with B-923, B-924). It should land before tags-2 starts, so tags-2's quick tags (B-892) build on the changed rows. tags-3 drops its copy-link slice (plans/tags-3-plan.md, the B-899 slice): its planner or orchestrator removes it.
 
 ### B-900 · change · Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when…
 
@@ -2239,3 +2246,48 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/fixes-ui): fixes-ui wave 16 landing, 2026-11-26: ui.spec.mjs:83 '420 dark › add sheet: the full screen' got {top 0, left 0, width 0, height 0} (vw 0) under load ~20 on prd/fixes-ui 47084b66; passed alone twice right after. The walk up to the first non-transparent ancestor runs before the sheet has size; wait for a non-zero rect (expect.poll) before measuring. Log: .git/worktrees/fixes-ui/caretook-browser/ui-20261126-141150.log
+
+### B-923 · change · Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (prd/fixes-ui): Raised by the user 2026-11-26 in the fixes-ui orchestrator. Specialty is free text in ProviderForm (Essentials tab). A fixed list of common specialties (Cardiology, Oncology, Primary care, Physical therapy, …) as suggestions; typed values still save. Prefer a native <datalist> first; the kit combo box only if it falls short. No migration.
+
+### B-924 · bug · Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (prd/fixes-ui): User screenshot 2026-11-26 (Cornerstone Pharmacy, dark theme, phone width): the actions sit on top of the title and Edit is cut off. Cause: DetailHeader (components/ui/DetailHeader.tsx) is built for 'Edit and a ⋯ menu' in a shrink-0 actions column, but routes/app/groups/provider/ProviderHeader.tsx passes three labelled buttons. Likely fix: on the provider page, keep Edit and move Copy to another group and Tags into a ⋯ menu (match the other DetailHeader pages: todo, period, profile, medication); check those for the same overflow. Component test at phone width: the actions don't overlap the title and nothing overflows.
+
+### B-925 · bug · Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): 2026-11-26, user (backlog session): still a little too far after B-906. DayHeader.tsx DayPeriod: the row's gap is gap-1.5 (6px); the Change button is a ghost sm square (32px box, 16px icon, 8px padding a side) pulled in by -me-1.5 (6px), so arrows to icon is 8px against 6px for icon to text. Fix: -me-2 so both are 6px; the hit box stays full size. Check both views (easy uses ICON_LG on the period icon). Next fixes-ui wave, with B-899, B-923, B-924.
+
+### B-926 · bug · The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/orchestration-split-3): Carried from orchestration-split-3 wave 3 (slice 8): the switch gates start, plan and queue only; keep-alive.mjs and session-requests.mjs don't read it
+
+### B-927 · bug · The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/orchestration-split-3): Carried from orchestration-split-3 wave 3 (slice 7): usage and context follow each session's folder, the drain doesn't yet
