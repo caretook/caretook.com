@@ -70,7 +70,7 @@ export const durationOf = (
   /** @type {string} */ file,
 ) => table[project]?.[file];
 
-const ANSI = /\x1b\[[0-9;]*m/g;
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 // " ✓  web:components:ny (chromium)  app/…/x.browser.test.tsx (24 tests | 2 skipped) 31486ms"
 // (a log line, after its timestamp); ❯ or × for a file with a failure.
 const FILE_LINE =

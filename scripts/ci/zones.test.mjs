@@ -66,7 +66,7 @@ const componentFiles = () =>
 const jobBlock = (/** @type {string} */ yml, /** @type {string} */ name) => {
   const start = yml.indexOf(`\n  ${name}:\n`);
   if (start < 0) return null;
-  const next = yml.slice(start + 1).search(/\n  [\w-]+:\n/);
+  const next = yml.slice(start + 1).search(/\n {2}[\w-]+:\n/);
   return yml.slice(start, next < 0 ? undefined : start + 1 + next);
 };
 
