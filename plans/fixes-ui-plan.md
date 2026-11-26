@@ -21,14 +21,12 @@ Notes for every wave:
 
 **Wave 17 (this session, 2026-11-26):** B-694 (Long create forms on tabs) released: the user approved every split today. Slices 95–98, all opus: 95 shared tabs component; 96 provider tabs and 97 medication tabs (both after 95, parallel); 98 schedule overlay (after 97). Synced: prd/fixes-ui up to date with dev. Still held: B-325 (Capacitor).
 
-**Released 2026-11-26:** parked for orchestration-split-3 wave 4 (RISA\_\* rename) with slices 95–98 merged (code tip 118a7071) and slice worktrees removed; wave 4 landed in dev 48db0d34, synced as 1fa3670c. Now: components gate on the synced tip, then PR, review, land. **After landing: stay parked** (no new wave) for wave 5; reply "landed and parked" with the dev commit to the backlog session.
+**Wave 17 landed 2026-11-26** as dev 919af00 through PR #235, `--no-review` (Codex out of credits), CI components green (run 45892683323, f9403a5b), browser ui pass; to-test/2026-11-26-1548-fixes-ui.md. B-694 (long create forms on tabs), slices 95–98 all opus (shared FormTabs; provider Essentials | More; medication Essentials | Details | Refills; At set times overlay). Parked mid-wave once for orchestration-split-3 wave 4 (48db0d34), then synced. Docs folded (f375234f) into ui-kit, providers, medications. Follow-up idea: FormTabs could focus after the switch commits so forms needn't wrap `revealField` in `requestAnimationFrame` (noted on B-694).
 
-| Slice | Item                   | State  | Merge    |
-| ----- | ---------------------- | ------ | -------- |
-| 95    | B-694 shared tabs      | merged | dcc18cf8 |
-| 96    | B-694 provider tabs    | merged | 87a0254d |
-| 97    | B-694 medication tabs  | merged | 0b99c357 |
-| 98    | B-694 schedule overlay | merged | 118a7071 |
+**PARKED for orchestration-split-3 wave 5 (command-name sweep):** start no wave until the backlog session (caretook-com-6d) messages that wave 5 has landed in dev; then `pnpm prd sync`, `pnpm backlog ingest`/`list`, and write the next wave. Still held: B-325 (Capacitor). No slice in flight; slice worktrees removed.
+
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
