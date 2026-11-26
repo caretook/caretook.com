@@ -65,7 +65,8 @@ static() {
   # Type-aware ESLint sits at Node's default heap limit (about 4 GB), as in ci.yml.
   NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=6144" \
     pnpm exec eslint . > "$work/lint.log" 2>&1 & pids+=($!)
-  pnpm exec prettier --check . > "$work/format.log" 2>&1 & pids+=($!)
+  # --cache: Prettier's cache in this worktree's node_modules/.cache (about 26 s cold, 2.5 s warm).
+  pnpm exec prettier --check --cache . > "$work/format.log" 2>&1 & pids+=($!)
   for i in 0 1 2; do
     code=0; wait "${pids[$i]}" || code=$?
     if ((code)) && [[ -z $failed ]]; then failed=${names[$i]}; first=$code; fi
