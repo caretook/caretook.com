@@ -13,7 +13,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
-| `test-time-gates-2` | hold | `test-time-gates` | — | — |
+| `test-time-gates-2` | hold | `test-time-gates` | `.github/workflows/ci.yml`, `scripts/ci/tiers`, `scripts/ci/component-durations.json`, `scripts/ci/ci.test.mjs`, `scripts/ci/shards.test.mjs`, `scripts/ci/verdict.test.mjs`, `scripts/ci/browser-job.test.mjs`, `scripts/deploy/workflows.test.mjs`, `scripts/loops/time-gate`, `scripts/loops/recover.test`, `scripts/loops/recover-`, `scripts/loops/rotate.test`, `scripts/loops/rotate-` | — |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `tags` | done | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `todo-subtasks` | — | `planner-3`, `tags` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/app-shell/unsavedChanges.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
@@ -314,9 +314,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-865 | bug | triaged | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
 | B-866 | bug | triaged | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
 | B-867 | bug | ready | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
-| B-868 | bug | triaged | fixes-bug |  | CI: the build job fails on dev |
+| B-868 | bug | landed | fixes-bug |  | CI: the build job fails on dev |
 | B-869 | bug | triaged | fixes-tooling |  | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
 | B-870 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
+| B-871 | bug | triaged | fixes-tooling |  | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
+| B-872 | chore | triaged | fixes-perf |  | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
 
 ## Items
 
@@ -1785,6 +1787,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (Robert Bo Davis): Moved to test-time-gates (user, 2026-11-26): the test runtime gate runs first, before the other fixes
 - 2026-11-25 (plan/test-time-gates): Planned 2026-11-25 in plans/test-time-gates-prd.md and -plan.md (6 slices). B-781, B-370: slices 2-3. B-837: gates in slices 1, 2, 4, unit armed in 6. B-772: balanced shards in slice 5. B-837 and B-772 stay open for test-time-gates-2 (component fallback, quick check trim, arming components and quick).
 - 2026-11-26 (prd/test-time-gates): test-time-gates slice 5 (e9244444): shards by durations, NY_INCLUDE narrowed to 6 files. Shards 314/320/375 s then 309 s on components-1 in the gate run; all over 300, so -2 needs a fourth shard or trims (timelineHeader 57 s, timelineSearch 41 s, medicationForm 31 s).
+- 2026-11-26 (plan/test-time-gates-2): Planned 2026-11-26 in plans/test-time-gates-2-prd.md and -plan.md (3 slices): 1 four component shards; 2 the quiet rule judged on start load (user, a255), recover split, quick measured in a quiet window and armed; 3 durations refreshed, components armed. Each armed at <=275 s. Topic held after two skeptic send-backs (s55, s56).
 
 ### B-776 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U…
 
@@ -2083,6 +2086,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (Robert Bo Davis): Moved to test-time-gates (user, 2026-11-26): the test runtime gate runs first, before the other fixes
 - 2026-11-25 (plan/test-time-gates): Planned 2026-11-25 in plans/test-time-gates-prd.md and -plan.md (6 slices). B-781, B-370: slices 2-3. B-837: gates in slices 1, 2, 4, unit armed in 6. B-772: balanced shards in slice 5. B-837 and B-772 stay open for test-time-gates-2 (component fallback, quick check trim, arming components and quick).
 - 2026-11-26 (prd/test-time-gates): test-time-gates landed e9244444 (2026-11-26): unit armed (CI unit-1 138 s, unit-2 123 s); components and quick still unarmed, for test-time-gates-2.
+- 2026-11-26 (plan/test-time-gates-2): Planned 2026-11-26 in plans/test-time-gates-2-prd.md and -plan.md (3 slices): 1 four component shards; 2 the quiet rule judged on start load (user, a255), recover split, quick measured in a quiet window and armed; 3 durations refreshed, components armed. Each armed at <=275 s. Topic held after two skeptic send-backs (s55, s56).
 
 ### B-839 · bug · Search rebuild timing test flaked on CI (2,000 entries under 2 s)
 
@@ -2174,6 +2178,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-25: queue right after test-time-gates, faster tests speed up everything. Scope moved out of test-time-gates (plans/test-time-gates-prd.md, Out of scope): a 4th component shard or trims of the slowest timeline/planner files if balancing leaves one over 5 min; trim the quick check from the step times test-time-gates records (tooling step split, integration beside unit); then arm components and quick. Continues B-837 and B-772.
 - 2026-11-25 (Robert Bo Davis): Filed by the backlog session; queued right after test-time-gates
+- 2026-11-26 (plan/test-time-gates-2): Planned 2026-11-26 in plans/test-time-gates-2-prd.md and -plan.md (3 slices): 1 four component shards; 2 the quiet rule judged on start load (user, a255), recover split, quick measured in a quiet window and armed; 3 durations refreshed, components armed. Each armed at <=275 s. Topic held after two skeptic send-backs (s55, s56).
 
 ### B-860 · bug · check-tooling: the tooling step reports 'an unhandled error, so no rerun' when none happened; its regex likely matches test names in the output
 
@@ -2233,6 +2238,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (prd/fixes-tooling): Caused by fixes-tooling wave 7 (4646edc1, B-766's test named $CARETOOK_INBOX_DIR); fixed on prd/fixes-tooling in d2133f4e, lands with wave 8.
 - 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
 - 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (prd/fixes-tooling): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45805573421.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
 
 ### B-866 · bug · CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev
 
@@ -2246,6 +2254,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (prd/fixes-tooling): Same cause and fix as B-865 (d2133f4e, wave 8).
 - 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
 - 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (prd/fixes-tooling): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45805573421.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
 
 ### B-867 · bug · lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease
 
@@ -2258,10 +2269,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-868 · bug · CI: the build job fails on dev
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
 - owner:
-- commit:
+- commit: 1315ffa6
 
 - 2026-11-26 (prd/todo-subtasks): [ci-key job-build] Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45792344179.
 - 2026-11-26 (prd/todo-subtasks): Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
@@ -2284,3 +2295,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/todo-subtasks.
+
+### B-871 · bug · A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: .loops/.sessions/prd-u.json (kind prd, started 11:08Z, dead pid) appeared beside an overwritten backlog.json (kind prd, same start); repaired with sessions.mjs set backlog --if-pid. Likely a tooling test not isolating CARETOOK state dir. Stale prd-u.json removed.
+
+### B-872 · chore · Win back the app bundle bytes: trim under the old 406,187 B ceiling
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): B-868: dev's app bundle hit 406,350 B gzip, 163 B over; ceiling raised to 408,500 on 2026-11-26 to unblock staging (user's word). Find what grew and trim, then lower the ceiling back.
