@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-26): wave 5 landed, wave 6 next.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): wave 6 running.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Models: slices on opus. The lists are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+
+**Wave 6 (2026-11-26):** resumed after an interruption (no landing journal; nothing in flight). Ingest: nothing new for this topic. Sync: up to date. Worktree `.loops/todo-subtasks-6` made (no stack); slice 6 agent (opus) spawned with slices 1–5's notes (progress via `subtaskProgressQuery` + `progressByParent`). Watch running.
 
 **Wave 5 landed** in `dev` as b391574 through PR #224, tier `components` (run 45850909018 on 85c8e905, green), **without Codex (out of credits)**. to-test `to-test/2026-11-26-1048-todo-subtasks.md`. **Next:** wave 6 (slice 6; stack no), from a fresh session after rotation.
 
@@ -25,9 +27,9 @@
 | 1     | 1    | landed (opus)  | ffdfad37 (c6274c06, 6aaf82f4)                  |
 | 2     | 2    | landed (opus)  | 305bd996 (c3801a41, 646fe7f9, a5df9a8c)        |
 | 3     | 3    | landed (opus)  | 12fd15ff (181f873c)                            |
-| 4     | 4    | merged (opus)  | 2d91a3d8 (6a757463, 88ee2c9c)                  |
-| 5     | 5    | started (opus) |                                                |
-| 6     | 6    | planned        |                                                |
+| 4     | 4    | landed (opus)  | 2d91a3d8 (6a757463, 88ee2c9c)                  |
+| 5     | 5    | landed (opus)  | d5d2fd62 (89b93a7d)                            |
+| 6     | 6    | started (opus) |                                                |
 
 **Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 
