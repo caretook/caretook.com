@@ -15,6 +15,7 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-25): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 - **Wave 3 started** 2026-11-25 (after a takeover; no cut-off landing): wave 2 in dev as d8222c32; sync needed no merge; backlog: nothing new to propose. Worktrees test-time-gates-3, -5, -6 made, one opus agent each spawned; watch running.
+- Wave 3: slice 3 (opus) handed off c5a9fa95 (slice check passed), merged 4dbb7499: `--times` and metrics count tests, budget, silence and time apart (overall, by mode, by PRD; `failures` key gone); guard test `scripts/project/quick-guards.test.mjs` in `project:unit`. B-781, B-370 done.
 - Wave 3: slice 6 (opus) handed off 326544c0 (slice check passed; merge waits for 3 and 5, plan order): `land.test.mjs` split into four files plus `land-fixture.mjs`, 1567 tooling tests before and after; `unit` armed in tiers.json; no unit shards. Unit test step was 236 s before the split (run 45751602571); the wave's CI run measures it after.
 - 2026-11-25: base 0a76460a (orchestration-split-2 landed). Backlog: B-837 (time gates, claimed), B-772, B-781, B-370; nothing new to propose.
 - **Wave 1 landed** 2026-11-25 as 1a0c1f98 (PR #202, tier full, --no-review: Codex out of credits; report filed). **Wave 2 started** 2026-11-25: dev force-synced in (32d34200, to pick up orchestration-split-2's moved paths); worktrees test-time-gates-2 and -4 made, one opus agent each spawned; watch running.
