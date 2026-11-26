@@ -12,11 +12,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `orchestration-split-4` | — | `orchestration-split-3` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `vitest.config.ts` | Stage 1d of B-543, before the Risa move: the core's tests stand alone in a copy holding only the core files |
+| `orchestration-split-4` | — | `orchestration-split-3` | `scripts/loops/`, `scripts/ci/`, `scripts/project/project-data.test.mjs`, `vitest.config.ts`, `docs/agents/project-config.md` | Stage 1d of B-543, before the Risa move: the core's tests stand alone in a copy holding only the core files |
 | `orchestration-split-3` | done | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
-| `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
+| `fixes-nit` | standing | — | `vitest.config.ts`, `apps/web/app/lib/auth/legalLinks`, `apps/web/app/routes/account/LegalAgreement.tsx`, `apps/web/app/routes/app/settings/`, `apps/web/app/routes/app/groups/settings/calendar/`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/app/groups/settings/details/`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/providers/providerWorld.tsx` | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
 | `test-time-gates-2` | hold | `test-time-gates` | `.github/workflows/ci.yml`, `scripts/ci/tiers`, `scripts/ci/component-durations.json`, `scripts/ci/ci.test.mjs`, `scripts/ci/shards.test.mjs`, `scripts/ci/verdict.test.mjs`, `scripts/ci/browser-job.test.mjs`, `scripts/deploy/workflows.test.mjs`, `scripts/loops/time-gate`, `scripts/loops/recover.test`, `scripts/loops/recover-`, `scripts/loops/rotate.test`, `scripts/loops/rotate-` | — |
 | `tags` | done | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
@@ -210,7 +210,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-543 | question | in-progress | orchestration-split | prd/orchestration-split-3 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
-| B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
+| B-544 | chore | in-progress | fixes-nit | prd/fixes-nit | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
@@ -220,8 +220,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
-| B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
-| B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
+| B-630 | chore | in-progress | fixes-nit | prd/fixes-nit | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
+| B-637 | chore | in-progress | fixes-nit | prd/fixes-nit | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
@@ -327,6 +327,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 | B-928 | bug | triaged | fixes-tooling |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
 | B-929 | chore | triaged | orchestration-split-4 |  | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
+| B-930 | chore | triaged | fixes-nit |  | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
 
 ## Items
 
@@ -1153,9 +1154,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-544 · chore · vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405
 
-- status: triaged
+- status: in-progress
 - prd: fixes-nit
-- owner:
+- owner: prd/fixes-nit
 - commit:
 
 - 2026-11-22 (prd/fixes-tooling): Left by fixes-tooling wave 2 (slice 13): editing vitest.config.ts forces a full check, so not folded at landing.
@@ -1265,21 +1266,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-630 · chore · Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one
 
-- status: triaged
+- status: in-progress
 - prd: fixes-nit
-- owner:
+- owner: prd/fixes-nit
 - commit:
 
 - 2026-11-23 (prd/onboarding): From onboarding slices 1 and 2; both use VITE_API_ORIGIN on native.
 
 ### B-637 · chore · About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit
 
-- status: triaged
+- status: in-progress
 - prd: fixes-nit
-- owner:
+- owner: prd/fixes-nit
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): From ui-kit-5's plan report (a104): left out because B-577 does not name them and the lint guard does not flag them. A small tidy, so fixes-nit.
+- 2026-11-26 (prd/fixes-nit): Split 2026-11-26 by the fixes-nit orchestrator: this item keeps settings calendar, assistants, details and providers/providerWorld.tsx (8 files); members and account settings move to B-930.
+- 2026-11-26 (prd/fixes-nit): Split 2026-11-26 by the fixes-nit orchestrator: this item keeps settings calendar, assistants, details and providers/providerWorld.tsx (8 files); members and account settings move to B-930.
 
 ### B-665 · change · Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps
 
@@ -2318,3 +2321,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): Found 2026-11-26 by a dry run in a scratch copy of only the 257 core files: on the sample config 565 of 1,988 tests failed in 65 files; with Caretook's config copied in 210 failed in 25 (land*, doc, skeptics, ci/gate); with no root config the run hung in lease.sh (file_mtime: command not found). Proof when done: that dry run passes. The move (B-543 step 2) waits for it.
+- 2026-11-26 (plan/orchestration-split-4): Planned 2026-11-26: plans/orchestration-split-4-prd.md and -plan.md (seven slices; the proof is node scripts/loops/standalone.mjs passing with --root sample, project and none)
+
+### B-930 · chore · Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit
+
+- status: triaged
+- prd: fixes-nit
+- owner:
+- commit:
+
+- 2026-11-26 (prd/fixes-nit): Split from B-637 by the fixes-nit orchestrator (2026-11-26): 20 files is past the 12-file split rule. This half: settings/members (7 files) and app/settings account, contact, units, devices, timeline (5).
