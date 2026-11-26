@@ -10,16 +10,18 @@
 
 **2026-11-26, wave 1 started** (orchestrator on Opus): B-543 claimed for prd/orchestration-split-3. Worktrees `orchestration-split-3-1` (stack, slot 3) and `orchestration-split-3-2` (no stack) made; both slices spawned on **opus** (slice 1 judged opus-enough, not Fable: the gate split is mechanical extraction with tests to hold it). Wave 1 lands only when no other PRD, plan or hotfix worktree is open (open now: todo-subtasks-2, plan/self-recovery-2, plan/symptom-catalog-2).
 
-| Slice | Wave | State                                                      | Merge into `prd/orchestration-split-3` |
-| ----- | ---- | ---------------------------------------------------------- | -------------------------------------- |
-| 1     | 1    | running (opus)                                             |                                        |
-| 2     | 1    | handed off 3ee6fbb1, reviewed; merges after 1 (plan order) |                                        |
-| 3     | 2    | planned                                                    |                                        |
-| 6     | 2    | planned                                                    |                                        |
-| 8     | 3    | planned                                                    |                                        |
-| 7     | 3    | planned                                                    |                                        |
-| 4     | 4    | planned                                                    |                                        |
-| 5     | 5    | planned                                                    |                                        |
+**Wave 1 merged** (slice 1 at dd630c96 → 41fa52cf; slice 2 at 3ee6fbb1 → 8338ca66). The wave's gate is a `full` CI run (ci.yml changed). Open: slice 1 didn't send a real check through the gate on a stack: run `pnpm prd browser sign-in` at the landing. Slice 1's agent ended at about 285k context, so any fix goes to a fresh `--continue` agent. Slice 1 chose `SHARED_PROJECTS = ["tooling:browser"]` in `scripts/project/test-projects.mjs` (the harness project holds both owners' tests until the move); reviewed, kept. Hook contract for the docs at the last landing: `hooks.browser list` prints `<check>\t<file>`; `run --output DIR <check> -- [args…]`; `serve … --fresh`.
+
+| Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
+| ----- | ---- | ------- | -------------------------------------- |
+| 1     | 1    | merged  | 41fa52cf                               |
+| 2     | 1    | merged  | 8338ca66                               |
+| 3     | 2    | planned |                                        |
+| 6     | 2    | planned |                                        |
+| 8     | 3    | planned |                                        |
+| 7     | 3    | planned |                                        |
+| 4     | 4    | planned |                                        |
+| 5     | 5    | planned |                                        |
 
 ## Architectural decisions
 
