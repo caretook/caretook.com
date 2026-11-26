@@ -137,7 +137,8 @@ case $cmd in
   status)
     c=$(container)
     if [[ -z $c ]]; then
-      echo "shared test Postgres: not running (started on first integration run, or pnpm prd test-db up)"
+      prd=$(node "$(dirname "$0")/risa.mjs" tool prd) || prd=prd
+      echo "shared test Postgres: not running (started on first integration run, or $prd test-db up)"
     else
       n=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_test\_%'" 2>/dev/null || echo '?')
       w=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_tw\_%'" 2>/dev/null || echo '?')

@@ -40,7 +40,10 @@ for a in "$@"; do
   esac
 done
 name=${name:-$(here_name)}
-[[ -n $name ]] || die "which worktree? (pnpm prd serve <name>; pnpm prd status lists them)"
+[[ -n $name ]] || {
+  prd=$(node "$(dirname "$0")/risa.mjs" tool prd) || prd=prd
+  die "which worktree? ($prd serve <name>; $prd status lists them)"
+}
 dir=$loops/$name
 [[ -d $dir ]] || die "no worktree at $dir"
 port=$(web_port "$dir")
