@@ -10,9 +10,9 @@ Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 written 2026-11-26: slice
 
 | Slice | Item  | State   | Model  | Merge |
 | ----- | ----- | ------- | ------ | ----- |
-| 4     | B-544 | written | sonnet | —     |
-| 5     | B-630 | written | opus   | —     |
-| 6     | B-637 | written | sonnet | —     |
+| 4     | B-544 | running | sonnet | —     |
+| 5     | B-630 | running | opus   | —     |
+| 6     | B-637 | running | sonnet | —     |
 | 7     | B-930 | written | sonnet | —     |
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
