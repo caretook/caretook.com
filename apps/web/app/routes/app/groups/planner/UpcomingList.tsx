@@ -3,7 +3,7 @@ import type { ActionResult } from "~/lib/core/api";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { UpcomingListData } from "./useUpcomingData";
 
-import { resolveUnits } from "@caretook/data/schema";
+import { canTagRecord, resolveUnits } from "@caretook/data/schema";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
@@ -14,6 +14,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
+import { TagChips, useTagPicker } from "~/components/tags";
 import { ConfirmDialog, EmptyState, Message, TITLE_SECTION } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -40,7 +41,8 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Upcoming's (or the Past tab's) items, a section per day under a sticky
  * heading ("Now", "Today", "Tomorrow", "Friday, Nov 27"), with `empty`
  * when there are none. `children` comes after the last section (the Past
- * tab's paging). Each item has a ⋯ menu: for writers, Prepare for an
+ * tab's paging). Each item shows its tags' chips. Each has a ⋯ menu: Tags
+ * (the picker) for whoever may tag it; for writers, Prepare for an
  * upcoming appointment, Reschedule, then Cancel or Undo cancel for events,
  * Print, then Delete, with one Cancel and one Delete confirm for the list;
  * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
@@ -65,7 +67,8 @@ export function UpcomingList({
   /** Only the rows: no menus or filter links (the easy roles). */
   readOnly?: boolean;
 }) {
-  const { canWrite, userId } = useGroup();
+  const { canWrite, userId, role } = useGroup();
+  const tagPicker = useTagPicker();
   const todoNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
@@ -97,6 +100,11 @@ export function UpcomingList({
                     state: plannerReturnState(opener, ONLY_THIS_VISIT_STATE),
                   }),
               })
+          : undefined
+      }
+      onTags={
+        canTagRecord(role, { target: "entry", createdBy: entry.createdBy }, userId)
+          ? () => tagPicker.ask({ target: "entry", recordId: entry.id, label: upcomingTitle(entry) })
           : undefined
       }
       onPrepare={canWrite && preparable(entry) ? () => prep.ask(entry) : undefined}
@@ -156,6 +164,7 @@ export function UpcomingList({
                   nameOf={todoNameOf}
                   timeZone={data.todoZone ?? "UTC"}
                   now={data.now}
+                  tags={<TagChips tags={data.tagsOf("todo", entry.todo.id)} className="mt-0.5" />}
                 />
               ) : (
                 <UpcomingRow
@@ -168,6 +177,7 @@ export function UpcomingList({
                   authorImage={data.imageOf(entry.createdBy)}
                   contacts={data.contactsOf(entry.id)}
                   rescheduledTo={data.rescheduledOf(entry)}
+                  tags={<TagChips tags={data.tagsOf("entry", entry.id)} className="mt-0.5" />}
                   menu={readOnly ? undefined : menuOf(entry)}
                   readOnly={readOnly}
                 />
@@ -182,6 +192,7 @@ export function UpcomingList({
       {remind.sheet}
       {scope.element}
       {prep.sheet}
+      {tagPicker.sheet}
       <ConfirmDialog
         open={!!deleting}
         title="Delete this entry?"

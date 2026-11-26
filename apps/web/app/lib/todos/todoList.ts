@@ -64,8 +64,9 @@ const EMPTY_TODOS: Record<TodoWho, string> = {
   everyone: "No open todos",
 };
 
-/** What an empty open list says, naming the filter and the text on. */
-export const emptyTodosText = (who: TodoWho, q = "") => `${EMPTY_TODOS[who]}${matchingText(q)}.`;
+/** What an empty open list says, naming the filter, the tag and the text on. */
+export const emptyTodosText = (who: TodoWho, q = "", tagName?: string | null) =>
+  `${EMPTY_TODOS[who]}${tagName ? ` tagged “${tagName}”` : ""}${matchingText(q)}.`;
 
 /** The filter with no `?who=`: Everyone, always (Mine and Unassigned narrow it). */
 export const DEFAULT_WHO: TodoWho = "everyone";
