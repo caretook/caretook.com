@@ -4,6 +4,7 @@ import {
   readAvatarChoice,
   resolveDaySummaryMode,
   resolveEasyModeSetting,
+  resolveProvidersView,
   resolveSetupDismissed,
   resolveTimelineView,
   resolveUnits,
@@ -32,6 +33,7 @@ export const me = {
       /** Display units with defaults filled in: what screens should use. */
       units: resolveUnits(user.preferences),
       timelineView: resolveTimelineView(user.preferences),
+      providersView: resolveProvidersView(user.preferences),
       easyMode: resolveEasyModeSetting(user.preferences),
       daySummary: resolveDaySummaryMode(user.preferences),
       setupDismissed: resolveSetupDismissed(user.preferences),
@@ -46,6 +48,7 @@ export const me = {
       preferences,
       units: resolveUnits(preferences),
       timelineView: resolveTimelineView(preferences),
+      providersView: resolveProvidersView(preferences),
       easyMode: resolveEasyModeSetting(preferences),
       daySummary: resolveDaySummaryMode(preferences),
     };
