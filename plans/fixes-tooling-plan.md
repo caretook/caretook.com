@@ -8,25 +8,32 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-**Hand-off (2026-11-26, wave 7 starting).** Resumed after the post-wave-6 pause (wave 6 landed as 2eaa00b, PR #155; its old notes are in the history). B-771 was fixed on dev by hotfix/sync-shared (e19c42ab). Wave 7 = slices 50–60 (B-766, B-767, B-768, B-542, B-623+B-860, B-807, B-754, B-824, B-769, B-633, B-812); all opus, all 11 agents spawned 2026-11-26. Deferred for tags' hot files: B-653, B-776, B-619, B-839, B-845, B-864. The other ~40 triaged items wait for wave 8+ (landing, Codex, cleanup; planning and prompts). Wave 7 touches `vitest.config.ts` and app tests, so its CI tier is likely full (`pnpm prd tier`).
+**Hand-off (2026-11-26, wave 7 mid-wave; rotated for context).** Resumed after the post-wave-6 pause. B-771 was fixed on dev by a hotfix (e19c42ab). Wave 7 = slices 50–60, all opus. Deferred for tags' hot files: B-653, B-776, B-619, B-839, B-845, B-864. ~40 other triaged items wait for wave 8+.
+
+- **Merged:** 50 (86103144). **Accepted, to merge in plan order:** 52 (a574e9e2), 54 (729a8858), 55 (cefd6394), 58 (1bac753f), 59 (54294a9c). **Not handed off at rotation:** 51 (d1b105de committed), 53 (44dd2730), 56 (db33b7f7), 57 (86fbcf8b), 60 (01aacbef; 4 files uncommitted). The fresh session respawns them with `--continue`; each should send its hand-off.
+- **Load:** 11 slices at once pushed load to 150–220. Slices 50 and 52 saw their checks fail on load in files they don't touch (land-gate, prompt-golden, the time budget); the files pass alone. Accepted: the wave's CI run is the gate. Next wave: run fewer slices at once.
+- **Slice 59 reaches past tooling:** `apps/web/app/lib/sync/index.ts` `watchLiveQuery` now hands results to React at the next frame, batched, with a 100 ms fallback for a hidden page. The cause: about 35 watches after Back each rendered the 3-page timeline, about 70 ms each. That affects every live query. Sent to the backlog session (caretook-com-24) as an FYI, recommending a merge gated by the full CI component run; check for its reply. Also: the timelineBack (B-633) and newGroup (B-769) lines in `scripts/ci/quarantine.txt` can go once they're done (`pnpm prd ci` writes that file).
+- **Docs to fold at landing:** prd.sh's help heredoc is unquoted, so backticks and `$` need escaping (B-766). The planner's slice fields: `Blocked by: slice 3 | 3 | 1, 2 | none` (B-768; `Blocks:` is still unknown). machinery/orchestrator: status-trim puts back a fixes plan's missing slice table (B-807). Only Vitest's own report line counts as an unhandled error (B-623). components.md Gotchas: a menu's popover is a `dialog`, so find a sheet by name (B-769). sync.md: live query results are handed over at the next frame, together (B-633).
+- **Next:** merge in plan order (51 … 60), `pnpm backlog done` each, then `pnpm prd ci run <tier from pnpm prd tier> --wait` (likely full: vitest.config.ts from 53).
+- Note: `pnpm prd watch --mark <n>` takes only nudged|replied|restarted|left|asked (there's no hand-off mark).
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State                                                                            | Merge    |
-| ----- | ------------ | -------------------------------------------------------------------------------- | -------- |
-| 50    | B-766        | merged (check stopped on load 149; CI gates)                                     | 86103144 |
-| 51    | B-767        | working (opus)                                                                   | —        |
-| 52    | B-768        | handed off a574e9e2 (check failed only on load, untouched files); merge after 51 | —        |
-| 53    | B-542        | working (opus)                                                                   | —        |
-| 54    | B-623, B-860 | handed off 729a8858 (check passed); merge after 53                               | —        |
-| 55    | B-807        | handed off cefd6394 (check passed); merge after 54                               | —        |
-| 56    | B-754        | working (opus)                                                                   | —        |
-| 57    | B-824        | working (opus)                                                                   | —        |
-| 58    | B-769        | handed off 1bac753f (check passed); merge after 57                               | —        |
-| 59    | B-633        | working (opus)                                                                   | —        |
-| 60    | B-812        | working (opus)                                                                   | —        |
+| Slice | Item         | State                                                                                     | Merge    |
+| ----- | ------------ | ----------------------------------------------------------------------------------------- | -------- |
+| 50    | B-766        | merged (check stopped on load 149; CI gates)                                              | 86103144 |
+| 51    | B-767        | working (opus)                                                                            | —        |
+| 52    | B-768        | handed off a574e9e2 (check failed only on load, untouched files); merge after 51          | —        |
+| 53    | B-542        | working (opus)                                                                            | —        |
+| 54    | B-623, B-860 | handed off 729a8858 (check passed); merge after 53                                        | —        |
+| 55    | B-807        | handed off cefd6394 (check passed); merge after 54                                        | —        |
+| 56    | B-754        | working (opus)                                                                            | —        |
+| 57    | B-824        | working (opus)                                                                            | —        |
+| 58    | B-769        | handed off 1bac753f (check passed); merge after 57                                        | —        |
+| 59    | B-633        | handed off 54294a9c (check passed; app-wide watchLiveQuery frame batching, see hand-over) | —        |
+| 60    | B-812        | working (opus)                                                                            | —        |
 
 ## Wave 1
 
