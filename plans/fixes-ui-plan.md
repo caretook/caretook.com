@@ -29,6 +29,10 @@ Notes for every wave:
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
+| 99 | B-899 | started (opus), worktree fixes-ui-99 | |
+| 100 | B-923 | started (opus), worktree fixes-ui-100 | |
+| 101 | B-924 | started (opus), worktree fixes-ui-101 | |
+| 102 | B-925 | waits for 99 | |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
