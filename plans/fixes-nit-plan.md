@@ -6,14 +6,14 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"; the dispatcher's run-through start again 2026-11-26). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 written 2026-11-26: slices 4–7. B-637 (20 files) split: slice 6 keeps 8 files, slice 7 is the new B-930. Slice 7 waited for slice 5 (both touch `settings/account/route.tsx`). B-931 filed for the next wave (`ui/` primitives with the old classes, found by slice 6).
+Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 written 2026-11-26: slices 4–7. B-637 (20 files) split: slice 6 keeps 8 files, slice 7 is the new B-930. Slice 7 waited for slice 5 (both touch `settings/account/route.tsx`). All four merged; wave gate: CI `components` (tier proposes `full` only for `vitest.config.ts`, whose change is one comment line). B-931 filed for the next wave (`ui/` primitives with the old classes, found by slice 6).
 
-| Slice | Item  | State   | Model  | Merge    |
-| ----- | ----- | ------- | ------ | -------- |
-| 4     | B-544 | merged  | sonnet | 87b37a46 |
-| 5     | B-630 | merged  | opus   | 477b78c1 |
-| 6     | B-637 | merged  | sonnet | fec66e7e |
-| 7     | B-930 | running | sonnet | —        |
+| Slice | Item  | State  | Model  | Merge    |
+| ----- | ----- | ------ | ------ | -------- |
+| 4     | B-544 | merged | sonnet | 87b37a46 |
+| 5     | B-630 | merged | opus   | 477b78c1 |
+| 6     | B-637 | merged | sonnet | fec66e7e |
+| 7     | B-930 | merged | sonnet | 93466070 |
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
