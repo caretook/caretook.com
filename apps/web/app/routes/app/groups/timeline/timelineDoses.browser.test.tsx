@@ -207,7 +207,7 @@ describe("on the timeline", () => {
       .poll(() => row()?.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]'))
       .toBeNull();
     await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
-    await expect.poll(menuItems).toEqual(["Tags", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Tags", "Copy link", "Delete"]);
     await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(row).toBeUndefined();
@@ -254,14 +254,16 @@ describe("on the timeline", () => {
     expect(texts()).toContain("Metoprolol: Removed from Evening; Morning amount 50 mg → 75 mg");
   });
 
-  test("a viewer sees doses with no + button, no row that opens a sheet and no ⋯; /new/dose is the timeline, filters kept", async () => {
+  test("a viewer sees doses with no + button, no row that opens a sheet and a ⋯ of Copy link alone; /new/dose is the timeline, filters kept", async () => {
     const device = await open({ role: "viewer", query: "?kind=dose" });
     expect(rows().length).toBeGreaterThan(0);
     expect(document.querySelector('main header button[aria-label="Add to timeline"]')).toBeNull();
     expect(
       document.querySelector('main ol a[aria-label^="Edit "], main ol a[aria-label^="Open "]'),
     ).toBeNull();
-    expect(document.querySelector('main ol button[aria-label^="Actions"]')).toBeNull();
+    await userEvent.click(await found(() => document.querySelector('main ol button[aria-label^="Actions"]')));
+    await expect.poll(menuItems).toEqual(["Copy link"]);
+    await userEvent.keyboard("{Escape}");
     await device.screen.unmount();
     const sheet = await open({ role: "viewer", url: `${TIMELINE_URL}/new/dose?kind=dose` });
     await expect.poll(() => sheet.location()).toBe(`${TIMELINE_URL}?kind=dose`);
@@ -326,7 +328,7 @@ describe("the Dose sheet", () => {
     await userEvent.click(
       await found(() => rowWith(LABEL)?.querySelector('button[aria-label^="Actions for"]')),
     );
-    await expect.poll(menuItems).toEqual(["Edit", "Tags", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Edit", "Tags", "Copy link", "Delete"]);
     await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(() => rowWith(LABEL)).toBeUndefined();

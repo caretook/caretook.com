@@ -1,44 +1,28 @@
 import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
 import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
-import { Copy } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button, ChoiceGroup, ConfirmDialog, Message } from "~/components/ui";
-import {
-  COPY_ACTION,
-  COPY_BUTTON,
-  alreadyIn,
-  copiedTo,
-  copyTitle,
-  notesStayIn,
-} from "~/lib/providers/importWording";
+import { ChoiceGroup, ConfirmDialog, Message } from "~/components/ui";
+import { COPY_BUTTON, alreadyIn, copiedTo, copyTitle, notesStayIn } from "~/lib/providers/importWording";
 import { importProviders, providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, readRows, toMyGroup, WRITER_ROLES } from "~/lib/timeline/timeline.sync";
 
 const NO_ROWS: GroupRow[] = [];
 
+/** A group a provider can be copied to, named as the import sheet names it. */
+export type CopyTarget = { id: string; name: string };
+
 /**
- * "Copy to another group" in the provider page's actions: a dialog that picks
- * the target (only other groups where you write; none, no button), names the
- * notes rule and copies through `importProviders`. `onResult` gets the status
- * ("Copied to X." / "Already in X. …") for the page to show.
+ * The groups this provider can be copied to: the other groups where you
+ * write, named as the import sheet names them (the person, else the group).
+ * None: no Copy to another group.
  */
-export function CopyToGroup({
-  provider,
-  groupName,
-  onResult,
-}: {
-  provider: LocalProvider;
-  /** This group as the import sheet names it (the person, else the group). */
-  groupName: string;
-  onResult: (message: string) => void;
-}) {
+export function useCopyTargets(provider: LocalProvider): CopyTarget[] {
   const [db] = useState(getSync);
   const query = myGroupsQuery(db.userId);
   const rows = useLiveQuery<GroupRow>(query.sql, query.params, NO_ROWS);
-  // Named as the import sheet names them: the person, else the group.
-  const targets = useMemo(
+  return useMemo(
     () =>
       rows
         .map(toMyGroup)
@@ -46,17 +30,38 @@ export function CopyToGroup({
         .map((g) => ({ id: g.id, name: g.recipient?.displayName || g.name })),
     [rows, provider.groupId],
   );
+}
 
-  const [open, setOpen] = useState(false);
+/**
+ * "Copy to another group", opened from the provider page's ⋯ menu: a dialog
+ * that picks the target (`targets`, from `useCopyTargets`), names the notes
+ * rule and copies through `importProviders`. `onResult` gets the status
+ * ("Copied to X." / "Already in X. …") for the page to show.
+ */
+export function CopyToGroup({
+  provider,
+  groupName,
+  targets,
+  open,
+  onClose,
+  onResult,
+}: {
+  provider: LocalProvider;
+  /** This group as the import sheet names it (the person, else the group). */
+  groupName: string;
+  targets: CopyTarget[];
+  open: boolean;
+  onClose: () => void;
+  onResult: (message: string) => void;
+}) {
+  const [db] = useState(getSync);
   const [chosen, setChosen] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  if (targets.length === 0) return null;
-
   const target = targets.find((t) => t.id === chosen) ?? (targets.length === 1 ? targets[0]! : null);
   const close = () => {
-    setOpen(false);
     setError("");
+    onClose();
   };
 
   const copy = async () => {
@@ -81,31 +86,26 @@ export function CopyToGroup({
   };
 
   return (
-    <>
-      <Button variant="ghost" size="sm" icon={Copy} onClick={() => setOpen(true)} data-copy-provider="">
-        {COPY_ACTION}
-      </Button>
-      <ConfirmDialog
-        open={open}
-        title={copyTitle(provider.name)}
-        message={target ? notesStayIn(groupName) : undefined}
-        confirmLabel={COPY_BUTTON}
-        confirmDisabled={!target || busy}
-        confirmVariant="primary"
-        onConfirm={() => void copy()}
-        onClose={close}
-      >
-        <div className="space-y-2">
-          <ChoiceGroup
-            name="target"
-            label="Copy to"
-            options={targets.map((t) => ({ value: t.id, label: t.name }))}
-            value={target?.id ?? ""}
-            onChange={setChosen}
-          />
-          {error && <Message tone="error">{error}</Message>}
-        </div>
-      </ConfirmDialog>
-    </>
+    <ConfirmDialog
+      open={open}
+      title={copyTitle(provider.name)}
+      message={target ? notesStayIn(groupName) : undefined}
+      confirmLabel={COPY_BUTTON}
+      confirmDisabled={!target || busy}
+      confirmVariant="primary"
+      onConfirm={() => void copy()}
+      onClose={close}
+    >
+      <div className="space-y-2">
+        <ChoiceGroup
+          name="target"
+          label="Copy to"
+          options={targets.map((t) => ({ value: t.id, label: t.name }))}
+          value={target?.id ?? ""}
+          onChange={setChosen}
+        />
+        {error && <Message tone="error">{error}</Message>}
+      </div>
+    </ConfirmDialog>
   );
 }

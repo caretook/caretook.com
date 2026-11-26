@@ -1,17 +1,14 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
-import { canHaveNoteDocument } from "@caretook/data/schema";
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import { AuthorFilterLink, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
 import { TagChips } from "~/components/tags";
 import { ViaTag } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
-import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
-import { CANCELLED_TEXT, CancelledBadge, EntryCopyLink } from "./TimelineEntryRow";
+import { CANCELLED_TEXT, CancelledBadge, EntryMenu } from "./TimelineEntryRow";
 
 /** One entry as a compact card: the body's first line beside the time, all its text (a note's or event's formatted), then who wrote it. */
 export function TimelineEntryCard({
@@ -70,21 +67,14 @@ export function TimelineEntryCard({
           </>
         }
       />
-      <EntryCopyLink entry={entry} />
-      {(onDelete || onTags || canHaveNoteDocument(entry.kind)) && (
-        <EntryActions
-          kind={entry.kind}
-          label={actionsLabel(entry)}
-          onEdit={onEdit}
-          onTags={onTags}
-          cancel={cancel}
-          onRemind={onRemind}
-          printHref={
-            canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
-          }
-          onDelete={onDelete}
-        />
-      )}
+      <EntryMenu
+        entry={entry}
+        onEdit={onEdit}
+        onTags={onTags}
+        cancel={cancel}
+        onRemind={onRemind}
+        onDelete={onDelete}
+      />
     </li>
   );
 }
