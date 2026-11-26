@@ -23,6 +23,8 @@ Notes for every wave:
 
 **Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
 
+**Landing:** CI components green on 200c4c14 (run 45879574428; quarantined emergency.browser failed, not ours). Docs folded (5ef43e2c). Synced (no-op). PR #231 open; Codex review waiting; `browser --changed --base dev` (layout-offline, first-sync, ui, marketing) running. Then land with `--tier components`.
+
 **Unparked:** split stage 1c wave 1 landed as dev 00c60f0c; synced (76b8ad63). New browser.sh (hooks.browser, scripts/project/browser-run.sh).
 
 To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait in /app; brand/LoadingMark shared with AppLoading; 92). medications.md line 10 (PrintAllergies tops only the list print; the weekly sheet has G/S/R marks; 94). providers.md: Condensed rows (default, `providersView`) carry one main contact action, overriding B-422's "rows carry no contact details", which now holds for Full (93). 91 kept B-618's order and tightened the Change button's gap (14 to 8 px): say so in the report. assistant.md Todos bullet: kind words todo/to-do/to do/task/note/event, colon optional, optional leading `add`; `add` without one stays text (88). sync.md/app-shell.md: the offline banner's grace is 10 s when the browser is offline, 30 s when online but unsynced, 90 s on dev (89). Lesson: 93 ran to 13 files; split such items. app-shell.md line 7 (OfflineBanner is a kit Notice overlaid under the header, not in flow) and ui-kit.md (Notice takes role="none") (90). Browser checks the wave needs: ui, marketing, first-sync.
