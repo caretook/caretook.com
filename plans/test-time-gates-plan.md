@@ -7,9 +7,9 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 | Slice                                        | Wave | State   | Merge    |
 | -------------------------------------------- | ---- | ------- | -------- |
 | 1. The time gate and its data                | 1    | landed  | 3f65aebf |
-| 2. The quick check's times and its gate      | 2    | merged  | a8f60413 |
+| 2. The quick check's times and its gate      | 2    | landed  | a8f60413 |
 | 3. Stops and breaches apart; the guards stay | 3    | planned | —        |
-| 4. CI's unit and component gates             | 2    | merged  | 2b1758f0 |
+| 4. CI's unit and component gates             | 2    | landed  | 2b1758f0 |
 | 5. Component shards balanced                 | 3    | planned | —        |
 | 6. The unit job under the aim                | 3    | planned | —        |
 
