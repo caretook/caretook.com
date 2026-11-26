@@ -158,8 +158,9 @@ export function MedicationForm({
           form?.querySelector<HTMLElement>(
             '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"]), [data-conditions-picker]:has([data-picker-error]) input:not([type="hidden"])',
           ));
-    // On another tab, its tab opens first: after this effect, where React can render the switch at once.
-    if (target) queueMicrotask(() => revealField(form, target));
+    // On another tab, its tab opens first: on the next frame, outside this effect, where FormTabs'
+    // flushSync renders the switch before the focus (ProviderForm does the same).
+    if (target) requestAnimationFrame(() => revealField(form, target));
   }, [fetcher.state, fetcher.data, onDone]);
 
   const unshown = issues.filter((i) => !isFieldIssue(i.path));
