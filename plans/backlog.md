@@ -210,7 +210,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-543 | question | in-progress | orchestration-split | prd/orchestration-split-3 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
-| B-544 | chore | in-progress | fixes-nit | prd/fixes-nit | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
+| B-544 | chore | ready | fixes-nit | prd/fixes-nit | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
@@ -220,8 +220,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-584 | chore | triaged | staging-ship |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
-| B-630 | chore | in-progress | fixes-nit | prd/fixes-nit | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
-| B-637 | chore | in-progress | fixes-nit | prd/fixes-nit | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
+| B-630 | chore | ready | fixes-nit | prd/fixes-nit | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
+| B-637 | chore | ready | fixes-nit | prd/fixes-nit | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
@@ -327,7 +327,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 | B-928 | bug | triaged | fixes-tooling |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
 | B-929 | chore | triaged | orchestration-split-4 |  | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
-| B-930 | chore | triaged | fixes-nit |  | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
+| B-930 | chore | in-progress | fixes-nit | prd/fixes-nit | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
+| B-931 | chore | triaged | fixes-nit |  | The UI kit's own primitives (ChipList, tabLook, DateTimeField) still use text-base-content opacity classes |
 
 ## Items
 
@@ -1154,10 +1155,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-544 · chore · vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405
 
-- status: in-progress
+- status: ready
 - prd: fixes-nit
 - owner: prd/fixes-nit
-- commit:
+- commit: 87b37a46
 
 - 2026-11-22 (prd/fixes-tooling): Left by fixes-tooling wave 2 (slice 13): editing vitest.config.ts forces a full check, so not folded at landing.
 
@@ -1266,19 +1267,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-630 · chore · Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one
 
-- status: in-progress
+- status: ready
 - prd: fixes-nit
 - owner: prd/fixes-nit
-- commit:
+- commit: fec66e7e
 
 - 2026-11-23 (prd/onboarding): From onboarding slices 1 and 2; both use VITE_API_ORIGIN on native.
 
 ### B-637 · chore · About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit
 
-- status: in-progress
+- status: ready
 - prd: fixes-nit
 - owner: prd/fixes-nit
-- commit:
+- commit: fec66e7e
 
 - 2026-11-23 (Robert Bo Davis): From ui-kit-5's plan report (a104): left out because B-577 does not name them and the lint guard does not flag them. A small tidy, so fixes-nit.
 - 2026-11-26 (prd/fixes-nit): Split 2026-11-26 by the fixes-nit orchestrator: this item keeps settings calendar, assistants, details and providers/providerWorld.tsx (8 files); members and account settings move to B-930.
@@ -2325,9 +2326,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-930 · chore · Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit
 
+- status: in-progress
+- prd: fixes-nit
+- owner: prd/fixes-nit
+- commit:
+
+- 2026-11-26 (prd/fixes-nit): Split from B-637 by the fixes-nit orchestrator (2026-11-26): 20 files is past the 12-file split rule. This half: settings/members (7 files) and app/settings account, contact, units, devices, timeline (5).
+
+### B-931 · chore · The UI kit's own primitives (ChipList, tabLook, DateTimeField) still use text-base-content opacity classes
+
 - status: triaged
 - prd: fixes-nit
 - owner:
 - commit:
 
-- 2026-11-26 (prd/fixes-nit): Split from B-637 by the fixes-nit orchestrator (2026-11-26): 20 files is past the 12-file split rule. This half: settings/members (7 files) and app/settings account, contact, units, devices, timeline (5).
+- 2026-11-26 (prd/fixes-nit): Found by fixes-nit slice 6 (2026-11-26): components/ui/ChipList.tsx:42 (/50, muted chips; providerWorld.tsx's test helper accepts text-faint already), tabLook.tsx:38 (/80), date/DateTimeField.tsx:265 (/60), :282 (/40). Map per ui-kit Tokens; /80 and /40 need a choice.
