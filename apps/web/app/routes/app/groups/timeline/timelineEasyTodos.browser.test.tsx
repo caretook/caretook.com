@@ -197,6 +197,51 @@ describe("My todos in easy mode", () => {
     },
   );
 
+  test("an Easy helper: their assigned subtask with “Part of”, and they tick it; their parent waits on its subtasks (todo-subtasks-2)", async () => {
+    const BIRTHDAY = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2e0001";
+    const READY = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2e0002";
+    const device = await open("easy_helper", [
+      SAM,
+      todo({ id: BIRTHDAY, title: "Plan the birthday" }),
+      mine("Order the cake", { parentId: BIRTHDAY }),
+      todo({ title: "Send the invites", parentId: BIRTHDAY }),
+      mine("Get ready for the hospital stay", { id: READY, dueOn: day(5) }),
+      todo({ title: "Pack the bag", parentId: READY, assigneeId: SAM_ID }),
+    ]);
+    await waitUntil(() => titles().length === 2, "the helper's card");
+    expect(titles()).toEqual(["Get ready for the hospital stay", "Order the cake"]);
+    const rowOf = (title: string) =>
+      [...card()!.querySelectorAll("[data-easy-todo]")].find(
+        (li) => li.querySelector("[data-todo-title]")?.textContent?.trim() === title,
+      );
+    const partOf = rowOf("Order the cake")?.querySelector("[data-todo-part-of]");
+    expect(partOf?.textContent).toBe("Part of Plan the birthday");
+    expect(partOf?.querySelector("a")?.getAttribute("href")).toBe(
+      `/app/groups/${TEST_GROUP.id}/todos/${BIRTHDAY}`,
+    );
+    await expect
+      .poll(
+        () => rowOf("Get ready for the hospital stay")?.querySelector("[data-todo-progress]")?.textContent,
+      )
+      .toBe("0 of 1 done");
+    await expect
+      .element(
+        page.getByRole("checkbox", { name: "“Get ready for the hospital stay”: 0 of 1 subtasks done" }),
+      )
+      .toBeDisabled();
+
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Order the cake” done" }));
+    await expect
+      .element(page.getByRole("status").filter({ hasText: "Done: Order the cake" }))
+      .toBeInTheDocument();
+    await expect.poll(() => titles()).toEqual(["Get ready for the hospital stay"]);
+    const [cake] = await device.query<{ done_by: string | null }>(
+      "SELECT done_by FROM todo WHERE title = 'Order the cake'",
+    );
+    expect(cake?.done_by).toBe(TEST_USER.id);
+    await device.settle();
+  });
+
   test("none of mine open: no card, and the rest of the view as before", async () => {
     await open("caretaker", [
       SAM,

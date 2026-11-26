@@ -171,3 +171,25 @@ describe("showsTodos", () => {
     expect(showsTodos({ author: "u1" })).toBe(false);
   });
 });
+
+describe("plannerTodos and the tree (todo-subtasks-2)", () => {
+  it("drops an undated, unassigned subtask and keeps a dated or assigned one", () => {
+    const step = (id: string, dueOn: string | null, extra: Partial<TodoRuleFields> = {}) => ({
+      ...todo(id, dueOn, null, extra),
+      parentId: "parent",
+    });
+    const items = plannerTodos(
+      [
+        { ...todo("parent", "2026-11-18"), parentId: null },
+        step("plain-step", null),
+        step("named-undated-step", null, { assigneeName: "Aunt May" }),
+        step("dated-step", "2026-11-19"),
+        step("mine-step", "2026-11-20", { assigneeId: "me" }),
+      ],
+      NOW,
+      LA,
+    );
+    // An undated subtask is never a Planner item, assigned or not: it lists on the Todos tab.
+    expect(items.map((i) => i.todo.id)).toEqual(["parent", "dated-step", "mine-step"]);
+  });
+});

@@ -165,6 +165,8 @@ export function UpcomingList({
                   timeZone={data.todoZone ?? "UTC"}
                   now={data.now}
                   tags={<TagChips tags={data.tagsOf("todo", entry.todo.id)} className="mt-0.5" />}
+                  progress={data.progressOf?.(entry.todo.id)}
+                  parent={entry.todo.parentId ? data.parentOf?.(entry.todo.parentId) : undefined}
                 />
               ) : (
                 <UpcomingRow
