@@ -23,17 +23,19 @@ Notes for every wave:
 
 **Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
 
-| Slice | Item         | State         | Merge |
-| ----- | ------------ | ------------- | ----- |
-| 86    | B-885        | agent working |       |
-| 87    | B-897, B-900 | agent working |       |
-| 88    | B-902        | agent working |       |
-| 89    | B-904        | agent working |       |
-| 90    | B-905        | waits for 89  |       |
-| 91    | B-906        | agent working |       |
-| 92    | B-908        | agent working |       |
-| 93    | B-909        | agent working |       |
-| 94    | B-916        | agent working |       |
+To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait in /app; brand/LoadingMark shared with AppLoading; 92). medications.md line 10 (PrintAllergies tops only the list print; the weekly sheet has G/S/R marks; 94). providers.md: Condensed rows (default, `providersView`) carry one main contact action, overriding B-422's "rows carry no contact details", which now holds for Full (93). 91 kept B-618's order and tightened the Change button's gap (14 to 8 px): say so in the report. Browser checks the wave needs: ui, marketing, first-sync.
+
+| Slice | Item         | State               | Merge |
+| ----- | ------------ | ------------------- | ----- |
+| 86    | B-885        | agent working       |       |
+| 87    | B-897, B-900 | agent working       |       |
+| 88    | B-902        | agent working       |       |
+| 89    | B-904        | agent working       |       |
+| 90    | B-905        | waits for 89        |       |
+| 91    | B-906        | handed off 57191444 |       |
+| 92    | B-908        | handed off 9d47a87d |       |
+| 93    | B-909        | handed off d248bb11 |       |
+| 94    | B-916        | handed off a891d472 |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
