@@ -21,6 +21,8 @@
     "tier": "integration",
     "paths": [
       "scripts/project/serve.sh",
+      "scripts/project/browser-run.sh",
+      "scripts/project/browser-run.test.mjs",
       "scripts/loops/checks",
       "scripts/loops/check-areas.d",
       "scripts/project/check-areas.mjs",
