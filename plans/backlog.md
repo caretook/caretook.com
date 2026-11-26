@@ -139,10 +139,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-196 | feature | triaged | connectors-4 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-239 | bug | in-progress | fixes-tooling | prd/fixes-tooling | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
-| B-240 | bug | in-progress | fixes-tooling | prd/fixes-tooling | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
+| B-239 | bug | ready | fixes-tooling | prd/fixes-tooling | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
+| B-240 | bug | ready | fixes-tooling | prd/fixes-tooling | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | staging-ship |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
-| B-244 | chore | in-progress | fixes-tooling | prd/fixes-tooling | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
+| B-244 | chore | ready | fixes-tooling | prd/fixes-tooling | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-294 | bug | triaged | sync-safety-3 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
@@ -203,9 +203,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-432 | chore | triaged | fixes-tooling |  | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-438 | plan | triaged | self-recovery-2 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
-| B-442 | bug | in-progress | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
-| B-443 | bug | in-progress | fixes-tooling | prd/fixes-tooling | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
-| B-447 | bug | in-progress | fixes-tooling | prd/fixes-tooling | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
+| B-442 | bug | ready | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
+| B-443 | bug | ready | fixes-tooling | prd/fixes-tooling | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
+| B-447 | bug | ready | fixes-tooling | prd/fixes-tooling | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
 | B-455 | chore | triaged | contract-migrations |  | Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them |
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
 | B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
@@ -216,7 +216,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-542 | chore | landed | fixes-tooling | prd/fixes-tooling | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | in-progress | orchestration-split | prd/orchestration-split-2 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
-| B-545 | chore | in-progress | fixes-tooling | prd/fixes-tooling | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
+| B-545 | chore | ready | fixes-tooling | prd/fixes-tooling | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
 | B-548 | feature | landed | tags | prd/tags | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
 | B-550 | feature | in-progress | todo-subtasks | prd/todo-subtasks | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
@@ -234,8 +234,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-633 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 | B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
-| B-639 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
-| B-649 | bug | in-progress | fixes-tooling | prd/fixes-tooling | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
+| B-639 | bug | ready | fixes-tooling | prd/fixes-tooling | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
+| B-649 | bug | ready | fixes-tooling | prd/fixes-tooling | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
 | B-653 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
@@ -247,7 +247,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-721 | bug | triaged | fixes-tooling |  | Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix |
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
 | B-730 | bug | triaged | sync-safety-2 |  | A magic-link or invite sign-in that lands while an offline sign-out is still pending has its new session ended by the next /app check (sign-in page guards it, other sign-in paths don't) |
-| B-738 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
+| B-738 | bug | ready | fixes-tooling | prd/fixes-tooling | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-bug |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-751 | chore | triaged | fixes-tooling |  | A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test |
@@ -311,10 +311,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-862 | chore | triaged | fixes-tooling |  | roundtrip.spec: a run that dies inside the matrix writer loop skips cleanup of rows it wrote, and the leftover breaks the next run on the same database |
 | B-863 | chore | triaged | fixes-perf |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-864 | bug | triaged | fixes-tooling |  | Test fixture fx.tag derives its id from the raw name (tagId(groupId, name)) instead of tagKey(name), so a fixture tag's id differs from the id a device derives for the same name |
-| B-865 | bug | triaged | fixes-bug |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
-| B-866 | bug | triaged | fixes-bug |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
-| B-867 | bug | in-progress | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
+| B-865 | bug | triaged | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
+| B-866 | bug | triaged | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
+| B-867 | bug | ready | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
 | B-868 | bug | triaged | fixes-bug |  | CI: the build job fails on dev |
+| B-869 | bug | triaged | fixes-tooling |  | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
+| B-870 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 
 ## Items
 
@@ -457,10 +459,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-239 · bug · pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 1699763a
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (review.sh:72), verified. Send progress to stderr when --json.
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: moved from github-review (done) to the standing tooling fixes topic; each is a small fix to the review tooling.
@@ -468,10 +470,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-240 · bug · pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 1699763a
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (review.sh:77), verified. Exit 75 when the summary never changes.
 - 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
@@ -493,10 +495,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-244 · chore · codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3c48b294
 
 - 2026-11-21 (prd/github-review): User's decision 2026-11-21. One-line change in openFindings (scripts/loops/codex-review.mjs) plus a test on the outdated.json fixture. Declined, non-outdated threads still need reply + resolve. Update docs/agents/orchestrator.md _Landing a wave_ step 4, docs/orchestration.md and the orchestrator prompt line in prompt.sh (+ prompt.test.mjs): only declined threads need --resolve.
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: moved from github-review (done) to the standing tooling fixes topic; each is a small fix to the review tooling.
@@ -1122,10 +1124,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-442 · bug · pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3c48b294
 
 - 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (tidy-cli.mjs:259), verified: plain rmSync on the lease path; a lease retaken in between is deleted. Use lease_take_over's .takeover protocol.
 - 2026-11-21 (Robert Bo Davis): Codex raised this again as a P2 on PR #34 (dev into staging, head f5234c8); checked against dev: the code is unchanged, so this item covers it. No new item filed.
@@ -1133,10 +1135,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-443 · bug · land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 7b608d23
 
 - 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (land.sh:140): capture the ready items before the merge and reuse them in the report. The PR path is unaffected only if the backlog read precedes dev-sync; check both.
 - 2026-11-21 (Robert Bo Davis): Codex raised this again as a P2 on PR #34 (dev into staging, head f5234c8); checked against dev: the code is unchanged, so this item covers it. No new item filed.
@@ -1144,10 +1146,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-447 · bug · to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try'
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 7b608d23
 
 - 2026-11-21 (prd/orchestration-2): Seen on the first real file, to-test/2026-11-21-1838-orchestration-2.md (orchestration-2 wave 5). For a diff that is only scripts/ and docs, name the commands to try instead.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
@@ -1257,10 +1259,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-545 · chore · rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 7b608d23
 
 - 2026-11-22 (prd/fixes-tooling): Found by fixes-tooling wave 2 slice 11 while timing rotate.test.mjs (2026-11-22).
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
@@ -1458,20 +1460,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-639 · bug · Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 7b608d23
 
 - 2026-11-23 (prd/agent-autonomy): From agent-autonomy slice 4 (B-518). unsynced_dev_brake reads the tip of drift_ref, normally local dev. If local dev is behind origin/dev, a brake verdict on origin's newer tip is seen only through a live dev-brake notice. Fix: read origin/dev's tip too, or fetch before judging.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 7 (landing, Codex, cleanup).
 
 ### B-649 · bug · A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 7b608d23
 
 - 2026-11-23 (prd/agent-autonomy-3): From agent-autonomy-3 slice 3. Matches unsynced_dev_brake today; a go could refuse when the brake state can't be read.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 7 (landing, Codex, cleanup).
@@ -1615,10 +1617,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-738 · bug · Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 7b608d23
 
 - 2026-11-24 (Robert Bo Davis): Seen 2026-11-24 on hotfix/lane-cap: run 45394082593 failed prompt.test.mjs on f0107a07; the fix 16a1f0ad (scripts/loops/prompt.sh only) was refused on that same run. The carry-over rule (orchestrator.md, The check gate: an ancestor with only docs or tooling changed since) should keep only green verdicts, or request a fresh run when the carried one failed. Workaround: pnpm prd ci run <tier> --ref <branch>.
 
@@ -2222,29 +2224,35 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-865 · bug · CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev
 
 - status: triaged
-- prd: fixes-bug
+- prd: fixes-tooling
 - owner:
 - commit:
 
 - 2026-11-26 (prd/fixes-tooling): [ci-key 9d374f98fa8a] Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
 - 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
+- 2026-11-26 (prd/fixes-tooling): Caused by fixes-tooling wave 7 (4646edc1, B-766's test named $CARETOOK_INBOX_DIR); fixed on prd/fixes-tooling in d2133f4e, lands with wave 8.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
 
 ### B-866 · bug · CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev
 
 - status: triaged
-- prd: fixes-bug
+- prd: fixes-tooling
 - owner:
 - commit:
 
 - 2026-11-26 (prd/fixes-tooling): [ci-key 63c75fb0d751] Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
 - 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
+- 2026-11-26 (prd/fixes-tooling): Same cause and fix as B-865 (d2133f4e, wave 8).
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
 
 ### B-867 · bug · lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3c48b294
 
 - 2026-11-26 (prd/fixes-tooling): Found by slice 57's B-824 fix request. CI run 45784130450 (unit-1 Quarantined tests): log [start,start,start] at limit 2; run 1 stderr 'mv: cannot stat .../leases/check/2/name.tmp'; run 3 never waited; holders 2 of 2 (slot 1 run 0, slot 2 run 1). No path found that lets mkdir check/2 succeed twice; not reproduced in ~590 Linux container rounds (4 and 2 CPUs) or 20 Mac runs. Hardening: a per-writer tmp name (name.tmp.$$) and, after the mv, confirm name's pid is the taker's own, else back off. Keep B-824's quarantine line until this lands.
 
@@ -2256,3 +2264,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/todo-subtasks): [ci-key job-build] Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45792344179.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+
+### B-869 · bug · Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/todo-subtasks): Found by todo-subtasks wave 1 (2026-11-26): fails 4/4 on prd/todo-subtasks and 2/2 on dev 0005f796 itself at load ~11 (session-end-20261126-054837.log), so not load. Step at session-end.spec.mjs:231 (went-ahead flag null), once :234 (redirectTo lacks kind=symptom). Suspect: tags wave 4 (4c64a097) changed TimelineFilters/timelineFilters and ran no browser checks. Could be fixes-bug if the app, not the spec, regressed.
+
+### B-870 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/todo-subtasks.
