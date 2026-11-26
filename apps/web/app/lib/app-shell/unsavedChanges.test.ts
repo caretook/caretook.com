@@ -34,6 +34,18 @@ describe("unsavedSentence", () => {
     );
   });
 
+  it("says why a subtask's change was refused (todo-subtasks)", () => {
+    expect(sentence({ table: "todo", op: "PUT", code: "todoService:badParent", label: "Pack a bag" })).toBe(
+      "Your new to-do “Pack a bag” wasn't saved: the to-do it goes under is gone, repeats, or is already three levels deep",
+    );
+    expect(sentence({ table: "todo", code: "todoService:openSubtasks", label: "Hospital stay" })).toBe(
+      "Your change to the to-do “Hospital stay” wasn't saved: it's done once its subtasks are; tick those first",
+    );
+    expect(sentence({ table: "todo", code: "todoService:repeatWithSubtasks", label: "Hospital stay" })).toBe(
+      "Your change to the to-do “Hospital stay” wasn't saved: a subtask, or a to-do with subtasks, can't repeat",
+    );
+  });
+
   it("says the server couldn't save a set-aside change (B-286)", () => {
     expect(sentence({ code: "sync:failed", label: "Lisinopril" })).toBe(
       "Your change to the medication “Lisinopril” wasn't saved: the server couldn't save this",

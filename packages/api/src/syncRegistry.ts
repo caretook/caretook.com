@@ -399,6 +399,8 @@ const todo = softDelete({
   errors: "todoService",
   fixed: GROUP_RECIPIENT,
   content: TODO_CONTENT,
+  // A subtask's parent (todo-subtasks): on create only; the service checks it.
+  createOnly: { parent_id: text },
   handled: ["done_at", "repeat_id", "repeat_starts_on"],
   serverSet: ["done_by", "via"],
   // A repeating todo's later occurrence (its chain is another todo's): the
