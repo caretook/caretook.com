@@ -13,10 +13,12 @@ import {
   newError,
   noteDocumentService,
   OWN_DOSE_COPY_METADATA,
+  recordTagService,
   providerService,
   recipientAllergyService,
   recipientConditionService,
   symptomTypeService,
+  tagService,
   timelineEntryService,
   todoService,
   UNDO_NEXT_METADATA,
@@ -513,6 +515,42 @@ const symptomType: UploadEntry = {
   },
 };
 
+// tag: a group's shared tags (tags). A device adds one (PUT) under the id it
+// derives from the group, the name and a counter; a replay, or another
+// device's PUT of that id, returns the one tag, even renamed. A name another
+// tag holds is `tagService:nameTaken`. Loggers only. Rename (a name PATCH)
+// and delete come with tags slice 3; until then both are read-only.
+const tag: UploadEntry = {
+  columns: columnsOf({ fixed: ["group_id"], content: ["name"], serverSet: ["name_key"] }),
+  handle: async (ctx, op) => {
+    if (op.op !== "PUT") return readOnly("tag", op.op);
+    const of = (column: string) => text(op.data?.[column]) ?? "";
+    return outcome(await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name") }));
+  },
+};
+
+// record_tag: which records carry which tags (tags). Like `linkTable`, but
+// with one column per target type, of which a link sets exactly one: a
+// null or missing target passes as null, so the service refuses none or two.
+const RECORD_TAG_TARGETS = words("entry_id todo_id provider_id medication_id");
+
+const recordTag: UploadEntry = {
+  columns: columnsOf({ fixed: ["group_id", "tag_id", ...RECORD_TAG_TARGETS] }),
+  handle: async (ctx, op) => {
+    if (op.op === "PATCH") return readOnly("record_tag", op.op);
+    if (op.op === "DELETE") return outcome(await recordTagService.unlink(ctx, op.id));
+    const targets = RECORD_TAG_TARGETS.map((c): [string, string | null] => [camel(c), text(op.data?.[c])]);
+    return outcome(
+      await recordTagService.link(ctx, {
+        id: op.id,
+        groupId: text(op.data?.group_id) ?? "",
+        tagId: text(op.data?.tag_id) ?? "",
+        ...Object.fromEntries(targets),
+      }),
+    );
+  },
+};
+
 // care_recipient: read-only, except "No known allergies" and "No known
 // conditions": a PATCH of only one of them sets or clears it.
 const NO_KNOWN = {
@@ -593,6 +631,8 @@ export const UPLOAD_REGISTRY: ReadonlyMap<string, UploadEntry> = new Map([
   ["appointment_series", appointmentSeries],
   ["symptom_type", symptomType],
   ["timeline_entry_todo", entryTodo],
+  ["tag", tag],
+  ["record_tag", recordTag],
 ]);
 
 /** One op through its table's handler; any other table is read-only. */

@@ -63,6 +63,8 @@ export const FIXTURE_SCHEMAS: Readonly<Record<string, Shape>> = {
   appointment_series: { schema: server.appointmentSeriesUpsertZSchema, reads: "input" },
   symptom_type: { schema: server.symptomTypeAddZSchema, reads: "input" },
   timeline_entry_todo: { schema: server.entryTodoLinkZSchema, reads: "input" },
+  tag: { schema: server.tagCreateZSchema, reads: "input" },
+  record_tag: { schema: server.recordTagLinkZSchema, reads: "input" },
 };
 
 /** Synced tables with no server schema for their rows, each with why. */
