@@ -7,9 +7,12 @@ const LOCAL = "postgresql://caretook:password@localhost:5434/caretook";
 const SECRET = "a-long-fictional-staging-password";
 
 describe("resetRefusal", () => {
-  it("allows only staging with a secret seed password", () => {
-    expect(resetRefusal({ APP_ENV: "staging", DATABASE_URL: HOSTED, SEED_USER_PASSWORD: SECRET })).toBeNull();
+  it("allows only staging with a secret seed password and the link key", () => {
+    const staging = { APP_ENV: "staging", DATABASE_URL: HOSTED, SEED_USER_PASSWORD: SECRET };
+    expect(resetRefusal({ ...staging, INVITE_LINK_KEY: "a-fictional-invite-link-key" })).toBeNull();
     expect(resetRefusal({ APP_ENV: "staging", DATABASE_URL: HOSTED })).toBe("db:seed:password");
+    // Refused before the wipe, so staging isn't left empty (B-830).
+    expect(resetRefusal(staging)).toBe("db:seed:linkKey");
   });
 
   it("refuses production, dev and an unset APP_ENV, whatever the database", () => {

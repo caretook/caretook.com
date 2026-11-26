@@ -5,7 +5,8 @@
 # rotating it is: change the secret, then run this.
 #
 # Secrets (the `staging` environment's):
-#   DATABASE_URL, SEED_USER_PASSWORD
+#   DATABASE_URL, SEED_USER_PASSWORD, INVITE_LINK_KEY (the server's own, so
+#   the seeded link invite opens there; the seed refuses staging without it)
 name: Seed staging
 
 on:
@@ -40,4 +41,5 @@ jobs:
           APP_ENV: staging
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
+          INVITE_LINK_KEY: ${{ secrets.INVITE_LINK_KEY }}
         run: pnpm datastore:seed

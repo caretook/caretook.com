@@ -10,14 +10,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                                      | Merge    |
-| ----- | ----- | ---------------------------------------------------------- | -------- |
-| 68    | B-752 | no fix (not reproducible; back to triaged, waits on B-753) | —        |
-| 69    | B-779 | merged                                                     | d63d7a67 |
-| 70    | B-787 | merged                                                     | 9e62f2b5 |
-| 71    | B-792 | merged                                                     | 9f675672 |
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 72    | B-830 | merged | ab6da878 |
+| 73    | B-840 | merged | 9dd61dda |
 
-**Wave 15 (slices 68–71, B-752, B-779, B-787, B-792, all on opus; 2026-11-25).** Session started with git matching _Status_; `prd sync` needed no merge (dev only had backlog commits); inbox empty. No running topic holds these files. Hot files set (timeline route folder, `serviceWorkerCaches`, `packages/api/src/connectors/`), items claimed. B-750 (second-zone overflow umbrella) stays standing: no files named yet. Held at first by the usage drain (85%); dev 8103be79 raised the drain line to 95% on the user's word, so `prd sync --force` merged dev as c076a258 (tooling only) and the drain reads normal. **Worktrees made and one opus agent spawned per slice for 68–71 (2026-11-25); `prd watch --wait` running.** If agents are gone after a crash, respawn with `--continue`. Merge in order 68–71. Slice 70 maps to `@suite` (check-areas), so the landing's `browser --changed --base dev` pulls in the lean set (`layout-offline` covers it): run once. Worktrees stay until the wave's CI is green. **Merged 69–71; 68 made no change (not reproducible; B-752 back to triaged, waiting on B-753's watchdog in fixes-tooling). Worktrees stay until the wave's CI is green.** **`components` CI on 1752fb85: `file`** (run 45614044772): four `timelineJumpPaging.browser.test.tsx` "scrolling newer from a day" tests (one hard, three flaky) plus a quarantined one; slice 69's file and hook, sent to its agent as a fix request (blame couldn't run: tip is docs only). Fix (the hold's own scroll up read as the reader's by `NewerEntries`; guarded by `landingHeld()`) merged as cf685016; **`components` CI green on cb856531 (run 45616812492; one quarantined failure, `emergency.browser.test.tsx`, not this branch's; Back-after-newer passed).** Slice worktrees 68–71 removed; `prd sync` needs no merge; migrated, server restarted; docs folded (connectors, app-shell, timeline; all under 10 240 B). `browser --changed --base dev` (the lean set) running: run once. Next: `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, land `--tier components`. **After wave 15 (the user's word, via the backlog session caretook-com-b5):** land it, fold docs, commit _Status_, file the landing report (`pnpm prd ask --report`, naming wave 15 landed and its SHA; the `backlog - split-ops` session watches for it; don't message caretook-com-b5), then go idle: no new wave, no rotation, no `pnpm prd rm` (standing topic; the backlog side holds the row). **Docs at landing:** `connectors.md` (`todays_doses` passes carry `passId`), `app-shell.md` (precache in batches with retries), `timeline.md` (69: after the landing scroll the jump holds the heading in place through layout growth above, by ResizeObserver, until the reader's first input or scroll; the cause was the invite card, not today's entries). 68 and 69 both touch the jump test files: expect a conflict at 69's merge.
+**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. PR #208 open; Codex out of credits (exit 4: land --no-review). Browser --changed: app-shell, invites pass. Next: land --tier full --no-review once the recheck is green. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
 
 ## Wave 1
 
@@ -755,3 +753,28 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain
 - Keep the other fields and the text's shape otherwise unchanged.
 - Integration test in `readTools.int.test.ts`: each pass carries its id, and that id works as `give_pass`'s `passId` (an existing `mcpWrites.int.test.ts` case may cover the write; reuse its setup).
 - Update `connectors.md` only if it lists the result's fields (the orchestrator folds docs at landing; note what changed in the hand-off).
+
+## Wave 16
+
+Two fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays standing until its notes name files; B-752 (the timeline jump hang) waits for B-753's watchdog.
+
+### Slice 72: staging's seeded invite links open (B-830)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-groups.md, ops/runbook.md · Tests: unit
+
+The seeded Viewer invite link on staging shows "Couldn't load this link": `.github/workflows/seed-staging.yml` and `reset-staging.yml`'s seed step pass only `APP_ENV`, `DATABASE_URL` and `SEED_USER_PASSWORD`, so `seeds/invites.ts` seals with `utils/linkToken.ts`'s dev key while the staging server opens with the real `INVITE_LINK_KEY` (`careGroupInviteService.copyLink` returns `linkKeyMissing`).
+
+- Pass `INVITE_LINK_KEY` from the staging environment's secrets to both Actions' seed step.
+- Make sealing refuse the dev key when `APP_ENV` is `staging` (as production does), so a seed run without the key fails loudly instead of writing links staging can't open. Local dev and tests keep the dev key.
+- Unit test beside `linkToken`: staging without the key can't seal; staging with it seals and opens; dev without it still uses the dev key.
+- Don't run either Action or touch staging: reseeding is the user's step. Say in the hand-off that staging needs a reseed (or reset) once this lands, and that the secret must exist in the staging environment.
+
+### Slice 73: the offline banner waits out a brief drop (B-840)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component
+
+The offline banner (`routes/app/layout/OfflineBanner.tsx`) flashes while the connection is actually up.
+
+- Find what drives it (`navigator.onLine`, PowerSync's connected status from `lib/sync/`, or both) and say in the hand-off which flips while online, and why.
+- Show the banner only after the offline state has held for a short grace period (a few seconds, one named constant); hide it as soon as the connection is back. Don't change what counts as offline elsewhere (uploads, page cache).
+- Component tests with fake timers: a drop shorter than the grace never shows the banner; one longer shows it; reconnecting hides it at once.
