@@ -155,3 +155,11 @@ export type * from "./symptomType/types";
 import * as timelineEntryTodoModel from "./timelineEntryTodo";
 export { timelineEntryTodoModel };
 export type * from "./timelineEntryTodo/types";
+
+import * as tagModel from "./tag";
+export { tagModel };
+export type * from "./tag/types";
+
+import * as recordTagModel from "./recordTag";
+export { recordTagModel };
+export type * from "./recordTag/types";

@@ -137,6 +137,16 @@ describe("applyRoles", () => {
         `SELECT id, group_id, entry_id, todo_id, created_by FROM timeline_entry_todo`,
       ),
     ).toBeNull();
+    // Tags and which records carry them (tags slice 1).
+    expect(
+      await failsWith(replication, `SELECT id, group_id, name, name_key, created_by FROM tag`),
+    ).toBeNull();
+    expect(
+      await failsWith(
+        replication,
+        `SELECT id, group_id, tag_id, entry_id, todo_id, provider_id, medication_id, created_by FROM record_tag`,
+      ),
+    ).toBeNull();
     // The symptom catalog (symptom-catalog slice 1).
     expect(
       await failsWith(replication, `SELECT id, group_id, name, name_key, created_by FROM symptom_type`),
