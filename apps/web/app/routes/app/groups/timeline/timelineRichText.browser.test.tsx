@@ -55,10 +55,10 @@ const fixtures = [
 const noteItem = () => rowWith("Morning check");
 
 describe("a live note's text on the timeline", () => {
-  test("cards: headings, lists and bold as elements, a mention as a chip, nothing editable", async () => {
+  test("Full view: headings, lists and bold as elements, a mention as a chip, nothing editable", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => rows().length === 1, "the note");
-    await setView("Cards");
+    await setView("Full");
     await waitUntil(() => view() === "cards" && !!noteItem()?.querySelector("[data-rich-text]"), "rich text");
     const rich = noteItem()!.querySelector<HTMLElement>("[data-rich-text]")!;
 
@@ -76,7 +76,7 @@ describe("a live note's text on the timeline", () => {
     expect(rich.textContent).not.toContain("@");
   });
 
-  test("rows: the same note keeps its plain two-line clamp", async () => {
+  test("Condensed view: the same note keeps its plain two-line clamp", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => view() === "rows" && rows().length === 1, "the note's row");
     const item = noteItem()!;
