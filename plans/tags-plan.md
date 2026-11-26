@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in `dev` (2026-11-26). **Wave 2:** slice 2 (the picker and chips) handed off (491e3862, quick check green) and merged as b3fe1008; worktree `.loops/tags-2` kept until the wave is green. Wave gate: `pnpm prd ci run components` requested. Fold at landing into tags.md: picker sheet, chips (rows two then +N; entry page shows all), Tags in ⋯ for every kind, `EntryFilters.tag`, tags kept on reschedule. Filed B-864 (fx.tag fixture id from raw name). Then wave 3 (slices 3, 4, 5 together), then wave 4 (slice 6).
+**Where it stands:** wave 1 landed in `dev` (2026-11-26). **Wave 2:** slice 2 (the picker and chips) handed off (491e3862, quick check green) and merged as b3fe1008; worktree `.loops/tags-2` kept until the wave is green. Wave gate: components run 45765373897 on 97cadad2 was `file`; blame: all the branch's (inScreens and plannerEvents tests not expecting the new Tags ⋯ item). Sent back to slice 2's agent as a fix request. Fold at landing into tags.md: picker sheet, chips (rows two then +N; entry page shows all), Tags in ⋯ for every kind, `EntryFilters.tag`, tags kept on reschedule. Filed B-864 (fx.tag fixture id from raw name). Then wave 3 (slices 3, 4, 5 together), then wave 4 (slice 6).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
