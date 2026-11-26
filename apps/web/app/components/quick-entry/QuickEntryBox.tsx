@@ -29,8 +29,9 @@ const TEXTAREA_CLASS: Record<QuickEntrySize, string> = {
  * Save writes them all at once, on this device (offline too), and offers
  * Undo for the whole line for about 10 s. An empty box offers suggestions
  * behind the Sparkles button inside it; while typing, matching names float
- * under the field. Nothing is saved before Save, except a due pass's chip,
- * which is Given all in one tap (with the same Undo). On a user's first few
+ * above the field (Tab completes a lone one). Nothing is saved before Save,
+ * except a due pass's chip, which is Given all in one tap (with the same
+ * Undo). On a user's first few
  * focuses a tips panel floats under the empty box (`QuickEntryTips`).
  * Writers only: the timeline leaves it out for viewers.
  */
@@ -122,6 +123,7 @@ export function QuickEntryBox({
                 onChange={(e) => q.setText(e.target.value)}
                 onKeyDown={(e) => {
                   names.onKeyDown(e);
+                  if (showNames) names.onFieldKeyDown(e, completions, fill);
                   // Enter saves; Shift+Enter is a new line.
                   if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
@@ -141,7 +143,12 @@ export function QuickEntryBox({
                 />
               )}
               {showNames && (
-                <QuickEntryCompletions completions={completions} onFill={fill} onKeyDown={names.onKeyDown} />
+                <QuickEntryCompletions
+                  completions={completions}
+                  onFill={fill}
+                  onKeyDown={names.onKeyDown}
+                  overlay={names.overlay}
+                />
               )}
               {tips.visible && <QuickEntryTips examples={examples} onDismiss={tips.dismiss} />}
             </div>

@@ -1,20 +1,26 @@
 import type { FocusEvent, KeyboardEvent, RefObject } from "react";
 import type { Completion } from "~/lib/assistant/quickEntryCompletion";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ChipGroup, SURFACE } from "~/components/ui";
+
+/** The overlay's gap from the field, in px (Tailwind's `mb-1`). */
+const GAP = 4;
 
 /**
  * When the floating names show: while focus is in the field or on a name
  * chip (reached by Tab), until Escape, which hides them until the text
  * changes. Spread `area` on the wrapper that holds both; `onKeyDown` goes
- * on the field and the overlay.
+ * on the field and the overlay, `onFieldKeyDown` on the field too, and
+ * `overlay` on `QuickEntryCompletions`.
  */
 export function useCompletionsOverlay(text: string, field: RefObject<HTMLTextAreaElement | null>) {
   const [focused, setFocused] = useState(false);
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
+  const overlay = useRef<HTMLDivElement>(null);
   return {
     open: focused && dismissedFor !== text,
+    overlay,
     area: {
       onFocus: () => setFocused(true),
       onBlur: (e: FocusEvent<HTMLElement>) => {
@@ -26,34 +32,83 @@ export function useCompletionsOverlay(text: string, field: RefObject<HTMLTextAre
       setDismissedFor(text);
       field.current?.focus();
     },
+    /**
+     * Tab from the field while the names show: one name completes it (focus
+     * stays in the field); several move focus to the first, for the arrows
+     * and Enter. With none showing, Tab moves on as usual.
+     */
+    onFieldKeyDown: (
+      e: KeyboardEvent,
+      completions: readonly Completion[],
+      onFill: (text: string) => void,
+    ) => {
+      if (e.key !== "Tab" || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+      const first = completions[0];
+      const chips = overlay.current?.querySelectorAll("button");
+      if (!first || !chips?.length) return;
+      e.preventDefault();
+      if (completions.length === 1) onFill(first.text);
+      else chips[0]!.focus();
+    },
   };
+}
+
+/** Arrow keys move between the name chips (wrapping). */
+function moveAmongChips(e: KeyboardEvent<HTMLElement>) {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!step) return;
+  const chips = [...e.currentTarget.querySelectorAll("button")];
+  const at = chips.indexOf(document.activeElement as HTMLButtonElement);
+  if (at < 0) return;
+  e.preventDefault();
+  chips[(at + step + chips.length) % chips.length]!.focus();
 }
 
 /**
  * "Matching names" while typing: the medication, pass and provider names
- * the last word starts, floating just under the field (inside its
- * `relative` wrapper) over the cards and the timeline, so nothing below
- * moves. Picking one completes the word. A press never takes focus from the
- * field (so the overlay stays up until the press lands); the box decides
- * when it shows.
+ * the last word starts, floating just **above** the field (inside its
+ * `relative` wrapper), so the cards and the timeline under it stay in view
+ * and nothing moves. With no room above it (the field near the top of the
+ * screen), it opens under the field in the flow instead, pushing the cards
+ * down rather than covering them. Picking one completes the word. A press
+ * never takes focus from the field (so the overlay stays up until the press
+ * lands); the box decides when it shows.
  */
 export function QuickEntryCompletions({
   completions,
   onFill,
   onKeyDown,
+  overlay,
 }: {
   completions: readonly Completion[];
   /** Put this in the box and leave the cursor at its end. */
   onFill: (text: string) => void;
   /** `useCompletionsOverlay`'s Escape. */
   onKeyDown: (e: KeyboardEvent) => void;
+  /** `useCompletionsOverlay`'s `overlay`, for its Tab. */
+  overlay: RefObject<HTMLDivElement | null>;
 }) {
+  const [below, setBelow] = useState(false);
+  const own = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = own.current;
+    const anchor = el?.parentElement;
+    if (!el || !anchor) return;
+    setBelow(anchor.getBoundingClientRect().top < el.offsetHeight + GAP);
+  }, [completions]);
   return (
     <div
-      className={`${SURFACE} absolute top-full right-0 left-0 z-20 mt-1 p-2`}
-      data-quick-completions
+      ref={(el) => {
+        own.current = el;
+        overlay.current = el;
+      }}
+      className={`${SURFACE} ${below ? "relative mt-1" : "absolute right-0 bottom-full left-0 mb-1"} z-20 p-2`}
+      data-quick-completions={below ? "below" : "above"}
       role="presentation"
-      onKeyDown={onKeyDown}
+      onKeyDown={(e) => {
+        moveAmongChips(e);
+        onKeyDown(e);
+      }}
       onMouseDown={(e) => e.preventDefault()}
     >
       <ChipGroup
