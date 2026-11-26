@@ -192,7 +192,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-387 | bug | triaged | sync-safety-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-404 | feature | triaged | staging-ship |  | One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is |
-| B-417 | feature | ready | marketing-2 | prd/marketing-2 | We are getting close to feature complete. We need another marketing content pass that updates copy… |
+| B-417 | feature | landed | marketing-2 | prd/marketing-2 | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
@@ -1065,7 +1065,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-417 · feature · We are getting close to feature complete. We need another marketing content pass that updates copy…
 
-- status: ready
+- status: landed
 - prd: marketing-2
 - owner: prd/marketing-2
 - commit: fdafec95
