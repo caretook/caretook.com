@@ -15,6 +15,7 @@ import {
   KindIcon,
   RepeatMark,
 } from "~/components/entry";
+import { TagChips } from "~/components/tags";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
@@ -58,6 +59,10 @@ export type EntryViewProps = {
   easy?: boolean;
   /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
   openTodos?: number;
+  /** Its tags (tags PRD): two chips, then "+N", for every role and in the easy view. */
+  tags?: readonly { id: string; name: string }[];
+  /** The ⋯ menu's Tags, for whoever may tag it (`canTagRecord`). */
+  onTags?: () => void;
 };
 
 /**
@@ -81,6 +86,8 @@ export function TimelineEntryRow({
   search,
   easy,
   openTodos,
+  tags,
+  onTags,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -117,6 +124,7 @@ export function TimelineEntryRow({
               </p>
             )}
             <OpenTodosMark count={openTodos} />
+            <TagChips tags={tags} className="mt-0.5" />
           </>
         }
       />
@@ -124,11 +132,12 @@ export function TimelineEntryRow({
       {!easy && <EntryCopyLink entry={entry} />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
-        {(onDelete || canHaveNoteDocument(entry.kind)) && (
+        {(onDelete || onTags || canHaveNoteDocument(entry.kind)) && (
           <EntryActions
             kind={entry.kind}
             label={actionsLabel(entry)}
             onEdit={onEdit}
+            onTags={onTags}
             cancel={cancel}
             onRemind={onRemind}
             printHref={

@@ -124,13 +124,13 @@ describe("condition changes on the timeline", () => {
     await expect.poll(() => again.location()).toBe(`${TIMELINE_URL}?kind=conditionChange`);
   });
 
-  test("a change opens nothing and its ⋯ is Delete only", async () => {
+  test("a change opens nothing and its ⋯ is Tags and Delete", async () => {
     await open("?kind=conditionChange");
     await expect.poll(() => rowWith("Resolved Hip fracture")).toBeTruthy();
     const row = () => rowWith("Resolved Hip fracture");
     expect(openOf(await found(row))).toBeNull();
     await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
-    await expect.poll(menuItems).toEqual(["Delete"]);
+    await expect.poll(menuItems).toEqual(["Tags", "Delete"]);
   });
 
   test("a viewer sees the rows, with no ⋯", async () => {

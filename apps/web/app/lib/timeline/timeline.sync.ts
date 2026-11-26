@@ -176,7 +176,16 @@ export type EntryFilters = {
    * kind), by the stored `symptom_type_id`; none or empty means every entry.
    */
   symptoms?: readonly string[] | null;
+  /**
+   * Only entries carrying this tag (`?tag=`, tags PRD), by a `record_tag`
+   * subquery; ANDed with `match`, never in place of it. None means every entry.
+   */
+  tag?: string | null;
 };
+
+/** An entry carrying one tag: its `record_tag` link (the tag's group is the entry's). */
+const TAGGED_SQL =
+  "timeline_entry.id IN (SELECT l.entry_id FROM record_tag l WHERE l.tag_id = ? AND l.group_id = timeline_entry.group_id)";
 
 /**
  * The kinds the timeline shows, as SQL (`TIMELINE_KINDS`). The timeline's
@@ -196,7 +205,7 @@ const VITAL_TYPE_SQL =
  */
 export const HISTORY_ENDS_SQL = `kind IN (${[...new Set(["note", ...FUTURE_KINDS])].map((k) => `'${k}'`).join(", ")})`;
 
-/** The conditions every window shares: one group, live entries, the kind, author, vital-type and symptom-type filters, the search. */
+/** The conditions every window shares: one group, live entries, the kind, author, vital-type, symptom-type and tag filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
   const conditions = ["group_id = ?", "deleted_at IS NULL"];
   const params: unknown[] = [groupId];
@@ -222,6 +231,10 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
     // The stored pointer only: SQLite can't derive a name's key or id, and a filter after loading would short a page.
     conditions.push(`symptom_type_id IN (${filters.symptoms.map(() => "?").join(", ")})`);
     params.push(...filters.symptoms);
+  }
+  if (filters.tag) {
+    conditions.push(TAGGED_SQL);
+    params.push(filters.tag);
   }
   if (filters.match) {
     conditions.push(`(${filters.match.sql})`);
