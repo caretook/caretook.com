@@ -316,6 +316,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-867 | bug | ready | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
 | B-868 | bug | triaged | fixes-bug |  | CI: the build job fails on dev |
 | B-869 | bug | triaged | fixes-tooling |  | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
+| B-870 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 
 ## Items
 
@@ -2274,3 +2275,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/todo-subtasks): Found by todo-subtasks wave 1 (2026-11-26): fails 4/4 on prd/todo-subtasks and 2/2 on dev 0005f796 itself at load ~11 (session-end-20261126-054837.log), so not load. Step at session-end.spec.mjs:231 (went-ahead flag null), once :234 (redirectTo lacks kind=symptom). Suspect: tags wave 4 (4c64a097) changed TimelineFilters/timelineFilters and ran no browser checks. Could be fixes-bug if the app, not the spec, regressed.
+
+### B-870 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/todo-subtasks.
