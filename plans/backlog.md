@@ -110,7 +110,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `timeline-jump` | done | `quick-entry-2` | `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `apps/web/app/lib/medications/medicationTimeline.sync.ts`, `apps/web/app/lib/care-periods/periodMarkers.ts`, `apps/web/app/routes/app/groups/timeline/useTimelineData.ts`, `apps/web/app/routes/app/groups/timeline/timelineRows.ts`, `apps/web/app/routes/app/groups/timeline/timelinePaging.ts`, `apps/web/app/routes/app/groups/timeline/daySummaryRows.ts`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/route.tsx`, `apps/web/app/components/quick-entry/`, `packages/data/src/db/schema/assistant/quickEntryTime` | Jump to a date on the timeline, by picker and quick entry (B-557) |
 | `orchestration-split` | done | — | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `.githooks/`, `scripts/project/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `AGENTS.md`, `risa.json` | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
-| `orchestration-split-2` | — | `orchestration-split` | `scripts/loops/`, `scripts/project/`, `packages/data/test/`, `apps/web/test/`, `docs/agents/`, `docs/orchestration.md`, `AGENTS.md`, `risa.json` | — |
+| `orchestration-split-2` | done | `orchestration-split` | `scripts/loops/`, `scripts/project/`, `packages/data/test/`, `apps/web/test/`, `docs/agents/`, `docs/orchestration.md`, `AGENTS.md`, `risa.json` | — |
 | `orchestration-split-3` | hold | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
 | `risa-next` | hold | `orchestration-split-3` | — | — |
 | `usage-aware-drain` | hold | `orchestration-split-3` | — | Plan-aware drain line, after the orchestrator split |
@@ -297,16 +297,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-833 | change | ready | fixes-ui | prd/fixes-ui | Quick entry tips' examples should use the group's own provider and medication |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | triaged | test-time-gates |  | Time limit gates for component tests, unit tests and the local quick check |
-| B-838 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
+| B-838 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-840 | bug | triaged | fixes-bug |  | Offline banner flashes too often when the connection hasn't actually dropped |
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
-| B-842 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
+| B-842 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
 | B-843 | bug | ready | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
-| B-844 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
+| B-844 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
 | B-845 | bug | triaged | fixes-tooling |  | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
-| B-846 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
-| B-847 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
+| B-846 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
+| B-847 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
 | B-848 | bug | ready | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
 | B-849 | change | ready | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
 | B-850 | change | ready | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
@@ -2101,7 +2101,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-838 · chore · Wave 7 skeptic's follow-ups for the split: no test ties the verdict fixtures or the two VERDICT_VERSION constants to buildVerdict, a former id prefix is read only by the backlog CLI and slice-brief, tidy-cli takes a slice's topic by position, and a broken risa.json now exits 2 from planner-model's importers
 
-- status: ready
+- status: landed
 - prd: orchestration-split-2
 - owner: prd/orchestration-split-2
 - commit: d9a5f958
@@ -2138,7 +2138,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-842 · chore · Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command
 
-- status: ready
+- status: landed
 - prd: orchestration-split-2
 - owner: prd/orchestration-split-2
 - commit: d9a5f958
@@ -2156,7 +2156,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-844 · chore · Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git
 
-- status: ready
+- status: landed
 - prd: orchestration-split-2
 - owner: prd/orchestration-split-2
 - commit: d671ae22
@@ -2176,7 +2176,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-846 · chore · Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move
 
-- status: ready
+- status: landed
 - prd: orchestration-split-2
 - owner: prd/orchestration-split-2
 - commit: d671ae22
@@ -2186,7 +2186,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-847 · chore · Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order
 
-- status: ready
+- status: landed
 - prd: orchestration-split-2
 - owner: prd/orchestration-split-2
 - commit: d671ae22
