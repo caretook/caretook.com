@@ -23,21 +23,21 @@ Notes for every wave:
 
 **Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
 
-**Parked (2026-11-26, the backlog session on the user's word):** start no new check, browser run, CI run or slice (90 included) until caretook-com-20 says orchestration-split-3 wave 1 (PR #230) has landed; then `pnpm prd sync`, start 90, carry on. Merges of handed-off slices are fine.
+**Unparked:** split stage 1c wave 1 landed as dev 00c60f0c; synced (76b8ad63). New browser.sh (hooks.browser, scripts/project/browser-run.sh).
 
 To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait in /app; brand/LoadingMark shared with AppLoading; 92). medications.md line 10 (PrintAllergies tops only the list print; the weekly sheet has G/S/R marks; 94). providers.md: Condensed rows (default, `providersView`) carry one main contact action, overriding B-422's "rows carry no contact details", which now holds for Full (93). 91 kept B-618's order and tightened the Change button's gap (14 to 8 px): say so in the report. assistant.md Todos bullet: kind words todo/to-do/to do/task/note/event, colon optional, optional leading `add`; `add` without one stays text (88). sync.md/app-shell.md: the offline banner's grace is 10 s when the browser is offline, 30 s when online but unsynced, 90 s on dev (89). Lesson: 93 ran to 13 files; split such items. Browser checks the wave needs: ui, marketing, first-sync.
 
-| Slice | Item         | State                       | Merge    |
-| ----- | ------------ | --------------------------- | -------- |
-| 86    | B-885        | merged                      | 39d0e40d |
-| 87    | B-897, B-900 | merged                      | bc45cde9 |
-| 88    | B-902        | merged                      | 8df165c5 |
-| 89    | B-904        | merged                      | 59623a1e |
-| 90    | B-905        | ready, parked (not started) |          |
-| 91    | B-906        | merged                      | 1fdf6bb0 |
-| 92    | B-908        | merged                      | e29899de |
-| 93    | B-909        | merged                      | 54443809 |
-| 94    | B-916        | merged                      | f1180db4 |
+| Slice | Item         | State                | Merge    |
+| ----- | ------------ | -------------------- | -------- |
+| 86    | B-885        | merged               | 39d0e40d |
+| 87    | B-897, B-900 | merged               | bc45cde9 |
+| 88    | B-902        | merged               | 8df165c5 |
+| 89    | B-904        | merged               | 59623a1e |
+| 90    | B-905        | agent working (opus) |          |
+| 91    | B-906        | merged               | 1fdf6bb0 |
+| 92    | B-908        | merged               | e29899de |
+| 93    | B-909        | merged               | 54443809 |
+| 94    | B-916        | merged               | f1180db4 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
