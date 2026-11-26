@@ -18,6 +18,8 @@
 
 **Dispatcher still paused.** Before resuming it the user moves `~/.caretook/inbox` to `~/.risa/inbox` and trusts the new folder (ask a287, `--waits`, filed and pushed at wave 4's landing; run `pnpm prd ask --wait a287` in the background; report a286); `CARETOOK_*` tool knobs set in shells or sessions are now ignored (e.g. `RISA_MAX_PRDS`).
 
+**Wave 5 waiting (orchestrator session orchestration-split-3-77, 2026-11-26):** synced, no merge needed. The backlog session (caretook-com-6d) agreed: fixes-ui lands its wave 17 and parks, then messages the go to start slice 5 past the open-worktree gate (the user's standing decision). Ask a287 waits in the background.
+
 **Next: wave 5** (slice 5, the command-name sweep and residual list; opus). It runs with the dispatcher paused and no other worktree open, like wave 4: coordinate with the backlog session first (caretook-com-6d; told at landing it may release fixes-ui, and that wave 5 needs it parked again). First `pnpm prd sync`. Tier: full. Last landing: the docs list in _How to run this plan_, then `pnpm prd rm orchestration-split-3`.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
