@@ -62,8 +62,8 @@ done
 usage() { sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1; }
 need_dir() { [[ -n $dir && -d $dir ]] || die "stack.sh $cmd: no worktree at ${dir:-(none given)}"; }
 name=$(basename "${dir:-.}")
-# The base a rewritten .env.loop keeps: its own, else the one given.
-base_of() { local b; b=$(env_get "$dir/.env.loop" BASE_BRANCH); echo "${b:-$base}"; }
+# The base a rewritten .env.loop gets: the one given, else its own.
+base_of() { [[ -n $base ]] && echo "$base" || env_get "$dir/.env.loop" BASE_BRANCH; }
 
 case $cmd in
   up)

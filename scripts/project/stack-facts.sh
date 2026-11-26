@@ -184,16 +184,19 @@ slot_facts() {
 }
 
 # stack_facts DIR → the facts of the worktree's stack, from its env files (no
-# Docker): nothing for a worktree without a stack, but web_port when its
-# apps/web/.env names one.
+# Docker): its project from .env's CARETOOK_STACK (as teardown takes it), its
+# ports from .env.loop's SLOT, which must then be 1-19; nothing for a worktree
+# without a stack, but web_port when its apps/web/.env names one.
 stack_facts() {
   local slot proj port
   proj=$(stack_project "$1") slot=$(env_get "$1/.env.loop" SLOT) port=$(web_port "$1")
-  if [[ -n $proj && $slot =~ ^[0-9]+$ ]]; then
-    slot_facts "$slot" | grep -v '^web_port=\|^url='
+  if [[ -n $proj ]]; then
+    [[ $slot =~ ^[0-9]+$ ]] && ((slot >= 1 && slot <= 19)) ||
+      die "$(basename "$1")'s stack $proj needs a SLOT of 1-19 in .env.loop (got ${slot:-none})"
+    slot_facts "$slot" | sed -e "s|^project=.*|project=$proj|" -e "s|^pg_container=.*|pg_container=$proj-postgres-1|" |
+      grep -v '^web_port=\|^url='
     [[ -n $port ]] && printf '%s\n' "web_port=$port" "url=http://localhost:$port"
   else
-    [[ -z $proj ]] || echo "project=$proj"
     [[ -z $port ]] || echo "web_port=$port"
   fi
   return 0

@@ -138,6 +138,33 @@ describe("slot facts", () => {
   });
 });
 
+describe("a worktree's stack facts", () => {
+  const w = () => join(loops, "facts-1");
+  beforeEach(() => mkdirSync(w(), { recursive: true }));
+
+  it("take the project from .env's CARETOOK_STACK, as teardown does, and the ports from SLOT", () => {
+    writeFileSync(join(w(), ".env"), "CARETOOK_STACK=caretook-loop7\n");
+    writeFileSync(join(w(), ".env.loop"), "SLOT=2\nBASE_BRANCH=dev\n");
+    expect(facts(ok(["status", w()]))).toMatchObject({
+      slot: "2",
+      project: "caretook-loop7",
+      pg_container: "caretook-loop7-postgres-1",
+      pg_port: "6234",
+    });
+  });
+
+  it("refuse a stack whose SLOT is outside 1-19, or missing", () => {
+    writeFileSync(join(w(), ".env"), "CARETOOK_STACK=caretook-loop7\n");
+    for (const slot of ["20", "0", "x", ""]) {
+      writeFileSync(join(w(), ".env.loop"), `SLOT=${slot}\nBASE_BRANCH=dev\n`);
+      const r = run("stack.sh", ["status", w()]);
+      expect(r.status, slot).not.toBe(0);
+      expect(r.stderr).toMatch(/needs a SLOT of 1-19 in \.env\.loop/);
+    }
+    rmSync(w(), { recursive: true });
+  });
+});
+
 describe("up and down", () => {
   const dir = () => join(loops, "t-1");
 
@@ -184,11 +211,13 @@ describe("up and down", () => {
     expect(facts(down).project).toBe("caretook-loop4");
     for (const f of [".env", "packages/data/.env", "apps/web/.env"])
       expect(existsSync(join(dir(), f)), f).toBe(false);
-    // .env.loop keeps the base it had, not the one given.
-    expect(read(dir(), ".env.loop")).toBe("SLOT=\nBASE_BRANCH=prd/t\n");
+    // .env.loop gets the base given (the core's parent of the branch).
+    expect(read(dir(), ".env.loop")).toBe("SLOT=\nBASE_BRANCH=dev\n");
     expect(read(dir(), "packages/data/.env.test.local")).toMatch(/caretook_test_t_1/);
     rmSync(log, { force: true });
+    // With none given, it keeps its own.
     expect(ok(["down", dir()])).toBe("");
+    expect(read(dir(), ".env.loop")).toBe("SLOT=\nBASE_BRANCH=dev\n");
     expect(ok(["status", dir()])).toBe("");
     expect(calls()).toBe("");
   });
