@@ -15,6 +15,8 @@
 // that failed its rerun is a failure, one that passed it a flake, and one that
 // never ran (the job's time ran out) infra. On `release` the three suite runs read
 // as one (release-jobs.mjs), and the second zone only reports unless its setting is `block`.
+// Each failed test carries its first failure message (`message`, ANSI stripped,
+// capped at MAX_MESSAGE), absent when Vitest gave none: blame and filing print it.
 //
 //   node scripts/ci/verdict.mjs summarize <vitest.json>…   prints `failures=<json>`
 //     for $GITHUB_OUTPUT: each report with its .rerun.json, .quarantine.json and .time.json,
@@ -33,25 +35,51 @@ export const VERDICT_VERSION = 1;
 /** Kept in a job output: GitHub limits them, and the verdict needs names, not logs. */
 export const MAX_TESTS = 100;
 const MAX_NAME = 300;
+/** A failure message's cap: enough for an assertion's numbers, small enough for a job output. */
+export const MAX_MESSAGE = 500;
+
+/**
+ * A failed test's first failure message, ANSI codes stripped and trimmed, or null.
+ * @param {unknown} messages Vitest's `failureMessages`
+ */
+export function failureMessage(messages) {
+  const first = Array.isArray(messages) ? messages.find((m) => typeof m === "string" && m.trim()) : null;
+  if (typeof first !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- the colour codes themselves
+  const plain = first.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").trim();
+  return plain.length > MAX_MESSAGE ? `${plain.slice(0, MAX_MESSAGE - 1)}…` : plain;
+}
+
+/** A failed test as the verdict keeps it: its message only when it has one. */
+const failedTest = (
+  /** @type {string} */ file,
+  /** @type {{ fullName?: string, title?: string, failureMessages?: unknown }} */ a,
+) => {
+  const message = failureMessage(a.failureMessages);
+  return {
+    file,
+    name: (a.fullName || a.title || "(unnamed)").trim().slice(0, MAX_NAME),
+    ...(message ? { message } : {}),
+  };
+};
 
 /**
  * The failed files and tests in a Vitest JSON report. A file that failed with
  * no failed test (an import error) is still listed.
- * @param {{ testResults?: { name: string, status?: string, assertionResults?: { status: string, fullName?: string, title?: string }[] }[] } | null} report
+ * @param {{ testResults?: { name: string, status?: string, assertionResults?: { status: string, fullName?: string, title?: string, failureMessages?: unknown }[] }[] } | null} report
  * @param {string} root paths are made relative to it
  */
 export function summarizeVitest(report, root) {
   if (!report?.testResults) return { reported: false, total: 0, files: [], tests: [], truncated: false };
   let total = 0;
   /** @type {string[]} */ const files = [];
-  /** @type {{ file: string, name: string }[]} */ const tests = [];
+  /** @type {{ file: string, name: string, message?: string }[]} */ const tests = [];
   for (const result of report.testResults) {
     const file = relative(root, result.name);
     total += result.assertionResults?.length ?? 0;
     const failed = (result.assertionResults ?? []).filter((a) => a.status === "failed");
     if (result.status === "failed" || failed.length) files.push(file);
-    for (const a of failed)
-      tests.push({ file, name: (a.fullName || a.title || "(unnamed)").trim().slice(0, MAX_NAME) });
+    for (const a of failed) tests.push(failedTest(file, a));
   }
   return {
     reported: true,
@@ -206,10 +234,12 @@ export function buildVerdict({
   /** @type {string[]} */ const infraJobs = [];
   /** @type {string[]} */ const brakeJobs = [];
   /** @type {string[]} */ const files = [];
-  /** @type {{ job: string, file: string, name: string }[]} */ const tests = [];
+  /** @typedef {{ job: string, file: string, name: string, message?: string }} JobTest */
+  /** @type {JobTest[]} */ const tests = [];
   /** @type {string[]} */ const afterFiles = [];
-  /** @type {{ job: string, file: string, name: string }[]} */ const afterTests = [];
-  /** @type {{ job: string, file: string, name: string | null, brake: boolean }[]} */ const flaky = [];
+  /** @type {JobTest[]} */ const afterTests = [];
+  /** @type {{ job: string, file: string, name: string | null, brake: boolean, message?: string }[]} */
+  const flaky = [];
   /** @type {{ job: string, file: string, name: string, status: string }[]} */ const quarantined = [];
   let truncated = false;
   let reran = false;
@@ -238,7 +268,7 @@ export function buildVerdict({
 
     const listed = (/** @type {{ file: string, name: string }} */ t) =>
       isQuarantined(entries, t.file, t.name);
-    /** @type {{ file: string, name: string }[]} */ const before = summary?.tests ?? [];
+    /** @type {{ file: string, name: string, message?: string }[]} */ const before = summary?.tests ?? [];
     for (const t of before.filter(listed))
       quarantined.push({ job, file: t.file, name: t.name, status: "failed" });
     const beforeTests = before.filter((t) => !listed(t));
@@ -269,7 +299,13 @@ export function buildVerdict({
     if (rerun) {
       for (const t of beforeTests)
         if (!stillTests.includes(t))
-          flaky.push({ job, file: t.file, name: t.name, brake: isBrake(t.file, brakes) });
+          flaky.push({
+            job,
+            file: t.file,
+            name: t.name,
+            brake: isBrake(t.file, brakes),
+            ...(t.message ? { message: t.message } : {}),
+          });
       for (const f of beforeFiles)
         if (!stillFiles.includes(f) && !beforeTests.some((t) => t.file === f))
           flaky.push({ job, file: f, name: null, brake: isBrake(f, brakes) });
