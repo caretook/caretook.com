@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 
-import { Wordmark } from "~/components/brand";
+import { FullLogo } from "~/components/brand";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
 
 const SITE_PAGES = MARKETING_PAGES.filter((p) => p.area === "site");
@@ -13,7 +13,7 @@ export function MarketingFooter() {
     <footer className="border-t border-base-300 bg-base-200">
       <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
         <div>
-          <Wordmark />
+          <FullLogo />
           <p className="mt-3 text-base text-base-content/80">
             A shared place for a family to keep track of someone&apos;s care.
           </p>

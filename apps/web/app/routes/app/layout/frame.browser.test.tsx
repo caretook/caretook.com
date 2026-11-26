@@ -93,7 +93,7 @@ describe("the header", () => {
       const r = el.getBoundingClientRect();
       return r.top + r.height / 2;
     };
-    expect(brand.textContent?.trim()).toBe("Caretook");
+    expect(brand.querySelector('[data-logo-part="name"]')?.textContent).toBe("Caretook");
     expect(Math.abs(mid(brand) - mid(avatar))).toBeLessThan(4);
     expect(header().getBoundingClientRect().height).toBeLessThanOrEqual(72);
     await expect.poll(() => header().querySelector('[data-region="status"] [role="status"]')).not.toBeNull();
@@ -145,7 +145,9 @@ describe("the user menu", () => {
     await expect.element(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
     await expect.element(userButton()).toBeVisible();
     expect(groupButton().query()).toBeNull();
-    expect(header().querySelector('[data-region="group"]')?.textContent?.trim()).toBe("Caretook");
+    const group = header().querySelector('[data-region="group"]');
+    expect(group?.querySelector('[data-logo-part="name"]')?.textContent).toBe("Caretook");
+    expect(group?.querySelector('[data-logo-part="tagline"]')?.textContent).toBe("Care, taken.");
     expect(document.querySelector(TAB_BAR)).toBeNull();
   });
 });
