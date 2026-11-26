@@ -61,7 +61,8 @@ const verdictOf = (/** @type {object} */ summary, result = "success") =>
     needs: {
       plan: ok,
       static: ok,
-      unit: ok,
+      "unit-1": ok,
+      "unit-2": ok,
       integration: ok,
       "components-1": ok,
       "components-2": ok,

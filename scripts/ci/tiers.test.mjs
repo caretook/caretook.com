@@ -39,15 +39,15 @@ describe("tiers.mjs", () => {
 
   it("prints the plan job's lines for each tier", () => {
     const want = {
-      static: [true, false, false, false, false, false, false, false],
-      unit: [true, true, false, false, false, false, false, false],
-      integration: [true, true, true, false, false, false, false, false],
-      components: [true, true, true, true, false, false, false, true],
-      full: [true, true, true, true, true, false, false, true],
-      candidate: [true, true, true, true, true, true, false, true],
-      release: [true, true, true, true, true, true, true, true],
+      static: [true, false, false, false, false, false, false, false, false],
+      unit: [true, true, false, false, false, false, false, false, true],
+      integration: [true, true, true, false, false, false, false, false, true],
+      components: [true, true, true, true, false, false, false, true, true],
+      full: [true, true, true, true, true, false, false, true, true],
+      candidate: [true, true, true, true, true, true, false, true, true],
+      release: [true, true, true, true, true, true, true, true, true],
     };
-    const keys = [...tiers.TIERS, "components2"];
+    const keys = [...tiers.TIERS, "components2", "unit2"];
     for (const [tier, on] of Object.entries(want))
       expect(plan(`ci/${tier}/slice-x-1`)).toBe(
         [`tier=${tier}`, ...keys.map((k, i) => `${k}=${on[i]}`), "narrowed=false", ""].join("\n"),
@@ -71,6 +71,7 @@ describe("tiers.mjs", () => {
         "candidate=false",
         "release=false",
         "components2=false",
+        "unit2=false",
         "narrowed=true",
         "",
       ].join("\n"),
@@ -95,6 +96,7 @@ describe("the plan job's outputs", () => {
       "candidate=false",
       "release=false",
       "components2=false",
+      "unit2=true",
       "narrowed=false",
     ]);
     expect(planOutputs("ci/components/x")).toContain("components=true");
@@ -123,6 +125,7 @@ describe("the plan job's outputs", () => {
       "candidate=false",
       "release=false",
       "components2=false",
+      "unit2=false",
       "narrowed=true",
     ]);
   });
