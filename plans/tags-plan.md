@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in `dev` (2026-11-26). **Wave 2:** slice 2 (the picker and chips) merged as b3fe1008 and its test fix as f71fed2a; worktree removed. Gate: components run 45767564258 on 1e90fcd1 `flake` (print.browser weekly chart, untouched file). Synced dev (dc1ada81: seed guard, tooling); docs folded into tags.md (_Screens_). Next: components recheck on the synced tip, PR, Codex review, land. Filed B-864 (fx.tag fixture id from raw name).
+**Where it stands:** wave 1 landed in `dev` (2026-11-26). **Wave 2:** slice 2 (the picker and chips) merged as b3fe1008 and its test fix as f71fed2a; worktree removed. Gate: components run 45767564258 on 1e90fcd1 `flake` (print.browser weekly chart, untouched file). Synced dev (dc1ada81: seed guard, tooling); docs folded into tags.md (_Screens_). PR #209 open; Codex out of credits (exit 4), so land --no-review. Recheck green: components run 45768746414 on e24fefd8. Browser checks (changed set) phase2, roundtrip, live-notes pass. Landing --no-review. Filed B-864 (fx.tag fixture id from raw name).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
