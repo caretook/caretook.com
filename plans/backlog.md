@@ -308,14 +308,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-846 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
 | B-847 | chore | ready | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
 | B-848 | bug | ready | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
-| B-849 | change | in-progress | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
-| B-850 | change | in-progress | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
+| B-849 | change | ready | fixes-ui | prd/fixes-ui | Rename timeline View menu labels from Rows and Cards to Condensed and Full |
+| B-850 | change | ready | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
-| B-856 | bug | triaged | marketing |  | Marketing pages have no light mode (dark only) |
+| B-856 | bug | dropped | marketing |  | Marketing pages have no light mode (dark only) |
 
 ## Items
 
@@ -2206,19 +2206,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-849 · change · Rename timeline View menu labels from Rows and Cards to Condensed and Full
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: c492621a
 
 - 2026-11-25 (Robert Bo Davis): Triage: header layout at medium widths (B-848) and View menu wording (B-849); small UI fixes
 
 ### B-850 · change · Timeline Full view should show live notes with their rich text formatting
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: c492621a
 
 - 2026-11-25 (Robert Bo Davis): Triage: Full view renders live notes' rich text (reuse the read-only Tiptap view); may outgrow a fix if layout or speed suffers
 
@@ -2269,9 +2269,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-856 · bug · Marketing pages have no light mode (dark only)
 
-- status: triaged
+- status: dropped
 - prd: marketing
 - owner:
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-26, for the next marketing pass; pairs with B-836 (visual refresh). Check whether it should follow the system theme like the app
+- 2026-11-25 (Robert Bo Davis): User 2026-11-25: not a bug (user error); light mode works
