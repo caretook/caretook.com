@@ -3,3 +3,5 @@
 export { AppLoading } from "./AppLoading";
 export { FullLogo, LogoMark } from "./Logo";
 export { BRAND } from "./name";
+// fixes-ui (slice 92): the loading look AppLoading shares with ui/PageLoading.
+export { LoadingMark } from "./LoadingMark";
