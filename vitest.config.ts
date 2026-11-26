@@ -18,8 +18,9 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //   whose each file is; scripts/project/test-projects.test.mjs keeps every one
 //   in exactly one owner's project). Caretook's, `pnpm test:project`:
 //   project:unit    the ones `pnpm test` keeps: the check manifest's and areas'
-//                   guards, the sync matrix, Caretook's CI jobs, the deploy, the
-//                   build and the local lint rules
+//                   guards, the sync matrix (quick-guards keeps it and rolesSql
+//                   in projects every quick check runs), Caretook's CI jobs, the
+//                   deploy, the build and the local lint rules
 //   project:tooling the rest (the hooks, the check's body, the doc budget, …),
 //                   run by `pnpm test:tooling`, not `pnpm test`
 //   The core's (the tool that moves out):
@@ -62,6 +63,7 @@ const PROJECT_UNIT = [
   "tiers",
   "verdict",
   "zones",
+  "quick-guards",
 ].map((name) => `{loops,ci,project}/${name}.test.mjs`);
 const PROJECT_TOOLING = ["fixes-plans", "lint-heap", "workspace-config"].map(
   (name) => `loops/${name}.test.mjs`,
