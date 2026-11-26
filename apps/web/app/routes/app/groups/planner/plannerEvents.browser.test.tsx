@@ -229,7 +229,7 @@ describe("cancel and undo", () => {
       const device = await openPlanner({ url: entryUrl(CARDIOLOGY.id) });
       await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
       const items = await openMenu(getByCss(ENTRY_MENU));
-      expect(items).toEqual(["Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
+      expect(items).toEqual(["Tags", "Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
       await confirmCancel();
       await device.settle();
       await expect.poll(BANNER).not.toBeNull();
