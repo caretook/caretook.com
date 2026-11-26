@@ -32,6 +32,18 @@ describe("actionsLabel", () => {
 });
 
 describe("emptyTimelineText", () => {
+  it("names a tag beside the other filters", () => {
+    expect(emptyTimelineText(null, null, null, null, null, "Knee")).toBe(
+      "No entries tagged “Knee” on the timeline yet.",
+    );
+    expect(emptyTimelineText("note", "Sam Lee", null, null, null, "Knee")).toBe(
+      "No notes tagged “Knee” by Sam Lee yet.",
+    );
+    expect(emptyTimelineText(null, null, "walk", null, null, "Knee")).toBe(
+      "No entries tagged “Knee” match “walk”.",
+    );
+  });
+
   it("with and without a filter", () => {
     expect(emptyTimelineText(null)).toBe("Nothing on the timeline yet.");
     expect(emptyTimelineText("symptom")).toBe("No symptoms on the timeline yet.");

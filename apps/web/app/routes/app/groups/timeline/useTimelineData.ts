@@ -79,7 +79,7 @@ export type TimelineData = {
   passNameOf: (passId: string | null) => string | null;
   /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
   now: Date;
-  /** The Today card's appointment: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
+  /** The Today card's appointment: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind, author and tag filters, not the search. */
   next: { next: TimelineEntry | null; more: number };
   /** The care periods' track and their places' names (the current-period line). Ignores the filters. */
   periods: TimelinePeriods;
@@ -134,13 +134,14 @@ export function useTimelineData({
   day?: string | null;
   initial: TimelineRows;
 }): TimelineData {
-  // The paging belongs to one set of filters (kind, author and search) and one jump: under any other, it's one page again.
+  // The paging belongs to one set of filters (kind, author, tag and search) and one jump: under any other, it's one page again.
   const filterKey = JSON.stringify([
     filters.kind,
     filters.author,
     filters.match ?? null,
     filters.vital ?? null,
     filters.symptoms ?? [],
+    filters.tag ?? null,
     day,
   ]);
   // Back to this history entry starts from the window kept for it; anything else from one page.
@@ -275,7 +276,7 @@ export function useTimelineData({
   const markers = periodMarkers(periods.spans, {
     oldestLoaded: shown.at(-1)?.occurredAt ?? null,
     hasOlder: page.hasOlder,
-    filtered: !!(filters.kind || filters.author || filters.match),
+    filtered: !!(filters.kind || filters.author || filters.tag || filters.match),
     before: windowBefore,
   });
   const now = new Date(cutoff);
@@ -377,7 +378,7 @@ export function useTimelineData({
             ? jumpNotice({
                 day,
                 shownDay: landedDay,
-                filtered: !!(filters.kind || filters.author || filters.vital),
+                filtered: !!(filters.kind || filters.author || filters.vital || filters.tag),
               })
             : null,
           noticeDay: landedDay ?? days.at(-1)?.key ?? null,
