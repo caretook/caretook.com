@@ -27,12 +27,12 @@ Notes for every wave:
 
 **Wave 18 (this session, 2026-11-26):** slices 99–102 written, all opus: 99 B-899 (copy link into ⋯, lands first for tags-2), 100 B-923 (specialty suggestions), 101 B-924 (provider header on a phone), 102 B-925 (care period arrows gap; after 99). The backlog session asked for a recheck after the 95021acb sync: the wave's CI run is the gate. Still held: B-325 (Capacitor).
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
-| 99 | B-899 | merged (opus); docs: timeline.md copy-link line | 63bebd6c |
-| 100 | B-923 | merged (opus) | 33df29e0 |
-| 101 | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0 |
-| 102 | B-925 | started (opus), worktree fixes-ui-102 | |
+| Slice | Item  | State                                                                      | Merge        |
+| ----- | ----- | -------------------------------------------------------------------------- | ------------ |
+| 99    | B-899 | merged (opus); docs: timeline.md copy-link line                            | 63bebd6c     |
+| 100   | B-923 | merged (opus)                                                              | 33df29e0     |
+| 101   | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0     |
+| 102   | B-925 | merged (opus)                                                              | (this merge) |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
