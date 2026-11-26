@@ -19,17 +19,17 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                    | Merge |
-| ----- | ----- | ---------------------------------------- | ----- |
-| 69    | B-869 | in progress (opus)                       |       |
-| 70    | B-873 | in progress (opus)                       |       |
-| 71    | B-875 | handed off 692779eb, waits for 69 and 70 |       |
-| 72    | B-876 | in progress (opus)                       |       |
-| 73    | B-874 | in progress (opus)                       |       |
-| 74    | B-877 | in progress (opus)                       |       |
-| 75    | B-878 | in progress (opus)                       |       |
-| 76    | B-871 | in progress (opus)                       |       |
-| 77    | B-872 | in progress (opus)                       |       |
+| Slice | Item  | State                                    | Merge    |
+| ----- | ----- | ---------------------------------------- | -------- |
+| 69    | B-869 | merged, lands alone (wave 9a)            | bd9922d5 |
+| 70    | B-873 | in progress (opus)                       |          |
+| 71    | B-875 | handed off 692779eb, waits for 69 and 70 |          |
+| 72    | B-876 | in progress (opus)                       |          |
+| 73    | B-874 | in progress (opus)                       |          |
+| 74    | B-877 | in progress (opus)                       |          |
+| 75    | B-878 | in progress (opus)                       |          |
+| 76    | B-871 | in progress (opus)                       |          |
+| 77    | B-872 | in progress (opus)                       |          |
 
 ## Wave 1
 
