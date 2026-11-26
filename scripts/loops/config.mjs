@@ -70,6 +70,7 @@ const TYPES = {
     ok: (v) => typeof v === "string" && ID_PREFIX.test(v),
     want: "an id prefix (capitals: B, RISA)",
   },
+  flag: { ok: (v) => typeof v === "boolean", want: "true or false" },
   version: {
     ok: (v) => typeof v === "string" && /^\d+\.\d+\.\d+([-+][\w.-]+)?$/.test(v),
     want: "a version (1.2.3)",
@@ -90,6 +91,8 @@ export const SHAPE = [
   // What the tool's own commands are called here.
   ["tool.prd", "command"],
   ["tool.backlog", "command"],
+  // True only in the tool's own repo: its work switch is off by default (machine.mjs).
+  ["tool.self", "flag?"],
   // Paths, from the repo's root.
   ["paths.backlog", "path"],
   ["paths.inbox", "path"],
@@ -174,6 +177,9 @@ export const SHAPE = [
   ["hooks.docBudget", "command?"],
   // How to try a landing and what the main checkout needs after one (ready.sh, land.sh).
   ["hooks.landing", "command?"],
+  // The Claude Code config folder this project's sessions use (absolute, or ~/…; none: Claude
+  // Code's default). RISA_CLAUDE_CONFIG_DIR and the machine config come first (host.mjs).
+  ["claude.configDir", "text?"],
   // The boundary lint: the project's own folders, which no core file may name.
   ["boundary.appPaths", "path[]?"],
 ];
