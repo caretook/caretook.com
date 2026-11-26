@@ -26,7 +26,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 89    | B-465 | started (opus)        |          |
 | 90    | B-431 | started (opus)        |          |
 | 91    | B-432 | waits for 90          |          |
-| 92    | B-862 | started (opus)        |          |
+| 92    | B-862 | handed off (4e3ad8a0) |          |
 | 93    | B-864 | handed off (7103d224) |          |
 
 ## Wave 1
