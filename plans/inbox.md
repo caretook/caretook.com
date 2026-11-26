@@ -37,6 +37,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Big plans
 
+- Onboarding plan for invited users, based on their user type (we already have one for care group creators)
+
 ## Questions
 
 - Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for up to 3 days offline. (B-145)
