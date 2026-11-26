@@ -4,13 +4,15 @@
 
 ## Status
 
-**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 starting** (slices 3, 4, 5 together: rename and delete; todos and the Planner; providers and medications; all opus): synced (up to date), B-548 claimed; all three merged (b71903f5, 998d10d8, 5708c180); wave CI run 45780323886 (components, fe10c950): **brake**, both failures the branch's (blame): syncTags.int viewer PUT/DELETE refusal (slice 4's `link` replay change) and visitPrep Planner ⋯ list (slice 4's Tags item). Fix 26a8ed64 (test narrowed to an identical replay; no code change) merged again; components rerun 45784057054 on c7ecb8b4 **green**; slice worktrees removed; sync: up to date. PR #210 open; Codex review, serve and changed browser checks running. Slice 4's agent passed 230k context: a fix there goes to a fresh `--continue` agent. At landing fold into tags.md: `name_key` stays system-only (rename does two writes); a twin copies tags as the system; `link` returns an existing link before the rule (viewer replay); the Tag filter section exists twice (providers, medications) beside `lib/tags/tagFilter.ts`. Then wave 4 (slice 6).
+**Where it stands:** waves 1 and 2 landed in `dev` (2026-11-26). **Wave 3 landing** (slices 3, 4, 5: rename and delete; todos and the Planner; providers and medications): components run 45784057054 green on c7ecb8b4, synced (up to date), PR #210, Codex out of credits (lands `--no-review`), browser checks roundtrip and live-notes pass. Docs folded into tags.md. Next: rotate, then wave 4 (slice 6, opus).
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
 **Models:** slices 1 and 2 opus; 3, 4, 5 opus.
 
 **Wave 2 landed** in `dev` as ae9f865 through PR #209, tier `components` (run 45768746414 green on e24fefd8), **without a Codex review (out of credits)**. Slice 2 merged as b3fe1008 (491e3862) plus a test-expectation fix f71fed2a (5d091480): the first gate failed on inScreens and plannerEvents tests that listed the ⋯ items without Tags. Browser checks: the changed set only (phase2, roundtrip, live-notes), no `--suite` (the user asks before any). Report a257; to-test `to-test/2026-11-26-0146-tags.md`. Docs: tags.md _Screens_. Filed B-864 (fx.tag fixture id from raw name).
+**Wave 3:** first run 45780323886 braked on two slice-4 test expectations (the viewer replay of an existing link, now an identical-row no-op; the Planner ⋯ list gaining Tags); fix 26a8ed64 merged again. Slice 4's agent passed 230k context, so a fresh `--continue` agent fixed it. todos.md is over budget (10.2 KB): slice 4's todo decisions live in tags.md.
+
 
 **Wave 1 landed** as 465efcf (PR #206, tier full), without Codex. Filed B-862 (roundtrip cleanup gap).
 
