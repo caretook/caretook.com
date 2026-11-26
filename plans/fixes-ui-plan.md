@@ -21,7 +21,7 @@ Notes for every wave:
 
 **Wave 17 (this session, 2026-11-26):** B-694 (Long create forms on tabs) released: the user approved every split today. Slices 95–98, all opus: 95 shared tabs component; 96 provider tabs and 97 medication tabs (both after 95, parallel); 98 schedule overlay (after 97). Synced: prd/fixes-ui up to date with dev. Still held: B-325 (Capacitor).
 
-_\*PARKED (2026-11-26) for orchestration-split-3 wave 4 (RISA_* rename), at the backlog session's request:_* slices 95–98 all merged (tip 118a7071 plus this Status commit); slice agents done, slice worktrees and branches removed at the backlog session's request (a fix comes from prd/fixes-ui); stay parked (no sync, slice or landing) until it says wave 4 landed in dev. Wave 17's components CI run 45888439297 was requested on 118a7071 and keeps running on GitHub; its local `--wait` was stopped. **On release:** `pnpm prd sync`, then rerun the gate on the synced tip (`pnpm prd ci run components --wait`), then PR, review and land as usual. Wave 5 needs the same park again.
+**Released 2026-11-26:** parked for orchestration-split-3 wave 4 (RISA\_\* rename) with slices 95–98 merged (code tip 118a7071) and slice worktrees removed; wave 4 landed in dev 48db0d34, synced as 1fa3670c. Now: components gate on the synced tip, then PR, review, land. **After landing: stay parked** (no new wave) for wave 5; reply "landed and parked" with the dev commit to the backlog session.
 
 | Slice | Item                   | State  | Merge    |
 | ----- | ---------------------- | ------ | -------- |
