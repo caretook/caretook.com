@@ -2,7 +2,7 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink } from "react-router";
 
-import { Wordmark } from "~/components/brand";
+import { FullLogo } from "~/components/brand";
 import { IconButton } from "~/components/ui/plain";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
 
@@ -39,7 +39,7 @@ export function MarketingHeader() {
     <header className="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-2 px-4 sm:px-6">
         <Link to="/" className="mr-auto rounded-field" aria-label="Caretook home">
-          <Wordmark />
+          <FullLogo />
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
           {HEADER_PAGES.map((page) => (
