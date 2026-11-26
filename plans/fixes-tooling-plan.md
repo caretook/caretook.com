@@ -708,7 +708,7 @@ Stack: no · Reads: plans/fixes-rules.md · Tests: unit
 
 ## Wave 9
 
-Started 2026-11-26, on the user's word through the backlog session: the token-use items first (`.loops/token-analysis/REPORT.md` in the main checkout has the numbers and the method), plus the stray session records (B-871) and the app bundle trim (B-872). First, ahead of the rest, the session-end browser check failing on dev (B-869): it brakes staging, and lands as a `fix(...)` commit that can go onto a staging candidate. Each item's backlog notes (`pnpm backlog show B-<n>`) carry the details. The generic role docs are `scripts/loops/docs/<role>.md` (what `pnpm prd doc <role>` prints) and the prompts are `scripts/loops/prompts/*.sh` (their golden copies `scripts/loops/sample-project/prompt-golden.txt` and `scripts/project/prompt-golden.txt` follow any prompt text change): these slices may edit both, since the rule text is the fix. Keep Caretook's own `docs/` and AGENTS.md out of it: say in the hand-off what they should gain. Slices 70 and 71 both edit the loop doc and the slice prompt, and 72 and 73 the orchestrator doc: keep each change to its own section or bullet. Never touch a running topic's hot files (`pnpm backlog prd list`).
+Started 2026-11-26, on the user's word through the backlog session: the token-use items first (`.loops/token-analysis/REPORT.md` in the main checkout has the numbers and the method), plus the stray session records (B-871) and the app bundle trim (B-872). First, ahead of the rest, the session-end browser check failing on dev (B-869): it brakes staging, and lands as a `fix(...)` commit that can go onto a staging candidate. Each item's backlog notes (`pnpm backlog show B-<n>`) carry the details. The generic role docs are `scripts/loops/docs/<role>.md` (what `pnpm prd doc <role>` prints) and the prompts are `scripts/loops/prompts/*.sh` (their golden copies `scripts/loops/sample-project/prompt-golden.txt` and `scripts/project/prompt-golden.txt` follow any prompt text change): these slices may edit both, since the rule text is the fix. Keep Caretook's own `docs/` and AGENTS.md out of it: say in the hand-off what they should gain. Slices 70, 71, 72 and 73 share the loop doc, `prompts/slice.sh`, `prompt.test.mjs`, the golden prompts and the orchestrator doc: keep each change to its own section or bullet; the orchestrator merges them 70, 71, 72, 73 in that order and regenerates the golden after each rather than resolving conflicts by hand. Skeptic s57's changes (the user agreed, 2026-11-26) are folded into 70–73 and 75; B-880..B-883 wait for a later wave. Never touch a running topic's hot files (`pnpm backlog prd list`).
 
 ### Slice 69: the session-end browser check passes on dev again (B-869)
 
@@ -724,19 +724,19 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/time
 
 Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/loop.md, scripts/loops/prompts/slice.sh · Tests: unit
 
-94% of slice turns make one tool call, and about half are piecemeal `sed -n`/`grep -n`/`cat` reads at ~100k context each (~45% of slice tokens): each turn costs its whole context.
+94% of slice turns make one tool call, and many are piecemeal `sed -n`/`grep -n`/`cat` reads at ~100k context each (real reads are ~35% of slice tokens): each turn costs its whole context.
 
-- The loop doc gains a short, mechanical rule near the top of how to work: send independent reads, greps and commands together in one turn (parallel tool calls, or one shell command that prints several files); read a file whole (the Read tool, or `cat`) rather than in `sed -n` chunks unless it is very large; search once with a pattern that covers all the names you need. The slice prompt carries a one-line pointer to it.
+- The loop doc gains a short, mechanical rule near the top of how to work: send independent reads, greps and commands together in one turn (parallel tool calls, or one shell command that prints several files); read a file whole (the Read tool, or `cat`) when it is under about 400 lines, else grep for what you need and read that range (`dispatch.mjs` is 1,947 lines); search once with a pattern that covers all the names you need. Edits too: several replacements go in one script or as parallel Edit calls in one turn, not one per turn. The slice prompt carries a one-line pointer to it.
 - Unit test (`prompt.test.mjs` and the golden prompt): the slice prompt contains the pointer.
 
 ### Slice 71: long exploration goes to a helper, and checks run in the background (B-875, B-879)
 
 Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/loop.md, scripts/loops/docs/orchestrator.md (_Models_), scripts/loops/prompts/slice.sh · Tests: unit
 
-Haiku use was 0 overnight despite the _Models_ rule, and polling turns (Monitor, `prd wait check`, TaskStop) cost ~140 turns and ~16M tokens. B-879 is a duplicate of B-875; this slice closes both.
+Haiku use was 0 overnight despite the _Models_ rule. B-879 was dropped as a duplicate. **The background-check rule is on hold** until slice 74 (B-877) finds why slices end early: the first runs of slices 51, 53, 56, 57 and 60 all ended "waiting for its notification" with no hand-off (the skeptic s57, the user agreed 2026-11-26).
 
 - The loop doc makes delegation mechanical: past about 10 reads into unfamiliar code, hand the exploration to one Explore helper (haiku for plain search, sonnet when it needs judgement) with a tight brief and take back only its conclusion; reading long check output (failures, ■ lines) goes to a haiku helper too.
-- Checks run with the Bash tool's background mode and the agent waits for the completion notification instead of polling: no `sleep`/Monitor/`prd wait check` loops on its own check; `prd wait check` stays for waiting on another session's check.
+- Don't add or change a rule on running or waiting for checks (held, above).
 - The slice prompt carries a one-line pointer; unit test (`prompt.test.mjs` and the golden prompt) asserts it.
 
 ### Slice 72: orchestrators rotate past ~120k (B-876)
@@ -745,9 +745,9 @@ Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/orchestrator.md, do
 
 Orchestrators ran at 140–185k per turn late in a PRD (~110M tokens, 22%). Today the soft limit is 160k (judge) and the hard one 225k (rotate).
 
-- For an orchestrator session the soft limit becomes 120k (`limitOf` in `context.mjs`, for that kind only; the inbox and others keep theirs, and `CARETOOK_CONTEXT_LIMIT` still overrides): past it, the reminder says to rotate at the next safe point (after a merge, a verdict or a landing; never mid-landing) with _Status_ written as the brief, without asking.
+- For an orchestrator session the soft (judge) limit becomes 120k (`limitOf` in `context.mjs`, for that kind only; the inbox and others keep theirs, and `CARETOOK_CONTEXT_LIMIT` still overrides). Past it the orchestrator rotates unasked **between waves only** (at the next wave boundary, _Status_ written as the brief); the `--mid-wave` guard stays as it is (user's word or past the hard limit).
 - The orchestrator doc and the orchestrator prompt (`prompts/orchestrator.sh`, its 160k line) say the new number and the rule; the hand-off gives the line for `docs/agents/machinery.md`'s _The context watch_.
-- Unit tests (`context.test.mjs`, `prompt.test.mjs` and the golden prompt): an orchestrator at 125k gets the rotate reminder; a slice or inbox session at 125k doesn't.
+- Unit tests (`context.test.mjs`, `prompt.test.mjs` and the golden prompt): an orchestrator at 125k gets the reminder (rotate at the next wave boundary, not mid-wave); a slice or inbox session at 125k doesn't.
 
 ### Slice 73: plans name exact files and symbols, and the orchestrator checks them at PRD start (B-874)
 
@@ -755,8 +755,8 @@ Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/planner.md, scripts
 
 Slices spend their first turns rediscovering what the planner already found; line numbers go stale on hot files, symbols don't.
 
-- The planner doc: each slice names the exact files and functions it changes (`path` plus `functionName`, in backticks), never line numbers (`~158`, `:231`).
-- A command the orchestrator runs at PRD start, e.g. `pnpm prd anchors <topic> [--base dev]`: for every slice not yet merged, each backticked repo path in its body exists on the base, and each backticked symbol named beside a path is found in that file (a plain text search is enough); it lists the misses and exits non-zero when any. List it in `pnpm prd help`; the orchestrator doc says to run it at start and fix the plan's misses before the first slice (an early plan written ahead is the case it exists for).
+- The planner doc: rewrite its line "name durable things, not files or functions" (around line 49) rather than adding a second rule beside it: each slice names the exact files and functions it changes (`path` plus `functionName`, in backticks), never line numbers (`~158`, `:231`).
+- A command the orchestrator runs at PRD start, e.g. `pnpm prd anchors <topic> [--base dev]`: for every slice not yet merged, each backticked repo path in its body exists on the base, and each backticked symbol named beside a path is found in that file (a plain text search is enough); it lists the misses as warnings and never stops a PRD start (exit 0). List it in `pnpm prd help`; the orchestrator doc says to run it at start and fix the plan's misses before the first slice (an early plan written ahead is the case it exists for).
 - `slice-fields.mjs` (or the plan checker beside it) warns on a line-number anchor in a slice.
 - Unit tests: the anchor check passes on a good slice and names a missing path and a missing symbol; the line-number warning fires on `file.mjs ~158` and not on a plain number in prose.
 
@@ -773,7 +773,7 @@ Stack: no · Reads: plans/fixes-rules.md, scripts/loops/docs/loop.md, scripts/lo
 
 Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md (_The dispatcher_), scripts/loops/dispatch-pick.mjs (rule 6), scripts/loops/dispatch.mjs · Tests: unit
 
-Overnight 5 planners (~75M tokens, 15%) wrote plans for topics now on hold. The user chose a lookahead of lane cap + 1 (2026-11-26).
+Overnight 5 planners (~75M tokens, 15%) wrote plans for topics now on hold. The user chose a lookahead of lane cap + 1 (2026-11-26). Held topics already aren't auto-planned, so the saving is the cap alone.
 
 - Rule 6 of `dispatch-pick.mjs`: a `to-write` topic is planned only while the planned-but-not-started topics (state `planned`, not standing fix topics, not `hold`) plus the planners running number fewer than the lane cap (`pnpm prd dispatch --cap`) + 1. A `hold` topic is never planned automatically (confirm it already is not; keep it so). Planning a topic early stays possible by hand (`pnpm prd plan`), and the pick's reason says when the lookahead is full.
 - The hand-off gives the exact line for `docs/agents/machinery.md`'s _The dispatcher_.
