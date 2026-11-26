@@ -10,12 +10,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State  | Merge    |
-| ----- | ----- | ------ | -------- |
-| 72    | B-830 | merged | ab6da878 |
-| 73    | B-840 | merged | 9dd61dda |
-
-**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. PR #208 open; Codex out of credits (exit 4: land --no-review). Browser --changed: app-shell, invites pass. Next: land --tier full --no-review once the recheck is green. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1
 
