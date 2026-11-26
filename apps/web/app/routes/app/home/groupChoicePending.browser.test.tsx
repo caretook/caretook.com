@@ -62,13 +62,15 @@ test("a tapped group says it's opening before its load finishes", async () => {
   expect(row(ROSE)?.querySelector('[role="status"]')?.textContent).toContain("Opening…");
   expect(row(ALBERT)?.hasAttribute("data-opening")).toBe(false);
   expect(row(ROSE)?.closest("[aria-busy]")?.getAttribute("aria-busy")).toBe("true");
-  expect(loads).toEqual([ROSE]);
+  // The pending state shows before the loader is called: wait for the call.
+  await expect.poll(() => loads).toEqual([ROSE]);
 });
 
 test("while one is opening, another choice starts no navigation", async () => {
   const device = await open();
   await userEvent.click(choice(/Rose Alvarez/));
   await expect.element(page.getByRole("status", { name: "Opening…" })).toBeVisible();
+  await expect.poll(() => loads).toEqual([ROSE]);
 
   await userEvent.click(choice(/Albert Lindqvist/));
   await device.settle();
