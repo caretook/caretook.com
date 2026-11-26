@@ -24,7 +24,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 79    | B-870 | merged               | 703f7d67 |
 | 80    | B-845 | merged               | cc58eade |
 | 81    | B-660 | merged               | 2b445134 |
-| 82    | B-753 | agent working (opus) |          |
+| 82    | B-753 | merged               | 16ef128c |
 | 83    | B-751 | merged               | 5586ba9b |
 | 84    | B-608 | merged               | c4527dc5 |
 | 85    | B-609 | agent working (opus) |          |
