@@ -496,13 +496,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await signIn(C, "viewer@example.com");
     await wf(C, rowWith(offName), 20_000);
     await check("viewer: sees the timeline, including the offline entry", true);
+    // A viewer's ⋯ holds no writer items: a symptom's is Copy link alone (every kind's items: component tests).
+    await press(C, `${rowWith(offName)}.querySelector('button[aria-label^="Actions"]')`);
+    await wf(C, menuItem("Copy link"), 10_000);
+    const viewerItems = await C.evaluate(
+      `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim()).join(",")`,
+    );
+    await C.keyboard.press("Escape");
     await check(
-      // A viewer's ⋯ is Print alone, on notes and events only (its items: component tests).
-      "viewer: no + button, no ⋯ menus but notes' and events' Print, no edit targets",
+      "viewer: no + button, no edit targets, and a symptom's ⋯ is Copy link alone",
       (await addButton(C).count()) === 0 &&
-        (await C.evaluate(
-          `!document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
-        )),
+        (await C.evaluate(`!document.querySelector('main ol [aria-label^="Edit "]')`)) &&
+        viewerItems === "Copy link",
+      viewerItems,
     );
 
     // 6-series. The series 5a made offline, checked once the viewer is in
