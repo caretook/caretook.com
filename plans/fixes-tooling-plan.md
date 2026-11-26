@@ -8,25 +8,25 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-**Hand-off (2026-11-26, wave 7 starting).** Resumed after the post-wave-6 pause (wave 6 landed as 2eaa00b, PR #155; its old notes are in the history). B-771 was fixed on dev by hotfix/sync-shared (e19c42ab). Wave 7 = slices 50–60 (B-766, B-767, B-768, B-542, B-623+B-860, B-807, B-754, B-824, B-769, B-633, B-812); all opus. Deferred for tags' hot files: B-653, B-776, B-619, B-839, B-845, B-864. The other ~40 triaged items wait for wave 8+ (landing, Codex, cleanup; planning and prompts). Wave 7 touches `vitest.config.ts` and app tests, so its CI tier is likely full (`pnpm prd tier`).
+**Hand-off (2026-11-26, wave 7 starting).** Resumed after the post-wave-6 pause (wave 6 landed as 2eaa00b, PR #155; its old notes are in the history). B-771 was fixed on dev by hotfix/sync-shared (e19c42ab). Wave 7 = slices 50–60 (B-766, B-767, B-768, B-542, B-623+B-860, B-807, B-754, B-824, B-769, B-633, B-812); all opus, all 11 agents spawned 2026-11-26. Deferred for tags' hot files: B-653, B-776, B-619, B-839, B-845, B-864. The other ~40 triaged items wait for wave 8+ (landing, Codex, cleanup; planning and prompts). Wave 7 touches `vitest.config.ts` and app tests, so its CI tier is likely full (`pnpm prd tier`).
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State    | Merge |
-| ----- | ------------ | -------- | ----- |
-| 50    | B-766        | starting | —     |
-| 51    | B-767        | starting | —     |
-| 52    | B-768        | starting | —     |
-| 53    | B-542        | starting | —     |
-| 54    | B-623, B-860 | starting | —     |
-| 55    | B-807        | starting | —     |
-| 56    | B-754        | starting | —     |
-| 57    | B-824        | starting | —     |
-| 58    | B-769        | starting | —     |
-| 59    | B-633        | starting | —     |
-| 60    | B-812        | starting | —     |
+| Slice | Item         | State          | Merge |
+| ----- | ------------ | -------------- | ----- |
+| 50    | B-766        | working (opus) | —     |
+| 51    | B-767        | working (opus) | —     |
+| 52    | B-768        | working (opus) | —     |
+| 53    | B-542        | working (opus) | —     |
+| 54    | B-623, B-860 | working (opus) | —     |
+| 55    | B-807        | working (opus) | —     |
+| 56    | B-754        | working (opus) | —     |
+| 57    | B-824        | working (opus) | —     |
+| 58    | B-769        | working (opus) | —     |
+| 59    | B-633        | working (opus) | —     |
+| 60    | B-812        | working (opus) | —     |
 
 ## Wave 1
 
