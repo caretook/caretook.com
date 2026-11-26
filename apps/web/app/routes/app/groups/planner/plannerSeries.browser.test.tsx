@@ -141,6 +141,7 @@ describe("the scope dialog in Upcoming", () => {
     const device = await openPlanner({ extra: SERIES });
     expect(await rowMenu(FRI_20.id)).toEqual([
       "Edit",
+      "Tags",
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",

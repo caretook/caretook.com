@@ -1,13 +1,14 @@
 import type { TagTarget } from "@caretook/data/schema";
 
-import { canCreateTag } from "@caretook/data/schema";
-import { Plus } from "lucide-react";
+import { canCreateTag, canRenameTag } from "@caretook/data/schema";
+import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
-import { Button, CheckField, EmptyState, Field, Message, Sheet } from "~/components/ui";
+import { Button, CheckField, EmptyState, Field, IconButton, Message, Sheet } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { exactTag, matchingTags, newTagName } from "~/lib/tags/tagPicker";
 import { createTag, tagRecord, untagRecord } from "~/lib/tags/tags.sync";
+import { TagEditor } from "./TagEditor";
 import { useGroupTags, useRecordTags } from "./useTags";
 
 /** What the picker tags: a record, and its name for the sheet's title. */
@@ -18,8 +19,10 @@ export type TagPickerTarget = { target: TagTarget; recordId: string; label: stri
  * toggle that tags or untags the record at once (a local write, offline
  * too), and, for anyone who may log, adding the typed name as a new tag on
  * the record in the same step. A name the group has, in any case or
- * spacing, is reused, never added twice (`exactTag`). Who may open it is the
- * caller's (`canTagRecord`); the writes check it again.
+ * spacing, is reused, never added twice (`exactTag`). A tag the person may
+ * rename (`canRenameTag`) has a Rename button that edits it in place, with
+ * Delete for an owner (`TagEditor`). Who may open it is the caller's
+ * (`canTagRecord`); the writes check it again.
  */
 export function TagPickerSheet({
   target,
@@ -32,6 +35,7 @@ export function TagPickerSheet({
   const on = new Set(useRecordTags(target, recordId).map((t) => t.id));
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   const shown = matchingTags(tags, typed);
   const canAdd = canCreateTag(group.role);
   const adding = canAdd ? newTagName(tags, typed) : null;
@@ -94,12 +98,26 @@ export function TagPickerSheet({
           <ul className="space-y-2" aria-label="The group's tags" data-tag-list="">
             {shown.map((t) => (
               <li key={t.id}>
-                <CheckField
-                  label={t.name}
-                  checked={on.has(t.id)}
-                  onChange={(e) => toggle(t.id, e.target.checked)}
-                  data-tag-toggle={t.id}
-                />
+                {editing === t.id ? (
+                  <TagEditor tag={t} role={group.role} onDone={() => setEditing(null)} />
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <CheckField
+                      label={t.name}
+                      checked={on.has(t.id)}
+                      onChange={(e) => toggle(t.id, e.target.checked)}
+                      data-tag-toggle={t.id}
+                    />
+                    {canRenameTag(group.role, { createdBy: t.created_by }, group.userId) && (
+                      <IconButton
+                        label={`Rename ${t.name}`}
+                        icon={Pencil}
+                        onPress={() => setEditing(t.id)}
+                        data-tag-edit={t.id}
+                      />
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

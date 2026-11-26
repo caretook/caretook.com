@@ -141,11 +141,13 @@ export const link = (ctx: ServiceContext, input: RecordTagLinkInput) =>
     if (tag.groupId !== groupId || record.groupId !== groupId)
       return newError({ code: "recordTagService:immutable" });
 
-    const refused = await mayTag(ctx, tx, groupId, target, record);
-    if (refused) return refused;
-
+    // A link already there is a replay, whoever sends it: a viewer's device
+    // uploading the tags its tick copied to a repeating todo's next (`copyLinks`).
     const existing = await recordTagModel.getById(id, { ...ctx, tx });
     if (isError(existing) || existing) return existing;
+
+    const refused = await mayTag(ctx, tx, groupId, target, record);
+    if (refused) return refused;
 
     return recordTagModel.create({
       ...ctx,
@@ -184,3 +186,34 @@ export const unlink = (ctx: ServiceContext, id: string) =>
 /** `unlink` by the tag and the record. */
 export const unlinkPair = (ctx: ServiceContext, tagId: string, recordId: string) =>
   unlink(ctx, recordTagId(tagId, recordId));
+
+/**
+ * Copy one record's tags onto another of the same target, as the system,
+ * in the caller's transaction: a repeating todo's next occurrence takes the
+ * ticked one's tags (a viewer's tick can make it, and that isn't tagging).
+ * Derived ids, as the device's twin writes them; links already there stay.
+ */
+export const copyLinks = async (tx: Tx, target: TagTarget, fromId: string, toId: string) => {
+  const field = TAG_TARGET_FIELDS[target];
+  const links = await recordTagModel.list({
+    ...system(tx),
+    filter: { [field]: { type: "eq", value: fromId } },
+    orderBy: [
+      { field: "createdAt", direction: "asc" },
+      { field: "id", direction: "asc" },
+    ],
+  });
+  if (isError(links)) return links;
+  for (const { groupId, tagId } of links.data) {
+    const id = recordTagId(tagId, toId);
+    const existing = await recordTagModel.getById(id, system(tx));
+    if (isError(existing)) return existing;
+    if (existing) continue;
+    const created = await recordTagModel.create({
+      ...system(tx),
+      data: { id, groupId, tagId, [field]: toId },
+    });
+    if (isError(created)) return created;
+  }
+  return null;
+};

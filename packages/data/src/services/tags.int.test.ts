@@ -16,10 +16,11 @@ import {
   todoService,
 } from ".";
 
-// Tags and their links (tags slice 1): tagService.create (idempotent on the
-// derived id, a taken name refused) and recordTagService (every role on
-// every target, refusals, one row per pair, cascades). Every test builds its
-// own group and users.
+// Tags and their links (tags slices 1 and 3): tagService.create (idempotent
+// on the derived id, a taken name refused), rename and remove (who may, in
+// SQL; a taken name; cascades) and recordTagService (every role on every
+// target, refusals, one row per pair, cascades). Every test builds its own
+// group and users.
 
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 const LA = "America/Los_Angeles";
@@ -89,7 +90,7 @@ describe("tagService.create", () => {
   it("returns a tag replayed after a rename, by its id", async () => {
     const { u, group, newTag } = await setup();
     const tag = await newTag("Urgent");
-    await getDb().execute(sql`UPDATE tag SET name = 'Pressing', name_key = 'pressing' WHERE id = ${tag.id}`);
+    ok(await tagService.rename(u.admin.ctx, tag.id, "Pressing"));
     const again = ok(
       await tagService.create(u.caretaker.ctx, { id: tag.id, groupId: group.id, name: "Urgent" }),
     );
@@ -150,6 +151,96 @@ describe("tagService.create", () => {
         "Urgent",
       ]);
     expect(ok(await tagService.list(u.outsider.ctx, { groupId: group.id })).data).toEqual([]);
+  });
+});
+
+describe("tagService.rename", () => {
+  const nameOf = async (id: string) => ok(await tagService.getById(system, id));
+
+  it("a writer renames any tag: the key follows the name, the id and links stay", async () => {
+    const { u, group, records, newTag, link, linksOf } = await setup();
+    const ids = await records();
+    const tag = await newTag("Urgent", "easy_helper");
+    ok(await link("caretaker", tag.id, "todo", ids.todo));
+    for (const [who, name] of [
+      ["owner", "Pressing"],
+      ["admin", "  Very   pressing "],
+      ["caretaker", "Follow up"],
+    ] as const) {
+      const renamed = ok(await tagService.rename(u[who].ctx, tag.id, name));
+      expect(renamed).toMatchObject({ id: tag.id, groupId: group.id, updatedBy: u[who].user.id });
+    }
+    expect(await nameOf(tag.id)).toMatchObject({ name: "Follow up", nameKey: "follow up" });
+    expect(await linksOf(tag.id)).toHaveLength(1);
+    // A new spelling of its own name is no clash.
+    expect(ok(await tagService.rename(u.caretaker.ctx, tag.id, "FOLLOW UP"))).toMatchObject({
+      name: "FOLLOW UP",
+      nameKey: "follow up",
+    });
+  });
+
+  it("an Easy helper renames only a tag they created; the SQL refuses theirs, and the name stays", async () => {
+    const { u, newTag } = await setup();
+    const mine = await newTag("Knee", "easy_helper");
+    const theirs = await newTag("Urgent", "caretaker");
+    ok(await tagService.rename(u.easy_helper.ctx, mine.id, "Sore knee"));
+    expect(await nameOf(mine.id)).toMatchObject({ name: "Sore knee", nameKey: "sore knee" });
+
+    expect(codeOf(await tagService.rename(u.easy_helper.ctx, theirs.id, "Pressing"))).toBe(
+      "permissions:unauthorized",
+    );
+    expect(await nameOf(theirs.id)).toMatchObject({ name: "Urgent", nameKey: "urgent" });
+  });
+
+  it("refuses viewers, Easy viewers and non-members; a missing tag is notFound", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent");
+    for (const who of ["viewer", "easy_viewer", "outsider"] as const)
+      expect(codeOf(await tagService.rename(u[who].ctx, tag.id, "Pressing"))).toBe(
+        "permissions:unauthorized",
+      );
+    expect(await nameOf(tag.id)).toMatchObject({ name: "Urgent" });
+    expect(codeOf(await tagService.rename(u.owner.ctx, randomUUID(), "Pressing"))).toBe(
+      "tagService:notFound",
+    );
+  });
+
+  it("refuses a name another tag holds (nameTaken) and a bad name", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent");
+    const other = await newTag("Knee");
+    expect(codeOf(await tagService.rename(u.owner.ctx, tag.id, "  KNEE "))).toBe("tagService:nameTaken");
+    expect(codeOf(await tagService.rename(u.owner.ctx, tag.id, "   "))).toBe("tagService:invalid");
+    expect(codeOf(await tagService.rename(u.owner.ctx, tag.id, "x".repeat(41)))).toBe("tagService:invalid");
+    expect(await nameOf(tag.id)).toMatchObject({ name: "Urgent" });
+    expect(await nameOf(other.id)).toMatchObject({ name: "Knee" });
+  });
+});
+
+describe("tagService.remove", () => {
+  it("only owners delete; admins, caretakers, Easy helpers and the rest are refused", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent", "easy_helper");
+    for (const who of ["admin", "caretaker", "easy_helper", "viewer", "easy_viewer", "outsider"] as const)
+      expect(codeOf(await tagService.remove(u[who].ctx, tag.id))).toBe("permissions:unauthorized");
+    expect(ok(await tagService.getById(system, tag.id))).not.toBeNull();
+    ok(await tagService.remove(u.owner.ctx, tag.id));
+    expect(ok(await tagService.getById(system, tag.id))).toBeNull();
+    expect(codeOf(await tagService.remove(u.owner.ctx, tag.id))).toBe("tagService:notFound");
+  });
+
+  it("takes the tag off every record; the records stay, and a later link is refused", async () => {
+    const { u, records, newTag, link, linksOf } = await setup();
+    const ids = await records();
+    const tag = await newTag();
+    for (const target of TARGETS) ok(await link("caretaker", tag.id, target, ids[target]));
+    ok(await tagService.remove(u.owner.ctx, tag.id));
+    expect(await linksOf(tag.id)).toEqual([]);
+    expect(ok(await timelineEntryService.getById(system, ids.entry))).not.toBeNull();
+    expect(ok(await todoService.getById(system, ids.todo))).not.toBeNull();
+    expect(ok(await providerService.getById(system, ids.provider))).not.toBeNull();
+    expect(ok(await medicationService.getById(system, ids.medication))).not.toBeNull();
+    expect(codeOf(await link("caretaker", tag.id, "entry", ids.entry))).toBe("recordTagService:tagNotFound");
   });
 });
 

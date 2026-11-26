@@ -405,6 +405,7 @@ describe("in the Planner", () => {
     await userEvent.click(actionsOf(APPT.id));
     await expect.element(menuItem("Prepare for this visit")).toBeInTheDocument();
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
+      "Tags",
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",

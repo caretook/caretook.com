@@ -129,6 +129,7 @@ describe("cancel and undo", () => {
     const device = await openPlanner({ role: "caretaker" });
     const items = await openMenu(rowActions(CARDIOLOGY.id));
     expect(items).toEqual([
+      "Tags",
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",
@@ -302,7 +303,7 @@ describe("reschedule", () => {
     await device.screen.unmount();
 
     await openPlanner({ extra: [NOTED_OLD] });
-    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Undo cancel", "Print", "Delete"]);
+    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Tags", "Undo cancel", "Print", "Delete"]);
     await userEvent.keyboard("{Escape}");
   });
 

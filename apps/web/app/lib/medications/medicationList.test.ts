@@ -2,7 +2,9 @@ import type { ListedMedication } from "./medicationList";
 
 import { describe, expect, it } from "vitest";
 import {
+  clearFilters,
   clearStatus,
+  clearTag,
   compareMedications,
   matchesMedication,
   medicationList,
@@ -10,6 +12,7 @@ import {
   setQuery,
   clearType,
   setStatus,
+  setTag,
   setType,
 } from "./medicationList";
 import { queryTokens } from "../providers/providerDirectory";
@@ -43,11 +46,13 @@ describe("parseMedicationFilters", () => {
       q: "blood",
       status: "current",
       type: null,
+      tag: null,
     });
     expect(parseMedicationFilters("status=discontinued")).toEqual({
       q: "",
       status: "discontinued",
       type: null,
+      tag: null,
     });
   });
   it("reads all, unknown and missing statuses as no filter", () => {
@@ -64,6 +69,7 @@ describe("the type in the URL", () => {
       q: "x",
       status: "current",
       type: "supplement",
+      tag: null,
     });
     expect(parseMedicationFilters("?type=all").type).toBeNull();
     expect(parseMedicationFilters("?type=").type).toBeNull();
@@ -173,5 +179,47 @@ describe("medicationList", () => {
   it("leaves out medications with no type when a type is chosen", () => {
     const l = medicationList(SEEDED, { q: "", status: null, type: "prescription" });
     expect(l.stopped.map((m) => m.name)).toEqual(["Amoxicillin"]);
+  });
+});
+
+describe("the tag filter (tags PRD)", () => {
+  const TAG = "1f0e9d8c-7b6a-4954-8a3b-2c1d0e9f8a7b";
+  const OTHER = "2a1b0c9d-8e7f-4a6b-9c5d-4e3f2a1b0c9d";
+  const tags = new Map([
+    ["1", [{ id: TAG, name: "Heart" }]],
+    ["5", [{ id: TAG, name: "Heart" }]],
+    ["3", [{ id: OTHER, name: "Knee" }]],
+  ]);
+
+  it("reads one tag id, and anything else as no tag", () => {
+    expect(parseMedicationFilters(`?status=current&tag=${TAG}`).tag).toBe(TAG);
+    expect(parseMedicationFilters("?tag=heart").tag).toBeNull();
+    expect(parseMedicationFilters("").tag).toBeNull();
+  });
+
+  it("sets and clears the tag after q, status and type, keeping the rest", () => {
+    expect(setTag("?q=lis&status=current&type=otc&x=1", TAG)).toBe(
+      `?q=lis&status=current&type=otc&tag=${TAG}&x=1`,
+    );
+    expect(setTag("?x=1", "heart")).toBe("?x=1");
+    expect(clearTag(`?tag=${TAG}&status=completed`)).toBe("?status=completed");
+    expect(setStatus(`?tag=${TAG}`, "current")).toBe(`?status=current&tag=${TAG}`);
+    expect(setTag(`?tag=${TAG}`, TAG)).toBe(`?tag=${TAG}`);
+  });
+
+  it("Clear filters drops the status, type and tag, keeping the search", () => {
+    expect(clearFilters(`?q=lis&status=current&type=otc&tag=${TAG}&x=1`)).toBe("?q=lis&x=1");
+  });
+
+  it("narrows the list to the medications carrying the tag, with the other filters", () => {
+    const names = (f: Parameters<typeof medicationList>[1]) => {
+      const l = medicationList(SEEDED, f, tags);
+      return [...l.current, ...l.stopped].map((m) => m.name);
+    };
+    expect(names({ q: "", status: null, type: null, tag: TAG })).toEqual(["Lisinopril", "Amoxicillin"]);
+    expect(names({ q: "", status: "current", type: null, tag: TAG })).toEqual(["Lisinopril"]);
+    expect(names({ q: "", status: null, type: "otc", tag: OTHER })).toEqual(["Acetaminophen"]);
+    expect(names({ q: "chest", status: null, type: null, tag: TAG })).toEqual(["Amoxicillin"]);
+    expect(names({ q: "", status: null, type: null, tag: null })).toHaveLength(6);
   });
 });
