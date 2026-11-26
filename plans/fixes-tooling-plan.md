@@ -8,29 +8,18 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-**Wave 8 (2026-11-26, run-through; resumed after the wave 7 rotation).** Reconciled: no landing cut off, no slices in flight; `prd sync` needed no merge. Slices 61–68 written (landing, Codex, cleanup: B-239, B-240, B-244, B-867, B-442, B-443, B-447, B-639, B-649, B-738, B-545), items claimed, hot files set. Running about 5 at once (wave 7's lesson): first 61, 63, 64, 66, 67 (all opus); then 62, 65 (opus) and 68 (sonnet). 65 waits for 66 (both `land.sh`).
-
-- **Resumed 2026-11-26 (new session):** no landing journal; all 61–68 merged, tip aa853dcc; gate run 2 green (aa853dcc, run 45808562744). `prd sync` merged dev (a5a1895c); full CI on the synced tip out; PR #216 open; Codex out of credits (exit 4): land `--no-review`. Synced-tip run 45809807786 braked on the build budget (app 406448 B over the old 406187 ceiling: the first sync missed dev's raise 1315ffa6, B-868); `sync --force` merged it (25a4f066), full CI rerun out.
-- **Hand-over (rotating at the context limit, 161k):** all slices 61–68 merged; tip b3f78e46. Next: `pnpm prd ci run full --wait` (gate run 2, tier full for `scripts/ci/ci-gate.mjs`); on `file`, `pnpm prd ci blame` (expected dev's: the search rebuild timing test on the brake list; boundary should now pass) and send a branch failure to a `--continue` agent in that slice's worktree. Then the landing steps: `pnpm prd sync`, `pnpm test:tooling` if it merged, `pnpm prd pr fixes-tooling`, `pnpm prd review fixes-tooling --wait` (exit 4: `--no-review`), `pnpm prd ready`, land `--tier full`, report, `pnpm prd rm fixes-tooling-<n>` for 61–68, fold the docs (doc lines below), status-trim, rotate.
-- **Doc lines for the landing:** orchestrator.md _The check gate_ _What counts_ (slice 67): an ancestor verdict carries only when it's green or a flake outside the branch's files; a failing one asks for a fresh run on the tip. _Landing a wave_ step 4 (slice 62): `--resolve` each declined or current thread; an outdated one stops blocking once Codex's state on the head says `has_unresolved_findings: false`. `--force` rules (slice 66): a skeptic's `--force` refuses when dev's brake state can't be read (GitHub, the origin/dev fetch, the board); `--by-user` is the way through; the brake is read on origin/dev's tip too. Machinery, leases (63, 64): `name` is linked in from a per-writer temp file, a losing taker backs off; a takeover skips a lease that vanished mid-read; the `write:<marker>` test hook; tidy removes a dead lease only through `lease_take_over`. Machinery, landing reports (65): a docs-and-tooling-only landing's _What to try_ lists commands, not the dev URL. review.sh's `REVIEW_TAKE_UP` (61). B-824's quarantine line can go now that B-867 is in (slice 63).
-- **Slice 65 fix merged** (7ac4318d): boundary ok. **Gate run 1:** full on 992169b6 (run 45805573421): `file`. boundary.test.mjs fails on the branch too: slice 65's to-test tests add two `apps/web/` paths (land.test.mjs app-path 24 against 22); fix request sent to slice 65. The search rebuild timing test is on the brake list (dev's, B-619/B-839). B-865/B-866 (the branch-prefixes test naming `$CARETOOK_INBOX_DIR`, from wave 7) fixed in d2133f4e. `land-gate.test.mjs`'s dev-brake test timed out under load ~60 in two slice checks (passes alone): file it if CI shows it.
+- **Wave 8 landed** in dev as 833615a5 (PR #216, `--no-review`: Codex out of credits; tier full green on 25a4f066, run 45811391363). The first sync missed dev's budget raise 1315ffa6 (B-868), so the synced run braked on the app bundle; `sync --force` fixed it. Report a265; worktrees 61–68 removed; docs folded (orchestrator.md _Landing a wave_ 4, `--force`, _What counts_; machinery.md leases, to-test file).
+- **Hand-over for wave 9:** no slices in flight. Next session: `pnpm backlog ingest` and `list`, pick the next ready triaged items (below; skip any on a running topic's hot files), write slices from `pnpm prd status-trim fixes-tooling --next`, set hot files, run the wave.
+- **Watch:** `land-gate.test.mjs`'s dev-brake test timed out under load ~60 in two slice checks in wave 8 (passes alone): file it if CI shows it.
 - **Waiting triaged items for later waves:** B-375, B-431, B-432, B-459, B-465, B-477, B-608, B-609, B-619, B-653, B-660, B-667, B-681, B-720, B-721, B-722, B-749, B-751, B-753, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-809, B-810, B-813, B-839, B-845, B-851, B-852, B-862, B-864 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
-- **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's once slice 63 (B-867) lands.
+- **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
 
 **Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item         | State                        | Merge    |
-| ----- | ------------ | ---------------------------- | -------- |
-| 61    | B-239, B-240 | merged (opus)                | 1699763a |
-| 62    | B-244        | merged (opus)                | 35e43036 |
-| 63    | B-867        | merged (opus)                | 69bcc9c1 |
-| 64    | B-442        | merged (opus)                | 3c48b294 |
-| 65    | B-443, B-447 | merged (opus)                | ee34a22e |
-| 66    | B-639, B-649 | merged (opus), in 65's merge | ee34a22e |
-| 67    | B-738        | merged (opus)                | a6ade197 |
-| 68    | B-545        | merged (sonnet)              | 7b608d23 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1
 

@@ -4,7 +4,7 @@
 - `pnpm prd status` flags landed `merged:` slice worktrees and `stopped stack:`s (over `CARETOOK_GC_STOPPED_HOURS`, 24); `gc` removes them on a yes. **The disk guard** refuses a stack or check build under `CARETOOK_MIN_FREE_GB` (10); `reclaim` frees merged worktrees, dangling Docker data, check builds and Vite caches (never in use).
 - **A merged slice is held** until its wave has landed and no run of its topic is out (`scripts/ci/outstanding.mjs`; unreadable GitHub holds too): `tidy`, `gc` and `reclaim` keep it and say why; `pnpm prd rm` doesn't check.
 - **`pnpm prd dev-sync`** (`land`; `pr`'s push when `origin/dev` is ahead) brings `dev` up to `origin`: a fast-forward, else a replay of backlog commits no other ref holds, else a merge. The inbox never stops it (`inbox-merge.mjs`); another file's conflict or edits do. `land` picks up only backlog files and CI's lists.
-- **Machine leases** (`lease.sh`; the core's Node tools `lease.mjs`, a project's code the config's `lease` hook): `browser` 2, `check` 2, others 1 (`CARETOOK_<KIND>_SLOTS`), locks in `.loops/.lease/<kind>/<N>`, taken from dead holders. Bounded waits (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30), then 75. `CARETOOK_LEASES=off` takes none.
+- **Machine leases** (`lease.sh`; the core's Node tools `lease.mjs`, a project's code the config's `lease` hook): `browser` 2, `check` 2, others 1 (`CARETOOK_<KIND>_SLOTS`), locks in `.loops/.lease/<kind>/<N>`, taken from dead holders. A taker links `name` in from its own temp file (a loser backs off); a takeover skips a lease that vanished mid-read; `tidy` removes a dead one only through `lease_take_over`. Bounded waits (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30), then 75. `CARETOOK_LEASES=off` takes none.
 - **`pnpm prd wait [check|browser|<kind>] [--timeout S] [--worktree W]`** (`lease.sh wait`) waits until the worktree's lease, held or queued, is gone; 75 at the timeout (3600 s).
 
 ## Recorded sessions
@@ -78,5 +78,5 @@
 
 ## Landing reports
 
-- After merging a `prd/` or `hotfix/` branch not Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout: what landed, commit, PR, dev URL, seed accounts, what wasn't checked; agents only add.
+- After merging a `prd/` or `hotfix/` branch not Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout: what landed, commit, PR, dev URL, seed accounts, what wasn't checked (a docs-and-tooling-only landing gets commands to try, not the dev URL); agents only add.
 - **Unsynced:** sync, pr, ready and land skip a merge if dev's files miss the branch's (Markdown aside) and the risky list (`dev-brought.mjs`); land needs no brake, a typecheck. Never with `--fixes`; `--force` needs `--by-user`. `sync` always brings dev's CI lists (quarantine, brake): a merge, or a `take dev's CI lists` commit; the recorded check stands.
