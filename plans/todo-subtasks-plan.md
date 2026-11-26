@@ -15,7 +15,9 @@
 | 5     | 5    | planned |                                                |
 | 6     | 6    | planned |                                                |
 
-**Backlog:** claim B-550 when slice 1 starts; it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
+**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 agent spawned on opus; a background `prd watch --wait` runs. Wave gate: `full` (migration).
+
+**Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 
 ## Architectural decisions
 
