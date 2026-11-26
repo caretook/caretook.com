@@ -44,6 +44,10 @@ export const TODOS_ERRORS = {
     message: "A subtask, or a todo with subtasks, can't repeat",
     statusCode: 400,
   },
+  "todoService:openSubtasks": {
+    message: "This todo is done when its subtasks are. Tick those first.",
+    statusCode: 409,
+  },
   "entryTodoService:invalid": {
     message: "The todo link is invalid",
     statusCode: 400,
