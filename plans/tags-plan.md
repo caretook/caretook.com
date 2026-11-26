@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** waves 1, 2 and 3 landed in `dev` (2026-11-26). **Wave 4 under way:** `pnpm prd sync` was a no-op (up to date); worktree `tags-6` made on `slice/tags/6` from f8c465ee and its agent spawned (opus, 2026-11-26). It may reuse `lib/tags/tagFilter.ts` (slice 4). After it merges: `pnpm backlog done B-548`.
+**Where it stands:** waves 1–3 landed in `dev` (2026-11-26). **Wave 4:** slice 6 handed off (a5b63301, quick check green) and merged as 004f99fe; gate: `pnpm prd ci run components` on that tip. Then PR, review, land, `pnpm backlog done B-548`, docs fold (timeline.md: `?tag=` in `timelineFilters`, `summariesOff` includes the tag; search.md: a tag with no text skips the index, the page listens to `record_tag`), `pnpm prd rm tags`. Slice 6's agent passed its soft context limit (196k): a CI fix goes to a fresh `--continue` agent.
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
@@ -17,14 +17,14 @@
 
 **Lessons:** brief agents to keep context lean (slice 1 ran out; slice 2 passed its soft limit but finished). A new ⋯ item breaks `inScreens` and other component tests that list menu items: tell wave 3+ agents to grep the tests for the menu they change and update them in the slice. Slice 4 adds Tags to the Planner's ⋯ (`UpcomingList`) and chips there.
 
-| Slice | Wave | State       | Merge into `prd/tags` (slice commits)   |
-| ----- | ---- | ----------- | --------------------------------------- |
-| 1     | 1    | landed      | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
-| 2     | 2    | landed      | b3fe1008, f71fed2a (491e3862, 5d091480) |
-| 3     | 3    | landed      | b71903f5 (2dfe5297)                     |
-| 4     | 3    | landed      | 998d10d8, c5ec876e (0bc2c990, 26a8ed64) |
-| 5     | 3    | landed      | 5708c180 (b52ced9d)                     |
-| 6     | 4    | in progress |                                         |
+| Slice | Wave | State  | Merge into `prd/tags` (slice commits)   |
+| ----- | ---- | ------ | --------------------------------------- |
+| 1     | 1    | landed | 7e67f8a9 (c8980abb, 6fb4e555, 5dd9645a) |
+| 2     | 2    | landed | b3fe1008, f71fed2a (491e3862, 5d091480) |
+| 3     | 3    | landed | b71903f5 (2dfe5297)                     |
+| 4     | 3    | landed | 998d10d8, c5ec876e (0bc2c990, 26a8ed64) |
+| 5     | 3    | landed | 5708c180 (b52ced9d)                     |
+| 6     | 4    | merged | 004f99fe (a5b63301)                     |
 
 **Backlog:** claim B-548 when slice 1 starts; run `pnpm backlog done B-548` when the last slice merges.
 
