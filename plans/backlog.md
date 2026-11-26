@@ -314,6 +314,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-865 | bug | triaged | fixes-bug |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
 | B-866 | bug | triaged | fixes-bug |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
 | B-867 | bug | in-progress | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
+| B-868 | bug | triaged | fixes-bug |  | CI: the build job fails on dev |
 
 ## Items
 
@@ -2246,3 +2247,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/fixes-tooling): Found by slice 57's B-824 fix request. CI run 45784130450 (unit-1 Quarantined tests): log [start,start,start] at limit 2; run 1 stderr 'mv: cannot stat .../leases/check/2/name.tmp'; run 3 never waited; holders 2 of 2 (slot 1 run 0, slot 2 run 1). No path found that lets mkdir check/2 succeed twice; not reproduced in ~590 Linux container rounds (4 and 2 CPUs) or 20 Mac runs. Hardening: a per-writer tmp name (name.tmp.$$) and, after the mv, confirm name's pid is the taker's own, else back off. Keep B-824's quarantine line until this lands.
+
+### B-868 · bug · CI: the build job fails on dev
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-26 (prd/todo-subtasks): [ci-key job-build] Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45792344179.
