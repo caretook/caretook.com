@@ -24,7 +24,7 @@
   "gates": {
     "quietLoadPerCore": 1,
     "measures": {
-      "unit": { "aim": 300, "cutoff": 360, "armed": false },
+      "unit": { "aim": 300, "cutoff": 360, "armed": true },
       "components": { "aim": 300, "cutoff": 360, "armed": false },
       "quick": { "aim": 300, "cutoff": 360, "armed": false, "modes": ["quick", "slice"] }
     }
