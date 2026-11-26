@@ -13,7 +13,8 @@
 // permissions (a member demoted while offline) and listed under Settings →
 // Changes not saved, a viewer's todo ticked
 // offline and their refused title change, a repeating todo ticked offline
-// bringing one next todo everywhere, and sign-out wiping the
+// bringing one next todo everywhere, a viewer's last subtask ticked offline
+// finishing its parent (the rollup), and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
 //
@@ -222,6 +223,13 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   const reopenViewerTodoSql = `UPDATE todo SET done_at = NULL, done_by = NULL, title = '${VIEWER_TODO_TITLE}' WHERE id = '${viewerTodo}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TODO_TITLE}')`;
   // A run that died mid-step left it done: open again before anyone loads.
   if (viewerTodo) psql(reopenViewerTodoSql);
+  // The viewer's seeded last open subtask and its parent (todo-subtasks): ticked offline in 6f.
+  const viewerStep = psql(
+    `SELECT id FROM todo WHERE group_id = '${DEV_FAMILY}' AND title = 'Charge the phone and tablet' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
+  );
+  const stepParent = viewerStep ? psql(`SELECT parent_id FROM todo WHERE id = '${viewerStep}'`) : "";
+  const reopenStepSql = `UPDATE todo SET done_at = NULL, done_by = NULL WHERE id IN ('${viewerStep}', '${stepParent}') AND done_at IS NOT NULL`;
+  if (viewerStep) psql(reopenStepSql);
   const tag = `RT-${Date.now().toString(36)}`;
   // 6b'': a fictional member this run adds and removes.
   const removedEmail = `${tag.toLowerCase()}-removed@example.com`;
@@ -1075,6 +1083,40 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       `${Date.now() - t3} ms after reconnecting; viewer chain ${JSON.stringify(await chainOn(C))}`,
     );
 
+    // 6f. The rollup offline (todo-subtasks): viewer@ ticks their seeded
+    // last open subtask; the device shows its parent done at once (the
+    // rollup's flagged write, two uploads). On reconnect the server has the
+    // parent done by the viewer, though it isn't theirs.
+    const stepRow = `document.querySelector('main [data-todo="${viewerStep}"]')`;
+    const doneOn = async (page, id) =>
+      (await localRows(page, "SELECT done_at, done_by FROM todo WHERE id = ?", [id]))[0];
+    await wf(C, `${stepRow}?.querySelector("[data-todo-tick]")`, 20_000);
+    dC.offline(true);
+    await wf(C, `!window.caretookSync.powersync.currentStatus.connected`, 20_000);
+    await press(C, `${stepRow}.querySelector("[data-todo-tick]")`);
+    await wf(C, `${stepRow}?.querySelector("[data-todo-tick]")?.checked`);
+    const offParent = await doneOn(C, stepParent);
+    const stepQueued = await queued(C);
+    const parentServer = psql(`SELECT count(*) FROM todo WHERE id = '${stepParent}' AND done_at IS NOT NULL`);
+    await check(
+      "subtasks: offline, the viewer ticks their last open subtask and the parent is done on the device at once",
+      !!offParent?.done_at && offParent.done_by === viewerId && stepQueued === 2 && parentServer === "0",
+      `${JSON.stringify(offParent)}, ${stepQueued} queued, done on the server: ${parentServer}`,
+    );
+    dC.offline(false);
+    const t4 = Date.now();
+    const parentDoneBy = await waitForSql(
+      `SELECT coalesce(done_by::text, '') FROM todo WHERE id = '${stepParent}'`,
+      (r) => r !== "",
+      60_000,
+    );
+    const stepSettled = await until(async () => (await queued(C)) === 0);
+    await check(
+      "subtasks: on reconnect the server has the parent done, by the viewer; the queue empties",
+      parentDoneBy === viewerId && !!stepSettled,
+      `${parentDoneBy}, ${Date.now() - t4} ms after reconnecting`,
+    );
+
     // 7. Tidy up, then sign-out wipes the device.
     psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
     await wf(A, `!${rowWith(offName)}`, 15_000);
@@ -1134,6 +1176,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   } finally {
     try {
       if (viewerTodo) psql(reopenViewerTodoSql);
+      if (viewerStep) psql(reopenStepSql);
       psql(`UPDATE "user" SET avatar_color = NULL, avatar_icon = NULL WHERE id = '${memberId}'`);
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,

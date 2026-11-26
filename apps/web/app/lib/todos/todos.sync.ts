@@ -5,19 +5,25 @@ import type { LocalQuery } from "../timeline/timeline.sync";
 
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
+  BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
+  canHaveSubtask,
   isTodoCompleter,
   isTodoWriter,
+  MAX_TODO_DEPTH,
   NOTE_DOCUMENT_KINDS,
+  REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
+  ROLLUP_METADATA,
+  rollupOf,
   todoContentOf,
   todoContentZSchema,
   todoCreateZSchema,
   todoUpdateZSchema,
   UNDO_NEXT_METADATA,
 } from "@caretook/data/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { noteDocuments, recordTags, timelineEntryTodos, todos } from "../sync/schema";
 import { recordTagRow } from "../tags/tags.sync";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
@@ -63,6 +69,8 @@ export type TodoRow = {
   repeat_rule?: string | null;
   repeat_starts_on?: string | null;
   repeat_id?: string | null;
+  // A subtask's parent (todo-subtasks; optional: rows from before it synced).
+  parent_id?: string | null;
 };
 
 export type LocalTodo = {
@@ -91,6 +99,8 @@ export type LocalTodo = {
   repeatRule: string | null;
   repeatStartsOn: string | null;
   repeatId: string | null;
+  /** The todo it's a subtask of, or null for a top-level one. */
+  parentId: string | null;
 };
 
 /** A local row as a todo, or null for a half-synced one. */
@@ -119,6 +129,7 @@ export const toTodo = (row: TodoRow): LocalTodo | null => {
     repeatRule: row.repeat_rule ?? null,
     repeatStartsOn: row.repeat_starts_on ?? null,
     repeatId: row.repeat_id ?? null,
+    parentId: row.parent_id ?? null,
   };
 };
 
@@ -283,6 +294,51 @@ const contentColumns = (content: Omit<TodoContent, "doneAt" | "doneBy">) => ({
   repeatRule: content.repeatRule,
 });
 
+// Subtasks (todo-subtasks): the tree rules are todoTree's, checked against
+// the local copy as todoService checks them, so a refused upload is never
+// queued. The device doesn't roll a parent up yet: the server does.
+
+const badParent = refuse("Choose a todo in this care group that can have subtasks", [
+  { ...BAD_PARENT_ISSUE },
+]);
+const repeatWithSubtasks = refuse("A subtask, or a todo with subtasks, can't repeat", [
+  { ...REPEAT_WITH_SUBTASKS_ISSUE },
+]);
+
+/**
+ * A todo's ancestors, its parent first, deleted ones included (they still
+ * count for depth). Stops past `MAX_TODO_DEPTH`: enough to refuse.
+ */
+const ancestorsOf = async (db: SyncDb, todo: { parentId: string | null }) => {
+  const chain: LocalTodo[] = [];
+  let parentId = todo.parentId;
+  while (parentId && chain.length < MAX_TODO_DEPTH) {
+    const [row] = await readRows<TodoRow>(db, todoQuery(parentId));
+    const parent = row ? toTodo(row) : null;
+    if (!parent) break;
+    chain.push(parent);
+    parentId = parent.parentId;
+  }
+  return chain;
+};
+
+/** A new subtask's parent must be live in the group and able to take one (`canHaveSubtask`). */
+const parentRefusal = async (db: SyncDb, groupId: string, parentId: string | null | undefined) => {
+  if (!parentId) return null;
+  const parent = await liveTodo(db, parentId);
+  if (parent?.groupId !== groupId) return badParent;
+  return canHaveSubtask(await ancestorsOf(db, parent), parent) ? null : badParent;
+};
+
+/** Whether the todo has a live subtask. */
+const hasLiveSubtasks = async (db: SyncDb, id: string) =>
+  (
+    await readRows<{ id: string }>(db, {
+      sql: "SELECT id FROM todo WHERE parent_id = ? AND deleted_at IS NULL LIMIT 1",
+      params: [id],
+    })
+  ).length > 0;
+
 export type TodoInput = {
   title: string;
   assigneeId?: string | null;
@@ -300,6 +356,8 @@ export type TodoInput = {
   entryId?: string | null;
   /** RRULE text (`ruleText`) to repeat; it needs a due day. */
   repeatRule?: string | null;
+  /** `createTodo` only: the todo this is a subtask of (`canHaveSubtask`; it never repeats). */
+  parentId?: string | null;
 };
 
 /**
@@ -325,6 +383,9 @@ export const plannedTodo = async (
   if (assignee) return assignee;
   const links = await linkRefusal(db, groupId, content);
   if (links) return links;
+  const parent = await parentRefusal(db, groupId, content.parentId);
+  if (parent) return parent;
+  if (content.parentId && content.repeatRule) return repeatWithSubtasks;
 
   const now = nowTimestamp();
   const id = crypto.randomUUID();
@@ -335,6 +396,7 @@ export const plannedTodo = async (
       groupId,
       recipientId,
       ...contentColumns(content),
+      parentId: content.parentId,
       // The quick-entry runner's until it writes a link row; `createTodo` takes it off.
       eventId: content.eventId,
       ...repeatColumnsFor(id, null, content),
@@ -346,6 +408,62 @@ export const plannedTodo = async (
       createdBy: db.userId,
       updatedBy: db.userId,
     },
+  };
+};
+
+// The rollup on the device (todo-subtasks): a child's tick, reopen or
+// delete, or a new subtask, moves its parent chain in the same local
+// transaction, as `todoService.rollUp` does on the server. Each parent's
+// write is flagged (`ROLLUP_METADATA`), so the upload recomputes it from the
+// server's rows rather than replaying it as a complete or reopen.
+
+type Tx = Parameters<Parameters<SyncDb["drizzle"]["transaction"]>[0]>[0];
+
+/** A todo as the rollup sees it after this write: under `parentId`, done or not, live or not. */
+type TreeChange = { id: string; parentId: string | null; doneAt: string | null; deletedAt: string | null };
+
+/**
+ * The parent writes `change` makes, from its parent up to the top: each is
+ * `rollupOf` its live children here, `change` (and the writes below it)
+ * counted as written. A completed parent is done at `at` by this user.
+ * Returns the writes to run in the caller's transaction (none: a no-op).
+ */
+const planRollup = async (db: SyncDb, change: TreeChange, at: string) => {
+  const changed = new Map([[change.id, change]]);
+  const writes: { id: string; doneAt: string | null }[] = [];
+  let id = change.parentId;
+  for (let depth = 0; id && depth < MAX_TODO_DEPTH; depth++) {
+    const [parent] = await readRows<{
+      parent_id: string | null;
+      done_at: string | null;
+      deleted_at: string | null;
+    }>(db, { sql: "SELECT parent_id, done_at, deleted_at FROM todo WHERE id = ?", params: [id] });
+    // A deleted parent (or one not on this device) stops the climb, as on the server.
+    if (!parent || parent.deleted_at) break;
+    const rows = await readRows<{ id: string; done_at: string | null; deleted_at: string | null }>(db, {
+      sql: "SELECT id, done_at, deleted_at FROM todo WHERE parent_id = ?",
+      params: [id],
+    });
+    const children = [
+      ...rows.filter((r) => !changed.has(r.id)).map((r) => ({ doneAt: r.done_at, deletedAt: r.deleted_at })),
+      ...[...changed.values()].filter((c) => c.parentId === id),
+    ];
+    const step = rollupOf({ doneAt: parent.done_at }, children);
+    if (step) {
+      const doneAt = step === "complete" ? at : null;
+      writes.push({ id, doneAt });
+      changed.set(id, { id, parentId: parent.parent_id ?? null, doneAt, deletedAt: null });
+    }
+    id = parent.parent_id ?? null;
+  }
+  return async (tx: Tx) => {
+    for (const write of writes) {
+      // `_metadata` is PowerSync's, outside the Drizzle table (as an Undo's flag).
+      await tx.run(
+        sql`UPDATE todo SET done_at = ${write.doneAt}, done_by = ${write.doneAt ? db.userId : null},
+              _metadata = ${ROLLUP_METADATA} WHERE id = ${write.id}`,
+      );
+    }
   };
 };
 
@@ -372,12 +490,21 @@ export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput):
   const { eventId, ...row } = planned.row;
   const entry = await linkableEntry(db, groupId, input.entryId);
   const linked = [...new Set([eventId, entry].filter((id): id is string => !!id))];
+  // A new open subtask reopens a done parent (and those above it).
+  const rollup = row.parentId
+    ? await planRollup(
+        db,
+        { id: row.id, parentId: row.parentId, doneAt: null, deletedAt: null },
+        nowTimestamp(),
+      )
+    : null;
   await db.drizzle.transaction(async (tx) => {
     // The todo first, so the upload queue has it before its links.
     await tx.insert(todos).values(row);
     for (const entryId of linked) {
       await tx.insert(timelineEntryTodos).values(entryTodoRow(db, groupId, entryId, row.id));
     }
+    await rollup?.(tx);
   });
   return { ok: true, id: row.id };
 };
@@ -416,6 +543,12 @@ export const updateTodo = async (
     medicationId: content.medicationId !== existing.medicationId ? content.medicationId : null,
   });
   if (links) return links;
+  if (
+    content.repeatRule &&
+    content.repeatRule !== existing.repeatRule &&
+    (existing.parentId || (await hasLiveSubtasks(db, id)))
+  )
+    return repeatWithSubtasks;
 
   // A new rule or due day moves the anchor; no rule clears all three (as todoService).
   await db.drizzle
@@ -443,8 +576,6 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
   });
   return localDate(new Date(), row?.time_zone ?? "UTC");
 };
-
-type Tx = Parameters<Parameters<SyncDb["drizzle"]["transaction"]>[0]>[0];
 
 /**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
@@ -511,8 +642,8 @@ const doneRefusal = async (db: SyncDb, existing: LocalTodo) => {
 
 /**
  * Tick a todo done (writers, or a viewer or an easy role on their own todo). Ticking a done
- * one is fine. A repeating todo's next occurrence is written in the same
- * local transaction.
+ * one is fine. A repeating todo's next occurrence, and a subtask's parent
+ * chain (the rollup), are written in the same local transaction.
  */
 export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
@@ -522,10 +653,12 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   if (existing.doneAt) return { ok: true, id };
   const next = await planNext(db, existing);
   const now = nowTimestamp();
+  const rollup = await planRollup(db, { id, parentId: existing.parentId, doneAt: now, deletedAt: null }, now);
   await db.drizzle.transaction(async (tx) => {
     // Only the done columns change, so the upload maps it to complete.
     await tx.update(todos).set({ doneAt: now, doneBy: db.userId }).where(eq(todos.id, id));
     await next?.(tx);
+    await rollup(tx);
   });
   return { ok: true, id };
 };
@@ -546,7 +679,8 @@ const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
  * Reopen a done todo, or undo a tick (the same people as `completeTodo`).
  * A repeating todo's next occurrence goes when nobody has touched it (open,
  * as the tick made it, no notes); otherwise both stay and this one stops
- * repeating. One local transaction, as `todoService.reopen`.
+ * repeating. Its subtasks stay as they are; a done parent above it reopens
+ * (the rollup). One local transaction, as `todoService.reopen`.
  */
 export const reopenTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
@@ -568,6 +702,11 @@ export const reopenTodo = async (db: SyncDb, id: string): Promise<TodoWriteResul
     untouched = isUntouchedNext(existing, next) && !touches.length;
   }
   const now = nowTimestamp();
+  const rollup = await planRollup(
+    db,
+    { id, parentId: existing.parentId, doneAt: null, deletedAt: null },
+    now,
+  );
   await db.drizzle.transaction(async (tx) => {
     // The done columns (and a stopped repeat, which the server decides for
     // itself): the upload maps it to reopen.
@@ -585,6 +724,7 @@ export const reopenTodo = async (db: SyncDb, id: string): Promise<TodoWriteResul
               _metadata = ${UNDO_NEXT_METADATA} WHERE id = ${next.id}`,
       );
     }
+    await rollup(tx);
   });
   return { ok: true, id };
 };
@@ -611,17 +751,46 @@ export const skipTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult>
   return { ok: true, id };
 };
 
-/** Soft delete (writers). Deleting what's gone is fine. */
+/** The live todos under `id` (its subtasks, theirs, …), not `id` itself. */
+const liveDescendantIds = async (db: SyncDb, id: string) =>
+  (
+    await readRows<{ id: string }>(db, {
+      sql: `WITH RECURSIVE below(id, depth) AS (
+              SELECT id, 1 FROM todo WHERE parent_id = ? AND deleted_at IS NULL
+              UNION ALL
+              SELECT t.id, below.depth + 1 FROM todo t JOIN below ON t.parent_id = below.id
+                WHERE t.deleted_at IS NULL AND below.depth < ?
+            )
+            SELECT id FROM below`,
+      params: [id, MAX_TODO_DEPTH],
+    })
+  ).map((r) => r.id);
+
+/**
+ * Soft delete (writers), with its live subtasks and theirs in the same
+ * local transaction (as `todoService.remove`). The todo goes first, so the
+ * server's cascade has taken the rest before their own deletes upload
+ * (replays); then its parent chain follows the children left (the rollup).
+ * Deleting what's gone is fine.
+ */
 export const removeTodo = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const existing = await liveTodo(db, id);
   if (!existing) return { ok: true };
   const group = await groupFor(db, existing.groupId);
   if (!isTodoWriter(group?.role)) return forbidden;
+  const below = await liveDescendantIds(db, id);
   const now = nowTimestamp();
-  await db.drizzle
-    .update(todos)
-    .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-    .where(eq(todos.id, id));
+  const removed = { deletedAt: now, updatedAt: now, updatedBy: db.userId };
+  const rollup = await planRollup(
+    db,
+    { id, parentId: existing.parentId, doneAt: existing.doneAt, deletedAt: now },
+    now,
+  );
+  await db.drizzle.transaction(async (tx) => {
+    await tx.update(todos).set(removed).where(eq(todos.id, id));
+    if (below.length) await tx.update(todos).set(removed).where(inArray(todos.id, below));
+    await rollup(tx);
+  });
   return { ok: true };
 };
 
@@ -775,3 +944,31 @@ export const todoEventChoicesQuery = (
 });
 
 import { toLocalTimestamp } from "../timeline/timeline.sync";
+
+// ---------------------------------------------------------------------------
+// Subtasks (todo-subtasks)
+// ---------------------------------------------------------------------------
+
+/** A todo's live subtasks, done ones too, oldest first. */
+export const subtasksQuery = (todoId: string): LocalQuery => ({
+  sql: "SELECT * FROM todo WHERE parent_id = ? AND deleted_at IS NULL ORDER BY created_at, id",
+  params: [todoId],
+});
+
+/** One row per parent with live subtasks: how many, and how many are done (`subtaskProgress`). */
+export type SubtaskProgressRow = { parent_id: string; done: number; total: number };
+
+/**
+ * A group's subtask progress, every parent in one query (one live query per
+ * list, never one per row): live children only, as `subtaskProgress` counts.
+ */
+export const subtaskProgressQuery = (groupId: string): LocalQuery => ({
+  sql: `SELECT parent_id, COUNT(done_at) AS done, COUNT(*) AS total FROM todo
+        WHERE group_id = ? AND parent_id IS NOT NULL AND deleted_at IS NULL
+        GROUP BY parent_id`,
+  params: [groupId],
+});
+
+/** The query's rows by parent id; a todo with no live subtask isn't there. */
+export const progressByParent = (rows: readonly SubtaskProgressRow[]) =>
+  new Map(rows.map((r) => [r.parent_id, { done: Number(r.done), total: Number(r.total) }]));

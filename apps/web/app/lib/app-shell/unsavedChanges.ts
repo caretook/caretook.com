@@ -83,6 +83,11 @@ const reasonFor = (code: string, issues: Issue[]): string | null => {
   if (code === "sync:failed") return "the server couldn't save this";
   if (code === "permissions:unauthorized") return "you can't edit in this group any more";
   if (code === "todoService:completionOnly") return "you can only tick or reopen to-dos assigned to you";
+  // Subtasks (todo-subtasks).
+  if (code === "todoService:badParent")
+    return "the to-do it goes under is gone, repeats, or is already three levels deep";
+  if (code === "todoService:openSubtasks") return "it's done once its subtasks are; tick those first";
+  if (code === "todoService:repeatWithSubtasks") return "a subtask, or a to-do with subtasks, can't repeat";
   if (code === "sync:readOnlyTable") return "it can't be changed from this device";
   if (code.endsWith(":notFound")) return "it isn't there any more";
   if (code.endsWith(":immutable")) return "it can't move to another group or person";

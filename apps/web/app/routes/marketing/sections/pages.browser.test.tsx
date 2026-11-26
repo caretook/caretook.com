@@ -41,9 +41,7 @@ test.each([420, 1280])(
     expect(part("name")?.textContent).toBe("Caretook");
     expect(part("tagline")?.textContent).toBe("Care, taken.");
     const descriptor = document.querySelector('[data-lockup-part="descriptor"]');
-    expect(descriptor?.textContent).toBe(
-      "A care notebook for families, made by caregivers who've been there.",
-    );
+    expect(descriptor?.textContent).toBe(lockup.descriptor);
     await expect.element(screen.getByText(lockup.descriptor, { exact: true })).toBeVisible();
     const box = (el: Element | null | undefined) => el?.getBoundingClientRect();
     const [name, tagline] = [box(part("name")), box(part("tagline"))];

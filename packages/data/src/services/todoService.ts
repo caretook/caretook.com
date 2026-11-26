@@ -385,6 +385,41 @@ export const rollUp = async (tx: Tx, parentId: string | null, actorId: string, a
 
 const actorIdOf = (ctx: ServiceContext) => ctx.authUser?.id ?? SYSTEM_USER.id;
 
+/** When a tick happened: a device's time (offline), else now, and never in the future. */
+const tickTime = (doneAt?: string | null) => {
+  const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
+  // A device clock ahead of the server's.
+  return at.getTime() > Date.now() ? new Date() : at;
+};
+
+/**
+ * A device's rollup write to a parent (the upload's `ROLLUP_METADATA`): the
+ * device followed a child's change up the chain; here the parent and those
+ * above it are recomputed from the server's rows (`rollUp`), whatever the
+ * device wrote, so a late write never undoes a newer change and two
+ * devices end on the same answer. Any member may (the rollup is the
+ * system's; a viewer's tick of their last subtask finishes a parent that
+ * isn't theirs): never `completionOnly`. `doneAt` is the device's tick
+ * time, for a parent it completes. A deleted parent is left alone.
+ */
+export const rollUpUploaded = (
+  ctx: ServiceContext,
+  id: string,
+  { doneAt }: { doneAt?: string | null } = {},
+) =>
+  withTransaction(async (tx) => {
+    const parent = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    if (isError(parent)) return parent;
+    if (!parent) return notFound();
+    const role = await roleIn(ctx, tx, parent.groupId);
+    if (isError(role)) return role;
+    if (!role) return rejectError(ctx.authUser);
+    if (parent.deletedAt) return parent;
+    const rolled = await rollUp(tx, id, actorIdOf(ctx), tickTime(doneAt));
+    if (rolled) return rolled;
+    return todoModel.getById(id, system(tx));
+  }, ctx);
+
 // ---------------------------------------------------------------------------
 // The mirror (planner-3): links are rows in `timeline_entry_todo`. New
 // clients never write `todo.event_id`; an old client's `eventId` on create
@@ -568,9 +603,7 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     if (isError(open)) return open;
     if (open) return openSubtasks();
 
-    const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
-    // A device clock ahead of the server's: never in the future.
-    const when = at.getTime() > Date.now() ? new Date() : at;
+    const when = tickTime(doneAt);
     const done = await write(ctx, tx, id, { doneAt: when.toISOString(), doneBy: actorIdOf(ctx) });
     if (isError(done)) return done;
     if (existing.parentId) {

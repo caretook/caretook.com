@@ -47,7 +47,7 @@ pnpm datastore:start                                  # Postgres + PowerSync, mi
 pnpm dev                                              # http://localhost:5173
 ```
 
-Sign in as one of the seeded `@example.com` accounts (for example `member@example.com`) with the `SEED_USER_PASSWORD` from `packages/data/.env`. All seed data is fictional.
+Sign in as one of the seeded `@example.com` accounts (for example `member@example.com`) with the `SEED_USER_PASSWORD` from `packages/data/.env`. [docs/seed-accounts.md](docs/seed-accounts.md) lists them all, with their care groups and roles. All seed data is fictional.
 
 ## Everyday commands
 
