@@ -4,18 +4,20 @@
 
 ## Status
 
-**Where it stands (2026-11-25): planned, held** (`hold` on its row: the user asked for smaller slices after two skeptic send-backs; lift with `pnpm backlog prd set todo-subtasks flags-=hold`). Runs after `tags`. The lists (Todos tab, Planner, Today card, Easy view) are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
+**Where it stands (2026-11-26): running, wave 1.** Landing mode: **run everything through** (started run-through by the dispatcher; land each green wave, ask only real questions). Hold lifted; `tags` landed (dev 923875d3). The lists (Todos tab, Planner, Today card, Easy view) are the follow-on topic [`todo-subtasks-2`](todo-subtasks-2-plan.md).
 
-| Slice | Wave | State   | Merge into `prd/todo-subtasks` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
-| 3     | 3    | planned |                                                |
-| 4     | 4    | planned |                                                |
-| 5     | 5    | planned |                                                |
-| 6     | 6    | planned |                                                |
+| Slice | Wave | State         | Merge into `prd/todo-subtasks` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus) | ffdfad37 (c6274c06, 6aaf82f4)                  |
+| 2     | 2    | planned       |                                                |
+| 3     | 3    | planned       |                                                |
+| 4     | 4    | planned       |                                                |
+| 5     | 5    | planned       |                                                |
+| 6     | 6    | planned       |                                                |
 
-**Backlog:** claim B-550 when slice 1 starts; it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
+**Wave 1 (2026-11-26):** worktree `.loops/todo-subtasks-1` (slot 3) made, slice 1 (opus) handed off and merged at ffdfad37; migration 0047_todo_subtasks. `parent_id` already streamed in `sync-config.yaml` (rolesSql needs every column; device schema still slice 3). Wave gate: `full` CI run 45792344179 on 447e9d6e: **brake** — todoRename.int.test.ts (exact index list, new index) and the app bundle 163 B over budget, both sent back to slice 1's agent (fix in flight); a format warn on this plan file, fixed at 6265dad3.
+
+**Backlog:** B-550 claimed by prd/todo-subtasks (only item for this topic); it stays open for `todo-subtasks-2`, whose last slice runs `pnpm backlog done B-550`.
 
 ## Architectural decisions
 
