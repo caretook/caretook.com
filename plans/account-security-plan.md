@@ -32,7 +32,7 @@
 
 **Hot files:** `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `careGroupInviteService.ts`, `joinRequestService.ts`, `connectorGrantService.ts`, `groupAdminService.ts`, `accountAdminService.ts`, `adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs`.
 
-Slice 3 follows ask a241. If the answer is _Any group, owners emailed_, the owner-invite refusal is dropped, and the rest of the slice stands.
+Slice 3 follows ask a241 (defaulted to _Ownerless groups only_).
 
 ## Slice 1: A manager's power ends with their role
 
@@ -105,7 +105,7 @@ Stack: no · Reads: docs/domain/admin.md, docs/domain/notifications.md, docs/dom
   - Make owner, Change role and Remove each queue one `staffGroupChange` per current owner, with no health details and no staff name.
 - `pnpm prd check --quick` green.
 
-**Blocked by:** none (the a241 answer). **Blocks:** slice 4.
+**Blocked by:** none. **Blocks:** slice 4.
 
 ## Slice 4: Staff views are always audited
 
