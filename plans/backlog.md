@@ -261,8 +261,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-761 | feature | triaged | connectors-3 |  | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
 | B-764 | change | triaged | fixes-perf |  | App first load is way too long. |
 | B-766 | bug | ready | fixes-tooling | prd/fixes-tooling | pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands |
-| B-767 | bug | in-progress | fixes-tooling | prd/fixes-tooling | A backlog amend repeats the Backlog-Tool trailer in the commit message |
-| B-768 | bug | in-progress | fixes-tooling | prd/fixes-tooling | slice-fields.mjs warns on a slice fields line that carries Blocked by |
+| B-767 | bug | ready | fixes-tooling | prd/fixes-tooling | A backlog amend repeats the Backlog-Tool trailer in the commit message |
+| B-768 | bug | ready | fixes-tooling | prd/fixes-tooling | slice-fields.mjs warns on a slice fields line that carries Blocked by |
 | B-769 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx: the New care group sheet the group menu's New c… |
 | B-772 | chore | triaged | test-time-gates-2 |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
@@ -1741,19 +1741,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-767 · bug · A backlog amend repeats the Backlog-Tool trailer in the commit message
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: dd8d3a21
 
 - 2026-11-24 (prd/fixes-tooling): Seen in slice 46 (B-464) of wave 6: amending a pnpm backlog commit appends a second Backlog-Tool trailer instead of keeping one.
 
 ### B-768 · bug · slice-fields.mjs warns on a slice fields line that carries Blocked by
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: dd8d3a21
 
 - 2026-11-24 (prd/fixes-tooling): Seen in wave 6 (slice-brief work, B-595): a valid 'Blocked by' on a slice's fields line draws a warning; it should be a known field.
 
