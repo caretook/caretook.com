@@ -16,8 +16,8 @@
 | ----- | ---- | ------- | -------------------------------------- |
 | 1     | 1    | landed  | 41fa52cf (dev 00c60f0c)                |
 | 2     | 1    | landed  | 8338ca66 (dev 00c60f0c)                |
-| 3     | 2    | merged  | a9ca9561 |                                        |
-| 6     | 2    | merged  | 6b1ba139 |                                        |
+| 3     | 2    | merged  | a9ca9561                               |
+| 6     | 2    | merged  | 6b1ba139                               |
 | 8     | 3    | planned |                                        |
 | 7     | 3    | planned |                                        |
 | 4     | 4    | planned |                                        |
