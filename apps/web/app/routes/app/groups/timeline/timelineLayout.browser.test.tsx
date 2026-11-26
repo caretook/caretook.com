@@ -49,7 +49,7 @@ describe("the first screen", () => {
     const device = await openTimeline();
     await ready();
     expect(view()).toBe("rows");
-    await setView("Cards");
+    await setView("Full");
     await device.screen.unmount();
     // The next visit reads the device's settings copy (lib/app-shell/me.ts): no server needed.
     await openTimeline();
@@ -88,7 +88,7 @@ describe("row taps", () => {
   test("writer, cards: a note opens its page; a vital's reading opens its edit sheet", async () => {
     const device = await openTimeline();
     await ready();
-    await setView("Cards");
+    await setView("Full");
     await tapAt(() => rowOf("Note")?.querySelector("p"));
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
@@ -154,12 +154,12 @@ describe("day headings", () => {
     );
   });
 
-  test.each(["Rows", "Cards"] as const)(
+  test.each(["Condensed", "Full"] as const)(
     "%s: a day heading stays stuck to the top while scrolling, with no row control above it",
     async (to) => {
       await openTimeline({ fixtures: world(60) });
       await ready();
-      if (to === "Cards") await setView("Cards");
+      if (to === "Full") await setView("Full");
       const probe = () => {
         const hs = [...document.querySelectorAll("section [data-day-header]")].map((h) => ({
           h,
@@ -203,8 +203,8 @@ describe("the wide layout", () => {
   test("rows and cards at 1024, 1280 and 1536, and back at 420: nothing scrolls sideways", async () => {
     await openTimeline({ width: 1280 });
     await ready();
-    for (const to of ["Rows", "Cards"] as const) {
-      if (to === "Cards") await setView("Cards");
+    for (const to of ["Condensed", "Full"] as const) {
+      if (to === "Full") await setView("Full");
       for (const w of [1024, 1280, 1536, 420]) {
         await width(w);
         expect({ to, w, scroll: noHorizontalScroll() }).toEqual({ to, w, scroll: true });
@@ -212,10 +212,10 @@ describe("the wide layout", () => {
     }
   });
 
-  test.each(["Rows", "Cards"] as const)("1280, %s: the day heading spans the list and sticks", async (to) => {
+  test.each(["Condensed", "Full"] as const)("1280, %s: the day heading spans the list and sticks", async (to) => {
     await openTimeline({ width: 1280, fixtures: world(60) });
     await ready();
-    if (to === "Cards") await setView("Cards");
+    if (to === "Full") await setView("Full");
     const box = (el: Element) => el.getBoundingClientRect();
     for (const ol of document.querySelectorAll("section > ol")) {
       const [h, list] = [box(ol.parentElement!.querySelector("[data-day-header]")!), box(ol)];

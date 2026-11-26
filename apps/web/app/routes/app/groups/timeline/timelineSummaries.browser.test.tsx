@@ -106,7 +106,7 @@ describe("the day summary", () => {
   test("shows in cards too", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => summaries().length === 2);
-    await setView("Cards");
+    await setView("Full");
     expect(lineOf(0)).toBe(TODAY_TEXT);
   });
 
