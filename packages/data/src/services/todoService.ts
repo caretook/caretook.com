@@ -8,12 +8,16 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
+  BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
+  canHaveSubtask,
   completionOnly,
   isTodoCompleter,
   isTodoWriter,
   localDate,
+  MAX_TODO_DEPTH,
+  REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
   TODO_LIMITS,
   todoContentOf,
@@ -245,6 +249,65 @@ const isTouched = async (tx: Tx, todoId: string) => {
 };
 
 // ---------------------------------------------------------------------------
+// Subtasks (todo-subtasks): a subtask is a todo with a parent, set on create
+// only. The parent must be live, in the group, not repeating, and leave the
+// subtask within `MAX_TODO_DEPTH` (todoTree.ts); a subtask never repeats,
+// nor does a todo with live subtasks.
+// ---------------------------------------------------------------------------
+
+const badParent = () =>
+  newError({ code: "todoService:badParent", meta: { issues: [{ ...BAD_PARENT_ISSUE }] } });
+
+const repeatWithSubtasks = () =>
+  newError({ code: "todoService:repeatWithSubtasks", meta: { issues: [{ ...REPEAT_WITH_SUBTASKS_ISSUE }] } });
+
+/**
+ * `todo`'s ancestors, its parent first, deleted ones included (they still
+ * count for depth). Stops past `MAX_TODO_DEPTH`: enough to refuse.
+ */
+const ancestorsOf = async (tx: Tx, todo: Todo) => {
+  const chain: Todo[] = [];
+  let parentId = todo.parentId;
+  while (parentId && chain.length < MAX_TODO_DEPTH) {
+    const parent = await todoModel.getById(parentId, { ...system(tx), includeDeleted: true });
+    if (isError(parent)) return parent;
+    if (!parent) break;
+    chain.push(parent);
+    parentId = parent.parentId;
+  }
+  return chain;
+};
+
+/** A new subtask's parent must be able to take one (`canHaveSubtask`). Read as the actor. */
+const checkParent = async (ctx: ServiceContext, tx: Tx, groupId: string, parentId: string | null) => {
+  if (!parentId) return null;
+  const parent = await todoModel.getById(parentId, { ...ctx, tx });
+  if (isError(parent)) return parent;
+  if (parent?.groupId !== groupId) return badParent();
+  const ancestors = await ancestorsOf(tx, parent);
+  if (isError(ancestors)) return ancestors;
+  return canHaveSubtask(ancestors, parent) ? null : badParent();
+};
+
+/** Whether the todo has a live subtask. */
+const hasLiveSubtasks = async (tx: Tx, todo: Todo) => {
+  const child = await todoModel.get({
+    ...system(tx),
+    filter: { groupId: { type: "eq", value: todo.groupId }, parentId: { type: "eq", value: todo.id } },
+  });
+  if (isError(child)) return child;
+  return !!child;
+};
+
+/** A new rule on a subtask, or on a todo with live subtasks, is refused. */
+const checkRepeatInTree = async (tx: Tx, todo: Todo) => {
+  if (todo.parentId) return repeatWithSubtasks();
+  const hasSubtasks = await hasLiveSubtasks(tx, todo);
+  if (isError(hasSubtasks)) return hasSubtasks;
+  return hasSubtasks ? repeatWithSubtasks() : null;
+};
+
+// ---------------------------------------------------------------------------
 // The mirror (planner-3): links are rows in `timeline_entry_todo`. New
 // clients never write `todo.event_id`; an old client's `eventId` on create
 // or update becomes the pair's link row here (a change removes the old pair
@@ -295,7 +358,8 @@ export type TodoWriteOptions = { via?: string | null };
 
 /**
  * Add a todo. `id` may come from an offline device; creating one that
- * exists returns it (a replay). Writers only.
+ * exists returns it (a replay). Writers only. `parentId` makes it a
+ * subtask (`checkParent`), which never repeats.
  */
 export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWriteOptions = {}) =>
   withTransaction(async (tx) => {
@@ -325,6 +389,9 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
     if (assignee) return assignee;
     const links = await checkLinks(ctx, tx, data.groupId, data);
     if (links) return links;
+    const parent = await checkParent(ctx, tx, data.groupId, data.parentId);
+    if (parent) return parent;
+    if (data.parentId && data.repeatRule) return repeatWithSubtasks();
 
     const id = data.id ?? randomUUID();
     const created = await todoModel.create({
@@ -348,7 +415,8 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
 /**
  * Edit a todo's content: title, assignee, due and links. The group and
  * recipient are fixed; the merged todo must be valid; a changed assignee
- * must be a member and a changed link live in the group. Viewers and the
+ * must be a member and a changed link live in the group. The parent never
+ * changes, and a new rule is refused in a tree. Viewers and the
  * easy roles are refused (`completionOnly`):
  * they only complete and reopen.
  */
@@ -384,6 +452,10 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
       eventId: changed(merged.data.eventId, existing.eventId),
     });
     if (links) return links;
+    if (merged.data.repeatRule && merged.data.repeatRule !== existing.repeatRule) {
+      const tree = await checkRepeatInTree(tx, existing);
+      if (tree) return tree;
+    }
 
     const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
     // An old client's changed event moves its link row (the mirror).
