@@ -44,9 +44,11 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //                React dedupes), and the test device (apps/web/test/device.tsx),
 //                a local-only PowerSync database with fixtures. Chromium comes
 //                from `pnpm test:components:install` (once per machine).
-// Caretook's tooling tests by name, wherever they sit (scripts/loops, scripts/ci
-// or scripts/project), so a slice moving one into scripts/project/ changes nothing
-// here. PROJECT_UNIT: the ones `pnpm test` runs; PROJECT_TOOLING: the ones it doesn't.
+// Caretook's tooling tests that sit among the core's files, by name. PROJECT_UNIT: the
+// ones `pnpm test` runs, matched in scripts/loops, scripts/ci or scripts/project, so a
+// slice moving one into scripts/project/ changes nothing here. PROJECT_TOOLING: the ones
+// it doesn't, still in scripts/loops (the rest of scripts/project/ joins project:tooling
+// by its folder).
 const PROJECT_UNIT = [
   "sync-matrix",
   "check-areas",
