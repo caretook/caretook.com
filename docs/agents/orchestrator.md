@@ -1,33 +1,11 @@
-# Orchestrator handbook
-
-For a PRD orchestrator: a top-level session (spawned agents can't spawn), one per PRD, in the integration worktree `.loops/<topic>` on `prd/<topic>`, steered by the user. It reads `dev`, never works in the main checkout, and runs loops ([loop](loop.md)). **At most four PRDs run at once** (`prd dispatch --cap`).
+- **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check on `pnpm log dev` or `pnpm backlog list`; then `pnpm prd sync --force`. **Unsure, or a choice past your topic:** ask the backlog session (SendMessage); it advises.
+- **Run-through sessions never ask in the terminal:** `pnpm prd ask` (a question, or a report at each landing). A fresh Opus [skeptic](machinery.md#the-skeptic) reads each question first. A recommended one takes `--defaults` (the tool takes it after 30 minutes) or `--waits` ([never list](preferences.md#planning-and-slices)). Then a PushNotification with its line and `pnpm prd ask --wait <id>` in the background; carry on meanwhile. **Only a question's line is pushed.**
 
 ## Branches and protection
 
-- `main` (live) and `staging` change only by PR merge on GitHub (`staging` from an `rc/*` candidate, `main` from `staging`). `dev` takes landings, `pnpm backlog` commits and small direct changes. `prd/<topic>` takes its slices' merges and `dev` syncs; `slice/<topic>/<n>` its loop's commits; `plan/<topic>` (docs) and `hotfix/<name>` their session's commits; all three land in `dev` like a PRD.
+- `main` (live) and `staging` change only by PR merge on GitHub (`staging` from an `rc/*` candidate, `main` from `staging`). `dev` takes landings, `pnpm backlog` commits and small direct changes; `prd/<topic>` its slices' merges and `dev` syncs; the other branches their session's commits.
 - **Hooks** (`.githooks/`; `pnpm hooks:install` sets `core.hooksPath` for every worktree, and `new.sh` runs it): on `main` and `staging`, no commits, merges or pushes, and no local moves but a fast-forward to `origin`'s copy (`git fetch && git branch -f main origin/main`). The dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1` (the hook says so); agents never set it. `dev` isn't restricted. `commit-msg` checks Conventional Commits on every branch.
-- `pnpm prd sync`, `pnpm prd land` and `pnpm backlog` write their own commit subjects. `pr` and `land` push `dev` (fast-forward only); backlog writes don't.
-
-## Commands
-
-`pnpm prd help` lists the `pnpm prd` commands; script headers give details.
-
-## Starting and steering
-
-- **Starting (the user):** `pnpm prd start <topic>`, then the command it prints in a new terminal.
-- **The landing mode:** unless _Status_ records one, ask first: before each landing, run everything through (start every ready slice, land each green wave, ask only real questions), or land chosen waves or slices automatically. Record it in _Status_.
-- **The dispatcher** ([machinery](machinery.md#the-dispatcher)), when the user runs it, plans and starts topics in the registry's row order as managed run-through sessions; `pnpm prd queue <topic>` moves a row first. Being started run-through is the go-ahead for every landing of that PRD.
-- **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check on `pnpm log dev` or `pnpm backlog list`; then `pnpm prd sync --force`. **Unsure, or a choice past your topic:** ask the backlog session (SendMessage); it advises.
-- **Keep your context small:** work from _Status_, the backlog, hand-offs, `git diff --stat` and check output; send a problem back to its agent, never debug inside a loop.
-- **One session per wave: drain, then rotate.** After a landing (not the last) and its docs, start no new slice; once the slices in flight are merged, commit _Status_ and `pnpm prd rotate` (at once with none in flight): a fresh session of that name opens from _Status_ and the old one ends. `--mid-wave` only on the user's word, or **past 225k** ([the watch](machinery.md#the-context-watch); at 160k, judge): rotate at the next safe point, unasked; a step that can't resume from _Status_ first runs `pnpm prd context --keep "<why>"` and says why there. After the last landing: `pnpm prd rm <topic>` (it sets the registry's `done`, except for a `standing` topic), then `cd` to the main checkout and `pnpm prd end`.
-- **Bye** (a message of just 'bye'): first _Status_ committed and current, no slice agent working, no CI run or review out; then `pnpm prd bye` ([machinery](machinery.md#recorded-sessions)).
-- **Run-through sessions never ask in the terminal:** `pnpm prd ask` (a question, or a report at each landing). A fresh Opus [skeptic](machinery.md#the-skeptic) reads each question first. A recommended one takes `--defaults` (the tool takes it after 30 minutes) or `--waits` ([never list](preferences.md#planning-and-slices)). Then a PushNotification with its line and `pnpm prd ask --wait <id>` in the background; carry on meanwhile. **Only a question's line is pushed.**
-- **Update _Status_ at every step:** a slice started, handed off, merged (SHA), a wave landed; what's ready, issues, the landing mode. Commit it with merges and checks. After a landing, `pnpm prd status-trim` moves old hand-offs to `plans/<topic>-history.md` (_Status_ under 6 KB).
-- **Capacity:** every check is `pnpm prd check`, in one of two leases (confirm it's held; no lookup chained before). Checks and slice starts wait out [the load gate](machinery.md#the-load-gate).
-
-## Models
-
-**Coding goes to opus (Opus 5.5) or stronger, never below:** any slice or fix with real logic (a table or permission, sync, state, new UX, a refactor, a bug whose cause isn't known, a Codex fix). When unsure whether a slice is mechanical, it isn't: use opus. Brief helpers tightly; note slice models in _Status_. **haiku:** reading long check output (report failures, ■ lines, the table), searches and summaries (sonnet when it needs judgement), backlog chores and triage proposals. **sonnet:** only a slice with no logic to work out (a rename, moving files or checks, an edit the plan spells out line by line). **You:** reviewing hand-offs, conflicts, choosing the check, landing, talking with the user. Redo a thin or wrong result on a stronger model, unpatched.
+- `pnpm prd sync`, `pnpm prd land` and `pnpm backlog` write their own commit subjects; backlog writes don't push `dev`.
 
 ## Running a wave
 
@@ -39,7 +17,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 4. On each hand-off, mark it, then review: `git diff prd/<topic>...slice/<topic>/<n>`, the hand-off, the acceptance criteria.
 5. Merge **in plan order** in your worktree: `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve shared-file conflicts yourself. No local quick check: the wave's run is the gate.
 6. Record the merge SHA, `pnpm backlog done B-<n>`; start what it unblocked. **The slice keeps its worktree and branch** until the wave's verdict is green; `pnpm prd rm <topic>-<n>` then.
-7. **The wave's run:** `pnpm prd ci run <tier> --wait` in the background, at the [proposed tier](#the-check-gate) unless you have a reason. On `file` or `brake`, `pnpm prd ci blame` (0 all dev's, 2 some the branch's, 5 unknown), then SendMessage each of the branch's failures to its slice's agent, with the tests and the run link. A failure no one slice explains gets a fresh fix agent in that slice's worktree. After [its fix](loop.md#loop-rules), merge it again.
+7. **The wave's run:** `pnpm prd ci run <tier> --wait` in the background, at the [proposed tier](#the-check-gate) unless you have a reason. On `file` or `brake`, `pnpm prd ci blame` (0 all dev's, 2 some the branch's, 5 unknown), then SendMessage each of the branch's failures to its slice's agent, with the tests and the run link. A failure no one slice explains gets a fresh fix agent in that slice's worktree. After its fix (`prd doc loop`), merge it again.
 8. **No rotation while a run is out or a fix is in flight** (`rotate` refuses only the run; the fix is on you). **Land the wave** when it's green; don't wait for the whole PRD.
 
 - **Stalls:** `pnpm prd watch <topic> --wait` runs in the background through a wave (rerun on exit); `--mark <n>` before acting. `nudge`: SendMessage (`replied` on an answer). `restart` (once): TaskStop, wait for `stopped`, then a `--continue` agent in that worktree. `skeptic`: a fresh Opus on `prompt skeptic stall`, recorded `--kind stall --slice <n>` (`--waits`, never list: only ask); then restart, `left` or `asked`.
@@ -65,19 +43,13 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 - **The tier:** `--tier <t>` (`pr` takes it too); the default is the minimum `check-plan.mjs` proposes. `full`: a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` beyond `scripts`, the Vitest config, the workflow, `scripts/ci/`, or a file no rule covers. `components`: `apps/`. `integration`: `packages/`, the browser harness. `none`: Markdown and tooling (still run `pnpm test:tooling`). Below the proposal needs `--why "<reason>"`, named in the PR and the report. `--tier none` over a real proposal is refused even with `--why`; only `--force` skips the gate.
 - **What counts:** a whole-tier verdict that ran this tier or higher, on the tip or on a first-parent ancestor with only docs, tooling or CI's two lists changed since. Never a narrowed run. A browser-harness change or a scripts-only `package.json` commit doesn't keep a verdict.
 - **Behind a dev sync:** a recheck newer than it at the tier of what dev brought (`syncTier`: the harness counts as tooling unless the branch touched it), carrying the pre-sync one if it lands without blame; both runs' flakes are filed. Bringing the wave's tier or more needs it.
-- **How each kind lands:** a flake in a file the branch touched refuses, whatever the kind. `green` lands. `flake` lands, filed after the merge. `file` and `brake` go through blame against dev's tip, which files dev's failures even if the landing is then refused: they land only when every failure is dev's and filed, and a dev brake needs `--fixes B-<n>` naming its item. The branch's failures refuse, named; `infra` and unknown refuse with how to retry.
+- **How each kind lands:** a flake in a file the branch touched refuses, whatever the kind. `green` lands. `flake` lands, filed after the merge. `file` and `brake` go through blame against dev's tip, which files dev's failures even if the landing is then refused: they land only when every failure is dev's and filed, and a dev brake needs `--fixes B-<n>` naming its item. The branch's failures refuse, named; `infra` and unknown refuse with how to retry. `time` refuses, exit 6, unblamed.
 
 ### Docs at landing
 
 - Fold the wave's lasting decisions into the matching area doc (add a doc and an _Area index_ entry for a new area), process changes into the role doc, and only rules every session needs into AGENTS.md. Keep in-flight status in your plan. Loops never edit AGENTS.md or `docs/`.
-- **Byte budgets** (`scripts/loops/doc-budget.config.mjs`): the core 8 KB, each `docs/agents/*.md` 15 KB, each `docs/domain/*.md` and `docs/layout.md` 10 KB. `pnpm check` warns (`pnpm docs:budget`). `pnpm prd land` refuses any branch (`--force` included) that makes an over-budget doc bigger than on `dev`: **trim at least what you fold in.**
+- **Byte budgets** (`scripts/project/doc-budget.config.mjs`): the core 8 KB, each role 15 KB (a split one's two halves share it), each `docs/domain/*.md` and `docs/layout.md` 10 KB. `pnpm check` warns (`pnpm docs:budget`). `pnpm prd land` refuses any branch (`--force` included) that makes an over-budget doc bigger than on `dev`: **trim at least what you fold in.**
 - When a PRD is done, move its decisions to the area docs and mark it done.
-
-## Recovery
-
-`pnpm prd down` before a planned restart, `pnpm prd recover` after a restart, crash or usage limit: [recovery](recovery.md).
-
-- **Resuming as orchestrator:** its `--resume` prompt first runs `pnpm prd land --resume prd/<topic>`; **git wins** over _Status_.
 
 ## Rules across PRDs
 

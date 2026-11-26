@@ -1,6 +1,9 @@
-# The live backlog
+1. Write the PRDs the table marks "to write" (`pnpm prd plan <topic>`), then run them.
+2. Tests: cover every role against every table.
+3. Hosting: go live by working through [`ops/runbook.md`](../../ops/runbook.md) with the user, staging first.
+4. After invites: the launch work in [notifications](../domain/notifications.md); then Capacitor (bearer storage, `VITE_API_ORIGIN`).
 
-For anyone who reads or writes the backlog: the user, orchestrators, planning and backlog sessions, and loops (notes only). Everything planned (bugs, changes, features, big plans, questions) lives in two files, **only on `dev`**.
+Everything planned (bugs, changes, features, big plans, questions) lives in two files, **only on `dev`**.
 
 ## The two files
 
@@ -36,12 +39,3 @@ inbox → triaged (has a PRD) → in-progress (claimed) → ready → landed →
 - **Look-alikes:** `pnpm backlog similar <text…>` lists open and archived items sharing most content words (no model). `add` prints them and files nothing (exit 3): note the existing item, or rerun with `--anyway`. `ingest` always files the user's line and notes its look-alikes on the new item.
 - `pnpm backlog doctor [--fix]` finds mis-tags, duplicate ids, stale statuses and summary drift (`--fix`: statuses and the summary only).
 - `pnpm log` hides backlog commits (`chore(backlog)`) when you read history.
-
-## Deciding what's next
-
-The backlog session (`pnpm prd plan` with no topic, in the main checkout) asks first and collects after, so a fresh one stays small: one line on the open asks (`pnpm prd asks --short`), then one multi-select poll of what the session is for (catch up, write a PRD from the backlog, decide what to run next, or triage a new issue or idea). Only then does it load its rules (`pnpm prd prompt backlog --guide`) and ingest, list and check what the picks need; catch up prints the overview (the backlog, the orchestrators, what it triaged or left for review). While the dispatcher runs, deciding what runs next is moving and holding rows (`pnpm backlog prd move`, `hold`), and it prints no start commands. Later questions follow only from the picks; it never asks about a task the user didn't pick, and does routine chores without polling. Its proposals weigh the PRD table's dependencies and hot files and the cap of four running at once. To plan a topic it asks first: a planner in a new terminal (the user runs `pnpm prd plan <topic> --open`; an agent never runs `--open` from its own shell, where the planner would run inside the command) or planning inline in this session (`pnpm prd plan <topic>`, in its worktree). It never starts a PRD run from its own shell (`pnpm prd start`, `pnpm prd queue`): it prints the commands as options for the user to run. On "hand off" it asks once (a short brief, recommended, or nothing), writes any brief to the path `pnpm prd rotate --self --brief-path` prints, then runs `pnpm prd rotate --self [--brief <file>]`. Each fresh main session (start, hand-off, rotate, reopen) shows a new captain's name as its Remote Control name and tab title; its record stays `backlog`. Past the soft context limit (160k) it tells the user its size at the next pause and asks: hand off or keep going (never unasked; no answer keeps going). When the user wants another backlog session for a task, it writes a brief and runs `pnpm prd session request backlog <name> --brief <file>`; the dispatcher opens `backlog - <name>` and leaves a notice (`pnpm prd session requests` lists them). Orchestrators check in with it (SendMessage) on choices that reach past their topic: it answers from the whole stack, and passes on to the user what is theirs to decide. **Bye:** a message of just 'bye' runs `pnpm prd bye` after its own checks: what it filed or triaged told to the user, no brief or session request half done. Standing priorities:
-
-1. Write the PRDs the table marks "to write" (`pnpm prd plan <topic>`), then run them.
-2. Tests: cover every role against every table.
-3. Hosting: go live by working through [`ops/runbook.md`](../../ops/runbook.md) with the user, staging first.
-4. After invites: the launch work in [notifications](../domain/notifications.md); then Capacitor (bearer storage, `VITE_API_ORIGIN`).

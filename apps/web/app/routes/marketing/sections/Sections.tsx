@@ -1,5 +1,6 @@
 import type { ButtonVariant } from "~/components/ui/plain";
 
+import { FullLogo } from "~/components/brand";
 import { Button } from "~/components/ui/plain";
 import { MARKETING_LINKS } from "../site/pages";
 import { MarketingIcon } from "./icons";
@@ -54,12 +55,26 @@ export function Hero({ content }: { content: HeroContent }) {
         {content.eyebrow && (
           <p className="badge badge-soft badge-primary badge-lg mb-5 font-medium">{content.eyebrow}</p>
         )}
-        <h1
-          id="hero-heading"
-          className="max-w-3xl text-4xl leading-tight font-bold tracking-tight text-balance sm:text-5xl"
-        >
-          {content.heading}
-        </h1>
+        {content.lockup ? (
+          <>
+            <h1 id="hero-heading" data-lockup>
+              <FullLogo size="hero" />
+            </h1>
+            <p
+              className="mt-6 max-w-2xl text-xl font-semibold text-balance sm:text-2xl"
+              data-lockup-part="descriptor"
+            >
+              {content.lockup.descriptor}
+            </p>
+          </>
+        ) : (
+          <h1
+            id="hero-heading"
+            className="max-w-3xl text-4xl leading-tight font-bold tracking-tight text-balance sm:text-5xl"
+          >
+            {content.heading}
+          </h1>
+        )}
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-base-content/80 sm:text-xl">
           {content.lead}
         </p>

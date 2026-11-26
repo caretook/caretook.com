@@ -1,11 +1,12 @@
 // The backlog CLI end to end, against a throwaway repo: a "main checkout" on
 // dev plus a prd/ worktree, like the real layout.
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { loadConfig } from "../loops/config.mjs";
 
 const CLI = new URL("./backlog.mjs", import.meta.url).pathname;
 const run = promisify(execFile);
@@ -454,7 +455,7 @@ describe("backlog CLI: multi-id writes and amending", () => {
 
 describe("backlog ci-file", () => {
   const FILE = "scripts/loops/a.test.mjs";
-  const LIST = "scripts/ci/quarantine.txt";
+  const LIST = loadConfig().config.paths.quarantine;
   const flake = {
     key: "k1",
     title: "CI flake: a",
@@ -640,5 +641,210 @@ describe("backlog CLI: look-alikes and archive by id", () => {
     const rows = JSON.parse(cli(m4, "list", "--all", "--json"));
     expect(rows.find((r) => r.id === "B-2").archived).toBe(true);
     expect(rows.find((r) => r.id === "B-1").archived).toBeUndefined();
+  });
+});
+
+// Another project's config (RISA_CONFIG): its own paths, trunk, PRD heading and
+// id prefix. Every id, heading, tag and lookup follows it.
+describe("backlog CLI: another project's config", () => {
+  let r4, m4, p4, cfg;
+  const at = (rel) => readFileSync(join(m4, rel), "utf8");
+  const run4 = (cwd, ...a) =>
+    execFileSync("node", [CLI, ...a], { cwd, encoding: "utf8", env: { ...env, RISA_CONFIG: cfg } }).trim();
+  beforeAll(() => {
+    r4 = realpathSync(mkdtempSync(join(tmpdir(), "backlog-sample-")));
+    m4 = join(r4, "repo");
+    p4 = join(r4, "topic-x");
+    const sample = loadConfig().config;
+    cfg = join(r4, "sample.json");
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        ...sample,
+        name: "sample",
+        paths: { ...sample.paths, backlog: "todo/list.md", inbox: "todo/in.md", archive: "todo/old.md" },
+        branches: {
+          ...sample.branches,
+          trunk: "trunk",
+          prefixes: { ...sample.branches.prefixes, prd: "topic/" },
+        },
+        backlog: { ...sample.backlog, prdsHeading: "## Topics", idPrefix: "RISA" },
+      }),
+    );
+    execFileSync("git", ["init", "-q", "-b", "trunk", m4]);
+    git(m4, "config", "user.email", "test@example.com");
+    git(m4, "config", "user.name", "Test");
+    git(m4, "config", "commit.gpgsign", "false");
+    execFileSync("mkdir", ["-p", join(m4, "todo")]);
+    writeFileSync(
+      join(m4, "todo/list.md"),
+      "# Tracker\n\n## Topics\n\n| PRD | Flags | After | Hot files | Doc and notes |\n| --- | ----- | ----- | --------- | ------------- |\n| `x` | — | — | — | notes |\n\n## Items\n",
+    );
+    writeFileSync(join(m4, "todo/in.md"), "# Inbox\n\n## Bugs\n\n- Scrolling jumps\n");
+    git(m4, "add", ".");
+    git(m4, "commit", "-q", "-m", "init");
+    git(m4, "worktree", "add", "-q", "-b", "topic/x", p4);
+  });
+  afterAll(() => rmSync(r4, { recursive: true, force: true }));
+
+  it("gives new ids, headings, summary rows and inbox tags the project's prefix", () => {
+    expect(run4(p4, "add", "bug", "Sign-in", "twice")).toBe("added RISA-1");
+    expect(at("todo/list.md")).toContain("### RISA-1 · bug · Sign-in twice");
+    expect(at("todo/list.md")).toMatch(/^\| RISA-1 \| bug \|/m);
+    expect(git(m4, "log", "-1", "--format=%s%n%b")).toBe(
+      "chore(backlog): add RISA-1 (bug) Sign-in twice\nBy: topic/x\n\nBacklog-Tool: add\nBacklog-Ids: RISA-1",
+    );
+    expect(run4(p4, "ingest")).toMatch(/RISA-2 +bug +Scrolling jumps/);
+    expect(at("todo/in.md")).toContain("- Scrolling jumps (RISA-2)");
+    expect(git(m4, "show", "--name-only", "--format=", "HEAD").split("\n").sort()).toEqual([
+      "todo/in.md",
+      "todo/list.md",
+    ]);
+    expect(run4(p4, "ingest")).toBe("nothing new in the inbox");
+  });
+
+  it("finds items by the prefix, a bare number or lower case, and notes several", () => {
+    expect(run4(m4, "show", "risa-1")).toMatch(/^RISA-1 · bug · Sign-in twice/);
+    expect(run4(m4, "show", "2")).toMatch(/^RISA-2 · bug · Scrolling jumps/);
+    expect(run4(m4, "note", "RISA-1", "RISA-2", "seen", "twice")).toBe("noted RISA-1, RISA-2");
+    expect(run4(m4, "note", "RISA-1", "B-2", "a", "B-n", "is", "words")).toBe("noted RISA-1");
+    expect(at("todo/list.md")).toMatch(/: B-2 a B-n is words/);
+  });
+
+  it("reads the registry under the project's heading, and finds its prd worktrees by their prefix", () => {
+    expect(JSON.parse(run4(m4, "prd", "list", "--json"))).toMatchObject([{ topic: "x", state: "running" }]);
+  });
+
+  it("archives to the project's archive", () => {
+    run4(m4, "set", "RISA-1", "status=dropped");
+    expect(run4(m4, "archive")).toBe("archived 1 to todo/old.md: RISA-1");
+    expect(at("todo/old.md")).toContain("### RISA-1 · bug · Sign-in twice");
+    expect(at("todo/old.md")).toContain("`pnpm backlog show RISA-n`");
+    expect(run4(m4, "show", "RISA-1")).toContain("(archived in todo/old.md)");
+    expect(run4(m4, "add", "bug", "Another")).toBe("added RISA-3");
+  });
+
+  it("orders look-alikes by their number under the project's prefix", () => {
+    expect(run4(m4, "add", "bug", "Sign-in", "twice", "--anyway")).toBe("added RISA-4");
+    // RISA-4 is open and RISA-1 archived, so the pool lists RISA-4 first: only the number sorts them.
+    expect(
+      run4(m4, "similar", "Sign-in", "twice")
+        .split("\n")
+        .map((l) => l.split(" ")[0]),
+    ).toEqual(["RISA-1", "RISA-4"]);
+  });
+});
+
+// A project whose items came from another project's backlog: with a
+// former prefix, a lookup reads B-772 as RISA-772; what it makes keeps RISA.
+describe("backlog CLI: a former id prefix", () => {
+  let r5, m5, cfg;
+  const run5 = (...a) =>
+    execFileSync("node", [CLI, ...a], {
+      cwd: m5,
+      encoding: "utf8",
+      env: { ...env, RISA_CONFIG: cfg },
+    }).trim();
+  beforeAll(() => {
+    r5 = realpathSync(mkdtempSync(join(tmpdir(), "backlog-former-")));
+    m5 = join(r5, "repo");
+    const sample = loadConfig().config;
+    cfg = join(r5, "risa.json");
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        ...sample,
+        name: "risa",
+        backlog: { ...sample.backlog, idPrefix: "RISA", formerIdPrefix: "B", zoneOverflowItem: "RISA-750" },
+      }),
+    );
+    execFileSync("git", ["init", "-q", "-b", sample.branches.trunk, m5]);
+    git(m5, "config", "user.email", "test@example.com");
+    git(m5, "config", "user.name", "Test");
+    git(m5, "config", "commit.gpgsign", "false");
+    execFileSync("mkdir", ["-p", join(m5, "plans")]);
+    // An item moved here from the other backlog keeps its number.
+    writeFileSync(
+      join(m5, "plans/backlog.md"),
+      "# Backlog\n\n## Items\n\n### RISA-772 · chore · Moved over\n- status: triaged\n- prd: x\n- owner: \n- commit: \n",
+    );
+    git(m5, "add", ".");
+    git(m5, "commit", "-q", "-m", "init");
+  });
+  afterAll(() => rmSync(r5, { recursive: true, force: true }));
+
+  it("finds RISA-772 by B-772 in every lookup, and gives new items the current prefix", () => {
+    expect(run5("show", "B-772")).toMatch(/^RISA-772 · chore · Moved over/);
+    expect(run5("show", "b-772")).toMatch(/^RISA-772 · /);
+    expect(run5("note", "B-772", "seen")).toBe("noted RISA-772");
+    expect(run5("set", "B-772", "type=bug")).toMatch(/RISA-772/);
+    expect(run5("add", "bug", "Fresh", "one")).toBe("added RISA-773");
+    expect(run5("note", "RISA-773", "B-772", "both")).toBe("noted RISA-773, RISA-772");
+    const text = readFileSync(join(m5, "plans/backlog.md"), "utf8");
+    expect(text).toContain("### RISA-772 · bug · Moved over");
+    expect(text).toContain("### RISA-773 · bug · Fresh one");
+    expect(text).not.toMatch(/^### B-/m);
+  });
+
+  it("ingests an inbox whose line is tagged with a former id as filed", () => {
+    writeFileSync(join(m5, "plans/inbox.md"), "# Inbox\n\n## Chores\n\n- Moved over (B-772)\n- Brand new\n");
+    git(m5, "add", ".");
+    git(m5, "commit", "-q", "-m", "inbox");
+    const out = run5("ingest");
+    expect(out).toMatch(/RISA-774 +feature|RISA-774 +chore/);
+    expect(out).not.toMatch(/Moved over/);
+    const inbox = readFileSync(join(m5, "plans/inbox.md"), "utf8");
+    expect(inbox).toContain("- Moved over (B-772)");
+    expect(inbox).toContain("- Brand new (RISA-774)");
+    expect(run5("doctor")).not.toMatch(/772/);
+  });
+});
+
+describe("backlog CLI: a broken project config", () => {
+  let dir;
+  beforeAll(() => {
+    dir = realpathSync(mkdtempSync(join(tmpdir(), "backlog-broken-")));
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const fails = (text) => {
+    const cfg = join(dir, "risa.json");
+    writeFileSync(cfg, text);
+    const r = spawnSync("node", [CLI, "list"], {
+      cwd: dir,
+      encoding: "utf8",
+      env: { ...env, RISA_CONFIG: cfg },
+    });
+    return { status: r.status, stderr: r.stderr };
+  };
+
+  it("prints one backlog: line and exits non-zero, never a stack", () => {
+    for (const text of ["{ not json", JSON.stringify({ name: "x" })]) {
+      const { status, stderr } = fails(text);
+      expect(status).toBe(2);
+      expect(stderr).toMatch(/^backlog: \S.*\n$/);
+      expect(stderr).not.toMatch(/\n\s+at /);
+    }
+    expect(
+      fails(JSON.stringify({ ...loadConfig().config, backlog: { prdsHeading: "## PRDs", idPrefix: "b" } }))
+        .stderr,
+    ).toMatch(/^backlog: .*backlog\.idPrefix: must be an id prefix/);
+  });
+
+  it("names the command that imported the backlog's modules, not backlog", () => {
+    const cfg = join(dir, "risa.json");
+    writeFileSync(cfg, "{ not json");
+    for (const [script, who] of [
+      ["../loops/planner-model.mjs", "planner-model"],
+      ["../loops/open-session.mjs", "open-session"],
+    ]) {
+      const r = spawnSync("node", [new URL(script, import.meta.url).pathname, "x", dir], {
+        cwd: dir,
+        encoding: "utf8",
+        env: { ...env, RISA_CONFIG: cfg },
+      });
+      expect(r.status, script).toBe(2);
+      expect(r.stderr).toMatch(new RegExp(`^${who}: \\S.*not JSON.*\\n$`));
+      expect(r.stderr).not.toMatch(/\n\s+at /);
+    }
   });
 });

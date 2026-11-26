@@ -29,6 +29,7 @@ import {
   runThrough,
 } from "./open-session.mjs";
 import { CAPTAINS } from "./captain.mjs";
+import "./config-fixture.mjs";
 
 const SESSION_SH = "/o/scripts/loops/session.sh";
 const W = `cd /w/.loops/t && ${SESSION_SH} prd-t`;
@@ -129,6 +130,7 @@ beforeAll(() => {
   for (const f of [
     "prd.sh",
     "lib.sh",
+    "config.mjs",
     "open-session.sh",
     "open-session.mjs",
     "planner-model.mjs",
@@ -243,8 +245,8 @@ describe("backlog, recovery and hotfix sessions", () => {
 
   it("the inbox session reopens through prd.sh inbox in its recorded directory, on prd.sh's model", () => {
     const prd = wrapper.replace(/session\.sh$/, "prd.sh");
-    // A record from the old default (Opus) passes no --model: prd.sh's Sonnet at low effort takes over.
-    const record = { kind: "inbox", model: "opus", managed: true, dir: "/h/.caretook/inbox" };
+    // A record from the old default (Sonnet) passes no --model: prd.sh's Opus at low effort takes over.
+    const record = { kind: "inbox", model: "sonnet", managed: true, dir: "/h/.caretook/inbox" };
     expect(chooseMainCommand({ name: "inbox", main: "/m", wrapper, record })).toMatchObject({
       session: "inbox",
       kind: "inbox",

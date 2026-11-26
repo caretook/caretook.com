@@ -1,7 +1,7 @@
 import type { UnitChoices } from "@caretook/data/schema";
 import type { RefObject } from "react";
 
-import { useId, useRef } from "react";
+import { useId, useMemo, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
 import { Button, Field, Message } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
@@ -11,7 +11,7 @@ import { QuickEntrySuggestButton, SUGGEST_ROOM } from "./QuickEntrySuggestButton
 import { QuickEntryTips, useQuickEntryTips } from "./QuickEntryTips";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
 import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
-import { QUICK_ENTRY_PLACEHOLDER, QUICK_ENTRY_RULES } from "./quickEntryCopy";
+import { QUICK_ENTRY_PLACEHOLDER, quickEntryExamples, quickEntryRules } from "./quickEntryCopy";
 
 /** Easy mode's hint under its large box: talking is the easy way in. */
 export const DICTATION_HINT = "Tap the microphone on your keyboard to say it instead of typing.";
@@ -65,6 +65,10 @@ export function QuickEntryBox({
   const suggest = empty && (due.length > 0 || usual.length > 0 || recent.length > 0);
   const showNames = !empty && completions.length > 0 && names.open;
   const tips = useQuickEntryTips(field, count === 0 && !q.goTo && !showNames);
+  const examples = useMemo(
+    () => quickEntryExamples({ providers: q.providers, medications: q.medications }),
+    [q.providers, q.medications],
+  );
   /** A suggestion fills the box and waits there, the cursor at the end (it never saves). */
   const fill = (value: string) => {
     q.setText(value);
@@ -139,12 +143,12 @@ export function QuickEntryBox({
               {showNames && (
                 <QuickEntryCompletions completions={completions} onFill={fill} onKeyDown={names.onKeyDown} />
               )}
-              {tips.visible && <QuickEntryTips onDismiss={tips.dismiss} />}
+              {tips.visible && <QuickEntryTips examples={examples} onDismiss={tips.dismiss} />}
             </div>
           )}
         </Field>
         <p id={rulesId} className="sr-only">
-          {QUICK_ENTRY_RULES}
+          {quickEntryRules(examples)}
         </p>
         {q.goTo && <QuickEntryGoToCard goTo={q.goTo} />}
         {count > 0 && (

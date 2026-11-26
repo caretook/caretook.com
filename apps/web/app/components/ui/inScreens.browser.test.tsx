@@ -336,7 +336,7 @@ describe.each([
     await userEvent.click(viewOptions());
     await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
     const layouts = [...document.querySelectorAll('[role="menuitemradio"]')].slice(0, 2);
-    expect(layouts.map((r) => r.textContent?.trim())).toEqual(["Rows", "Cards"]);
+    expect(layouts.map((r) => r.textContent?.trim())).toEqual(["Condensed", "Full"]);
     expect(layouts.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(1);
     await userEvent.keyboard("{Escape}");
   });

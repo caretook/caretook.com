@@ -16,7 +16,12 @@ function useTargetPathname(pathname: string): string {
   return useNavigation().location?.pathname ?? pathname;
 }
 
-/** The header's `sections` region on wide screens: links to the group's sections. */
+/**
+ * The header's `sections` region on wide screens: links to the group's
+ * sections. Below `lg` they're icons only (the label stays as screen-reader
+ * text and is the hover hint), so from `sm` to `lg` they leave the group menu
+ * and the account menu room (B-848).
+ */
 export function SectionNav({ groupId, pathname }: { groupId: string; pathname: string }) {
   const target = useTargetPathname(pathname);
   return (
@@ -31,10 +36,11 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
                 to={section.path(groupId)}
                 prefetch="render"
                 aria-current={current}
+                title={section.label}
                 className={navLinkClass(!!current)}
               >
                 <Icon className={ICON} aria-hidden="true" />
-                {section.label}
+                <span className="max-lg:sr-only">{section.label}</span>
               </Link>
             </li>
           );
@@ -49,7 +55,7 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
  * rounded bar (`--tab-bar-bar`, 3rem) floating clear of the screen's edges,
  * `--tab-bar-bottom` up (just above the home indicator where there's a bottom
  * safe area, `app.css`), on a slightly translucent, blurred surface of its own
- * (`--tab-bar-glass`, over `--tab-bar-surface`: near-black `neutral` in light,
+ * (`--tab-bar-glass`, over `--tab-bar-surface`: light `base-100` in light,
  * `base-300` in dark; solid where `backdrop-filter` isn't supported), split
  * into one equal full-height section per section of the group, each an icon.
  * The current one sits on a `primary` pill (`data-tab-bar-indicator`) with the

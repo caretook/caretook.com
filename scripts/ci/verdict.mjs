@@ -1,18 +1,23 @@
 // A CI run's verdict: one small JSON file, version 1, uploaded as the `verdict`
-// artifact and read on the Mac by `pnpm prd ci`. Pure except for the CLI at the
-// bottom, and it imports only tiers.mjs: the verdict job runs with no install.
+// artifact and read on the Mac by `pnpm prd ci`, which reads it only as a file,
+// with its own reader: a change to the file's shape bumps VERDICT_VERSION. Pure
+// except for the CLI at the bottom, and it imports only its own modules: the
+// verdict job runs with no install.
 //
 // The kinds, worst first: `brake` (static, build, or a test on the brake list
 // still failing after its rerun), `infra` (a job that died before any test, or
-// never ran), `file` (any other real failure), `flake` (passed on the rerun),
-// `green`. Infra outranks file and flake: with a job missing, the rest is partial.
+// never ran), `file` (any other real failure), `time` (a timed test step past its
+// armed cutoff, its tests passing: test-job.mjs's <report>.time.json; never a
+// flake, never blamed on a commit), `flake` (passed on the rerun), `green`. Infra
+// outranks file and flake: with a job missing, the rest is partial. `time` lists
+// every timed step past its aim, warned or failed.
 // A browser check is named by its spec's path, as a file with no test name: one
 // that failed its rerun is a failure, one that passed it a flake, and one that
 // never ran (the job's time ran out) infra. On `release` the three suite runs read
-// as one (release.mjs), and the second zone only reports unless its setting is `block`.
+// as one (release-jobs.mjs), and the second zone only reports unless its setting is `block`.
 //
 //   node scripts/ci/verdict.mjs summarize <vitest.json>…   prints `failures=<json>`
-//     for $GITHUB_OUTPUT: each report with its .rerun.json and .quarantine.json,
+//     for $GITHUB_OUTPUT: each report with its .rerun.json, .quarantine.json and .time.json,
 //     capped to fit a job output
 //   node scripts/ci/verdict.mjs write <out.json>   from CI_NEEDS (toJSON(needs)),
 //     CI_TIER, CI_COMMIT, CI_RUN_ID, the two lists and .ci-narrowed.json
@@ -20,7 +25,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
 
 import { isBrake, isQuarantined, readLists } from "./lists.mjs";
-import { BROWSER_RUNS, ZONE_JOBS, combineRepeats, summarizeZone } from "./release.mjs";
+import { BROWSER_RUNS, ZONE_JOBS, combineRepeats, summarizeZone } from "./release-jobs.mjs";
 import { FORCED_FLAKE_FILE, NARROWED_FILE, jobsFor, narrowedJobs } from "./tiers.mjs";
 import { SECOND_ZONE, SECOND_ZONE_MODE } from "./zones.mjs";
 
@@ -119,8 +124,23 @@ export function quarantineResults(report, root) {
 }
 
 /**
+ * A timed step's gate result (test-job.mjs's <report>.time.json), kept small, or null.
+ * @param {any} result
+ * @returns {{ measure: string, seconds: number, verdict: string, armed: boolean } | null}
+ */
+export function timeResult(result) {
+  if (!result || typeof result.verdict !== "string" || typeof result.measure !== "string") return null;
+  return {
+    measure: result.measure,
+    seconds: Number(result.seconds) || 0,
+    verdict: result.verdict,
+    armed: result.armed === true,
+  };
+}
+
+/**
  * One job's output: its first reports, what still failed after each rerun (null
- * when nothing reran) and the quarantine step's results.
+ * when nothing reran), the quarantine step's results and each timed step's gate.
  * @param {string[]} paths
  * @param {string} root
  * @param {(path: string) => any} readReport null for a missing file
@@ -137,6 +157,7 @@ export function summarizeJob(paths, root, readReport) {
     quarantined: paths.flatMap((p) =>
       quarantineResults(readReport(p.replace(/\.json$/, ".quarantine.json")), root),
     ),
+    time: paths.flatMap((p) => timeResult(readReport(p.replace(/\.json$/, ".time.json"))) ?? []),
   };
 }
 
@@ -195,6 +216,9 @@ export function buildVerdict({
   /** @type {string[]} */ const unnamedJobs = [];
   /** @type {{ check: string, result: string }[] | null} */ let browser = null;
   /** @type {string[]} */ const notRun = [];
+  /** @type {string[]} */ const timeJobs = [];
+  /** @type {{ job: string, measure: string, seconds: number, verdict: string, armed: boolean }[]} */
+  const breaches = [];
 
   if (needs.plan?.result !== "success") {
     failedJobs.add("plan");
@@ -208,6 +232,9 @@ export function buildVerdict({
     truncated ||= !!summary?.truncated;
     for (const q of summary?.quarantined ?? []) quarantined.push({ job, ...q });
     if (job === "browser" && Array.isArray(summary?.checks)) browser = summary.checks;
+    /** @type {{ measure: string, seconds: number, verdict: string, armed: boolean }[]} */
+    const times = Array.isArray(summary?.time) ? summary.time : [];
+    for (const t of times) if (t.verdict === "warn" || t.verdict === "fail") breaches.push({ job, ...t });
 
     const listed = (/** @type {{ file: string, name: string }} */ t) =>
       isQuarantined(entries, t.file, t.name);
@@ -258,6 +285,12 @@ export function buildVerdict({
       continue;
     }
     if (stillTests.length || stillFiles.length) continue;
+    // Its tests passed (or passed on the rerun), and it took too long.
+    if (times.some((t) => t.verdict === "fail")) {
+      failedJobs.add(job);
+      timeJobs.push(job);
+      continue;
+    }
     // The browser suite ran and failed with no check named: its report is missing.
     if (job === "browser" && need?.outputs?.started === "true") {
       failedJobs.add(job);
@@ -286,9 +319,11 @@ export function buildVerdict({
         ? "infra"
         : afterTests.length || afterFiles.length || unnamedJobs.length
           ? "file"
-          : flaky.length
-            ? "flake"
-            : "green";
+          : timeJobs.length
+            ? "time"
+            : flaky.length
+              ? "flake"
+              : "green";
 
   return {
     version: VERDICT_VERSION,
@@ -307,6 +342,8 @@ export function buildVerdict({
     flaky,
     brake: { jobs: brakeJobs, tests: brakeTests, files: [...new Set(brakeFiles)] },
     infra: { jobs: infraJobs, notRun },
+    // The timed steps past their aim; `jobs` are those an armed cutoff failed.
+    time: { jobs: timeJobs, breaches },
     // Each browser check by name: pass, flake, fail or not-run. Null with no browser report.
     browser,
     // The release tier's second zone: its mode, failing files and jobs that proved nothing.
@@ -315,18 +352,6 @@ export function buildVerdict({
     // What this commit skips: blame can't read a skipped test as passing.
     quarantineList: entries.map(({ file, name }) => ({ file, name })),
   };
-}
-
-/** @param {unknown} v */
-export function isVerdict(v) {
-  const o = /** @type {Record<string, unknown> | null} */ (v);
-  return (
-    !!o &&
-    o.version === VERDICT_VERSION &&
-    typeof o.commit === "string" &&
-    typeof o.tier === "string" &&
-    typeof o.kind === "string"
-  );
 }
 
 async function cli(/** @type {string[]} */ [command, path, ...more]) {

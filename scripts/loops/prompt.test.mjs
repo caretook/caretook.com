@@ -2,10 +2,20 @@
 // copied in: the plain prompts, the resume and continue variants, and the
 // every-step _Status_ rule. Nothing here starts a session.
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { FIXTURE_CONFIG } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -134,7 +144,7 @@ beforeAll(() => {
   loops = join(main, ".loops");
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
   mkdirSync(join(main, "plans"), { recursive: true });
-  for (const f of ["prompt.sh", "lib.sh", "slice-fields.mjs", "slice-brief.mjs"]) {
+  for (const f of ["prompt.sh", "lib.sh", "config.mjs", "slice-fields.mjs", "slice-brief.mjs"]) {
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   }
   cpSync(join(HERE, "prompts"), join(main, "scripts/loops/prompts"), { recursive: true });
@@ -403,7 +413,7 @@ describe("slice", () => {
       );
       expect(out).toContain("### Slice 4: A new fix (B-40)");
       expect(out).toContain("New fix text.");
-      expect(out).toContain("docs/agents/loop.md");
+      expect(out).toContain("`pnpm prd doc loop`");
       for (const other of ["first wave's intro", "Old fix text", "Slice 5", "Another fix text", "| Slice |"])
         expect(out).not.toContain(other);
     }
@@ -492,6 +502,23 @@ describe("plan and backlog", () => {
     expect(plan).not.toContain("begin the interview");
     expect(plan).not.toContain(RESUME);
     expect(ok("backlog")).toContain("You are the new backlog/inbox planning agent.");
+  });
+
+  it("plan reads a former id prefix's ids as the current prefix's", () => {
+    const config = JSON.parse(readFileSync(FIXTURE_CONFIG, "utf8"));
+    Object.assign(config.backlog, { idPrefix: "RISA", formerIdPrefix: "B", zoneOverflowItem: "RISA-750" });
+    const file = join(root, "former-prefix.json");
+    writeFileSync(file, JSON.stringify(config));
+    const run = (/** @type {string[]} */ ...ids) =>
+      spawnSync("bash", [join(main, "scripts/loops/prompt.sh"), "plan", "T", ...ids], {
+        cwd: main,
+        encoding: "utf8",
+        env: { ...process.env, RISA_CONFIG: file },
+      });
+    const r = run("B-1", "RISA-2");
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toContain("(RISA-1 RISA-2)");
+    expect(run("C-1").stderr).toContain("plan takes --auto and RISA-<n> ids, not C-1");
   });
 
   it("backlog without a dispatcher: as before, it prints start commands for the user", () => {
@@ -771,17 +798,17 @@ describe("bye", () => {
     "then run `pnpm prd bye`. Clean, it ends this session: say nothing after it. Otherwise ask the user about each open thing it lists, one at a time (finish it, hand it off or drop it), then run it again.";
 
   it.each([
-    ["orchestrator", ["orchestrator", "T"], "orchestrator.md"],
-    ["orchestrator --auto", ["orchestrator", "T", "--auto"], "orchestrator.md"],
-    ["orchestrator --resume", ["orchestrator", "T", "--resume"], "orchestrator.md"],
-    ["plan", ["plan", "T"], "planner.md"],
-    ["plan --auto", ["plan", "T", "--auto"], "planner.md"],
-    ["hotfix", ["hotfix", "x", "the fix"], "hotfix.md"],
-    ["backlog", ["backlog"], "backlog.md"],
-    ["recover", ["recover"], "recovery.md"],
+    ["orchestrator", ["orchestrator", "T"], "orchestrator"],
+    ["orchestrator --auto", ["orchestrator", "T", "--auto"], "orchestrator"],
+    ["orchestrator --resume", ["orchestrator", "T", "--resume"], "orchestrator"],
+    ["plan", ["plan", "T"], "planner"],
+    ["plan --auto", ["plan", "T", "--auto"], "planner"],
+    ["hotfix", ["hotfix", "x", "the fix"], "hotfix"],
+    ["backlog", ["backlog"], "backlog"],
+    ["recover", ["recover"], "recovery"],
   ])("%s: a message of just 'bye' runs pnpm prd bye after its doc's own checks", (_, args, doc) => {
     const text = ok(...args);
-    expect(text).toContain(`${BYE} docs/agents/${doc} names under _Bye_, ${AFTER}`);
+    expect(text).toContain(`${BYE} \`pnpm prd doc ${doc}\` names under _Bye_, ${AFTER}`);
     expect(text.match(/just 'bye'/g)).toHaveLength(1);
   });
 
@@ -790,7 +817,7 @@ describe("bye", () => {
     ["slice --continue", ["slice", "T", "1", "--continue"]],
   ])("%s: bye only reports, and the open things go to the orchestrator", (_, args) => {
     expect(ok(...args)).toContain(
-      "- **A message of just 'bye'**: first the checks docs/agents/loop.md names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.",
+      "- **A message of just 'bye'**: first the checks `pnpm prd doc loop` names under _Bye_, then run `pnpm prd bye` (a slice only reports; it ends no session). Clean: send your hand-off. Otherwise send your orchestrator the open things it lists and wait for its word on each.",
     );
   });
 
@@ -800,6 +827,26 @@ describe("bye", () => {
       `- **Just 'bye':** with every idea added, run \`pnpm -s -C ${main} prd bye\` and say nothing after; if it lists open things, ask about each, then rerun it.`,
     );
     expect(text).not.toContain("_Bye_");
+  });
+
+  it.each([
+    ["orchestrator", ["orchestrator", "T"], "orchestrator"],
+    ["plan", ["plan", "T"], "planner"],
+    ["hotfix", ["hotfix", "x", "the fix"], "hotfix"],
+    ["backlog", ["backlog"], "backlog"],
+    ["recover", ["recover"], "recovery"],
+  ])("%s: a role the config names no doc for is still the doc command (its generic doc)", (_, args, role) => {
+    const config = JSON.parse(readFileSync(FIXTURE_CONFIG, "utf8"));
+    delete config.roles;
+    const file = join(root, "no-roles.json");
+    writeFileSync(file, JSON.stringify(config));
+    const r = spawnSync("bash", [join(main, "scripts/loops/prompt.sh"), ...args], {
+      cwd: main,
+      encoding: "utf8",
+      env: { ...process.env, RISA_CONFIG: file },
+    });
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toContain(`${BYE} \`pnpm prd doc ${role}\` names under _Bye_, ${AFTER}`);
   });
 
   it("the briefs that aren't a role get none", () => {
@@ -865,7 +912,8 @@ describe("hotfix", () => {
     expect(text).toContain(`Your worktree is ${loops}/hotfix-trim, on branch hotfix/trim (from dev)`);
     expect(text).toContain("**Ask the user before every step that takes time or changes shared state**");
     expect(text).toContain("Background agents are allowed");
-    expect(text).toContain("docs/agents/hotfix.md");
+    expect(text).toContain("`pnpm prd doc hotfix`");
+    expect(text).toContain("into its file, docs/agents/hotfix.md.");
     expect(text).toContain('**"PR or local?"**');
     expect(text).toContain("`pnpm prd land hotfix/trim --pr` or `--local`");
     expect(text).toContain("`pnpm prd pr hotfix/trim`");

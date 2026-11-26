@@ -91,9 +91,11 @@ describe("the deploy workflows", () => {
 
   it("runs the browser tooling project in CI's integration job, not its unit job", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    const unit = jobs.unit.steps.find((s) => s.id === "test").run;
-    expect(unit).toContain("--project tooling:unit");
-    expect(unit).not.toContain("tooling:browser");
+    for (const name of ["unit-1", "unit-2"]) {
+      const unit = jobs[name].steps.find((s) => s.id === "test").run;
+      expect(unit).toContain("--project tooling:unit");
+      expect(unit).not.toContain("tooling:browser");
+    }
     // The real project split: a pattern Vitest ignores fails here.
     const list = (project) =>
       execFileSync("pnpm", ["exec", "vitest", "list", "--filesOnly", "--project", project], {
@@ -119,7 +121,8 @@ describe("the deploy workflows", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     const tierOf = {
       static: "static",
-      unit: "unit",
+      "unit-1": "unit",
+      "unit-2": "unit",
       integration: "integration",
       "components-1": "components",
       "components-2": "components",
@@ -134,8 +137,13 @@ describe("the deploy workflows", () => {
     };
     const tierJobs = Object.keys(tierOf);
     expect([...Object.keys(jobs)].sort()).toEqual(["plan", ...tierJobs, "verdict"].sort());
-    // A narrowed run has one components job, so the other shards have their own switch.
-    const switchOf = { ...tierOf, "components-2": "components2", "components-3": "components2" };
+    // A narrowed run has one components job and one unit job, so the other shards have their own switch.
+    const switchOf = {
+      ...tierOf,
+      "unit-2": "unit2",
+      "components-2": "components2",
+      "components-3": "components2",
+    };
     for (const name of tierJobs)
       expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${switchOf[name]} == 'true' }}`);
     expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
@@ -144,6 +152,15 @@ describe("the deploy workflows", () => {
     expect(upload.uses).toMatch(/^actions\/upload-artifact@[0-9a-f]{40}$/);
     expect(upload.with).toMatchObject({ name: "verdict", "retention-days": "7" });
     expect(jobs.integration.services.postgres.ports).toEqual(["5435:5432"]);
+  });
+
+  it.each([1, 2])("runs CI's unit shard %i, timed on its own, and reports it", (n) => {
+    const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`unit-${n}`];
+    const run = (id) => job.steps.find((s) => s.id === id).run;
+    expect(run("test")).toMatch(/^node scripts\/ci\/test-job\.mjs --time-gate /);
+    expect(run("test")).toContain(`--project tooling:unit --shard=${n}/2`);
+    expect(run("test")).toContain(`--outputFile.json=ci-results/unit-${n}.json`);
+    expect(run("report")).toContain(`ci-results/unit-${n}.json`);
   });
 
   it.each([1, 2, 3])("runs CI's component shard %i in Chromium and reports it", (n) => {
@@ -158,10 +175,10 @@ describe("the deploy workflows", () => {
 
   it("reruns through the test job, with quarantine steps that can't fail the run", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    for (const name of ["unit", "integration", "components-1", "components-2", "components-3"])
+    for (const name of ["unit-1", "unit-2", "integration", "components-1", "components-2", "components-3"])
       expect(jobs[name].steps.find((s) => s.id === "test").run).toMatch(/^node scripts\/ci\/test-job\.mjs /);
     for (const [name, id] of [
-      ["unit", "quarantine"],
+      ["unit-1", "quarantine"],
       ["integration", "quarantine"],
       ["integration", "quarantine-browser"],
       ["components-1", "quarantine"],
@@ -170,8 +187,8 @@ describe("the deploy workflows", () => {
       expect(step.run).toContain("test-job.mjs --quarantine");
       expect(step["continue-on-error"]).toBe("true");
     }
-    // One shard runs the quarantined component tests, not all three.
-    for (const name of ["components-2", "components-3"])
+    // One shard runs the quarantined tests, not every shard.
+    for (const name of ["unit-2", "components-2", "components-3"])
       expect(jobs[name].steps.some((s) => s.id === "quarantine")).toBe(false);
     for (const name of ["static", "build", "browser"])
       expect(jobs[name].outputs.started).toContain("steps.started");
@@ -212,7 +229,7 @@ describe("the deploy workflows", () => {
     expect(run("env")).toContain('node scripts/ci/env.mjs browser >> "$GITHUB_ENV"');
     expect(run("stack")).toBe("pnpm datastore:up");
     expect(run("serve")).toContain("NODE_ENV=production");
-    expect(run("serve")).toContain("host-headers.mjs");
+    expect(run("serve")).toContain("--import ../../scripts/project/host-headers.mjs");
     expect(run("suite")).toBe("node scripts/ci/browser-job.mjs");
     expect(run("report")).toBe('node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"');
     expect(browser.outputs.failures).toBe("${{ steps.report.outputs.failures }}");
@@ -222,7 +239,7 @@ describe("the deploy workflows", () => {
   it("runs the check-areas lint in CI's static job", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     const step = jobs.static.steps.find((s) => s.id === "check-areas");
-    expect(step.run).toBe("node scripts/loops/check-areas.mjs lint");
+    expect(step.run).toBe("node scripts/project/check-areas.mjs lint");
     expect(step.if).toBe("${{ !cancelled() }}");
   });
 

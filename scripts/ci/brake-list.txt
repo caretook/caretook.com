@@ -11,7 +11,7 @@ apps/web/app/lib/sync/**
 apps/web/app/lib/**/*.sync.test.ts
 apps/web/app/lib/**/*.sync.browser.test.tsx
 packages/api/src/sync*.test.ts
-scripts/loops/sync-matrix.test.mjs
+scripts/project/sync-matrix.test.mjs
 check:first-sync
 check:roundtrip
 check:layout-offline

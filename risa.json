@@ -1,0 +1,93 @@
+{
+  "name": "caretook",
+  "tool": {
+    "prd": "pnpm prd",
+    "backlog": "pnpm backlog"
+  },
+  "paths": {
+    "backlog": "plans/backlog.md",
+    "inbox": "plans/inbox.md",
+    "archive": "plans/backlog-archive.md",
+    "plans": "plans",
+    "docs": "docs",
+    "agentsDoc": "AGENTS.md",
+    "preferences": "docs/agents/preferences.md",
+    "promptGolden": "scripts/project/prompt-golden.txt",
+    "browserChecks": "scripts/browser-checks",
+    "checksManifest": "scripts/loops/checks",
+    "checkAreas": "scripts/loops/check-areas.d",
+    "brakeList": "scripts/ci/brake-list.txt",
+    "quarantine": "scripts/ci/quarantine.txt",
+    "tierData": "scripts/ci/tiers.json",
+    "checkPlanRules": "scripts/project/check-plan-rules.json",
+    "tooling": [".githooks", "risa.json", "scripts/project"]
+  },
+  "roles": {
+    "backlog": { "additions": "docs/agents/backlog.md" },
+    "hotfix": { "additions": "docs/agents/hotfix.md" },
+    "inbox": { "additions": "docs/agents/inbox.md" },
+    "loop": { "additions": "docs/agents/loop.md" },
+    "machinery": { "additions": "docs/agents/machinery.md" },
+    "orchestration": { "additions": "docs/orchestration.md" },
+    "orchestrator": { "additions": "docs/agents/orchestrator.md" },
+    "planner": { "additions": "docs/agents/planner.md" },
+    "project-config": { "additions": "docs/agents/project-config.md" },
+    "recovery": { "additions": "docs/agents/recovery.md" }
+  },
+  "branches": {
+    "trunk": "dev",
+    "protected": ["main", "staging"],
+    "prefixes": {
+      "prd": "prd/",
+      "slice": "slice/",
+      "plan": "plan/",
+      "hotfix": "hotfix/"
+    }
+  },
+  "backlog": {
+    "prdsHeading": "## PRDs",
+    "idPrefix": "B",
+    "zoneOverflowItem": "B-750",
+    "ciFailureTopic": "fixes-bug"
+  },
+  "commands": {
+    "install": "pnpm install --frozen-lockfile",
+    "check": "pnpm check",
+    "typecheck": "pnpm typecheck",
+    "typegen": "pnpm typegen",
+    "toolingTests": "pnpm test:tooling",
+    "log": "pnpm log",
+    "docBudget": "pnpm docs:budget",
+    "datastoreStart": "pnpm datastore:start",
+    "datastoreReset": "pnpm datastore:reset",
+    "datastoreSeed": "pnpm datastore:seed",
+    "hooksInstall": "git config core.hooksPath .githooks"
+  },
+  "stack": {
+    "portEnv": "apps/web/.env"
+  },
+  "testProjects": {
+    "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
+    "browserHarness": "tooling:browser"
+  },
+  "hooks": {
+    "check": "scripts/project/check-body.sh",
+    "checkAreas": "node scripts/project/check-areas.mjs",
+    "docBudget": "node scripts/project/doc-budget.mjs",
+    "landing": "node scripts/project/landing.mjs",
+    "stackUp": "scripts/project/stack.sh up",
+    "stackDown": "scripts/project/stack.sh down",
+    "stackStatus": "scripts/project/stack.sh status",
+    "stackReady": "scripts/project/stack.sh ready",
+    "stackStop": "scripts/project/stack.sh stop",
+    "stackStart": "scripts/project/stack.sh start",
+    "stackEngine": "scripts/project/stack.sh engine",
+    "stackLeftovers": "scripts/project/stack.sh leftovers",
+    "serve": "scripts/project/serve.sh",
+    "testDb": "scripts/project/test-db.sh",
+    "lease": "bash scripts/loops/lease.sh hold"
+  },
+  "boundary": {
+    "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]
+  }
+}

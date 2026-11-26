@@ -7,12 +7,17 @@ import type { MetaDescriptor } from "react-router";
 export const SITE_NAME = "Caretook";
 export const DEFAULT_SITE_URL = "https://caretook.com";
 
-/** The default share image (1200×630) and the square logo, in `public/`. */
+/**
+ * The default share image (1200×630) and the square logo, in `public/`. The
+ * image is the lockup (home's hero): its source is `public/og-default.svg`,
+ * rendered to the PNG by `node scripts/build/share-image.mjs`. Change the
+ * words in the SVG, here and in home's content together, then render again.
+ */
 export const DEFAULT_OG_IMAGE = {
   path: "/og-default.png",
   width: 1200,
   height: 630,
-  alt: "Caretook: keep track of someone's care, together.",
+  alt: "Caretook. Care, taken. A care notebook for families, made by caregivers who've been there.",
 };
 export const LOGO_PATH = "/icons/icon-512.png";
 
@@ -41,7 +46,7 @@ export function absoluteUrl(siteUrl: string, path: string): string {
   return new URL(path, siteUrl + "/").toString();
 }
 
-/** "Features" → "Features · Caretook"; a title that already names Caretook is kept. */
+/** "Features" → "Features · Caretook"; a title that already names Caretook (home's "Caretook: Care, taken.") is kept. */
 export function pageTitle(title: string): string {
   return title.includes(SITE_NAME) ? title : `${title} · ${SITE_NAME}`;
 }

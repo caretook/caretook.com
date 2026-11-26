@@ -10,10 +10,6 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4 landed 2026-11-24 as dev 536d157, `--no-review` (Codex out of credits), CI components green (run 45459634923) then flake after the sync (B-778, not ours); report a195; to-test/2026-11-24-1401-fixes-ui.md.
 
-**Previous hand-over:** wave 12 landed 2026-11-24 as dev ea382775 through PR #180 (slices 73 B-803 glass tab bar, 74 B-804 offline banner, 75 B-806 AppLoading as root HydrateFallback; all opus); CI components green (run 45547361491, 2246ae8f); details in the history file. Docs folded into app-shell.md.
-
-**Idle (2026-11-25):** after `pnpm backlog ingest`, no triaged fixes-ui item waits. Still held: B-694 (long create forms on tabs: the user approves each form live), B-325 (native safe-area inset: with Capacitor). The worktree was removed (`pnpm prd rm fixes-ui`); the next fixes-ui session starts fresh from triaged items.
-
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
 Notes for every wave:
@@ -21,7 +17,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-No slice in flight.
+**Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
+
+**Previous hand-over:** wave 15 landed 2026-11-25 as dev 2584a81 through PR #203, `--no-review` (Codex out of credits), CI integration green (run 45750856542, de32eac7), landed on an unsynced tip (dev shared no file); to-test/2026-11-25-2254-fixes-ui.md. Slice 85 (B-857, quick entry previews say Event; sonnet). Docs folded into assistant.md (trimmed to stay under budget). Slice worktree removed.
+
+**Next session:** `pnpm backlog ingest` and `list`. Nothing triaged and waiting. Still held: B-694 (the user approves each form live), B-325 (Capacitor). No slice in flight.
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
@@ -1103,3 +1103,144 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Browser component test: `HydrateFallback` renders the loading screen (`role="status"`, "Loading"); the layout shows it while the database open is pending and the page once it resolves; under 300 ms nothing shows.
 - [ ] `frame.browser.test.tsx` passes.
+
+## Wave 13 (written 2026-11-25 by the orchestrator: the user's pre-call wave, only B-342, B-817, B-828)
+
+Every slice: no migration and no new dependency. Land and remove the worktree within about 2 to 2.5 hours (before orchestration-split's wave 6).
+
+## Slice 76: A dropped idle Postgres connection no longer crashes the function (B-342)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md, ops/runbook.md · Tests: unit
+
+**Problem.** `packages/data/src/db/client.ts` creates a `pg.Pool` with no `error` listener, so an idle client dropped by Neon emits an unhandled `error` and crashes the serverless function. The pool's 10 clients with a 2 s connect wait (`config.ts`) time out under a burst of uploads.
+
+**Build.** In `createPool`, attach `pool.on("error", …)` that logs the error (no secrets, no row data) and keeps the process alive. Raise the default `connectTimeoutMs` (for example to 10 s) so a burst queues instead of failing; keep both env overrides. `@vercel/functions` is only a dependency of `apps/web`: if `attachDatabasePool` fits, call it from the web server side (not from `packages/data`, which may not gain the dependency); otherwise skip it and say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the created pool has an `error` listener, and emitting `error` on it doesn't throw.
+- [ ] Unit test: the default connect timeout is the new value and `DATABASE_CONNECT_TIMEOUT_MS` still overrides it.
+
+## Slice 77: The phone tab bar is light in light mode; more glass in dark (B-817)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** The phone bottom tab bar (`nav[data-tab-bar]`) is near-black in light mode (`--tab-bar-surface` in `apps/web/app/app.css`), and in dark mode its glass (`--tab-bar-glass`, 85% surface) isn't translucent enough.
+
+**Build.** The user's call: in light mode a light, slightly translucent bar matching the page (a `base` surface, its content `base-content`, the current-section pill still clearly marked); dark mode keeps its surface but its glass mixes less of it (lower than 85%) where backdrop blur is supported, keeping 4.5:1 text contrast. Update the comment block above the tokens. Don't move the bar's position (the safe-area idea is not scheduled).
+
+**Acceptance criteria.**
+
+- [ ] Component test: in light theme the tab bar's computed background is light (not the neutral near-black), and its label text meets 4.5:1 against it.
+- [ ] Component test: in dark theme the bar's glass is more translucent than before (its alpha below 0.85 where blur applies).
+
+## Slice 78: Switching settings pages and submenus shows that the tap registered (B-828)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** Moving between group settings pages (`routes/app/groups/settings/`) and other submenus (user settings `routes/app/settings/`, the group menu) sometimes takes a moment with no feedback, so it looks like nothing happened. The section tab bar already shows a pending state (`sectionNavPending.browser.test.tsx`); these links don't.
+
+**Build.** Find the links that navigate without feedback (the settings index lists, the settings layouts' page links, the group menu's items) and give them an immediate pending state, reusing the pattern `SectionNav`/`TabNav` use with `useNavigation` (the tapped link marked pending with a small spinner, or a thin progress bar in the settings layout while `navigation.state !== "idle"`). No edits under `components/ui/` unless the shared pattern belongs there; say so in the hand-off if it does.
+
+**Acceptance criteria.**
+
+- [ ] Component test: tapping a group settings page link while its loader is pending shows the pending state at once, and it clears when the page renders.
+- [ ] Component test: the same for a user settings page link.
+
+## Wave 14 (written 2026-11-25 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no new dependency, no edits under `apps/web/test/` (orchestration-split-2 is running). Still held: B-694 (the user approves each form live) and B-325 (Capacitor). Slices 79–84 touch different files and run at once.
+
+## Slice 79: Picking a care group on the no-group page shows it's loading (B-819)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/care-groups.md · Tests: component (browser)
+
+**Problem.** On the no-group page (`routes/app/home/route.tsx`), picking a care group gives no feedback while the group loads (the first load can be slow), and the buttons can be tapped again.
+
+**Build.** The user is fine with either: show a loading state at once. Prefer marking the tapped choice pending (a small spinner and "Opening…" in it) and disabling the other choices while `useNavigation().state !== "idle"`, the way `SectionNav` shows its pending state (`sectionNavPending.browser.test.tsx`). If the route's own `brand/AppLoading` screen fits better, use it and say why in the hand-off. No data change.
+
+**Acceptance criteria.**
+
+- [ ] Component test: tapping a group marks that choice pending (accessible: `aria-busy` or its "Opening…" text) before the navigation finishes.
+- [ ] Component test: while one is pending, the group choices can't start a second navigation.
+
+## Slice 80: Quick entry tips use the group's own provider and medication (B-833)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/assistant.md · Tests: component (browser)
+
+**Problem.** The quick entry tips' examples (`QUICK_ENTRY_EXAMPLES` in `components/quick-entry/quickEntryCopy.ts`) name a made-up "Dr Lee" and "metformin" even when the group has its own.
+
+**Build.** The example "appt Dr Lee Friday 2pm" names one of the group's providers and "gave metformin" one of the group's medications (read from the local database, the way the quick entry screens already read them), each falling back to the fictional default when the group has none. Say "event", not "appt" (B-537: "Event" app-wide); keep the example something the parser understands. The box's accessible description (`QUICK_ENTRY_RULES`) reads the same lines. `QuickEntryTips.tsx` takes the names as props or reads them itself, whichever matches its callers.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineQuickEntryTips.browser.test.tsx`): with a group provider and medication, the tips name them; with none, the fictional defaults show.
+- [ ] Component test: the tips say "event", not "appt".
+- [ ] Unit or component test: each example still parses as the kind it shows.
+
+## Slice 81: Members invite cards fit a phone (B-843)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md · Tests: component (browser)
+
+**Problem.** In group settings Members, on a phone: the invite links card (`routes/app/groups/settings/members/InviteLinks.tsx`) squeezes its details to one word per line ("Used / 1 / of / 10 / times …") and "Expires Dec" runs under Copy and Share; the pending invitations card (`PendingInvites.tsx`) cuts the email to "sam.invited@e…" and wraps the meta over five lines beside Resend and Revoke.
+
+**Build.** At narrow widths put each card's actions on their own row under the details (or in a menu if a row doesn't fit), let the details run the card's full width, and let the email wrap (`break-all`/`overflow-wrap:anywhere`) or show in full. Wider screens keep today's side-by-side layout if it fits. The "Couldn't load this link" error is B-830, not this.
+
+**Acceptance criteria.**
+
+- [ ] Component test at 375px: the invite link's details don't sit beside its Copy and Share buttons (the buttons start below the details), and no text overlaps them.
+- [ ] Component test at 375px: a pending invite shows its full email, and Resend and Revoke sit below it.
+
+## Slice 82: The header's right links don't overlap the recipient selector at medium widths (B-848)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component (browser)
+
+**Problem.** On medium-sized screens the header's right nav links overlap the recipient (care group) selector and the header menu (`routes/app/layout/`: `route.tsx`, `SectionNav.tsx`, `GroupMenu.tsx`, `UserMenu.tsx`).
+
+**Build.** Find the widths where they collide and fix the layout so nothing overlaps at any width from phone to desktop: let the selector truncate its name, move the breakpoint where the section links join the header, or let the links shrink, whichever keeps every link reachable. Keep the phone tab bar and desktop header as they are where they fit. Frame tests pin the header's regions (`frame.browser.test.tsx`, `staff.browser.test.tsx`): keep their order or update them in this slice.
+
+**Acceptance criteria.**
+
+- [ ] Component test at several widths across the medium range (for example 640, 768, 900 and 1024px): the section links' boxes don't intersect the group selector's or the header menu's.
+- [ ] The existing frame tests still pass.
+
+## Slice 83: Timeline View menu says Condensed and Full (B-849)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component (browser)
+
+**Problem.** The timeline View menu's layout choices read "Rows" and "Cards".
+
+**Build.** In `routes/app/groups/timeline/TimelineViewMenu.tsx`, the labels become "Condensed" (was Rows) and "Full" (was Cards); the ids (`rows`, `cards`) and saved preference stay, so no one's choice changes. Update the comment, the test helper `setView` in `timelineWorld.tsx` and any test or doc that finds the options by their old names.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the View menu offers "Condensed" and "Full", and picking each still switches the layout.
+- [ ] No test or screen still names the layout "Rows" or "Cards".
+
+## Slice 84: Timeline Full view shows live notes' rich text (B-850)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: component (browser)
+
+**Problem.** In the timeline's Full (cards) view, a live note shows as plain text, losing its headings, lists and bold.
+
+**Build.** Find what the timeline has for a live note's body (a stored snapshot or the Yjs doc) and render its formatting in `TimelineEntryCard`/`components/entry/EntryBody.tsx` in Full view only (Condensed keeps its two-line plain clamp), read-only, with mentions shown as in the editor. Reuse the Tiptap setup in `components/notes/` (a non-editable editor or its schema's HTML output); search highlighting may stay plain-text if it can't mark rich text, say so. **Stop and say so in the hand-off** if it needs a schema or sync change, loading every note's Yjs doc per card, or makes the timeline visibly slower: then it outgrows a fix.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in Full view a live note with a heading, a list and bold text renders them as `h`, `li` and `strong` elements, not editable.
+- [ ] Component test: in Condensed view the same note still shows its plain two-line clamp.
+
+## Wave 15 (written 2026-11-25 by the orchestrator, from the triaged fixes-ui items)
+
+## Slice 85: Quick entry previews title events with Event, not Appointment (B-857)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/appointments.md · Tests: unit (`packages/data`)
+
+**Problem.** Quick entry's parser still titles an event line "Appointment with <provider>", "<words> appointment" or "Appointment" (`packages/data/src/db/schema/assistant/quickEntry.ts`, the `title` for a keyword line, near line 1728). B-537 made Event the one word app-wide.
+
+**Build.** The titles become "Event with <provider>", the typed words alone, capitalized ("Dental cleaning", not "Dental cleaning event"), and "Event". The parser still recognizes "appointment", "appt" and "visit" as keywords: only its output wording changes. Update `quickEntry.test.ts`, `quickEntryPreview.test.ts` and any other test, browser check (`scripts/browser-checks/`) or connector text that asserts the old titles (grep for "Appointment with" and `appointment"`).
+
+**Acceptance criteria.**
+
+- [ ] Unit test: "appointment with Dr. Lee tomorrow 3pm" previews the title "Event with <provider>"; "dental cleaning appt friday" previews "Dental cleaning"; a bare "appointment tomorrow" previews "Event".
+- [ ] No test, browser check or screen still expects an "Appointment" title from quick entry.

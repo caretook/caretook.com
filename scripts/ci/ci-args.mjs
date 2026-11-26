@@ -1,8 +1,12 @@
 // ci-args.mjs: part of `pnpm prd ci` (ci.mjs has the map). The commands'
 // arguments (run, blame and file, gate) and the branch and commit a request
 // means.
+import { backlogIds } from "../loops/config.mjs";
 import { DEFAULT_WAIT_MIN } from "./ci-io.mjs";
-import { TIERS, isTier } from "./tiers.mjs";
+import { ciTiers } from "./tier-data.mjs";
+
+const IDS = backlogIds();
+const ID = new RegExp(`^${IDS.lookupPattern}$`);
 
 /** @typedef {import("./ci-io.mjs").Io} Io */
 
@@ -12,7 +16,7 @@ import { TIERS, isTier } from "./tiers.mjs";
  */
 export function parseRunArgs(args) {
   const [tier, ...rest] = args;
-  if (!tier || !isTier(tier)) throw new Error(`ci run needs a tier: ${TIERS.join(", ")}`);
+  if (!tier || !ciTiers().isTier(tier)) throw new Error(`ci run needs a tier: ${ciTiers().TIERS.join(", ")}`);
   /** @type {string | null} */ let ref = null;
   /** @type {number | null} */ let waitMin = null;
   /** @type {string[]} */ const files = [];
@@ -77,10 +81,10 @@ export function parseGateArgs(/** @type {string[]} */ args) {
     else if (!a.startsWith("-") && !ref) ref = a;
     else throw new Error(`ci gate: unknown argument ${a}`);
   }
-  if (!isTier(tier)) throw new Error(`ci gate: --tier needs one of ${TIERS.join(", ")}`);
+  if (!ciTiers().isTier(tier)) throw new Error(`ci gate: --tier needs one of ${ciTiers().TIERS.join(", ")}`);
   if (!base || base.startsWith("-")) throw new Error("ci gate: --base needs a commit");
-  if (fixes.some((f) => !/^B-\d+$/.test(f))) throw new Error("ci gate: --fixes takes B-n,B-m");
-  return { ref, tier, base, fixes, out, peek };
+  if (fixes.some((f) => !ID.test(f))) throw new Error(`ci gate: --fixes takes ${IDS.prefix}n,${IDS.prefix}m`);
+  return { ref, tier, base, fixes: fixes.map(IDS.normalize), out, peek };
 }
 
 /** The branch name and commit a request means. */

@@ -118,7 +118,7 @@ describe("on the Timeline", () => {
   test("cards keep the author's name as the filter link", async () => {
     await openTimeline({ fixtures: [PEOPLE, NOTES] });
     await found(() => rowWith("Rosa's walk note"));
-    await setView("Cards");
+    await setView("Full");
     const link = await found(() =>
       rowWith("Rosa's walk note")?.querySelector<HTMLAnchorElement>(`a[data-author="${ROSA_ID}"]`),
     );

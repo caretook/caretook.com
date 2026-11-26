@@ -2,7 +2,8 @@
 // done flag `pnpm prd rm` writes, against a throwaway repo with these scripts
 // and the backlog tool copied in, a stub claude (CARETOOK_CLAUDE_BIN, named
 // claude-stub so no walk up finds a real claude), CARETOOK_ITERM_APP pointing
-// nowhere (the opener prints its command) and a fake docker. Nothing here
+// nowhere (the opener prints its command) and the stack hooks on the sample
+// project's stub (config-fixture.mjs's stubHookConfig). Nothing here
 // starts a real claude, opens a tab or signals a process it didn't start.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
@@ -23,6 +24,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CAPTAINS } from "./captain.mjs";
 import { clearsHot, doneFlags, slicesLeft } from "./rotate.mjs";
+import { stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -150,6 +152,7 @@ const liveSession = async (extra = {}) => {
       ...(extra.auto ? ["--auto"] : []),
       ...(extra.managed ? ["--managed"] : []),
       "--",
+      ...(extra.model ? ["--model", extra.model] : []),
       "x",
     ],
     { STUB_MODE: extra.mode ?? "wait", STUB_NAME: "prd-w" },
@@ -177,8 +180,7 @@ beforeAll(() => {
   mkdirSync(bin);
   stub = join(bin, "claude-stub");
   writeFileSync(stub, STUB);
-  writeFileSync(join(bin, "docker"), "#!/usr/bin/env bash\nexit 0\n");
-  for (const f of ["claude-stub", "docker"]) chmodSync(join(bin, f), 0o755);
+  chmodSync(stub, 0o755);
   execFileSync("git", ["init", "-q", "-b", "dev", main]);
   for (const [k, v] of [
     ["user.email", "test@example.com"],
@@ -191,6 +193,7 @@ beforeAll(() => {
   for (const f of [
     "prd.sh",
     "lib.sh",
+    "config.mjs",
     "session.sh",
     "sessions.mjs",
     "captain.mjs",
@@ -203,7 +206,7 @@ beforeAll(() => {
     "prompt.sh",
     "rm.sh",
     "stack-lib.sh",
-    "test-db.sh",
+    "hooks.mjs",
   ])
     copyFileSync(join(HERE, f), scripts(f));
   cpSync(join(HERE, "prompts"), scripts("prompts"), { recursive: true });
@@ -212,8 +215,11 @@ beforeAll(() => {
     copyFileSync(join(backlogDir, f), join(main, "scripts/backlog", f));
   const ciDir = join(HERE, "../ci");
   mkdirSync(join(main, "scripts/ci"), { recursive: true });
-  for (const f of ["outstanding.mjs", "tiers.mjs"]) copyFileSync(join(ciDir, f), join(main, "scripts/ci", f));
+  for (const f of ["outstanding.mjs", "tier-data.mjs", "tiers.json"])
+    copyFileSync(join(ciDir, f), join(main, "scripts/ci", f));
   writeFileSync(join(main, ".gitignore"), ".loops/\n");
+  // The stack hooks on the sample project's stub: rm.sh's stack down and test-db drop.
+  const config = stubHookConfig(main);
   mkdirSync(join(main, "plans"));
   writeFileSync(join(main, "plans/w-plan.md"), plan(`${MERGED}\n| 3 | 2 | not started | |`));
   git(main, "add", ".");
@@ -230,6 +236,8 @@ beforeAll(() => {
     BACKLOG_BY: "",
     STUB_STATE: state,
     PRD_SH: scripts("prd.sh"),
+    RISA_CONFIG: config,
+    SAMPLE_STACK_STATE: join(root, "stack-state"),
   };
 }, 60_000);
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -416,6 +424,23 @@ describe("rotate-into.sh", () => {
     expect(runLine(printedLine(run("prd.sh", ["rotate", "w"]).stdout)).status).toBe(0);
     await second.s.done;
     expect(JSON.parse(stateFile("record-at-start")).managed).toBe(false);
+  });
+
+  it("carries the record's model over, and passes none when none was recorded", async () => {
+    const first = await liveSession({ model: "fable" });
+    expect(runLine(printedLine(run("prd.sh", ["rotate", "w"]).stdout)).status).toBe(0);
+    await first.s.done;
+    expect(JSON.parse(stateFile("record-at-start"))).toMatchObject({ model: "fable" });
+    const args = stateFile("args").split("\n");
+    expect(args.slice(2, 6)).toEqual(["--model", "fable", "--remote-control", "prd-w"]);
+    expect(record("prd-w")).toMatchObject({ model: "fable" });
+
+    rmSync(state, { recursive: true, force: true });
+    rmSync(sessions, { recursive: true, force: true });
+    const second = await liveSession();
+    expect(runLine(printedLine(run("prd.sh", ["rotate", "w"]).stdout)).status).toBe(0);
+    await second.s.done;
+    expect(stateFile("args")).not.toContain("--model");
   });
 
   it("kills a session that ignores TERM after the wait, making a record when there was none", async () => {
@@ -651,9 +676,9 @@ describe("pnpm prd rotate --self", () => {
           "inbox",
           "--managed",
           "--",
-          // Recorded on the old default: the new session must come up on prd.sh's Sonnet.
+          // Recorded on the old default: the new session must come up on prd.sh's Opus.
           "--model",
-          "opus",
+          "sonnet",
           "--remote-control",
           "inbox",
           "x",
@@ -664,12 +689,12 @@ describe("pnpm prd rotate --self", () => {
       await until(() => existsSync(join(state, "ready")));
       return { s, pid: stubPid(), out: stateFile("rotate.out"), code: stateFile("rotate.code").trim() };
     };
-    /** The new session: in the recorded directory, on Sonnet with the low-effort settings, managed. */
+    /** The new session: in the recorded directory, on Opus with the low-effort settings, managed. */
     const expectFresh = (oldPid) => {
       const atStart = JSON.parse(stateFile("record-at-start"));
       expect(atStart).toMatchObject({
         kind: "inbox",
-        model: "sonnet",
+        model: "opus",
         remote: "inbox",
         managed: true,
         dir: inboxDir(),
@@ -681,7 +706,7 @@ describe("pnpm prd rotate --self", () => {
         "--settings",
         scripts("inbox-settings.json"),
         "--model",
-        "sonnet",
+        "opus",
         "--remote-control",
         "inbox",
       ]);
@@ -689,10 +714,10 @@ describe("pnpm prd rotate --self", () => {
     };
     beforeEach(() => rmSync(join(root, "home"), { recursive: true, force: true }));
 
-    it("rotates itself into a fresh one in its own directory, on Sonnet at low effort though recorded on Opus", async () => {
+    it("rotates itself into a fresh one in its own directory, on Opus at low effort though recorded on Sonnet", async () => {
       const old = await startInbox();
       expect(old.code).toBe("0");
-      expect(JSON.parse(stateFile("record-at-start")).model).toBe("opus");
+      expect(JSON.parse(stateFile("record-at-start")).model).toBe("sonnet");
       expect(old.out).toContain(`Rotating inbox: pid ${old.pid} (the calling session).`);
       const line = printedLine(old.out);
       expect(line).toBe(`cd ${main} && ${scripts("rotate-into.sh")} inbox ${old.pid}`);
@@ -719,10 +744,10 @@ describe("pnpm prd rotate --self", () => {
       expect(r.stderr).toContain("the inbox session hands off with no brief");
     });
 
-    it("the keep-alive's opener reopens a dead Opus one the same way: its directory, Sonnet low, managed", async () => {
+    it("the keep-alive's opener reopens a dead Sonnet one the same way: its directory, Opus low, managed", async () => {
       const old = await startInbox();
       await finish(old);
-      expect(record("inbox").model).toBe("opus");
+      expect(record("inbox").model).toBe("sonnet");
       rmSync(join(state, "record-at-start"), { force: true });
       const r = run("open-session.sh", ["inbox", "--print"], inboxEnv());
       expect(r.status).toBe(0);

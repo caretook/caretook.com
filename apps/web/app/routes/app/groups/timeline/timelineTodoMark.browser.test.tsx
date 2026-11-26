@@ -62,7 +62,7 @@ describe("the open-todo mark", () => {
   test("cards: the mark too", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => rows().length === 4, "four rows");
-    await setView("Cards");
+    await setView("Full");
     await waitUntil(() => markOf("Eye exam")?.textContent === "1 todo", "the card's mark");
     expect(markOf("Pharmacy said")?.textContent).toBe("2 todos");
   });

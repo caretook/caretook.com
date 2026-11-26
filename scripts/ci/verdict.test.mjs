@@ -1,12 +1,17 @@
-// The verdict's kinds: what blocks, what is filed, what is a flake, for any tier.
+// The verdict's kinds: what blocks, what is filed, what is a flake, for any tier;
+// the jobs each tier waits for, and a job's Vitest reports summarized.
+import { readFileSync, readdirSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import { buildVerdict, summarizeJob } from "./verdict.mjs";
+import { VERDICT_VERSION as READER_VERSION } from "./ci-runs.mjs";
+import { jobsFor } from "./tiers.mjs";
+import { VERDICT_VERSION, buildVerdict, mergeSummaries, summarizeJob, summarizeVitest } from "./verdict.mjs";
 
 const ok = { result: "success" };
 const base = { commit: "c".repeat(40), runId: "1" };
 const brakes = ["packages/api/src/sync*.test.ts"];
-const unitNeeds = (/** @type {object} */ unit) => ({ plan: ok, static: ok, unit });
+const unitNeeds = (/** @type {object} */ unit) => ({ plan: ok, static: ok, "unit-1": unit, "unit-2": ok });
 const failing = (/** @type {object} */ summary) => ({
   result: "failure",
   outputs: {
@@ -29,7 +34,8 @@ describe("the verdict's kinds", () => {
     const needs = {
       plan: ok,
       static: ok,
-      unit: ok,
+      "unit-2": ok,
+      "unit-1": ok,
       integration: ok,
       "components-1": ok,
       "components-2": ok,
@@ -78,13 +84,15 @@ describe("the verdict's kinds", () => {
     const needs = {
       plan: ok,
       static: { result: "failure", outputs: { started: "true" } },
-      unit: { result: "failure" },
+      "unit-2": ok,
+      "unit-1": { result: "failure" },
     };
     expect(buildVerdict({ ...base, tier: "unit", needs }).kind).toBe("brake");
     const partial = {
       plan: ok,
       static: ok,
-      unit: failing({ files: ["a.test.ts"], tests: [test("a.test.ts")] }),
+      "unit-2": ok,
+      "unit-1": failing({ files: ["a.test.ts"], tests: [test("a.test.ts")] }),
       integration: { result: "failure" },
     };
     expect(buildVerdict({ ...base, tier: "integration", needs: partial }).kind).toBe("infra");
@@ -100,7 +108,7 @@ describe("the verdict's kinds", () => {
       }).outputs,
     });
     expect(v.kind).toBe("flake");
-    expect(v.flaky).toEqual([{ job: "unit", file: "a.test.ts", name: "breaks", brake: false }]);
+    expect(v.flaky).toEqual([{ job: "unit-1", file: "a.test.ts", name: "breaks", brake: false }]);
     expect(v.afterRerun).toEqual({ files: [], tests: [] });
   });
 
@@ -114,6 +122,39 @@ describe("the verdict's kinds", () => {
     expect(v.flaky[0]?.brake).toBe(true);
   });
 
+  it("a timed step past its armed cutoff, its tests passing, is time: not file, not a flake", () => {
+    const late = { measure: "unit", seconds: 400, verdict: "fail", armed: true };
+    const v = unitVerdict(failing({ time: [late] }));
+    expect(v.kind).toBe("time");
+    expect(v.time).toEqual({ jobs: ["unit-1"], breaches: [{ job: "unit-1", ...late }] });
+    expect(v.failed.unnamedJobs).toEqual([]);
+    const flaked = unitVerdict(
+      failing({
+        files: ["a.test.ts"],
+        tests: [test("a.test.ts")],
+        rerun: { files: [], tests: [] },
+        time: [late],
+      }),
+    );
+    expect(flaked.kind).toBe("time");
+    expect(flaked.flaky.map((t) => t.file)).toEqual(["a.test.ts"]);
+  });
+
+  it("a real failure beside a time breach is file, the breach still listed", () => {
+    const late = { measure: "unit", seconds: 400, verdict: "fail", armed: true };
+    const v = unitVerdict(failing({ files: ["a.test.ts"], tests: [test("a.test.ts")], time: [late] }));
+    expect(v.kind).toBe("file");
+    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit-1", ...late }] });
+  });
+
+  it("an unarmed breach only lists its warning, and a step under its aim nothing", () => {
+    const warned = { measure: "components", seconds: 400, verdict: "warn", armed: false };
+    const ok = { measure: "unit", seconds: 100, verdict: "ok", armed: false };
+    const v = unitVerdict({ result: "success", outputs: failing({ time: [warned, ok] }).outputs });
+    expect(v.kind).toBe("green");
+    expect(v.time).toEqual({ jobs: [], breaches: [{ job: "unit-1", ...warned }] });
+  });
+
   it("a mix of flake and file is file, naming each", () => {
     const v = unitVerdict(
       failing({
@@ -124,7 +165,7 @@ describe("the verdict's kinds", () => {
     );
     expect(v.kind).toBe("file");
     expect(v.flaky.map((t) => t.file)).toEqual(["a.test.ts"]);
-    expect(v.afterRerun?.tests).toEqual([{ job: "unit", file: "b.test.ts", name: "breaks" }]);
+    expect(v.afterRerun?.tests).toEqual([{ job: "unit-1", file: "b.test.ts", name: "breaks" }]);
     expect(v.failed.files).toEqual(["a.test.ts", "b.test.ts"]);
   });
 
@@ -132,7 +173,7 @@ describe("the verdict's kinds", () => {
     const quarantine = [{ file: "q.test.ts", name: "breaks", item: "B-1" }];
     const v = unitVerdict(failing({ files: ["q.test.ts"], tests: [test("q.test.ts")] }), { quarantine });
     expect(v.kind).toBe("green");
-    expect(v.quarantined).toEqual([{ job: "unit", file: "q.test.ts", name: "breaks", status: "failed" }]);
+    expect(v.quarantined).toEqual([{ job: "unit-1", file: "q.test.ts", name: "breaks", status: "failed" }]);
   });
 
   it("carries the quarantine step's results and stays green", () => {
@@ -142,14 +183,14 @@ describe("the verdict's kinds", () => {
       outputs: { failures: JSON.stringify({ reported: true, total: 1, files: [], tests: [], quarantined }) },
     });
     expect(v.kind).toBe("green");
-    expect(v.quarantined).toEqual([{ job: "unit", ...quarantined[0] }]);
+    expect(v.quarantined).toEqual([{ job: "unit-1", ...quarantined[0] }]);
   });
 
   it("names the tier, and a unit run with no integration job is not infra", () => {
     const v = buildVerdict({
       ...base,
       tier: "unit",
-      needs: { plan: ok, static: ok, unit: ok, integration: { result: "skipped" } },
+      needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": ok, integration: { result: "skipped" } },
     });
     expect(v).toMatchObject({ kind: "green", tier: "unit", ranTier: "unit" });
   });
@@ -160,7 +201,7 @@ describe("the verdict's kinds", () => {
     const v = buildVerdict({
       ...base,
       tier: "integration",
-      needs: { plan: ok, static: { result: "skipped" }, unit: ok, integration: ok },
+      needs: { plan: ok, static: { result: "skipped" }, "unit-2": ok, "unit-1": ok, integration: ok },
       narrowed: { target, files },
     });
     expect(v).toMatchObject({ kind: "green", narrowed: true, narrowedFiles: files, target });
@@ -230,5 +271,222 @@ describe("a job's summary", () => {
     );
     expect(s.rerun).toBeNull();
     expect(s.quarantined).toEqual([{ file: "a.test.ts", name: "breaks", status: "failed" }]);
+    expect(s.time).toEqual([]);
+  });
+
+  it("carries a timed step's gate result, kept small", () => {
+    const gate = {
+      measure: "unit",
+      seconds: 330,
+      aim: 300,
+      cutoff: 360,
+      armed: false,
+      verdict: "warn",
+      lines: ["x"],
+    };
+    const s = summarizeJob(
+      ["r/u.json"],
+      "/w",
+      reads({ "r/u.json": report("passed"), "r/u.time.json": gate }),
+    );
+    expect(s.time).toEqual([{ measure: "unit", seconds: 330, verdict: "warn", armed: false }]);
+  });
+});
+
+describe("the verdict", () => {
+  it("is green only when every job of the tier passed", () => {
+    const v = buildVerdict({
+      ...base,
+      tier: "unit",
+      needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": ok, integration: { result: "skipped" } },
+    });
+    expect(v).toMatchObject({ version: 1, kind: "green", tier: "unit", ranTier: "unit", narrowed: false });
+  });
+
+  it("is file for a failed test job, naming the tests", () => {
+    const failures = JSON.stringify({
+      files: ["a.test.ts"],
+      tests: [{ file: "a.test.ts", name: "breaks" }],
+      truncated: false,
+    });
+    const v = buildVerdict({
+      ...base,
+      tier: "unit",
+      needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": { result: "failure", outputs: { failures } } },
+    });
+    expect(v.kind).toBe("file");
+    expect(v.failed).toEqual({
+      jobs: ["unit-1"],
+      files: ["a.test.ts"],
+      tests: [{ job: "unit-1", file: "a.test.ts", name: "breaks" }],
+      truncated: false,
+      unnamedJobs: [],
+    });
+    expect(
+      buildVerdict({
+        ...base,
+        tier: "unit",
+        needs: { plan: ok, static: ok, "unit-2": ok, "unit-1": { result: "skipped" } },
+      }).kind,
+    ).toBe("infra");
+    expect(
+      buildVerdict({ ...base, tier: "static", needs: { plan: { result: "failure" } } }).failed.jobs,
+    ).toEqual(["plan", "static"]);
+  });
+
+  it("waits for every job the tier ran: a full run needs its components and build", () => {
+    const needs = {
+      plan: ok,
+      static: ok,
+      "unit-2": ok,
+      "unit-1": ok,
+      integration: ok,
+      "components-1": ok,
+      "components-2": ok,
+      "components-3": ok,
+      build: ok,
+    };
+    expect(buildVerdict({ ...base, tier: "full", needs })).toMatchObject({
+      kind: "green",
+      tier: "full",
+      ranTier: "full",
+    });
+    const noBuild = buildVerdict({
+      ...base,
+      tier: "full",
+      needs: { ...needs, build: { result: "failure", outputs: { started: "true" } } },
+    });
+    expect(noBuild).toMatchObject({ kind: "brake", failed: { jobs: ["build"] } });
+    const oneShard = { ...needs, "components-2": { result: "failure" } };
+    expect(buildVerdict({ ...base, tier: "components", needs: oneShard })).toMatchObject({
+      kind: "infra",
+      failed: { jobs: ["components-2"] },
+    });
+    const skipped = { ...needs, build: { result: "skipped" } };
+    expect(buildVerdict({ ...base, tier: "components", needs: skipped }).kind).toBe("green");
+  });
+
+  it("read a browser suite that failed as file, and one that never started as infra", () => {
+    const needs = Object.fromEntries(
+      ["plan", ...jobsFor("candidate").jobs].map((job) => [job, { result: "success" }]),
+    );
+    const run = { ...base, tier: "candidate" };
+    expect(buildVerdict({ ...run, needs }).kind).toBe("green");
+    const failed = (outputs) => ({ ...needs, browser: { result: "failure", outputs } });
+    const ran = buildVerdict({ ...run, needs: failed({ started: "true" }) });
+    expect(ran).toMatchObject({ kind: "file", failed: { jobs: ["browser"], unnamedJobs: ["browser"] } });
+    expect(buildVerdict({ ...run, needs: failed({}) }).kind).toBe("infra");
+  });
+
+  it("summarizes a Vitest report, an import failure included", () => {
+    const summary = summarizeVitest(
+      {
+        testResults: [
+          {
+            name: "/w/a.test.ts",
+            status: "failed",
+            assertionResults: [
+              { status: "failed", fullName: " a breaks " },
+              { status: "passed", fullName: "a works" },
+            ],
+          },
+          { name: "/w/b.test.ts", status: "failed", assertionResults: [] },
+          { name: "/w/c.test.ts", status: "passed", assertionResults: [{ status: "passed", fullName: "c" }] },
+        ],
+      },
+      "/w",
+    );
+    expect(summary).toEqual({
+      reported: true,
+      total: 3,
+      files: ["a.test.ts", "b.test.ts"],
+      tests: [{ file: "a.test.ts", name: "a breaks" }],
+      truncated: false,
+    });
+    expect(summarizeVitest(null, "/w").reported).toBe(false);
+  });
+});
+
+describe("a job's reports", () => {
+  const one = (/** @type {string} */ file) => ({
+    reported: true,
+    total: 1,
+    files: [file],
+    tests: [{ file, name: "breaks" }],
+    truncated: false,
+  });
+
+  it("merge into one summary", () => {
+    expect(mergeSummaries([one("a"), one("b")])).toEqual({
+      reported: true,
+      total: 2,
+      files: ["a", "b"],
+      tests: [
+        { file: "a", name: "breaks" },
+        { file: "b", name: "breaks" },
+      ],
+      truncated: false,
+    });
+  });
+
+  it("say so when one is missing", () => {
+    expect(mergeSummaries([one("a"), summarizeVitest(null, "/w")]).reported).toBe(false);
+  });
+});
+
+// The core reads these files (ci-runs.mjs's isVerdict, blame, promote) through its own
+// fixtures; this ties those fixtures and both version constants to what buildVerdict writes.
+describe("the verdict fixtures", () => {
+  const FIXTURES = new URL("./verdict.fixtures/", import.meta.url);
+  const fixture = (/** @type {string} */ name) => JSON.parse(readFileSync(new URL(name, FIXTURES), "utf8"));
+  /** Every key, nested objects walked (arrays and nulls kept as leaves). @returns {string[]} */
+  const keysOf = (/** @type {unknown} */ v, prefix = "") =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.entries(v).flatMap(([k, x]) => [`${prefix}${k}`, ...keysOf(x, `${prefix}${k}.`)])
+      : [];
+  /** Every job of the tier passed. */
+  const green = (/** @type {string} */ tier, /** @type {string} */ commit, /** @type {string} */ runId) =>
+    buildVerdict({
+      commit,
+      runId,
+      tier,
+      needs: Object.fromEntries(["plan", ...jobsFor(tier).jobs].map((j) => [j, ok])),
+    });
+
+  it("carry the version buildVerdict writes, which the core's reader knows", () => {
+    expect(green("unit", base.commit, "1").version).toBe(VERDICT_VERSION);
+    expect(READER_VERSION).toBe(VERDICT_VERSION);
+    for (const name of readdirSync(FIXTURES).filter((f) => f.endsWith(".json")))
+      expect(fixture(name).version, name).toBe(VERDICT_VERSION);
+  });
+
+  it("have buildVerdict's fields, no more and no fewer", () => {
+    const built = new Set(keysOf(green("candidate", base.commit, "1")));
+    const optional = (/** @type {string} */ k) => /^(afterRerun|browser|secondZone)\./.test(k);
+    for (const name of readdirSync(FIXTURES).filter((f) => f.endsWith(".json"))) {
+      const have = keysOf(fixture(name)).filter((k) => !optional(k));
+      expect(have.sort(), name).toEqual([...built].filter((k) => !optional(k)).sort());
+    }
+  });
+
+  it.each([
+    ["candidate-green.json", "candidate"],
+    ["release-green.json", "release"],
+  ])("%s is what a green %s run builds", (name, tier) => {
+    const want = fixture(name);
+    expect(green(tier, want.commit, want.runId)).toEqual(want);
+  });
+
+  it("branch-time-failure.json is what a unit job failed on time builds: time, not file or flake", () => {
+    const want = fixture("branch-time-failure.json");
+    const unit = failing({
+      files: ["scripts/loops/fictional.test.mjs"],
+      tests: [test("scripts/loops/fictional.test.mjs")],
+      rerun: { files: [], tests: [] },
+      time: [{ measure: "unit", seconds: 400, verdict: "fail", armed: true }],
+    });
+    const v = buildVerdict({ commit: want.commit, runId: want.runId, tier: "unit", needs: unitNeeds(unit) });
+    expect(v).toEqual(want);
+    expect(v.kind).toBe("time");
   });
 });

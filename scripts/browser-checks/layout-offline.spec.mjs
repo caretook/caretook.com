@@ -65,7 +65,7 @@ async function setView(page, view) {
   await page.getByRole("button", { name: "View options" }).click();
   await page.getByRole("menuitemradio", { name: view, exact: true }).click();
   await waitFor(page, (cards) => (document.querySelector("ol")?.dataset.view === "cards") === cards, {
-    arg: view === "Cards",
+    arg: view === "Full",
     timeout: 5000,
   });
 }
@@ -86,14 +86,14 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     });
 
     // Online: saved straight away, nothing pending.
-    await setView(page, "Cards");
+    await setView(page, "Full");
     await test.step("online: the server has cards at once", async () => {
       await expect.poll(serverView).toBe("cards");
     });
     await test.step("online: nothing left pending", async () => {
       expect(await pendingCount(page)).toBe(0);
     });
-    await setView(page, "Rows");
+    await setView(page, "Condensed");
     await test.step("online: switching back saves too", async () => {
       await expect.poll(serverView).toBe("rows");
     });
@@ -101,7 +101,7 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     // Offline: switch to cards.
     await assetsSettled(page);
     d.offline(true);
-    await setView(page, "Cards");
+    await setView(page, "Full");
     await test.step("offline: the change is pending", async () => {
       await expect.poll(() => pendingOf(page, "timelineView")).toBe("cards");
     });
@@ -183,7 +183,7 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     await test.step("units online again: nothing left pending", async () => {
       await expect.poll(() => pendingCount(page)).toBe(0);
     });
-    await test.step("the layout follows the account: another browser's Rows shows on the next load", async () => {
+    await test.step("the layout follows the account: another browser's Condensed shows on the next load", async () => {
       await expect.poll(() => isCards(page)).toBe(false);
       expect(serverView()).toBe("rows");
     });
@@ -229,7 +229,7 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
         true,
       );
     });
-    await setView(page, "Cards");
+    await setView(page, "Full");
     await expect.poll(() => pendingCount(page)).toBe(1);
     d.offline(false);
     await signOut(page);

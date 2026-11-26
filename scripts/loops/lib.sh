@@ -1,12 +1,146 @@
 #!/usr/bin/env bash
 # Shared by the scripts in scripts/loops/. Source it; don't run it.
 
-# The main checkout (the first worktree; it stays on dev). Every other worktree
-# lives in $main/.loops.
-main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain | awk 'NR==1{print $2}')
-loops=$main/.loops
+# loops_lib_dir → this file's folder, absolute, resolved once as it is sourced:
+# `pnpm prd` runs it by a relative path, and a later `cd` (new.sh's into a new
+# worktree) would point a relative one at another checkout. With CDPATH set, a
+# relative `cd` prints the folder it found, so $(cd … && pwd) would read it
+# twice: every script sources this first, so it goes here.
+unset CDPATH
+loops_lib_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+# find_repo [DIR] → sets main, the repo's main checkout (its first worktree,
+# which stays on the trunk), and loops, $main/.loops (every other worktree, and
+# the tool's state), for the repo DIR is in: by default the one this file is in.
+# The one place a command finds its repo; risa's machine config will answer here.
+# False, main empty, outside a repo.
+find_repo() {
+  main=$(git -C "${1:-$loops_lib_dir}" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
+  loops=$main/.loops
+  [[ -n $main ]]
+}
+find_repo || true
 leases=$loops/.slots
-trunk=${TRUNK:-dev}
+
+# The project config (risa.json; config.mjs is its loader and the only code that
+# knows where the file is). Bash reads it once per process: config_load starts
+# Node once and keeps every value, and config_get answers from that copy. It is
+# loaded here, as lib.sh is sourced, so a $(config_get …) never starts Node again.
+#   config_get KEY → the value (a list: one item per line); fails, with a line
+#   on stderr, when the config has no value for KEY.
+config_load() {
+  [[ -n ${_config_loaded:-} ]] && return 0
+  _config=$(node "$loops_lib_dir/config.mjs" dump) || return 1
+  _config_loaded=1
+}
+config_get() {
+  local line found=""
+  config_load || return 1
+  while IFS= read -r line; do
+    case $line in
+      "$1="* | "$1".[0-9]*=*) echo "${line#*=}"; found=1 ;;
+    esac
+  done <<< "$_config"
+  [[ -n $found ]] || { echo "risa.json: no value for $1" >&2; return 1; }
+}
+config_load || { echo "lib.sh: the project config didn't load" >&2; return 1 2>/dev/null || exit 1; }
+trunk=${TRUNK:-$(config_get branches.trunk)}
+# The rest of the project's names, from the config: its name (which the lock and
+# marker files in the git dir carry), the branch kinds' prefixes (prd/, slice/,
+# plan/, hotfix/ here), the backlog's files and CI's two lists (either may be
+# unset). The protected branches are the git hooks' own constant and tidy.mjs's
+# (from the config), so no script here reads them.
+project_name=$(config_get name)
+prd_prefix=$(config_get branches.prefixes.prd)
+slice_prefix=$(config_get branches.prefixes.slice)
+plan_prefix=$(config_get branches.prefixes.plan)
+hotfix_prefix=$(config_get branches.prefixes.hotfix)
+backlog_files=("$(config_get paths.backlog)" "$(config_get paths.inbox)" "$(config_get paths.archive)")
+ci_lists=()
+for _k in paths.brakeList paths.quarantine; do
+  _b=$(config_get "$_k" 2>/dev/null) && ci_lists+=("$_b")
+done
+unset _b _k
+# Backlog ids are <idPrefix>-<n> (config.mjs's backlogIds builds the rest from the
+# same value): backlog_id_prefix is "B-" here.
+backlog_id_prefix=$(config_get backlog.idPrefix)-
+# A former prefix (backlog.formerIdPrefix: B- for items moved in from another
+# backlog), else empty: everywhere an id is read, a former one is read too, as its
+# own (backlog_id_normalize B-772 → RISA-772); nothing new is made with it.
+# backlog_id_re matches an id of either, unanchored, for [[ =~ ]].
+backlog_former_prefix=$(config_get backlog.formerIdPrefix 2>/dev/null)- || backlog_former_prefix=""
+if [[ -n $backlog_former_prefix ]]; then
+  backlog_id_re="(${backlog_id_prefix}|${backlog_former_prefix})[0-9]+"
+else
+  backlog_id_re="${backlog_id_prefix}[0-9]+"
+fi
+backlog_id_normalize() {
+  if [[ -n $backlog_former_prefix && $1 == "$backlog_former_prefix"[0-9]* ]]; then
+    echo "$backlog_id_prefix${1#"$backlog_former_prefix"}"
+  else
+    echo "$1"
+  fi
+}
+
+# tool_command NAME → what the tool's own command NAME (prd, backlog) is called
+# in this repo: `pnpm prd` here (config.mjs's toolCommands in Node).
+tool_command() { config_get "tool.$1"; }
+
+# project_command NAME → the project's command NAME (commands.NAME in the config:
+# install, check, typecheck, typegen, datastoreStart…); fails when it isn't set.
+project_command() { config_get "commands.$1"; }
+# run_project NAME [ARG…] → runs that command here, ARGs after it, and gives its
+# exit code; 127, with a line, when the config doesn't set it. In a subshell, so
+# a `cd` or `exit` in the command can't change the caller.
+run_project() {
+  local c
+  c=$(project_command "$1") || return 127
+  shift
+  (eval "$c" '"$@"')
+}
+# run_hook NAME [ARG…] → runs the project's hook NAME (hooks.NAME in the config:
+# the project's own script the tool calls, checkAreas, docBudget…) from the top
+# of the checkout the command runs in, ARGs after it, stdin passed on, and gives
+# its exit code; 127, with a line, when the config doesn't set it.
+run_hook() {
+  local c top
+  c=$(config_get "hooks.$1") || return 127
+  top=$(git rev-parse --show-toplevel) || return 1
+  shift
+  (cd "$top" && eval "$c" '"$@"')
+}
+
+# stack_hook NAME [ARG…] → run_hook from the checkout this file is in, not the
+# one the shell is in: a worktree made from an older branch may not have the
+# hook's script, and the tool's own checkout always has the one it was written
+# with. ARGs that name a worktree must be absolute.
+stack_hook() {
+  (cd "$loops_lib_dir" && run_hook "$@")
+}
+
+# fact KEY [FACTS] → the value of KEY in a hook's key=value lines (FACTS, else
+# stdin), the last one when there are several; nothing when it has none.
+fact() {
+  local line value=""
+  while IFS= read -r line; do
+    [[ $line == "$1="* ]] && value=${line#*=}
+  done < <(if (($# > 1)); then printf '%s\n' "$2"; else cat; fi)
+  [[ -z $value ]] || echo "$value"
+}
+
+# landing_hook ARG… → the project's landing hook (hooks.landing: how to try a
+# landing, what the main checkout needs after one), its lines on stdout; nothing
+# when the config sets none. Never fails.
+landing_hook() {
+  config_get hooks.landing >/dev/null 2>&1 || return 0
+  run_hook landing "$@" || true
+}
+
+# not_files FILE… → stdin without the lines that are exactly one of FILEs (none
+# named: all of it). Never fails.
+not_files() {
+  if (($#)); then grep -vxF -f <(printf '%s\n' "$@") || true; else cat; fi
+}
 # The PRD cap (lanes): `pnpm prd dispatch --cap <n>` stores it in .loops/.prd-cap, which
 # wins over CARETOOK_MAX_PRDS; the default is 4. max_prds_from says which one set it.
 prd_cap_file=$loops/.prd-cap
@@ -29,35 +163,24 @@ dispatch_pid() {
 #   slice/<topic>/<n> → prd/<topic>;  prd/*, plan/* and hotfix/* → trunk.
 parent_of() {
   case $1 in
-    slice/*/*) local t=${1#slice/}; echo "prd/${t%/*}" ;;
+    "$slice_prefix"*/*) local t=${1#"$slice_prefix"}; echo "$prd_prefix${t%/*}" ;;
     *) echo "$trunk" ;;
   esac
 }
 
-# slot_ports N → sets web, pg, pgt, ps and off for slot N (1-19).
-#   1-9:   web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80
-#   10-19: the same with 7(N-10) in place of 6N: 7073 … 7980
-#   CDP and proxy ports shift by N*1000 (CDP_PORT_OFFSET).
-slot_ports() {
-  local n=$1 p
-  if ((n < 10)); then p=6$n; else p=7$((n - 10)); fi
-  web=${p}73 pg=${p}34 pgt=${p}35 ps=${p}80 off=$((n * 1000))
+# branch_name BRANCH → what follows its kind's prefix (prd/x, plan/x, hotfix/x → x;
+# slice/x/2 → x/2), else the branch itself: config.mjs's nameOf in bash.
+branch_name() {
+  local p
+  for p in "$prd_prefix" "$slice_prefix" "$plan_prefix" "$hotfix_prefix"; do
+    [[ $1 == "$p"* ]] && { echo "${1#"$p"}"; return 0; }
+  done
+  echo "$1"
 }
 
-# slot_busy N → true when slot N is leased, named by a worktree's .env, or one of
-# its ports is listening.
-slot_busy() {
-  local n=$1 f p
-  [[ -e $leases/$n ]] && return 0
-  for f in "$loops"/*/.env; do
-    [[ -f $f ]] && grep -qx "CARETOOK_STACK=caretook-loop$n" "$f" && return 0
-  done
-  slot_ports "$n"
-  for p in $web $pg $pgt $ps; do
-    lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1 && return 0
-  done
-  return 1
-}
+# re_escape TEXT → TEXT with every character a grep -E or [[ =~ ]] pattern reads
+# specially escaped, so a name from the config matches only itself.
+re_escape() { printf '%s\n' "$1" | sed 's/[][\.*^$+?(){}|]/\\&/g'; }
 
 # lease_slot N NAME → atomically claim slot N for NAME (mkdir is the lock).
 lease_slot() {
@@ -82,7 +205,7 @@ env_get() { [[ -f $1 ]] && grep "^$2=" "$1" | tail -1 | cut -d= -f2- | tr -d '"'
 prd_count() {
   local d n=0
   for d in "$loops"/*/; do
-    [[ $(git -C "$d" branch --show-current 2>/dev/null) == prd/* ]] && n=$((n + 1))
+    [[ $(git -C "$d" branch --show-current 2>/dev/null) == "$prd_prefix"* ]] && n=$((n + 1))
   done
   echo "$n"
 }
@@ -95,7 +218,7 @@ die() { echo "$*" >&2; exit 1; }
 run_log() {
   local once=()
   if [[ ${1:-} == --once ]]; then once=(--once "${2:-}"); shift 2; fi
-  node "$(dirname "${BASH_SOURCE[0]}")/run-log.mjs" append --log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
+  node "$loops_lib_dir/run-log.mjs" append --log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
     ${once[@]+"${once[@]}"} "$@" </dev/null >/dev/null 2>&1 || true
 }
 
@@ -112,26 +235,18 @@ topic_of() {
   local b
   b=$(git -C "$loops/$1" branch --show-current 2>/dev/null || echo "$1")
   case $b in
-    slice/*/*) b=${b#slice/}; echo "${b%/*}" ;;
-    prd/*) echo "${b#prd/}" ;;
+    "$slice_prefix"*/*) b=${b#"$slice_prefix"}; echo "${b%/*}" ;;
+    "$prd_prefix"*) echo "${b#"$prd_prefix"}" ;;
     *) echo "$1" ;;
   esac
 }
 
-# web_port DIR → the dev server port of a stacked worktree, or nothing.
-web_port() { env_get "$1/apps/web/.env" WEB_PORT; }
+# web_port DIR → the dev server port of a stacked worktree, or nothing (the
+# stack status hook's web_port).
+web_port() { fact web_port "$(stack_hook stackStatus "$1" 2>/dev/null || true)"; }
 
 # server_pids PORT → pids listening on PORT.
 server_pids() { lsof -nP -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null || true; }
-
-# stop_server DIR → stop the worktree's dev server, if one is running.
-stop_server() {
-  local port pids
-  port=$(web_port "$1"); [[ -n $port ]] || return 0
-  pids=$(server_pids "$port"); [[ -n $pids ]] || return 0
-  # shellcheck disable=SC2086
-  kill $pids 2>/dev/null || true
-}
 
 # checked_file DIR → where `pnpm prd check` records the commit it passed on
 # (in the worktree's git dir, so it never shows up as a change).
@@ -144,7 +259,7 @@ checked_file() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/caretook-chec
 check_base() {
   local dir=$1 asked=$2 cur parent prev="" pmode="" qbase="" _rest
   if [[ $asked == slice ]]; then
-    cur=$(git -C "$dir" branch --show-current); parent=${cur#slice/}; parent=prd/${parent%/*}
+    cur=$(git -C "$dir" branch --show-current); parent=${cur#"$slice_prefix"}; parent=$prd_prefix${parent%/*}
     if git -C "$dir" rev-parse -q --verify "$parent" > /dev/null; then
       git -C "$dir" merge-base "$parent" HEAD; return
     fi
@@ -163,9 +278,13 @@ check_base() {
 # `pnpm prd check --quick` (typecheck, lint, format and the tests related to
 # the diff since <base>). A bare `<sha>` (older records) reads as full.
 
-# exempt_re → the paths that need no check: docs and the internal tooling
+# exempt_re → the paths that need no check: docs, the tool's own folders while
+# they sit in this repo, and the project's tooling (the config's paths.tooling)
 # (AGENTS.md: docs-only and tooling-only changes skip `pnpm check`).
-exempt_re='(\.md$|^scripts/loops/|^scripts/backlog/|^\.githooks/)'
+exempt_re='scripts/loops|scripts/backlog'
+while IFS= read -r _p; do exempt_re+=${exempt_re:+|}${_p//./\\.}; done < <(config_get paths.tooling)
+exempt_re="(\\.md\$|^($exempt_re)(/|\$))"
+unset _p
 
 # exempt_only DIR FROM TO → succeeds when every file changed between FROM and
 # TO (git diff FROM TO, or FROM...TO when TO is empty) is exempt.
@@ -181,7 +300,7 @@ exempt_only() {
 # aren't exempt themselves, so a branch that changes only them still needs a check.
 keeps_check() {
   [[ -z $(git -C "$1" diff --name-only --no-renames "$2" "$3" |
-    grep -Ev "$exempt_re" | grep -vxF -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt) ]]
+    grep -Ev "$exempt_re" | not_files ${ci_lists[@]+"${ci_lists[@]}"}) ]]
 }
 
 # docs_only BASE TIP → succeeds when BASE...TIP changes something and every
@@ -198,7 +317,7 @@ docs_only() {
 # diff (BASE...TIP, which check-plan.mjs computes) should wait for, why, and
 # ok | below | refused for the declared tier.
 propose_tier() {
-  node "$(dirname "${BASH_SOURCE[0]}")/check-plan.mjs" --propose --repo "$main" --base "$1" --head "$2" \
+  node "$loops_lib_dir/check-plan.mjs" --propose --repo "$main" --base "$1" --head "$2" \
     ${3:+--declared "$3"}
 }
 
@@ -266,8 +385,7 @@ node_is() {
 # pnpm prd ci commit those onto dev, and they never affect a branch's code).
 # Empty means BRANCH is up to date with dev.
 trunk_drift() {
-  git -C "$main" diff --name-only "$1...${2:-$trunk}" |
-    grep -vxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt || true
+  git -C "$main" diff --name-only "$1...${2:-$trunk}" | not_files "${backlog_files[@]}" ${ci_lists[@]+"${ci_lists[@]}"}
 }
 
 # trunk_lists BRANCH [REF] → CI's two lists that dev (or REF) changed since
@@ -277,7 +395,7 @@ trunk_drift() {
 trunk_lists() {
   local base f
   base=$(git -C "$main" merge-base "$1" "${2:-$trunk}") || return 0
-  for f in scripts/ci/brake-list.txt scripts/ci/quarantine.txt; do
+  for f in ${ci_lists[@]+"${ci_lists[@]}"}; do
     git -C "$main" diff --quiet "$base" "${2:-$trunk}" -- "$f" && continue
     git -C "$main" diff --quiet "$base" "$1" -- "$f" || continue
     echo "$f"
@@ -313,7 +431,7 @@ file_mtime() {
 # <load> <threshold> <cores>"; a missing or failing script reads as unread (not busy).
 load_gate() {
   local s out
-  s="$(dirname "${BASH_SOURCE[0]}")/load-gate.mjs"
+  s="$loops_lib_dir/load-gate.mjs"
   out=$([[ -f $s ]] && node "$s" 2>/dev/null || true)
   echo "${out:-unread - - -}"
 }
@@ -391,7 +509,7 @@ disk_line() {
 
 # pr_branch WHAT → the branch a command means: prd/, plan/ and hotfix/ branches
 # (or any other with a slash) as given, else a topic's prd/<topic>.
-pr_branch() { case $1 in */*) echo "$1" ;; *) echo "prd/$1" ;; esac; }
+pr_branch() { case $1 in */*) echo "$1" ;; *) echo "$prd_prefix$1" ;; esac; }
 
 # gh_repo → origin's owner/name (cached per shell).
 gh_repo() {
@@ -411,7 +529,7 @@ pr_for() {
 pr_state() {
   local repo query
   repo=$(gh_repo) || return 1
-  query=$(node --input-type=module -e "import { PR_QUERY } from '$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/codex-review.mjs'; process.stdout.write(PR_QUERY)")
+  query=$(node --input-type=module -e "import { PR_QUERY } from '$loops_lib_dir/codex-review.mjs'; process.stdout.write(PR_QUERY)")
   gh api graphql -F owner="${repo%%/*}" -F name="${repo#*/}" -F number="$1" -f query="$query"
 }
 
@@ -420,18 +538,18 @@ pr_state() {
 pr_verdict() {
   local state
   state=$(pr_state "$1") || return 1
-  node "$(dirname "${BASH_SOURCE[0]}")/codex-review.mjs" --repo="$main" --trunk="$trunk" ${2:+"$2"} <<< "$state"
+  node "$loops_lib_dir/codex-review.mjs" --repo="$main" --trunk="$trunk" ${2:+"$2"} <<< "$state"
 }
 
 # The PR path (pr.sh, land.sh): landing subjects, pushing dev, and dev-sync.
 
-inbox_path=plans/inbox.md
+inbox_path=${backlog_files[1]}
 
 # land_dir BRANCH → the worktree a prd/, plan/ or hotfix/ branch lives in.
 land_dir() {
   case $1 in
-    plan/*) echo "$loops/plan-${1#*/}" ;;
-    hotfix/*) echo "$loops/hotfix-${1#*/}" ;;
+    "$plan_prefix"*) echo "$loops/plan-${1#"$plan_prefix"}" ;;
+    "$hotfix_prefix"*) echo "$loops/hotfix-${1#"$hotfix_prefix"}" ;;
     *) echo "$loops/${1#*/}" ;;
   esac
 }
@@ -441,13 +559,13 @@ land_dir() {
 # bug or for a hotfix, docs(…) for a plan branch.
 land_subject() {
   local topic=${1#*/} ids type
-  ids=$(node "$(dirname "${BASH_SOURCE[0]}")/../backlog/backlog.mjs" list --all --prd "$topic" --status ready --json |
+  ids=$(node "$loops_lib_dir/../backlog/backlog.mjs" list --all --prd "$topic" --status ready --json |
     node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));
       const t=r.length&&r.every(i=>i.type==="bug")?"fix":"feat";
       console.log(t+"\t"+r.map(i=>i.id).join(", "))')
   type=${ids%%$'\t'*}; ids=${ids#*$'\t'}
-  [[ $1 == plan/* ]] && type=docs
-  [[ $1 == hotfix/* ]] && type=fix
+  [[ $1 == "$plan_prefix"* ]] && type=docs
+  [[ $1 == "$hotfix_prefix"* ]] && type=fix
   echo "$type($topic): land $1${ids:+ ($ids)}"
 }
 
@@ -470,7 +588,7 @@ pr_seam() {
 # and the lock is still dropped.
 with_backlog_lock() {
   local lock deadline=$((SECONDS + 20)) age status
-  lock="$(cd "$main" && cd "$(git rev-parse --git-common-dir)" && pwd)/caretook-backlog.lock"
+  lock="$(cd "$main" && cd "$(git rev-parse --git-common-dir)" && pwd)/$project_name-backlog.lock"
   until mkdir "$lock" 2>/dev/null; do
     age=$(($(date +%s) - $(file_mtime "$lock" || date +%s)))
     if ((age > 30)); then rm -rf "$lock"; continue; fi
@@ -503,8 +621,7 @@ land_push_trunk() {
   push_trunk
   after=$(git -C "$main" rev-parse "refs/heads/$trunk")
   [[ $before != "$after" ]] || return 0
-  moved=$(git -C "$main" diff --name-only "$before" "$after" |
-    grep -vxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt || true)
+  moved=$(git -C "$main" diff --name-only "$before" "$after" | not_files "${backlog_files[@]}" ${ci_lists[@]+"${ci_lists[@]}"})
   [[ -z $moved ]] || die "origin/$trunk brought changes this landing's checks didn't see (${moved%%$'\n'*}…): nothing landed; run \`pnpm prd sync\`, then land again"
 }
 _push_trunk() {
@@ -525,7 +642,7 @@ backlog_commit() {
   (($(git -C "$main" rev-list --parents -n 1 "$1" | wc -w) == 2)) || return 1
   [[ -n $(git -C "$main" log -1 --format='%(trailers:key=Backlog-Tool,valueonly)' "$1" | tr -d '[:space:]') ]] || return 1
   files=$(git -C "$main" diff-tree --no-commit-id --name-only -r "$1")
-  [[ -n $files ]] && ! grep -qvxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md <<< "$files"
+  [[ -n $files && -z $(not_files "${backlog_files[@]}" <<< "$files") ]]
 }
 
 # held_elsewhere SHA → true when another ref (a branch, remote-tracking ref, tag
@@ -599,7 +716,7 @@ _dev_sync() {
 }
 # _inbox_merge BASE OURS THEIRS OUT → the inbox merge of three files, into OUT.
 _inbox_merge() {
-  node "$(dirname "${BASH_SOURCE[0]}")/../backlog/inbox-merge.mjs" "$1" "$2" "$3" > "$4"
+  node "$loops_lib_dir/../backlog/inbox-merge.mjs" "$1" "$2" "$3" > "$4"
 }
 # _merge_trees BASE OURS THEIRS → the merged tree (BASE empty: git's own). A
 # conflict only in the inbox is resolved by the inbox merge; any other fails.
@@ -657,9 +774,9 @@ _move_trunk() {
   if [[ -n $tmp ]]; then
     gd=$(git -C "$main" rev-parse --absolute-git-dir)
     git -C "$main" update-index --cacheinfo "100644,$b,$inbox_path"
-    cp -p "$work" "$gd/caretook-inbox-merged"
-    cat "$tmp/merged" > "$gd/caretook-inbox-merged"
-    mv "$gd/caretook-inbox-merged" "$work"
+    cp -p "$work" "$gd/$project_name-inbox-merged"
+    cat "$tmp/merged" > "$gd/$project_name-inbox-merged"
+    mv "$gd/$project_name-inbox-merged" "$work"
     rm -rf "$tmp"
     echo "dev-sync: kept your uncommitted lines in $inbox_path"
   fi

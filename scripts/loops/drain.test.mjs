@@ -1,7 +1,7 @@
 // The drain (drain.mjs): the decision at the lines, the limited tick's actions and the
 // landing test, pure; the pick holding starts, plans and reopens; and new.sh refusing a
-// slice worktree while draining, against a throwaway repo with fake docker, pnpm, lsof and
-// nvm. Every reading here is made up; nothing reads the real .loops.
+// slice worktree while draining, against a throwaway repo with the stub stack hook and
+// fake pnpm, lsof and nvm. Every reading here is made up; nothing reads the real .loops.
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
@@ -30,6 +30,7 @@ import {
   probeAllowed,
 } from "./drain.mjs";
 import { mergeReadings } from "./usage.mjs";
+import { stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const NOW = Date.parse("2026-11-22T12:00:00Z");
@@ -289,10 +290,6 @@ const PLAN = `# Plan: T
 
 Stack: no · Reads: none · Tests: unit
 `;
-const FAKE_DOCKER = `#!/usr/bin/env bash
-case $1 in exec) [[ "$*" != *psql* ]] || echo 0 ;; esac
-exit 0
-`;
 
 describe("new.sh slice while draining", () => {
   let root, main, loops, usage, env;
@@ -331,17 +328,16 @@ describe("new.sh slice while draining", () => {
     const nvm = join(root, "nvm");
     mkdirSync(bin);
     mkdirSync(nvm);
-    writeFileSync(join(bin, "docker"), FAKE_DOCKER);
     writeFileSync(join(bin, "pnpm"), "#!/usr/bin/env bash\nexit 0\n");
     writeFileSync(join(bin, "lsof"), "#!/usr/bin/env bash\nexit 1\n");
-    for (const f of ["docker", "pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
+    for (const f of ["pnpm", "lsof"]) chmodSync(join(bin, f), 0o755);
     writeFileSync(join(nvm, "nvm.sh"), "nvm() { :; }\n");
     env = {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
+      SAMPLE_STACK_STATE: join(root, "stack-state"),
       NVM_DIR: nvm,
       TRUNK: "dev",
-      CARETOOK_SHARED_TEST_PORT: "",
       CARETOOK_FREE_GB: "100",
       CARETOOK_MIN_FREE_GB: "",
       CARETOOK_MAX_PRDS: "",
@@ -366,6 +362,8 @@ describe("new.sh slice while draining", () => {
       (f) => f.endsWith(".sh") || (f.endsWith(".mjs") && !f.endsWith(".test.mjs")),
     ))
       copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
+    // The stack and test DB hooks: the sample project's stub.
+    env.RISA_CONFIG = stubHookConfig(main);
     writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\n.postgres/\n");
     mkdirSync(join(main, "plans"));
     writeFileSync(join(main, "plans/t-plan.md"), PLAN);
