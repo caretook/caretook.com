@@ -3,6 +3,7 @@ import type { TodoCreateInput } from "../db";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createWorld, ok } from "../../test/fixtures";
+import { withTransaction } from "../db";
 import { isError } from "../errors";
 import { todoService } from ".";
 
@@ -159,5 +160,152 @@ describe("todoService: subtasks", () => {
     }
     const page = ok(await todoService.list(u.owner.ctx, { groupId: group.id }));
     expect(page.data.map((t) => t.title)).toEqual([top.title, "Sub"]);
+  });
+});
+
+// Slice 2: the rollup (a parent follows its live children, up to the top, as
+// the system with the actor as `done_by`), `openSubtasks`, and the cascading
+// delete.
+describe("todoService: the rollup and the cascading delete", () => {
+  const stateOf = async (ctx: Parameters<typeof todoService.getById>[0], id: string) => {
+    const todo = ok(await todoService.getById(ctx, id, { includeDeleted: true }));
+    if (!todo) throw new Error("todo not readable");
+    return { done: !!todo.doneAt, doneBy: todo.doneBy, deleted: !!todo.deletedAt };
+  };
+
+  it("ticking the last open sub-subtask completes its parent and grandparent; reopening it reopens both", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo();
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id });
+    const sibling = await addTodo({ title: "Print the medication list", parentId: top.id });
+    const first = await addTodo({ title: "Find the charger", parentId: sub.id });
+    const last = await addTodo({ title: "Fold the pajamas", parentId: sub.id });
+    ok(await todoService.complete(u.caretaker.ctx, sibling.id));
+    ok(await todoService.complete(u.caretaker.ctx, first.id));
+    expect(await stateOf(u.owner.ctx, sub.id)).toMatchObject({ done: false });
+
+    ok(await todoService.complete(u.admin.ctx, last.id));
+    for (const id of [sub.id, top.id])
+      expect(await stateOf(u.owner.ctx, id)).toEqual({ done: true, doneBy: u.admin.user.id, deleted: false });
+    // Written as the system, not the actor.
+    const parent = ok(await todoService.getById(u.owner.ctx, top.id))!;
+    expect(parent.updatedBy).not.toBe(u.admin.user.id);
+
+    ok(await todoService.reopen(u.caretaker.ctx, last.id));
+    for (const id of [sub.id, top.id])
+      expect(await stateOf(u.owner.ctx, id)).toEqual({ done: false, doneBy: null, deleted: false });
+    // The other children are as they were.
+    for (const id of [sibling.id, first.id])
+      expect(await stateOf(u.owner.ctx, id)).toMatchObject({ done: true });
+  });
+
+  it("adding an open subtask reopens a done parent, up the chain", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo();
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id });
+    ok(await todoService.complete(u.caretaker.ctx, sub.id));
+    expect(await stateOf(u.owner.ctx, top.id)).toMatchObject({ done: true });
+
+    // A done parent at the middle level takes a new open subtask: both above reopen.
+    await addTodo({ title: "Find the charger", parentId: sub.id });
+    for (const id of [sub.id, top.id]) expect(await stateOf(u.owner.ctx, id)).toMatchObject({ done: false });
+  });
+
+  it("deleting the last open subtask with done siblings completes the parent; deleting the only one leaves it", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo();
+    const done = await addTodo({ title: "Pack a bag", parentId: top.id });
+    const open = await addTodo({ title: "Call the dog sitter", parentId: top.id });
+    ok(await todoService.complete(u.caretaker.ctx, done.id));
+    ok(await todoService.remove(u.owner.ctx, open.id));
+    expect(await stateOf(u.caretaker.ctx, top.id)).toEqual({
+      done: true,
+      doneBy: u.owner.user.id,
+      deleted: false,
+    });
+
+    const lone = await addTodo({ title: "Lone parent" });
+    const only = await addTodo({ title: "Only step", parentId: lone.id });
+    ok(await todoService.remove(u.owner.ctx, only.id));
+    expect(await stateOf(u.caretaker.ctx, lone.id)).toMatchObject({ done: false });
+  });
+
+  it("a viewer's tick of their own last subtask completes a parent assigned to someone else", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo({ assigneeId: u.caretaker.user.id });
+    const theirs = await addTodo({ title: "Pack a bag", parentId: top.id });
+    const mine = await addTodo({ title: "Walk the dog", parentId: top.id, assigneeId: u.viewer.user.id });
+    ok(await todoService.complete(u.caretaker.ctx, theirs.id));
+
+    ok(await todoService.complete(u.viewer.ctx, mine.id));
+    expect(await stateOf(u.owner.ctx, top.id)).toEqual({
+      done: true,
+      doneBy: u.viewer.user.id,
+      deleted: false,
+    });
+    // The viewer still can't tick the parent by hand.
+    expect(codeOf(await todoService.reopen(u.viewer.ctx, top.id))).toBe("todoService:completionOnly");
+  });
+
+  it("refuses completing a parent with open live subtasks (openSubtasks), for a viewer and a writer", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo({ assigneeId: u.viewer.user.id });
+    const open = await addTodo({ title: "Pack a bag", parentId: top.id });
+    const gone = await addTodo({ title: "Gone", parentId: top.id });
+    ok(await todoService.remove(u.caretaker.ctx, gone.id));
+
+    for (const who of [u.viewer, u.caretaker])
+      expect(codeOf(await todoService.complete(who.ctx, top.id))).toBe("todoService:openSubtasks");
+    expect(await stateOf(u.owner.ctx, top.id)).toMatchObject({ done: false });
+
+    // Its subtasks done, ticking it is the rollup's; reopening by hand reopens only the parent.
+    ok(await todoService.complete(u.caretaker.ctx, open.id));
+    expect(await stateOf(u.owner.ctx, top.id)).toMatchObject({ done: true });
+    ok(await todoService.reopen(u.viewer.ctx, top.id));
+    expect(await stateOf(u.owner.ctx, top.id)).toMatchObject({ done: false });
+    expect(await stateOf(u.owner.ctx, open.id)).toMatchObject({ done: true });
+    // A replayed tick of the done subtask changes nothing; a hand tick now goes through.
+    ok(await todoService.complete(u.caretaker.ctx, open.id));
+    expect(await stateOf(u.owner.ctx, top.id)).toMatchObject({ done: false });
+    ok(await todoService.complete(u.viewer.ctx, top.id));
+    expect(await stateOf(u.owner.ctx, top.id)).toMatchObject({ done: true, doneBy: u.viewer.user.id });
+  });
+
+  it("deleting a parent soft-deletes every live descendant in one transaction; a viewer deletes nothing", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo();
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id });
+    const subSub = await addTodo({ title: "Find the charger", parentId: sub.id });
+    const sibling = await addTodo({ title: "Print the medication list", parentId: top.id });
+    const unrelated = await addTodo({ title: "Unrelated" });
+
+    expect(codeOf(await todoService.remove(u.viewer.ctx, top.id))).toBe("permissions:unauthorized");
+    for (const id of [top.id, sub.id, subSub.id, sibling.id])
+      expect(await stateOf(u.owner.ctx, id)).toMatchObject({ deleted: false });
+
+    const removed = ok(await todoService.remove(u.caretaker.ctx, top.id));
+    expect(new Set(removed.ids)).toEqual(new Set([top.id, sub.id, subSub.id, sibling.id]));
+    const rows = await Promise.all(
+      [top.id, sub.id, subSub.id, sibling.id].map((id) =>
+        todoService.getById(u.owner.ctx, id, { includeDeleted: true }),
+      ),
+    );
+    const deletedAt = rows.map((r) => ok(r)?.deletedAt);
+    expect(deletedAt.every(Boolean)).toBe(true);
+    // One statement in one transaction: the same instant for all of them.
+    expect(new Set(deletedAt.map(String)).size).toBe(1);
+    expect(await stateOf(u.owner.ctx, unrelated.id)).toMatchObject({ deleted: false });
+    expect(codeOf(await todoService.remove(u.caretaker.ctx, top.id))).toBe("todoService:notFound");
+  });
+
+  it("rollUp is idempotent: run again on settled rows, it changes nothing", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo();
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id });
+    ok(await todoService.complete(u.caretaker.ctx, sub.id));
+    const before = ok(await todoService.getById(u.owner.ctx, top.id))!;
+    expect(await withTransaction((tx) => todoService.rollUp(tx, top.id, u.owner.user.id))).toBeNull();
+    const after = ok(await todoService.getById(u.owner.ctx, top.id))!;
+    expect(after).toMatchObject({ doneAt: before.doneAt, doneBy: u.caretaker.user.id });
   });
 });
