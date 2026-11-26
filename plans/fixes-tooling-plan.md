@@ -30,7 +30,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 53    | B-542        | working (opus)                                                                                       | —        |
 | 54    | B-623, B-860 | handed off 729a8858 (check passed); merge after 53                                                   | —        |
 | 55    | B-807        | handed off cefd6394 (check passed); merge after 54                                                   | —        |
-| 56    | B-754        | working (opus)                                                                                       | —        |
+| 56    | B-754        | handed off db33b7f7 (check passed; fixtures written to disk, setup ~2.5 s → 0.2 s)                   | —        |
 | 57    | B-824        | working (opus)                                                                                       | —        |
 | 58    | B-769        | handed off 1bac753f (check passed); merge after 57                                                   | —        |
 | 59    | B-633        | handed off 54294a9c (check passed; app-wide watchLiveQuery frame batching, see hand-over)            | —        |
