@@ -2311,6 +2311,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/todo-subtasks.
+- 2026-11-26 (slice/fixes-tooling/79): Cause (fixes-tooling slice 79): after Back, the timeline's ~38 watches run one at a time, and each batched frame of results (B-633) rendered the 3-page timeline between them, holding up the queries behind it. At a 4x CPU throttle it reproduces CI's failure exactly (settle timeout, care_period/care_group_member owed). Fix: watchLiveQuery holds the frame, up to 500 ms, while any watch's first result is owed, so a remount renders once. Post-Back settle 0.74-0.87 -> 0.52 s locally, >5 s -> 1.9 s at 4x, 3.4 s at 6x. 10/10 at load 25-133. Quarantine line removed. Follow-up idea: 11 of the 38 watches are duplicates (same SQL and params); sharing them would save about 30% more.
 
 ### B-871 · bug · A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten)
 
