@@ -144,3 +144,32 @@ describe("entryActionItems, Tags", () => {
     expect(entryActionItems("note", { canEdit: false, canPrint: true, canDelete: false })).toEqual(["print"]);
   });
 });
+
+describe("entryActionItems, Copy link", () => {
+  it("comes before Delete for writers, every kind", () => {
+    expect(entryActionItems("symptom", { canEdit: true, canTag: true, canCopyLink: true })).toEqual([
+      "edit",
+      "tags",
+      "copyLink",
+      "delete",
+    ]);
+    expect(entryActionItems("note", { canEdit: false, canPrint: true, canCopyLink: true })).toEqual([
+      "print",
+      "copyLink",
+      "delete",
+    ]);
+  });
+
+  it("is a reader's too: after Print, or alone where their menu had nothing", () => {
+    expect(
+      entryActionItems("note", { canEdit: false, canPrint: true, canDelete: false, canCopyLink: true }),
+    ).toEqual(["print", "copyLink"]);
+    expect(entryActionItems("symptom", { canEdit: false, canDelete: false, canCopyLink: true })).toEqual([
+      "copyLink",
+    ]);
+  });
+
+  it("is never offered unless asked (Upcoming and the entry page)", () => {
+    expect(entryActionItems("event", { canEdit: false, canPrint: true })).not.toContain("copyLink");
+  });
+});
