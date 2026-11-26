@@ -92,7 +92,7 @@ describe("the Easy mode button", () => {
     const text = [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((el) =>
       el.textContent?.trim(),
     );
-    expect(text.some((t) => t?.startsWith("Rows"))).toBe(true);
+    expect(text.some((t) => t?.startsWith("Condensed"))).toBe(true);
     expect(text.some((t) => t?.startsWith("Highlights"))).toBe(true);
     expect(text.some((t) => /easy/i.test(t ?? ""))).toBe(false);
     expect(document.querySelector('[role="menu"]')?.textContent).toMatch(/Layout/);

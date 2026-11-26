@@ -1,9 +1,11 @@
 import type { SyncDb } from "../sync/index";
+import type { NoteBlock } from "./noteRichText";
 
 import { buildNoteDoc, fromBase64, noteText, toBase64 } from "@caretook/data/schema";
 import * as Y from "yjs";
 import { noteUpdates } from "../sync/schema";
 import { toLocalTimestamp } from "../timeline/timeline.sync";
+import { noteRichText } from "./noteRichText";
 
 // Live documents on this device. A document's state is its snapshot plus
 // every pending update row; both arrive through sync, so the editor works
@@ -59,6 +61,37 @@ export const previewText = (row: NoteDocRow) => {
   } catch {
     return row.text ?? "";
   }
+};
+
+/**
+ * The document's formatted blocks (`noteRichText`), from its snapshot and
+ * pending updates, like `previewText`. Null when it can't be read (the plain
+ * preview stands in).
+ */
+export const previewRichText = (row: NoteDocRow): NoteBlock[] | null => {
+  try {
+    const doc = buildNoteDoc(row.snapshot, pendingUpdates(row));
+    const blocks = noteRichText(doc);
+    doc.destroy();
+    return blocks;
+  } catch {
+    return null;
+  }
+};
+
+// The last blocks read per document, so a card decodes its document once per
+// version, not on every render. Bounded: past the cap it starts again.
+const RICH_CACHE_CAP = 500;
+const richCache = new Map<string, { snapshot: string | null; updates: string; blocks: NoteBlock[] | null }>();
+
+/** `previewRichText`, remembered per document until its snapshot or pending updates change. */
+export const cachedRichText = (row: NoteDocRow) => {
+  const hit = richCache.get(row.id);
+  if (hit && hit.snapshot === row.snapshot && hit.updates === row.updates) return hit.blocks;
+  if (richCache.size >= RICH_CACHE_CAP) richCache.clear();
+  const blocks = previewRichText(row);
+  richCache.set(row.id, { snapshot: row.snapshot, updates: row.updates, blocks });
+  return blocks;
 };
 
 /** Document id → preview text, for the timeline. */

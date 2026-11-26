@@ -35,7 +35,7 @@ describe("the via tag", () => {
   test("cards: beside the author, and not on others", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => rows().length === 3, "three rows");
-    await setView("Cards");
+    await setView("Full");
     await waitUntil(() => !!tagOf("Walked to the mailbox"), "the card's tag");
     const card = rowWith("Walked to the mailbox")!;
     expect(card.querySelector("[data-via]")?.textContent).toBe("via Claude");
