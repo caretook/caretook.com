@@ -1,5 +1,3 @@
-# The project config and the core's line
-
 The orchestration tooling is being split from Caretook (PRD: [`plans/orchestration-split-prd.md`](../../plans/orchestration-split-prd.md)): the **core** (Risa, later a tool of its own) and **Caretook's** scripts and data. Stage 1a drew the line in place; nothing moved out yet and commands are still `pnpm prd` and `pnpm backlog`. Read this before changing a file under `scripts/loops`, `scripts/backlog`, `scripts/ci`, `scripts/project` or `.githooks`.
 
 ## The config

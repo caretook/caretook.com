@@ -23,9 +23,14 @@ export const BUDGETS = [
   { pattern: "docs/agents/backlog.md", bytes: 12 * KB },
   { pattern: "scripts/loops/docs/inbox.md", bytes: 2 * KB },
   { pattern: "docs/agents/inbox.md", bytes: 13 * KB },
+  { pattern: "scripts/loops/docs/machinery.md", bytes: 524 }, // the role was at 15349 B of 15 KB
+  { pattern: "docs/agents/machinery.md", bytes: 15 * KB - 524 },
+  { pattern: "scripts/loops/docs/project-config.md", bytes: 1 * KB },
+  { pattern: "docs/agents/project-config.md", bytes: 14 * KB },
+  { pattern: "scripts/loops/docs/orchestration.md", bytes: 174 }, // the guide was at 17390 B of 17 KB
   { pattern: "docs/agents/*.md", bytes: 15 * KB },
   { pattern: "docs/domain/*.md", bytes: 10 * KB },
   { pattern: "docs/layout.md", bytes: 10 * KB },
   { pattern: "docs/loops.md", bytes: 2 * KB }, // a stub pointing to docs/agents/
-  { pattern: "docs/orchestration.md", bytes: 17 * KB }, // its size when set (17129 B), rounded up
+  { pattern: "docs/orchestration.md", bytes: 17 * KB - 174 }, // the guide's 17 KB: its size when set (17129 B), rounded up
 ];
