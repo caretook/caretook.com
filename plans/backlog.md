@@ -332,10 +332,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-883 | chore | triaged | fixes-tooling |  | Token use measured by price: a price-weighted before/after (cache writes ~3% of tokens but ~30% of cost) to judge B-873, B-875, B-876 |
 | B-884 | chore | triaged | fixes-perf |  | Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set |
 | B-885 | bug | triaged | fixes-ui |  | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
-| B-886 | change | inbox |  |  | Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call |
-| B-887 | change | inbox |  |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
-| B-888 | change | inbox |  |  | Features page should highlight easy mode |
-| B-889 | feature | inbox |  |  | Backlog agent can hand off with instructions the next agent actually follows, continuing the work… |
+| B-886 | change | triaged | fixes-tooling |  | Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call |
+| B-887 | change | triaged | marketing |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
+| B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
+| B-889 | feature | triaged | fixes-tooling |  | Backlog agent can hand off with instructions the next agent actually follows, continuing the work… |
 
 ## Items
 
@@ -2466,32 +2466,38 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-886 · change · Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-tooling
 - owner:
 - commit:
 
+- 2026-11-26 (Robert Bo Davis): Triage: backlog-session hand-off behaviour (guide and rotate --brief); B-889 may outgrow a fix wave, for the user's review.
+
 ### B-887 · change · Features page "Type it the way you'd say it" section should highlight more that users can just say…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: marketing
 - owner:
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation / Move this section so it's the first item after the timeline on the features page.
+- 2026-11-26 (Robert Bo Davis): Triage: Features page copy; marketing topic (held), beside the visual refresh B-836.
 
 ### B-888 · change · Features page should highlight easy mode
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: marketing
 - owner:
 - commit:
 
+- 2026-11-26 (Robert Bo Davis): Triage: Features page copy; marketing topic (held), beside the visual refresh B-836.
+
 ### B-889 · feature · Backlog agent can hand off with instructions the next agent actually follows, continuing the work…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: fixes-tooling
 - owner:
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Backlog agent can hand off with instructions the next agent actually follows, continuing the work without asking its first question, when the user asked for a handoff that way
+- 2026-11-26 (Robert Bo Davis): Triage: backlog-session hand-off behaviour (guide and rotate --brief); B-889 may outgrow a fix wave, for the user's review.
