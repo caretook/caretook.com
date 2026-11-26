@@ -209,22 +209,38 @@ describe("sync.upload: tag and record_tag", () => {
     ]);
   });
 
-  it("refuses a viewer's and an Easy viewer's PUTs and DELETE", async () => {
+  it("refuses a viewer's and an Easy viewer's PUTs and DELETE; only an identical replay of a link is a no-op", async () => {
     const { tagPut, linkPut, links, caretaker, viewer, easyViewer } = await setup();
     const tag = tagPut("Urgent");
     const link = linkPut(tag.id);
+    const other = tagPut("Knee");
+    const otherLink = linkPut(other.id);
     for (const api of [viewer, easyViewer])
       expect(await outcomes(api, [tagPut("Viewer's tag"), tag, link])).toEqual([
         "permissions:unauthorized",
         "permissions:unauthorized",
         "recordTagService:tagNotFound",
       ]);
-    expect(await outcomes(caretaker, [tag, link])).toEqual(["applied", "applied"]);
+    expect(await outcomes(caretaker, [tag, link, other])).toEqual(["applied", "applied", "applied"]);
+    const row = async () =>
+      (
+        await getDb().$client.query<Record<string, unknown>>(`SELECT * FROM record_tag WHERE id = $1`, [
+          link.id,
+        ])
+      ).rows;
+    const before = await row();
+
+    // A PUT of a link already there, identical in every column (the id is
+    // derived from its tag and record), is a replay: the twin upload of the
+    // tags a viewer's tick copies to a repeating todo's next. It writes
+    // nothing. Any new link, and any DELETE, is still refused.
     for (const api of [viewer, easyViewer])
-      expect(await outcomes(api, [link, deleteOp("record_tag", link.id)])).toEqual([
+      expect(await outcomes(api, [link, otherLink, deleteOp("record_tag", link.id)])).toEqual([
+        "applied",
         "permissions:unauthorized",
         "permissions:unauthorized",
       ]);
+    expect(await row()).toEqual(before);
     expect(await links()).toHaveLength(1);
   });
 });
