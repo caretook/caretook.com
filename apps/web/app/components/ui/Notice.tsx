@@ -33,8 +33,12 @@ export function Notice({
   ...data
 }: {
   tone?: MessageTone;
-  /** The live-region role, when it must differ from the tone's (a warning that blocks a save). */
-  role?: "alert" | "status";
+  /**
+   * The live-region role, when it must differ from the tone's (a warning that
+   * blocks a save); `"none"` for no role at all, inside a caller's own live region that
+   * stays mounted (the offline banner).
+   */
+  role?: "alert" | "status" | "none";
   /** Replaces the tone's icon (decorative: the text says what it is). */
   icon?: LucideIcon;
   action?: NoticeAction;
@@ -48,7 +52,7 @@ export function Notice({
   return (
     <div
       {...data}
-      role={role ?? toneRole(tone)}
+      role={role === "none" ? undefined : (role ?? toneRole(tone))}
       className={`alert alert-soft ${TONE[tone].box} items-start text-sm ${className}`.trim()}
     >
       <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

@@ -1,5 +1,6 @@
 import { CloudOff } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Notice } from "~/components/ui";
 import { useSyncState } from "~/lib/sync";
 
 export const OFFLINE_TEXT = "You're offline. Changes save on this device and sync when you reconnect.";
@@ -37,22 +38,36 @@ export const DEV_UNREACHABLE_GRACE_MS = 90_000;
  * (B-804): the same connection state the header's `SyncIndicator` reads,
  * never a second source, once it has been not connected for
  * `OFFLINE_GRACE_MS` with the browser offline, or for `UNREACHABLE_GRACE_MS`
- * while the browser says it's online (from mount or from the drop). Not dismissable; it goes at once when the
- * connection is back. In the page's flow (not fixed), so it never covers the header, the
- * tab bar or a sheet. The live region stays mounted and only its content
+ * while the browser says it's online (from mount or from the drop). Not
+ * dismissable; it goes at once when the connection is back. A kit `Notice`
+ * overlaid just under the header (B-905): its anchor takes no height, so
+ * showing it never moves the page; it scrolls with the page, so it never
+ * covers the header, and its layer (`z-30`) stays under the tab bar (`z-40`)
+ * and sheets (`z-50`). The live region stays mounted and only its content
  * changes, so going offline is announced once.
  */
 export function OfflineBanner() {
   const state = useSyncState();
   const offline = useOfflineAfterGrace(!!state && !state.connected, useBrowserOnline());
   return (
-    <div role="status" data-offline-banner="" className="print:hidden">
-      {offline && (
-        <p className="flex items-center gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2 text-sm text-base-content sm:px-6">
-          <CloudOff aria-hidden className="size-4 shrink-0" />
-          <span className="min-w-0">{OFFLINE_TEXT}</span>
-        </p>
-      )}
+    <div data-offline-anchor="" className="relative h-0 print:hidden">
+      <div
+        role="status"
+        data-offline-banner=""
+        className="pointer-events-none absolute inset-x-0 top-0 z-30 px-4 sm:px-6"
+      >
+        {offline && (
+          <Notice
+            tone="warning"
+            icon={CloudOff}
+            role="none"
+            data-offline-strip=""
+            className="pointer-events-auto mx-auto mt-2 max-w-2xl shadow-md"
+          >
+            {OFFLINE_TEXT}
+          </Notice>
+        )}
+      </div>
     </div>
   );
 }
