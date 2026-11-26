@@ -89,11 +89,16 @@ test("a stored theme (dark) applies on a light device", async ({ site: { page } 
 
 // The tags' values are site/meta.test.ts's and home's own layout/layout.browser.test.tsx's:
 // here, that the built page's head carries them.
-test("the head carries the canonical URL, the icon and manifest links, and the JSON-LD", async ({
+test("the head carries the lockup's title and share image, the canonical URL, the icon and manifest links, and the JSON-LD", async ({
   site: { page },
 }) => {
   await openHome(page);
   const head = await page.evaluate(() => ({
+    title: document.title,
+    h1: document.querySelector("h1")?.innerText.replace(/\s+/g, " ").trim() ?? null,
+    ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content") ?? null,
+    ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute("content") ?? null,
+    ogImageAlt: document.querySelector('meta[property="og:image:alt"]')?.getAttribute("content") ?? null,
     canonical: document.querySelector('link[rel="canonical"]')?.href ?? null,
     ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content") ?? null,
     icon: !!document.querySelector('link[rel="icon"][href="/favicon.svg"]'),
@@ -106,6 +111,14 @@ test("the head carries the canonical URL, the icon and manifest links, and the J
   expect(head.ogUrl).toBe(head.canonical);
   expect([head.icon, head.manifest], "favicon and manifest links").toEqual([true, true]);
   expect(head.ld).toContain("Organization");
+  // The lockup: the tagline in the title and the share tags, and as the built page's h1.
+  expect(head.title).toBe("Caretook: Care, taken.");
+  expect(head.ogTitle).toBe(head.title);
+  expect(head.h1).toBe("Caretook Care, taken.");
+  expect(head.ogImageAlt).toContain("Care, taken.");
+  // The share image is served as a PNG from this site.
+  const image = await page.request.get(new URL(head.ogImage ?? "about:blank").pathname);
+  expect([image.status(), image.headers()["content-type"]]).toEqual([200, "image/png"]);
 });
 
 test("home makes no third-party request and loads no /app or sync chunk", async ({ site }) => {

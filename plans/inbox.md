@@ -10,6 +10,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   It looks like nothing is happening. We need a quick jump with a loader or some other way to show users their click registered.
 - Offline banner flashes too often when the connection hasn't actually dropped (B-840)
   Needs a longer timeout before marking the site as offline.
+- Right nav links overlap the recipient selector and header menu on medium-sized screens (B-848)
 
 ## Change requests
 
@@ -21,6 +22,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Appointment-setting example in easy menu tips should use a doctor from the user's providers (B-833)
 - Time limit gate for component tests to keep them from growing too long (B-837)
   5 minute goal, 6 minute hard cutoff.
+- Rename timeline View menu labels from Rows and Cards to Condensed and Full (B-849)
+- Timeline Full view should show live notes with their rich text formatting (B-850)
 
 ## Feature requests
 
