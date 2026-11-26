@@ -1,5 +1,5 @@
 import { encodeNoteDoc, entryProviderId, MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/schema";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
 import { renderWithDevice } from "../../../../../test/device";
@@ -67,6 +67,31 @@ const linkedIds = async (device: Device, entryId: string) =>
       [entryId],
     )
   ).map((r) => r.provider_id);
+
+/** The read `linkProvider` makes last: whether the pair is already linked. */
+const IS_LINKED = "SELECT id FROM timeline_entry_provider WHERE id = ?";
+/** The read it makes first: the entry to link. */
+const LINKABLE = "SELECT id, group_id, kind FROM timeline_entry WHERE id = ? AND deleted_at IS NULL";
+
+/**
+ * The device's one-off reads from here on, so a test can wait for a
+ * mention's link to finish (a pair already linked writes nothing a live
+ * query would show).
+ */
+const watchReads = (device: Device) => {
+  const getAll = vi.spyOn(device.db.powersync, "getAll");
+  return {
+    /** Resolves once the link has made its last read and that read has answered. */
+    linkDone: async () => {
+      await waitUntil(() => getAll.mock.calls.some(([sql]) => sql === IS_LINKED), "the link's last read");
+      await Promise.allSettled(getAll.mock.results.map((r) => r.value as Promise<unknown>));
+    },
+  };
+};
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 /** Put the caret at the end of the text and type. */
 const typeInNotes = async (text: string) => {
@@ -191,13 +216,60 @@ describe("mentions on the entry page", () => {
     await waitUntil(() => chips().length === 1, "the With chip");
     await typeInNotes("@patel");
     await waitUntil(() => shown().length === 1, "the match (linked ones stay in)");
+    const reads = watchReads(device);
     await userEvent.keyboard("{Enter}");
     await waitUntil(() => mentionChips().length === 1, "the chip");
+    // The link runs on after the pick: wait for it, so it can't outlive the test's database.
+    await reads.linkDone();
     await device.settle();
     expect(await linkedIds(device, VISIT.id)).toEqual([PATEL.id]);
     const link = entryProviderId(VISIT.id, PATEL.id);
     expect((await device.queued()).filter((w) => w.id === link)).toEqual([]);
     expect(chips().length).toBe(1);
+  });
+
+  test("leaving while the link is in flight: the database closing under it leaves no unhandled rejection", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (event: PromiseRejectionEvent) => {
+      unhandled.push(event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onUnhandled);
+    try {
+      const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const device = await open(entryUrl(VISIT.id));
+      // Hold the link at its first read until the screen is gone and its database closed (a sign-out mid-link).
+      const { powersync } = device.db;
+      const getAll = powersync.getAll.bind(powersync);
+      let reached = false;
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => (release = resolve));
+      vi.spyOn(powersync, "getAll").mockImplementation((async (sql: string, params?: unknown[]) => {
+        if (sql === LINKABLE) {
+          reached = true;
+          await held;
+        }
+        return getAll(sql, params);
+      }) as typeof getAll);
+
+      await typeInNotes("@patel");
+      await waitUntil(() => shown().length === 1, "the match");
+      await userEvent.keyboard("{Enter}");
+      await waitUntil(() => reached, "the link started");
+      await device.screen.unmount();
+      await powersync.close();
+      release();
+
+      const failedLink = () =>
+        logged.mock.calls.some(([message]) => message === "Couldn't link the provider");
+      await waitUntil(() => failedLink() || unhandled.length > 0, "the link to fail");
+      // A rejection left unhandled is reported in a later task: give it a frame.
+      await new Promise(requestAnimationFrame);
+      expect(unhandled).toEqual([]);
+      expect(failedLink()).toBe(true);
+    } finally {
+      window.removeEventListener("unhandledrejection", onUnhandled);
+    }
   });
 
   test("deleting the mention from the text keeps the link", async () => {
