@@ -24,7 +24,7 @@ Notes for every wave:
 | Slice | Item                  | State                                      | Merge    |
 | ----- | --------------------- | ------------------------------------------ | -------- |
 | 95    | B-694 shared tabs     | merged                                     | dcc18cf8 |
-| 96    | B-694 provider tabs   | agent spawned (opus), worktree fixes-ui-96 |          |
+| 96    | B-694 provider tabs   | merged                                     | 87a0254d |
 | 97    | B-694 medication tabs | agent spawned (opus), worktree fixes-ui-97 |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
