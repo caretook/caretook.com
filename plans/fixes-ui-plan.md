@@ -17,11 +17,7 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-**Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
-
 **Previous hand-over:** wave 15 landed 2026-11-25 as dev 2584a81 through PR #203, `--no-review` (Codex out of credits), CI integration green (run 45750856542, de32eac7), landed on an unsynced tip (dev shared no file); to-test/2026-11-25-2254-fixes-ui.md. Slice 85 (B-857, quick entry previews say Event; sonnet). Docs folded into assistant.md (trimmed to stay under budget). Slice worktree removed.
-
-**Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
 
 **Landing:** CI components green on 200c4c14 (run 45879574428; quarantined emergency.browser failed, not ours). Docs folded (5ef43e2c). Synced (no-op). PR #231 open; Codex review waiting; `browser --changed --base dev` (layout-offline, first-sync, ui, marketing) running. Then land with `--tier components`.
 
@@ -29,17 +25,8 @@ Notes for every wave:
 
 To fold at landing: ui-kit.md and app-shell.md (PageLoading for a full-page wait in /app; brand/LoadingMark shared with AppLoading; 92). medications.md line 10 (PrintAllergies tops only the list print; the weekly sheet has G/S/R marks; 94). providers.md: Condensed rows (default, `providersView`) carry one main contact action, overriding B-422's "rows carry no contact details", which now holds for Full (93). 91 kept B-618's order and tightened the Change button's gap (14 to 8 px): say so in the report. assistant.md Todos bullet: kind words todo/to-do/to do/task/note/event, colon optional, optional leading `add`; `add` without one stays text (88). sync.md/app-shell.md: the offline banner's grace is 10 s when the browser is offline, 30 s when online but unsynced, 90 s on dev (89). Lesson: 93 ran to 13 files; split such items. app-shell.md line 7 (OfflineBanner is a kit Notice overlaid under the header, not in flow) and ui-kit.md (Notice takes role="none") (90). Browser checks the wave needs: ui, marketing, first-sync.
 
-| Slice | Item         | State  | Merge    |
-| ----- | ------------ | ------ | -------- |
-| 86    | B-885        | merged | 39d0e40d |
-| 87    | B-897, B-900 | merged | bc45cde9 |
-| 88    | B-902        | merged | 8df165c5 |
-| 89    | B-904        | merged | 59623a1e |
-| 90    | B-905        | merged | 26b57cd9 |
-| 91    | B-906        | merged | 1fdf6bb0 |
-| 92    | B-908        | merged | e29899de |
-| 93    | B-909        | merged | 54443809 |
-| 94    | B-916        | merged | f1180db4 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
