@@ -4,9 +4,9 @@ import { ExternalLink, LogOut } from "lucide-react";
 import { Form } from "react-router";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { Button } from "~/components/ui";
+import { legalLinks } from "~/lib/auth/legalLinks";
 import { sessionContext } from "~/lib/auth/session";
 import { AvatarCard } from "./AvatarCard";
-import { legalLinks } from "./legalLinks";
 
 // `/app/settings/account`: who's signed in (read-only for now), and Sign out
 // (POST to /sign-out, as the account menu does). Shared by web + native.
