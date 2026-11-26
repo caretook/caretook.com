@@ -20,8 +20,8 @@ import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
-import { CopyLinkButton } from "./CopyLinkButton";
-import { actionsLabel, entryLabel } from "./entryLabels";
+import { useCopyLink } from "./CopyLinkButton";
+import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
@@ -67,8 +67,8 @@ export type EntryViewProps = {
 
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
- * to two lines, with "More"), then a right-hand column with the ⋯ menu and,
- * under it, the author's avatar (a filter).
+ * to two lines, with "More"), then a right-hand column with the ⋯ menu
+ * (Copy link for every role) and, under it, the author's avatar (a filter).
  */
 export function TimelineEntryRow({
   entry,
@@ -129,23 +129,16 @@ export function TimelineEntryRow({
         }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
-      {!easy && <EntryCopyLink entry={entry} />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
-        {(onDelete || onTags || canHaveNoteDocument(entry.kind)) && (
-          <EntryActions
-            kind={entry.kind}
-            label={actionsLabel(entry)}
-            onEdit={onEdit}
-            onTags={onTags}
-            cancel={cancel}
-            onRemind={onRemind}
-            printHref={
-              canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
-            }
-            onDelete={onDelete}
-          />
-        )}
+        <EntryMenu
+          entry={entry}
+          onEdit={onEdit}
+          onTags={onTags}
+          cancel={cancel}
+          onRemind={onRemind}
+          onDelete={onDelete}
+        />
         {easy ? (
           <AuthorCircle
             userId={entry.createdBy}
@@ -161,13 +154,35 @@ export function TimelineEntryRow({
   );
 }
 
-/** An entry's copy-link button (rows and cards): its page, or its day for a kind without one. */
-export function EntryCopyLink({ entry }: { entry: TimelineEntry }) {
+/**
+ * An entry's ⋯ menu on rows and cards, with Copy link for every role (its
+ * page, or its day for a kind without one: `entryLinkPath`) and "Link copied"
+ * under it. It sits above the row's stretched open target (`relative z-10`).
+ */
+export function EntryMenu({
+  entry,
+  onEdit,
+  onTags,
+  cancel,
+  onRemind,
+  onDelete,
+}: Pick<EntryViewProps, "entry" | "onEdit" | "onTags" | "cancel" | "onRemind" | "onDelete">) {
+  const link = useCopyLink(entryLinkPath(entry, localTimeZone()));
   return (
-    <CopyLinkButton
-      path={entryLinkPath(entry, localTimeZone())}
-      label={`Copy link to ${entryLabel(entry)}`}
-    />
+    <div className="relative z-10 flex shrink-0" data-copy-link="">
+      <EntryActions
+        kind={entry.kind}
+        label={actionsLabel(entry)}
+        onEdit={onEdit}
+        onTags={onTags}
+        cancel={cancel}
+        onRemind={onRemind}
+        printHref={canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined}
+        onCopyLink={link.copy}
+        onDelete={onDelete}
+      />
+      {link.feedback}
+    </div>
   );
 }
 

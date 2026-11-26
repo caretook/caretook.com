@@ -97,7 +97,7 @@ describe("row taps", () => {
     await waitUntil(() => !!dialog()?.textContent?.includes("Edit vitals"), "the vitals sheet");
   });
 
-  test("viewer: a note opens; a symptom does nothing and has no ⋯; a note's ⋯ is Print", async () => {
+  test("viewer: a note opens; a symptom does nothing and its ⋯ is Copy link; a note's is Print and Copy link", async () => {
     const device = await openTimeline({ role: "viewer" });
     await ready();
     await tapAt(() => rowOf("Note")?.querySelector("p"));
@@ -109,16 +109,20 @@ describe("row taps", () => {
     await device.settle();
     expect(dialog()).toBeNull();
     expect(device.location()).toBe(TIMELINE_URL);
-    expect(rowOf("Symptom")?.querySelector('button[aria-label^="Actions"]')).toBeNull();
+    await userEvent.click(await found(() => actionsOf(rowOf("Symptom")!)));
+    await waitUntil(() => menuItems().length > 0, "the symptom's menu");
+    expect(menuItems()).toEqual(["Copy link"]);
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !document.querySelector("[role=menu]"));
     // After Go back the quick-entry chips land late and push the rows down: click ⋯ once it stops moving.
     await stopsMoving(() => actionsOf(rowOf("Note")!));
     await userEvent.click(await found(() => actionsOf(rowOf("Note")!)));
     await waitUntil(() => menuItems().length > 0, "the menu");
-    expect(menuItems()).toEqual(["Print"]);
+    expect(menuItems()).toEqual(["Print", "Copy link"]);
     await userEvent.keyboard("{Escape}");
   });
 
-  test("More and Less toggle long text without opening it; ⋯ on a note is Tags, Print and Delete", async () => {
+  test("More and Less toggle long text without opening it; ⋯ on a note is Tags, Print, Copy link and Delete", async () => {
     const device = await openTimeline();
     await ready();
     await waitUntil(() => !!button("More"), "More");
@@ -131,7 +135,7 @@ describe("row taps", () => {
 
     await userEvent.click(await found(() => actionsOf(rowOf("Note")!)));
     await waitUntil(() => menuItems().length > 0, "the menu");
-    expect(menuItems()).toEqual(["Tags", "Print", "Delete"]);
+    expect(menuItems()).toEqual(["Tags", "Print", "Copy link", "Delete"]);
     expect(device.location()).toBe(TIMELINE_URL);
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !document.querySelector("[role=menu]"));

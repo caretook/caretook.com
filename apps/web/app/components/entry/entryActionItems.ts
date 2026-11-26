@@ -12,7 +12,8 @@ export type EntryAction =
   | "delete"
   | "prepare"
   | "remind"
-  | "print";
+  | "print"
+  | "copyLink";
 
 /**
  * The entry ⋯ menu's items, in order, wherever it shows (rows, cards,
@@ -31,7 +32,9 @@ export type EntryAction =
  * first, for notes and events too: it asks Only this visit or This and
  * later visits. Tags (the picker sheet, tags PRD) follows Edit for every
  * kind, for whoever may tag the entry (`canTag`: writers, an Easy helper on
- * their own).
+ * their own). Copy link (the entry's link, `canCopyLink`) comes before
+ * Delete for every kind and role: copying a link isn't a write, so a viewer
+ * whose menu would be empty gets one with Copy link alone.
  */
 export function entryActionItems(
   kind: TimelineEntryKind,
@@ -46,6 +49,7 @@ export function entryActionItems(
     canDelete = true,
     canEditSeries = false,
     canTag = false,
+    canCopyLink = false,
   }: {
     canEdit: boolean;
     canCancel?: boolean;
@@ -57,6 +61,7 @@ export function entryActionItems(
     canDelete?: boolean;
     canEditSeries?: boolean;
     canTag?: boolean;
+    canCopyLink?: boolean;
   },
 ): EntryAction[] {
   const items: EntryAction[] = [];
@@ -68,6 +73,7 @@ export function entryActionItems(
   if (canCancel && kind === "event") items.push(cancelled ? "uncancel" : "cancel");
   if (canRemind && kind === "event") items.push("remind");
   if (canPrint && canHaveNoteDocument(kind)) items.push("print");
+  if (canCopyLink) items.push("copyLink");
   if (canDelete) items.push("delete");
   return items;
 }
