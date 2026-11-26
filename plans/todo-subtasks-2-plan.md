@@ -4,11 +4,13 @@
 
 ## Status
 
-**Where it stands (2026-11-25): planned, held** with `todo-subtasks` (lift with `pnpm backlog prd set todo-subtasks-2 flags-=hold`). Runs after `todo-subtasks`.
+**Where it stands (2026-11-26): wave 1 running.** Landing mode: **run everything through** (started run-through; land each green wave, ask only real questions). Models: slices on opus. `todo-subtasks` is done (landed bacd6b65).
+
+**Wave 1 (2026-11-26):** ingest: nothing new for this topic (B-914 flavor packs is unrelated). Sync: up to date with dev. B-550 is still owned by `prd/todo-subtasks` (a forced claim was blocked; that topic is done, so left as is). Worktree `.loops/todo-subtasks-2-1` made (no stack); slice 1 agent (opus) spawned with todo-subtasks' notes (`subtaskProgressQuery` + `progressByParent`, `TodoTick` `progress`, `TodoParentLink`). Watch running.
 
 | Slice | Wave | State   | Merge into `prd/todo-subtasks-2` (slice commits) |
 | ----- | ---- | ------- | ------------------------------------------------ |
-| 1     | 1    | planned |                                                  |
+| 1     | 1    | running |                                                  |
 | 2     | 2    | planned |                                                  |
 
 ## Architectural decisions
