@@ -12,8 +12,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
+| 72 | B-830 | started (opus) | |
+| 73 | B-840 | started (opus) | |
 
-**Idle, on the user's word (via the backlog session):** no new wave while the orchestration split has the only lane; the `backlog - split-ops` session holds the row. Standing topic: never `pnpm prd rm`. **Next session (when the user resumes fixes):** `pnpm prd sync`, ingest, `pnpm backlog list`, then write wave 16 from triaged `fixes-bug` items (B-750 only once its notes name files; B-752 once B-753 lands).
+**Wave 16 running** (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
 
 ## Wave 1
 
@@ -751,3 +753,28 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain
 - Keep the other fields and the text's shape otherwise unchanged.
 - Integration test in `readTools.int.test.ts`: each pass carries its id, and that id works as `give_pass`'s `passId` (an existing `mcpWrites.int.test.ts` case may cover the write; reuse its setup).
 - Update `connectors.md` only if it lists the result's fields (the orchestrator folds docs at landing; note what changed in the hand-off).
+
+## Wave 16
+
+Two fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays standing until its notes name files; B-752 (the timeline jump hang) waits for B-753's watchdog.
+
+### Slice 72: staging's seeded invite links open (B-830)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-groups.md, ops/runbook.md · Tests: unit
+
+The seeded Viewer invite link on staging shows "Couldn't load this link": `.github/workflows/seed-staging.yml` and `reset-staging.yml`'s seed step pass only `APP_ENV`, `DATABASE_URL` and `SEED_USER_PASSWORD`, so `seeds/invites.ts` seals with `utils/linkToken.ts`'s dev key while the staging server opens with the real `INVITE_LINK_KEY` (`careGroupInviteService.copyLink` returns `linkKeyMissing`).
+
+- Pass `INVITE_LINK_KEY` from the staging environment's secrets to both Actions' seed step.
+- Make sealing refuse the dev key when `APP_ENV` is `staging` (as production does), so a seed run without the key fails loudly instead of writing links staging can't open. Local dev and tests keep the dev key.
+- Unit test beside `linkToken`: staging without the key can't seal; staging with it seals and opens; dev without it still uses the dev key.
+- Don't run either Action or touch staging: reseeding is the user's step. Say in the hand-off that staging needs a reseed (or reset) once this lands, and that the secret must exist in the staging environment.
+
+### Slice 73: the offline banner waits out a brief drop (B-840)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component
+
+The offline banner (`routes/app/layout/OfflineBanner.tsx`) flashes while the connection is actually up.
+
+- Find what drives it (`navigator.onLine`, PowerSync's connected status from `lib/sync/`, or both) and say in the hand-off which flips while online, and why.
+- Show the banner only after the offline state has held for a short grace period (a few seconds, one named constant); hide it as soon as the connection is back. Don't change what counts as offline elsewhere (uploads, page cache).
+- Component tests with fake timers: a drop shorter than the grace never shows the banner; one longer shows it; reconnecting hides it at once.
