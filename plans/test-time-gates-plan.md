@@ -4,19 +4,21 @@ PRD: [test-time-gates-prd.md](test-time-gates-prd.md). Items B-837, B-772, B-781
 
 ## Status
 
-| Slice                                        | Wave | State      | Merge    |
-| -------------------------------------------- | ---- | ---------- | -------- |
-| 1. The time gate and its data                | 1    | landed     | 3f65aebf |
-| 2. The quick check's times and its gate      | 2    | landed     | a8f60413 |
-| 3. Stops and breaches apart; the guards stay | 3    | merged     | 4dbb7499 |
-| 4. CI's unit and component gates             | 2    | landed     | 2b1758f0 |
-| 5. Component shards balanced                 | 3    | started    | —        |
-| 6. The unit job under the aim                | 3    | handed off | —        |
+| Slice                                        | Wave | State  | Merge    |
+| -------------------------------------------- | ---- | ------ | -------- |
+| 1. The time gate and its data                | 1    | landed | 3f65aebf |
+| 2. The quick check's times and its gate      | 2    | landed | a8f60413 |
+| 3. Stops and breaches apart; the guards stay | 3    | merged | 4dbb7499 |
+| 4. CI's unit and component gates             | 2    | landed | 2b1758f0 |
+| 5. Component shards balanced                 | 3    | merged | 1ce27d9c |
+| 6. The unit job under the aim                | 3    | merged | 04782ffd |
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-25): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+- **Wave 3 gate:** `full` CI run requested on the merged tip.
 - **Wave 3 started** 2026-11-25 (after a takeover; no cut-off landing): wave 2 in dev as d8222c32; sync needed no merge; backlog: nothing new to propose. Worktrees test-time-gates-3, -5, -6 made, one opus agent each spawned; watch running.
 - Wave 3: slice 3 (opus) handed off c5a9fa95 (slice check passed), merged 4dbb7499: `--times` and metrics count tests, budget, silence and time apart (overall, by mode, by PRD; `failures` key gone); guard test `scripts/project/quick-guards.test.mjs` in `project:unit`. B-781, B-370 done.
-- Wave 3: slice 6 (opus) handed off 326544c0 (slice check passed; merge waits for 3 and 5, plan order): `land.test.mjs` split into four files plus `land-fixture.mjs`, 1567 tooling tests before and after; `unit` armed in tiers.json; no unit shards. Unit test step was 236 s before the split (run 45751602571); the wave's CI run measures it after.
+- Wave 3: slice 5 (opus) handed off d3876e31 (slice check passed), merged 1ce27d9c: `scripts/ci/shards.mjs` (balancer, `refresh <run-id>` from job logs), `DurationSequencer`, `component-durations.json` (seed run 45751602571); `NY_INCLUDE` now the 6 files importing test/zone. Run 45754591575: components-1 314 s, -2 320 s, -3 375 s (spread 61 s, just over the 60 s aim; shard 3 a slow runner), all over 300 so `components` unarmed. For test-time-gates-2: ~1694 file-seconds, a fourth shard or trims (timelineHeader 57 s, timelineSearch 41 s, medicationForm 31 s). Doc fold: components.md's second-zone line. B-772 stays open for -2.
+- Wave 3: slice 6 (opus) handed off 326544c0 (slice check passed), merged 04782ffd: `land.test.mjs` split into four files plus `land-fixture.mjs`, 1567 tooling tests before and after; `unit` armed in tiers.json; no unit shards. Unit test step was 236 s before the split (run 45751602571); the wave's CI run measures it after.
 - 2026-11-25: base 0a76460a (orchestration-split-2 landed). Backlog: B-837 (time gates, claimed), B-772, B-781, B-370; nothing new to propose.
 - **Wave 1 landed** 2026-11-25 as 1a0c1f98 (PR #202, tier full, --no-review: Codex out of credits; report filed). **Wave 2 started** 2026-11-25: dev force-synced in (32d34200, to pick up orchestration-split-2's moved paths); worktrees test-time-gates-2 and -4 made, one opus agent each spawned; watch running.
 - Wave 2: slice 4 (opus) handed off 5f9c2e5a (slice check passed): `--time-gate` on unit and components-N test steps, `.time.json` beside each report, verdict kind `time` (exit 6, gate refuses, no blame), VERDICT_VERSION kept at 1 (additive field). Its requested `components` run is the wave gate's. Merged 2b1758f0.
