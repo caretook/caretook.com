@@ -327,6 +327,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-850 | change | inbox |  |  | Timeline Full view should show live notes with their rich text formatting |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
+| B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
+| B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 
 ## Items
 
@@ -2402,3 +2404,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-25 (prd/marketing-2): From the marketing-2 land skeptic (2026-11-25): apps/web/app/routes/marketing/site/claims.test.ts has no competitor-name pattern though the PRD bans them, and contact/content.ts plus the header and footer strings are outside SOURCES (clean today). Also ProseContent.placeholder and the 'To be written' badge are now unused.
+
+### B-853 · chore · Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-25 (prd/marketing-2): From the marketing-2 landing (2026-11-25, the user's word): features and the FAQ say you can connect your own Claude or ChatGPT; docs/domain/connectors.md and ops/runbook.md still list the by-hand connect as not done, and connectGuide.ts says ChatGPT needs Developer mode under Advanced settings on the web. Check on staging; narrow the ChatGPT wording if it doesn't hold.
+
+### B-854 · chore · Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then)
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-25 (prd/marketing-2): From the marketing-2 landing (2026-11-25, the user's word): /features says 'or connect Google Calendar'; ops/runbook.md says until Google verifies the app, only added test users can connect. Check the production OAuth app's status on staging and production; drop the mention if it isn't verified when the link goes out.
