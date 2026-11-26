@@ -92,6 +92,7 @@ const optionalText = (max: number) =>
 const preferredName = optionalText(RECIPIENT_LIMITS.preferredName);
 const dateOfBirth = z.iso.date().nullish();
 const timeZone = timeZoneZSchema;
+const optionalTimeZone = timeZone.optional();
 
 const codeStatus = z
   .enum(CODE_STATUSES)
@@ -105,8 +106,8 @@ const primaryLanguage = optionalText(RECIPIENT_LIMITS.primaryLanguage);
 const pronouns = optionalText(RECIPIENT_LIMITS.pronouns);
 const notes = optionalText(RECIPIENT_LIMITS.notes);
 
-export const careRecipientSelectZSchema = createSelectSchema(careRecipientSchema);
-export const careRecipientInsertZSchema = createInsertSchema(careRecipientSchema, {
+export const careRecipientSelectZSchema = /* @__PURE__ */ createSelectSchema(careRecipientSchema);
+export const careRecipientInsertZSchema = /* @__PURE__ */ createInsertSchema(careRecipientSchema, {
   name,
   preferredName,
   dateOfBirth,
@@ -117,11 +118,11 @@ export const careRecipientInsertZSchema = createInsertSchema(careRecipientSchema
   pronouns,
   notes,
 });
-export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema, {
+export const careRecipientUpdateZSchema = /* @__PURE__ */ createUpdateSchema(careRecipientSchema, {
   name,
   preferredName,
   dateOfBirth,
-  timeZone: timeZone.optional(),
+  timeZone: optionalTimeZone,
   codeStatus,
   bloodType,
   primaryLanguage,
@@ -134,20 +135,21 @@ export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema
  * name and birthday, the medical basics, the note for helpers and the time
  * zone (edited in group settings). Each is optional: what's left out keeps
  * its value, and an empty text clears it.
- * (`partial()` because a column override stays required in drizzle-zod's
- * update schema.)
+ * Plain zod, not a pick of `careRecipientUpdateZSchema`: the web app parses
+ * with it, and drizzle-zod keeps all of zod (its locales, JSON Schema) in the
+ * app's first chunks (B-872).
  */
-export const careRecipientProfileZSchema = careRecipientUpdateZSchema
-  .pick({
-    name: true,
-    preferredName: true,
-    dateOfBirth: true,
-    codeStatus: true,
-    bloodType: true,
-    primaryLanguage: true,
-    pronouns: true,
-    notes: true,
-    timeZone: true,
+export const careRecipientProfileZSchema = z
+  .object({
+    name,
+    preferredName,
+    dateOfBirth,
+    codeStatus,
+    bloodType,
+    primaryLanguage,
+    pronouns,
+    notes,
+    timeZone,
   })
   .partial();
 export type CareRecipientProfileInput = z.infer<typeof careRecipientProfileZSchema>;

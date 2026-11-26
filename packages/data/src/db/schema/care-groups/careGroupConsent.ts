@@ -44,4 +44,4 @@ export type CareGroupConsentSelect = InferSelectModel<CareGroupConsentSchema>;
 export type CareGroupConsentInsert = Omit<InferInsertModel<CareGroupConsentSchema>, ProtectedField>;
 export type CareGroupConsent = CareGroupConsentSelect;
 
-export const careGroupConsentSelectZSchema = createSelectSchema(careGroupConsentSchema);
+export const careGroupConsentSelectZSchema = /* @__PURE__ */ createSelectSchema(careGroupConsentSchema);
