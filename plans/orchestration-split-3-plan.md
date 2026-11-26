@@ -10,14 +10,14 @@
 
 **Wave 1 landed 2026-11-26 as 00c60f0c** (PR #230, `--no-review`: Codex out of credits; full CI 45874687474 = flake in two app tests outside the branch, filed B-921; unsynced tip, dev's two commits shared no file). Slices 1 and 2 on opus; worktrees removed. On the user's word (via the backlog session caretook-com-20) the open-worktree rule was met by coordinating: fixes-ui parked, plan/self-recovery-2 removed (draft on its branch); the backlog session releases fixes-ui now. Docs folded: `docs/agents/project-config.md` (the `browser` hook contract, the host layer). The rest of wave 1's docs (machinery's browser hook and host layer) wait for the last landing, with the rest. B-543 stays in progress until slice 5 lands.
 
-**Wave 2 running** (started 2026-11-26 after `pnpm prd sync --force`, 2e14e743). Slice 3 (CLIs and Node through `host.mjs`) and slice 6 (the check data moves to `scripts/project/`) both on opus. Slice 6's start condition checked: no `prd/`, `slice/` or `hotfix/` branch and no worktree had unlanded changes to `check-areas.d/` or the checks manifest. Watch running. Tier: full. B-543 claimed.
+**Wave 2 running** (started 2026-11-26 after `pnpm prd sync --force`, 2e14e743). Slice 3 (CLIs and Node through `host.mjs`) and slice 6 (the check data moves to `scripts/project/`) both on opus. Slice 6's start condition checked: no `prd/`, `slice/` or `hotfix/` branch and no worktree had unlanded changes to `check-areas.d/` or the checks manifest. Watch running. Tier: full. B-543 claimed. Slice 6 handed off (216586e8, quick check passed; merges after slice 3, plan order). At landing: `docs/agents/loop.md` lines 41 and 52 still name the old `scripts/loops/check-areas.d/` and `checks` paths; fix in the docs fold. `_global`'s allowlist line stays until the core moves out.
 
 | Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
 | ----- | ---- | ------- | -------------------------------------- |
 | 1     | 1    | landed  | 41fa52cf (dev 00c60f0c)                |
 | 2     | 1    | landed  | 8338ca66 (dev 00c60f0c)                |
 | 3     | 2    | running |                                        |
-| 6     | 2    | running |                                        |
+| 6     | 2    | handed off (216586e8) |                                        |
 | 8     | 3    | planned |                                        |
 | 7     | 3    | planned |                                        |
 | 4     | 4    | planned |                                        |
