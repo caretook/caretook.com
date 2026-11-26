@@ -322,6 +322,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-923 | change | triaged | fixes-ui |  | Provider form: specialty suggests from a hardcoded list of common specialties as you type (free text still allowed) |
 | B-924 | bug | triaged | fixes-ui |  | Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge |
 | B-925 | bug | triaged | fixes-ui |  | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
+| B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
+| B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 
 ## Items
 
@@ -1142,6 +1144,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (plan/orchestration-split): Planned 2026-11-24 with the user (big choices approved one at a time): Risa, an external tool at ~/git/risa that runs Claude in configured repos; Caretook becomes config, plans and its own scripts, no dependency on Risa. Stage 1 in place: orchestration-split (seams) and orchestration-split-2 (Caretook's parts, renames), both held; stage 2 a hand runbook (plans/orchestration-split-move.md); later items B-794..B-797 under risa-next (held).
 - 2026-11-24 (Robert Bo Davis): Landed 1297ec9c (2026-11-24): three held stage-1 topics (orchestration-split, -2, -3), the move runbook plans/orchestration-split-move.md, later items B-794..B-797 under risa-next (held). Three skeptics (two Opus, one Fable) sent it back; all fixed; their big choices went to the user.
 - 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 1 (browser runner split, host layer part 1) merged at 8338ca66; the item stays in progress until slice 5 lands
+- 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 5 (slice 5: command names from the config, the tool-command lint, the residual list) merged at db53734e; all three stage-1 topics then done; the hand move (plans/orchestration-split-move.md) closes the item
 
 ### B-544 · chore · vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405
 
@@ -2270,3 +2273,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): 2026-11-26, user (backlog session): still a little too far after B-906. DayHeader.tsx DayPeriod: the row's gap is gap-1.5 (6px); the Change button is a ghost sm square (32px box, 16px icon, 8px padding a side) pulled in by -me-1.5 (6px), so arrows to icon is 8px against 6px for icon to text. Fix: -me-2 so both are 6px; the hit box stays full size. Check both views (easy uses ICON_LG on the period icon). Next fixes-ui wave, with B-899, B-923, B-924.
+
+### B-926 · bug · The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/orchestration-split-3): Carried from orchestration-split-3 wave 3 (slice 8): the switch gates start, plan and queue only; keep-alive.mjs and session-requests.mjs don't read it
+
+### B-927 · bug · The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/orchestration-split-3): Carried from orchestration-split-3 wave 3 (slice 7): usage and context follow each session's folder, the drain doesn't yet
