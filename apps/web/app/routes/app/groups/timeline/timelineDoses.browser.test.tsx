@@ -186,7 +186,7 @@ describe("on the timeline", () => {
           "Amoxicillin 500 mg: Completed",
         ]),
       );
-    await setView("Cards");
+    await setView("Full");
     expect(
       rowWith("Changed strength 5 mg → 10 mg")?.querySelector("[data-medication-entry]")?.textContent,
     ).toBe("Lisinopril 10 mg: Changed strength 5 mg → 10 mg");

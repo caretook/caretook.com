@@ -21,7 +21,7 @@ export const ACCOUNT_SETTINGS: readonly (SettingsItem & { id: AccountSettingsPag
   {
     id: "timeline",
     label: "Timeline layout",
-    description: "Rows or cards",
+    description: "Condensed or full",
     icon: LayoutList,
     path: appUrls.settings("timeline"),
   },

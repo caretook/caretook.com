@@ -183,7 +183,7 @@ export const openViewOptions = async () => {
   await waitUntil(() => !!document.querySelector('[role="menu"]'), "the View options menu");
 };
 
-/** Choose an item of the View options menu by its name ("Cards"). */
+/** Choose an item of the View options menu by its name ("Full"). */
 export const chooseViewOption = async (name: string) => {
   await openViewOptions();
   const item = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')].find((el) =>
@@ -197,11 +197,12 @@ export const chooseViewOption = async (name: string) => {
 export const pressEasyMode = async () =>
   userEvent.click(await found(() => document.querySelector<HTMLElement>('button[data-easy-toggle="easy"]')));
 
-/** Switch rows/cards in the header's View options menu, and wait for the list. */
-export const setView = async (to: "Rows" | "Cards") => {
-  if (view() === to.toLowerCase()) return;
+/** Switch condensed/full in the header's View options menu, and wait for the list. */
+export const setView = async (to: "Condensed" | "Full") => {
+  const id = to === "Condensed" ? "rows" : "cards";
+  if (view() === id) return;
   await chooseViewOption(to);
-  await waitUntil(() => view() === to.toLowerCase(), `the ${to} view`);
+  await waitUntil(() => view() === id, `the ${to} view`);
   // The menu fades out (ui-kit-3): wait until it has left, so nothing reads it over the list.
   await waitUntil(() => !document.querySelector('[role="menu"]'), "the View options menu to close");
 };
