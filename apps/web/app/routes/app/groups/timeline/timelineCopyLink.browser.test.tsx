@@ -36,6 +36,8 @@ const actionsOf = (row: Element | null | undefined) =>
 const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
 const noCopyButton = (row: Element | null | undefined) =>
   !row?.querySelector('button[aria-label^="Copy link"]') && !row?.querySelector('a[aria-label^="Copy link"]');
+/** The last ⋯ menu has finished closing, so the next one's items are its own. */
+const menuClosed = () => waitUntil(() => !document.querySelector("[role=menu]"), "the menu closed");
 /** Opens `row`'s ⋯ and taps Copy link. */
 const copyFromMenu = async (row: () => Element | null | undefined) => {
   await userEvent.click(await found(() => actionsOf(row())));
@@ -92,6 +94,7 @@ describe("copy link", () => {
     expect(copied).toEqual([`${location.origin}/app/groups/${TEST_GROUP.id}/entries/${NOTE.id}`]);
     // The tap didn't open the entry under the row's stretched link.
     expect(document.querySelector("h1")?.textContent ?? "").not.toContain("Entry page");
+    await menuClosed();
 
     // A symptom gives a reader a ⋯ with Copy link alone.
     await userEvent.click(await found(() => actionsOf(rowWith("Sore knee"))));
@@ -102,6 +105,7 @@ describe("copy link", () => {
     expect(copied[1]).toBe(
       `${location.origin}${TIMELINE_URL}?day=${dayKeyIn(daysAgo(3).toISOString(), zone())}`,
     );
+    await menuClosed();
 
     await setView("Full");
     await waitUntil(() => !!actionsOf(note()), "the card's menu");
