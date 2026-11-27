@@ -28,7 +28,7 @@ Notes for every wave:
 
 **Wave 19 landed 2026-11-27** as dev 36b84a4a through PR #250, `--no-review` (Codex out of credits), CI components flake only (search.sync perf, not ours; run 45953425948); to-test/2026-11-27-0155-fixes-ui.md; report filed. Slices 103–105 all opus (B-937, B-939, B-940); details in the history file. Browser roundtrip fails at its tags step from dev's tags-2 (B-951; the backlog session is raising it). Follow-up B-950 (fixes-nit). Docs folded (68cec34a, 3faeaeb1). Slice worktrees removed. Rotated after (past the soft context limit).
 
-**Wave 20 (this session, 2026-11-27):** landing mode run-through (recorded above). Synced dev (ef18e42a, Risa split: scripts now under risa). Slices 106 (B-957 first-load progress) and 107 (B-962 note full screen edge to edge), both opus, parallel. B-972 (planner Tags tab) is a feature, left for the backlog session. Still held: B-325. Reports to the backlog session (ListAgents). Both merged (40d5df4c6, e32df1434); CI components run requested.
+**Wave 20 (2026-11-27), landing:** slices 106 (B-957 first-load steps and progress bar) and 107 (B-962 note full screen edge to edge), both opus, merged 40d5df4c6 and e32df1434. CI components green (run 46036495830, 91686c31); dev sync up to date; browser `--changed --base dev` 7/7 pass; Codex clean on 7932e7a (PR #255). Docs folded (7932e7a8a) into app-shell and live-notes. Slice worktrees removed. Lesson: slice 106 ran to 19 files (shared wording); the plan table must be prettier-formatted before slices start. B-972 (planner Tags tab, a feature) left to the backlog session. Still held: B-325.
 
 | Slice | Item  | State         | Merge     |
 | ----- | ----- | ------------- | --------- |
