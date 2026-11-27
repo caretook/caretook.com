@@ -10,10 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State                                                   | Merge |
+| ----- | ----- | ------------------------------------------------------- | ----- |
+| 81    | B-978 | handed off (opus), check stopped on Status table format | —     |
 
-**Idle after wave 19** (landed through PR #268, 2026-11-27, Codex clean; to-test `to-test/2026-11-27-1446-fixes-bug.md`; rows in history). Slice 80 (B-976): quick entry reads a vital's label after its number (folded into assistant.md); `74hr` with no space still reads as hours. `risa status-trim` still fails ("Cannot find package 'prettier'" in Risa's `status-trim.mjs`): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 20 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
+**Wave 20 running** (2026-11-27): slice 81 (B-978, installed PWA update notice; opus) merged e524785a8, B-978 done; CI components run requested (the wave gate). At landing: app-shell.md's service worker entry gains the resume/hourly update check (5-min throttle). Wave 19 landed through PR #268 (to-test `to-test/2026-11-27-1446-fixes-bug.md`; rows in history). `risa status-trim` fails ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches. Held: B-750 (no files named yet), B-752 (only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
@@ -842,3 +843,18 @@ Quick entry reads a vital only when its label comes first: `140/78 74bpm 97 o2` 
 - Each vital quick entry knows (O2/SpO2, heart rate/HR/pulse/bpm, and the others with a short label) reads with its label before or after its number, with or without a space (`97o2`, `97 o2`, `o2 97`, `74 hr`, `hr 74`, `74bpm`). A number between two labels goes to the nearer one; when that's unclear, keep today's label-first reading.
 - Nothing that reads today changes: label-first lines, units (`98.6 °F`, `97%`), blood pressure, and the measurement-word rules of slices 20–40 (a number after a label is still no date, an amount or a time).
 - Unit tests: `140/78 74bpm 97 o2` gives all three; `97 o2 hr 74`, `74 hr 97 o2` and `bp 140/78 pulse 74 o2 97` each give each vital once with the right value; the preview (`quickEntryPreview.ts`) shows the same.
+
+## Wave 20
+
+One slice: an installed app notices a new version without being reopened.
+
+### Slice 81: an installed app shows the update notice without a restart (B-978)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+An installed PWA resumed from the background shows no update notice until it's closed and reopened. `registerServiceWorker` (`apps/web/app/lib/app-shell/serviceWorkerRegister.ts`) registers `/sw.js` once at load and relies on the browser's navigation-time update check; a resumed app never navigates, so `updatefound` never fires and `UpdateNotice` stays hidden. **First confirm with a failing test** (the fake container in `serviceWorkerRegister.test.ts`).
+
+- The page asks the registration for an update (`registration.update()`) when it becomes visible again (`visibilitychange` to visible) and on a slow interval (about hourly) while visible, throttled so a burst of visibility changes asks at most once every few minutes. A failed `update()` (offline) is swallowed quietly and tried again next time.
+- A worker found this way shows the existing notice through the existing `updatefound` path; no new notice, control or copy. Nothing changes for a first install or for a page no worker controls.
+- The timer and listener are owned in one place (the registration code or its caller), so a second registration or a test doesn't stack them; tests pass the document/clock as parameters the way the container already is.
+- Unit tests: becoming visible calls `update()`; two visibility changes inside the throttle call it once; the interval calls it; a rejected `update()` doesn't throw or stop later checks; an update found after resume sets the waiting worker.

@@ -28,11 +28,71 @@ export const waitingWorker = {
   set: setWaiting,
 };
 
+/** The parts of `Document` the update checks watch (a parameter, so tests pass a fake). */
+export type UpdatePage = Pick<Document, "visibilityState" | "addEventListener" | "removeEventListener">;
+
+/** The clock the update checks run on (a parameter, so tests pass a fake). */
+export type UpdateClock = {
+  now(): number;
+  setInterval(run: () => void, ms: number): unknown;
+  clearInterval(handle: unknown): void;
+};
+
+const realClock: UpdateClock = {
+  now: () => Date.now(),
+  setInterval: (run, ms) => setInterval(run, ms),
+  clearInterval: (handle) => clearInterval(handle as ReturnType<typeof setInterval>),
+};
+
+/** How often a visible page asks the server for a new worker. */
+export const UPDATE_CHECK_EVERY_MS = 60 * 60 * 1000;
+/** The least time between two asks, so a burst of visibility changes asks once. */
+export const UPDATE_CHECK_THROTTLE_MS = 5 * 60 * 1000;
+
+/** Stops the current registration's update checks; one set at a time (B-978). */
+let stopUpdateChecks: (() => void) | null = null;
+
+/**
+ * Asks the registration for a new worker when the page becomes visible again
+ * and hourly while it's visible, at most once per throttle. The browser checks
+ * only on navigation, and an installed app resumed from the background never
+ * navigates (B-978). A found worker reaches the notice through `updatefound`.
+ */
+function watchForUpdates(
+  registration: Pick<ServiceWorkerRegistration, "update">,
+  page: UpdatePage,
+  clock: UpdateClock,
+) {
+  stopUpdateChecks?.();
+  // Registering just fetched /sw.js, so the first ask waits out the throttle.
+  let lastAsked = clock.now();
+  const ask = () => {
+    if (page.visibilityState !== "visible") return;
+    if (clock.now() - lastAsked < UPDATE_CHECK_THROTTLE_MS) return;
+    lastAsked = clock.now();
+    // Offline or a server error: nothing to show; the next ask tries again.
+    registration.update().catch(() => undefined);
+  };
+  page.addEventListener("visibilitychange", ask);
+  const timer = clock.setInterval(ask, UPDATE_CHECK_EVERY_MS);
+  stopUpdateChecks = () => {
+    page.removeEventListener("visibilitychange", ask);
+    clock.clearInterval(timer);
+    stopUpdateChecks = null;
+  };
+}
+
 /**
  * Registers /sw.js and tracks a waiting worker: one already waiting at load,
- * or one that finishes installing while an older one controls this page.
+ * or one that finishes installing while an older one controls this page,
+ * including one found by the update checks (`watchForUpdates`). With no page
+ * (a test that passes none) there are no checks.
  */
-export async function registerServiceWorker(container: WorkerContainer) {
+export async function registerServiceWorker(
+  container: WorkerContainer,
+  page: UpdatePage | undefined = globalThis.document,
+  clock: UpdateClock = realClock,
+) {
   const registration = await container.register("/sw.js", { scope: "/" });
   if (registration.waiting) setWaiting(registration.waiting);
   registration.addEventListener("updatefound", () => {
@@ -42,6 +102,7 @@ export async function registerServiceWorker(container: WorkerContainer) {
       if (installing.state === "installed" && container.controller) setWaiting(installing);
     });
   });
+  if (page) watchForUpdates(registration, page, clock);
   return registration;
 }
 
