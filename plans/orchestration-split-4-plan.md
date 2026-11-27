@@ -14,7 +14,7 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 
 **Wave 3 started** (session 3, 2026-11-26): ingest nothing new; `pnpm prd sync` up to date; slices 5 and 6 worktrees made, agents spawned on opus (briefs note slice 4's fixture failures and B-932). Acceptance measures `RISA_CONFIG=<fixture risa.json> pnpm test:tooling`; B-932 fails 2 `stack.test.mjs` cases locally, CI is the gate. Slice 5 handed off (fdb01d3f): `prompt-render.mjs` (core), project-check gains the golden line, allowlist rules and `--write-golden` (regenerates Caretook's golden; the sample's still `vitest -u`); Caretook role-doc section rows moved to `project-data.test.mjs`; `skeptic.mjs` brief reads rules via `loadConfig()` (same file for Caretook); standalone `--root project` 178 failed in 23 files. Slice 6 handed off (cc44718c): six test files on the fixture. Merged in order: 5 ddaa10cd, 6 77b3ee07. Wave 3 gate: CI run 45927397831 green at full on c7b1806d. Slice worktrees removed. Sync up to date. **Wave 3 landed** in dev as 523702f6 (PR #243, tier full, `--no-review`: Codex out of credits; report filed). Docs: `--write-golden` in `docs/agents/machinery.md`, the project-data check's share in `docs/agents/project-config.md`.
 
-**Wave 4 started** (session 4, 2026-11-26): no cut-off landing; ingest nothing new; `pnpm prd sync` up to date; slice 7 worktree made, agent spawned on opus.
+**Wave 4 started** (session 4, 2026-11-26): no cut-off landing; ingest nothing new; `pnpm prd sync` up to date; slice 7 worktree made, agent spawned on opus. Slice 7 stopped under its stop rule (138b1a40: test-setup.mjs, FIXTURE_CONFIG flipped, vitest setupFiles, allowlist vitest 9→10): checkout `test:tooling` 9 failed in 6 files (release, disk, land 3, prompt, shared-names 2, stack B-932); standalone sample 163/14 files, project 150/10, none 167/14, none hung (land files fail in bulk only in the copy). Scope question (checkout fixes in 7 + new slice 8 for the proof, recommended) with a skeptic; logs in the session scratchpad.
 
 **Then: wave 4, slice 7** (the flip and the proof; blocked by 1, 3, 5, 6, all merged), on opus. After it: standalone run in all three modes for B-929's proof, then the last-landing docs (plan _How to run_), `pnpm backlog done B-929`, `pnpm prd rm orchestration-split-4`. Standalone `--root project` after wave 3 (each slice measured alone): what remains is the land/gate/ci/tiers copies, reclaim/rotate/stack/tidy-cli/check-run/ci-ids (fixed by the flip), sessions, `stack` (B-932). Mind B-932 locally.
 
@@ -30,7 +30,7 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 | 4     | 2    | merged  | opus  | b8484072                               |
 | 5     | 3    | merged  | opus  | ddaa10cd                               |
 | 6     | 3    | merged  | opus  | 77b3ee07                               |
-| 7     | 4    | started | opus  |                                        |
+| 7     | 4    | stopped | opus  |                                        |
 
 ## Architectural decisions
 
