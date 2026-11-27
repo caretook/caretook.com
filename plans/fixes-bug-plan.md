@@ -10,11 +10,14 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State         | Merge     |
-| ----- | ----- | ------------- | --------- |
-| 82    | B-979 | merged (opus) | 336733f55 |
+| Slice | Item  | State  | Merge     |
+| ----- | ----- | ------ | --------- |
+| 83    | B-982 | merged | 2f63948f8 |
+| 84    | B-984 | merged | 52fc5653d |
+| 85    | B-985 | merged | ec6c64dc6 |
+| 86    | B-986 | merged | 05735fc88 |
 
-**Wave 21 under way** (session fixes-bug-d7): tags-3 landed in dev as ba42f193c; synced with `--force` for its search code. Slice 82 (B-979, opus, merge 336733f55): search reruns on a key of the group tags' ids, names and colors, so result chips follow a rename, recolor, delete or merge. Wave 21 gate requested. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
+**Wave 22 (2026-11-27, in flight; agents spawned on opus in worktrees .loops/fixes-bug-83..86; watch running):** All four merged; CI integration green (run 46073149576, 257a538e); slice worktrees removed; sync skipped (no shared files); no browser checks named; PR #284 open, Codex review waiting. New item B-987 (log_dose pass read capped at 100, from slice 86) triaged for a later wave. dev synced in (72 commits, connectors-3's dose tools). Slices 83 to 86 (B-982, B-984, B-985, B-986: connectors-3's Codex follow-ups on past_doses / log_past_doses / log_dose), all opus, run at once; 84 to 86 share `assistantActionService.ts` (different functions), so expect merge conflicts there. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Wave 21 (slice 82, B-979, merge 336733f55) landed through PR #275.
 
 ## Wave 1
 
@@ -873,3 +876,44 @@ On the search page, a result's tag chips (`data.namedTags`, from `loadSearch`) k
 - Typing doesn't flicker the list (the previous results stay up, as today); no extra query per keystroke beyond what the fix needs.
 - A deleted or merged tag drops off the chips the same way (if the chosen fix covers it for free; otherwise leave it as today and say so in the hand-off).
 - Component test: a result shows tag "Alpha" (fictional data); renaming it in the local database to "Beta" and recoloring it updates the result's chip; the filter chip still updates as before.
+
+## Wave 22
+
+Four slices, Codex follow-ups from connectors-3 on the connector's dose tools (`packages/api/src/connectors/tools/pastDoses.ts`, `logPastDoses.ts`, and `packages/data/src/services/assistantActionService.ts`). They run at once; 84 to 86 change different functions of `assistantActionService.ts`, so keep each change inside its own function and add no reformatting. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 83: past_doses reads a bounded window, so old days don't show given doses as missed (B-982)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`past_doses` (`pastDoses.ts`, about line 123) calls `entriesBetween` with only `from` (the day before the range), newest first, capped at 40 pages of 50. A group logging about 24 doses a day asking for a day 90 days back can run out of pages before it reaches the range, and the doses it never read show as missed.
+
+- Pass `to` as well: the start of the day after the range, plus one day (as `from` takes one day before), so the read covers only the window.
+- When the read still fills its last page (the cap reached), don't report the result as a complete record: return an error or a clear note that the range was too busy to read whole, whichever fits the tool's existing error shape (say which in the hand-off).
+- Integration test (`packages/api/src/connectors/`): a fictional group with many recent doses and one given dose 90 days back; `past_doses` for that day reports it given, not missed. A second test for the cap note if it can be reached cheaply (lower the page cap through an existing seam if there is one; otherwise say so).
+
+### Slice 84: one dose slot can't take two statuses at once (B-984)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose` and `log_past_doses` (`assistantActionService.ts`, about lines 340 to 450 and 891 to 980) lock `doseSlotIdFor`'s id, which includes the status, so a given and a refused for the same medication, day and slot written at once take different locks and both insert.
+
+- Lock a status-free key (medication, day, slot) before the doses are read, in both paths, in a stable sorted order as today; keep the row's id as it is (no change to stored ids or data).
+- Integration test: two concurrent writes for one fictional slot, one given and one refused (via both `log_dose` twice and `log_past_doses` against `log_dose`); exactly one dose row results, and the other call returns what a repeat returns today.
+
+### Slice 85: log_past_doses records the dose usual on that day, not today's (B-985)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_past_doses` takes `slot.amount` from `slotAmount`, which falls back to the medication's current dose; `scheduleHistory` rebuilds the schedule as of a past day but not the usual dose. Changing 1 tablet to 2 today and logging yesterday's box records 2. `past_doses` shows the same wrong amount.
+
+- Resolve the usual dose at the slot's time from the medication-change entries (the same source `scheduleHistory` reads), and use it both for what `log_past_doses` writes and for the amount `past_doses` shows. Put the lookup where both can share it (beside `scheduleHistory`), not twice.
+- Integration test: a fictional medication changed from 1 tablet to 2 today; logging yesterday's slot records 1 tablet, `past_doses` for yesterday shows 1, and today's slot still shows 2.
+
+### Slice 86: log_past_doses sees every medication, not the first 100 (B-986)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_past_doses` (`assistantActionService.ts`, about line 936) asks `medicationModel.list` for 500, but `paginate` is clamped to `MAX_PAGE_SIZE` 100, so marks for any later medication come back `noSlot`, while `past_doses` (`medicationService.list`) reads all. The same `limit: 500` sits near line 271 (and passes near 272 and 941 at 100): check whether each one has the same cut-off and fix those that do.
+
+- Load the medications the marks name (preferred: a filter by id), or every page; say which in the hand-off.
+- Integration test: a fictional group with 101 or more medications; a mark for the last one logs its dose rather than `noSlot`.

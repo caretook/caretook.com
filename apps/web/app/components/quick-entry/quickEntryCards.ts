@@ -2,7 +2,7 @@ import type { AssistantAction, NewItemDraft, QuickEntryPart, QuickEntryReading }
 
 import type { DoseDraft, EntryDraft } from "../../lib/assistant/quickEntryDraft";
 
-import { FORM_LABELS, similarSymptoms, symptomKey, symptomName } from "@caretook/data/schema";
+import { similarSymptoms, symptomKey, symptomName } from "@caretook/data/schema";
 import { appUrls } from "../../lib/app-shell/appUrls";
 import { QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
 import { MEDICATION_SHEET_STATE } from "../../lib/medications/medicationSheets";
@@ -12,6 +12,9 @@ import { SHEET_LINK_STATE } from "../../lib/timeline/timelineSheet";
 
 // The pure rules behind quick entry's cards: which reading each part shows,
 // its alternatives, what blocks Save, and where Edit goes. web:unit tests it.
+
+// The new item card's wording, shared with the connector's add_provider.
+export { newItemPreview } from "@caretook/data/schema";
 
 export type QuickEntryCard = {
   /** Stable while the line's text is: the part's place and its text. */
@@ -32,14 +35,17 @@ export type QuickEntryCard = {
   opensDraft: boolean;
   /**
    * A symptom whose name is new to the group but like some it has
-   * (`withSymptomGates`): the card asks "Use <name>" or "Add new", and
-   * Save waits for the answer.
+   * (`withSymptomGates`): the card saves the closest one unasked and offers
+   * the others and "Add new" (the name as typed). Save doesn't wait.
    */
-  symptomGate?: SymptomGate;
+  symptomDefault?: SymptomDefault;
 };
 
-/** A symptom card's question: the name as typed, and the catalog's similar names. */
-export type SymptomGate = { name: string; similar: { id: string; name: string }[] };
+/**
+ * A symptom card's default: the name as typed, the catalog's closest name
+ * it saves as (`using`), and the catalog's other similar names.
+ */
+export type SymptomDefault = { typed: string; using: string; others: { id: string; name: string }[] };
 
 /**
  * A symptom card's answer, by card key: `use` is the catalog name chosen,
@@ -111,11 +117,13 @@ export const buildCards = (
   });
 
 /**
- * The catalog check on symptom cards (symptom-catalog), as the symptom sheet
- * does it, on the device's catalog: the parser already took an exact
- * match's spelling, so a name with similar ones (`similarSymptoms`) asks
- * on its card, until answered. An answer to "Use <name>" saves that name;
- * "Add new" saves the name as typed. Pure.
+ * The catalog check on symptom cards (symptom-catalog), on the device's
+ * catalog: the parser already took an exact match's spelling, so a name
+ * with similar ones (`similarSymptoms`) saves as the closest one by
+ * default (symptom-catalog-2), its card offering the others and "Add new".
+ * An answer to "Use <name>" saves that name; "Add new" saves the name as
+ * typed. Unlike the symptom sheet, which asks (`SymptomGate`), quick entry
+ * doesn't stop the line. Pure.
  */
 export const withSymptomGates = (
   cards: readonly QuickEntryCard[],
@@ -131,8 +139,13 @@ export const withSymptomGates = (
       return { ...card, reading: { ...card.reading, actions: [{ ...action, name: choice.use }] } };
     }
     const { exact, similar } = similarSymptoms(action.name, catalog);
-    if (exact || !similar.length) return card;
-    return { ...card, symptomGate: { name: symptomName(action.name), similar } };
+    const [closest, ...others] = similar;
+    if (exact || !closest) return card;
+    return {
+      ...card,
+      reading: { ...card.reading, actions: [{ ...action, name: closest.name }] },
+      symptomDefault: { typed: symptomName(action.name), using: closest.name, others },
+    };
   });
 
 /** What the box remembers per card: the reading chosen, the cards removed, a refusal's message, a symptom's answer. */
@@ -170,8 +183,8 @@ export const pruneCardState = (
 export const cardActions = (cards: readonly QuickEntryCard[]) =>
   cards.flatMap((card) => card.reading.actions.map((action) => ({ action, key: card.key })));
 
-/** Whether a card waits on something: a blocking message, or a symptom's unanswered question. */
-const waits = (card: QuickEntryCard) => card.blocking.length > 0 || !!card.symptomGate;
+/** Whether a card waits on something: a blocking message (a symptom's default doesn't wait). */
+const waits = (card: QuickEntryCard) => card.blocking.length > 0;
 
 /** Whether the cards can be saved: at least one, and none blocked. */
 export const canSaveCards = (cards: readonly QuickEntryCard[]) =>
@@ -356,27 +369,6 @@ export const newItemTarget = (
         to: appUrls.newProvider(groupId, draft.type === "clinician" ? {} : { type: draft.type }),
         state: { ...PROVIDER_SHEET_STATE, [QUICK_ENTRY_DRAFT]: draft },
       };
-
-/**
- * A new item card's wording: its name ("Lisinopril", or "New medication"
- * with none), and what else the sheet will start with ("10 mg · Tablet ·
- * once daily"; "Cardiology · 555-0100"). `practiceName` names a practice it's at.
- */
-export const newItemPreview = (
-  draft: NewItemDraft,
-  practiceName?: (id: string) => string | undefined,
-): { title: string; detail: string | null; when: string } => {
-  const parts =
-    draft.kind === "medication"
-      ? [draft.strength, draft.form && FORM_LABELS[draft.form], draft.directions]
-      : [draft.specialty, draft.practiceId && practiceName?.(draft.practiceId), draft.phone, draft.address];
-  const fallback = draft.kind === "medication" ? "New medication" : "New provider";
-  return {
-    title: draft.name || fallback,
-    detail: parts.filter(Boolean).join(" · ") || null,
-    when: "",
-  };
-};
 
 /** A new item card's line: "Opens Add a medication to finish". */
 export const newItemLine = (draft: NewItemDraft) =>

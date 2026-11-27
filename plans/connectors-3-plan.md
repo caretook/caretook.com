@@ -4,13 +4,11 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in dev as 300a65913 through PR #272 (2026-11-27; Codex clean on 4f906ba; CI integration green, run 46060325211; landed on an unsynced tip, dev's 2 commits shared no file; report a326; to-test `to-test/2026-11-27-1511-connectors-3.md`). Slice worktrees removed. Docs folded (connectors, medications). **Next (for the fresh session):** wave 2 has no slices yet. The backlog session (`caretook-com-3b`) was asked to plan it (B-760, B-761, B-917) on `plan/connectors-3` and to message this session when it lands. Wait for that (a background check on `pnpm log dev` for `plan(connectors-3)`/`docs(connectors-3)` plan commits, or the message), then `risa sync`, `risa anchors`, and run wave 2 as usual. Don't `risa rm` until wave 2 lands. **2026-11-27, session connectors-3-22:** reconciled (no landing journal, no slice worktrees, tip = dev + this Status); backlog ingest clean (nothing new for connectors-3); no wave 2 plan in dev yet; the backlog session replied: the user left wave 2 to the dispatcher's planner, and connectors-3 is first in the registry; this session lands this Status and runs `risa rm connectors-3` (it doesn't mark the topic done while B-760, B-761, B-917 are open).
+**Where it stands (brief for the fresh session):** wave 1 landed (PR #272), **wave 2a** through PR #276 and **wave 2b** through PR #278 (2026-11-27, session connectors-3-23; tier integration, CI green run 46068679493 on 9ed058ad2, Codex clean on fc673f0; unsynced tip; report filed; to-test `to-test/2026-11-27-1620-connectors-3.md`). Every slice is landed and all slice worktrees are removed; B-760, B-761, B-917 landed. 2b's docs folded (connectors, medications) and landed docs-only through PR #279. **Open:** Codex's follow-ups, triaged under connectors-3: B-982 (past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed), B-984 (two dose writes with different statuses for one slot at once can both be added), B-985 (log_past_doses writes today's usual dose on past days when the dose changed in the range), B-986 (log_past_doses sees only the first 100 medications). The backlog session (`caretook-com-cc`) was asked whether they move to fixes-bug (recommended) or become a connectors-3 wave 3. **Done:** the user moved B-982, B-984, B-985 and B-986 to fixes-bug (2026-11-27); connectors-3 closes with `risa rm connectors-3`.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
-**Models:** slice 1 opus, slice 2 opus (both have real logic); both agents spawned 2026-11-27, watch running.
-
-**Anchors (2026-11-27):** two misses, both things the slices create (`doseSchedule.test.ts`, `todoRepeatInput`); nothing to fix.
+**Models:** slices 1 to 6 opus (real logic); the docs fold on sonnet.
 
 **Notes for the landing fold:** slice 1 added error code `connectorTool:invalid` (400) for a read tool's zone-dependent input check; the frozen export list no longer exists (test-health removed it), so nothing to add. Slice 2: connectors doc's "drops a `repeatRule` (B-253)" becomes the structured `repeat`; planner-3's `firstDayOf` could be exported to drop the tool's copy (a nit).
 
@@ -18,14 +16,14 @@
 
 **Wave 2 planned** (2026-11-27, `plan/connectors-3`, the dispatcher's planner): slices 3 to 6 below, in two waves (2a: 3 and 4; 2b: 5 and 6). B-917 stays open until slice 6 merges.
 
-| Slice | Wave | State  | Merge into `prd/connectors-3` (slice commits) |
-| ----- | ---- | ------ | --------------------------------------------- |
-| 1     | 1    | merged | a2383ef8b (ad3342564, c6147c2f9)              |
-| 2     | 1    | merged | 6e026ab18 (f0f00891c, f2edd4a62)              |
-| 3     | 2a   | ready  |                                               |
-| 4     | 2a   | ready  |                                               |
-| 5     | 2b   | ready  |                                               |
-| 6     | 2b   | ready  |                                               |
+| Slice | Wave | State            | Merge into `prd/connectors-3` (slice commits) |
+| ----- | ---- | ---------------- | --------------------------------------------- |
+| 1     | 1    | merged           | a2383ef8b (ad3342564, c6147c2f9)              |
+| 2     | 1    | merged           | 6e026ab18 (f0f00891c, f2edd4a62)              |
+| 3     | 2a   | landed (PR #276) | b73368af5 (b959e601d, a700add6e)              |
+| 4     | 2a   | landed (PR #276) | 701a96e62 (f169395d6)                         |
+| 5     | 2b   | landed (PR #278) | 77a9e74b9 (2c9673ddb)                         |
+| 6     | 2b   | landed (PR #278) | 350cbf8a5 (b383e3e08)                         |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on it when the slice merges.
 

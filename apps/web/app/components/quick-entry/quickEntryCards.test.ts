@@ -158,34 +158,63 @@ describe("withSymptomGates (symptom-catalog)", () => {
       return a.type === "logSymptom" ? a.name : null;
     });
 
-  test("only a name like the catalog's asks, and Save waits for it", () => {
+  test("an unanswered name like the catalog's saves as the closest one, and Save goes ahead", () => {
     const cards = gated();
-    expect(cards.map((c) => c.symptomGate ?? null)).toEqual([
-      { name: "Knee pian", similar: [catalog[0]] },
+    expect(names(cards)).toEqual(["Knee pain", "Nausea", "Itchy", null]);
+    expect(cards.map((c) => c.symptomDefault ?? null)).toEqual([
+      { typed: "Knee pian", using: "Knee pain", others: [] },
       null,
       null,
       null,
     ]);
     expect(cards[0]!.blocking).toEqual([]);
-    expect(canSaveCards(cards)).toBe(false);
-    expect(cardsAnnouncement(cards, titleOf)).toContain("Symptom, Symptom, can't be saved yet");
+    expect(canSaveCards(cards)).toBe(true);
+    expect(cardsAnnouncement(cards, titleOf)).not.toContain("can't be saved yet");
   });
 
-  test("Use <name> saves the catalog's name; Add new saves it as typed", () => {
+  test("the default lists the typed name and the other similar names, closest first", () => {
+    const wide = [
+      { id: "t-left", name: "Left knee pain" },
+      { id: "t-back", name: "Back pain" },
+      { id: "t-knee", name: "Knee pain" },
+    ];
+    const part = { text: "pain knee 4", readings: [symptom("Pain knee")] };
+    const cards = withSymptomGates(buildCards([part], none, titleOf), wide, new Map());
+    expect(cards[0]!.symptomDefault).toEqual({
+      typed: "Pain knee",
+      using: "Knee pain",
+      others: [{ id: "t-left", name: "Left knee pain" }],
+    });
+    expect(names(cards)).toEqual(["Knee pain"]);
+    expect(canSaveCards(cards)).toBe(true);
+  });
+
+  test("an exact match has no default", () => {
+    const cards = withSymptomGates(
+      buildCards([{ text: "knee pain 4", readings: [symptom("Knee pain")] }], none, titleOf),
+      catalog,
+      new Map(),
+    );
+    expect(cards[0]!.symptomDefault).toBeUndefined();
+    expect(names(cards)).toEqual(["Knee pain"]);
+  });
+
+  test("Use <name> saves the catalog's name; Add new restores the name as typed", () => {
     const used = gated(new Map([[key, { key: "knee pian", use: "Knee pain" }]]));
-    expect(used[0]!.symptomGate).toBeUndefined();
+    expect(used[0]!.symptomDefault).toBeUndefined();
     expect(names(used)).toEqual(["Knee pain", "Nausea", "Itchy", null]);
     expect(canSaveCards(used)).toBe(true);
 
     const added = gated(new Map([[key, { key: "knee pian", use: null }]]));
-    expect(added[0]!.symptomGate).toBeUndefined();
+    expect(added[0]!.symptomDefault).toBeUndefined();
     expect(names(added)).toEqual(["Knee pian", "Nausea", "Itchy", null]);
     expect(canSaveCards(added)).toBe(true);
   });
 
-  test("an answer for another name asks again", () => {
+  test("an answer for another name falls back to the default", () => {
     const cards = gated(new Map([[key, { key: "knee pan", use: null }]]));
-    expect(cards[0]!.symptomGate?.name).toBe("Knee pian");
+    expect(cards[0]!.symptomDefault?.typed).toBe("Knee pian");
+    expect(names(cards)[0]).toBe("Knee pain");
   });
 
   test("pruneCardState drops answers for gone cards", () => {

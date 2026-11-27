@@ -115,6 +115,26 @@ describe("scheduleHistory", () => {
     expect(times(h, "2026-11-19")).toEqual(["08:00", "20:00"]);
   });
 
+  it("gives the usual dose a moment had: before a dose edit the old one, after it the new", () => {
+    const change = entry("2026-11-18T15:00:00.000Z", {
+      medicationId: MED,
+      change: "changed",
+      fields: ["dose"],
+      before: { dose: "1 tablet" },
+      after: { dose: "2 tablets" },
+    });
+    const h = scheduleHistory({ medication: med({ dose: "2 tablets" }), changes: [change], timeZone: LA });
+    expect(h.doseAt(Date.parse("2026-11-17T16:00:00.000Z"))).toBe("1 tablet");
+    expect(h.doseAt(Date.parse("2026-11-18T16:00:00.000Z"))).toBe("2 tablets");
+    // A schedule edit leaves the dose as it was.
+    const other = scheduleHistory({
+      medication: med({ dose: "2 tablets" }),
+      changes: [edited("2026-11-18T15:00:00.000Z", timed("08:00"), timed("08:00", "20:00"))],
+      timeZone: LA,
+    });
+    expect(other.doseAt(Date.parse("2026-11-17T16:00:00.000Z"))).toBe("2 tablets");
+  });
+
   it("reads a change entry deleted from the timeline like any other", () => {
     const change = {
       ...edited("2026-11-18T18:00:00.000Z", timed("08:00"), timed("08:00", "20:00")),

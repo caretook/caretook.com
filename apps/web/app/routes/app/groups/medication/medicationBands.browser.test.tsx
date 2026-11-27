@@ -32,15 +32,15 @@ describe("the medication page's bands", () => {
     expect(bandsAlternate()).toBe(true);
   });
 
-  test("a writer with no linked todos keeps the lone Add todo in its band", async () => {
+  test("a writer with no linked todos keeps the Todos band with its quick add", async () => {
     await renderWithDevice({
       route: MEDICATION_ROUTES,
       url: medicationUrl(LISINOPRIL.id),
       fixtures: world(),
     });
     await waitUntil(onPage, "the page");
-    expect(bandNames()).toEqual(["(header)", ...PARTS, "(band)", "Notes", "History"]);
-    expect(document.querySelector("main [data-band] [data-linked-todos-add]")).toBeTruthy();
+    expect(bandNames()).toEqual(["(header)", ...PARTS, "Todos", "Notes", "History"]);
+    expect(document.querySelector("main [data-band] [data-todo-quick-add]")).toBeTruthy();
   });
 
   test.each(["light", "dark"] as const)(

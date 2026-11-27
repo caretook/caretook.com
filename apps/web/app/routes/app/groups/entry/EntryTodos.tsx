@@ -1,11 +1,19 @@
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
+import type { ReactNode } from "react";
 
 import { canCompleteTodo, doneOrder, isTodoWriter, todoOrder, todoState } from "@caretook/data/schema";
-import { Link2, Plus, UserRound, X } from "lucide-react";
+import { Link2, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { TodoRepeatMark, TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
+import {
+  TodoQuickAdd,
+  TodoRepeatMark,
+  TodoTick,
+  TodoUndoStatus,
+  useQuickAddChains,
+  useTodoTick,
+} from "~/components/todos";
 import { Badge, Button, ComboBox, IconButton, Message, TITLE_SECTION } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -16,7 +24,6 @@ import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { todoPickerOptions } from "~/lib/todos/entryTodoPicker";
 import { entryTodosQuery, linkTodo, unlinkTodo } from "~/lib/todos/entryTodos.sync";
 import { assigneeLabel, doneText, dueText } from "~/lib/todos/todoDisplay";
-import { TODO_SHEET_STATE } from "~/lib/todos/todoSheetLink";
 import { todosQuery, toTodos } from "~/lib/todos/todos.sync";
 
 const NO_TODOS: TodoRow[] = [];
@@ -31,9 +38,10 @@ const KIND_WORD = { note: "note", event: "event" } as const;
  * A stored note's or event's Todos (planner-3, replacing `LinkedTodos`
  * here): its linked open todos in list order, each with its tick (for
  * whoever may complete it; Undo for about 10 s), then the done ones, newest
- * first (at most 20), with who did them and when. Writers get Add todo (the
- * add sheet, linked to this entry when it saves), Link a todo (a picker over
- * the group's open todos not linked here) and each row's Remove (the link
+ * first (at most 20), with who did them and when. Writers get the full
+ * quick add (a todo linked to this entry; todo-links-6), each open row's
+ * compact one (a subtask, linked here too), Link a todo (a picker over the
+ * group's open todos not linked here) and each row's Remove (the link
  * only; the todo stays). All local, so it works offline. Hidden from
  * readers while nothing is linked.
  */
@@ -63,6 +71,7 @@ export function EntryTodos({ entryId, kind }: { entryId: string; kind: "note" | 
       userId === group.userId ? "you" : (members.find((m) => m.user_id === userId)?.name ?? "Former member"),
     [members, group.userId],
   );
+  const chainOf = useQuickAddChains(open);
   const { complete, reopen, busy, error: tickError } = useTodoTick(group.id);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -91,6 +100,17 @@ export function EntryTodos({ entryId, kind }: { entryId: string; kind: "note" | 
 
   const row = (todo: LocalTodo) => (
     <EntryTodoRow
+      quickAdd={
+        todo.doneAt ? undefined : (
+          <TodoQuickAdd
+            parent={todo}
+            ancestors={chainOf(todo)}
+            link={{ entryId }}
+            form="compact"
+            className="mt-1"
+          />
+        )
+      }
       key={todo.id}
       todo={todo}
       nameOf={nameOf}
@@ -111,31 +131,17 @@ export function EntryTodos({ entryId, kind }: { entryId: string; kind: "note" | 
           Todos
         </h2>
         {writer && (
-          <div className="flex flex-wrap items-center gap-1">
-            <Button
-              ref={linkButton}
-              variant="ghost"
-              size="sm"
-              icon={Link2}
-              onClick={() => setPicking((p) => !p)}
-              expanded={picking}
-              data-entry-todos-link=""
-            >
-              Link a todo
-            </Button>
-            <Button
-              to={appUrls.newTodo(group.id, { entryId })}
-              // Closing the sheet comes back here.
-              state={TODO_SHEET_STATE}
-              prefetch="render"
-              variant="ghost"
-              size="sm"
-              icon={Plus}
-              data-entry-todos-add=""
-            >
-              Add todo
-            </Button>
-          </div>
+          <Button
+            ref={linkButton}
+            variant="ghost"
+            size="sm"
+            icon={Link2}
+            onClick={() => setPicking((p) => !p)}
+            expanded={picking}
+            data-entry-todos-link=""
+          >
+            Link a todo
+          </Button>
         )}
       </div>
       {writer && picking && (
@@ -153,13 +159,14 @@ export function EntryTodos({ entryId, kind }: { entryId: string; kind: "note" | 
           {open.map(row)}
         </ul>
       )}
+      {writer && todos.length === 0 && !picking && (
+        <p className="text-muted text-sm">No todos linked to this {KIND_WORD[kind]}.</p>
+      )}
+      <TodoQuickAdd link={{ entryId }} form="full" />
       {done.length > 0 && (
         <ul className={list} aria-label="Done todos" data-entry-todos-done="">
           {done.map(row)}
         </ul>
-      )}
-      {writer && todos.length === 0 && !picking && (
-        <p className="text-muted text-sm">No todos linked to this {KIND_WORD[kind]}.</p>
       )}
       <TodoUndoStatus groupId={group.id} />
       {(tickError || error) && <Message tone="error">{tickError || error}</Message>}
@@ -167,9 +174,10 @@ export function EntryTodos({ entryId, kind }: { entryId: string; kind: "note" | 
   );
 }
 
-/** One linked todo: tick, title (opening its page), due or done line, repeat mark, assignee, and a writer's Remove. */
+/** One linked todo: tick, title (opening its page), due or done line, repeat mark, assignee, an open one's quick add, and a writer's Remove. */
 function EntryTodoRow({
   todo,
+  quickAdd,
   nameOf,
   now,
   timeZone,
@@ -179,6 +187,8 @@ function EntryTodoRow({
   kind,
 }: {
   todo: LocalTodo;
+  /** Its compact subtask quick add (open rows). */
+  quickAdd?: ReactNode;
   nameOf: (userId: string) => string;
   now: number;
   timeZone: string;
@@ -226,6 +236,7 @@ function EntryTodoRow({
             {assignee.label}
           </Badge>
         </p>
+        {quickAdd}
       </div>
       {onRemove && (
         <IconButton

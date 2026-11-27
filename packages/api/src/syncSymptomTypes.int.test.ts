@@ -5,15 +5,21 @@ import {
   timelineEntryService,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { getDb } from "../../data/src/db/client";
+import { SYNC_CONFIG_PATH } from "../../data/src/db/roles/applyRoles";
+import { parseYaml } from "../../data/src/db/roles/syncConfig";
 import { createGroup, createUser, createWorld, ok } from "../../data/test/fixtures";
-import { clientFor, deleteOp, outcomes, patchOp, putOp, sqliteTime, upload } from "./testing";
+import { clientFor, codesOf, deleteOp, outcomes, patchOp, putOp, sqliteTime, upload } from "./testing";
 
 // sync.upload and a symptom's type (symptom-catalog slice 2): the server
 // derives `symptom_type_id` from the name on every symptom write, so a
 // device's value (missing on an older device, stale, made up, or another
 // group's) never decides it, and an unknown name joins the catalog. And a
 // device's own catalog row (slice 3): an idempotent PUT, for loggers only.
+// And archiving (symptom-catalog-2 slice 3): online only, its columns
+// streamed to every role and never taken from an upload.
 // Each test makes its own users and group. All data is fictional.
 
 const entryRow = (groupId: string, recipientId: string, overrides: Record<string, unknown> = {}) => ({
@@ -187,5 +193,103 @@ describe("sync.upload: a device's new symptom type", () => {
     ).toEqual(["symptomTypeService:invalid", "sync:readOnlyTable", "sync:readOnlyTable"]);
     expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, "Sore heel"))).toBeNull();
     expect(ok(await symptomTypeService.getById(u.owner.ctx, nausea))?.name).toBe("Nausea");
+  });
+});
+
+type Stream = { with: Record<string, string>; queries: string[] };
+
+/**
+ * The `symptom_type` rows the `care_groups` stream gives `userId`: its query
+ * from the real sync-config.yaml, run on the test database with the member
+ * as `auth.user_id()` (a fixture's UUID, so safe to inline).
+ */
+const streamedTypes = async (userId: string) => {
+  if (!/^[0-9a-f-]{36}$/.test(userId)) throw new Error("not a UUID");
+  const root = parseYaml(readFileSync(SYNC_CONFIG_PATH, "utf8")) as { streams: Record<string, Stream> };
+  const stream = root.streams.care_groups!;
+  const query = stream.queries.find((q) => /\bFROM symptom_type\b/.test(q));
+  if (!query) throw new Error("no symptom_type query in the care_groups stream");
+  const myGroups = stream.with.my_groups!.replace("auth.user_id()", `'${userId}'`);
+  const run = query.replace(/\bmy_groups\b/, `(${myGroups})`);
+  if (run.includes("auth.")) throw new Error("unexpected auth parameter in the symptom_type query");
+  return (await getDb().$client.query<Record<string, unknown>>(run)).rows;
+};
+
+describe("archiving a symptom type", () => {
+  it("answers a caretaker's archive with the archived row, and streams it to every role", async () => {
+    const roles = ["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"] as const;
+    const { u, groupId } = await createWorld({ members: [...roles] });
+    const nausea = symptomTypeId(groupId, "Nausea");
+    const archived = await clientFor(u.caretaker.ctx.authUser).timeline.symptomTypes.archive({
+      groupId,
+      id: nausea,
+    });
+    expect(archived).toMatchObject({ id: nausea, name: "Nausea", replacedById: null });
+    expect(archived.archivedAt).toMatch(/^\d{4}-\d\d-\d\dT.*Z$/);
+    expect(archived.updatedBy).toBe(u.caretaker.user.id);
+
+    for (const role of ["owner", ...roles] as const) {
+      const row = (await streamedTypes(u[role].user.id)).find((r) => r.id === nausea);
+      expect(row, role).toMatchObject({ archived_at: expect.anything() as unknown, replaced_by_id: null });
+    }
+
+    const back = await clientFor(u.owner.ctx.authUser).timeline.symptomTypes.unarchive({
+      groupId,
+      id: nausea,
+    });
+    expect(back.archivedAt).toBeNull();
+    expect((await streamedTypes(u.viewer.user.id)).find((r) => r.id === nausea)?.archived_at).toBeNull();
+  });
+
+  it("refuses viewers and the easy roles (403), and another group's row (404)", async () => {
+    const { u, groupId } = await createWorld({ members: ["viewer", "easy_helper", "easy_viewer"] });
+    const other = await createGroup(await createUser("other-owner"));
+    const nausea = symptomTypeId(groupId, "Nausea");
+    for (const role of ["viewer", "easy_helper", "easy_viewer"] as const)
+      expect(
+        await codesOf(clientFor(u[role].ctx.authUser).timeline.symptomTypes.archive({ groupId, id: nausea })),
+        role,
+      ).toBe("FORBIDDEN:permissions:unauthorized");
+    const api = clientFor(u.owner.ctx.authUser);
+    expect(
+      await codesOf(
+        api.timeline.symptomTypes.archive({ groupId, id: symptomTypeId(other.group.id, "Nausea") }),
+      ),
+    ).toBe("NOT_FOUND:symptomTypeService:notFound");
+    expect(ok(await symptomTypeService.getById(u.owner.ctx, nausea))?.archivedAt).toBeNull();
+  });
+
+  it("takes neither column from a device: a PUT's are ignored, a PATCH or DELETE is refused", async () => {
+    const { u, groupId } = await createWorld({ members: [] });
+    const api = clientFor(u.owner.ctx.authUser);
+    const nausea = symptomTypeId(groupId, "Nausea");
+    const cough = symptomTypeId(groupId, "Cough");
+    await api.timeline.symptomTypes.archive({ groupId, id: nausea });
+
+    const withColumns = (name: string, columns: Record<string, unknown>) => {
+      const op = typeOp(groupId, name);
+      return { ...op, data: { ...op.data, ...columns } };
+    };
+    expect(
+      await outcomes(api, [
+        // A new name sent archived, pointing at another row: stored active, no replacement.
+        withColumns("Sore elbow", { archived_at: sqliteTime(), replaced_by_id: cough }),
+        // The archived row sent active: still archived.
+        withColumns("Nausea", { archived_at: null }),
+        patchOp("symptom_type", nausea, { archived_at: null }),
+        patchOp("symptom_type", cough, { archived_at: sqliteTime(), replaced_by_id: nausea }),
+        deleteOp("symptom_type", cough),
+      ]),
+    ).toEqual(["applied", "applied", "sync:readOnlyTable", "sync:readOnlyTable", "sync:readOnlyTable"]);
+
+    expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, "Sore elbow"))).toMatchObject({
+      archivedAt: null,
+      replacedById: null,
+    });
+    expect(ok(await symptomTypeService.getById(u.owner.ctx, nausea))?.archivedAt).not.toBeNull();
+    expect(ok(await symptomTypeService.getById(u.owner.ctx, cough))).toMatchObject({
+      archivedAt: null,
+      replacedById: null,
+    });
   });
 });

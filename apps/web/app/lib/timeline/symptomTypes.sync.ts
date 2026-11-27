@@ -3,6 +3,7 @@ import type { LocalQuery } from "./timeline.sync";
 
 import { symptomTypeRow } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
+import { useMemo } from "react";
 import { useLiveQuery } from "../sync/index";
 import { symptomTypes } from "../sync/schema";
 
@@ -10,23 +11,35 @@ import { symptomTypes } from "../sync/schema";
 // symptom sheet suggests, read from the local copy, so they work offline.
 // Rows arrive by sync (`symptom_type`, every member's), or are added here
 // with the entry that first uses a name (one local write; uploaded as a PUT
-// the server makes idempotent); never changed or removed.
+// the server makes idempotent). Archiving and merging are the server's
+// (symptom-catalog-2): an archived row stays in the catalog, `archived`, so
+// typing its name exactly still reuses it, but suggestions leave it out; a
+// tombstone (`replaced_by_id`, merged into another row) is never returned.
 
-export type SymptomTypeRow = { id: string; name: string };
+export type SymptomTypeRow = { id: string; name: string; archived: boolean };
 
-/** The group's catalog, A to Z by key. */
+/** The row as SQLite returns it: `archived` is 0 or 1. */
+type StoredSymptomTypeRow = { id: string; name: string; archived: number };
+
+/** The group's catalog, active and archived, no tombstones, A to Z by key. */
 export const symptomTypesQuery = (groupId: string): LocalQuery => ({
-  sql: `SELECT id, name FROM symptom_type WHERE group_id = ? ORDER BY name_key, id`,
+  sql: `SELECT id, name, archived_at IS NOT NULL AS archived FROM symptom_type
+    WHERE group_id = ? AND replaced_by_id IS NULL ORDER BY name_key, id`,
   params: [groupId],
 });
 
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.
-const NO_ROWS: SymptomTypeRow[] = [];
+const NO_ROWS: StoredSymptomTypeRow[] = [];
 
-/** The group's catalog, live (empty until it has synced). */
+/**
+ * The group's catalog, live (empty until it has synced): active and
+ * archived rows, each with `archived`. A list of suggestions shows only the
+ * active ones; a name check (`similarSymptoms`) takes them all.
+ */
 export function useSymptomTypes(groupId: string): SymptomTypeRow[] {
   const query = symptomTypesQuery(groupId);
-  return useLiveQuery<SymptomTypeRow>(query.sql, query.params, NO_ROWS);
+  const rows = useLiveQuery<StoredSymptomTypeRow>(query.sql, query.params, NO_ROWS);
+  return useMemo(() => rows.map((row) => ({ ...row, archived: !!row.archived })), [rows]);
 }
 
 /** What a local write adds a catalog row in: the database, or its transaction. */

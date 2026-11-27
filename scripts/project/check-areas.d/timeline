@@ -32,5 +32,9 @@ packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 # Re-exports of the pure day helpers that moved to @caretook/data/schema (unit-tested there).
 apps/web/app/lib/core/format.ts -
 apps/web/app/lib/core/zonedDay.ts -
+# The Symptoms page in group settings (symptom-catalog-2): its query and screen
+# are component tests (groups/settings/symptomCatalog.browser.test.tsx); no browser check reads them.
+apps/web/app/lib/timeline/symptomCatalogPage.sync.ts -
+apps/web/app/routes/app/groups/settings/symptoms/  -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/timeline/               -

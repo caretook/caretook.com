@@ -682,6 +682,217 @@ describe("read tools", { timeout: 60_000 }, () => {
     });
   });
 
+  describe("past_doses", () => {
+    // 12:00 in Los Angeles (PDT), the group's zone: today is Wednesday 2030-06-12.
+    const clock = new Date("2030-06-12T19:00:00.000Z");
+    type PastRecord = {
+      timeZone: string;
+      from: string;
+      to: string;
+      days: {
+        day: string;
+        weekday: string;
+        rounds: {
+          passId: string | null;
+          name: string;
+          time: string;
+          slots: {
+            medicationId: string;
+            medication: string;
+            amount: string | null;
+            time: string;
+            at: string;
+            state: string;
+            dose: { entryId: string; status: string; loggedAt: string; loggedBy: string | null } | null;
+          }[];
+        }[];
+      }[];
+    };
+    /** "YYYY-MM-DD" at "HH:MM" Los Angeles (PDT) as an instant. */
+    const atLa = (day: string, time: string) => new Date(`${day}T${time}:00-07:00`).toISOString();
+
+    // Medications started ten days before the clock, so every day read has
+    // their slots, and doses written through the model (the service refuses a
+    // time ahead of the real clock).
+    const recordWorld = async () => {
+      const w = await world();
+      const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
+      const morning = passes.find((p) => p.name === "Morning")!;
+      const evening = passes.find((p) => p.name === "Evening")!;
+      const tenDaysBefore = { changedAt: new Date(clock.getTime() - 10 * 24 * 60 * 60_000).toISOString() };
+      const metformin = await addMedication(
+        w.caretaker.ctx,
+        w.group.id,
+        {
+          name: "Metformin",
+          strength: "500 mg",
+          schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+        },
+        tenDaysBefore,
+      );
+      const vitamin = await addMedication(
+        w.caretaker.ctx,
+        w.group.id,
+        {
+          name: "Vitamin D",
+          strength: null,
+          dose: "1 capsule",
+          schedule: { type: "scheduled", slots: [{ time: "13:00" }] },
+        },
+        tenDaysBefore,
+      );
+      await addMedication(w.owner.ctx, w.second.group.id, { name: "Elsewhere" });
+      const addDose = async (who: Who, occurredAt: string, details: Record<string, unknown>) =>
+        ok(
+          await timelineEntryModel.create({
+            ...who.ctx,
+            data: {
+              groupId: w.group.id,
+              recipientId: w.recipient.id,
+              kind: "dose",
+              occurredAt,
+              timeZone: "America/Los_Angeles",
+              details: details as never,
+            },
+          }),
+        )!;
+      const morningDose = (status: string) => ({
+        medicationId: metformin.id,
+        status,
+        amount: "1 tablet",
+        scheduledFor: "08:00",
+        passId: morning.id,
+      });
+      const given = await addDose(w.caretaker, atLa("2030-06-10", "08:12"), morningDose("given"));
+      const skipped = await addDose(w.owner, atLa("2030-06-11", "08:20"), morningDose("skipped"));
+      const today = await addDose(w.caretaker, atLa("2030-06-12", "08:05"), morningDose("given"));
+      return { ...w, morning, evening, metformin, vitamin, given, skipped, today };
+    };
+
+    it("gives the 7 days ending today with each slot's state and who logged it, to a viewer's read grant", async () => {
+      const handler = handlerAt(clock);
+      const w = await recordWorld();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "past_doses");
+      expect(result.isError).toBeUndefined();
+      const out = result.structuredContent as PastRecord;
+      expect(out.timeZone).toBe("America/Los_Angeles");
+      expect([out.from, out.to]).toEqual(["2030-06-06", "2030-06-12"]);
+      expect(out.days.map((d) => d.day)).toEqual([
+        "2030-06-06",
+        "2030-06-07",
+        "2030-06-08",
+        "2030-06-09",
+        "2030-06-10",
+        "2030-06-11",
+        "2030-06-12",
+      ]);
+      expect(out.days.at(-1)!.weekday).toBe("Wednesday");
+      const states = (day: string) =>
+        out.days
+          .find((d) => d.day === day)!
+          .rounds.map((r) => [r.name, r.time, r.slots.map((s) => s.state).join(",")]);
+      expect(states("2030-06-09")).toEqual([
+        ["Morning", "08:00", "missed"],
+        ["Vitamin D", "13:00", "missed"],
+        ["Evening", "20:00", "missed"],
+      ]);
+      expect(states("2030-06-10")).toEqual([
+        ["Morning", "08:00", "given"],
+        ["Vitamin D", "13:00", "missed"],
+        ["Evening", "20:00", "missed"],
+      ]);
+      expect(states("2030-06-11")[0]).toEqual(["Morning", "08:00", "skipped"]);
+      // Today at 12:00: the later slots are upcoming, not missed.
+      expect(states("2030-06-12")).toEqual([
+        ["Morning", "08:00", "given"],
+        ["Vitamin D", "13:00", "upcoming"],
+        ["Evening", "20:00", "upcoming"],
+      ]);
+
+      const round = (day: string) => out.days.find((d) => d.day === day)!.rounds[0]!;
+      expect(round("2030-06-10").passId).toBe(w.morning.id);
+      expect(round("2030-06-10").slots[0]).toEqual({
+        medicationId: w.metformin.id,
+        medication: "Metformin 500 mg",
+        amount: "1 tablet",
+        time: "08:00",
+        at: "2030-06-10T08:00:00-07:00",
+        state: "given",
+        dose: {
+          entryId: w.given.id,
+          status: "given",
+          loggedAt: "2030-06-10T08:12:00-07:00",
+          loggedBy: "caretaker",
+        },
+      });
+      expect(round("2030-06-11").slots[0]!.dose).toMatchObject({ entryId: w.skipped.id, loggedBy: "owner" });
+      for (const d of out.days)
+        for (const r of d.rounds) for (const sl of r.slots) expect(sl.at).toMatch(OFFSET);
+
+      const text = result.content[0]!.text;
+      expect(text).toContain("Past doses, 2030-06-06 to 2030-06-12 (America/Los_Angeles):");
+      expect(text).toContain(
+        "Monday 2030-06-10:\n  Morning (08:00): Metformin 500 mg, 1 tablet: Given by caretaker at 8:12",
+      );
+      expect(text).toContain("  Morning (08:00): Metformin 500 mg, 1 tablet: Skipped by owner at 8:20");
+      expect(text).toContain("  Vitamin D (13:00): Vitamin D, 1 capsule: Missed");
+      expect(JSON.stringify(result)).not.toContain("Elsewhere");
+    });
+
+    it("from a day for two days gives those two days, and leaves out days after today", async () => {
+      const handler = handlerAt(clock);
+      const w = await recordWorld();
+      const token = await w.connect(w.caretaker, "readWrite");
+      const two = await callTool(handler, token, "past_doses", { from: "2030-06-10", days: 2 });
+      const out = two.structuredContent as PastRecord;
+      expect([out.from, out.to]).toEqual(["2030-06-10", "2030-06-11"]);
+      expect(out.days.map((d) => [d.day, d.weekday])).toEqual([
+        ["2030-06-10", "Monday"],
+        ["2030-06-11", "Tuesday"],
+      ]);
+      const late = await callTool(handler, token, "past_doses", { from: "2030-06-11", days: 14 });
+      expect((late.structuredContent as PastRecord).days.map((d) => d.day)).toEqual([
+        "2030-06-11",
+        "2030-06-12",
+      ]);
+    });
+
+    it("says so for a day with no scheduled doses", async () => {
+      const handler = handlerAt(clock);
+      const w = await world();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "past_doses", { from: "2030-06-12" });
+      expect((result.structuredContent as PastRecord).days).toEqual([
+        { day: "2030-06-12", weekday: "Wednesday", rounds: [] },
+      ]);
+      expect(result.content[0]!.text).toContain("Wednesday 2030-06-12:\n  No scheduled doses");
+    });
+
+    it("refuses a day after today, naming dose_schedule, and more than 90 days back", async () => {
+      const handler = handlerAt(clock);
+      const w = await world();
+      const token = await w.connect(w.viewer);
+      const ahead = await callTool(handler, token, "past_doses", { from: "2030-06-13" });
+      expect(ahead.isError).toBe(true);
+      expect(ahead.structuredContent).toMatchObject({
+        error: {
+          issues: [{ path: "from", message: "Past doses end today. Use dose_schedule for the days ahead." }],
+        },
+      });
+      expect(ahead.content[0]!.text).toContain("dose_schedule");
+      // 2030-03-14 is 90 days before; the day before it is too far.
+      const far = await callTool(handler, token, "past_doses", { from: "2030-03-13" });
+      expect(far.isError).toBe(true);
+      expect(far.structuredContent).toMatchObject({
+        error: { issues: [{ path: "from", message: "At most 90 days back." }] },
+      });
+      const edge = await callTool(handler, token, "past_doses", { from: "2030-03-14", days: 1 });
+      expect(edge.isError).toBeUndefined();
+      expect((await callTool(handler, token, "past_doses", { days: 15 })).isError).toBe(true);
+    });
+  });
+
   it("upcoming: events soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
@@ -1381,6 +1592,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         "list_medications",
         "todays_doses",
         "dose_schedule",
+        "past_doses",
         "upcoming",
         "list_todos",
         "list_providers",
