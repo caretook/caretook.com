@@ -149,7 +149,13 @@ export type TodosFilter = {
   limit?: number;
   /** Only the todos carrying this tag (`?tag=`; tags PRD). */
   tagId?: string | null;
+  /** Only the todos that list on their own (`listsOnItsOwn`: top-level, or a dated or assigned subtask). */
+  listed?: boolean;
 };
+
+/** `listsOnItsOwn` in SQL, for the queries that page or count (the Done list). */
+const LISTED_SQL = ` AND (parent_id IS NULL OR due_on IS NOT NULL OR assignee_id IS NOT NULL
+  OR (assignee_name IS NOT NULL AND TRIM(assignee_name) <> ''))`;
 
 const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unknown[] } => {
   if (who === "mine") return { sql: " AND assignee_id = ?", params: [userId ?? ""] };
@@ -161,9 +167,10 @@ const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unkn
   return { sql: "", params: [] };
 };
 
-/** The chip's condition and the tag's, ANDed. */
+/** The chip's condition, the tag's and the listing rule's, ANDed. */
 const filterCondition = (filter: TodosFilter): { sql: string; params: unknown[] } => {
-  const who = whoCondition(filter);
+  const chip = whoCondition(filter);
+  const who = filter.listed ? { sql: chip.sql + LISTED_SQL, params: chip.params } : chip;
   if (!filter.tagId) return who;
   return {
     sql: `${who.sql} AND id IN (SELECT todo_id FROM record_tag WHERE tag_id = ? AND todo_id IS NOT NULL)`,
@@ -189,7 +196,7 @@ export const todosQuery = (groupId: string, filter: TodosFilter = {}): LocalQuer
 /** How many done todos the chip shows (the Done list's "Show more"). */
 export const doneCountQuery = (
   groupId: string,
-  filter: Pick<TodosFilter, "who" | "userId" | "tagId"> = {},
+  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "listed"> = {},
 ): LocalQuery => {
   const who = filterCondition(filter);
   return {
@@ -955,19 +962,27 @@ export const subtasksQuery = (todoId: string): LocalQuery => ({
   params: [todoId],
 });
 
-/** One row per parent with live subtasks: how many, and how many are done (`subtaskProgress`). */
-export type SubtaskProgressRow = { parent_id: string; done: number; total: number };
+/** One row per parent with live subtasks: how many, how many are done (`subtaskProgress`), and its title. */
+export type SubtaskProgressRow = { parent_id: string; done: number; total: number; title?: string | null };
 
 /**
  * A group's subtask progress, every parent in one query (one live query per
- * list, never one per row): live children only, as `subtaskProgress` counts.
+ * list, never one per row): live children only, as `subtaskProgress` counts,
+ * with the parent's title for a listed subtask's "Part of <parent>".
  */
 export const subtaskProgressQuery = (groupId: string): LocalQuery => ({
-  sql: `SELECT parent_id, COUNT(done_at) AS done, COUNT(*) AS total FROM todo
-        WHERE group_id = ? AND parent_id IS NOT NULL AND deleted_at IS NULL
-        GROUP BY parent_id`,
+  sql: `SELECT c.parent_id, p.title AS title, COUNT(c.done_at) AS done, COUNT(*) AS total
+        FROM todo c LEFT JOIN todo p ON p.id = c.parent_id
+        WHERE c.group_id = ? AND c.parent_id IS NOT NULL AND c.deleted_at IS NULL
+        GROUP BY c.parent_id`,
   params: [groupId],
 });
+
+/** The query's parents by id, with their titles (a listed subtask's "Part of"). */
+export const parentsById = (rows: readonly SubtaskProgressRow[]) =>
+  new Map(
+    rows.flatMap((r) => (r.title ? [[r.parent_id, { id: r.parent_id, title: r.title }] as const] : [])),
+  );
 
 /** The query's rows by parent id; a todo with no live subtask isn't there. */
 export const progressByParent = (rows: readonly SubtaskProgressRow[]) =>

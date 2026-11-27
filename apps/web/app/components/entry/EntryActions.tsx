@@ -34,6 +34,7 @@ export function EntryActions({
   onRemind,
   onPrint,
   printHref,
+  onCopyLink,
   onDelete,
 }: {
   kind: TimelineEntryKind;
@@ -56,6 +57,8 @@ export function EntryActions({
   onPrint?: () => void;
   /** …or opens its page to print it (rows elsewhere). */
   printHref?: string;
+  /** Copies the entry's link (the timeline's rows and cards; any role). */
+  onCopyLink?: () => void;
   /** Left out (viewers), there's no Delete. */
   onDelete?: () => void;
 }) {
@@ -81,6 +84,8 @@ export function EntryActions({
         return printHref
           ? { id: "print", label: "Print", href: printHref }
           : { id: "print", label: "Print", onAction: onPrint };
+      case "copyLink":
+        return { id: "copyLink", label: "Copy link", onAction: onCopyLink };
       case "delete":
         return { id: "delete", label: "Delete", tone: "danger", onAction: onDelete };
     }
@@ -95,6 +100,7 @@ export function EntryActions({
     canPrepare: !!onPrepare,
     canRemind: !!onRemind,
     canPrint: !!(onPrint || printHref),
+    canCopyLink: !!onCopyLink,
     canDelete: !!onDelete,
   }).map(item);
   return (

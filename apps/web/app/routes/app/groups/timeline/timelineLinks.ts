@@ -5,8 +5,8 @@ import { appUrls } from "../../../../lib/app-shell/appUrls";
 import { setDay } from "../../../../lib/timeline/timelineFilters";
 import { dayKeyIn } from "./timelineDays";
 
-// The paths the timeline's copy-link buttons copy (`CopyLinkButton` makes
-// them absolute). Pure, so web:unit tests it.
+// The paths the timeline copies (a day header's copy-link button, an entry's
+// ⋯ Copy link; `useCopyLink` makes them absolute). Pure, so web:unit tests it.
 
 /** A day on the timeline: the plain `?day=` jump, with no filters. */
 export const dayLinkPath = (groupId: string, dayKey: string) => appUrls.timeline(groupId, setDay("", dayKey));

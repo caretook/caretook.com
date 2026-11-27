@@ -124,19 +124,22 @@ describe("condition changes on the timeline", () => {
     await expect.poll(() => again.location()).toBe(`${TIMELINE_URL}?kind=conditionChange`);
   });
 
-  test("a change opens nothing and its ⋯ is Tags and Delete", async () => {
+  test("a change opens nothing and its ⋯ is Tags, Copy link and Delete", async () => {
     await open("?kind=conditionChange");
     await expect.poll(() => rowWith("Resolved Hip fracture")).toBeTruthy();
     const row = () => rowWith("Resolved Hip fracture");
     expect(openOf(await found(row))).toBeNull();
     await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
-    await expect.poll(menuItems).toEqual(["Tags", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Tags", "Copy link", "Delete"]);
   });
 
-  test("a viewer sees the rows, with no ⋯", async () => {
+  test("a viewer sees the rows, with a ⋯ of Copy link alone", async () => {
     await open("?kind=conditionChange", { role: "viewer" });
     await expect.poll(texts).toHaveLength(3);
-    expect(rowWith("Resolved Hip fracture")?.querySelector('button[aria-label^="Actions for"]')).toBeNull();
+    await userEvent.click(
+      await found(() => rowWith("Resolved Hip fracture")?.querySelector('button[aria-label^="Actions for"]')),
+    );
+    await expect.poll(menuItems).toEqual(["Copy link"]);
   });
 });
 

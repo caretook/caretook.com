@@ -1,7 +1,7 @@
 import { Message, Page } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
+import type { LocalTodo, SubtaskProgressRow, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 import type { TagRow } from "~/lib/tags/tags.sync";
 
@@ -12,7 +12,7 @@ import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { tagFilterOf } from "~/lib/tags/tagFilter";
 import { tagsQuery } from "~/lib/tags/tags.sync";
-import { todosQuery } from "~/lib/todos/todos.sync";
+import { subtaskProgressQuery, todosQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { emptyTodosText, todoQueryOf, whoOf } from "~/lib/todos/todoList";
 import { PlannerHeader } from "../planner/PlannerHeader";
@@ -35,18 +35,26 @@ export const meta = () => [{ title: "Todos · Caretook" }];
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const [openRows, memberRows] = await Promise.all([
+  const [openRows, memberRows, progressRows] = await Promise.all([
     readRows<TodoRow>(db, todosQuery(params.groupId)),
     readRows<MemberRow>(db, membersQuery(params.groupId)),
+    readRows<SubtaskProgressRow>(db, subtaskProgressQuery(params.groupId)),
   ]);
   const search = new URL(request.url).search;
   const who = whoOf(search);
   const tag = tagFilterOf(search, await readRows<TagRow>(db, tagsQuery(params.groupId)));
   const doneRows = await readRows<TodoRow>(
     db,
-    todosQuery(params.groupId, { done: true, who, userId: group.userId, tagId: tag?.id, limit: DONE_PAGE }),
+    todosQuery(params.groupId, {
+      done: true,
+      listed: true,
+      who,
+      userId: group.userId,
+      tagId: tag?.id,
+      limit: DONE_PAGE,
+    }),
   );
-  return { openRows, doneRows, memberRows };
+  return { openRows, doneRows, memberRows, progressRows };
 }
 
 /**
@@ -78,7 +86,16 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
     [complete, reopen],
   );
   const tagsOf = useCallback((todoId: string) => list.tagsOf.get(todoId), [list.tagsOf]);
-  const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy, tagsOf };
+  const row = {
+    nameOf: list.nameOf,
+    now: list.now,
+    timeZone: list.timeZone,
+    onTick,
+    busy,
+    tagsOf,
+    progressOf: list.progressOf,
+    parentOf: list.parentOf,
+  };
 
   return (
     <Page>

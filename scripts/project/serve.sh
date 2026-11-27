@@ -9,13 +9,16 @@
 #   serve.sh [name] --built     a production build of the web target (with
 #                               VITE_CHECK_BUILD=1, so checks get their hooks),
 #                               served by react-router-serve on the same port
+#   serve.sh [name] --built --fresh   the same, and a running check build that's
+#                               older than its source (or the env baked into it)
+#                               is rebuilt and restarted (`pnpm prd browser`)
 #
 # name defaults to the worktree you're in. The log is <worktree>/.dev.log.
 #
 # Browser checks run against --built: no Vite websocket, no dependency
 # re-optimization reloading a page mid-check, no stale optimized deps, faster
 # pages. `pnpm prd browser` starts one by itself (replacing a dev server), and
-# rebuilds and restarts it when the source is newer than the build; its --dev
+# rebuilds and restarts it when the source is newer than the build (--fresh); its --dev
 # keeps the dev server instead. Use the dev server (no flag, or --dev) to work
 # on the app by hand. The mode is kept in <worktree>/.serve-mode, so --restart
 # keeps it; pass --dev to switch back.
@@ -24,10 +27,11 @@ set -euo pipefail
 # shellcheck source=stack-facts.sh
 source "$(dirname "$0")/stack-facts.sh"
 
-name="" mode=start kind=""
+name="" mode=start kind="" fresh=""
 for a in "$@"; do
   case $a in
     --restart) mode=restart ;;
+    --fresh) fresh=1 ;;
     --stop) mode=stop ;;
     --built) kind=built ;;
     --dev) kind=dev ;;
@@ -36,7 +40,10 @@ for a in "$@"; do
   esac
 done
 name=${name:-$(here_name)}
-[[ -n $name ]] || die "which worktree? (pnpm prd serve <name>; pnpm prd status lists them)"
+[[ -n $name ]] || {
+  prd=$(node "$(dirname "$0")/risa.mjs" tool prd) || prd=prd
+  die "which worktree? ($prd serve <name>; $prd status lists them)"
+}
 dir=$loops/$name
 [[ -d $dir ]] || die "no worktree at $dir"
 port=$(web_port "$dir")
@@ -47,6 +54,16 @@ current=$(cat "$modefile" 2>/dev/null || echo dev)
 kind=${kind:-$current}
 # Switching kinds needs a restart.
 [[ $mode == start && $kind != "$current" && -n $(server_pids "$port") ]] && mode=restart
+# --fresh: a running check build older than what it's built from is rebuilt.
+if [[ -n $fresh && $mode == start && $kind == built && -n $(server_pids "$port") ]]; then
+  newer=$(cd "$dir" && find apps/web/app apps/web/public apps/web/vite.config.ts apps/web/react-router.config.ts \
+    apps/web/build-target.ts apps/web/package.json apps/web/.env packages/*/src packages/*/package.json \
+    pnpm-lock.yaml -type f ! -name '*.test.ts' -newer .serve-built 2>/dev/null | head -1)
+  if [[ -n $newer || ! -f $dir/.serve-built ]]; then
+    echo "The check build is older than the source (${newer:-no build yet}): rebuilding."
+    mode=restart
+  fi
+fi
 
 if [[ $mode != start ]]; then
   stop_server "$dir"

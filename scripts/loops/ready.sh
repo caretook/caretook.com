@@ -18,7 +18,7 @@ source "$(dirname "$0")/lib.sh"
 source "$(dirname "$0")/unsynced.sh"
 
 topic=${1:-$(n=$(here_name); [[ -n $n ]] && topic_of "$n")}
-[[ -n $topic ]] || die "which PRD? (pnpm prd ready <topic>)"
+[[ -n $topic ]] || die "which PRD? (${prd_cmd} ready <topic>)"
 branch=$prd_prefix$topic dir=$loops/$topic
 git -C "$main" rev-parse --verify --quiet "$branch" >/dev/null || die "no branch $branch"
 tip=$(git -C "$main" rev-parse --short "$branch")
@@ -32,11 +32,11 @@ if [[ -n $drift ]] && unsynced_safe "$branch" "$trunk"; then
   synced="behind it only by changes that need no merge"
   drift=""
 fi
-[[ -z $drift ]] || blockers+=("$trunk has newer work ($(wc -l <<< "$drift" | tr -d ' ') file(s) changed): run \`pnpm prd sync\` in $dir, then check again")
+[[ -z $drift ]] || blockers+=("$trunk has newer work ($(wc -l <<< "$drift" | tr -d ' ') file(s) changed): run \`${prd_cmd} sync\` in $dir, then check again")
 if [[ -d $dir ]]; then
   [[ -z $(git -C "$dir" status --porcelain) ]] || blockers+=("uncommitted changes in $dir")
 else
-  blockers+=("no worktree at $dir, so the checks can't be confirmed (pnpm prd start $topic)")
+  blockers+=("no worktree at $dir, so the checks can't be confirmed (${prd_cmd} start $topic)")
 fi
 
 if ((${#blockers[@]})); then
@@ -64,7 +64,7 @@ if [[ -z $port ]]; then
 elif [[ -n $(server_pids "$port") ]]; then
   echo "- **http://localhost:$port** (running)"
 else
-  echo "- http://localhost:$port (not running: \`pnpm prd serve $topic\`)"
+  echo "- http://localhost:$port (not running: \`${prd_cmd} serve $topic\`)"
 fi
 landing_hook try | sed 's/^/- /'
 
@@ -77,7 +77,7 @@ if ! command -v gh >/dev/null 2>&1; then
 elif ! pr=$(pr_for "$pr_head" 2>/dev/null); then
   echo "- Couldn't ask GitHub for the PR (\`gh auth status\`)."
 elif [[ -z $pr ]]; then
-  echo "- no PR yet: \`pnpm prd pr $topic\`"
+  echo "- no PR yet: \`${prd_cmd} pr $topic\`"
 else
   echo "- https://github.com/$(gh_repo)/pull/$pr"
   echo "- $(pr_verdict "$pr" --line 2>/dev/null || echo "codex: couldn't read the review state")"
@@ -91,7 +91,7 @@ node "$(dirname "$0")/../backlog/backlog.mjs" list --all --prd "$topic" --json |
   const groups = [["Bugs fixed", "bug"], ["Features", "feature"], ["Changes", "change"], ["Chores", "chore"], ["Plans", "plan"], ["Questions", "question"]];
   const ready = items.filter((i) => i.status === "ready");
   const open = items.filter((i) => ["in-progress", "triaged", "inbox"].includes(i.status));
-  if (!ready.length) console.log("No backlog item is marked done in this branch (`pnpm backlog done B-<n>`).");
+  if (!ready.length) console.log("No backlog item is marked done in this branch (`'"$backlog_cmd"' done B-<n>`).");
   for (const [label, type] of groups) {
     const rows = ready.filter((i) => i.type === type);
     if (!rows.length) continue;
@@ -116,7 +116,7 @@ git -C "$main" diff --shortstat "$trunk...$branch"
 changed=$(git -C "$main" diff --name-only "$trunk...$branch")
 notes=()
 while IFS= read -r n; do [[ -z $n ]] || notes+=("$n"); done < <(landing_hook notes <<< "$changed")
-grep -qE '(^|/)package\.json$|^pnpm-lock\.yaml$' <<< "$changed" && notes+=("changes **dependencies or scripts**: run \`pnpm install\` in the main checkout after landing")
+grep -qE '(^|/)package\.json$|^pnpm-lock\.yaml$' <<< "$changed" && notes+=("changes **dependencies or scripts**: land runs the install in the main checkout when it is on dev, at the landed tip and clean of those files, else posts a notice to run it by hand")
 if ((${#notes[@]})); then
   echo
   for n in "${notes[@]}"; do echo "- ⚠ $n"; done
@@ -128,4 +128,4 @@ if ((${#blockers[@]})); then
 fi
 echo "## To land it"
 echo
-echo "Say **\"land $topic\"** to the orchestrator, or run \`pnpm prd land $topic\`."
+echo "Say **\"land $topic\"** to the orchestrator, or run \`${prd_cmd} land $topic\`."

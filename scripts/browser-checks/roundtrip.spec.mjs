@@ -496,13 +496,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await signIn(C, "viewer@example.com");
     await wf(C, rowWith(offName), 20_000);
     await check("viewer: sees the timeline, including the offline entry", true);
+    // A viewer's ⋯ holds no writer items: a symptom's is Copy link alone (every kind's items: component tests).
+    await press(C, `${rowWith(offName)}.querySelector('button[aria-label^="Actions"]')`);
+    await wf(C, menuItem("Copy link"), 10_000);
+    const viewerItems = await C.evaluate(
+      `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim()).join(",")`,
+    );
+    await C.keyboard.press("Escape");
     await check(
-      // A viewer's ⋯ is Print alone, on notes and events only (its items: component tests).
-      "viewer: no + button, no ⋯ menus but notes' and events' Print, no edit targets",
+      "viewer: no + button, no edit targets, and a symptom's ⋯ is Copy link alone",
       (await addButton(C).count()) === 0 &&
-        (await C.evaluate(
-          `!document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
-        )),
+        (await C.evaluate(`!document.querySelector('main ol [aria-label^="Edit "]')`)) &&
+        viewerItems === "Copy link",
+      viewerItems,
     );
 
     // 6-series. The series 5a made offline, checked once the viewer is in
@@ -703,14 +709,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const expectedRows = {};
     let queuedAtRead = 0;
     try {
+      // Each id goes into matrix.ids as its writer returns (a link with its
+      // producer), so a run that dies mid-loop still cleans up what it wrote (B-862).
       for (const [table, w] of Object.entries(SYNC_WRITERS)) {
-        if (table === "care_recipient" || w.by) continue;
-        const result = await A.evaluate(writerCall(table, wctx));
-        if (!result?.ok) writerRefusals.push(`${table} (${w.writer}): ${JSON.stringify(result)}`);
-        wctx.ids[table] = writtenId(table, wctx.ids, result);
+        if (table === "care_recipient") continue;
+        if (w.by) {
+          if (wctx.ids[w.by]) wctx.ids[table] = writtenId(table, wctx.ids);
+        } else {
+          const result = await A.evaluate(writerCall(table, wctx));
+          if (!result?.ok) writerRefusals.push(`${table} (${w.writer}): ${JSON.stringify(result)}`);
+          wctx.ids[table] = writtenId(table, wctx.ids, result);
+        }
+        for (const [key, id] of Object.entries(matrixIds(wctx.ids))) if (id) matrix.ids[key] = id;
       }
-      for (const [table, w] of Object.entries(SYNC_WRITERS))
-        if (w.by) wctx.ids[table] = writtenId(table, wctx.ids);
       for (const table of Object.keys(SYNC_WRITERS))
         if (table !== "care_recipient" && wctx.ids[table])
           expectedRows[table] = await rowOn(A, table, wctx.ids[table]);
@@ -719,7 +730,6 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     } finally {
       dA.proxy.release();
     }
-    Object.assign(matrix.ids, matrixIds(wctx.ids));
     await check(
       "matrix: every uploadable table's app writer accepts its row, read back before it uploads",
       writerRefusals.length === 0 && queuedAtRead > 0,
@@ -1182,7 +1192,39 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       );
       psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
       psql(`DELETE FROM "user" WHERE email = '${removedEmail}'`);
+      // A run that died with device A's uploads queued: let them land first,
+      // so no matrix row reaches the server after its cleanup (B-862).
+      // (A page with no database open has nothing to wait for.)
+      await until(
+        () =>
+          queued(A).then(
+            (n) => n === 0,
+            () => true,
+          ),
+        10_000,
+      );
       psql(cleanupSql(matrix, recordedAt));
+      // And by the run's tag, for a row whose writer died before giving its id.
+      psql(
+        [
+          ["provider", "name"],
+          ["medication", "name"],
+          ["medication_pass", "name"],
+          ["recipient_allergy", "substance"],
+          ["care_period", "label"],
+          ["recipient_condition", "name"],
+          ["timeline_entry", "title"],
+        ]
+          .map(
+            ([t, c]) =>
+              `UPDATE ${t} SET deleted_at = now() WHERE group_id = '${DEV_FAMILY}' AND ${c} LIKE '${tag} matrix%' AND deleted_at IS NULL`,
+          )
+          .concat(
+            `DELETE FROM record_tag WHERE tag_id IN (SELECT id FROM tag WHERE group_id = '${DEV_FAMILY}' AND name LIKE '${tag} matrix%')`,
+            `DELETE FROM tag WHERE group_id = '${DEV_FAMILY}' AND name LIKE '${tag} matrix%'`,
+          )
+          .join(";\n"),
+      );
       // The run's symptom names in the catalog (rows are never soft-deleted), any case.
       psql(
         `UPDATE timeline_entry SET deleted_at = coalesce(deleted_at, now()), symptom_type_id = NULL WHERE group_id = '${DEV_FAMILY}' AND details->>'name' ILIKE '${tag}%';

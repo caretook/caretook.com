@@ -4,13 +4,13 @@
 // the asks and the watch's files (watch.mjs), and acts.
 //
 // A live, managed, run-through (`auto`) orchestrator is stuck when either:
-//   - quiet: no heartbeat of its own for the limit (CARETOOK_STUCK_MIN, 30), no
+//   - quiet: no heartbeat of its own for the limit (RISA_STUCK_MIN, 30), no
 //     agent of its session with a heartbeat inside the limit (a hung slice agent's
 //     old one doesn't count), and nothing running; or
 //   - a watch action unhandled: a slice's pending action in the watch's state.json
 //     (`actions[n].since`) older than the limit, with no mark for that slice since.
 // Nothing running: no unfinished call of its own (an Agent call aside: its agent's
-// heartbeat speaks for it) and no `pnpm prd` or `pnpm backlog` command under its
+// heartbeat speaks for it) and no `prd` or `backlog` command under its
 // pid, `watch --wait` and `ask --wait` aside (they wait for days). And no open
 // question of its topic (anyone's, the context question too).
 //
@@ -24,7 +24,7 @@
 // nothing more for that stall. A stall that ends (the session is active again,
 // ends or rotates) clears its entry and dismisses its open question.
 //
-// A tick gap over the gap (CARETOOK_STUCK_GAP seconds, 600, at least three ticks;
+// A tick gap over the gap (RISA_STUCK_GAP seconds, 600, at least three ticks;
 // a sleep, or a paused dispatcher) resets the clocks: every time counts from then.
 // Two or more going quiet within the limit of each other (a usage limit, a network
 // loss) raise one report and no question.
@@ -48,8 +48,8 @@ export function stuckSettings(/** @type {NodeJS.ProcessEnv} */ env = {}, /** @ty
     return env[k] && Number.isFinite(v) && v > 0 ? v : d;
   };
   return {
-    limitMs: num("CARETOOK_STUCK_MIN", 30) * MIN,
-    gapMs: Math.max(num("CARETOOK_STUCK_GAP", 600), 3 * everyS) * 1000,
+    limitMs: num("RISA_STUCK_MIN", 30) * MIN,
+    gapMs: Math.max(num("RISA_STUCK_GAP", 600), 3 * everyS) * 1000,
   };
 }
 
@@ -63,10 +63,10 @@ export function stuckAnswer(/** @type {string | null | undefined} */ answer) {
 
 const WAIT = /(?:\bprd(?:\.sh)?\s+watch\b[^;&|]*\s--wait\b|\bprd(?:\.sh)?\s+ask\s+--wait\b)/;
 
-/** Whether a command only waits (`pnpm prd watch … --wait`, `pnpm prd ask --wait`). */
+/** Whether a command only waits (`prd watch … --wait`, `prd ask --wait`). */
 export const onlyWaits = (/** @type {string | null | undefined} */ command) => WAIT.test(command ?? "");
 
-/** Whether a process command line is a `pnpm prd`/`pnpm backlog` command that isn't only a wait. */
+/** Whether a process command line is a `prd`/`backlog` command that isn't only a wait. */
 export const busyCommand = (/** @type {string} */ args) => runsPrdCommand(args) && !onlyWaits(args);
 
 /**

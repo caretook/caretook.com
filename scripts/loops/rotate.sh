@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Replace an orchestrator's session with a fresh one. (pnpm prd rotate)
+# Replace an orchestrator's session with a fresh one. (prd rotate)
 #
 #   rotate.sh [<topic>] [--mid-wave] [--reason <text>]
 #
@@ -38,7 +38,7 @@ set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 bin=$(cd "$(dirname "$0")" && pwd)
-export CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions}
+export RISA_SESSIONS_DIR=${RISA_SESSIONS_DIR:-$loops/.sessions}
 
 topic="" mid_wave="" reason="" self="" brief="" brief_path=""
 while (($#)); do

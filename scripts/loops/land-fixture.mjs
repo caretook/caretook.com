@@ -1,5 +1,5 @@
 // The throwaway repo land.sh's tests share (land*.test.mjs): these scripts
-// copied in, a bare origin, a stubbed `gh` and backlog; the CARETOOK_PR_THROWAWAY
+// copied in, a bare origin, a stubbed `gh` and backlog; the RISA_PR_THROWAWAY
 // seam stops land before the merge, so nothing is pushed. A test file calls
 // useLandRepo() once; root and repo are each test's own.
 import { execFileSync, spawnSync } from "node:child_process";
@@ -8,11 +8,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach } from "vitest";
 
-// For its RISA_CONFIG: the scripts land runs read this repo's config through it.
-import "./config-fixture.mjs";
+import { FIXTURE_CONFIG, sampleFoldersConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
-export let root, repo;
+/** Each test's config (`root/config/`), for RISA_CONFIG: sampleFoldersConfig's. */
+export let root, repo, config;
 export const git = (...a) =>
   execFileSync("git", ["-C", repo, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
 export const commit = (files, msg) => {
@@ -113,7 +113,7 @@ export const landWith = (extra, ...args) =>
     env: {
       ...process.env,
       PATH: `${join(root, "bin")}:${process.env.PATH}`,
-      CARETOOK_PR_THROWAWAY: "1",
+      RISA_PR_THROWAWAY: "1",
       PR_HEAD: git("rev-parse", "prd/throwaway-x"),
       ...extra,
     },
@@ -127,9 +127,11 @@ export function useLandRepo() {
     repo = join(root, "repo");
     // The run log outside the throwaway repo, whose .loops/ isn't ignored: a log
     // there would be committed by a test's `git add -A`.
-    process.env.CARETOOK_RUN_LOG = join(root, "run-log.jsonl");
+    process.env.RISA_RUN_LOG = join(root, "run-log.jsonl");
     // The landing journal outside it too, for the same reason.
-    process.env.CARETOOK_LANDING_DIR = join(root, "landing");
+    process.env.RISA_LANDING_DIR = join(root, "landing");
+    // The scripts land runs read the config through RISA_CONFIG (they pass process.env on).
+    config = process.env.RISA_CONFIG = sampleFoldersConfig(join(root, "config"));
     mkdirSync(join(root, "bin"));
     writeFileSync(join(root, "bin", "gh"), GH);
     chmodSync(join(root, "bin", "gh"), 0o755);
@@ -159,7 +161,7 @@ export function useLandRepo() {
     ];
     commit(
       {
-        "apps/web/a.ts": "1",
+        "web/a.ts": "1",
         "README.md": "r",
         "scripts/backlog/backlog.mjs": BACKLOG(items),
       },
@@ -169,7 +171,10 @@ export function useLandRepo() {
     git("checkout", "-qb", "feature");
     git("checkout", "-q", "dev");
   });
-  afterEach(() => rmSync(root, { recursive: true, force: true }));
+  afterEach(() => {
+    process.env.RISA_CONFIG = FIXTURE_CONFIG;
+    rmSync(root, { recursive: true, force: true });
+  });
 }
 
 export const branch = (files) => {

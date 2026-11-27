@@ -28,8 +28,10 @@ import {
 
 // The provider directory on the test device (providers.mjs's list steps):
 // display order with past providers under their label, search and the type
-// chips in the URL (so a reload keeps them), each row as one target with no
-// contact links, nothing wider than a phone, a viewer's view-only list and
+// chips in the URL (so a reload keeps them), Condensed rows by default and
+// Full (the fuller items) from View options, saved as `providersView`
+// (B-909), each row as one target (Full rows with no contact links), nothing
+// wider than a phone, a viewer's view-only list and
 // sheet URLs, and a non-member's 404. The device is offline throughout, so
 // all of it is the offline directory too. The order, matching and contact
 // links are pure rules with unit tests (providerDirectory.test.ts,
@@ -38,6 +40,18 @@ import {
 
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: PROVIDER_ROUTES, url: PROVIDERS_URL, fixtures: directory(), ...options });
+
+/** The viewer's saved layout, in the device's settings cache (as a sign-in leaves it). */
+const withView = (providersView: "rows" | "cards") =>
+  localStorage.setItem(`caretook:settings:${TEST_USER.id}`, JSON.stringify({ providersView }));
+const openFull = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) => {
+  withView("cards");
+  return open(options);
+};
+const providerRows = () => [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")];
+const rowOf = (id: string) => providerRows().find((row) => row.dataset.providerId === id)!;
+const layout = () =>
+  document.querySelector<HTMLElement>('main ul[aria-label="Current providers"]')?.dataset.view;
 
 const params = (device: { location: () => string }) =>
   Object.fromEntries(new URLSearchParams(device.location().split("?")[1] ?? ""));
@@ -133,9 +147,66 @@ describe("the directory", () => {
   });
 });
 
-describe("a row is one target (B-422)", () => {
-  test("no row shows contact details or links: its only link is the provider's page", async () => {
+describe("Condensed and Full (B-909)", () => {
+  test("Condensed by default: one line each, the name, specialty and the main contact action; no type or practice line", async () => {
     await open();
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+    expect(layout()).toBe("rows");
+    expect(providerRows().every((row) => row.hasAttribute("data-condensed"))).toBe(true);
+    const patel = rowOf(PATEL.id);
+    expect(patel.textContent).toContain("Cardiology");
+    expect(patel.querySelector("p.text-sm")).toBeNull();
+    // Patel's main action is calling his first number; the row's links are his page, then that.
+    const links = [...patel.querySelectorAll("a")].map((a) => [
+      a.getAttribute("href"),
+      a.getAttribute("aria-label"),
+    ]);
+    expect(links).toEqual([
+      [`${PROVIDERS_URL}/${PATEL.id}`, null],
+      ["tel:5550103300", "Call Dr. Samuel Patel, office"],
+    ]);
+    // Each row has at most one contact action.
+    for (const row of providerRows())
+      expect(row.querySelectorAll("[data-contact-actions] a").length).toBeLessThanOrEqual(1);
+  });
+
+  test("choosing Full in View options switches to the fuller items and saves providersView, not the timeline's", async () => {
+    const saved: unknown[] = [];
+    await open({
+      api: {
+        "me.updatePreferences": (input) => {
+          saved.push(input);
+          return {};
+        },
+      },
+    });
+    await expect.poll(layout).toBe("rows");
+    await userEvent.click(
+      await found(() => document.querySelector<HTMLElement>('main button[aria-label="View options"]')),
+    );
+    const radios = await waitUntil(() => {
+      const items = [...document.querySelectorAll<HTMLElement>("[role=menu] [role=menuitemradio]")];
+      return items.length ? items : null;
+    }, "the View options menu");
+    expect(radios.map((r) => r.textContent?.trim())).toEqual(["Condensed", "Full"]);
+    expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual(["true", "false"]);
+    await userEvent.click(await found(() => radios[1]));
+    await expect.poll(layout).toBe("cards");
+    expect(providerRows().some((row) => row.hasAttribute("data-condensed"))).toBe(false);
+    expect(rowOf(PATEL.id).querySelector("p.text-sm")?.textContent).toBe("Clinician · Cardiology");
+    await expect.poll(() => saved).toEqual([{ providersView: "cards" }]);
+  });
+
+  test("a saved Full opens as Full", async () => {
+    await openFull();
+    await expect.poll(layout).toBe("cards");
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+  });
+});
+
+describe("a row is one target (B-422)", () => {
+  test("in Full, no row shows contact details or links: its only link is the provider's page", async () => {
+    await openFull();
     await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
     const rows = [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")];
     expect(rows.length).toBeGreaterThan(0);
@@ -151,24 +222,28 @@ describe("a row is one target (B-422)", () => {
     expect(westside.textContent).not.toContain("1200 Westside Ave");
   });
 
-  test.each(["light", "dark"] as const)(
-    "420 (%s): rows truncate, with no horizontal overflow",
-    async (theme) => {
-      await open({ theme });
-      const page = document.documentElement;
-      await expect.poll(() => page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
-      await expect
-        .poll(() =>
-          [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].filter(
-            (li) => li.scrollWidth > li.clientWidth,
-          ),
-        )
-        .toEqual([]);
-    },
-  );
+  test.each([
+    ["light", "rows"],
+    ["dark", "rows"],
+    ["light", "cards"],
+    ["dark", "cards"],
+  ] as const)("420 (%s, %s): rows truncate, with no horizontal overflow", async (theme, providersView) => {
+    withView(providersView);
+    await open({ theme });
+    await expect.poll(layout).toBe(providersView);
+    const page = document.documentElement;
+    await expect.poll(() => page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
+    await expect
+      .poll(() =>
+        [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].filter(
+          (li) => li.scrollWidth > li.clientWidth,
+        ),
+      )
+      .toEqual([]);
+  });
 
   test("a tap on a row (not only the name) opens the provider's page", async () => {
-    const device = await open();
+    const device = await openFull();
     const row = await found(() =>
       document.querySelector<HTMLElement>(`main li[data-provider-id="${PATEL.id}"] p.text-sm`),
     );

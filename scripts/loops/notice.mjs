@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pnpm prd notice | notices: the notice board's command line (the store is notices.mjs).
+// prd notice | notices: the notice board's command line (the store is notices.mjs).
 //
 //   notice "<text>" [--for <minutes>] [--topic <t>]   post one; prints its id (60 minutes, 24 hours at most)
 //   notices [--json]                                 the live ones, oldest first
@@ -8,12 +8,13 @@
 //                             other sessions' live notices, five lines at most
 //   status                    (ls.sh) every live notice under a heading
 //
-// The directory is CARETOOK_NOTICES_DIR (prd.sh sets the main checkout's
-// .loops/.notices). `notice` takes --session <name> (default CARETOOK_SESSION,
+// The directory is RISA_NOTICES_DIR (prd.sh sets the main checkout's
+// .loops/.notices). `notice` takes --session <name> (default RISA_SESSION,
 // else what prd.sh passes as --here-session) and the topic defaults to
 // --here-topic. `gate` and `status` never fail: whatever goes wrong (an
 // unreadable directory, a broken file), they print nothing and exit 0, so they
 // can't change the exit code of the command they decorate.
+import { toolCmd } from "./config.mjs";
 import { pathToFileURL } from "node:url";
 import {
   NoticeError,
@@ -26,12 +27,12 @@ import {
 } from "./notices.mjs";
 
 const fail = (msg, code = 1) => {
-  console.error(`pnpm prd: ${msg}`);
+  console.error(`${toolCmd.prd}: ${msg}`);
   process.exit(code);
 };
 
 const dirOf = () =>
-  process.env.CARETOOK_NOTICES_DIR || fail("CARETOOK_NOTICES_DIR isn't set (run this through pnpm prd)");
+  process.env.RISA_NOTICES_DIR || fail(`RISA_NOTICES_DIR isn't set (run this through ${toolCmd.prd})`);
 
 function parse(argv, valued, flags = []) {
   const opts = {};
@@ -53,11 +54,11 @@ function parse(argv, valued, flags = []) {
 function notice(argv) {
   const { opts, rest } = parse(argv, ["for", "topic", "session", "here-topic", "here-session"]);
   if (rest.length !== 1)
-    fail('usage: pnpm prd notice "<text>" [--for <minutes>] [--topic <t>] (quote the text)');
+    fail(`usage: ${toolCmd.prd} notice "<text>" [--for <minutes>] [--topic <t>] (quote the text)`);
   if (opts.for != null && !/^\d+(\.\d+)?$/.test(opts.for)) fail("--for takes a number of minutes");
   const n = createNotice(dirOf(), {
     text: rest[0],
-    session: opts.session || process.env.CARETOOK_SESSION || opts["here-session"] || null,
+    session: opts.session || process.env.RISA_SESSION || opts["here-session"] || null,
     topic: opts.topic || opts["here-topic"] || null,
     ...(opts.for != null ? { minutes: Number(opts.for) } : {}),
   });
@@ -80,7 +81,7 @@ function notices(argv) {
 // Never fails: prints what it can, else nothing.
 function quietly(fn) {
   try {
-    const dir = process.env.CARETOOK_NOTICES_DIR;
+    const dir = process.env.RISA_NOTICES_DIR;
     if (!dir) return;
     const out = fn(listNotices(dir));
     if (out) process.stdout.write(out);

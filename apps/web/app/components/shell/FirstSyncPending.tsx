@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { useRevalidator } from "react-router";
-import { Loading } from "~/components/ui";
+import { PageLoading } from "~/components/ui";
 import { useFirstSyncDone } from "~/lib/sync";
 
 /**
  * A new device's first sync is taking a while: say so instead of showing an
  * empty (or "not found") screen, and rerun the loaders once it's done.
+ * The frame's full-page loader (`PageLoading`, B-908).
  */
 export function FirstSyncPending() {
   const done = useFirstSyncDone();
@@ -13,9 +14,5 @@ export function FirstSyncPending() {
   useEffect(() => {
     if (done) void revalidate();
   }, [done, revalidate]);
-  return (
-    <main className="mx-auto max-w-2xl px-4 py-10" data-first-sync-pending="">
-      <Loading label="Getting your care groups…" />
-    </main>
-  );
+  return <PageLoading message="Getting your care groups…" data-first-sync-pending="" />;
 }

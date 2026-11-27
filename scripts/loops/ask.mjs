@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// pnpm prd ask | asks | answer: the asks queue's command line (the store is asks.mjs).
+// prd ask | asks | answer: the asks queue's command line (the store is asks.mjs).
 //
 //   ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n> --defaults|--waits]
 //                                     file a question; one with a recommendation says whether it
-//                                     takes it after CARETOOK_ASK_DEFAULT_MIN (30) minutes unanswered
+//                                     takes it after RISA_ASK_DEFAULT_MIN (30) minutes unanswered
 //                                     (--defaults) or waits for the user however long (--waits)
 //                                     It needs --skeptic <id>: a skeptic's `ask` verdict on this
 //                                     question, or a land `no` or plan `send-back` (each used once).
@@ -20,25 +20,23 @@
 //   asks --done <id>                  dismiss one (a read report, a question no longer needed)
 //   answer <id> <option number or text…>   (refused on a defaulted ask)
 //
-// The directory is CARETOOK_ASKS_DIR (prd.sh sets the main checkout's
-// .loops/.asks). `ask` takes --session <name> (default CARETOOK_SESSION, else
+// The directory is RISA_ASKS_DIR (prd.sh sets the main checkout's
+// .loops/.asks). `ask` takes --session <name> (default RISA_SESSION, else
 // what prd.sh passes as --here-session) and the topic defaults to --here-topic.
 //
 // Filing one prints its id. A question then prints "Now send a PushNotification:
 // …" for the asking session to push to the keeper's phone; a report prints no
 // such line and is never pushed (the keeper wants pushes for questions only,
 // and only this line). Either kind also shows a macOS notification
-// when osascript is on the PATH, and runs `$CARETOOK_ASK_NOTIFY <id> <kind>
+// (the host layer, host.mjs, when osascript is on the PATH), and runs `$RISA_ASK_NOTIFY <id> <kind>
 // <topic> <text>` when that is set (a command line, run by sh), bounded by
-// CARETOOK_ASK_NOTIFY_TIMEOUT seconds (default 10); either one failing is only
-// a warning. `--wait` polls every CARETOOK_ASK_POLL seconds (default 2).
+// RISA_ASK_NOTIFY_TIMEOUT seconds (default 10); either one failing is only
+// a warning. `--wait` polls every RISA_ASK_POLL seconds (default 2).
 //
-// CARETOOK_CLOCK_FILE (tests, and the dispatcher's own under test): a file
+// RISA_CLOCK_FILE (tests, and the dispatcher's own under test): a file
 // holding epoch seconds that `ask` files at and `asks` lists from, so a
 // countdown or an age reads from a fixed now; `--wait` keeps the real clock.
-import { spawn } from "node:child_process";
-import { accessSync, constants, readFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { readFileSync } from "node:fs";
 import {
   AskError,
   DEFAULT_WAIT_MIN,
@@ -58,18 +56,20 @@ import {
   span,
   validateAsk,
 } from "./asks.mjs";
+import { loadConfig, toolCmd } from "./config.mjs";
+import { notify, runBounded } from "./host.mjs";
 import { SkepticError, questionHash, useRecord } from "./skeptics.mjs";
 
 const TIMED_OUT = 75;
 
 const fail = (msg, code = 1) => {
-  console.error(`pnpm prd: ${msg}`);
+  console.error(`${toolCmd.prd}: ${msg}`);
   process.exit(code);
 };
 
-/** Now, ms: CARETOOK_CLOCK_FILE's epoch seconds when set (as dispatch.mjs reads it), else the real clock. */
+/** Now, ms: RISA_CLOCK_FILE's epoch seconds when set (as dispatch.mjs reads it), else the real clock. */
 const nowOf = () => {
-  const file = process.env.CARETOOK_CLOCK_FILE;
+  const file = process.env.RISA_CLOCK_FILE;
   if (file) {
     const s = Number(readFileSync(file, "utf8").trim());
     if (Number.isFinite(s)) return s * 1000;
@@ -78,7 +78,7 @@ const nowOf = () => {
 };
 
 const dirOf = () =>
-  process.env.CARETOOK_ASKS_DIR || fail("CARETOOK_ASKS_DIR isn't set (run this through pnpm prd)");
+  process.env.RISA_ASKS_DIR || fail(`RISA_ASKS_DIR isn't set (run this through ${toolCmd.prd})`);
 
 // Each option takes one value; --option repeats.
 function parse(argv, valued, flags = []) {
@@ -99,79 +99,26 @@ function parse(argv, valued, flags = []) {
   return { opts, rest };
 }
 
-const onPath = (cmd) => {
-  for (const d of (process.env.PATH ?? "").split(delimiter)) {
-    if (!d) continue;
-    try {
-      accessSync(join(d, cmd), constants.X_OK);
-      return join(d, cmd);
-    } catch {
-      /* not here */
-    }
-  }
-  return null;
-};
-
-// run(cmd, args, seconds) → "ok", "exit <n>" or "timed out": in its own process
-// group, so a hook that hangs (and anything it started) is killed at the limit.
-const run = (cmd, args, seconds) =>
-  new Promise((resolve) => {
-    let child;
-    try {
-      child = spawn(cmd, args, { detached: true, stdio: ["ignore", "ignore", "inherit"] });
-    } catch (e) {
-      resolve(`failed: ${e.message}`);
-      return;
-    }
-    const timer = setTimeout(() => {
-      try {
-        process.kill(-child.pid, "SIGKILL");
-      } catch {
-        /* gone */
-      }
-      resolve("timed out");
-    }, seconds * 1000);
-    child.once("error", (e) => {
-      clearTimeout(timer);
-      resolve(`failed: ${e.message}`);
-    });
-    child.once("exit", (code, signal) => {
-      clearTimeout(timer);
-      resolve(code === 0 ? "ok" : `exit ${code ?? signal}`);
-    });
-  });
-
 async function tell(ask) {
-  const osascript = onPath("osascript");
-  if (osascript) {
-    const title = `Caretook ${ask.kind}: ${ask.topic}`;
-    const r = await run(
-      osascript,
-      [
-        "-e",
-        "on run argv",
-        "-e",
-        "display notification (item 2 of argv) with title (item 1 of argv)",
-        "-e",
-        "end run",
-        title,
-        shorten(ask.text, 200),
-      ],
-      5,
-    );
-    if (r !== "ok") console.error(`warning: the macOS notification ${r} (ignored)`);
-  }
-  const hook = process.env.CARETOOK_ASK_NOTIFY;
+  const name = loadConfig().config.name;
+  const project = name.replace(/^./, (c) => c.toUpperCase());
+  const shown = await notify(`${project} ${ask.kind}: ${ask.topic}`, shorten(ask.text, 200));
+  if (shown && shown !== "ok") console.error(`warning: the macOS notification ${shown} (ignored)`);
+  const hook = process.env.RISA_ASK_NOTIFY;
   if (hook) {
-    const limit = Number(process.env.CARETOOK_ASK_NOTIFY_TIMEOUT) || 10;
-    const r = await run("sh", ["-c", `${hook} "$@"`, "sh", ask.id, ask.kind, ask.topic, ask.text], limit);
-    if (r !== "ok") console.error(`warning: CARETOOK_ASK_NOTIFY ${r} (ignored)`);
+    const limit = Number(process.env.RISA_ASK_NOTIFY_TIMEOUT) || 10;
+    const r = await runBounded(
+      "sh",
+      ["-c", `${hook} "$@"`, "sh", ask.id, ask.kind, ask.topic, ask.text],
+      limit,
+    );
+    if (r !== "ok") console.error(`warning: RISA_ASK_NOTIFY ${r} (ignored)`);
   }
 }
 
-/** CARETOOK_ASK_DEFAULT_MIN: the minutes a defaulting question waits (fractions allowed). */
+/** RISA_ASK_DEFAULT_MIN: the minutes a defaulting question waits (fractions allowed). */
 const waitMinutes = () => {
-  const v = process.env.CARETOOK_ASK_DEFAULT_MIN;
+  const v = process.env.RISA_ASK_DEFAULT_MIN;
   const n = Number(v);
   return v != null && v !== "" && Number.isFinite(n) && n >= 0 ? n : DEFAULT_WAIT_MIN;
 };
@@ -229,7 +176,7 @@ async function ask(argv) {
   const skeptic = kind === "question" ? spendVerdict(opts, input, chose) : null;
   const record = createAsk(dir, {
     ...input,
-    session: opts.session || process.env.CARETOOK_SESSION || opts["here-session"] || null,
+    session: opts.session || process.env.RISA_SESSION || opts["here-session"] || null,
     skeptic,
     now: nowOf(),
   });
@@ -245,7 +192,7 @@ async function ask(argv) {
       ? ` (takes "${shorten(record.recommended, 40)}" at ${clock(record.defaultAt)} unless answered)`
       : "";
     console.log(`Now send a PushNotification: ${record.topic}: ${shorten(record.text, 120)}${when}`);
-    console.log(`Then wait in the background: pnpm prd ask --wait ${record.id}`);
+    console.log(`Then wait in the background: ${toolCmd.prd} ask --wait ${record.id}`);
   } else console.log("Filed. No PushNotification for a report: only questions are pushed.");
   await tell(record);
 }
@@ -253,17 +200,17 @@ async function ask(argv) {
 /**
  * Spend the --skeptic record this question needs; returns what the ask keeps of
  * it, or null for a dispatcher's question. Only an explicit --session exempts,
- * so an inherited CARETOOK_SESSION can't.
+ * so an inherited RISA_SESSION can't.
  */
 function spendVerdict(opts, input, chose) {
   if (opts.skeptic == null) {
     if (DISPATCHER_SESSIONS.includes(opts.session)) return null;
     fail(
-      `a question goes to a skeptic first. Nothing was filed. Write the question, options, recommendation and evidence to a file; run a fresh agent on Opus with the brief from pnpm prd prompt skeptic ask --evidence <file>; record its answer with pnpm prd skeptic record --kind ask --verdict decide|ask --why "<its line>" --question "<text>" --offer "<a>"… --defaults|--waits [--option "<chosen>"]. On ask, file this again with --skeptic <id>; on decide, file it with pnpm prd ask --decided --skeptic <id> --chose "<a>"`,
+      `a question goes to a skeptic first. Nothing was filed. Write the question, options, recommendation and evidence to a file; run a fresh agent on Opus with the brief from ${toolCmd.prd} prompt skeptic ask --evidence <file>; record its answer with ${toolCmd.prd} skeptic record --kind ask --verdict decide|ask --why "<its line>" --question "<text>" --offer "<a>"… --defaults|--waits [--option "<chosen>"]. On ask, file this again with --skeptic <id>; on decide, file it with ${toolCmd.prd} ask --decided --skeptic <id> --chose "<a>"`,
     );
   }
   const dir =
-    process.env.CARETOOK_SKEPTIC_DIR || fail("CARETOOK_SKEPTIC_DIR isn't set (run this through pnpm prd)");
+    process.env.RISA_SKEPTIC_DIR || fail(`RISA_SKEPTIC_DIR isn't set (run this through ${toolCmd.prd})`);
   const hash = questionHash(input.text, input.options);
   const wanted = opts.decided
     ? {
@@ -288,7 +235,7 @@ function spendVerdict(opts, input, chose) {
 async function wait(dir, id, timeout) {
   const limit = timeout == null ? Infinity : Number(timeout);
   if (!(limit >= 0)) fail("--timeout takes a number of seconds");
-  const poll = (Number(process.env.CARETOOK_ASK_POLL) || 2) * 1000;
+  const poll = (Number(process.env.RISA_ASK_POLL) || 2) * 1000;
   const end = Date.now() + limit * 1000;
   for (;;) {
     let a = getAsk(dir, id) ?? fail(`no ask ${id}`);
@@ -334,7 +281,7 @@ function asks(argv) {
 
 function answer(argv) {
   const [id, ...words] = argv;
-  if (!id || !words.length) fail("usage: pnpm prd answer <id> <option number or text>");
+  if (!id || !words.length) fail(`usage: ${toolCmd.prd} answer <id> <option number or text>`);
   const a = answerAsk(dirOf(), id, words.join(" "));
   console.log(`${a.id} answered: ${a.answer}`);
 }

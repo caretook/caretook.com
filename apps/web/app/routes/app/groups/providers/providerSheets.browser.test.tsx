@@ -13,6 +13,7 @@ import {
   removeProvider,
   updateProvider,
 } from "~/lib/providers/providers.sync";
+import { SPECIALTY_SUGGESTIONS } from "~/lib/providers/specialties";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import { requiredLabels, saysOptional } from "../../../../../test/required";
@@ -96,6 +97,17 @@ const storedNamed = async (device: Awaited<ReturnType<typeof open>>, name: strin
 const stored = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
   (await device.query<StoredProvider>("SELECT * FROM provider WHERE id = ?", [id]))[0];
 
+/** The form's tabs (Essentials, More); a tab's name also carries its markers, so match the start. */
+const formTab = (name: "Essentials" | "More") =>
+  page
+    .getByRole("dialog")
+    .getByRole("tablist", { name: "Provider sections" })
+    .getByRole("tab", { name, exact: false });
+const showTab = async (name: "Essentials" | "More") => {
+  await userEvent.click(formTab(name));
+  await expect.element(formTab(name)).toHaveAttribute("aria-selected", "true");
+};
+
 const addPhone = async () => userEvent.click(await found(() => formButton("Add a phone number")));
 const openAdd = async () => {
   await userEvent.click(await found(ADD_PROVIDER));
@@ -142,8 +154,10 @@ describe("adding a provider", () => {
   test("validation on the fields: name required, email and website shape, at most six phones (Add disabled at six; a seventh forced in is refused); focus on the first", async () => {
     const device = await open();
     await openAdd();
+    await showTab("More");
     await fill("email", "not-an-email");
     await fill("website", "not a site");
+    await showTab("Essentials");
     for (let i = 0; i < 5; i++) await addPhone();
     await expect.poll(() => FORM()?.querySelectorAll('[name="phoneNumber"]').length).toBe(6);
     expect(formButton("Add a phone number")?.disabled).toBe(true);
@@ -181,9 +195,6 @@ describe("adding a provider", () => {
 
     await fill("name", "Dr. Nadia Brooks");
     await fill("specialty", "Neurology");
-    await fill("email", "brooks@neuro.example");
-    await fill("website", "neuro.example");
-    await fill("address", "9 Elm Lane\nSpringfield");
     await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("phoneLabel")), "Office");
     await fill("phoneNumber", "(555) 010-7700");
     await addPhone();
@@ -193,6 +204,10 @@ describe("adding a provider", () => {
     );
     await fill("phoneNumber", "(555) 010-7701", 1);
     await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("practiceId")), WESTSIDE.id);
+    await showTab("More");
+    await fill("email", "brooks@neuro.example");
+    await fill("website", "neuro.example");
+    await fill("address", "9 Elm Lane\nSpringfield");
     await userEvent.click(submit());
 
     // The row is local at once, so its page opens offline.
@@ -327,6 +342,7 @@ describe("editing a provider", () => {
     expect(field<HTMLSelectElement>("practiceId")?.value).toBe(WESTSIDE.id);
     expect(field<HTMLTextAreaElement>("address")?.value).toBe("9 Elm Lane\nSpringfield");
 
+    await showTab("More");
     await userEvent.click(await found(() => field("isPrimary")));
     await userEvent.click(await found(() => field("past")));
     await userEvent.click(submit());
@@ -431,6 +447,130 @@ describe("editing a provider", () => {
     expect(confirmButton("Delete")?.disabled).toBe(false);
     await userEvent.click(await found(() => confirmButton("Delete")));
     await expect.poll(async () => (await stored(device, PRACTICE.id))?.deleted_at).not.toBeNull();
+  });
+});
+
+describe("the form's two tabs, Essentials and More (B-694)", () => {
+  const tabName = (name: "Essentials" | "More") => formTab(name).element().getAttribute("aria-label") ?? name;
+  const KIM = fx.provider({
+    name: "Dr. Mina Kim",
+    specialty: "Dermatology",
+    phones: [{ label: "Office", number: "(555) 010-8800" }],
+    email: "kim@skin.example",
+  });
+
+  test("a new provider saves from Essentials alone, which holds type, name, specialty, practice and phones", async () => {
+    const device = await open({ role: "caretaker" });
+    await openAdd();
+    await expect.element(formTab("Essentials")).toHaveAttribute("aria-selected", "true");
+    const essentials = FORM()!.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden])')!;
+    for (const name of ["type", "name", "specialty", "practiceId", "phoneNumber"])
+      expect(essentials.querySelector(`[name="${name}"]`), name).not.toBeNull();
+    for (const name of ["email", "address", "website", "isPrimary", "past"])
+      expect(essentials.querySelector(`[name="${name}"]`), name).toBeNull();
+    expect(tabName("More")).toBe("More");
+
+    await fill("name", "Dr. Omar Haddad");
+    await userEvent.click(submit());
+    await expect.poll(() => storedNamed(device, "Dr. Omar Haddad")).toBeDefined();
+    expect(await storedNamed(device, "Dr. Omar Haddad")).toMatchObject({ type: "clinician", email: null });
+  });
+
+  test("a value typed on More survives switching back to Essentials, Save shows on both, and it is saved", async () => {
+    const device = await open({ role: "caretaker" });
+    await openAdd();
+    await fill("name", "Dr. Omar Haddad");
+    await showTab("More");
+    await expect.element(submit()).toBeVisible();
+    await fill("email", "haddad@clinic.example");
+    await userEvent.click(await found(() => field("isPrimary")));
+    await showTab("Essentials");
+    await expect.element(submit()).toBeVisible();
+    expect(field("email")?.value).toBe("haddad@clinic.example");
+    await showTab("More");
+    await expect
+      .element(page.getByRole("dialog").getByRole("textbox", { name: "Email" }))
+      .toHaveValue("haddad@clinic.example");
+    await showTab("Essentials");
+
+    await userEvent.click(submit());
+    await expect.poll(() => storedNamed(device, "Dr. Omar Haddad")).toBeDefined();
+    expect(await storedNamed(device, "Dr. Omar Haddad")).toMatchObject({
+      email: "haddad@clinic.example",
+      is_primary: 1,
+    });
+  });
+
+  test("editing a provider with an email opens on Essentials with More marked filled in", async () => {
+    await open({ url: `${PROVIDERS_URL}/${KIM.id}/edit`, fixtures: [directory(), KIM] });
+    await waitUntil(() => !!FORM(), "the edit sheet");
+    await expect.element(formTab("Essentials")).toHaveAttribute("aria-selected", "true");
+    expect(tabName("More")).toBe("More, filled in");
+    expect(tabName("Essentials")).toBe("Essentials");
+  });
+
+  test("an invalid email saved from Essentials switches to More, marks it and focuses the email; nothing is written", async () => {
+    const device = await open({ url: `${PROVIDERS_URL}/${KIM.id}/edit`, fixtures: [directory(), KIM] });
+    await waitUntil(() => !!FORM(), "the edit sheet");
+    await showTab("More");
+    await fill("email", "not-an-email");
+    await showTab("Essentials");
+    await userEvent.click(submit());
+
+    await expect.element(formTab("More")).toHaveAttribute("aria-selected", "true");
+    await expect.poll(() => (document.activeElement as HTMLInputElement | null)?.name).toBe("email");
+    expect(fieldErrors()).toEqual({ email: "Enter an email address" });
+    await expect.poll(() => tabName("More")).toBe("More, filled in, has an error");
+    expect(SHEET()).not.toBeNull();
+    expect((await stored(device, KIM.id))?.email).toBe("kim@skin.example");
+    expect(await device.queued()).toEqual([]);
+  });
+
+  test("a change made only on More makes the discard prompt ask, from Essentials too", async () => {
+    const device = await open({ url: `${PROVIDERS_URL}/${KIM.id}/edit`, fixtures: [directory(), KIM] });
+    await waitUntil(() => !!FORM(), "the edit sheet");
+    await showTab("More");
+    await userEvent.click(await found(() => field("past")));
+    await showTab("Essentials");
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("heading", { name: "Discard changes?" })).toBeVisible();
+    expect(device.location()).toBe(`${PROVIDERS_URL}/${KIM.id}/edit`);
+  });
+});
+
+describe("specialty suggestions (B-923)", () => {
+  /** The datalist the specialty input names, and its options' values. */
+  const suggestions = () => {
+    const id = field("specialty")?.getAttribute("list");
+    const list = id ? document.getElementById(id) : null;
+    if (!(list instanceof HTMLDataListElement)) return null;
+    return [...list.options].map((o) => o.value);
+  };
+  const pickType = async (type: string) =>
+    userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLInputElement>(`[name="type"][value="${type}"]`)),
+    );
+
+  test("the specialty input is linked to a datalist of its type's suggestions, which follow the type", async () => {
+    await open({ role: "caretaker" });
+    await openAdd();
+    await expect.poll(suggestions).toEqual([...SPECIALTY_SUGGESTIONS.clinician]);
+    for (const type of ["pharmacy", "practice", "other", "clinician"] as const) {
+      await pickType(type);
+      await expect.poll(suggestions).toEqual([...SPECIALTY_SUGGESTIONS[type]]);
+    }
+  });
+
+  test("a value not in the list saves as typed", async () => {
+    const device = await open({ role: "caretaker" });
+    await openAdd();
+    await fill("name", "Dr. Iris Fenwick");
+    await fill("specialty", "Sleep medicine (pediatric)");
+    expect(suggestions()).not.toContain("Sleep medicine (pediatric)");
+    await userEvent.click(submit());
+    await expect
+      .poll(async () => (await storedNamed(device, "Dr. Iris Fenwick"))?.specialty)
+      .toBe("Sleep medicine (pediatric)");
   });
 });
 

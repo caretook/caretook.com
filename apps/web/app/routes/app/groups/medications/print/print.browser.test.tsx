@@ -13,7 +13,8 @@ import { LIST, MEDICATION_ROUTES, MEDS, SCHEDULE, world } from "../medicationWor
 // pharmacy's first phones (their order, groups and wording are
 // printSheet.test.ts's); Print calling window.print(); the weekly chart's
 // days in the recipient's zone, its passes with amounts, times of their own
-// and as-needed lines, the allergies first, and the week picker (across the
+// and as-needed lines, a G, S and R box in each dose cell with the legend,
+// no allergies or conditions (the list's only), and the week picker (across the
 // fall clock change); and in print media at 420 and 1280, no frame or
 // controls, everything within the page, black on white in the dark theme
 // too, the weekly chart on a landscape page. The device is offline
@@ -240,13 +241,25 @@ describe("the weekly chart", () => {
     asNeededLines: [...document.querySelectorAll<HTMLElement>("main tr[data-week-as-needed]")].length,
     boxes: [...document.querySelectorAll<HTMLElement>("main tr[data-week-row] td[data-week-cell]")].length,
     rows: [...document.querySelectorAll<HTMLElement>("main tr[data-week-row]")].length,
+    marks: [
+      ...new Set(
+        [...document.querySelectorAll<HTMLElement>("main tr[data-week-row] td[data-week-cell]")].map((c) =>
+          [...c.querySelectorAll<HTMLElement>("[data-week-mark]")].map((m) => m.textContent?.trim()).join(""),
+        ),
+      ),
+    ],
+    initials: document.querySelectorAll("main tr[data-week-row] td[data-week-cell] [data-week-initials]")
+      .length,
+    legend: [
+      ...document.querySelectorAll<HTMLElement>("main [data-week-legend] [data-week-legend-mark]"),
+    ].map((m) => m.textContent?.trim()),
   });
   const firstDay = () => document.querySelector<HTMLElement>("main th[data-week-day]")?.dataset.weekDay;
   const onWeek = () =>
     !!document.querySelector<HTMLElement>("main [data-week-sheet]") &&
     [...document.querySelectorAll<HTMLElement>("main tr[data-week-row]")].length >= 4;
 
-  test("from Schedule's Print menu: this week, Monday to Sunday; the scheduled medications under their passes with amounts, then times of their own, then as-needed lines, a box a day; the allergies first; Back goes to Schedule", async () => {
+  test("from Schedule's Print menu: this week, Monday to Sunday; the scheduled medications under their passes with amounts, then times of their own, then as-needed lines; G, S and R boxes and initials a day, the legend before the table; no allergies or conditions; Back goes to Schedule", async () => {
     const device = await open(SCHEDULE);
     await choosePrint("Weekly chart");
     await waitUntil(onWeek, "the weekly chart");
@@ -269,14 +282,17 @@ describe("the weekly chart", () => {
     ]);
     expect(sheet.boxes).toBe(sheet.rows * 7);
     expect(sheet.asNeededLines).toBeGreaterThanOrEqual(2);
-    const allergies = await found(() => document.querySelector("main [data-print-allergies]"));
+    // Every dose cell has its own G, S and R boxes, in that order, and a line for initials.
+    expect(sheet.marks).toEqual(["GSR"]);
+    expect(sheet.initials).toBe(sheet.boxes);
+    expect(sheet.legend).toEqual(["GGiven", "SSkipped", "RRefused"]);
+    const legend = await found(() => document.querySelector("main [data-week-legend]"));
     const table = await found(() => document.querySelector("main [data-week-table]"));
-    expect(allergies.textContent).toContain("Penicillin");
-    expect(allergies.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(legend.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(printField("name")).toContain("Grandma June");
-    const conditions = document.querySelector<HTMLElement>("main [data-print-conditions]")!;
-    expect(conditions.textContent).toContain("Type 2 diabetes (since 2015)");
-    expect(allergies.compareDocumentPosition(conditions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Allergies and conditions are the medication list's alone (its tests above).
+    expect(document.querySelector("main [data-print-allergies], main [data-print-conditions]")).toBeNull();
+    expect(document.querySelector("main [data-week-sheet]")?.textContent).not.toContain("Penicillin");
   });
 
   test("Next, Previous and This week move it by a week; a start day of its own shows that week (seven days across a clock change is weeklySheet.test.ts's)", async () => {
@@ -318,7 +334,7 @@ describe("the weekly chart", () => {
         pageFits: true,
         ...BLACK_ON_WHITE,
       });
-      const box = document.querySelector<HTMLElement>("main td[data-week-cell] span span");
+      const box = document.querySelector<HTMLElement>("main td[data-week-cell] [data-week-mark]");
       expect(box && getComputedStyle(box).borderTopColor).toBe("rgb(0, 0, 0)");
       // Its page is the landscape `@page weekly`.
       const sheet = await found(() => document.querySelector("main:has([data-week-sheet])"));

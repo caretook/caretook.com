@@ -94,8 +94,8 @@ const body = (args, fail = "", extra = {}) => {
       STUB_TIMES: "",
       STUB_UNHANDLED: "",
       STUB_TITLE: "",
-      CARETOOK_CHECK_STATE: state,
-      CARETOOK_CHECK_COUNTS: "",
+      RISA_CHECK_STATE: state,
+      RISA_CHECK_COUNTS: "",
       ...extra,
     },
   });

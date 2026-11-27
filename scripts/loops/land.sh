@@ -9,7 +9,7 @@
 #
 # Two paths:
 #   the PR path    prd/ branches, and hotfix/ ones with --pr: the branch's open
-#                  PR into dev (pnpm prd pr) is merged on GitHub (a merge commit
+#                  PR into dev (prd pr) is merged on GitHub (a merge commit
 #                  with the -m subject, pinned to the checked tip with
 #                  --match-head-commit, the remote branch deleted), after dev is
 #                  pushed to origin (fast-forward only; a pickup of anything but
@@ -21,7 +21,7 @@
 # A hotfix must say which (ask the user "PR or local?"); a prd/ branch takes
 # --local only as the fallback when the PR path fails, on the user's word.
 #
-# It refuses unless the branch already contains dev's work (`pnpm prd sync`;
+# It refuses unless the branch already contains dev's work (`prd sync`;
 # backlog-only commits on dev don't count) and, for a prd/ or hotfix/ branch,
 # a CI verdict for its tier (scripts/ci/ci.mjs gate, gate.mjs).
 # The unsynced landing: when dev's commits since the last sync share no file with
@@ -32,7 +32,7 @@
 # on a known dev brake (a brake verdict on the tip of dev it measures against or
 # on origin/dev's tip after a fetch, or a live dev-brake notice; no verdict is not
 # a brake; an unreadable state warns), or with
-# CARETOOK_UNSYNCED=off: those keep the drift refusal.
+# RISA_UNSYNCED=off: those keep the drift refusal.
 # --tier <t>: the tier to wait for; the default is what the diff proposes
 # (check-plan.mjs). Below the proposal it needs --why "<reason>", and the report
 # names both; `none` under a real proposal takes --force. The gate
@@ -54,7 +54,7 @@
 # it also refuses (the config's docBudget hook) when the branch grows a doc that
 # is already over its budget, for every kind of branch (a plan branch lands docs).
 # The PR path also refuses unless the PR is open, its head is the branch's
-# local tip, and Codex's verdict on it is clean (pnpm prd review): a clean
+# local tip, and Codex's verdict on it is clean (prd review): a clean
 # verdict on an older head carries over plain dev merges that leave the PR's
 # diff alone (codex-review.mjs), and the merge is still pinned to the tip.
 # --no-review skips only the verdict. A prd/ branch
@@ -68,10 +68,14 @@
 # files there. No file for a plan/ branch, a docs-only landing or a failed merge.
 # The same landings post a notice on the notice board (notice.mjs) for six
 # hours: "landed <branch> in dev as <sha>: sync at your next wave boundary".
+# A landing that changes pnpm-lock.yaml or a package.json runs the install in the
+# main checkout only when it is on dev, at the landed tip and clean of those
+# files; otherwise, or when the install fails, it says why and posts a notice
+# for the dev keeper (lib.sh, main_install).
 #
 # The landing journal (land-journal.mjs): from just before its first step that
 # changes anything (the PR path's push, the local merge), a landing records each
-# step in .loops/.landing/<branch>.json (CARETOOK_LANDING_DIR) before running it,
+# step in .loops/.landing/<branch>.json (RISA_LANDING_DIR) before running it,
 # and removes the record at the end; the to-test file's body is written there
 # first too, so a resume can place it. While a record is there, land refuses the
 # branch. --resume <branch> reads the record, asks git and GitHub how far it got,
@@ -82,9 +86,9 @@
 # an unknown state, or a MERGE_HEAD that isn't the recorded tip, never aborted).
 # It never reruns a merge. No record: it says so and exits 0.
 #
-# Test seams: CARETOOK_LAND_KILL_AT=<step> (a throwaway branch only) kills land
+# Test seams: RISA_LAND_KILL_AT=<step> (a throwaway branch only) kills land
 # with SIGKILL just before it records that step, as a crash would.
-# CARETOOK_PR_THROWAWAY=1 (a branch with "throwaway" in its name
+# RISA_PR_THROWAWAY=1 (a branch with "throwaway" in its name
 # only) measures the sync against origin/dev instead of dev, and stops the PR
 # path after its refusals, printing the merge it would run: nothing is pushed
 # or merged.
@@ -100,7 +104,7 @@ proposal="" proposal_why="" tierline="" gate_base="" gate_run="" gate_flakes="" 
 unsynced="" unsynced_tc="" unsynced_line="" unsynced_report=""
 skeptics="" byuser="" skeptic_tip="" verdict_lines="" resume="" journal_at="" noticed=""
 ci_bin="$(cd "$(dirname "$0")/.." && pwd)/ci/ci.mjs"
-skeptic_dir=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
+skeptic_dir=${RISA_SKEPTIC_DIR:-$loops/.skeptic}
 while (($#)); do
   case $1 in
     -m) msg=${2:?-m "subject"}; shift 2 ;;
@@ -135,7 +139,7 @@ while (($#)); do
     *) what=$1; shift ;;
   esac
 done
-[[ -n $what ]] || die "which PRD? (pnpm prd land <topic>)"
+[[ -n $what ]] || die "which PRD? (${prd_cmd} land <topic>)"
 [[ -z $resume || -z $msg$force$path$noreview$tier$why$fixes$skeptics$byuser ]] ||
   die "--resume takes only the branch: the journal holds the rest"
 case $what in
@@ -177,13 +181,13 @@ land_log_end() {
 }
 # The landing journal (land-journal.mjs; the header says what it holds). Its
 # writes never fail a landing: a failure only warns.
-journal_dir=${CARETOOK_LANDING_DIR:-$loops/.landing}
+journal_dir=${RISA_LANDING_DIR:-$loops/.landing}
 journal=$journal_dir/${branch//\//-}.json
 journal_body=${journal%.json}.to-test.md
 journal_bin="$(dirname "$0")/land-journal.mjs"
 # journal_step STEP [key=value…] → record STEP as the one about to run.
 journal_step() {
-  if [[ -n ${CARETOOK_LAND_KILL_AT:-} && $CARETOOK_LAND_KILL_AT == "$1" && $branch == *throwaway* ]]; then
+  if [[ -n ${RISA_LAND_KILL_AT:-} && $RISA_LAND_KILL_AT == "$1" && $branch == *throwaway* ]]; then
     kill -KILL $$
   fi
   journal_at=$1
@@ -199,7 +203,7 @@ trap land_log_end EXIT
 # A resume skips every refusal: what it may do is the journal's (resume_landing).
 if [[ -z $resume ]]; then
   [[ ! -e $journal ]] ||
-    die "a landing of $branch was cut off midway (its journal: $journal): \`pnpm prd land --resume $branch\` finishes or undoes it first"
+    die "a landing of $branch was cut off midway (its journal: $journal): \`${prd_cmd} land --resume $branch\` finishes or undoes it first"
   git -C "$main" rev-parse --verify --quiet "$branch" >/dev/null || die "no branch $branch"
   [[ $(git -C "$main" branch --show-current) == "$trunk" ]] || die "the main checkout isn't on $trunk"
   [[ ! -e $(git -C "$main" rev-parse --absolute-git-dir)/MERGE_HEAD ]] || die "the main checkout is in the middle of a merge"
@@ -214,7 +218,7 @@ if [[ -z $resume ]]; then
       return 0
     fi
     [[ -n $skeptics ]] ||
-      die "--$action needs a skeptic's go (--skeptic <id>: \`pnpm prd prompt skeptic land --evidence <file>\`, then \`pnpm prd skeptic record --kind land --action $action --tip $tip …\`) or the user's word (--by-user)"
+      die "--$action needs a skeptic's go (--skeptic <id>: \`${prd_cmd} prompt skeptic land --evidence <file>\`, then \`${prd_cmd} skeptic record --kind land --action $action --tip $tip …\`) or the user's word (--by-user)"
     for id in $skeptics; do args+=(--id "$id"); done
     out=$(node "$(dirname "$0")/land-skeptic.mjs" check --dir "$skeptic_dir" --topic "$topic" --tip "$tip" --action "$action" "${args[@]}") ||
       die "--$action refused: $out"
@@ -250,12 +254,12 @@ if [[ -z $resume ]]; then
   fi
   # drift_refusal [WHY] → today's refusal, with why it couldn't land unsynced.
   drift_refusal() {
-    die "$drift_ref has moved since $branch last synced${1:+ ($1)}: run \`pnpm prd sync --force\` and \`pnpm prd check\` in $dir first"
+    die "$drift_ref has moved since $branch last synced${1:+ ($1)}: run \`${prd_cmd} sync --force\` and \`${prd_cmd} check\` in $dir first"
   }
   # judge_unsynced → the refusals that need no CI: sets unsynced, or refuses.
   judge_unsynced() {
     local go why
-    [[ ${CARETOOK_UNSYNCED:-} != off ]] || drift_refusal "CARETOOK_UNSYNCED=off"
+    [[ ${RISA_UNSYNCED:-} != off ]] || drift_refusal "RISA_UNSYNCED=off"
     [[ -z $force || -n $byuser ]] || drift_refusal "a skeptic's go doesn't cover an unsynced tip: sync, or --force --by-user on the user's word"
     [[ -z $fixes ]] || drift_refusal "a landing with --fixes lands only synced"
     IFS=$'\t' read -r go why _ <<< "$(unsynced_verdict "$drift_ref" "$branch")"
@@ -400,7 +404,7 @@ flake_retry() {
   [[ $gate_flakes == 1 ]] || return 0
   local args=()
   while read -r line; do args+=("$line"); done < <(flake_args)
-  echo "pnpm prd ci ${args[*]}"
+  echo "${prd_cmd} ci ${args[*]}"
 }
 # file_flakes → file the verdict's flakes, after the merge. It can't undo the
 # landing: a failure is reported, added to the to-test file, and returned as 5.
@@ -431,8 +435,7 @@ checkline=${checkline:-}
 try_lines() {
   if [[ -n $changed ]] && ! grep -qEv "$exempt_re" <<< "$changed"; then
     local prd backlog tests
-    prd=$(config_get tool.prd 2>/dev/null) || prd="pnpm prd"
-    backlog=$(config_get tool.backlog 2>/dev/null) || backlog="pnpm backlog"
+    prd=$prd_cmd backlog=$backlog_cmd
     tests=$(config_get commands.toolingTests 2>/dev/null) || tests=""
     echo "Only docs and tooling changed: no app screen to open. Try the commands the commits above name, in $main."
     ! grep -q '^scripts/loops/' <<< "$changed" || echo "The PRD tooling: \`$prd help\` lists its commands."
@@ -537,29 +540,48 @@ place_to_test() {
     { echo "couldn't write $to_test_file"; to_test_file=""; return 0; }
   echo "to-test file: $to_test_file"
 }
+# landed_sha → the landed commit: origin's trunk on the PR path, else the trunk.
+landed_sha() {
+  if [[ $path == pr ]]; then
+    git -C "$main" rev-parse "origin/$trunk" 2>/dev/null || git -C "$main" rev-parse "$trunk"
+  else
+    git -C "$main" rev-parse "$trunk"
+  fi
+}
+# landing_session → the session a landing's notices come from.
+landing_session() {
+  case $branch in
+    "$prd_prefix"*) echo "prd-$topic" ;;
+    "$plan_prefix"*) echo "plan-${topic//\//-}" ;;
+    "$hotfix_prefix"*) echo "hotfix-${topic//\//-}" ;;
+    *) echo "${branch%%/*}-${topic//\//-}" ;;
+  esac
+}
 # post_landed → after a code landing (the same test as the to-test file's: a
 # prd/ or hotfix/ branch whose diff isn't Markdown only), the notice board's
 # "landed, sync at your next wave boundary" line for six hours (notice.mjs),
 # from the topic's session. A failure to post only warns: it never fails the landing.
 post_landed() {
   [[ -n $want_to_test ]] || return 0
-  local sha session
-  if [[ $path == pr ]]; then
-    sha=$(git -C "$main" rev-parse --short "origin/$trunk" 2>/dev/null || git -C "$main" rev-parse --short "$trunk")
-  else
-    sha=$(git -C "$main" rev-parse --short "$trunk")
-  fi
-  case $branch in
-    "$prd_prefix"*) session=prd-$topic ;;
-    "$plan_prefix"*) session=plan-${topic//\//-} ;;
-    "$hotfix_prefix"*) session=hotfix-${topic//\//-} ;;
-    *) session=${branch%%/*}-${topic//\//-} ;;
-  esac
-  CARETOOK_NOTICES_DIR=${CARETOOK_NOTICES_DIR:-$loops/.notices} node "$(dirname "$0")/notice.mjs" notice \
-    --session "$session" --topic "$topic" --for 360 \
-    "landed $branch in $trunk as $sha: sync at your next wave boundary (pnpm prd sync), not mid-wave" >/dev/null 2>&1 &&
+  local sha
+  sha=$(git -C "$main" rev-parse --short "$(landed_sha)")
+  post_notice "landed $branch in $trunk as $sha: sync at your next wave boundary (${prd_cmd} sync), not mid-wave" &&
     echo "notice posted: $topic landed as $sha (six hours)" ||
     echo "warning: couldn't post the landing notice (ignored)" >&2
+  return 0
+}
+# post_notice TEXT → TEXT on the notice board for six hours, from the landing's session.
+post_notice() {
+  RISA_NOTICES_DIR=${RISA_NOTICES_DIR:-$loops/.notices} node "$(dirname "$0")/notice.mjs" notice \
+    --session "$(landing_session)" --topic "$topic" --for 360 "$1" >/dev/null 2>&1
+}
+# install_main → main_install (lib.sh) after a landing; when it couldn't install,
+# a notice for the dev keeper. Never fails the landing.
+install_main() {
+  main_install "$(landed_sha)" "$changed" && return 0
+  post_notice "dependencies changed in $topic's landing; the main checkout needs its install by hand: $install_why" &&
+    echo "notice posted for the dev keeper: the main checkout's install" ||
+    echo "warning: couldn't post the install notice (ignored)" >&2
   return 0
 }
 # skeptic_report → before the merge: the topic's Codex declines join the verdicts,
@@ -580,13 +602,36 @@ mark_landed() {
   node "$(dirname "$0")/land-skeptic.mjs" landed --dir "$skeptic_dir" --topic "$topic" 2>/dev/null ||
     echo "warning: couldn't mark the landing in the skeptic store (ignored)" >&2
 }
+# mark_topic_done → after a prd/ landing, the topic's done flag when this was its
+# last landing (B-431): its plan (the landed tip's) has no slice left, its row
+# isn't standing or done already, and every one of its items is landed. So a
+# 'landed' commit written after the land can't leave the row planned for the
+# dispatcher to start again. Never fails the landing; a resume runs it again.
+mark_topic_done() {
+  [[ $branch == "$prd_prefix"* ]] || return 0
+  local plan left rows flags items
+  plan=$(git -C "$main" show "${tip:-$branch}:plans/$topic-plan.md" 2>/dev/null) || return 0
+  left=$(node "$(dirname "$0")/landed.mjs" slices-left /dev/stdin <<< "$plan") || return 0
+  [[ -z $left ]] || return 0
+  rows=$(cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd list --json 2>/dev/null) || return 0
+  flags=$(node "$(dirname "$0")/landed.mjs" done-flags "$topic" <<< "$rows") || return 0
+  if ! items=$(cd "$main" && node "$main/scripts/backlog/backlog.mjs" list --all --prd "$topic" --json 2>/dev/null |
+    node "$(dirname "$0")/landed.mjs" items-left 2>/dev/null); then
+    echo "Not marking $topic done: no slice is left, but ${items:-its items (unreadable)} aren't landed"
+    return 0
+  fi
+  if (cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd set "$topic" "flags=$flags" >/dev/null); then
+    echo "Marked $topic done in the PRD registry (its last landing: no slice left, every item landed)"
+  else
+    echo "warning: couldn't mark $topic done ($(tool_command backlog) prd set $topic flags=$flags)" >&2
+  fi
+}
 # next_steps → what the main checkout needs after the landing.
 next_steps() {
   # Already after the landing: the hook's notes (shared with ready.sh's report) drop their "after landing".
   landing_hook notes <<< "$changed" | sed 's/ after landing$//; s/^/  /'
-  grep -qE '(^|/)package\.json$|^pnpm-lock\.yaml$' <<< "$changed" && echo "  dependencies changed: run \`pnpm install\` in $main"
   [[ $path == local ]] && echo "  publish it with: git -C $main push origin $trunk"
-  if [[ $branch == "$prd_prefix"* ]]; then echo "  when the whole PRD is done: pnpm prd rm $name"; else echo "  then: pnpm prd rm $name"; fi
+  if [[ $branch == "$prd_prefix"* ]]; then echo "  when the whole PRD is done: ${prd_cmd} rm $name"; else echo "  then: ${prd_cmd} rm $name"; fi
 }
 
 # journal_start STEP → the to-test body, then the journal's first record: STEP
@@ -619,12 +664,16 @@ finish_from() {
       dev-sync)
         retry=$(flake_retry)
         (dev_sync "$branch") ||
-          die "PR #$number is merged on GitHub, but dev-sync stopped: fix what it says, then \`pnpm prd land --resume $branch\` (it syncs dev${retry:+, then files the flakes: \`$retry\`})"
+          die "PR #$number is merged on GitHub, but dev-sync stopped: fix what it says, then \`${prd_cmd} land --resume $branch\` (it syncs dev${retry:+, then files the flakes: \`$retry\`})"
         ;;
       flakes) file_flakes || filed=$? ;;
     esac
   done
   [[ -n $go ]] || die "no step $1 to finish from on the $path path"
+  mark_topic_done
+  # A landing that changes dependencies brings the main checkout's install up to
+  # date when that's safe, else posts a notice (install_main; B-432).
+  install_main
   journal_drop
   next_steps
   exit "$filed"
@@ -660,7 +709,7 @@ resume_landing() {
     fi
     prs=unknown
     if [[ -n ${number:-} ]] && gh_r=$(gh_repo 2>/dev/null); then
-      prs=$(gh pr view "$number" -R "$gh_r" --json state -q .state 2>/dev/null | tr '[:upper:]' '[:lower:]') || prs=unknown
+      prs=$(host_cli gh pr view "$number" -R "$gh_r" --json state -q .state 2>/dev/null | tr '[:upper:]' '[:lower:]') || prs=unknown
       [[ $prs == open || $prs == merged || $prs == closed ]] || prs=unknown
     fi
   fi
@@ -680,7 +729,7 @@ resume_landing() {
         echo "aborted the cut-off merge of ${tip:0:7} in $main"
       fi
       journal_drop
-      echo "undone: nothing of $branch landed. Land it again with \`pnpm prd land\`: every refusal and gate runs again."
+      echo "undone: nothing of $branch landed. Land it again with \`${prd_cmd} land\`: every refusal and gate runs again."
       exit 0
       ;;
     finish)
@@ -702,7 +751,7 @@ if [[ $path == local ]]; then
   skeptic_report
   journal_start merge
   git -C "$main" merge --no-ff -m "$msg" ${unsynced_line:+-m "$unsynced_line"} "$branch" ||
-    die "the merge of $branch stopped: \`pnpm prd land --resume $branch\` undoes it"
+    die "the merge of $branch stopped: \`${prd_cmd} land --resume $branch\` undoes it"
   landed=true
   echo
   echo "Landed $branch in $trunk as $(git -C "$main" rev-parse --short HEAD): $msg"
@@ -712,20 +761,20 @@ fi
 
 # The PR path.
 number=$(pr_for "$branch") || die "gh couldn't list $branch's PRs (gh auth status?)"
-[[ -n $number ]] || die "no open PR from $branch into $trunk: open it with \`pnpm prd pr $what\`"
+[[ -n $number ]] || die "no open PR from $branch into $trunk: open it with \`${prd_cmd} pr $what\`"
 tip=$(git -C "$main" rev-parse "$branch")
 raw=$(pr_state "$number") || die "gh couldn't read PR #$number"
 v=$(node "$(dirname "$0")/codex-review.mjs" --repo="$main" --trunk="$drift_ref" <<< "$raw")
 field() { node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(0, "utf8"))[process.argv[1]] ?? ""))' "$1" <<< "$v"; }
 head=$(field headSha) state=$(field state) url=$(field url)
 [[ $head == "$tip" ]] ||
-  die "PR #$number's head is ${head:0:7}, not $branch's local tip ${tip:0:7}: push it (\`pnpm prd pr $what\`), let Codex review it (\`pnpm prd review $what --wait\`), then land"
+  die "PR #$number's head is ${head:0:7}, not $branch's local tip ${tip:0:7}: push it (\`${prd_cmd} pr $what\`), let Codex review it (\`${prd_cmd} review $what --wait\`), then land"
 line=$(node "$(dirname "$0")/codex-review.mjs" --repo="$main" --trunk="$drift_ref" --line <<< "$raw")
 if [[ $state != clean && $branch == "$prd_prefix"* ]] && docs_only "$drift_ref" "$branch"; then
   echo "$line: no Codex verdict needed, the diff against $drift_ref is Markdown only (PR #$number is open with the local tip as its head)"
 elif [[ $state != clean ]]; then
   [[ -n $noreview ]] ||
-    die "Codex's verdict on PR #$number isn't clean ($line): \`pnpm prd review $what\`; --no-review needs a skeptic's go (--skeptic <id>) or --by-user"
+    die "Codex's verdict on PR #$number isn't clean ($line): \`${prd_cmd} review $what\`; --no-review needs a skeptic's go (--skeptic <id>) or --by-user"
   if [[ $state == out-of-credits ]]; then
     verdict_lines+="- \`--no-review\`: Codex is out of credits, so no skeptic was needed"$'\n'
   else
@@ -736,14 +785,14 @@ else
   echo "$line"
 fi
 repo=$(gh_repo) || die "gh couldn't name origin's repository"
-merge=(gh pr merge "$number" -R "$repo" --merge --subject "$msg" --match-head-commit "$tip" --delete-branch)
+merge=(host_cli gh pr merge "$number" -R "$repo" --merge --subject "$msg" --match-head-commit "$tip" --delete-branch)
 run_gate
 land_unsynced
 [[ -z $unsynced_line ]] || merge+=(--body "$unsynced_line")
 skeptic_report
-if [[ ${CARETOOK_PR_THROWAWAY:-} == 1 ]]; then
-  echo "CARETOOK_PR_THROWAWAY: every refusal passed; stopping before the merge. It would push $trunk, then run:"
-  printf ' %q' "${merge[@]}"; echo
+if [[ ${RISA_PR_THROWAWAY:-} == 1 ]]; then
+  echo "RISA_PR_THROWAWAY: every refusal passed; stopping before the merge. It would push $trunk, then run:"
+  printf ' %q' "${merge[@]:1}"; echo # the gh command, without host_cli
   exit 0
 fi
 
@@ -751,7 +800,7 @@ journal_start push
 land_push_trunk
 journal_step merge
 "${merge[@]}" ||
-  die "gh couldn't merge PR #$number ($url): see the PR, then \`pnpm prd land --resume $branch\` (it finishes the landing if the merge went in, else undoes it)"
+  die "gh couldn't merge PR #$number ($url): see the PR, then \`${prd_cmd} land --resume $branch\` (it finishes the landing if the merge went in, else undoes it)"
 landed=true
 echo
 echo "Landed $branch in $trunk through PR #$number ($url): $msg"

@@ -1,24 +1,24 @@
 // The context watch: how large a recorded session has grown, and the reminders
 // past its soft and hard limits.
 //
-// session.sh gives `prd` and `backlog` sessions context-settings.json, and the
-// inbox session inbox-settings.json (claude --settings), hooks that run `context.mjs hook`
+// session.sh gives `prd`, `backlog` and inbox sessions their settings file (host.mjs
+// settingsFor; claude --settings), hooks that run `context.mjs hook`
 // on PreToolUse, PostToolUse, PostToolUseFailure, SubagentStop and Stop. Every event
 // feeds the heartbeat (heartbeat.mjs); only PostToolUse is sized. The hook reads the transcript
 // it is handed, writes the size record and stays silent under the limit. Over
 // it, it adds a reminder to the agent's context. It never blocks a tool call
 // and any error in it is swallowed (exit 0, no output).
 //
-// An orchestrator has two limits: past the soft one (CARETOOK_CONTEXT_LIMIT,
+// An orchestrator has two limits: past the soft one (RISA_CONTEXT_LIMIT,
 // 120k for an orchestrator, 160k for the others) a reminder tells it to rotate
 // unasked between waves only (at the next wave boundary, never --mid-wave), again
-// every further 25k; past the hard one (CARETOOK_CONTEXT_HARD_LIMIT, 225k) it is
-// told to rotate at the next safe point, mid-wave if need be, at the crossing and every CARETOOK_CONTEXT_REMIND_MIN
+// every further 25k; past the hard one (RISA_CONTEXT_HARD_LIMIT, 225k) it is
+// told to rotate at the next safe point, mid-wave if need be, at the crossing and every RISA_CONTEXT_REMIND_MIN
 // (10). A backlog session has only the soft one, and it is never a forced close: past it the
 // session tells the user its size and asks whether to hand off or keep going,
 // and no answer means keep going. The inbox session has one limit, the soft one
 // (its hard limit equals it): past it, it hands off unasked, at the crossing and
-// every CARETOOK_CONTEXT_REMIND_MIN. The dispatcher's follow-up starts at the hard
+// every RISA_CONTEXT_REMIND_MIN. The dispatcher's follow-up starts at the hard
 // limit (`hardOverAt`).
 //
 // A subagent's call (the hook input has `agent_id`) is sized from that agent's
@@ -39,13 +39,13 @@
 //   .agents/<name>/<id>.json   the same for one subagent of that session, with
 //                          remindedSize (where its next soft reminder counts from)
 //
-//   pnpm prd context                the calling session's size and its limits
-//   pnpm prd context --keep "<why>" leave it alone for CARETOOK_CONTEXT_KEEP_MIN (30)
-//   pnpm prd context --all [--json] every live session
+//   prd context                the calling session's size and its limits
+//   prd context --keep "<why>" leave it alone for RISA_CONTEXT_KEEP_MIN (30)
+//   prd context --all [--json] every live session
 //
-// CARETOOK_CONTEXT_LIMIT (the soft limit for every kind; else 120000 tokens for an
-// orchestrator, 160000 for the others), CARETOOK_CONTEXT_HARD_LIMIT
-// (225000; never below the soft one) and CARETOOK_CONTEXT_REMIND_MIN (10) are for
+// RISA_CONTEXT_LIMIT (the soft limit for every kind; else 120000 tokens for an
+// orchestrator, 160000 for the others), RISA_CONTEXT_HARD_LIMIT
+// (225000; never below the soft one) and RISA_CONTEXT_REMIND_MIN (10) are for
 // orchestrators, backlog and inbox sessions; a subagent's limits are constants.
 import { execFileSync } from "node:child_process";
 import {
@@ -64,8 +64,9 @@ import {
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { recordHeartbeat } from "./heartbeat.mjs";
+import { claudeInput } from "./host.mjs";
 import { defaultDir, isLive, processOf, readRecord, readRecords } from "./sessions.mjs";
-import { branchKinds } from "./config.mjs";
+import { branchKinds, toolCmd } from "./config.mjs";
 
 const MIN_MS = 60_000;
 /** How much of a transcript's end is read first; it doubles until a usage is found. */
@@ -88,15 +89,15 @@ const ORCHESTRATOR_SOFT = 120_000;
 const OTHER_SOFT = 160_000;
 /** A session kind's soft limit; the soft-limit variable (above) overrides it for every kind. */
 export const limitOf = (env = process.env, /** @type {string | undefined} */ kind = undefined) =>
-  positive(env.CARETOOK_CONTEXT_LIMIT, kind === "prd" ? ORCHESTRATOR_SOFT : OTHER_SOFT);
+  positive(env.RISA_CONTEXT_LIMIT, kind === "prd" ? ORCHESTRATOR_SOFT : OTHER_SOFT);
 /** An orchestrator's hard limit, never below the soft one. */
 export const hardLimitOf = (env = process.env) =>
-  Math.max(positive(env.CARETOOK_CONTEXT_HARD_LIMIT, 225_000), limitOf(env));
+  Math.max(positive(env.RISA_CONTEXT_HARD_LIMIT, 225_000), limitOf(env));
 /** A session kind's hard limit: a backlog session has none (null); the inbox session's one limit is the soft one. */
 export const hardLimitFor = (/** @type {string | undefined} */ kind, env = process.env) =>
   kind === "backlog" ? null : kind === "inbox" ? limitOf(env) : hardLimitOf(env);
-const remindMsOf = (env = process.env) => positive(env.CARETOOK_CONTEXT_REMIND_MIN, 10) * MIN_MS;
-const keepMsOf = (env = process.env) => positive(env.CARETOOK_CONTEXT_KEEP_MIN, 30) * MIN_MS;
+const remindMsOf = (env = process.env) => positive(env.RISA_CONTEXT_REMIND_MIN, 10) * MIN_MS;
+const keepMsOf = (env = process.env) => positive(env.RISA_CONTEXT_KEEP_MIN, 30) * MIN_MS;
 
 export const contextDirOf = (/** @type {string} */ sessionsDir) => join(dirname(sessionsDir), ".context");
 export const kilo = (/** @type {number} */ n) => `${Math.round(n / 1000)}k`;
@@ -149,13 +150,14 @@ export function readSize(/** @type {string} */ file, /** @type {{ agent?: boolea
 
 /** Where a subagent's own transcript is, or null when its id can't be part of a path. */
 export function agentTranscript(/** @type {any} */ input) {
-  const id = String(input.agent_id ?? "").replace(/^agent-/, "");
-  if (!/^[\w-]+$/.test(id)) return null;
-  if (typeof input.agent_transcript_path === "string") return input.agent_transcript_path;
-  if (typeof input.transcript_path !== "string") return null;
+  const c = claudeInput(input);
+  const id = c?.agent ?? "";
+  if (!c || !/^[\w-]+$/.test(id)) return null;
+  if (c.agentTranscript !== null) return c.agentTranscript;
+  if (c.transcript === null) return null;
   const file = `agent-${id}.jsonl`;
-  if (basename(input.transcript_path) === file) return input.transcript_path;
-  return join(input.transcript_path.replace(/\.jsonl$/, ""), "subagents", file);
+  if (basename(c.transcript) === file) return c.transcript;
+  return join(c.transcript.replace(/\.jsonl$/, ""), "subagents", file);
 }
 
 export function orchestratorSoftReminder(
@@ -163,23 +165,23 @@ export function orchestratorSoftReminder(
   /** @type {number} */ soft,
   /** @type {number} */ hard,
 ) {
-  return `Context watch: this session is at ${kilo(size)} tokens of context, past the soft limit of ${kilo(soft)} (the hard limit is ${kilo(hard)}). Rotate unasked between waves only: at the next wave boundary (the wave landed and its docs done, no slice in flight), write _Status_ as the brief for the fresh session, commit it and run \`pnpm prd rotate\`, without asking. Not mid-wave: \`--mid-wave\` stays for the user's word or past the hard limit.`;
+  return `Context watch: this session is at ${kilo(size)} tokens of context, past the soft limit of ${kilo(soft)} (the hard limit is ${kilo(hard)}). Rotate unasked between waves only: at the next wave boundary (the wave landed and its docs done, no slice in flight), write _Status_ as the brief for the fresh session, commit it and run \`${toolCmd.prd} rotate\`, without asking. Not mid-wave: \`--mid-wave\` stays for the user's word or past the hard limit.`;
 }
 
 export function orchestratorReminder(/** @type {number} */ size, /** @type {number} */ hard) {
-  return `Context watch: this session is at ${kilo(size)} tokens of context, past the hard limit of ${kilo(hard)}. Finish the step in hand, commit _Status_, then run \`pnpm prd rotate --mid-wave --reason "context"\` (plain \`pnpm prd rotate\` with no slice in flight), without asking. Only a step that can't resume from _Status_ may finish first: run \`pnpm prd context --keep "<why>"\` and write the reason in _Status_.`;
+  return `Context watch: this session is at ${kilo(size)} tokens of context, past the hard limit of ${kilo(hard)}. Finish the step in hand, commit _Status_, then run \`${toolCmd.prd} rotate --mid-wave --reason "context"\` (plain \`${toolCmd.prd} rotate\` with no slice in flight), without asking. Only a step that can't resume from _Status_ may finish first: run \`${toolCmd.prd} context --keep "<why>"\` and write the reason in _Status_.`;
 }
 
 export function orchestratorNudge(/** @type {number} */ size, /** @type {number} */ hard) {
-  return `Context watch, second notice: this session is still at ${kilo(size)} tokens, past the hard limit of ${kilo(hard)}, and hasn't rotated. Rotate now: commit _Status_ and run \`pnpm prd rotate --mid-wave --reason "context"\` (plain \`pnpm prd rotate\` with no slice in flight). If the step in hand can't resume from _Status_, run \`pnpm prd context --keep "<why>"\` and write the reason in _Status_. Otherwise the user is asked next, and the session is rotated if they don't answer.`;
+  return `Context watch, second notice: this session is still at ${kilo(size)} tokens, past the hard limit of ${kilo(hard)}, and hasn't rotated. Rotate now: commit _Status_ and run \`${toolCmd.prd} rotate --mid-wave --reason "context"\` (plain \`${toolCmd.prd} rotate\` with no slice in flight). If the step in hand can't resume from _Status_, run \`${toolCmd.prd} context --keep "<why>"\` and write the reason in _Status_. Otherwise the user is asked next, and the session is rotated if they don't answer.`;
 }
 
 export function backlogReminder(/** @type {number} */ size, /** @type {number} */ soft) {
-  return `Context watch: this session is at ${kilo(size)} tokens of context, past the soft limit of ${kilo(soft)}. This limit is soft: never hand off on your own. At the next pause in the talk with the user, never in the middle of a question, tell them the size and ask whether to hand off or keep going; if they don't answer, keep going. Only on their word to hand off: run \`pnpm prd rotate --self --brief-path\` for where to write a brief, write what's in hand, what was decided and what's next (at most about 40 lines), then run \`pnpm prd rotate --self --brief <that file>\`. You are reminded again every further ${kilo(SOFT_REPEAT)}.`;
+  return `Context watch: this session is at ${kilo(size)} tokens of context, past the soft limit of ${kilo(soft)}. This limit is soft: never hand off on your own. At the next pause in the talk with the user, never in the middle of a question, tell them the size and ask whether to hand off or keep going; if they don't answer, keep going. Only on their word to hand off: run \`${toolCmd.prd} rotate --self --brief-path\` for where to write a brief, write what's in hand, what was decided and what's next (at most about 40 lines), then run \`${toolCmd.prd} rotate --self --brief <that file>\`. You are reminded again every further ${kilo(SOFT_REPEAT)}.`;
 }
 
 export function backlogNudge(/** @type {number} */ size, /** @type {number} */ soft) {
-  return `Context watch, second notice: this session is still at ${kilo(size)} tokens, well past the soft limit of ${kilo(soft)}. Never hand off on your own: at the next pause in the talk, never in the middle of a question, tell the user the size and ask whether to hand off or keep going; if they don't answer, keep going. The dispatcher also asks the user, and with no answer it leaves the session running. Only on the user's word to hand off: write the brief to the path \`pnpm prd rotate --self --brief-path\` prints and run \`pnpm prd rotate --self --brief <that file>\`.`;
+  return `Context watch, second notice: this session is still at ${kilo(size)} tokens, well past the soft limit of ${kilo(soft)}. Never hand off on your own: at the next pause in the talk, never in the middle of a question, tell the user the size and ask whether to hand off or keep going; if they don't answer, keep going. The dispatcher also asks the user, and with no answer it leaves the session running. Only on the user's word to hand off: write the brief to the path \`${toolCmd.prd} rotate --self --brief-path\` prints and run \`${toolCmd.prd} rotate --self --brief <that file>\`.`;
 }
 
 /** The inbox session's hand-off: it runs outside the repository, so by the main checkout's path. */
@@ -202,11 +204,11 @@ export function inboxNudge(
 }
 
 export function loopSoftReminder(/** @type {number} */ size) {
-  return `Context watch: this agent is at ${kilo(size)} tokens of context, past the soft limit of ${kilo(LOOP_SOFT)} (the hard limit is ${kilo(LOOP_HARD)}; \`pnpm prd context\` shows your orchestrator's size, not yours). Judge whether to go on: continue if you are mid-change or hold understanding a fresh agent would pay to rebuild; otherwise hand off at the next natural boundary. Say which you chose and why in your hand-off. To hand off, commit any changes you were asked to make and write your hand-off as your final message; if this is a slice, tell your orchestrator to continue it with a fresh \`--continue\` agent.`;
+  return `Context watch: this agent is at ${kilo(size)} tokens of context, past the soft limit of ${kilo(LOOP_SOFT)} (the hard limit is ${kilo(LOOP_HARD)}; \`${toolCmd.prd} context\` shows your orchestrator's size, not yours). Judge whether to go on: continue if you are mid-change or hold understanding a fresh agent would pay to rebuild; otherwise hand off at the next natural boundary. Say which you chose and why in your hand-off. To hand off, commit any changes you were asked to make and write your hand-off as your final message; if this is a slice, tell your orchestrator to continue it with a fresh \`--continue\` agent.`;
 }
 
 export function loopHardReminder(/** @type {number} */ size) {
-  return `Context watch: this agent is at ${kilo(size)} tokens of context, past the hard limit of ${kilo(LOOP_HARD)} (\`pnpm prd context\` shows your orchestrator's size, not yours). Hand off now: commit any changes you were asked to make, start no check, and write your hand-off as your final message, with your size, which checks did not run and any unfinished fix. If this is a slice, tell your orchestrator to continue it with a fresh \`--continue\` agent.`;
+  return `Context watch: this agent is at ${kilo(size)} tokens of context, past the hard limit of ${kilo(LOOP_HARD)} (\`${toolCmd.prd} context\` shows your orchestrator's size, not yours). Hand off now: commit any changes you were asked to make, start no check, and write your hand-off as your final message, with your size, which checks did not run and any unfinished fix. If this is a slice, tell your orchestrator to continue it with a fresh \`--continue\` agent.`;
 }
 
 /** A subagent's reminder for its size, or null; updates its record. */
@@ -365,9 +367,9 @@ export function sizeNote(record, { limit = limitOf(), hard = hardLimitOf(), now 
 
 /** The hook: its output for this input (the JSON for claude, or ""). Throws on anything unreadable. */
 export function runHook(/** @type {string} */ raw, env = process.env, now = Date.now()) {
-  const name = env.CARETOOK_SESSION_NAME;
-  const pid = Number(env.CARETOOK_SESSION_PID);
-  const sessions = env.CARETOOK_SESSIONS_DIR;
+  const name = env.RISA_SESSION_NAME;
+  const pid = Number(env.RISA_SESSION_PID);
+  const sessions = env.RISA_SESSIONS_DIR;
   if (!name || !pid || !sessions) return "";
   const session = readRecord(sessions, name);
   if (session?.pid !== pid) return "";
@@ -378,18 +380,19 @@ export function runHook(/** @type {string} */ raw, env = process.env, now = Date
     /* the heartbeat never hurts the size watch */
   }
   // Only a finished call is sized; the other events are the heartbeat's alone.
-  const event = input?.hook_event_name;
-  if (event !== undefined && event !== "PostToolUse") return "";
+  const c = claudeInput(input);
+  if (!c) return "";
+  if (c.event !== null && c.event !== "PostToolUse") return "";
   const dir = contextDirOf(sessions);
-  const loop = Boolean(input.agent_id);
+  const loop = Boolean(c.agent);
   const backlog = session.kind === "backlog";
   const inbox = session.kind === "inbox" ? inboxRotate(dirname(dirname(sessions))) : "";
   if (loop && (backlog || inbox)) return "";
-  const transcript = loop ? agentTranscript(input) : input.transcript_path;
+  const transcript = loop ? agentTranscript(input) : c.transcript;
   if (typeof transcript !== "string") return "";
   const size = readSize(transcript, { agent: loop });
   if (size === null) return "";
-  const id = String(input.agent_id ?? "").replace(/^agent-/, "");
+  const id = c.agent;
   const file = loop ? join(dir, ".agents", name, `${id}.json`) : join(dir, `${name}.json`);
   /** @type {string | null} */
   let message = null;
@@ -456,17 +459,17 @@ function cli(/** @type {string[]} */ args) {
     return 0;
   }
   if (args.length && args[0] !== "--keep") {
-    console.error('usage: pnpm prd context [--keep "<why>" | --all [--json]]');
+    console.error(`usage: ${toolCmd.prd} context [--keep "<why>" | --all [--json]]`);
     return 2;
   }
   const keeping = args[0] === "--keep";
   const why = (args[1] ?? "").trim();
   if (keeping && !why) {
-    console.error('context --keep needs the reason: pnpm prd context --keep "<why>"');
+    console.error(`context --keep needs the reason: ${toolCmd.prd} context --keep "<why>"`);
     return 2;
   }
-  const name = process.env.CARETOOK_SESSION_NAME;
-  const pid = Number(process.env.CARETOOK_SESSION_PID);
+  const name = process.env.RISA_SESSION_NAME;
+  const pid = Number(process.env.RISA_SESSION_PID);
   const session = name ? readRecord(sessions, name) : null;
   if (!name || !pid || session?.pid !== pid) {
     console.error("context: this shell isn't in a session the wrapper started with the context watch");

@@ -30,14 +30,14 @@ describe("land.sh's --force and --no-review", () => {
     return {
       GH_CI: join(root, "gh-ci.mjs"),
       GH_CI_FIXTURE: join(root, "fixture.json"),
-      CARETOOK_CI_POLL: "0",
-      CARETOOK_LOAD_GATE: "off",
-      CARETOOK_NOTICES_DIR: join(root, "notices"),
-      CARETOOK_SKEPTIC_DIR: store(),
+      RISA_CI_POLL: "0",
+      RISA_LOAD_GATE: "off",
+      RISA_NOTICES_DIR: join(root, "notices"),
+      RISA_SKEPTIC_DIR: store(),
     };
   };
   // Off the seam: land measures against the local dev, not origin/dev.
-  const unseamed = { CARETOOK_PR_THROWAWAY: "" };
+  const unseamed = { RISA_PR_THROWAWAY: "" };
   const seam = (args, byCommit, extra = {}) => landWith({ ...ciEnv(byCommit), ...extra }, ...args);
   const brakeOn = (sha) => ({
     [sha]: [
@@ -198,7 +198,7 @@ describe("land.sh's --force and --no-review", () => {
     });
 
     it("an unsynced tip needs --by-user", () => {
-      commit({ "apps/web/dev.ts": "d" }, "dev work");
+      commit({ "web/dev.ts": "d" }, "dev work");
       git("push", "-q", "origin", "dev");
       const refused = seam(["--force", "--skeptic", record()]);
       expect(refused.status).not.toBe(0);
@@ -211,7 +211,7 @@ describe("land.sh's --force and --no-review", () => {
 
   it("the report has the verdict and the declines since the last landing, once", () => {
     git("checkout", "-q", "prd/throwaway-x");
-    commit({ "apps/web/b.ts": "2" }, "code");
+    commit({ "web/b.ts": "2" }, "code");
     git("checkout", "-q", "dev");
     tip = git("rev-parse", "prd/throwaway-x");
     markLanded(store(), "throwaway-x", Date.now() - 60_000);
@@ -251,7 +251,7 @@ describe("land.sh --resume", () => {
         PR_HEAD: spawnSync("git", ["-C", repo, "rev-parse", "prd/throwaway-x"], {
           encoding: "utf8",
         }).stdout.trim(),
-        CARETOOK_NOTICES_DIR: board(),
+        RISA_NOTICES_DIR: board(),
         GH_MERGE_LOG: mergeLog(),
         ...extra,
       },
@@ -259,7 +259,7 @@ describe("land.sh --resume", () => {
   const PRD = ["throwaway-x", "-m", "feat(throwaway-x): t (B-1)", "--force", "--no-review", "--by-user"];
   const HOTFIX = ["hotfix/throwaway-y", "--local", "--force", "--by-user", "-m", "fix(web): c"];
   const killedAt = (args, step) => {
-    const r = run(args, { CARETOOK_LAND_KILL_AT: step });
+    const r = run(args, { RISA_LAND_KILL_AT: step });
     expect(r.signal, r.stderr + r.stdout).toBe("SIGKILL");
     return r;
   };
@@ -268,7 +268,7 @@ describe("land.sh --resume", () => {
     spawnSync("git", ["-C", repo, "merge-base", "--is-ancestor", tip, ref]).status === 0;
   const hotfix = () => {
     git("checkout", "-qb", "hotfix/throwaway-y");
-    commit({ "apps/web/c.ts": "3" }, "fix it");
+    commit({ "web/c.ts": "3" }, "fix it");
     git("checkout", "-q", "dev");
     return git("rev-parse", "hotfix/throwaway-y");
   };
@@ -276,7 +276,7 @@ describe("land.sh --resume", () => {
   describe("on the PR path", () => {
     let tip;
     beforeEach(() => {
-      branch({ "apps/web/b.ts": "2" });
+      branch({ "web/b.ts": "2" });
       tip = git("rev-parse", "prd/throwaway-x");
     });
 
@@ -345,7 +345,7 @@ describe("land.sh --resume", () => {
 
     it("a refusal at the push drops the journal: nothing landed", () => {
       git("checkout", "-q", "dev");
-      commit({ "apps/web/other.ts": "o" }, "elsewhere");
+      commit({ "web/other.ts": "o" }, "elsewhere");
       git("push", "-q", "origin", "dev");
       git("reset", "-q", "--hard", "HEAD^");
       const r = run(PRD);
@@ -399,7 +399,7 @@ describe("land.sh --resume", () => {
       midMerge();
       git("merge", "--abort");
       git("checkout", "-qb", "other");
-      const other = commit({ "apps/web/d.ts": "4" }, "other work");
+      const other = commit({ "web/d.ts": "4" }, "other work");
       git("checkout", "-q", "dev");
       git("merge", "-q", "--no-ff", "--no-commit", "other");
       const r = resume("hotfix/throwaway-y");

@@ -122,11 +122,13 @@ describe("tagging an entry", () => {
     await openMenu("Sore knee");
     expect(menuItems()).toContain("Tags");
     await userEvent.keyboard("{Escape}");
-    // Sam's: a note keeps Print and no Tags; a symptom has no ⋯ at all.
+    // Sam's: a note keeps Print and no Tags; a symptom has Copy link alone.
     await openMenu("Sam's visit notes");
-    expect(menuItems()).toEqual(["Print"]);
+    expect(menuItems()).toEqual(["Print", "Copy link"]);
     await userEvent.keyboard("{Escape}");
-    expect(actionsOf("Tired")).toBeNull();
+    await openMenu("Tired");
+    expect(menuItems()).toEqual(["Copy link"]);
+    await userEvent.keyboard("{Escape}");
     expect(chipsOf("Sam's visit notes")).toBe("Knee");
 
     await openPicker("Sore knee");
@@ -140,10 +142,13 @@ describe("tagging an entry", () => {
       await ready();
       expect(chipsOf("Sam's visit notes")).toBe("Knee");
       await openMenu("Walked to the mailbox");
-      expect(menuItems()).toEqual(["Print"]);
+      expect(menuItems()).toEqual(["Print", "Copy link"]);
       await userEvent.keyboard("{Escape}");
-      expect(actionsOf("Sore knee")).toBeNull();
-      expect(actionsOf("Lisinopril")).toBeNull();
+      for (const text of ["Sore knee", "Lisinopril"]) {
+        await openMenu(text);
+        expect(menuItems()).toEqual(["Copy link"]);
+        await userEvent.keyboard("{Escape}");
+      }
     });
 });
 

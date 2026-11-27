@@ -3,23 +3,21 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { canTagRecord } from "@caretook/data/schema";
-import { Pencil, Tag } from "lucide-react";
 import { useState } from "react";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { TagChips, useRecordTags, useTagPicker } from "~/components/tags";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink, Button, Message, Notice, Page, Section } from "~/components/ui";
+import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { ContactList } from "./ContactList";
-import { CopyToGroup } from "./CopyToGroup";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
+import { ProviderActions } from "./ProviderActions";
 import { ProviderConditions } from "./ProviderConditions";
 import { ProviderHeader } from "./ProviderHeader";
 import { ProviderMedications } from "./ProviderMedications";
@@ -92,34 +90,16 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
           actions={
             canWrite &&
             !deleted && (
-              <>
-                <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
-                {mayTag && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={Tag}
-                    onClick={() =>
-                      tagPicker.ask({ target: "provider", recordId: providerId, label: provider.name })
-                    }
-                    data-tag-record=""
-                  >
-                    Tags
-                  </Button>
-                )}
-                <Button
-                  to={appUrls.editProvider(groupId, providerId)}
-                  // Closing the sheet goes back here.
-                  state={PROVIDER_SHEET_STATE}
-                  prefetch="render"
-                  variant="ghost"
-                  size="sm"
-                  icon={Pencil}
-                  data-edit-provider=""
-                >
-                  Edit
-                </Button>
-              </>
+              <ProviderActions
+                provider={provider}
+                groupName={displayName}
+                onCopied={setCopyStatus}
+                onTags={
+                  mayTag
+                    ? () => tagPicker.ask({ target: "provider", recordId: providerId, label: provider.name })
+                    : undefined
+                }
+              />
             )
           }
         />

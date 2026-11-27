@@ -19,6 +19,19 @@ describe("Notice", () => {
     expect(screen.getByRole("status").elements()).toHaveLength(3);
   });
 
+  test("role none: no role of its own, inside a caller's live region", async () => {
+    const { screen } = await renderInRouter(
+      <div role="status" data-region="">
+        <Notice tone="warning" role="none" data-inner="">
+          You're offline.
+        </Notice>
+      </div>,
+    );
+    await expect.element(screen.getByText("You're offline.")).toBeVisible();
+    expect(screen.getByRole("status").elements()).toHaveLength(1);
+    expect(document.querySelector("[data-inner]")?.hasAttribute("role")).toBe(false);
+  });
+
   test("shows its icon, hidden from assistive tech, and a given icon replaces the tone's", async () => {
     const { screen } = await renderInRouter(
       <>

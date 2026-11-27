@@ -7,3 +7,4 @@ export { TodoUndoStatus } from "./TodoUndoStatus";
 export { useTodoTick } from "./useTodoTick";
 export { LinkedTodos } from "./LinkedTodos";
 export { TodoRepeatMark } from "./TodoRepeatMark";
+export { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";

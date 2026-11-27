@@ -16,6 +16,7 @@ import {
 import { EXIT, blame, ciStatus, fileFlakes, main, requestRun } from "./ci.mjs";
 import { applyFindings, findingKey, keyMark, pruneQuarantine } from "./filing.mjs";
 import { tierData } from "./tier-data.mjs";
+import { sharedNames } from "../loops/config.mjs";
 
 const SHA = "a".repeat(40);
 const DEV = "d".repeat(40);
@@ -269,7 +270,7 @@ describe("the split", () => {
       slicesNear(
         [
           { subject: "feat(t): a (slice 2, B-1)", files: ["scripts/loops/x.mjs"] },
-          { subject: "feat(t): b (slice 3)", files: ["apps/web/y.ts"] },
+          { subject: "feat(t): b (slice 3)", files: ["web/y.ts"] },
           { subject: "chore: merge dev", files: ["scripts/loops/z.mjs"] },
         ],
         UNIT,
@@ -743,7 +744,7 @@ describe("the commit status", () => {
     await request(w);
     expect(statusCall(w)).toContain(`statuses/${SHA}`);
     expect(statusCall(w)).toContain(`state=${state}`);
-    expect(statusCall(w)).toContain("context=caretook-ci/unit");
+    expect(statusCall(w)).toContain(`context=${sharedNames().ciContext}/unit`);
     expect(statusCall(w)).toContain(`description=${kind} (unit)`);
   });
 

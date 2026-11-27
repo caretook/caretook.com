@@ -234,8 +234,11 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-236 | bug | staging | simple-mode | prd/simple-mode | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
 | B-237 | bug | landed | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
 | B-238 | bug | landed | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
+| B-239 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
+| B-240 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-242 | bug | landed | test-gates | prd/test-gates | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
 | B-243 | bug | staging | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
+| B-244 | chore | staging | fixes-tooling | prd/fixes-tooling | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | landed | planner-3 | prd/planner-3 | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-246 | change | landed | planner-2 | prd/planner-2 | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
 | B-247 | change | landed | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
@@ -366,6 +369,8 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-426 | feature | live | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
 | B-427 | change | live | orchestration-3 | prd/orchestration-3 | A landing agents can run when the last check is stale: pnpm prd land --force is blocked by the permission classifier, so give land a sanctioned path (a --quick recheck or a recorded reason) and document it |
 | B-428 | change | live | orchestration-3 | prd/orchestration-3 | Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing |
+| B-431 | chore | landed | fixes-tooling | prd/fixes-tooling | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
+| B-432 | chore | landed | fixes-tooling | prd/fixes-tooling | After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder |
 | B-433 | feature | landed | self-recovery | prd/self-recovery | A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one) |
 | B-434 | feature | landed | worker-watch | prd/worker-watch | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
 | B-435 | feature | staging | inbox-agent | prd/inbox-agent | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
@@ -373,9 +378,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-439 | change | live | orchestration-3 | prd/orchestration-3 | A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone |
 | B-440 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
+| B-442 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
+| B-443 | bug | staging | fixes-tooling | prd/fixes-tooling | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
 | B-444 | bug | landed | fixes-tooling | prd/fixes-tooling | docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination) |
 | B-445 | bug | landed | fixes-tooling | prd/fixes-tooling | Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check` |
 | B-446 | bug | landed | fixes-tooling | prd/fixes-tooling | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
+| B-447 | bug | staging | fixes-tooling | prd/fixes-tooling | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
 | B-448 | chore | landed | ui-kit-4 | prd/ui-kit-4 | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
 | B-449 | chore | live | fixes-tooling | hotfix/reseed-staging | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
 | B-450 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x |
@@ -389,6 +397,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-462 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure |
 | B-463 | bug | landed | self-recovery | prd/self-recovery | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-464 | bug | landed | fixes-tooling | prd/fixes-tooling | The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone |
+| B-465 | bug | landed | fixes-tooling | prd/fixes-tooling | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-466 | bug | landed | fixes-tooling | prd/fixes-tooling | resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s) |
 | B-468 | bug | staging | fixes-tooling | prd/fixes-tooling | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
 | B-469 | bug | staging | fixes-bug | prd/fixes-bug | Easy roles' read-only search sheets (provider, medication, condition) show the values captured when tapped and miss edits or deletes that sync in while open |
@@ -463,10 +472,13 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-539 | change | staging | hotfix |  | Seed: a new normal-activity group, Tedder Family (Grandpa Hal), beside Grandma Pat's heavy use: six months of quiet history with gaps, providers, passes and medications, a mostly filled profile, a few events and one series, mostly undated todos |
 | B-540 | bug | dropped | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first…' times out at 5 s under load (load ~42) in a full check; passes alone 3/3 |
 | B-541 | feature | landed | agent-autonomy-2 | prd/agent-autonomy-2 | Named backlog sessions on request: a backlog session asks the dispatcher (a request queue) to open another backlog session by name, e.g. 'backlog - seed', with an optional brief; the dispatcher opens it in a new tab on Remote Control outside the PRD slots, refuses a name already live, and tells the requester it's open so they can message it by name |
+| B-542 | chore | staging | fixes-tooling | prd/fixes-tooling | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
+| B-545 | chore | staging | fixes-tooling | prd/fixes-tooling | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
 | B-546 | change | staging | fixes-ui |  | Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces) |
 | B-547 | bug | landed | fixes-tooling | prd/fixes-tooling | Dev red: inScreens.browser.test.tsx 'the date field at 360 > in the symptom sheet' fails 3/3 (expected the calendar grid to be null, got the June 2027 grid) since sync-safety's landing 30f33275 |
 | B-548 | feature | staging | tags | prd/tags | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
 | B-549 | feature | landed | symptom-catalog | prd/symptom-catalog | Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once |
+| B-550 | feature | landed | todo-subtasks | prd/todo-subtasks | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-551 | feature | staging | inbox-agent | prd/inbox-agent | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
 | B-552 | bug | landed | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
 | B-553 | change | landed | test-gates | prd/test-gates | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
@@ -517,6 +529,8 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-605 | bug | landed | fixes-bug | prd/fixes-bug | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 | B-606 | feature | staging | fixes-ui | prd/fixes-ui | Highlight a double dose on a next-dose-due notification |
 | B-607 | bug | landed | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
+| B-608 | chore | staging | fixes-tooling | prd/fixes-tooling | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
+| B-609 | chore | staging | fixes-tooling | prd/fixes-tooling | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-610 | bug | landed | fixes-tooling |  | CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file |
 | B-611 | bug | landed | dose-accuracy | prd/dose-accuracy | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
 | B-612 | chore | landed | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
@@ -529,6 +543,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-620 | bug | landed | fixes-bug | prd/fixes-bug | Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones |
 | B-621 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-622 | bug | dropped | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts |
+| B-623 | bug | staging | fixes-tooling | prd/fixes-tooling | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-624 | bug | dropped | fixes-tooling |  | browser.test.mjs 'passes a clean spec' fails under load: it expects exactly two output lines |
 | B-626 | feature | landed | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
 | B-627 | bug | landed | dose-accuracy | prd/dose-accuracy | A retried dose upload can undo a later Undo: B's accepted duplicate of A's dose, replayed after A deletes it, restores the dose as B's and marks the slot given again |
@@ -536,10 +551,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-629 | bug | staging | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-631 | bug | landed | fixes-bug | prd/fixes-bug | Back can still skip the discard prompt after a refused action outside the submitted form: Add a medication in the pass log, or a refused delete |
 | B-632 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry's fraction after a medication misreads a few lines: 'no pain gave tylenol 3/8', 'need to take tylenol 3/8', 'gave lorazepam 1/2' at 0.5 mg |
+| B-633 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 | B-634 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry gives 'dr lee the 2nd at the clinic' no date: an ordinal before 'at <place>' is not read as a day |
 | B-635 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry's request rule misreads a few lines with a part of day: 'check bp 120/80 in the morning' gets a note dated now and a todo alternative, 'ask about pain in the morning' reads as a symptom first |
 | B-636 | change | staging | fixes-ui | prd/fixes-ui | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
 | B-638 | chore | landed | fixes-tooling | prd/fixes-tooling | No test pins that a waiting join request from an account with no current legal acceptance isn't asked again |
+| B-639 | bug | staging | fixes-tooling | prd/fixes-tooling | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
 | B-640 | bug | dropped | fixes-bug |  | Close Better Auth's update-user path so a member can't set an external avatar image |
 | B-641 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: 'gave lorazepam 1/2 mg' at a 0.5 mg strength may not record the usual dose |
 | B-642 | bug | landed | fixes-tooling | prd/fixes-tooling | Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday |
@@ -549,15 +566,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-646 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry may still date a counted ordinal with no place: 'gave a 2nd' at the end of a line, or 'a 2nd at the clinic' with no verb |
 | B-647 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a request with a later day misses its part of day or leads with a vital: 'pick up walker next friday morning', 'check bp 120/80 friday' |
 | B-648 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: 'gave lorazepam 1/2' at a 0.5 mg strength with a usual '2 tablets' records 2 tablets, overstating what was typed |
+| B-649 | bug | staging | fixes-tooling | prd/fixes-tooling | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
 | B-650 | bug | landed | fixes-tooling | prd/fixes-tooling | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
 | B-651 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets |
 | B-652 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
+| B-653 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-654 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-655 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a part of day may still take a day: 'gave the 2nd at night', 'gave the 2nd in the morning' |
 | B-656 | bug | staging | fixes-bug | prd/fixes-bug | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
 | B-657 | bug | staging | fixes-bug | prd/fixes-bug | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
 | B-658 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-659 | bug | staging | fixes-bug | prd/fixes-bug | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
+| B-660 | chore | staging | fixes-tooling | prd/fixes-tooling | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
 | B-661 | bug | landed | fixes-tooling | prd/test-gates-2 | roundtrip's 2-second add budget fails on the CI runner |
 | B-662 | bug | staging | fixes-bug | prd/fixes-bug | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
 | B-663 | bug | staging | fixes-ui | prd/fixes-ui | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
@@ -626,6 +646,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-735 | bug | staging | fixes-ui | prd/fixes-ui | After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on… |
 | B-736 | bug | staging | fixes-ui | prd/fixes-ui | On the timeline, after jumping to a day, trying to scroll always takes you back to that day. |
 | B-737 | feature | staging | fixes-ui | prd/fixes-ui | A link icon on each timeline day header and item so users can easily send links to other people.… |
+| B-738 | bug | staging | fixes-tooling | prd/fixes-tooling | Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run |
 | B-739 | change | landed | fixes-tooling | prd/fixes-tooling | Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads |
 | B-740 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test under load: stack.test.mjs 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s (load ~60), passes alone 3/3 |
 | B-741 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky tooling test: ask.test.mjs 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for a 1 s old ask (real-time rounding race) |
@@ -636,11 +657,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-746 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn a slice start waits for nothing with CARETOOK… |
 | B-747 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/load-gate.test.mjs: the scripts that wait or warn is off in the tooling tests' shared env (vite… |
 | B-748 | change | staging | fixes-ui | prd/fixes-ui | Placeholder and search bar on timeline should read "Type to search". |
+| B-751 | chore | staging | fixes-tooling | prd/fixes-tooling | A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test |
+| B-753 | bug | staging | fixes-tooling | prd/fixes-tooling | CI doesn't name the file a hung shard is stuck on |
+| B-754 | bug | staging | fixes-tooling | prd/fixes-tooling | backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44) |
 | B-756 | change | staging | fixes-ui | prd/fixes-ui | Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types |
 | B-758 | change | landed | symptom-catalog | prd/symptom-catalog | Symptom similar-name check: the words-inside rule asks too often (any name containing 'pain', like 'Knee pain', offers the default 'Pain') |
 | B-762 | feature | staging | fixes-ui | prd/fixes-ui | Quick entry: 'new med …' or 'new provider …' opens the Add medication or Add provider sheet filled in |
 | B-763 | bug | staging | fixes-ui | prd/fixes-ui | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
 | B-765 | feature | staging | fixes-ui | prd/fixes-ui | Ability to open live notes full screen. |
+| B-766 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands |
+| B-767 | bug | staging | fixes-tooling | prd/fixes-tooling | A backlog amend repeats the Backlog-Tool trailer in the commit message |
+| B-768 | bug | staging | fixes-tooling | prd/fixes-tooling | slice-fields.mjs warns on a slice fields line that carries Blocked by |
+| B-769 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx: the New care group sheet the group menu's New c… |
 | B-770 | bug | dropped | fixes-tooling |  | pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy |
 | B-771 | bug | staging | fixes-tooling | hotfix/sync-shared | prd sync skips dev's CI list updates (quarantine, brake list) |
 | B-773 | chore | landed | fixes-tooling | hotfix/recheck-tier | After a dev sync, the CI recheck runs only the tier dev's changes propose, not the wave's tier; a tooling-only sync needs no CI rerun (fixes-bug 82a3cf1b reran components 9m after a scripts-only sync) |
@@ -662,12 +690,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-804 | feature | landed | fixes-ui | prd/fixes-ui | Need a banner (or permanent toast) while in offline mode. |
 | B-805 | question | landed | sync-safety-2 |  | Can the PWA sync in the background after offline work, or does the user have to open it to sync? |
 | B-806 | change | landed | fixes-ui | prd/fixes-ui | Need a loader screen for loading in offline mode. |
+| B-807 | bug | staging | fixes-tooling | prd/fixes-tooling | CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev |
+| B-809 | bug | landed | fixes-tooling | prd/fixes-tooling | The dispatcher keeps running the code it started with: started 2026-11-24 08:07, before the usage drain landed (B-407, 17:55), it started fixes-bug and a todo-subtasks planner at 85% weekly usage while dispatch --dry-run said draining |
+| B-810 | bug | landed | fixes-tooling | prd/fixes-tooling | pnpm prd end <name> ends the pid in the session record, not the live session: ending prd-planner-3 killed pid 46403 while the dispatcher-reopened session (pid 77478, session.sh pid 76171) kept running |
+| B-812 | bug | staging | fixes-tooling | prd/fixes-tooling | An orchestrator's finishing step runs pnpm prd rm from inside its own worktree, so the next step (cd to the main checkout && pnpm prd end) never runs: the harness refuses a command whose cwd was deleted, and the session stays open |
 | B-817 | bug | staging | fixes-ui | prd/fixes-ui | Mobile bottom nav renders dark in light mode |
 | B-818 | bug | landed | fixes-tooling |  | watchdog.test.mjs 'reads the limit as the drain does' fails when the shell has CARETOOK_USAGE_WATCH=off: it passes process.env to readDrain (expected 'normal' to be 'limited') |
 | B-819 | change | landed | fixes-ui | prd/fixes-ui | Picking a care group on the no-group page gives no feedback while the group loads, and the buttons can be tapped again: show a loading state at once (a loading page, or disable the buttons and show loading in the one tapped) |
 | B-821 | change | landed | orchestration-split | prd/orchestration-split | Risa's lookup reads a moved B-n as RISA-n (a former-prefix key in the config): the PRD decision has no builder yet |
 | B-822 | chore | landed | orchestration-split | prd/orchestration-split | Backlog id prefix leftovers from slice 2: the look-alike sort's id.slice(2), the item type vs idPrefix, and a raw stack when risa.json is broken |
 | B-823 | chore | landed | orchestration-split | prd/orchestration-split | Branch prefixes from the config are honoured only in lib.sh: ready.sh, rm.sh and others still hardcode prd/, and is_protected has no caller |
+| B-824 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 | B-825 | chore | landed | orchestration-split | prd/orchestration-split | doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two |
 | B-826 | chore | landed | orchestration-split | prd/orchestration-split | run_project in lib.sh evals a config command in the caller's shell: a command with cd or exit would change new.sh; run it in a subshell |
 | B-827 | chore | landed | orchestration-split | prd/orchestration-split | No slice owns two leftovers of the split's seams: fixes-plans.test.mjs imports the core's status-trim.mjs (pnpm test:project fails without the core), and the 'what to try' text and migration, seed and powersync notes in land.sh and ready.sh are Caretook facts in core files |
@@ -682,6 +715,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-842 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 8 skeptic's follow-ups for the split: doc-budget.mjs exits 1 on an uncaught error (read as a breach), eight scripts/ci modules still read the tier data at import, proposedTiers and tierRank reload risa.json on every call, ciFailureTopic returns an empty topic when unset, landing.mjs hardcodes the reset command |
 | B-843 | bug | landed | fixes-ui | prd/fixes-ui | Group settings Members: pending-invite and invite-link cards are crowded on a phone |
 | B-844 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 1 skeptic's follow-ups for split stage 1b: no parity test between test-db.sh's and stack-lib.sh's copies of the test DB name and port, the browser lease test needs the tool in CI after the move, the lease spawn's exec takes only a simple command, sectionOf's fence and heading edge cases, test-db.sh dies silently outside git |
+| B-845 | bug | staging | fixes-tooling | prd/fixes-tooling | entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass |
 | B-846 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move |
 | B-847 | chore | landed | orchestration-split-2 | prd/orchestration-split-2 | Wave 3 skeptic's follow-ups for split stage 1b: tidy trusts a failed stackReady hook (a failed call reads as no stack), ready exits 1 for both not-ready and hook-failed, a stacked new.sh writes no env file before install, the migrate marker covers the whole start, hooks.mjs has no test of its own, the merged role docs read out of order |
 | B-848 | bug | landed | fixes-ui | prd/fixes-ui | Right nav links overlap the recipient selector and header menu on medium-sized screens |
@@ -689,8 +723,25 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-850 | change | landed | fixes-ui | prd/fixes-ui | Timeline Full view should show live notes with their rich text formatting |
 | B-856 | bug | dropped | marketing |  | Marketing pages have no light mode (dark only) |
 | B-857 | change | landed | fixes-ui | prd/fixes-ui | Quick entry preview titles events 'Appointment with <provider>' / '<provider> appointment'; say Event (B-537) |
+| B-860 | bug | staging | fixes-tooling | prd/fixes-tooling | check-tooling: the tooling step reports 'an unhandled error, so no rerun' when none happened; its regex likely matches test names in the output |
+| B-862 | chore | landed | fixes-tooling | prd/fixes-tooling | roundtrip.spec: a run that dies inside the matrix writer loop skips cleanup of rows it wrote, and the leftover breaks the next run on the same database |
+| B-864 | bug | landed | fixes-tooling | prd/fixes-tooling | Test fixture fx.tag derives its id from the raw name (tagId(groupId, name)) instead of tagKey(name), so a fixture tag's id differs from the id a device derives for the same name |
+| B-865 | bug | staging | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev |
+| B-866 | bug | staging | fixes-tooling |  | CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev |
+| B-867 | bug | staging | fixes-tooling | prd/fixes-tooling | lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease |
 | B-868 | bug | staging | fixes-bug |  | CI: the build job fails on dev |
+| B-869 | bug | staging | fixes-tooling | prd/fixes-tooling | Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in) |
+| B-870 | bug | staging | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
+| B-871 | bug | staging | fixes-tooling | prd/fixes-tooling | A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten) |
+| B-872 | chore | staging | fixes-tooling | prd/fixes-tooling | Win back the app bundle bytes: trim under the old 406,187 B ceiling |
+| B-873 | change | staging | fixes-tooling | prd/fixes-tooling | Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks |
+| B-874 | change | staging | fixes-tooling | prd/fixes-tooling | Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start |
+| B-875 | change | staging | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
+| B-876 | change | staging | fixes-tooling | prd/fixes-tooling | Orchestrators rotate with a brief between waves once context passes ~120k |
+| B-877 | bug | staging | fixes-tooling | prd/fixes-tooling | Find why fixes-tooling slice agents end early and get continued |
+| B-878 | change | staging | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
 | B-879 | change | dropped | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
+| B-903 | bug | landed | fixes-tooling | prd/fixes-tooling | a slice agent's foreground command past ~170–180 s is moved to the background, and an agent ending its turn there stops without a hand-off |
 
 ## Items
 
@@ -3258,6 +3309,29 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 11 (dev → staging, cadadd63), checked against dev 2026-11-21: Codex P2, a follow-up (nothing live). In DoseForm.tsx, QuickAddFields remounts on the switch and resets while the parent's newDose stays. Fix: keep the draft across switches, or reset newDose with the fields. DoseForm is in medications-4's hot files (not written yet), so not alongside it.
 
+### B-239 · bug · pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 1699763a
+
+- 2026-11-21 (prd/github-review): Codex finding on PR #12 (review.sh:72), verified. Send progress to stderr when --json.
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: moved from github-review (done) to the standing tooling fixes topic; each is a small fix to the review tooling.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+
+### B-240 · bug · pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 1699763a
+
+- 2026-11-21 (prd/github-review): Codex finding on PR #12 (review.sh:77), verified. Exit 75 when the summary never changes.
+- 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: moved from github-review (done) to the standing tooling fixes topic; each is a small fix to the review tooling.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+
 ### B-242 · bug · with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic
 
 - status: landed
@@ -3280,6 +3354,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (Robert Bo Davis): From the inbox: don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of action credits. Only staging (branch: staging) and production (branch: main) should be deployed to vercel.
 - 2026-11-21 (Robert Bo Davis): Checked 2026-11-21: already true. deploy.yml runs only on pushes to staging and main; Vercel's Git deploys are off (apps/web/vercel.json); GitHub has only staging and production deployments, no previews. Done inline on dev by the backlog session: workflows.test.mjs now fails if deploy.yml gains another trigger or branch, or another workflow runs on anything but workflow_dispatch.
 - 2026-11-21 (Robert Bo Davis): Triaged by the backlog session: hosting (deploys). Already true and guarded by the test in 8532372b, so recorded as done at that commit.
+
+### B-244 · chore · codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 3c48b294
+
+- 2026-11-21 (prd/github-review): User's decision 2026-11-21. One-line change in openFindings (scripts/loops/codex-review.mjs) plus a test on the outdated.json fixture. Declined, non-outdated threads still need reply + resolve. Update docs/agents/orchestrator.md _Landing a wave_ step 4, docs/orchestration.md and the orchestrator prompt line in prompt.sh (+ prompt.test.mjs): only declined threads need --resolve.
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: moved from github-review (done) to the standing tooling fixes topic; each is a small fix to the review tooling.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
 
 ### B-245 · plan · Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date
 
@@ -4689,6 +4774,28 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
 - 2026-11-21 (plan/orchestration-3): After the skeptic pass: B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (the dispatcher); B-392 with slice 6. Usage-limit handling moved to self-recovery (B-407, B-433).
 
+### B-431 · chore · A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting)
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 33af90d7
+
+- 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. rm.sh sets done only when the worktree is removed; B-403 lists done rows as leftovers but does not say it sets the flag. Small tooling fix.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+- 2026-11-25 (Robert Bo Davis): Hit 2026-11-25: planner-3 landed 06:34 (8c1fa06) with its row still planned; the dispatcher logged 'start planner-3: planned, and nothing stops it' 8 times 06:35-06:43 (.loops/.dispatch.log ~62905-63142), each opening a new prd-planner-3 tab, then reopened it at 06:45. Each tab said it was done and ending, but the worktree, slot and one live session (pid 77478) stayed until the backlog session ran pnpm prd rm by hand ~11:45, blocking the one lane for 5 h. Raise priority: a landed topic must never be started or reopened.
+- 2026-11-25 (Robert Bo Davis): Cause found: after landing, the orchestrator committed 'docs(planner-3): landed' (07d9fc14) on prd/planner-3, so the branch was no longer merged into dev; pnpm prd rm then removes the worktree but keeps the branch and does NOT set done ('kept prd/planner-3: it isn't merged'). The row stays planned, the dispatcher starts the topic again (re-creating the worktree), and each fresh orchestrator finds 'landed and done' and repeats. Fix: write the landed status before the final land (or land the tail), and have rm/land set done when the topic's items are all landed.
+
+### B-432 · chore · After a landing that changes the lockfile, pnpm prd land runs pnpm install in the main checkout (or files an ask) instead of only printing a reminder
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 0ca46a79
+
+- 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. land.sh and ready.sh print the reminder; an unattended landing leaves the main checkout stale. Needs care: the main checkout is the user's. Small tooling fix.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+
 ### B-433 · feature · A usage-limit signal: sessions detect an approaching usage limit so the dispatcher can drain (B-407 assumes one)
 
 - status: landed
@@ -4764,6 +4871,28 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (tidy-cli.mjs:52), verified in code: a failed run is an empty list. Treat an unavailable inspection as unknown and keep worktrees. macOS always has lsof.
 
+### B-442 · bug · pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 3c48b294
+
+- 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (tidy-cli.mjs:259), verified: plain rmSync on the lease path; a lease retaken in between is deleted. Use lease_take_over's .takeover protocol.
+- 2026-11-21 (Robert Bo Davis): Codex raised this again as a P2 on PR #34 (dev into staging, head f5234c8); checked against dev: the code is unchanged, so this item covers it. No new item filed.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+
+### B-443 · bug · land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 7b608d23
+
+- 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (land.sh:140): capture the ready items before the merge and reuse them in the report. The PR path is unaffected only if the backlog read precedes dev-sync; check both.
+- 2026-11-21 (Robert Bo Davis): Codex raised this again as a P2 on PR #34 (dev into staging, head f5234c8); checked against dev: the code is unchanged, so this item covers it. No new item filed.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+
 ### B-444 · bug · docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination)
 
 - status: landed
@@ -4794,6 +4923,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: browser.test.mjs failing under load, and B-573 and B-624 are the same extra output line. Fix together.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
+
+### B-447 · bug · to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try'
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 7b608d23
+
+- 2026-11-21 (prd/orchestration-2): Seen on the first real file, to-test/2026-11-21-1838-orchestration-2.md (orchestration-2 wave 5). For a diff that is only scripts/ and docs, name the commands to try instead.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
 
 ### B-448 · chore · Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards
 
@@ -4937,6 +5076,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (prd/orchestration-3): Codex P2 on PR #41 (prompt.sh:30), verified: setRow replaces the flag list; tell it to keep the current flags, or give prd set an add/remove form
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 8 (planning and prompts). After agent-autonomy, which holds prompt.sh.
 - 2026-11-23 (Robert Bo Davis): Same flags=hold overwrite in scripts/loops/prompt.sh (lines 49 and 233, 2026-11-23): fix B-464 and B-650 together.
+
+### B-465 · bug · pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 82ed64f9
+
+- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #41 (down.sh:50), verified: failed=1 but the loop goes on; stop there and keep the down record for a retry
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
 
 ### B-466 · bug · resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s)
 
@@ -5759,6 +5908,29 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22 from the user: run several backlog tasks at once (they had 'backlog - orchestrator' and 'backlog - seed' open by hand). Builds on agent-autonomy-2 slice 3 (recorded backlog sessions) and slice 4 (brief); kept-alive is only the default backlog session
 
+### B-542 · chore · Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 729eeed7
+
+- 2026-11-22 (Robert Bo Davis): Filed from the backlog session 2026-11-22 at the user's request. Component tests (2), integration (3), Playwright (1), check slots (2) are already capped; only the unit group isn't. fixes-tooling: a check-speed and flake fix.
+- 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: fixes-tooling wave 1, after test-gates lands. Wave 1 is the test worker cap (B-542) first, then the dispatcher, ask and notice races (B-452, B-454, B-525, B-526). Keep it small: these files are shared with agent-autonomy, self-recovery and worker-watch.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 6 (check flow). After agent-autonomy, which holds the check scripts. Confirm B-574 and B-576 still happen before fixing them: test-gates wave 4 gave lint 6 GB.
+- 2026-11-24 (prd/fixes-tooling): Wave 7 (fixes-tooling wave 6 planning, 2026-11-24): the unit worker cap lives in vitest.config.ts, test-health-2's hot file; the user said not to run wave 7 before the pause.
+- 2026-11-26 (prd/fixes-tooling): Merged at 4 (slice 53). Timing, six unit projects at load 17-34: 9 workers ~32.6 s, 6 ~36 s (+11%), 5 ~41 s (+26%), 4 ~49 s (+50%). Proposal for later: half the cores with no ceiling (5 here). CARETOOK_UNIT_WORKERS overrides; CI sets 3.
+
+### B-545 · chore · rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 7b608d23
+
+- 2026-11-22 (prd/fixes-tooling): Found by fixes-tooling wave 2 slice 11 while timing rotate.test.mjs (2026-11-22).
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 7 (landing, Codex, cleanup). After agent-autonomy, which holds the landing scripts.
+
 ### B-546 · change · Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces)
 
 - status: staging
@@ -5802,6 +5974,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): the symptom's free-text name should not be free text; it becomes its own type in the database. A base default set that all groups have from the start; writers add new symptoms easily and quickly; gate on similar or matching symptoms during add. The original bullet also asked for a multi-value filter (several symptoms at once). Triage: new topic symptom-catalog: a migration (catalog table, entries point at it, backfill from today's names, additive), quick entry's symptom parsing, visit prep and day summaries group by it. Overlaps quick-entry-2 and the timeline filters.
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): the symptom's free-text name should not be free text; it becomes its own type in the database. A base default set that all groups have from the start; writers add new symptoms easily and quickly; gate on similar or matching symptoms during add. The original bullet also asked for a multi-value filter (several symptoms at once). Triage: new topic symptom-catalog: a migration (catalog table, entries point at it, backfill from today's names, additive), quick entry's symptom parsing, visit prep and day summaries group by it. Overlaps quick-entry-2 and the timeline filters.
 - 2026-11-22 (plan/symptom-catalog): Planned 2026-11-22: plans/symptom-catalog-prd.md and -plan.md, six slices. The user chose that everyone who can log may add a symptom. Runs after quick-entry-2 and dose-accuracy.
+
+### B-550 · feature · Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done
+
+- status: landed
+- prd: todo-subtasks
+- owner: prd/todo-subtasks
+- commit: 21e619f8
+
+- 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): any depth in the model, limited to 3 levels in code; the parent auto-completes when its last subtask is done. Triage: new topic todo-subtasks (a parent_id on todo, sync, the Planner and todo screens). Depends on planner-3 (held, revising todo links), which owns todos/ and the todo schema; run it after.
+- 2026-11-25 (plan/todo-subtasks): Planned (todo-subtasks planner, 2026-11-25): PRD and plan in plans/todo-subtasks-{prd,plan}.md, six slices; runs after tags. Held after two skeptic send-backs (slice size), reworked; question a219.
+- 2026-11-25 (plan/todo-subtasks): User (a219, 2026-11-25): split smaller and keep it held. Now todo-subtasks (6 slices: server, device, todo page) and todo-subtasks-2 (2 slices: the lists); both rows held.
 
 ### B-551 · feature · 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left
 
@@ -6324,6 +6507,26 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (prd/test-gates): Found by test-gates wave 5: entryRepeat.browser.test.tsx failed on CI runs 45108684442 and 45109646741 and was fixed in the test only. renderWithDevice's settle can go quiet while route loaders read the device; plannerWorld.ts already waits for main first.
 - 2026-11-22 (prd/test-gates): Moved from fixes-tooling to test-gates wave 6 (slice 12) on the user's word, 2026-11-22.
 
+### B-608 · chore · Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: c4527dc5
+
+- 2026-11-22 (Robert Bo Davis): User asked for this 2026-11-22. Today nothing auto-formats: the slice check runs prettier --check . and failed on format twice in fixes-ui. Add to the slice prompt: prettier --write --ignore-unknown on the slice's changed files and commit, before pnpm prd check (it refuses a dirty tree). Add --cache to the prettier --check in check-body.sh, using each worktree's default cache location. Measured on dev at load 34 with Prettier 3.10.1: no cache 26.3s, cold cache 23.9s, warm 2.5s. One cache file shared across worktrees did not help (20.5s in another worktree), so a fresh worktree's first run stays cold. CI gets no benefit unless the cache is restored between runs.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 6 (check flow). After agent-autonomy, which holds the check scripts. Confirm B-574 and B-576 still happen before fixing them: test-gates wave 4 gave lint 6 GB.
+
+### B-609 · chore · Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: bb36eb88
+
+- 2026-11-22 (prd/test-gates): Found folding test-gates wave 5 docs. ci run --wait exits by kind (0-5, 75), planCheck no longer escalates to full, prompt.sh's hotfix prompt names no CI tier, pr.sh and ready.sh still print checked_how, checked_ok is used only by tests.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 6 (check flow). After agent-autonomy, which holds the check scripts. Confirm B-574 and B-576 still happen before fixing them: test-gates wave 4 gave lint 6 GB.
+
 ### B-610 · bug · CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file
 
 - status: landed
@@ -6450,6 +6653,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (Robert Bo Davis): [ci-key 5ec2f8d0c0ea] Flaked (passed on its rerun); a whole-file flake can't be quarantined by name; found by prd/ui-kit-4.
 - 2026-11-23 (prd/dose-accuracy): Merged into B-610 on the user's word, 2026-11-23; B-610 carries this item's ci-key, so a new whole-file flake notes B-610.
 
+### B-623 · bug · Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 729eeed7
+
+- 2026-11-23 (prd/test-gates): scripts/loops/check-body.sh:69 greps the verbose output for 'unhandled error', and browser/check-body tests include the passing title "doesn't rerun after an unhandled error". So any tooling failure prints 'an unhandled error, so no rerun' and skips its one rerun. Seen on prd/test-gates 518a041f, 2026-11-23.
+- 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 6 (check flow). After agent-autonomy, which holds the check scripts. Confirm B-574 and B-576 still happen before fixing them: test-gates wave 4 gave lint 6 GB.
+- 2026-11-24 (prd/fixes-tooling): 2026-11-24: every fixes-tooling wave 4 slice check (25, 28, 29, 30) ended 'tooling: an unhandled error, so no rerun' on plain test timeouts, so load flakes in stack.test (B-740), tidy-cli and ask.test were never retried.
+
 ### B-624 · bug · browser.test.mjs 'passes a clean spec' fails under load: it expects exactly two output lines
 
 - status: dropped
@@ -6523,6 +6737,25 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 21 (B-591) hand-off, read from the code and not tested: an opening 'no' counts as negating the dose so the first stays March 8; 'take' counts as given so the second loses its date; a fraction equal to the medication's strength should read as the strength (usual dose, no date). Also decide 'gave tylenol 3/8 at 9pm', now 3/8 tablet today at 9pm.
 
+### B-633 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: e5f7b7cb
+
+- 2026-11-23 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/onboarding.
+- 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
+- 2026-11-24 (prd/symptom-catalog): Still flaking after landing: symptom-catalog run 45433991590 (components-2, 60112aa4, 2026-11-24): settle timeout after Back with care_period/care_group_member/medication_pass/document queries pending, both web:components and :ny, first run and retry; 3/3 alone. Also hit the B-235 test in the same file.
+- 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729). Also tracks the sibling timelineBack test 'Back, then the filter that's on picked again' (was under B-568) [ci-key d923e28bf2a5].
+- 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729). Also tracks the sibling timelineBack test 'Back, then the filter that is on picked again' (was under B-568) [ci-key d923e28bf2a5].
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
+- 2026-11-26 (slice/fixes-tooling/59): Cause (fixes-tooling slice 59): after Back the timeline remounts with ~35 watches; each result arrived in its own task and re-rendered the 3-page timeline (~70 ms each, 15 in a row), and every later query waited behind the render: post-Back settle 1.7 s locally, 4.0-4.4 s at 2x CPU throttle, past 5 s on a loaded CI runner. Fix: watchLiveQuery hands results over at the next frame, together (100 ms timer for a hidden page): 0.6-0.9 s, 2.3-2.9 s at 2x. 20/20 runs (10 per zone) at load 100+. Quarantine lines can go.
+
 ### B-634 · bug · Quick entry gives 'dr lee the 2nd at the clinic' no date: an ordinal before 'at <place>' is not read as a day
 
 - status: landed
@@ -6559,6 +6792,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (prd/onboarding): From onboarding slice 4. The code returns the waiting request before the legal check (askWithLink in careGroupInviteService), but the test 'a waiting request isn't asked again' sends legal: true with a current row, so it doesn't prove this path.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+
+### B-639 · bug · Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 7b608d23
+
+- 2026-11-23 (prd/agent-autonomy): From agent-autonomy slice 4 (B-518). unsynced_dev_brake reads the tip of drift_ref, normally local dev. If local dev is behind origin/dev, a brake verdict on origin's newer tip is seen only through a live dev-brake notice. Fix: read origin/dev's tip too, or fetch before judging.
+- 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 7 (landing, Codex, cleanup).
 
 ### B-640 · bug · Close Better Auth's update-user path so a member can't set an external avatar image
 
@@ -6645,6 +6888,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 34 (B-641) hand-off, read from the code: the bare fraction equal to the strength takes the usual dose whatever it is. The 'mg' form now keeps the typed amount unless the usual dose is one unit or the same measure; the bare form was left as the plan said. Confirm with a test first.
 
+### B-649 · bug · A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 7b608d23
+
+- 2026-11-23 (prd/agent-autonomy-3): From agent-autonomy-3 slice 3. Matches unsynced_dev_brake today; a go could refuse when the brake state can't be read.
+- 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 7 (landing, Codex, cleanup).
+
 ### B-650 · bug · Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag
 
 - status: landed
@@ -6673,6 +6926,22 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 7be34f48
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 37 (B-646) hand-off: in ordinalIsADay (quickEntryTime.ts) a clock time after the ordinal marks a day before the counted-word check runs. 'a 2nd at 2pm' is already undated. Confirm with a test first.
+
+### B-653 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once…
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: c4527dc5
+
+- 2026-11-23 (Robert Bo Davis): [ci-key 490c60a6d926] Flaked (passed on its rerun); found by prd/ui-kit-5.
+- 2026-11-23 (Robert Bo Davis): Merged from B-486 (2026-11-23): times out at 15 s stepping 4 h of fake timers; fails alone 3/3 at load ~18, passes 3/3 at ~8. Fix: step the clock in fewer, larger jumps, or raise this test's timeout. This item owns the quarantine entry.
+- 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes).
+- 2026-11-24 (prd/fixes-tooling): Re-measured 2026-11-24 by fixes-tooling slice 31 (after B-607), at 1-min load 18-103 beside the other checks: no failure in 10 runs (quarantined ones with CARETOOK_QUARANTINE=run). Proposed: close.
+- 2026-11-24 (prd/symptom-catalog): Still flaking after landing: symptom-catalog runs 45427105181 and 45433991590 (2026-11-24), 15 s test timeout under load; 3/3 alone at load ~73.
+- 2026-11-24 (Robert Bo Davis): Reopened 2026-11-24 (user): closed by ask a184 but failing again in CI since dev's quarantine tidy 326c611d (symptom-catalog runs 45433991590, 45440714729); a184's light-load re-measure missed it.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/symptom-catalog.
+- 2026-11-24 (Robert Bo Davis): Flaked (passed on its rerun); found by prd/fixes-tooling.
 
 ### B-654 · bug · CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai…
 
@@ -6732,6 +7001,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-23 (prd/calendars-2): From calendars-2 slice 4 (B-308). update({ detailsConsent: true }) stamps the server's current DETAILS_CONSENT_VERSION, not the version the device showed. Needs a bump landing inside one offline window. Fix idea: the device sends the version it displayed and the server refuses or leaves it stale on a mismatch.
 - 2026-11-23 (prd/calendars-2): Codex raised the same on PR #114 (P2, calendarSettingService.ts:156): loadCalendarSettings replays a pending { detailsConsent: true } before fetching, and neither the payload nor the API schema names the wording seen. Fix before the next DETAILS_CONSENT_VERSION bump: send the displayed version in the request and the persisted pending change, and refuse an outdated one.
+
+### B-660 · chore · CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: c4527dc5
+
+- 2026-11-23 (Robert Bo Davis): From the search speed flake (B-619, B-492): the verdict artifact names the failing test only, so run 45117253571 left no number to diagnose. The search test's assertion already carries its timings in the message. Likely in scripts/ci/test-job.mjs and verdict.mjs.
+- 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 6 (check flow).
 
 ### B-661 · bug · roundtrip's 2-second add budget fails on the CI runner
 
@@ -7402,6 +7681,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (prd/test-health-2): From the inbox: A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later
 - 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
 
+### B-738 · bug · Land gate reuses a failing CI verdict from an ancestor when only tooling changed since, so a tooling fix commit is refused on the old failure without a new run
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 7b608d23
+
+- 2026-11-24 (Robert Bo Davis): Seen 2026-11-24 on hotfix/lane-cap: run 45394082593 failed prompt.test.mjs on f0107a07; the fix 16a1f0ad (scripts/loops/prompt.sh only) was refused on that same run. The carry-over rule (orchestrator.md, The check gate: an ancestor with only docs or tooling changed since) should keep only green verdicts, or request a fresh run when the carried one failed. Workaround: pnpm prd ci run <tier> --ref <branch>.
+
 ### B-739 · change · Slim the inbox session for speed: Sonnet at low effort, add/edit/move/remove unfiled lines only, no duplicate check or backlog reads
 
 - status: landed
@@ -7499,6 +7787,33 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-24 (Robert Bo Davis): Triaged into fixes-ui on the user's word, 2026-11-24 (backlog session): the user put fixes-ui first in the registry and asked that the inbox's items go there.
 - 2026-11-24 (Robert Bo Davis): Goes with B-680 (one search and filter bar on every list page): the timeline keeps its own controls, but its search placeholder wording should match whatever B-680 settles on.
 
+### B-751 · chore · A quarantine entry whose test was renamed or deleted is skipped silently and stays: flag quarantine names that match no test
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: c4527dc5
+
+- 2026-11-24 (prd/fixes-tooling): Found by fixes-tooling slice 31 (2026-11-24): two providers.browser 'contact details on each row (B-44)' lines under B-568 name tests that no longer exist. A check (in pnpm prd ci or a tooling test) should flag a quarantine name matching no test.
+
+### B-753 · bug · CI doesn't name the file a hung shard is stuck on
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 16ef128c
+
+- 2026-11-24 (Robert Bo Davis): CI full run 45407562750: components-2 hung in timelineJump.browser.test.tsx (B-752) and was cancelled after 20 minutes. The verdict said only 'blame: unknown', and naming the file took a manual diff of every file the shards reported against the full list. Wanted: a hung file fails on its own with its name, either through a per-file watchdog or by having test-job.mjs list the started-but-unfinished files when the job hits its limit, so the verdict blames it and the filer files it like any flake.
+
+### B-754 · bug · backlog.test.mjs beforeAll errors under load (slice checks at load ~30-44)
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 729eeed7
+
+- 2026-11-24 (prd/fixes-tooling): Seen 2026-11-24 in fixes-tooling slice 32 and 33 quick checks (14:31Z, 5-min load 43-44, .loops/.check-times.log), beside tidy-cli's beforeAll (B-461). Error text not kept. Likely the same kind as B-461 (a slow fixture setup); measure and cut it. Not in wave 5.
+
 ### B-756 · change · Timeline symptom filter: an empty result says 'No symptoms on the timeline yet.' instead of naming the chosen symptom types
 
 - status: staging
@@ -7544,6 +7859,42 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 15167ea9
 
 - 2026-11-24 (Robert Bo Davis): Triage: a full-screen view for a live note; a small flow addition, no data change.
+
+### B-766 · bug · pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 1f513849
+
+- 2026-11-24 (prd/fixes-tooling): Seen after slice 44 (B-598) in wave 6: scripts/loops/prd.sh line 17. Quote the heredoc delimiter or escape the backticks.
+
+### B-767 · bug · A backlog amend repeats the Backlog-Tool trailer in the commit message
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: dd8d3a21
+
+- 2026-11-24 (prd/fixes-tooling): Seen in slice 46 (B-464) of wave 6: amending a pnpm backlog commit appends a second Backlog-Tool trailer instead of keeping one.
+
+### B-768 · bug · slice-fields.mjs warns on a slice fields line that carries Blocked by
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: dd8d3a21
+
+- 2026-11-24 (prd/fixes-tooling): Seen in wave 6 (slice-brief work, B-595): a valid 'Blocked by' on a slice's fields line draws a warning; it should be a known field.
+
+### B-769 · bug · CI flake: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx: the New care group sheet the group menu's New c…
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: e5f7b7cb
+
+- 2026-11-24 (Robert Bo Davis): [ci-key 02b5c8552f3e] Flaked (passed on its rerun); found by prd/symptom-catalog.
 
 ### B-770 · bug · pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy
 
@@ -7749,6 +8100,44 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-24 (prd/fixes-ui): Orchestrator triage 2026-11-25: look and flow (fixes-ui). Starting the app offline shows a blank page while it loads (root HydrateFallback returns null; the /app layout waits on the local database). A branded loading screen there: the blank cold start B-325 names, without its native safe-area half. Wave 12 slice 75, beside B-804 (offline banner).
 
+### B-807 · bug · CI: scripts/loops/fixes-plans.test.mjs: fix topics fixes-ui has a plan with a parsing Status table fails on dev
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 729eeed7
+
+- 2026-11-25 (prd/planner-3): [ci-key 8f5760aaa54d] Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45553217886.
+- 2026-11-25 (Robert Bo Davis): Fails on dev too; found by prd/planner-3 in https://github.com/caretook/caretook.com/actions/runs/45558728409.
+- 2026-11-25 (Robert Bo Davis): Symptom fixed on dev in a563f62f (empty Status table restored). Left open for the cause: fixes-ui's idle hand-over (92177808) dropped the Slice | Item | State | Merge header; make the hand-over or pnpm prd status-trim keep it, or let the test accept an idle plan. Moved from fixes-bug: it is tooling.
+
+### B-809 · bug · The dispatcher keeps running the code it started with: started 2026-11-24 08:07, before the usage drain landed (B-407, 17:55), it started fixes-bug and a todo-subtasks planner at 85% weekly usage while dispatch --dry-run said draining
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 39204887
+
+- 2026-11-25 (Robert Bo Davis): Restart or re-exec the dispatcher when scripts/loops/ changes on dev (or check its code hash each tick and say so in pnpm prd status).
+
+### B-810 · bug · pnpm prd end <name> ends the pid in the session record, not the live session: ending prd-planner-3 killed pid 46403 while the dispatcher-reopened session (pid 77478, session.sh pid 76171) kept running
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 00fae492
+
+- 2026-11-25 (Robert Bo Davis): Found 2026-11-25. A reopen should rewrite the record's pid, and end should check that the pid it kills is the session named.
+
+### B-812 · bug · An orchestrator's finishing step runs pnpm prd rm from inside its own worktree, so the next step (cd to the main checkout && pnpm prd end) never runs: the harness refuses a command whose cwd was deleted, and the session stays open
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: e5f7b7cb
+
+- 2026-11-25 (Robert Bo Davis): Found 2026-11-25 (planner-3-35's transcript, B-431 incident). Have rm print the cd, or have rm end the calling session itself when it is the topic's orchestrator; docs/agents/orchestrator.md's last-landing order needs the same fix.
+
 ### B-817 · bug · Mobile bottom nav renders dark in light mode
 
 - status: staging
@@ -7808,6 +8197,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-25 (prd/orchestration-split): Wave 2 Fable skeptic: a changed prefix would split behaviour, so slice 4's sample project can't vary it. Slice 3 owns ready.sh; rm.sh and the rest have no slice yet.
 - 2026-11-25 (prd/orchestration-split): Wave 3: slice 3 takes the prefixes in the six files it owns (lib.sh, prd.sh, unsynced.sh, land.sh, new.sh, ready.sh); rm.sh and the rest stay open.
+
+### B-824 · bug · CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai…
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: e5f7b7cb
+
+- 2026-11-25 (Robert Bo Davis): [ci-key 5f15601fb275] Flaked (passed on its rerun); found by prd/orchestration-split.
+- 2026-11-26 (prd/fixes-tooling): Slice 57's test fix merged (0783ecf7); the CI failure that remains is a real lease.sh exclusivity bug, filed separately. Keep the quarantine line until that lands.
 
 ### B-825 · chore · doc-budget.mjs in scripts/project keeps its own copy of the registry table header: a column added by the core makes warn mode print 'plan status: skipped', and no test ties the two
 
@@ -7942,6 +8341,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-25 (prd/orchestration-split-2): Folds into orchestration-split-2 slice 9 (wave 4) with B-838 and B-842, on the user's word (relayed by split-ops 2026-11-25); point 2 (test DB name and port parity) goes to slice 2 if it fits its files.
 - 2026-11-25 (prd/orchestration-split-2): Point 2 (test DB name and port parity) done by orchestration-split-2 slice 2 (merge 5b690d58): the core keeps no copy; they come from the test-db hook. The other points stay for slice 9.
 
+### B-845 · bug · entryMentions.browser.test.tsx leaves an unhandled rejection ('Client has already been closed' from linkProvider after the test's database closes), failing a component shard whose 996 tests all pass
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: c4527dc5
+
+- 2026-11-25 (prd/orchestration-split-2): Seen 2026-11-25 on orchestration-split-2's wave 1 full run (https://github.com/caretook/caretook.com/actions/runs/45694997111, job components-2, tip 3b427316; the wave touches no app code but apps/web/test/browserLease.ts). The rejection: requireOpen (DatabaseServer.ts:64) < liveProvider apps/web/app/lib/providers/providers.sync.ts:247 < linkProvider :429 < apps/web/app/routes/app/groups/entry/useEntryMentions.ts:44, last test 'mentioning a provider already linked makes no second link (nothing more to upload)'. useEntryMentions starts linkProvider without awaiting or catching it, so it can run after teardown closes the client; the same shard logs many 'Couldn't save live notes [Error: Client has already been closed]'. Either the hook should catch (a real unhandled rejection in the app when the database closes mid-link, e.g. at sign-out) or the test should wait for the link to settle. The verdict was 'file' with a partial list (no failed test file in the report), so ci blame returns 5 (unknown) and the job isn't rerun.
+
 ### B-846 · chore · Wave 2 skeptic's follow-ups for split stage 1b: stack_facts takes the project from .env.loop's SLOT not .env's CARETOOK_STACK, --env-only keeps an old BASE_BRANCH over --base, the stack hook contract lacks a stop that keeps data, a stopped-since fact and an up without the seed, docs/agents/loop.md opens with a headless list, stack_hook needs the project root after the move
 
 - status: landed
@@ -8010,6 +8418,80 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-25 (prd/fixes-ui): Found by fixes-ui slice 80 (B-833): the parser's preview wording for an appointmentWord or visit line still says Appointment; B-537 made Event the one word app-wide. Wording only, in the quick entry parser's titles and their tests.
 
+### B-860 · bug · check-tooling: the tooling step reports 'an unhandled error, so no rerun' when none happened; its regex likely matches test names in the output
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 729eeed7
+
+- 2026-11-25 (prd/test-time-gates): Seen by test-time-gates slice 2's slice check (2026-11-25) on slice/test-time-gates/2: the first check's tooling step skipped its rerun on a phantom unhandled error, probably matching a test title like "doesn't rerun after an unhandled error".
+
+### B-862 · chore · roundtrip.spec: a run that dies inside the matrix writer loop skips cleanup of rows it wrote, and the leftover breaks the next run on the same database
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 0ca46a79
+
+- 2026-11-26 (prd/tags): Seen in tags slice 1 (2026-11-26): ids go into matrix.ids only after the loop, so a mid-loop failure left a matrix allergy row that refused the next run's 'No known allergies'. Assign ids as each writer returns, or clean by the run prefix.
+
+### B-864 · bug · Test fixture fx.tag derives its id from the raw name (tagId(groupId, name)) instead of tagKey(name), so a fixture tag's id differs from the id a device derives for the same name
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 0ca46a79
+
+- 2026-11-26 (prd/tags): Seen in tags slice 2 (2026-11-26): apps/web/test/fixtures.ts tag(); pass tagKey(name). No test depends on it yet.
+
+### B-865 · bug · CI: scripts/loops/boundary.test.mjs: this repo crosses the line only where the allowlist says fails on dev
+
+- status: staging
+- prd: fixes-tooling
+- owner:
+- commit: 8f5cf394
+
+- 2026-11-26 (prd/fixes-tooling): [ci-key 9d374f98fa8a] Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
+- 2026-11-26 (prd/fixes-tooling): Caused by fixes-tooling wave 7 (4646edc1, B-766's test named $CARETOOK_INBOX_DIR); fixed on prd/fixes-tooling in d2133f4e, lands with wave 8.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (prd/fixes-tooling): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45805573421.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45811545080.
+- 2026-11-26 (prd/fixes-tooling): Closed 2026-11-26: fixed by d2133f4e (wave 8, in dev); boundary.test.mjs passes 45/45 and boundary: ok on prd/fixes-tooling.
+- 2026-11-26 (prd/fixes-tooling): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45843104778. First failure: AssertionError: expected [ …(41) ] to deeply equal [] at /home/runner/work/caretook.com/caretook.com/scripts/loops/boundary.test.mjs:387:29 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node…
+
+### B-866 · bug · CI: scripts/loops/boundary.test.mjs: this repo passes from the command line too fails on dev
+
+- status: staging
+- prd: fixes-tooling
+- owner:
+- commit: 8f5cf394
+
+- 2026-11-26 (prd/fixes-tooling): [ci-key 63c75fb0d751] Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45784130450.
+- 2026-11-26 (prd/fixes-tooling): Same cause and fix as B-865 (d2133f4e, wave 8).
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
+- 2026-11-26 (prd/fixes-tooling): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45805573421.
+- 2026-11-26 (prd/todo-subtasks): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45809410424.
+- 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45811545080.
+- 2026-11-26 (prd/fixes-tooling): Closed 2026-11-26 with B-865 (d2133f4e).
+- 2026-11-26 (prd/fixes-tooling): Fails on dev too; found by prd/fixes-tooling in https://github.com/caretook/caretook.com/actions/runs/45843104778. First failure: AssertionError: expected 'ci-results/unit-1.progress.json proje…' to match /^boundary: ok \(\d+ allowed\)\n$/ at /home/runner/work/caretook.com/caretook.com/scripts/loops/boundary.test.mjs:392:22 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35 at file:///home/runner/work/caretook.com/…
+
+### B-867 · bug · lease.sh: two takers can claim the same check slot on CI (exclusivity break): both write check/<n>/name.tmp, one mv takes the other's, and a run goes ahead with no lease
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 3c48b294
+
+- 2026-11-26 (prd/fixes-tooling): Found by slice 57's B-824 fix request. CI run 45784130450 (unit-1 Quarantined tests): log [start,start,start] at limit 2; run 1 stderr 'mv: cannot stat .../leases/check/2/name.tmp'; run 3 never waited; holders 2 of 2 (slot 1 run 0, slot 2 run 1). No path found that lets mkdir check/2 succeed twice; not reproduced in ~590 Linux container rounds (4 and 2 CPUs) or 20 Mac runs. Hardening: a per-writer tmp name (name.tmp.$$) and, after the mv, confirm name's pid is the taker's own, else back off. Keep B-824's quarantine line until this lands.
+
 ### B-868 · bug · CI: the build job fails on dev
 
 - status: staging
@@ -8021,6 +8503,111 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-26 (prd/todo-subtasks): Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
 - 2026-11-26 (Robert Bo Davis): Fails on dev too (a brake); found by prd/todo-subtasks in https://github.com/caretook/caretook.com/actions/runs/45797912432.
 
+### B-869 · bug · Browser check session-end fails on dev: 'fresh session: the navigation went ahead without waiting for the server' (the kind=symptom filtered timeline never shows before the recheck sends it to sign-in)
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: ba0e6f2f
+
+- 2026-11-26 (prd/todo-subtasks): Found by todo-subtasks wave 1 (2026-11-26): fails 4/4 on prd/todo-subtasks and 2/2 on dev 0005f796 itself at load ~11 (session-end-20261126-054837.log), so not load. Step at session-end.spec.mjs:231 (went-ahead flag null), once :234 (redirectTo lacks kind=symptom). Suspect: tags wave 4 (4c64a097) changed TimelineFilters/timelineFilters and ran no browser checks. Could be fixes-bug if the app, not the spec, regressed.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: brakes staging (failed with its retry on candidate run 45806347877). Suspect wave 7's watchLiveQuery frame batching (B-633): rows land up to a frame/100 ms later, so the redirect to /sign-in wins; unconfirmed. User's word: fix ASAP, before the staging re-cut.
+- 2026-11-26 (slice/fixes-tooling/69): slice 69 (074a24b1): cause = a race, not B-633. A fresh session's background recheck got 'signed out' (~10 ms locally, ~60 ms more to close the device) before the timeline loader's two DB rounds (the tag read from tags slice 6, a5b63301, is the first, ~37 ms) committed the ?kind=symptom address, so location.assign used the old URL (redirectTo lost kind=symptom) or unloaded the page before the filtered list showed. Fix: session.ts recheck uses the navigation's target while the address hasn't moved (unit-tested); the spec holds get-session until the filtered timeline shows. Follow-up idea: read tags in the loader's second round unless ?tag= is set.
+
+### B-870 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d…
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: c4527dc5
+
+- 2026-11-26 (Robert Bo Davis): [ci-key 33d04fe2a0f3] Flaked (passed on its rerun); found by prd/todo-subtasks.
+- 2026-11-26 (slice/fixes-tooling/79): Cause (fixes-tooling slice 79): after Back, the timeline's ~38 watches run one at a time, and each batched frame of results (B-633) rendered the 3-page timeline between them, holding up the queries behind it. At a 4x CPU throttle it reproduces CI's failure exactly (settle timeout, care_period/care_group_member owed). Fix: watchLiveQuery holds the frame, up to 500 ms, while any watch's first result is owed, so a remount renders once. Post-Back settle 0.74-0.87 -> 0.52 s locally, >5 s -> 1.9 s at 4x, 3.4 s at 6x. 10/10 at load 25-133. Quarantine line removed. Follow-up idea: 11 of the 38 watches are duplicates (same SQL and params); sharing them would save about 30% more.
+
+### B-871 · bug · A test writes session records into the real .loops/.sessions (stray prd-u.json, backlog.json overwritten)
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: f71c773d
+
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: .loops/.sessions/prd-u.json (kind prd, started 11:08Z, dead pid) appeared beside an overwritten backlog.json (kind prd, same start); repaired with sessions.mjs set backlog --if-pid. Likely a tooling test not isolating CARETOOK state dir. Stale prd-u.json removed.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26 11:57Z: happened again (backlog.json kind prd pid 58061, prd-u.json pid 60517, both 11:57:19-20Z); repaired again.
+
+### B-872 · chore · Win back the app bundle bytes: trim under the old 406,187 B ceiling
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: f71c773d
+
+- 2026-11-26 (Robert Bo Davis): B-868: dev's app bundle hit 406,350 B gzip, 163 B over; ceiling raised to 408,500 on 2026-11-26 to unblock staging (user's word). Find what grew and trim, then lower the ceiling back.
+
+### B-873 · change · Loop doc: batch independent reads and greps into one turn and read whole files, not sed line chunks
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 41d36b6f
+
+- 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. Slice turns: 94% make one tool call; ~1,500 of 3,016 are sed/grep/cat/python reads at ~100k context each, ~140M (45% of slice tokens). Biggest lever, also faster.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: skeptic s57, user agreed: cover edits too (several replacements per script, or parallel Edits); read whole files under ~400 lines, else grep then a range. Real reads are ~35% of slice tokens, not 45%.
+
+### B-874 · change · Planner: each slice's Reads names exact files and functions (symbols, not line numbers); orchestrator checks the anchors against dev at PRD start
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 87a787e1
+
+- 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. Slices spend their first turns rediscovering what the planner already found. Symbols survive edits; line numbers go stale on hot files.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: skeptic s57, user agreed: rewrite planner.md:49 ('name durable things, not files or functions') rather than add a second rule; pnpm prd anchors warns, never stops a PRD start.
+
+### B-875 · change · Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 41d36b6f
+
+- 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): Haiku use was 0 despite the Models rule; Monitor/prd wait check/TaskStop poll turns ~140, ~16M. Make the delegation rule mechanical in the loop doc.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: skeptic s57, user agreed: keep the helper rule; hold the background-wait rule until B-877 finds why slices end early (the five restarted slices all ended 'waiting for its notification'). B-879 is its duplicate.
+
+### B-876 · change · Orchestrators rotate with a brief between waves once context passes ~120k
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 87a787e1
+
+- 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. Orchestrators ran at 140-185k per turn late in a PRD (~110M, 22%). pnpm prd rotate exists; add the trigger to the orchestrator doc.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: rotate unasked between waves only; keep the --mid-wave guard; lower the soft judge limit to 120k (skeptic s57).
+
+### B-877 · bug · Find why fixes-tooling slice agents end early and get continued
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: f71c773d
+
+- 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. 5 of 24 fixes-tooling slice agents overnight were 'continue' restarts (slices 51, 53, 56, 57, 60); each reloads the base and rediscovers. Cause not yet known.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
+- 2026-11-26 (slice/fixes-tooling/74): Cause (slice 74): not the watch (no marks) nor the agents. Orchestrator session 77646565 got the soft context reminder at 166k (07:33:37Z) and ran rotate --mid-wave --reason context at 07:34:32Z with slices 51, 53, 56, 57, 60 still waiting on their hand-off checks (lease queue, 2 of 2 held); their checks died (57: exit 137) and session 0f38adf3 respawned them with --continue at 07:36Z. Fix fbcf69b2: rotate.sh refuses a mid-wave context rotation under the hard limit while a slice isn't handed off.
+
+### B-878 · change · Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request
+
+- status: staging
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: f71c773d
+
+- 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26 (8pm–6:30am EST, ~500M tokens, 96% cache reads): cost = turns x context. User chose cap+1 (2026-11-26). Overnight 5 planners (~75M, 15%) wrote plans for topics now on hold: data-rights, account-security, onboarding-2, sync-safety-2, test-time-gates-2. Early planning on request stays.
+- 2026-11-26 (Robert Bo Davis): 2026-11-26: user's word: fixes-tooling picks these up next, ASAP, ahead of its other items (todo-subtasks paused).
+
 ### B-879 · change · Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling
 
 - status: dropped
@@ -8029,3 +8616,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): Token analysis 2026-11-26: Haiku use was 0 despite the Models rule; Monitor/prd wait check/TaskStop poll turns ~140, ~16M. Make the delegation rule mechanical in the loop doc.
+
+### B-903 · bug · a slice agent's foreground command past ~170–180 s is moved to the background, and an agent ending its turn there stops without a hand-off
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/fixes-tooling
+- commit: 49ce9446
+
+- 2026-11-26 (prd/fixes-tooling): Found in wave 9 (slice 71 evidence, confirmed as plausible by slice 74's B-877 study, which traced 2026-11-26's restarts to the orchestrator's context rotation instead). Harness behaviour, not our code: the loop doc and slice prompt could say to run long checks with run_in_background and wait with pnpm prd wait check, never ending the turn before the hand-off (slice 71 dropped that rule, holding it for slice 74).

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Replace an orchestrator's session with a fresh one: the command `pnpm prd
+# Replace an orchestrator's session with a fresh one: the command `prd
 # rotate` opens in a background tab (never run inside the session it ends).
 #
 #   rotate-into.sh prd-<topic> <old pid> [--reason <text>]
@@ -19,7 +19,7 @@
 # 1. Marks the record (.loops/.sessions/prd-<topic>.json) rotating, making one
 #    when there is none (a session started before session.sh), so an opener or
 #    recovery that runs while this is cut short starts fresh, never --continue.
-# 2. Ends the old pid: TERM, then KILL after CARETOOK_ROTATE_WAIT seconds
+# 2. Ends the old pid: TERM, then KILL after RISA_ROTATE_WAIT seconds
 #    (default 20), and waits for it to go (and for its session.sh to record the
 #    end, so that write can't land on the new record).
 # 3. Execs session.sh with the same name and the resume prompt (prompt.sh
@@ -31,8 +31,8 @@ set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 bin=$(cd "$(dirname "$0")" && pwd)
-export CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions}
-wait_secs=${CARETOOK_ROTATE_WAIT:-20}
+export RISA_SESSIONS_DIR=${RISA_SESSIONS_DIR:-$loops/.sessions}
+wait_secs=${RISA_ROTATE_WAIT:-20}
 
 usage="usage: rotate-into.sh prd-<topic>|backlog[-<name>]|inbox <old pid> [--reason <text>] [--brief <file> | --no-brief] [--captain <C>]"
 name=${1:-} old=${2:-}
@@ -101,7 +101,7 @@ if alive "$old"; then
   kill -KILL "$old" 2>/dev/null || true
   echo "pid $old ignored TERM for ${wait_secs}s: killed it."
   for ((i = 0; i < 50; i++)); do alive "$old" || break; sleep 0.2; done
-  alive "$old" && die "rotate-into: pid $old is still running; $name is left marked rotating (pnpm prd open ${topic:-$name} starts it fresh)"
+  alive "$old" && die "rotate-into: pid $old is still running; $name is left marked rotating (${prd_cmd} open ${topic:-$name} starts it fresh)"
 fi
 if [[ -n $wrapped ]]; then
   for ((i = 0; i < 50; i++)); do
@@ -124,7 +124,7 @@ if [[ $kind == backlog ]]; then
     remote=${captain:-$(node "$bin/captain.mjs" next 2>/dev/null || echo backlog)}
   fi
   # The prompt names the captain (prompts/backlog.sh); none drawn, no line.
-  [[ $name != backlog || $remote == backlog ]] || export CARETOOK_CAPTAIN=$remote
+  [[ $name != backlog || $remote == backlog ]] || export RISA_CAPTAIN=$remote
   # The old session is gone, so a brief that went bad now costs the brief, never the session.
   prompt=""
   if [[ -n $brief ]]; then
@@ -136,7 +136,7 @@ if [[ $kind == backlog ]]; then
     fi
   fi
   [[ -n $prompt ]] || prompt=$("$bin/prompt.sh" backlog ${no_brief:+--no-brief})
-  unset CARETOOK_CAPTAIN
+  unset RISA_CAPTAIN
   args=()
   [[ -z $model ]] || args+=(--model "$model")
   args+=(--remote-control "${remote:-$name}" "$prompt")

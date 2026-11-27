@@ -30,8 +30,9 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //                and the core's scripts/ci tests
 //   tooling:unit the other tooling tests (scripts/loops, backlog), against
 //                throwaway git repos in the OS temp dir; `pnpm test:tooling`
-//   tooling:browser  scripts/loops/browser.test.mjs alone: it launches Playwright
-//                and waits on specs that hang on purpose. `pnpm test:browser-harness`;
+//   tooling:browser  loops/browser.test.mjs (the gate) and project/browser-run.test.mjs
+//                (Caretook's runner) alone: they launch Playwright and wait on
+//                checks that hang on purpose. `pnpm test:browser-harness`;
 //                `pnpm test:tooling` adds it when the change touches what it tests
 //                (check-plan.mjs); CI runs it in the integration job
 //   integration  real Postgres, every package (*.int.test.ts): the test
@@ -272,9 +273,10 @@ export default defineConfig({
           ...tooling,
           root: "./scripts",
           include: [...PROJECT_TOOLING, "project/**/*.test.mjs", "hooks.test.mjs"],
-          exclude: PROJECT_UNIT,
+          // The runner's test is the browser harness's (tooling:browser).
+          exclude: [...PROJECT_UNIT, "project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       {
@@ -309,7 +311,7 @@ export default defineConfig({
           // Off for every spawned script (they pass process.env on): new.sh and
           // check-run.sh would otherwise poll the real machine's load, 15 s at a
           // time for up to 600 s. The gate's own tests set it back to "".
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       {
@@ -317,9 +319,9 @@ export default defineConfig({
           name: "tooling:browser",
           ...tooling,
           root: "./scripts",
-          include: ["loops/browser.test.mjs"],
+          include: ["loops/browser.test.mjs", "project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       componentsProject("web:components", testZone(), await freePort()),

@@ -55,7 +55,8 @@ const pageChips = () =>
   [...document.querySelectorAll('main header [data-region="details"] [data-tag-chip]')]
     .map((c) => c.textContent?.trim())
     .join(",");
-const TAGS_BUTTON = () => document.querySelector<HTMLButtonElement>("main header [data-tag-record]");
+/** The header's ⋯, where a writer's Tags is. */
+const ACTIONS = () => document.querySelector<HTMLButtonElement>("main header [data-provider-actions]");
 const params = (device: { location: () => string }) =>
   Object.fromEntries(new URLSearchParams(device.location().split("?")[1] ?? ""));
 const menuRadios = () =>
@@ -65,7 +66,8 @@ describe("tags on a provider", () => {
   test("a writer tags a provider from its page; the chips follow live", async () => {
     const device = await open(providerUrl(ALVAREZ.id));
     expect(pageChips()).toBe("");
-    await userEvent.click(await found(TAGS_BUTTON));
+    await userEvent.click(await found(ACTIONS));
+    await userEvent.click(page.getByRole("menuitem", { name: "Tags" }));
     await found(() => document.querySelector("[data-tag-picker]"));
     await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
     await device.settle();
@@ -77,7 +79,7 @@ describe("tags on a provider", () => {
   test("a viewer sees every chip on the page, and no Tags", async () => {
     await open(providerUrl(PATEL.id), "viewer");
     await expect.poll(pageChips).toBe("Care home move,Heart,Knee");
-    expect(TAGS_BUTTON()).toBeNull();
+    expect(ACTIONS()).toBeNull();
   });
 
   test("the directory's rows show two chips, then +N, for a viewer too", async () => {

@@ -1,7 +1,7 @@
 // The boundary lint (boundary.mjs): each rule and form on a sample project, the
 // manifest and the allowlist, and this repo itself, which must pass.
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -49,6 +49,25 @@ const lint = (file, text) =>
   );
 
 describe("a core file", () => {
+  it("names the tool's own commands through the config, never as this repo's literal names, but in a test", () => {
+    const text = 'echo "run pnpm prd land, then pnpm backlog done"\n# pnpm prd sync\necho "$prd_cmd land"\n';
+    expect(lint(CORE, text)).toEqual([
+      "1 tool-command - pnpm prd",
+      "1 tool-command - pnpm backlog",
+      "2 tool-command - pnpm prd",
+    ]);
+    const doc = "scripts/loops/docs/loop.md";
+    const docFound = findings({
+      files: new Map([[doc, "Run `pnpm prd check`, or `{{prd}} check`.\n"]]),
+      owners: new Map([...OWNERS, [doc, "core"]]),
+      project,
+    });
+    expect(docFound.map((f) => `${f.line} ${f.rule} ${f.text}`)).toEqual(["1 tool-command pnpm prd"]);
+    expect(lint(CORE_JS, "const hint = `${toolCmd.prd} land`; // pnpm prdx, pnpm prd-y\n")).toEqual([]);
+    expect(lint("scripts/loops/tool.test.mjs", 'expect(out).toContain("pnpm prd land");\n')).toEqual([]);
+    expect(lint("scripts/project/up.sh", 'echo "pnpm prd land"\n')).toEqual([]);
+  });
+
   it("may not hold a project variable or the project's name, in code or in a comment", () => {
     expect(lint(CORE, 'x=${ACME_SLOTS:-2}\n# the acme stack\necho "$ACME_HOME/.acme/inbox Acme"\n')).toEqual([
       "1 project-env - ACME_SLOTS",
@@ -136,6 +155,56 @@ describe("a core file", () => {
     expect(codeOf(CORE_JS, "a // b\n/* c\nd */ e\n")).toBe("a     \n    \n     e\n");
     expect(codeOf("x.yml", "run: x # y\n")).toBe("run: x    \n");
     expect(codeOf("x.json", '{"a": "# b"}')).toBe('{"a": "# b"}');
+  });
+});
+
+describe("the host layer", () => {
+  const owners = new Map([
+    ...OWNERS,
+    ["scripts/loops/host.mjs", "core"],
+    ["scripts/loops/host.test.mjs", "core"],
+    ["scripts/loops/land-fixture.mjs", "core"],
+    ["scripts/project/mac.sh", "project"],
+  ]);
+  const hostCalls = (file, text) =>
+    findings({ files: new Map([[file, text]]), owners, project })
+      .filter((f) => f.rule === "host-call")
+      .map((f) => `${f.line} ${f.text}`);
+
+  it("is the one core file that calls osascript or launchctl, in code", () => {
+    const text = '# osascript opens tabs\nosascript - "$line"\nlaunchctl print "gui/$uid"\n';
+    expect(hostCalls(CORE, text)).toEqual(["2 osascript", "3 launchctl"]);
+    expect(hostCalls(CORE_JS, 'spawnSync("osascript", ["-"]); // launchctl\n')).toEqual(["1 osascript"]);
+    expect(hostCalls("scripts/loops/host.mjs", 'spawnSync("osascript", ["-"]);\n')).toEqual([]);
+    // A test stubs them; a project file may call them; a longer name is another word.
+    expect(hostCalls("scripts/loops/host.test.mjs", 'stub("osascript");\n')).toEqual([]);
+    expect(hostCalls("scripts/project/mac.sh", "osascript -e x\n")).toEqual([]);
+    expect(hostCalls(CORE, "fake-osascript; osascript.args\n")).toEqual([]);
+  });
+
+  it("is the one core file that runs claude, codex or gh: a shell command, a JS string", () => {
+    const sh = [
+      'gh pr view "$n"',
+      'x=$(cd "$main" && gh repo view) || die "gh couldn\'t name the repo"',
+      'until claude -p ok; do :; done; merge=(gh pr merge "$n")',
+      'echo "PR $(gh pr view "$n" -q .url)"',
+      "codex() { :; }",
+      "# gh in a comment; host_cli gh pr list; command -v gh; run_log codex x",
+      "cat <<EOF",
+      "(claude --remote-control recover) in a here-document",
+      "EOF",
+      "echo '(gh is quoted)' \"codex: and quoted\"",
+    ].join("\n");
+    expect(hostCalls(CORE, sh)).toEqual(["1 gh", "2 gh", "3 claude", "3 gh", "4 gh", "5 codex"]);
+    const js = [
+      'spawnSync("gh", args);',
+      'const bin = env.CLAUDE || "claude"; // "codex"',
+      'if (e.kind !== "codex") log("gh pr create", `the claude`);',
+    ].join("\n");
+    expect(hostCalls(CORE_JS, js)).toEqual(["1 gh", "2 claude"]);
+    expect(hostCalls("scripts/loops/host.mjs", 'spawnSync("gh", args);\n')).toEqual([]);
+    expect(hostCalls("scripts/loops/land-fixture.mjs", 'join(bin, "gh");\n')).toEqual([]);
+    expect(hostCalls("scripts/project/mac.sh", "gh pr list\n")).toEqual([]);
   });
 });
 
@@ -386,6 +455,12 @@ describe("this repo", () => {
 
   it("crosses the line only where the allowlist says", () => {
     expect(result.failures).toEqual([]);
+  });
+
+  it("allows only the residual list: each line says why it waits for the move, and none is a tool-command", () => {
+    const { allowed } = parseAllowlist(readFileSync(join(ROOT, ALLOWLIST), "utf8"));
+    expect([...allowed].filter(([, { why }]) => !why).map(([key]) => key)).toEqual([]);
+    expect([...allowed.keys()].filter((key) => key.endsWith(" tool-command"))).toEqual([]);
   });
 
   it("ignores a CI test step's output written while it runs (B-753's progress file)", () => {

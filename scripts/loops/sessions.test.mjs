@@ -1,6 +1,6 @@
 // Session records (sessions.mjs), the wrapper that writes them (session.sh) and
 // `pnpm prd end` (end-session.sh), against a throwaway repo with these scripts
-// copied in and a stub claude (CARETOOK_CLAUDE_BIN). The stub is named
+// copied in and a stub claude (RISA_CLAUDE_BIN). The stub is named
 // claude-stub, never claude, so no walk up from a test can find the real
 // claude session the tests may be running under.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
@@ -22,6 +22,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CAPTAINS } from "./captain.mjs";
 import {
   ancestorClaude,
+  endTarget,
   isLive,
   liveDirRefusal,
   parseEtime,
@@ -30,6 +31,8 @@ import {
   readRecords,
   runs,
   START_SLACK_MS,
+  wrappedAs,
+  wrapperName,
   writeRecord,
 } from "./sessions.mjs";
 import "./config-fixture.mjs";
@@ -144,7 +147,7 @@ describe("the pure part", () => {
     const node = (...a) =>
       spawnSync("node", [join(HERE, "sessions.mjs"), "set", ...a], {
         encoding: "utf8",
-        env: { ...process.env, CARETOOK_SESSIONS_DIR: dir },
+        env: { ...process.env, RISA_SESSIONS_DIR: dir },
       });
     try {
       writeRecord(dir, "prd-t", { pid: 20 });
@@ -188,6 +191,85 @@ describe("the pure part", () => {
   });
 });
 
+describe("which process pnpm prd end ends (B-810)", () => {
+  // 10: launchd-ish; 20: session.sh prd-t; 21: its claude; 22: a shell in it; 23: a claude under that shell;
+  // 30: session.sh prd-t (a reopen); 31: its claude; 40: a stray claude; 50: sleep.
+  const table = new Map([
+    [10, { ppid: 1, args: "launchd" }],
+    [20, { ppid: 10, args: "bash /r/scripts/loops/session.sh prd-t -- x" }],
+    [21, { ppid: 20, args: "claude-stub --remote-control prd-t" }],
+    [22, { ppid: 21, args: "bash -c pnpm prd end prd-t" }],
+    [23, { ppid: 22, args: "bash /bin/claude-stub" }],
+    [30, { ppid: 10, args: "/r/scripts/loops/session.sh prd-t -- x" }],
+    [31, { ppid: 30, args: "claude-stub" }],
+    [40, { ppid: 10, args: "claude-stub" }],
+    [50, { ppid: 10, args: "sleep 30" }],
+  ]);
+  const cwds = { 21: "/w", 23: "/w", 31: "/w", 40: "/elsewhere" };
+  const facts = (/** @type {number[]} */ drop = [], live = true, cwd = cwds) => ({
+    live,
+    table: new Map([...table].filter(([p]) => !drop.includes(p))),
+    claude: "claude-stub",
+    cwdOf: (/** @type {number} */ p) => /** @type {Record<number, string>} */ (cwd)[p] ?? null,
+  });
+  const rec = (pid) => ({ pid, dir: "/w", started: "2026-11-26T00:00:00Z" });
+
+  it("reads session.sh's name from its command line, as the command or bash's script", () => {
+    expect(wrapperName("bash /r/scripts/loops/session.sh prd-t -- x")).toBe("prd-t");
+    expect(wrapperName("/r/scripts/loops/session.sh plan-v")).toBe("plan-v");
+    expect(wrapperName("claude-stub session.sh prd-t")).toBeNull();
+    expect(wrappedAs(21, table, "claude-stub")).toBe("prd-t");
+    // A claude inside a session's shell isn't that session's claude.
+    expect(wrappedAs(23, table, "claude-stub")).toBeNull();
+    expect(wrappedAs(40, table, "claude-stub")).toBeNull();
+  });
+
+  it("ends the record's pid when it is the session's claude", () => {
+    expect(endTarget("prd-t", rec(21), facts([30, 31]))).toEqual({ pid: 21, how: "record" });
+    // Its wrapper gone, it is still the session's by its directory.
+    const orphan = facts([30, 31]);
+    orphan.table.set(21, { ppid: 1, args: "claude-stub" });
+    expect(endTarget("prd-t", rec(21), orphan)).toEqual({ pid: 21, how: "record" });
+  });
+
+  it("refuses a stale pid that isn't the session's claude, and kills nothing", () => {
+    expect(endTarget("prd-t", rec(50), facts([20, 21, 30, 31]))).toMatchObject({
+      refuse: expect.stringMatching(/pid 50 in prd-t's record isn't its claude \(it runs sleep 30\)/),
+    });
+    expect(endTarget("prd-t", rec(40), facts([20, 21, 30, 31]))).toMatchObject({
+      refuse: expect.stringMatching(
+        /a claude neither under session.sh prd-t, nor in \/w, nor this shell's own/,
+      ),
+    });
+    // The caller's own claude (a session ending itself) is its own, record dir or not.
+    expect(endTarget("prd-t", { pid: 40 }, { ...facts([20, 21, 30, 31]), caller: 40 })).toEqual({
+      pid: 40,
+      how: "record",
+    });
+    expect(endTarget("prd-t", rec(99_999_999), facts([20, 21, 30, 31]))).toMatchObject({
+      refuse: expect.stringMatching(/no such process/),
+    });
+  });
+
+  it("ends the reopened session when the record still names an older pid", () => {
+    expect(endTarget("prd-t", rec(50), facts([20, 21]))).toEqual({ pid: 31, how: "reopened" });
+    expect(endTarget("prd-t", rec(40), facts([20, 21]))).toEqual({ pid: 31, how: "reopened" });
+    // Not live by its record (a dead or reused pid): the live reopen still ends.
+    expect(endTarget("prd-t", rec(46), facts([20, 21], false))).toEqual({ pid: 31, how: "reopened" });
+    // One in another directory (another checkout's prd-t) isn't this record's.
+    expect(endTarget("prd-t", rec(50), facts([20, 21], true, { ...cwds, 31: "/other" }))).toMatchObject({
+      refuse: expect.any(String),
+    });
+  });
+
+  it("refuses two live sessions under one name, and says ended when none is", () => {
+    expect(endTarget("prd-t", rec(21), facts())).toMatchObject({
+      refuse: expect.stringMatching(/more than one live claude \(pids 21, 31\)/),
+    });
+    expect(endTarget("prd-t", rec(21), facts([20, 21, 30, 31], false))).toEqual({ ended: true });
+  });
+});
+
 // The stub: records its pid, args and the record it sees, then behaves as
 // STUB_MODE says.
 const STUB = `#!/usr/bin/env bash
@@ -195,8 +277,8 @@ mkdir -p "$STUB_STATE"
 echo "$$" > "$STUB_STATE/pid"
 printf '%s\\n' "$@" > "$STUB_STATE/args"
 pwd -P > "$STUB_STATE/cwd"
-echo "\${CARETOOK_SESSION_NAME:-} \${CARETOOK_CONTEXT_HOOK:-}" > "$STUB_STATE/hook"
-[[ -z \${STUB_NAME:-} ]] || cat "$CARETOOK_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-start" 2>/dev/null || true
+echo "\${RISA_SESSION_NAME:-} \${RISA_CONTEXT_HOOK:-}" > "$STUB_STATE/hook"
+[[ -z \${STUB_NAME:-} ]] || cat "$RISA_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-start" 2>/dev/null || true
 case \${STUB_MODE:-exit} in
   exit) exit "\${STUB_EXIT:-0}" ;;
   ancestor) bash -c 'node "$SESSIONS_MJS" ancestor; echo "exit $?"' > "$STUB_STATE/ancestor" ;;
@@ -258,6 +340,7 @@ beforeAll(() => {
     "config.mjs",
     "session.sh",
     "sessions.mjs",
+    "host.mjs",
     "captain.mjs",
     "end-session.sh",
     "prompt.sh",
@@ -279,9 +362,9 @@ beforeAll(() => {
   env = {
     ...process.env,
     TRUNK: "dev",
-    CARETOOK_CLAUDE_BIN: stub,
-    CARETOOK_SESSIONS_DIR: "",
-    CARETOOK_END_WAIT: "",
+    RISA_CLAUDE_BIN: stub,
+    RISA_SESSIONS_DIR: "",
+    RISA_END_WAIT: "",
     STUB_STATE: state,
     SESSIONS_MJS: scripts("sessions.mjs"),
     PRD_SH: scripts("prd.sh"),
@@ -423,20 +506,20 @@ describe("liveness", () => {
     const argsOf = () => readFileSync(join(state, "args"), "utf8").trim().split("\n");
     expect(run("session.sh", ["prd-t", "--", "go"]).status).toBe(0);
     expect(argsOf()).toEqual(["--settings", scripts("context-settings.json"), "go"]);
-    const inherited = { CARETOOK_SESSION_NAME: "prd-other", CARETOOK_CONTEXT_HOOK: "/elsewhere" };
+    const inherited = { RISA_SESSION_NAME: "prd-other", RISA_CONTEXT_HOOK: "/elsewhere" };
     expect(run("session.sh", ["plan-t", "--", "go"], inherited).status).toBe(0);
     expect(argsOf()).toEqual(["go"]);
     const shown = join(root, "env-stub");
     writeFileSync(
       shown,
-      `#!/usr/bin/env bash\necho "\${CARETOOK_SESSION_NAME:-none} \${CARETOOK_CONTEXT_HOOK:-none}" > "$STUB_STATE/env"\n`,
+      `#!/usr/bin/env bash\necho "\${RISA_SESSION_NAME:-none} \${RISA_CONTEXT_HOOK:-none}" > "$STUB_STATE/env"\n`,
     );
     chmodSync(shown, 0o755);
-    expect(
-      run("session.sh", ["plan-t", "--", "go"], { ...inherited, CARETOOK_CLAUDE_BIN: shown }).status,
-    ).toBe(0);
+    expect(run("session.sh", ["plan-t", "--", "go"], { ...inherited, RISA_CLAUDE_BIN: shown }).status).toBe(
+      0,
+    );
     expect(readFileSync(join(state, "env"), "utf8").trim()).toBe("none none");
-    expect(run("session.sh", ["prd-t", "--", "go"], { CARETOOK_CLAUDE_BIN: shown }).status).toBe(0);
+    expect(run("session.sh", ["prd-t", "--", "go"], { RISA_CLAUDE_BIN: shown }).status).toBe(0);
     expect(readFileSync(join(state, "env"), "utf8").trim()).toBe(`prd-t ${scripts("context.mjs")}`);
   });
 
@@ -497,9 +580,54 @@ describe("pnpm prd end", () => {
   it("kills a session that ignores TERM after the wait", async () => {
     const s = start("bash", [scripts("session.sh"), "prd-t", "--", "x"], { STUB_MODE: "stubborn" });
     await until(() => existsSync(join(state, "ready")));
-    const r = run("prd.sh", ["end", "prd-t"], { CARETOOK_END_WAIT: "1" });
+    const r = run("prd.sh", ["end", "prd-t"], { RISA_END_WAIT: "1" });
     expect(r.stdout).toMatch(/ignored TERM for 1s: killed it/);
     expect((await s.done).code).toBe(137);
+  });
+
+  it("refuses a record whose live pid isn't the session's claude, and leaves that process alone (B-810)", async () => {
+    const sleeper = spawn("sleep", ["30"], { stdio: "ignore" });
+    const stray = start(stub, [], { STUB_MODE: "wait", STUB_STATE: join(root, "stray") }, root);
+    try {
+      await until(() => existsSync(join(root, "stray", "ready")));
+      const strayPid = Number(readFileSync(join(root, "stray", "pid"), "utf8").trim());
+      const started = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+      for (const pid of [sleeper.pid, strayPid]) {
+        writeRecord(sessions, "prd-s", { pid, started, kind: "prd", topic: "s", dir: main });
+        const r = run("prd.sh", ["end", "prd-s"]);
+        expect(r.status).toBe(1);
+        expect(r.stderr).toMatch(new RegExp(`end: pid ${pid} in prd-s's record isn't its claude`));
+        expect(r.stdout).not.toMatch(/Ending/);
+        expect(() => process.kill(/** @type {number} */ (pid), 0)).not.toThrow();
+      }
+    } finally {
+      sleeper.kill("SIGKILL");
+      stray.child.kill("SIGKILL");
+      rmSync(join(root, "stray"), { recursive: true, force: true });
+    }
+  });
+
+  it("ends the live reopened session when the record names an older pid, and records its end (B-810)", async () => {
+    const sleeper = spawn("sleep", ["30"], { stdio: "ignore" });
+    try {
+      const s = start("bash", [scripts("session.sh"), "prd-t", "--", "x"], { STUB_MODE: "wait" });
+      await until(() => existsSync(join(state, "ready")));
+      // The record went back to an older session's pid, still a running process.
+      const started = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+      writeRecord(sessions, "prd-t", { pid: sleeper.pid, started });
+      const r = run("prd.sh", ["end", "prd-t"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(
+        new RegExp(
+          `Ending prd-t \\(pid ${stubPid()}, from the live session.sh prd-t \\(its record's pid ${sleeper.pid} was stale\\)\\)`,
+        ),
+      );
+      expect((await s.done).code).toBe(143);
+      expect(() => process.kill(/** @type {number} */ (sleeper.pid), 0)).not.toThrow();
+      expect(record("prd-t")).toMatchObject({ pid: stubPid(), exit: 143 });
+    } finally {
+      sleeper.kill("SIGKILL");
+    }
   });
 
   it("refuses with neither a record nor a claude above it, and an unknown name", () => {
@@ -562,7 +690,7 @@ describe("sessions start through the wrapper", () => {
   it("each start of the main backlog session is a new captain, its tab titled the same", () => {
     let last = null;
     for (let i = 0; i < 6; i++) {
-      const r = run("prd.sh", ["plan"], { CARETOOK_TAB_TITLE: "always" });
+      const r = run("prd.sh", ["plan"], { RISA_TAB_TITLE: "always" });
       expect(r.status).toBe(0);
       const captain = readFileSync(join(state, "args"), "utf8").split("\n")[5];
       expect(CAPTAINS).toContain(captain);
@@ -575,7 +703,7 @@ describe("sessions start through the wrapper", () => {
 
   it("titles no other session's tab: a backlog-<name> one keeps its name", () => {
     const r = run("session.sh", ["backlog-notes", "--", "--remote-control", "backlog - notes", "x"], {
-      CARETOOK_TAB_TITLE: "always",
+      RISA_TAB_TITLE: "always",
     });
     expect(r.status).toBe(0);
     expect(r.stdout).not.toContain("\x1b]0;");
@@ -603,9 +731,9 @@ describe("sessions start through the wrapper", () => {
 
 describe("the inbox session", () => {
   const home = () => join(root, "home");
-  const inboxDir = () => join(home(), ".caretook/inbox");
+  const inboxDir = () => join(home(), ".risa/inbox");
   const inbox = (args = [], extra = {}) =>
-    run("prd.sh", ["inbox", ...args], { CARETOOK_INBOX_DIR: inboxDir(), ...extra });
+    run("prd.sh", ["inbox", ...args], { RISA_INBOX_DIR: inboxDir(), ...extra });
   beforeEach(() => rmSync(home(), { recursive: true, force: true }));
 
   it("starts in its own directory outside the repository, creating it, on Opus at low effort", () => {
@@ -652,7 +780,7 @@ describe("the inbox session", () => {
     expect(inbox().status).toBe(0);
     expect(record("inbox")).toMatchObject({ dir: inboxDir(), managed: false });
     const other = join(home(), "other-inbox");
-    expect(inbox(["--dir", other, "--managed"], { CARETOOK_INBOX_DIR: "" }).status).toBe(0);
+    expect(inbox(["--dir", other, "--managed"], { RISA_INBOX_DIR: "" }).status).toBe(0);
     expect(readFileSync(join(state, "cwd"), "utf8").trim()).toBe(other);
     expect(record("inbox")).toMatchObject({ kind: "inbox", dir: other, managed: true, model: "opus" });
     expect(inbox(["--dir", join(main, "scripts")]).stderr).toContain("where AGENTS.md would load");
@@ -670,7 +798,7 @@ describe("the inbox session", () => {
   });
 
   it("refuses a directory inside a repository or under a CLAUDE.md or AGENTS.md", () => {
-    const inside = inbox([], { CARETOOK_INBOX_DIR: join(main, "inbox-here") });
+    const inside = inbox([], { RISA_INBOX_DIR: join(main, "inbox-here") });
     expect(inside.status).not.toBe(0);
     expect(inside.stderr).toContain(`is inside the git repository ${main}, where AGENTS.md would load`);
     mkdirSync(home(), { recursive: true });

@@ -1,19 +1,22 @@
-# Plan: Calendars 3: reminders as browser push
+# Plan: Push notifications: reminders as browser push
 
-> Source PRD: [`plans/calendars-3-prd.md`](calendars-3-prd.md). User-story numbers (US) refer to it. Backlog item B-377. Topic `calendars-3`.
+> Source PRD: [`plans/push-notifications-prd.md`](push-notifications-prd.md). User-story numbers (US) refer to it. Backlog item B-377. Topic `push-notifications`.
 
 ## Status
 
-**Where it stands:** planned and **held** (flag `hold`): two skeptic passes sent it back, and the user chose to apply their fixes and land it held (ask a138). No slice started. To lift it: `pnpm backlog prd set calendars-3 flags=—`.
+**Where it stands:** **HELD 2026-11-26** by the user: Capacitor first, then push for web and mobile in one go (not needed for launch). Paused first on the user's word (backlog session caretook-com-3c; registry flag `hold`). Agents stopped, nothing merged, nothing new to start until released. Landing mode when resumed: **run everything through**. Wave 1 (slices 1, 4) was in flight. Renamed from `calendars-3` on 2026-11-26; worktrees removed, branches kept (`prd/push-notifications`, `slice/push-notifications/1`, `/4`; never pushed). **Before resuming, replan** with Capacitor: native push changes the keys, the worker handlers and the Home Screen state; the subscription table, its cleanup, the no-names text and the separate channels should carry over. Slice 1's WIP needs a fresh worktree from its branch.
+
+- **Slice 1:** agent stopped mid-build; its work committed as WIP `752efdde` on `slice/push-notifications/1` (unchecked: migration `0048_push_subscription`, table, service, `calendars.push.*`, sealing, `pushDevice` helper written; next was wiring the helper into `wipeDevice` and `open`, then the card UI and tests). Resume with `pnpm prd prompt slice push-notifications 1 --continue`.
+- **Slice 4:** handed off `fa23c912`, quick check passed, reviewed; not merged (merges after slice 1, plan order).
 
 **Open:** after landing, the user sets the two push keys on staging, then hand-tests on a real Android phone and an installed iPhone app: a push arrives, shows no name, a tap opens the item, and signing out while offline stops later pushes (`unsubscribe()` offline is unverified on real browsers).
 
-| Slice | Wave | Model | State   | Merge into `prd/calendars-3` |
-| ----- | ---- | ----- | ------- | ---------------------------- |
-| 1     | 1    | opus  | planned |                              |
-| 2     | 2    | opus  | planned |                              |
-| 3     | 3    | opus  | planned |                              |
-| 4     | 1    | opus  | planned |                              |
+| Slice | Wave | Model | State                 | Merge into `prd/push-notifications` |
+| ----- | ---- | ----- | --------------------- | ----------------------------------- |
+| 1     | 1    | opus  | paused (WIP 752efdde) |                                     |
+| 2     | 2    | opus  | planned               |                                     |
+| 3     | 3    | opus  | planned               |                                     |
+| 4     | 1    | opus  | handed off fa23c912   |                                     |
 
 **Backlog:** claim B-377 (push notifications for event reminders) when slice 1 starts; run `pnpm backlog done` when slice 3 merges.
 

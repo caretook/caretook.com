@@ -17,7 +17,7 @@
 #   --resolve <id>     resolve a thread first: a fixed finding (Codex leaves its
 #                      threads open, outdated) or a declined one (reply on the
 #                      thread with the reason first); repeatable
-#   --wait [min]       poll every 60 s (CARETOOK_REVIEW_POLL) until Codex has
+#   --wait [min]       poll every 60 s (RISA_REVIEW_POLL) until Codex has
 #                      answered on the head (clean, carried or not, or findings), for up to min
 #                      minutes (default 20); a waiting or stale verdict keeps it
 #                      waiting, and out of credits ends it at once (no review is
@@ -25,7 +25,7 @@
 #
 # With --json, stdout carries only the verdict; progress lines go to stderr.
 # A topic means prd/<topic>; prd/, hotfix/ and other branches are taken as given.
-# Each answer on a head goes to the run log once (run-log.mjs), for pnpm prd metrics.
+# Each answer on a head goes to the run log once (run-log.mjs), for prd metrics.
 # Exit status: 0 clean, 1 findings, 2 waiting or stale, 4 out of credits (Codex
 # answered with its usage-limit comment), 75 when --wait times out, 3 for
 # anything else (no open PR, gh failing, a bad argument).
@@ -55,24 +55,24 @@ while (($#)); do
   shift
 done
 [[ -n $what ]] || what=$(topic_of "$(here_name)")
-[[ -n $what ]] || fail "which branch? (pnpm prd review <topic|branch>)"
+[[ -n $what ]] || fail "which branch? (${prd_cmd} review <topic|branch>)"
 branch=$(pr_branch "$what")
 
 number=$(pr_for "$branch") || fail "gh couldn't list $branch's PRs (gh auth status?)"
-[[ -n $number ]] || fail "no open PR from $branch into $trunk (pnpm prd pr ${branch#"$prd_prefix"})"
+[[ -n $number ]] || fail "no open PR from $branch into $trunk (${prd_cmd} pr ${branch#"$prd_prefix"})"
 
 for id in ${resolve[@]+"${resolve[@]}"}; do
   # shellcheck disable=SC2016
-  out=$(gh api graphql -f id="$id" -f query='mutation($id: ID!) { resolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }' \
+  out=$(host_cli gh api graphql -f id="$id" -f query='mutation($id: ID!) { resolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }' \
     -q '.data.resolveReviewThread.thread | "resolved \(.id)"') || fail "couldn't resolve thread $id"
   say "$out"
 done
 # field NAME → a field of the verdict's JSON ($v), or nothing.
 field() { node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(0, "utf8"))[process.argv[1]] ?? ""))' "$1" <<< "$v"; }
 
-# codex [--line|--text] → the verdict on the PR's state (stdin). A clean one
+# codex_verdict [--line|--text] → the verdict on the PR's state (stdin). A clean one
 # carries over dev merges, unless --again asked for a review of this head.
-codex() {
+codex_verdict() {
   if ((again)); then node "$(dirname "$0")/codex-review.mjs" "$@"; return; fi
   node "$(dirname "$0")/codex-review.mjs" --repo="$main" --trunk="$trunk" "$@"
 }
@@ -80,13 +80,13 @@ codex() {
 # verdict → sets raw (the PR's state), v (the verdict's JSON) and state.
 verdict() {
   raw=$(pr_state "$number") || fail "gh couldn't read PR #$number"
-  v=$(codex <<< "$raw")
+  v=$(codex_verdict <<< "$raw")
   state=$(field state)
 }
 
 if ((again)); then
   [[ -n $wait ]] && { verdict; before=$(field summaryAt); }
-  gh pr comment -R "$(gh_repo)" "$number" --body "@codex review" >/dev/null || fail "couldn't comment on PR #$number"
+  host_cli gh pr comment -R "$(gh_repo)" "$number" --body "@codex review" >/dev/null || fail "couldn't comment on PR #$number"
   say "asked Codex to review PR #$number again"
   if [[ -n $wait ]]; then
     # Until Codex takes it up, the last verdict still stands: wait for its
@@ -106,11 +106,11 @@ fi
 
 verdict
 if [[ -n $wait ]]; then
-  poll=${CARETOOK_REVIEW_POLL:-60}
+  poll=${RISA_REVIEW_POLL:-60}
   deadline=$(($(date +%s) + wait * 60))
   while [[ $state == waiting || $state == stale ]]; do
     if (($(date +%s) + poll > deadline)); then
-      codex --line <<< "$raw" >&2
+      codex_verdict --line <<< "$raw" >&2
       echo "no review of the head within $wait min$([[ $state == stale ]] && echo " (stale: did you ask again? --again)")" >&2
       exit 75
     fi
@@ -135,6 +135,6 @@ if ((json)); then
   echo "$v"
 else
   echo "PR #$number $(field url)"
-  codex --text <<< "$raw"
+  codex_verdict --text <<< "$raw"
 fi
 case $state in clean) exit 0 ;; findings) exit 1 ;; out-of-credits) exit 4 ;; *) exit 2 ;; esac
