@@ -4,7 +4,7 @@ import type { GroupRole } from "../../../../../test/fixtures";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, hoursAgo, recordTag, tag, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
 import { completeTodo, removeTodo } from "~/lib/todos/todos.sync";
 import * as todoRoute from "./route";
@@ -19,7 +19,8 @@ import * as todosRoute from "../todos/route";
 // and a subtask's "Part of" link up; a parent's tick and Mark done waiting
 // on its subtasks, the delete confirm's count and the edit form's Repeat
 // (slice 6). The tree rules themselves are
-// todoSubtasks.sync's and todoTree's tests.
+// todoSubtasks.sync's and todoTree's tests. Each row shows its tags from
+// the tree's one tags query and tags from the row (tags-3).
 
 const BASE = "/app/groups/:groupId/todos";
 const ROUTES: DeviceRoute[] = [
@@ -325,5 +326,30 @@ describe("the edit form's Repeat", () => {
 
   test("shows on a plain todo", async () => {
     expect(await repeatOf(CAKE.id)).not.toBeNull();
+  });
+});
+
+describe("the Subtasks band's tags", () => {
+  test("rows show their tags, and a writer tags a subtask from its row and sees the chip", async () => {
+    const URGENT = tag("Urgent");
+    const device = await open(TOP_FIELDS.id, "caretaker", [
+      ...world(),
+      URGENT,
+      recordTag(URGENT.id, PACK.id, "todoId"),
+    ]);
+    const chipsOf = (todoId: string) =>
+      [...document.querySelectorAll(`[data-todo="${todoId}"] [data-tag-chip]`)]
+        .map((c) => c.textContent?.trim())
+        .join(",");
+    await expect.poll(() => chipsOf(PACK.id)).toBe("Urgent");
+    expect(chipsOf(LABEL.id)).toBe("");
+
+    await userEvent.click(rowOf(LABEL.id).getByRole("button", { name: "Add tag" }));
+    await expect.element(page.getByCss("[data-tag-picker]")).toBeInTheDocument();
+    await userEvent.click(page.getByRole("checkbox", { name: "Urgent" }));
+    await device.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => chipsOf(LABEL.id)).toBe("Urgent");
+    expect(device.location()).toBe(pageOf(TOP_FIELDS.id));
   });
 });
