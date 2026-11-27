@@ -1,4 +1,5 @@
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryOpen } from "~/lib/timeline/entryOpen";
 import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { DEFAULT_UNITS } from "@caretook/data/schema";
@@ -12,6 +13,7 @@ import { toPreviews } from "~/lib/live-notes/notes.sync";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { providerEntriesQuery, providerEntryDocumentsQuery } from "~/lib/providers/providers.sync";
 import { entryOpen } from "~/lib/timeline/entryOpen";
+import { useEntryOpenerState } from "~/lib/timeline/entryOrigin";
 import { membersQuery, toMember, toTimelineEntries } from "~/lib/timeline/timeline.sync";
 // The timeline's own row, so a linked entry looks the same here (B-937).
 import { TimelineEntryRow } from "../timeline/TimelineEntryRow";
@@ -22,13 +24,16 @@ const NO_MEMBERS: MemberRow[] = [];
 const NO_DOCUMENTS: NoteDocRow[] = [];
 /** The live dot needs only who's writing; the banner's title isn't shown here. */
 const NO_TITLE = () => "";
+/** A page link carries this page as its opener (an edit sheet's keeps its own state). */
+const withOpener = (open: EntryOpen | undefined, state: object) =>
+  open && !open.sheet ? { ...open, state } : open;
 
 /**
  * Every note and event linked to the provider, newest first, live (links
  * made on another device show without a reload), as the timeline's rows:
  * the text, live dot, cancelled badge, open todos, tags and author, with the
  * day over the time (they aren't grouped by day) and no filter links
- * (`elsewhere`). Each opens its entry. The ⋯ menu keeps Print and Copy link;
+ * (`elsewhere`). Each opens its entry, whose Back returns here (B-936). The ⋯ menu keeps Print and Copy link;
  * Edit, Cancel, Remind and Delete stay on the timeline and the entry's page.
  * The empty line waits for the query's first answer (`fresh`), and the rows
  * for the members' too, so no author shows as a former member in between.
@@ -46,6 +51,7 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
   const liveDocuments = useLiveDocuments(groupId, userId, NO_TITLE);
   const openTodos = useOpenTodoCounts(groupId);
   const entryTags = useGroupRecordTags(groupId, "entry");
+  const opener = useEntryOpenerState();
 
   const people = members.rows.map(toMember);
   const nameOf = (id: string) => people.find((m) => m.userId === id)?.name ?? "Former member";
@@ -76,7 +82,7 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
                   authorImage={imageOf(entry.createdBy)}
                   // Notes and events only: no readings to show in anyone's units.
                   units={DEFAULT_UNITS}
-                  open={entryOpen({ groupId, entry, canWrite, search: "" })}
+                  open={withOpener(entryOpen({ groupId, entry, canWrite, search: "" }), opener)}
                   liveLabel={liveLabels.get(entry.id)}
                   openTodos={openTodos.get(entry.id)}
                   tags={entryTags.get(entry.id)}
