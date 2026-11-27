@@ -3,7 +3,7 @@ import type { TodoTickProgress } from "./TodoTick";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
-import { UserRound } from "lucide-react";
+import { ListTodo, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { TagChips } from "~/components/tags";
 import { TodoRepeatMark } from "./TodoRepeatMark";
@@ -24,10 +24,14 @@ import { todoPageState } from "~/lib/todos/todoSheets";
  * The `context` look (todo-subtasks-3) is an ancestor shown only to place a
  * branch: dimmed, no tick, still a link to its page. A tree (`TodoTree`)
  * passes `addSubtask` (its quick add, under the row's text) and `children`
- * (the nested list, below the row and not dimmed with it).
+ * (the nested list, below the row and not dimmed with it). The `card` look
+ * is a Planner tree's top row, laid out like an event card.
  */
-/** How a row looks per place: `list` (the Todos and todo pages), `context` (a dimmed ancestor). */
-export type TodoRowLook = "list" | "context";
+/**
+ * How a row looks per place: `list` (the Todos and todo pages), `card` (a
+ * Planner tree's top row, laid out like an event), `context` (a dimmed ancestor).
+ */
+export type TodoRowLook = "list" | "card" | "context";
 
 export function TodoRow({
   todo,
@@ -55,7 +59,7 @@ export function TodoRow({
   progressOf?: (todoId: string) => TodoTickProgress | undefined;
   /** A subtask's parent, for "Part of". */
   parentOf?: (parentId: string) => { id: string; title: string } | undefined;
-  /** `list` (the default), or `context`: a dimmed ancestor placing a branch, with no tick. */
+  /** `list` (the default), `card` (the Planner's), or `context`: a dimmed ancestor placing a branch, with no tick. */
   look?: TodoRowLook;
   /** The row's quick add (a tree's, with `adding`), under its text. */
   addSubtask?: ReactNode;
@@ -71,6 +75,95 @@ export function TodoRow({
   const line = todo.doneAt ? doneText(todo, nameOf, now, timeZone) : dueText(todo, now, timeZone);
   const progress = progressOf?.(todo.id);
   const parent = todo.parentId ? parentOf?.(todo.parentId) : undefined;
+  const tick = mayTick && (
+    <TodoTick
+      title={todo.title}
+      done={!!todo.doneAt}
+      disabled={busy}
+      progress={progress}
+      showCount={false}
+      onChange={(done) => onTick(todo, done)}
+    />
+  );
+  const assigneeBadge = (className: string, label: ReactNode) => (
+    <Badge
+      icon={assignee.type === "name" ? UserRound : undefined}
+      className={className}
+      data-todo-assignee={assignee.type}
+    >
+      {label}
+    </Badge>
+  );
+
+  if (look === "card") {
+    const overdue = state === "overdue";
+    const when = overdue ? "Overdue" : (todo.dueTime ?? "All day");
+    return (
+      <li>
+        {/*
+          Laid out like an event card (`UpcomingRow`, B-636): the tick (or a
+          todo icon) where an event has its kind icon, its time over the title,
+          the due line when overdue, the assignee pill where an event has its
+          author. The whole card opens the todo's page; the tick, "Part of" and
+          the quick add sit above that link.
+        */}
+        <div
+          className="relative isolate grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-2.5 gap-y-1 px-3 py-2"
+          data-todo={todo.id}
+          data-planner-todo={todo.id}
+          data-todo-state={state}
+          data-todo-look={look}
+        >
+          <Link
+            to={appUrls.todo(group.id, todo.id)}
+            state={todoPageState(search)}
+            className="hover:bg-base-content/5 focus-visible:outline-primary absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:-outline-offset-2 focus-visible:outline-2"
+            aria-label={`Open todo ${todo.title}, ${line}`}
+            data-planner-todo-open
+          />
+          <span className="relative z-10 flex size-6 shrink-0 items-center justify-center">
+            {tick || <ListTodo className="text-muted size-5" aria-hidden="true" />}
+          </span>
+          <div className="min-w-0">
+            <p
+              className={`flex items-center gap-1 text-sm whitespace-nowrap tabular-nums ${overdue ? "text-error-ink font-semibold" : "text-muted"}`}
+              data-when-line
+            >
+              <span data-when>{when}</span>
+              <TodoRepeatMark todo={todo} />
+              <TodoProgressMark progress={progress} className="text-muted font-normal" />
+            </p>
+            <p
+              className={`font-semibold break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
+              data-todo-title
+            >
+              {todo.title}
+            </p>
+            <TodoPartOf
+              groupId={group.id}
+              parent={parent}
+              className="text-muted relative z-10 block text-sm"
+            />
+            <TagChips tags={tagsOf?.(todo.id)} className="mt-0.5" />
+            {overdue && line && (
+              <p className="text-error-ink text-sm" data-todo-due>
+                {line}
+              </p>
+            )}
+            {addSubtask && <div className="relative z-10">{addSubtask}</div>}
+          </div>
+          {/* A long name wraps inside the side column rather than squeezing the title. */}
+          <div className="flex max-w-[8rem] flex-col items-end" data-todo-side>
+            {assigneeBadge(
+              "mt-auto h-auto max-w-full py-0.5 [&>svg]:shrink-0",
+              <span className="min-w-0 break-words">{assignee.label}</span>,
+            )}
+          </div>
+        </div>
+        {children}
+      </li>
+    );
+  }
 
   return (
     <li>
@@ -80,18 +173,7 @@ export function TodoRow({
         data-todo-state={state}
         data-todo-look={look}
       >
-        {mayTick ? (
-          <TodoTick
-            title={todo.title}
-            done={!!todo.doneAt}
-            disabled={busy}
-            progress={progress}
-            showCount={false}
-            onChange={(done) => onTick(todo, done)}
-          />
-        ) : (
-          <span className="w-6 shrink-0" aria-hidden="true" />
-        )}
+        {tick || <span className="w-6 shrink-0" aria-hidden="true" />}
         <div className="min-w-0 flex-1">
           <Link
             to={appUrls.todo(group.id, todo.id)}
@@ -110,13 +192,7 @@ export function TodoRow({
             )}
             <TodoRepeatMark todo={todo} className="text-muted" />
             <TodoProgressMark progress={progress} className="text-muted" />
-            <Badge
-              icon={assignee.type === "name" ? UserRound : undefined}
-              className="whitespace-nowrap"
-              data-todo-assignee={assignee.type}
-            >
-              {assignee.label}
-            </Badge>
+            {assigneeBadge("whitespace-nowrap", assignee.label)}
             <ViaTag via={todo.via} />
           </p>
           <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
