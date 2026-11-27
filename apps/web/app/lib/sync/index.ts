@@ -72,6 +72,15 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
 };
 
 /**
+ * Start fetching the database's code (PowerSync and its worker) before
+ * `openSync` needs it: a sign-in calls this as it redirects, so the download
+ * runs beside the session check instead of after it (B-764). It opens nothing.
+ */
+export const preloadSync = (): void => {
+  void import("./client").catch(() => undefined);
+};
+
+/**
  * The test seam (component tests only: Vitest's mode is "test"): put a
  * database in place of `openSync`'s, so `getSync`, `useLiveQuery` and the
  * local writes use it. `apps/web/test/device.tsx` opens a local-only
