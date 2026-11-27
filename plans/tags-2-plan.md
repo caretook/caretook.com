@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits)     |
-| ----- | ---- | ------- | ------------------------------------------- |
-| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
-| 2     | 2    | landed  | 7b892610 (d362bd70)                         |
-| 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
-| 4     | 4    | landed  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
-| 5     | 5    | planned |                                             |
-| 6     | 5    | planned |                                             |
+| Slice | Wave | State  | Merge into `prd/tags-2` (slice commits)     |
+| ----- | ---- | ------ | ------------------------------------------- |
+| 1     | 1    | landed | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
+| 2     | 2    | landed | 7b892610 (d362bd70)                         |
+| 3     | 3    | landed | 8cc6a9c5 (ca9829f5)                         |
+| 4     | 4    | landed | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
+| 5     | 5    | merged | bfdac885 (d29079bb)                         |
+| 6     | 5    | merged | 84dbac1c (ca68acc1, e314f75b)               |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4 (slice 4, opus) **landed** in dev as a39507ab through PR #248, `--no-review` (Codex out of credits), tier components (run 45945943940, flake outside the branch, filed B-949); report filed; tags doc folded; worktree tags-2-4 removed. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
+**Now:** wave 5 (slices 5, 6, both opus) merged: 5 bfdac885, 6 84dbac1c; B-892 done (ready). Wave CI run requested at tier components (tier proposes full only for `scripts/ci/quarantine.txt`, a CI list: slice 6 renamed B-921's quarantined test; land with `--tier components --why`). Worktrees tags-2-5 and tags-2-6 kept until green. Slice 6 added `compact` to `QuickTags` (rows). Slice 5 edited `providerWorld.tsx`/`medicationWorld.tsx`, shared by other component tests (first run in this CI tier). Fold at landing: [tags](../docs/domain/tags.md) _Screens_ (providers, medications, timeline rows/cards/edit sheet use `QuickTags`, no ⋯ Tags; drop the header Tags button and `MedicationTags` button) and [timeline](../docs/domain/timeline.md). Last wave: after landing, `pnpm prd rm tags-2`.
 
 ## Architectural decisions
 
