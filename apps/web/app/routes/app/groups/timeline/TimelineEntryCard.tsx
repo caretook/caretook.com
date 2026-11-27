@@ -1,14 +1,13 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { AuthorFilterLink, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
-import { TagChips } from "~/components/tags";
 import { ViaTag } from "~/components/ui";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
-import { CANCELLED_TEXT, CancelledBadge, EntryMenu } from "./TimelineEntryRow";
+import { CANCELLED_TEXT, CancelledBadge, EntryMenu, RowTags } from "./TimelineEntryRow";
 
 /** One entry as a compact card: the body's first line beside the time, all its text (a note's or event's formatted), then who wrote it. */
 export function TimelineEntryCard({
@@ -27,7 +26,6 @@ export function TimelineEntryCard({
   search,
   openTodos,
   tags,
-  onTags,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -58,7 +56,7 @@ export function TimelineEntryCard({
           <>
             {cancelled && <CancelledBadge label={cancelled} />}
             <OpenTodosMark count={openTodos} />
-            <TagChips tags={tags} />
+            <RowTags entry={entry} tags={tags} />
             <p className="text-faint inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
               <ViaTag via={entry.via} className="ml-1.5" />
@@ -67,14 +65,7 @@ export function TimelineEntryCard({
           </>
         }
       />
-      <EntryMenu
-        entry={entry}
-        onEdit={onEdit}
-        onTags={onTags}
-        cancel={cancel}
-        onRemind={onRemind}
-        onDelete={onDelete}
-      />
+      <EntryMenu entry={entry} onEdit={onEdit} cancel={cancel} onRemind={onRemind} onDelete={onDelete} />
     </li>
   );
 }
