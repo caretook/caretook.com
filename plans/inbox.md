@@ -8,8 +8,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Change requests
 
-- App first load is way too long. (B-764)
-  We need to either speed it up or make the loading message more friendly with a progress bar.
 - Time limit gate for component tests to keep them from growing too long (B-837)
   5 minute goal, 6 minute hard cutoff.
 - Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation (B-887)
