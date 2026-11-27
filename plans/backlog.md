@@ -2310,3 +2310,4 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/fixes-bug): From fixes-bug slice 75 (B-951), 2026-11-27: the roundtrip tags failure was a stack without migration 0048 (tag.color) after a dev sync with no datastore:reset; every tag upload failed sync:failed and the server held 0:0. Wanted: pnpm prd browser (and prd serve) refuse, or warn, when the stack's applied migrations are behind packages/data's, naming pnpm datastore:reset.
+- 2026-11-27 (prd/fixes-bug): Hit again 2026-11-27 on fixes-bug's own stack (loop1) at wave 17's browser checks: roundtrip failed with uploads waiting:2 on both devices; pnpm datastore:reset made it pass.
