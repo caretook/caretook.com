@@ -252,7 +252,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-944 | feature | landed | todo-links | prd/todo-links | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
 | B-945 | feature | landed | todo-links | prd/todo-links | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
 | B-946 | feature | landed | todo-links | prd/todo-links | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
-| B-947 | feature | in-progress | todo-links | prd/todo-links | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
+| B-947 | feature | ready | todo-links | prd/todo-links | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
 | B-948 | feature | landed | todo-links | prd/todo-links | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
@@ -270,8 +270,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
 | B-988 | bug | landed | todo-links | prd/todo-links | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
 | B-989 | bug | landed | todo-links | prd/todo-links | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
-| B-990 | bug | in-progress | todo-links | prd/todo-links | Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot) |
-| B-991 | bug | in-progress | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
+| B-990 | bug | ready | todo-links | prd/todo-links | Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot) |
+| B-991 | bug | ready | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
 | B-992 | bug | triaged | symptom-catalog-3 |  | A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace) |
 
 ## Items
@@ -1499,10 +1499,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-947 · feature · Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from)
 
-- status: in-progress
+- status: ready
 - prd: todo-links
 - owner: prd/todo-links
-- commit:
+- commit: 347fd297a
 
 - 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
 - 2026-11-27 (plan/todo-links): Planned 2026-11-27 in plans/todo-links-plan.md (6 slices, 3 waves): one Link to… box on site search, chips and type words, phone and linked conditions indexed, suggestions, quick add on linkable pages; one provider/medication slot kept (ask a330, decided).
@@ -1665,19 +1665,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-990 · bug · Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot)
 
-- status: in-progress
+- status: ready
 - prd: todo-links
 - owner: prd/todo-links
-- commit:
+- commit: 347fd297a
 
 - 2026-11-27 (prd/todo-links): Codex P2 on PR #288 (TodoLinkFields.tsx:83): the sheet posts its first snapshot of entryIds; updateTodo reconciles it against the current rows, so a title-only save deletes newly synced links or recreates removed ones. Send only the sheet's own adds and removes. Fold into slice 5 (edits TodoLinkFields).
 
 ### B-991 · bug · Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates)
 
-- status: in-progress
+- status: ready
 - prd: todo-links
 - owner: prd/todo-links
-- commit:
+- commit: 347fd297a
 
 - 2026-11-27 (prd/todo-links): Codex P2 on PR #288 (todos.sync.ts:1107): chosenEntriesQuery reads note_document.text only; read the snapshot and pending note_update rows and use previewText as linkSearch.sync.ts does. Fold into slice 5.
 
