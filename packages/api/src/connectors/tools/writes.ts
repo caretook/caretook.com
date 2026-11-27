@@ -1,5 +1,6 @@
 import type {
   ActionPreview,
+  Weekday,
   AppError,
   AssistantAction,
   ConditionAction,
@@ -12,12 +13,14 @@ import type { ToolContext, ToolOutput } from "../registry";
 import {
   actionPreview,
   addConditionActionZSchema,
+  addDays,
   addEventActionZSchema,
   addNoteActionZSchema,
   addTodoActionZSchema,
   appendLineZSchema,
   CONDITION_STATUSES,
   conditionSinceWords,
+  dayInZone,
   DEVICE_FUTURE_SKEW_MS,
   FUTURE_DATE_MESSAGE,
   isTooFarAhead,
@@ -37,11 +40,15 @@ import {
   recipientConditionService,
   resolveConditionActionZSchema,
   resolveUnits,
+  ruleText,
+  SERIES_LIMITS,
   SYSTEM_USER,
   timelineEntryService,
+  todoRepeatText,
   updateConditionActionZSchema,
   updateEntryActionZSchema,
   userModel,
+  WEEKDAYS,
   whenText,
 } from "@caretook/data";
 import { z } from "zod";
@@ -166,7 +173,17 @@ const carryOut = async (
     text: [`${what}: ${line}`, ...(url ? [url] : []), `Shown as "via ${ctx.clientName}".`].join("\n"),
     structured: {
       preview,
-      ...(action.type === "addTodo" ? { todoId: first?.id ?? null } : { entryIds: ids }),
+      ...(action.type === "addTodo"
+        ? {
+            todoId: first?.id ?? null,
+            dueOn: action.dueOn ?? null,
+            repeats: todoRepeatText({
+              dueTime: action.dueTime ?? null,
+              repeatRule: action.repeatRule ?? null,
+              repeatStartsOn: action.dueOn ?? null,
+            }),
+          }
+        : { entryIds: ids }),
       url,
       via: ctx.clientName,
     },
@@ -326,21 +343,98 @@ export const addEvent = defineTool({
 const ASSIGNEE_ISSUE = (message: string) =>
   newError({ code: "assistantActionService:invalid", meta: { issues: [{ path: "assignee", message }] } });
 
+const REPEAT_EVERY = ["day", "week", "month"] as const;
+const REPEAT_FREQ = { day: "daily", week: "weekly", month: "monthly" } as const;
+
+/** `add_todo`'s repeat: structured, never RRULE text (the rule is built here). */
+export const todoRepeatZSchema = z.object({
+  every: z.enum(REPEAT_EVERY).describe("Repeat every day, week or month."),
+  interval: z
+    .number()
+    .int()
+    .min(1)
+    .max(SERIES_LIMITS.interval)
+    .optional()
+    .describe("Every N days, weeks or months, e.g. 2 for every other week. Default: 1."),
+  weekdays: z
+    .array(z.enum(WEEKDAYS))
+    .min(1)
+    .max(WEEKDAYS.length)
+    .optional()
+    .describe(
+      "Weekly only: the days it repeats on (MO, TU, WE, TH, FR, SA, SU). Default: the due day's weekday.",
+    ),
+});
+export type TodoRepeat = z.infer<typeof todoRepeatZSchema>;
+
+const weekdayOfDay = (day: string) => {
+  const [y, m, d] = day.split("-").map(Number);
+  // getUTCDay counts from Sunday; WEEKDAYS from Monday.
+  return WEEKDAYS[(new Date(Date.UTC(y!, m! - 1, d)).getUTCDay() + 6) % 7]!;
+};
+
+/** The first day on or after `from` that falls on one of `days` (as quick entry's repeats count it). */
+const nextWeekday = (from: string, days: readonly Weekday[]) => {
+  let day = from;
+  while (!days.includes(weekdayOfDay(day))) day = addDays(day, 1);
+  return day;
+};
+
+/**
+ * A todo's repeat (B-253) as the action takes it: the rule as text
+ * (`ruleText`, as the Repeat sheet and quick entry write it) and the due day
+ * it starts on. Without a due day it starts today (the recipient's day), or
+ * for a week on given weekdays the first of them from today. A week repeats
+ * on its weekdays, else the due day's; a month on the due day's date (the
+ * 31st skips months without one, as quick entry's "every month on the 31st").
+ * No end: a member stops it in the app.
+ */
+export const todoRepeatInput = (
+  repeat: TodoRepeat,
+  dueOn: string | null | undefined,
+  today: string,
+): { repeatRule: string; dueOn: string } | { issue: { path: "repeat"; message: string } } => {
+  const issue = (message: string) => ({ issue: { path: "repeat" as const, message } });
+  const interval = repeat.interval ?? 1;
+  if (!Number.isInteger(interval) || interval < 1 || interval > SERIES_LIMITS.interval)
+    return issue(`Repeat every 1 to ${SERIES_LIMITS.interval}.`);
+  const listed = repeat.weekdays?.length ? [...new Set(repeat.weekdays)] : null;
+  if (listed && repeat.every !== "week") return issue("Only a weekly repeat takes weekdays.");
+
+  const freq = REPEAT_FREQ[repeat.every];
+  let start = dueOn ?? today;
+  if (listed) {
+    const next = nextWeekday(start, listed);
+    if (dueOn && next !== dueOn)
+      return issue(`The due day isn't one of the repeat's days. The next one is ${next}.`);
+    start = next;
+  }
+  const repeatRule = ruleText({
+    freq,
+    interval,
+    weekdays: freq === "weekly" ? (listed ?? [weekdayOfDay(start)]) : [],
+    monthly: freq === "monthly" ? { by: "date", day: Number(start.slice(8, 10)) } : null,
+    end: { type: "never" },
+  });
+  return { repeatRule, dueOn: start };
+};
+
 export const addTodo = defineTool({
   name: "add_todo",
   title: "Add a todo",
   description:
-    "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
+    "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. To repeat it, pass repeat: every day, week (optionally on weekdays) or month, optionally every N; without a due day it starts on the first matching day from today; a member stops a repeat in the app. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
-    // No repeat yet (B-253): a `repeatRule` sent is dropped with the other unknown keys.
+    // RRULE text is never an input (B-253): `repeat` is built into the rule, and a raw `repeatRule` sent is dropped with the other unknown keys.
     ...(({ assigneeId: _assigneeId, repeatRule: _repeatRule, ...rest }) => rest)(
       shapeOf(addTodoActionZSchema),
     ),
     assignee: z.string().trim().min(1).max(120).optional().describe("The member to do it, by name."),
+    repeat: todoRepeatZSchema.optional().describe("Make it a repeating todo. Default: it doesn't repeat."),
   }),
   annotations: WRITE_ANNOTATIONS,
-  handler: async ({ assignee, ...input }, ctx) => {
+  handler: async ({ assignee, repeat, ...input }, ctx) => {
     const members = await loadMembers(ctx);
     if (isError(members)) return members;
     let assigneeId: string | null = null;
@@ -358,7 +452,16 @@ export const addTodo = defineTool({
         );
       assigneeId = matches[0]!.id;
     }
-    return carryOut(ctx, { type: "addTodo", ...input, assigneeId }, () =>
+    let repeating = {};
+    if (repeat) {
+      const loaded = await loadGroup(ctx);
+      if (isError(loaded)) return loaded;
+      const worked = todoRepeatInput(repeat, input.dueOn, dayInZone(ctx.now, loaded.timeZone));
+      if ("issue" in worked)
+        return newError({ code: "assistantActionService:invalid", meta: { issues: [worked.issue] } });
+      repeating = worked;
+    }
+    return carryOut(ctx, { type: "addTodo", ...input, assigneeId, ...repeating }, () =>
       Promise.resolve({
         members: new Map(members.map((m) => [m.id, { name: m.name ?? "Someone" }])),
       }),
