@@ -10,12 +10,12 @@
 | 2     | 2    | landed  | 7b892610 (d362bd70)                         |
 | 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
 | 4     | 4    | landed  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
-| 5     | 5    | planned |                                             |
-| 6     | 5    | planned |                                             |
+| 5     | 5    | started |                                             |
+| 6     | 5    | started |                                             |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4 (slice 4, opus) **landed** in dev as a39507ab through PR #248, `--no-review` (Codex out of credits), tier components (run 45945943940, flake outside the branch, filed B-949); report filed; tags doc folded; worktree tags-2-4 removed. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
+**Now:** wave 5 under way (session after the wave 4 landing, a39507ab through PR #248). dev synced into prd/tags-2 (backlog and CI lists only, no recheck). Worktrees tags-2-5 and tags-2-6 made; one opus agent each spawned; watch running. B-892 claimed. Slice 4 notes passed on: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; a compact "Add tag" is an allowed small `QuickTags` change; Planner rows keep ⋯ Tags. Merge 5 then 6; after both, `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) and [tags](../docs/domain/tags.md) at this landing (the last: then `pnpm prd rm tags-2`).
 
 ## Architectural decisions
 
