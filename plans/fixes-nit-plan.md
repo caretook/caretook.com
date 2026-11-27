@@ -10,10 +10,11 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7: B-544, B-630, B-637, B-930) landed 2026-11-26 as a1d501f7 through PR #239: CI `components` green on db5aedae (below the proposed `full`, `--why`: `vitest.config.ts` changed one comment), Codex out of credits (`--no-review`), browser `--changed` 3/3; report filed; no area doc named what changed. Slice worktrees removed.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State                                                         | Merge |
+| ----- | ----- | ------------------------------------------------------------- | ----- |
+| 8     | B-931 | started 2026-11-26 (sonnet: a class swap the plan spells out) |       |
 
-Idle hand-over, no slice in flight: the next session writes wave 3 from `pnpm backlog list` (prd=fixes-nit, triaged): B-931 (the `ui/` primitives ChipList, tabLook, DateTimeField keep `text-base-content/<n>`; /80 and /40 have no token yet, so read ui-kit _Tokens_ and pick, or ask). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in a line below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
+Wave 3 (slice 8, B-931): /80 → `text-muted`, /40 → `text-faint` picked by the orchestrator (in the slice). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in the State cell or below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
@@ -140,3 +141,20 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 - [ ] The existing component tests for those screens pass; `pnpm prd check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** slice 5.
+
+## Wave 3 (written 2026-11-26 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 8: The UI kit's own primitives use its text tones (B-931)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** Three `ui/` primitives still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `components/ui/ChipList.tsx:42` (`/50`, muted chips), `components/ui/tabLook.tsx:38` (`/80`, a tab that isn't current), `components/ui/date/DateTimeField.tsx:265` (`/60`, the weekday header cells) and `:282` (`/40`, days outside the month).
+
+**Build.** In those three files only, per ui-kit _Tokens_ (`text-muted` 70%, `text-faint` 62%): `/50` and `/60` become `text-faint`; `/80` becomes `text-muted` (the orchestrator's pick: the nearest token; a tab that isn't current is secondary); `/40` becomes `text-faint` (the orchestrator's pick: outside-month days lift to 4.5:1 and stay quieter than the month's days). Keep any variant prefix. Don't touch other classes or files. If a component test asserts the old class, update it.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the three files; nothing else changed.
+- [ ] The existing component tests for `ChipList`, `TabNav`/`FormTabs` and `DateTimeField` pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
