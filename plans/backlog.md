@@ -126,6 +126,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `sync-safety-3` | hold | `sync-safety-2` | — | to write (B-294): atomic device writes, cut from sync-safety-2 2026-11-25; start from plans/sync-safety-3-notes.md (thread the context's transaction through the services first) |
 | `onboarding-3` | hold | `onboarding-2` | — | — |
 | `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
+| `med-intervals` | — | — | — | Every-N-hours schedules for medications and Med times (B-938). |
 
 ## Summary
 
@@ -287,8 +288,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-890 | feature | triaged | symptom-catalog-2 |  | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
 | B-891 | feature | triaged | tags-3 |  | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
 | B-892 | feature | triaged | tags-2 |  | Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu |
-| B-893 | feature | in-progress | tags-2 | prd/tags-2 | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
-| B-894 | chore | triaged | tags-2 |  | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
+| B-893 | feature | ready | tags-2 | prd/tags-2 | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
+| B-894 | chore | ready | tags-2 | prd/tags-2 | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
 | B-895 | feature | triaged | tags-3 |  | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
@@ -313,6 +314,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
 | B-934 | chore | triaged | fixes-tooling |  | Archive finished rows out of the PRD registry table (75 done rows clutter it) |
 | B-935 | bug | triaged | fixes-tooling |  | prd tidy lists lease .waiting files as safe to remove, then refuses them as not a lease |
+| B-936 | bug | triaged | fixes-bug |  | Back from an entry opened on a provider's page goes to the timeline, not back to the provider |
+| B-937 | change | triaged | fixes-ui |  | Provider page's linked entries use the timeline's entry row instead of their own list |
+| B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
+| B-939 | change | triaged | fixes-ui |  | Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand |
 
 ## Items
 
@@ -1914,20 +1919,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-893 · feature · Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it
 
-- status: in-progress
+- status: ready
 - prd: tags-2
 - owner: prd/tags-2
-- commit:
+- commit: 8cc6a9c5
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: like user avatars (AvatarColor, components/ui/avatarLook.ts the one class map). New tag: a random palette color not yet used by the group's tags (any when all are taken); pick it on the tags page (B-891). A synced column on tag (additive migration); offline devices pick independently, so two may land on one color (fine). Chips (TagChips) and the picker show it; contrast in light and dark.
 - 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
 
 ### B-894 · chore · Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind
 
-- status: triaged
+- status: ready
 - prd: tags-2
-- owner:
-- commit:
+- owner: prd/tags-2
+- commit: 8cc6a9c5
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: seeds/tags.ts has only three tags on Dev Family. Add more (all fictional) on entries of each kind, events, todos, providers and medications, in the other seed groups too, with colors once B-893 lands.
 - 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
@@ -2152,3 +2157,39 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): Seen 2026-11-26: tidy listed .loops/.lease/browser/.waiting and check/.waiting (pid ? is gone); --yes failed with 'isn't a lease (<root>/<kind>/<N>)' and exit 1. The preview and the remover disagree.
+
+### B-936 · bug · Back from an entry opened on a provider's page goes to the timeline, not back to the provider
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. useLiveEntry.ts:390 backTo knows only the Planner (returnTo) and else the Timeline, so every other opener lands on the timeline too: provider LinkedEntries, todo TodoEntryLinks, VisitPrepSheet. Fix: carry where it was opened from (like the Planner's returnTo) and return there. Triaged fixes-bug: wrong behaviour.
+
+### B-937 · change · Provider page's linked entries use the timeline's entry row instead of their own list
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. provider/LinkedEntries.tsx builds its own rows (KindIcon, day and time); the timeline has TimelineEntryRow and TimelineEntryCard (live dot, cancelled badge, open todos mark). Reuse the timeline row so entries look the same everywhere; check whether the row's menu and timeline-only bits fit outside the timeline. Triaged fixes-ui: look and consistency.
+
+### B-938 · feature · Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given
+
+- status: triaged
+- prd: med-intervals
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26: on hospice, Med time groups and their frequency change quickly and often (PRN -> every 6 h -> every 4 h -> every 3 h), while some single meds stay every 12 h. Like a repeating todo, each next one is made when the last is due or given (the user picks which when setting the timing), not laid out ahead. Today (docs/domain/medications.md): a schedule is fixed daily clock slots (1-8, or a Med time) or as needed; Med times are named clock times; dueDoses computes due slots from scheduleHistory (nothing is pre-created), and schedule edits already write change entries. Gap: no every-N-hours rule, no anchor to the last given dose, no interval on a Med time; changing frequency must be a quick one-step edit with history kept. Planner questions: interval on the Med time vs on each med, the first dose's anchor, overdue and the weekly print sheet for interval meds, the Today card and Given all, the connector's add_medication (B-761). New topic med-intervals.
+
+### B-939 · change · Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. Today apps/web/app/lib/medications/medicationNameList.ts is about 200 generic names only (MEDICATION_NAMES), suggested through suggestNames in medicationNames.ts (NameField, the Dose sheet, medicationSheet). Add the common US brand(s) in parens; typing 'Tylenol' suggests 'Acetaminophen (Tylenol)'. Matchers that look up a group's medication by text (quick entry's runner and parser, the connector's log_dose, search) should match a word in the parens too, so 'gave Tylenol' finds a med saved as 'Acetaminophen (Tylenol)'. Keep the list's look-alike rule (pick only, shown in full). Triaged fixes-ui (wording and flow); move to a topic if the matcher changes prove broad.
