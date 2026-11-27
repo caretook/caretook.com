@@ -125,6 +125,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `usage-aware-drain` | hold | `orchestration-split-3` | — | Plan-aware drain line, after the orchestrator split |
 | `sync-safety-3` | hold | `sync-safety-2` | — | to write (B-294): atomic device writes, cut from sync-safety-2 2026-11-25; start from plans/sync-safety-3-notes.md (thread the context's transaction through the services first) |
 | `onboarding-3` | hold | `onboarding-2` | — | — |
+| `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
 
 ## Summary
 
@@ -209,7 +210,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
-| B-543 | question | in-progress | orchestration-split | prd/orchestration-split-3 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
+| B-543 | question | in-progress | orchestration-split-4 | prd/orchestration-split-4 | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
@@ -262,7 +263,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-829 | question | triaged | marketing |  | Research: compare Care Book to Caring Village |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
 | B-836 | feature | triaged | marketing |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
-| B-837 | change | triaged | test-time-gates-2 | prd/test-time-gates | Time limit gates for component tests, unit tests and the local quick check |
+| B-837 | change | triaged | test-time-gates-2 |  | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-841 | change | triaged | risa-next |  | Risa: one inbox session for every configured project, lines kept in a private inbox repo |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
@@ -310,6 +311,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-929 | chore | in-progress | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-932 | bug | triaged | fixes-tooling |  | rm.sh session tests in stack.test.mjs fail when run from an orchestrator session (they inherit RISA_SESSION_*) |
 | B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
+| B-934 | chore | triaged | fixes-tooling |  | Archive finished rows out of the PRD registry table (75 done rows clutter it) |
+| B-935 | bug | triaged | fixes-tooling |  | prd tidy lists lease .waiting files as safe to remove, then refuses them as not a lease |
 
 ## Items
 
@@ -1122,8 +1125,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-543 · question · Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one
 
 - status: in-progress
-- prd: orchestration-split
-- owner: prd/orchestration-split-3
+- prd: orchestration-split-4
+- owner: prd/orchestration-split-4
 - commit: 57d604a2
 
 - 2026-11-22 (Robert Bo Davis): User 2026-11-22: tooling is robust enough to manage work across all projects on this machine; keep handrolling vs adopt a prebuilt option. Size: ~23k lines in scripts/loops, scripts/backlog, .githooks (~11k tests), 105 files tied to caretook. The top four registry rows (test-gates, agent-autonomy 1-3) are all orchestration. Decide before planning: freeze, extract, or replace.
@@ -1133,6 +1136,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-24 (Robert Bo Davis): Landed 1297ec9c (2026-11-24): three held stage-1 topics (orchestration-split, -2, -3), the move runbook plans/orchestration-split-move.md, later items B-794..B-797 under risa-next (held). Three skeptics (two Opus, one Fable) sent it back; all fixed; their big choices went to the user.
 - 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 1 (browser runner split, host layer part 1) merged at 8338ca66; the item stays in progress until slice 5 lands
 - 2026-11-26 (prd/orchestration-split-3): orchestration-split-3 wave 5 (slice 5: command names from the config, the tool-command lint, the residual list) merged at db53734e; all three stage-1 topics then done; the hand move (plans/orchestration-split-move.md) closes the item
+- 2026-11-26 (Robert Bo Davis): Moved from the done orchestration-split topic to stage 1d (orchestration-split-4) on the user's word, 2026-11-26; stays in progress until the move.
 
 ### B-560 · feature · A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost
 
@@ -1676,7 +1680,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - status: triaged
 - prd: test-time-gates-2
-- owner: prd/test-time-gates
+- owner:
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): From the inbox: 5 minute goal, 6 minute hard cutoff.
@@ -2129,3 +2133,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/orchestration-split-4): Found in orchestration-split-4 slice 2: run project-check before tooling-lint in package.json's test:tooling, or have the lint catch TierDataError
+
+### B-934 · chore · Archive finished rows out of the PRD registry table (75 done rows clutter it)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): Filed from the backlog session 2026-11-26 on the user's word: a registry archive (e.g. backlog prd archive) moving done rows out of the PRD table, like backlog archive does for items.
+
+### B-935 · bug · prd tidy lists lease .waiting files as safe to remove, then refuses them as not a lease
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (Robert Bo Davis): Seen 2026-11-26: tidy listed .loops/.lease/browser/.waiting and check/.waiting (pid ? is gone); --yes failed with 'isn't a lease (<root>/<kind>/<N>)' and exit 1. The preview and the remover disagree.
