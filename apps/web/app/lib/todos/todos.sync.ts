@@ -1,7 +1,7 @@
 import type { TodoContent, TodoUpdateInput } from "@caretook/data/schema";
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
-import type { LocalQuery } from "../timeline/timeline.sync";
+import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
@@ -11,6 +11,7 @@ import {
   canHaveSubtask,
   clampDue,
   DUE_AFTER_PARENT_ISSUE,
+  entryTodoId,
   inheritedDue,
   isDueAfterParent,
   isTodoCompleter,
@@ -386,13 +387,19 @@ export type TodoInput = {
   dueTime?: string | null;
   providerId?: string | null;
   medicationId?: string | null;
-  /** An event to link (the form's picker): `createTodo` writes it as a link row. */
+  /** `createTodo` only (old callers, quick entry): an event to link, written as a link row. */
   eventId?: string | null;
   /**
-   * `createTodo` only: a live note or event to link (`todos/new?entryId=`).
-   * One that isn't live in the group is ignored.
+   * `createTodo` only (old callers): a live note or event to link. One that
+   * isn't live in the group is ignored.
    */
   entryId?: string | null;
+  /**
+   * The notes and events the todo links (the sheets, todo-links): `createTodo`
+   * links each live one in the group (others are ignored); `updateTodo`,
+   * only when given, makes the links these.
+   */
+  entryIds?: readonly string[];
   /** RRULE text (`ruleText`) to repeat; it needs a due day. */
   repeatRule?: string | null;
   /** `createTodo` only: the todo this is a subtask of (`canHaveSubtask`; it never repeats). */
@@ -414,7 +421,7 @@ export const plannedTodo = async (
   const recipientId = await recipientOf(db, groupId);
   if (!recipientId) return refuse("This care group has no care recipient yet");
 
-  const { entryId: _entryId, ...fields } = input;
+  const { entryId: _entryId, entryIds: _entryIds, ...fields } = input;
   const parsed = todoCreateZSchema.safeParse({ groupId, ...fields });
   if (!parsed.success) return invalid(parsed.error);
   const { groupId: _g, recipientId: _r, id: _id, ...content } = parsed.data;
@@ -511,29 +518,44 @@ const planRollup = async (db: SyncDb, change: TreeChange, at: string) => {
   };
 };
 
-/** A live note or event in the group (what `entryId` may link), else null. */
-const linkableEntry = async (db: SyncDb, groupId: string, entryId: string | null | undefined) => {
-  if (!entryId) return null;
-  const [row] = await readRows<{ id: string }>(db, {
-    sql: `SELECT id FROM timeline_entry WHERE id = ? AND group_id = ? AND deleted_at IS NULL
-            AND kind IN (${NOTE_DOCUMENT_KINDS.map(() => "?").join(", ")})`,
-    params: [entryId, groupId, ...NOTE_DOCUMENT_KINDS],
+const KIND_LIST = NOTE_DOCUMENT_KINDS.map(() => "?").join(", ");
+
+/** Which of `ids` are live notes or events in the group (what a todo may link), in their order. */
+const linkableEntries = async (db: SyncDb, groupId: string, ids: readonly (string | null | undefined)[]) => {
+  const wanted = [...new Set(ids.filter((id): id is string => !!id))];
+  if (wanted.length === 0) return [];
+  const rows = await readRows<{ id: string }>(db, {
+    sql: `SELECT id FROM timeline_entry WHERE id IN (SELECT value FROM json_each(?)) AND group_id = ?
+            AND deleted_at IS NULL AND kind IN (${KIND_LIST})`,
+    params: [JSON.stringify(wanted), groupId, ...NOTE_DOCUMENT_KINDS],
   });
-  return row?.id ?? null;
+  const live = new Set(rows.map((r) => r.id));
+  return wanted.filter((id) => live.has(id));
 };
+
+/** The notes and events a todo links that are live (what the sheet shows and may unlink). */
+const linkedLiveEntries = async (db: SyncDb, todoId: string) =>
+  (
+    await readRows<{ entry_id: string }>(db, {
+      sql: `SELECT l.entry_id FROM timeline_entry_todo l
+            JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
+            WHERE l.todo_id = ? AND e.deleted_at IS NULL AND e.kind IN (${KIND_LIST})`,
+      params: [todoId, ...NOTE_DOCUMENT_KINDS],
+    })
+  ).map((r) => r.entry_id);
 
 /**
  * Add a todo on this device (writers). It syncs when the device is online.
- * Its event (the picker's, checked live) and `entryId` (a live note or
- * event, else ignored) become link rows in the same local transaction; the
- * todo's `event_id` stays empty.
+ * Its `entryIds` and an old caller's `entryId` (each a live note or event in
+ * the group, else ignored) and `eventId` (checked live) become link rows in
+ * the same local transaction; the todo's `event_id` stays empty.
  */
 export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput): Promise<TodoWriteResult> => {
   const planned = await plannedTodo(db, groupId, input);
   if (!planned.ok) return planned;
   const { eventId, ...row } = planned.row;
-  const entry = await linkableEntry(db, groupId, input.entryId);
-  const linked = [...new Set([eventId, entry].filter((id): id is string => !!id))];
+  const entries = await linkableEntries(db, groupId, [input.entryId, ...(input.entryIds ?? [])]);
+  const linked = [...new Set([eventId, ...entries].filter((id): id is string => !!id))];
   // A new open subtask reopens a done parent (and those above it).
   const rollup = row.parentId
     ? await planRollup(
@@ -556,14 +578,22 @@ export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput):
 /**
  * Edit a todo's title, assignee, due, repeat or provider and medication
  * links (writers). The merged todo must be valid; a changed assignee must be
- * a member and a changed link live. Its events are link rows, which an edit
- * leaves alone: a patch's `eventId` (and a form's `entryId`) is ignored, and
- * `event_id` isn't written.
+ * a member and a changed link live. Its notes and events are link rows:
+ * with `entryIds` (the sheet's), they become these in the same transaction
+ * (new live ones in the group linked, shown ones left out unlinked; a
+ * deleted entry's row, which nothing shows, stays); without it they're left
+ * alone. A patch's `eventId` (and `entryId`) is ignored, and `event_id`
+ * isn't written.
  */
 export const updateTodo = async (
   db: SyncDb,
   id: string,
-  { eventId: _eventId, entryId: _entryId, ...patch }: TodoUpdateInput & { entryId?: string | null },
+  {
+    eventId: _eventId,
+    entryId: _entryId,
+    entryIds,
+    ...patch
+  }: TodoUpdateInput & { entryId?: string | null; entryIds?: readonly string[] },
 ): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
@@ -602,6 +632,7 @@ export const updateTodo = async (
   // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
   const clamps =
     content.dueOn && content.dueOn !== existing.dueOn ? await descendantClamps(db, id, content) : [];
+  const entryLinks = entryIds ? await linkChanges(db, existing.groupId, id, entryIds) : null;
   const now = nowTimestamp();
   // A new rule or due day moves the anchor; no rule clears all three (as todoService).
   await db.drizzle.transaction(async (tx) => {
@@ -620,8 +651,29 @@ export const updateTodo = async (
         .set({ dueOn: clamp.dueOn, dueTime: clamp.dueTime, updatedAt: now, updatedBy: db.userId })
         .where(eq(todos.id, clamp.id));
     }
+    for (const entryId of entryLinks?.link ?? []) {
+      await tx.insert(timelineEntryTodos).values(entryTodoRow(db, existing.groupId, entryId, id));
+    }
+    for (const entryId of entryLinks?.unlink ?? []) {
+      await tx.delete(timelineEntryTodos).where(eq(timelineEntryTodos.id, entryTodoId(entryId, id)));
+    }
   });
   return { ok: true, id };
+};
+
+/**
+ * What making a todo's links `entryIds` takes: the live notes and events in
+ * the group it doesn't link yet, and the live ones it links that aren't
+ * there (a deleted entry's link row stays: nothing shows it).
+ */
+const linkChanges = async (db: SyncDb, groupId: string, todoId: string, entryIds: readonly string[]) => {
+  const [wanted, linked] = await Promise.all([
+    linkableEntries(db, groupId, entryIds),
+    linkedLiveEntries(db, todoId),
+  ]);
+  const keep = new Set(entryIds);
+  const has = new Set(linked);
+  return { link: wanted.filter((e) => !has.has(e)), unlink: linked.filter((e) => !keep.has(e)) };
 };
 
 /**
@@ -1040,6 +1092,22 @@ export const todoEventChoicesQuery = (
           AND (occurred_at >= ? OR id = ?)
         ORDER BY occurred_at, id`,
   params: [groupId, toLocalTimestamp(from), chosenId ?? ""],
+});
+
+/** A chosen entry's row with its document's text (`document_text`; an untitled note's first line names it). */
+export type ChosenEntryRow = EntryRow & { document_text: string | null };
+
+/**
+ * The todo sheet's chosen notes and events (todo-links), for their chips:
+ * those of `ids` that are live notes or events in the group, with their
+ * documents' text.
+ */
+export const chosenEntriesQuery = (groupId: string, ids: readonly string[]): LocalQuery => ({
+  sql: `SELECT e.*, d.text AS document_text FROM timeline_entry e
+        LEFT JOIN note_document d ON d.id = e.id
+        WHERE e.id IN (SELECT value FROM json_each(?)) AND e.group_id = ? AND e.deleted_at IS NULL
+          AND e.kind IN (${KIND_LIST})`,
+  params: [JSON.stringify(ids), groupId, ...NOTE_DOCUMENT_KINDS],
 });
 
 import { toLocalTimestamp } from "../timeline/timeline.sync";

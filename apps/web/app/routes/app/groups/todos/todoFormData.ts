@@ -14,11 +14,14 @@ export const FIELD = {
   dueOn: "dueOn",
   dueTime: "dueTime",
   providerId: "providerId",
-  eventId: "eventId",
   medicationId: "medicationId",
   repeatRule: "repeatRule",
-  /** A new todo's note or event to link (`todos/new?entryId=`), a hidden field. */
-  entryId: "entryId",
+  /**
+   * The notes and events the todo links (todo-links), repeated hidden
+   * fields; the form sends one empty one with the list, so the field
+   * present means "these and no others".
+   */
+  entryIds: "entryIds",
 } as const;
 
 /** The fields the form shows issues on; anything else is the form's general message. */
@@ -29,7 +32,17 @@ const value = (form: FormData, name: string) => {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 };
 
-/** The form as a create or update. A time without a day is kept, so the schema can say so. */
+/** The posted note and event ids, once each, empty ones left out. */
+const entryIdsOf = (form: FormData) => [
+  ...new Set(
+    form.getAll(FIELD.entryIds).flatMap((v) => (typeof v === "string" && v.trim() ? [v.trim()] : [])),
+  ),
+];
+
+/**
+ * The form as a create or update. A time without a day is kept, so the
+ * schema can say so. `entryIds` only when the form sent the list.
+ */
 export const todoFromForm = (form: FormData): TodoInput => ({
   title: typeof form.get(FIELD.title) === "string" ? (form.get(FIELD.title) as string) : "",
   assigneeId: value(form, FIELD.assigneeId),
@@ -38,9 +51,9 @@ export const todoFromForm = (form: FormData): TodoInput => ({
   dueTime: value(form, FIELD.dueTime),
   providerId: value(form, FIELD.providerId),
   medicationId: value(form, FIELD.medicationId),
-  eventId: value(form, FIELD.eventId),
   repeatRule: value(form, FIELD.repeatRule),
-  entryId: value(form, FIELD.entryId),
+  // No field at all: none given, so an edit leaves the links alone.
+  ...(form.has(FIELD.entryIds) ? { entryIds: entryIdsOf(form) } : {}),
 });
 
 // --- The repeat (planner-2) --------------------------------------------------

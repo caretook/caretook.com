@@ -33,8 +33,9 @@ export type TodoFormPrefill = {
   dueTime?: string | null;
   providerId?: string | null;
   medicationId?: string | null;
+  /** An event to link (`todos/new?eventId=`): one of the starting `entryIds`. */
   eventId?: string | null;
-  /** A live note to link (`todos/new?entryId=`; an event's goes in `eventId`), kept in a hidden field. */
+  /** A live note or event to link (`todos/new?entryId=`): one of the starting `entryIds`. */
   entryId?: string | null;
   repeatRule?: string | null;
 };
@@ -43,8 +44,8 @@ export type TodoFormPrefill = {
  * Add or edit a todo: the title, who does it, an optional due day with an
  * optional time (both in the recipient's zone), how it repeats (once it
  * has a day: planner-2; none for a subtask or a todo with subtasks:
- * todo-subtasks), and optional links to a
- * provider, an appointment and a medication. Posts to its sheet
+ * todo-subtasks), and optional links (the shared "Link to" box: a
+ * provider, a medication, any notes and events). Posts to its sheet
  * route's clientAction, which writes on the device; the shared Zod schema's
  * messages show on the fields.
  */
@@ -179,19 +180,17 @@ export function TodoForm({
         />
       )}
 
-      {!todo && prefill?.entryId && <input type="hidden" name={FIELD.entryId} value={prefill.entryId} />}
-
       <TodoLinkFields
         choices={links}
-        withEvent={!todo}
+        todoId={todo?.id ?? null}
         initial={{
           providerId: todo ? todo.providerId : (prefill?.providerId ?? null),
-          eventId: todo ? null : (prefill?.eventId ?? null),
           medicationId: todo ? todo.medicationId : (prefill?.medicationId ?? null),
+          // An edited todo's notes and events are its link rows (read by the fields).
+          entryIds: todo ? [] : [prefill?.eventId, prefill?.entryId].filter((id): id is string => !!id),
         }}
         errors={{
           providerId: issueFor(issues, FIELD.providerId),
-          eventId: issueFor(issues, FIELD.eventId),
           medicationId: issueFor(issues, FIELD.medicationId),
         }}
       />
