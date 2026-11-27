@@ -124,6 +124,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `onboarding-3` | hold | `onboarding-2` | — | — |
 | `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
 | `med-intervals` | — | — | — | Every-N-hours schedules for medications and Med times (B-938). |
+| `tags-4` | hold | `tags-3` | — | — |
+| `shared-displays` | hold | `todo-subtasks-3`, `tags-3` | — | — |
 
 ## Summary
 
@@ -279,7 +281,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-958 | change | landed | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | landed | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | landed | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
-| B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
+| B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | landed | fixes-ui | prd/fixes-ui | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | landed | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 | B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
@@ -290,7 +292,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-969 | bug | ready | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
 | B-970 | bug | ready | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
 | B-971 | bug | ready | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
-| B-972 | feature | inbox |  |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
+| B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 
 ## Items
 
@@ -1832,8 +1834,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: shared-displays
 - owner:
 - commit:
 
@@ -1932,8 +1934,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-972 · feature · Tags tab on the planner: a unified view listing all tags and the items tagged with each
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: tags-4
 - owner:
 - commit:
 
