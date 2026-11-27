@@ -10,11 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State         | Merge     |
-| ----- | ----- | ------------- | --------- |
-| 80    | B-976 | merged (opus) | d268a0ca5 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 19** (2026-11-27): slice 80 (B-976, opus) merged d268a0ca5; integration CI green on 587de6c6 (run 46055609322); slice worktree removed; `risa sync` needed no merge; PR #268 open, Codex reviewing; no browser checks needed (parser only). Next: land on a clean verdict (`risa land fixes-bug --tier integration`). Skipped: B-750 (notes name no files), B-752 (no recurrence from B-753's watchdog). `risa status-trim` may fail on Risa v0.1.3 ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches.
+**Idle after wave 19** (landed through PR #268, 2026-11-27, Codex clean; to-test `to-test/2026-11-27-1446-fixes-bug.md`; rows in history). Slice 80 (B-976): quick entry reads a vital's label after its number (folded into assistant.md); `74hr` with no space still reads as hours. `risa status-trim` still fails ("Cannot find package 'prettier'" in Risa's `status-trim.mjs`): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 20 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 

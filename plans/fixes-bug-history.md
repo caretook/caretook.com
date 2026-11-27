@@ -2,6 +2,14 @@
 
 Finished-wave history moved out of [the plan](fixes-bug-plan.md)'s _Status_ by `pnpm prd status-trim fixes-bug`, the newest trim first.
 
+## Trimmed 2026-11-27 (wave 19)
+
+Wave 19 landed through PR #268 (2026-11-27), Codex clean on c730262, integration CI green on 587de6c6 (run 46055609322), landed unsynced (dev's 2 commits shared no file). To-test: `to-test/2026-11-27-1446-fixes-bug.md`.
+
+| Slice | Item  | State                                                             | Merge     |
+| ----- | ----- | ----------------------------------------------------------------- | --------- |
+| 80    | B-976 | merged (Opus; quick entry reads a vital's label after its number) | d268a0ca5 |
+
 ## Trimmed 2026-11-27 (wave 18)
 
 Wave 18 landed through PR #258 (2026-11-27).
