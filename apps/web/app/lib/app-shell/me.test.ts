@@ -294,7 +294,7 @@ describe("startSettings, the early fetch (B-958)", () => {
     expect(pending()).toBeNull();
   });
 
-  it("does nothing when there's a cache: the loader answers from it", async () => {
+  it("does nothing when there's a cache: the loader answers from it", () => {
     store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
     startSettings(request, USER);
     expect(api.get).not.toHaveBeenCalled();
