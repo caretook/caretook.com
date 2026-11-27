@@ -2,6 +2,7 @@ import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
 import type * as SearchModuleNs from "../search/search.sync";
 
+import sqliteWasm from "@journeyapps/wa-sqlite/dist/wa-sqlite-async.wasm?url";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { clearRemembered } from "./remembered";
 
@@ -22,10 +23,27 @@ let searchIndex: Promise<SearchModule> | null = null;
 /** Set by `installTestDatabase` only: whether a test device counts as synced. */
 let testFirstSyncDone: boolean | null = null;
 
+/**
+ * Start the download of SQLite's WASM build (~0.8 MB, the database's biggest
+ * file) as the database starts opening (B-959). PowerSync's worker asks for it
+ * only once its own script and then SQLite's glue code have arrived, two
+ * round trips later; by then it is in the HTTP cache, or still coming and
+ * joined (`/assets/` files are immutable). On a 1.6 Mbps link the database
+ * opened ~0.4 s sooner. Earlier, at the sign-in click, it queued ahead of the
+ * session check and pushed it past its timeout.
+ */
+const prefetchSqlite = () => {
+  if (typeof fetch !== "function") return;
+  void fetch(sqliteWasm, { priority: "high" })
+    .then((response) => response.body?.pipeTo(new WritableStream()))
+    .catch(() => undefined);
+};
+
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
   // Someone else signed in on this tab: their predecessor's data goes first.
   if (ready && ready.userId !== userId) await closeSync();
+  if (!current) prefetchSqlite();
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
