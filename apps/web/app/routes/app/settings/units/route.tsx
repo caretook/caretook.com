@@ -60,7 +60,7 @@ export default function UnitsSettings({ loaderData }: Route.ComponentProps) {
     <SettingsPage title="Units">
       <SettingsCard>
         <fetcher.Form key={JSON.stringify(units)} method="post" className="space-y-1">
-          <p className="text-base-content/70 text-sm">
+          <p className="text-muted text-sm">
             How vitals show for you. Everyone in your care groups can pick their own.
           </p>
           {MEASURES.map(({ measure, label }) => (

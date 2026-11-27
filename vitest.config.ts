@@ -343,7 +343,7 @@ export default defineConfig({
             CARETOOK_INT_WORKERS: String(integrationWorkers),
           },
           globalSetup: ["./packages/data/test/globalSetup.ts"],
-          // Points each worker at its own database, `<name>_w<VITEST_POOL_ID>`.
+          // Points each worker at its own database, `caretook_tw_<stem>_<hash>_w<n>` (named in scripts/project/test-db.sh).
           setupFiles: ["./packages/data/test/setup.ts"],
           // Files in parallel, one per worker database. Its own maxWorkers needs
           // a group of its own: after web:components (1), before the tooling (3), so

@@ -79,7 +79,7 @@ export function MemberItem({
             <div className="min-w-0 flex-1 break-words">
               <p className="font-medium">
                 {name}
-                {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
+                {isSelf && <span className="text-muted font-normal"> (you)</span>}
               </p>
               {badges.length > 0 && (
                 <p className="flex flex-wrap gap-1 py-0.5" data-member-badges="">
@@ -100,7 +100,7 @@ export function MemberItem({
                 </p>
               )}
               {history && (
-                <p data-member-history="" className="text-base-content/70 text-sm">
+                <p data-member-history="" className="text-muted text-sm">
                   {history}
                 </p>
               )}
@@ -129,7 +129,7 @@ export function MemberItem({
                   <RoleOptions roles={access.roles} />
                 </select>
               ) : (
-                <span data-role className="text-base-content/70 text-sm">
+                <span data-role className="text-muted text-sm">
                   {roleLabel(member.role)}
                 </span>
               )}
@@ -150,7 +150,7 @@ export function MemberItem({
           {error && <Message tone="error">{error}</Message>}
           {contactLines.length > 0 && <ContactLines lines={contactLines} data-member-contact="" />}
           {isSelf && !myContact && (
-            <p data-sharing-summary="" className="text-base-content/70 text-sm">
+            <p data-sharing-summary="" className="text-muted text-sm">
               {sharedSummary(visibleSharedFields(share))}
             </p>
           )}
