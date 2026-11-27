@@ -658,7 +658,14 @@ describe("read tools", { timeout: 60_000 }, () => {
       const past = await callTool(handler, token, "dose_schedule", { from: "2030-06-11" });
       expect(past.isError).toBe(true);
       expect(past.structuredContent).toMatchObject({
-        error: { issues: [{ path: "from", message: expect.stringContaining("list_timeline") }] },
+        error: {
+          issues: [
+            {
+              path: "from",
+              message: "The schedule is for today onward. Use list_timeline for doses already logged.",
+            },
+          ],
+        },
       });
       expect(past.content[0]!.text).toContain("Use list_timeline for doses already logged.");
     });
