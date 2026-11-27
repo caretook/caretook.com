@@ -4,20 +4,16 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 ## Status
 
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-nit-history.md`](fixes-nit-history.md) (`pnpm prd status-trim`).
+
 Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"; the dispatcher's run-through start again 2026-11-26). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 written 2026-11-26: slices 4–7. B-637 (20 files) split: slice 6 keeps 8 files, slice 7 is the new B-930. Slice 7 waited for slice 5 (both touch `settings/account/route.tsx`). All four merged; wave gate: CI `components` (tier proposes `full` only for `vitest.config.ts`, whose change is one comment line). B-931 filed for the next wave (`ui/` primitives with the old classes, found by slice 6).
+Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7: B-544, B-630, B-637, B-930) landed 2026-11-26 as a1d501f7 through PR #239: CI `components` green on db5aedae (below the proposed `full`, `--why`: `vitest.config.ts` changed one comment), Codex out of credits (`--no-review`), browser `--changed` 3/3; report filed; no area doc named what changed. Slice worktrees removed.
 
-| Slice | Item  | State  | Merge    |
-| ----- | ----- | ------ | -------- |
-| 4     | B-544 | merged | 87b37a46 |
-| 5     | B-630 | merged | 477b78c1 |
-| 6     | B-637 | merged | fec66e7e |
-| 7     | B-930 | merged | 93466070 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-Wave 2 green: CI `components` on db5aedae (run 45914323737), after a dev sync. Slice worktrees removed. PR #239; Codex out of credits (exit 4): land `--no-review`. Browser: `--changed --base dev` (app-shell, layout-offline, invites: 3/3 passed); the suite was refused (the user's rule: ask before `--suite`). Next: land, docs, status-trim, rotate.
-
-Models: slices 4, 6 and 7 on sonnet (no logic), slice 5 on opus. First CI run (aeb6d9bc, run 45913590395): `file`; the plan's table had a Model column the fixes-plans test refuses (fixed), and doc.test.mjs's project-config case (dev's, fixed in c75dc65a, B-928: synced in).
+Idle hand-over, no slice in flight: the next session writes wave 3 from `pnpm backlog list` (prd=fixes-nit, triaged): B-931 (the `ui/` primitives ChipList, tabLook, DateTimeField keep `text-base-content/<n>`; /80 and /40 have no token yet, so read ui-kit _Tokens_ and pick, or ask). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in a line below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
