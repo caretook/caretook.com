@@ -10,10 +10,14 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State           | Merge |
+| ----- | ----- | --------------- | ----- |
+| 76    | B-968 | starting (Opus) | —     |
+| 77    | B-969 | starting (Opus) | —     |
+| 78    | B-970 | starting (Opus) | —     |
+| 79    | B-971 | starting (Opus) | —     |
 
-**Idle after wave 17** (landed 44561c0e through PR #251, 2026-11-27, `--no-review`: Codex out of credits; components green, run 45989155987). Slices 74 (B-936, Opus) and 75 (B-951, Opus: no app bug, a stack missing migration 0048) merged; follow-up B-954 (fixes-tooling: browser checks refuse a stack behind on migrations). This stack needed `pnpm datastore:reset` after the sync for roundtrip to pass. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 18 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence). Lane freed with `pnpm prd rm fixes-bug` (standing).
+**Wave 18 running** (2026-11-27): four America/New_York failures from dev's release run on 39b4beaf. Hot: `apps/web/app/routes/app/groups/settings/`, `scripts/browser-checks/`. B-750 (umbrella) and B-752 (waits on B-753's watchdog) stay triaged.
 
 ## Wave 1
 
@@ -800,3 +804,31 @@ The browser check `scripts/browser-checks/roundtrip.spec.mjs:61` fails at its ta
 - Reproduce first: an integration test beside `packages/api/src/syncTags.int.test.ts` that uploads the two devices' creates (same name, different case, as the devices write them since d362bd70) and their links, and expects one tag and both links on the server. Then run the roundtrip check once (`pnpm prd browser` for that spec) to confirm.
 - Find why the server drops them (a rejected upload, a conflict path that discards, a color field the server refuses) and say so in the hand-off; fix it in the upload handler or the device write, keeping one tag per case-insensitive name per group.
 - Uploads must not silently drop: if the server refuses a write, the test shows the error path, not a missing row.
+
+## Wave 18
+
+Four second-zone failures from dev's release run on 39b4beaf (2026-11-27), independent, run at once. Each slice owns one test file and follows wave 12's _The zone slices_: run it in both zones first (component files: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm exec vitest run --project web:components <file>`, then `America/Los_Angeles`; browser checks: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm prd browser <spec>`, then Los Angeles), find out why each failure happens, then fix the test (it assumed Los Angeles: state or compute its zone, never weaken it, change the runner's zone or skip it) or the app (small and inside the slice's area, with the test proving it; else file a `fixes-bug` item and say so). If it doesn't reproduce in either zone, say so in the hand-off with the runs that show it (three in New York) and change nothing. Stay out of todo-subtasks-3's hot files (`pnpm backlog prd list`), `vitest.config.ts` and `scripts/ci/`. B-750 stays the standing umbrella; B-752 waits on B-753's watchdog.
+
+### Slice 76: Google calendar settings test passes in New York (B-968)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/calendars.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above.
+
+### Slice 77: group settings test passes in New York (B-969)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above. Slice 76 runs beside it in the same folder: change only this file and what it tests.
+
+### Slice 78: the offline layout check passes in New York (B-970)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: e2e:layout-offline
+
+`scripts/browser-checks/layout-offline.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 was a stack missing one).
+
+### Slice 79: the roundtrip check passes in New York (B-971)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: e2e:roundtrip
+
+`scripts/browser-checks/roundtrip.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 failed this check on a stack missing one), and name the failing step in the hand-off.
