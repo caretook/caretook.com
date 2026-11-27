@@ -8,13 +8,12 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"; the dispatcher's run-through start again 2026-11-26). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7: B-544, B-630, B-637, B-930) landed 2026-11-26 as a1d501f7 through PR #239: CI `components` green on db5aedae (below the proposed `full`, `--why`: `vitest.config.ts` changed one comment), Codex out of credits (`--no-review`), browser `--changed` 3/3; report filed; no area doc named what changed. Slice worktrees removed.
+Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-| Slice | Item  | State                                                                                                                | Merge    |
-| ----- | ----- | -------------------------------------------------------------------------------------------------------------------- | -------- |
-| 8     | B-931 | merged, CI `components` green on 87f36114, browser `--changed` 2/2, PR #240 (Codex out of credits), landing (sonnet) | 5e384aab |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-Wave 3 (slice 8, B-931): /80 → `text-muted`, /40 → `text-faint` picked by the orchestrator (in the slice). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in the State cell or below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
+Idle hand-over, no slice in flight: no fixes-nit item is waiting; the next session writes wave 4 from `pnpm backlog list` (prd=fixes-nit, triaged), numbered from `pnpm prd status-trim fixes-nit --next`. Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in a line below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`; push the Status commit (`pnpm prd pr`) before `land`, which wants the PR head at the local tip.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
