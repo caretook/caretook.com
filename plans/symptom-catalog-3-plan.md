@@ -6,13 +6,14 @@
 
 | Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | running |                                                    |
+| 1     | 1    | merged  | a84e4d658 (b74850034)                              |
 | 2     | 2    | planned |                                                    |
 | 3     | 2    | planned |                                                    |
 | 4     | 3    | planned |                                                    |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
 - 2026-11-27: synced with dev (up to date); B-920 claimed. Wave 1: slice 1 worktree `.loops/symptom-catalog-3-1`, agent spawned on opus.
+- Slice 1 handed off (quick check green on b74850034), merged as a84e4d658. Wave 1 CI: integration tier, running. B-920 stays claimed until slice 4. Slice 3 note from slice 1: map the device's `replaced_by_id` to `replacedById` for `resolveSymptom`; a tombstone whose replacement isn't local resolves to itself.
 
 ## Architectural decisions
 
