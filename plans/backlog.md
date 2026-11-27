@@ -284,7 +284,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-976 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry vitals in any order: '140/78 74bpm 97 o2' drops the O2 (only 'o2 97' works); HR/bpm the same, label before the number works, after doesn't. Very common entries: accept label before or after each number |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
 | B-978 | bug | landed | fixes-bug | prd/fixes-bug | Installed PWA shows no update notice until it's closed and reopened |
-| B-979 | bug | ready | fixes-bug | prd/fixes-bug | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
+| B-979 | bug | landed | fixes-bug | prd/fixes-bug | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
 | B-980 | bug | triaged | fixes-ui |  | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
 
 ## Items
@@ -1832,7 +1832,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-979 · bug · Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata)
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 336733f55
