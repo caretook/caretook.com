@@ -3,29 +3,18 @@ import type { TimedEntry } from "../appointments/upcoming";
 import type { UpcomingSection } from "../appointments/upcomingDays";
 import type { TodoTree, TodoTreeNode, TreeTodo } from "./todoTreeView";
 
-import { listsOnItsOwn, localDate, todoOrder, todoState } from "@caretook/data/schema";
+import { localDate, todoOrder, todoState } from "@caretook/data/schema";
 import { dayLabel } from "../core/format";
 import { NOW_KEY } from "../appointments/upcomingDays";
 import { startOfDay, zonedInstant } from "../core/zonedDay";
 import { todoDayOf, todoDayTrees } from "./todoTreeView";
 
-// Open todos with a due day in the Planner, under their day among the
-// appointments. Worked out, never written:
+// Open todos with a due day in the Planner, as day trees under their day
+// among the appointments. Worked out, never written:
 // completing a todo drops it out. Due days and times are wall-clock in the
 // recipient's zone (`todoState`); the Planner's days are the viewer's, so a
 // timed todo is placed by the moment it falls, an all-day one by its own
 // day (as all-day entries are). Pure; web:unit tests it.
-
-/** One open dated todo as a Planner item. */
-export type PlannerTodo<T extends TodoRuleFields = TodoRuleFields> = {
-  type: "dueTodo";
-  /** `todo:<id>`: unique in the list. */
-  key: string;
-  todo: T;
-  state: "overdue" | "today" | "upcoming";
-  /** The moment a timed todo falls (ISO 8601), or null for an all-day one. */
-  at: string | null;
-};
 
 /**
  * One day's tree as a Planner item (todo-subtasks-3; `plannerDayTrees`):
@@ -33,42 +22,25 @@ export type PlannerTodo<T extends TodoRuleFields = TodoRuleFields> = {
  * (the top-level todo on its own day, else the most urgent step due then),
  * so it's placed and ranked as that todo would be.
  */
-export type PlannerTree<T extends TodoRuleFields = TodoRuleFields> = Omit<PlannerTodo<T>, "type"> & {
+export type PlannerTree<T extends TodoRuleFields = TodoRuleFields> = {
   type: "dueTree";
+  /** `tree:<top id>:<day>`: unique in the list. */
+  key: string;
+  todo: T;
+  state: "overdue" | "today" | "upcoming";
+  /** The moment a timed lead falls (ISO 8601), or null for an all-day one. */
+  at: string | null;
   /** "YYYY-MM-DD", or "overdue": the day view it was cut for (`todoDayTrees`). */
   day: string;
   tree: TodoTree<T>;
 };
 
-/** Anything the Planner lists with todos merged in. */
-export type WithTodos<T, K extends TodoRuleFields = TodoRuleFields> = T | PlannerTodo<K>;
-
 /** Anything the Planner lists with day trees merged in. */
 export type WithTrees<T, K extends TodoRuleFields = TodoRuleFields> = T | PlannerTree<K>;
-
-export const isPlannerTodo = <T extends object>(item: T | PlannerTodo): item is PlannerTodo =>
-  "type" in item && item.type === "dueTodo";
 
 export const isPlannerTree = <T extends object, K extends TodoRuleFields>(
   item: T | PlannerTree<K>,
 ): item is PlannerTree<K> => "type" in item && item.type === "dueTree";
-
-/**
- * Open dated todos as Planner items, in the order given (`todoOrder`).
- * Done and undated todos are left out, and a subtask that doesn't list on
- * its own (`listsOnItsOwn`; todo-subtasks-2), which shows on its parent's page.
- */
-export const plannerTodos = <T extends TodoRuleFields & { parentId?: string | null }>(
-  todos: readonly T[],
-  now: Date | number,
-  timeZone: string,
-): PlannerTodo<T>[] =>
-  todos.flatMap((todo) => {
-    const state = todoState(todo, now, timeZone);
-    if (state === "done" || state === "undated" || !todo.dueOn || !listsOnItsOwn(todo)) return [];
-    const at = todo.dueTime ? zonedInstant(todo.dueOn, todo.dueTime, timeZone).toISOString() : null;
-    return [{ type: "dueTodo" as const, key: `todo:${todo.id}`, todo, state, at }];
-  });
 
 /**
  * The Planner's todos as trees (todo-subtasks-3): one item per day tree
@@ -122,12 +94,11 @@ export const plannerDayTrees = <T extends TreeTodo>(
 export const showsTodos = ({ kind, author }: { kind?: string | null; author?: string | null }) =>
   !kind && !author;
 
-/** A todo or a day tree, merged into the Planner's days. */
-type Due = PlannerTodo | PlannerTree;
+/** A day tree, merged into the Planner's days. */
+type Due = PlannerTree;
 type Listed = TimedEntry | Due;
 
-const isDue = (item: Listed): item is Due =>
-  "type" in item && (item.type === "dueTodo" || item.type === "dueTree");
+const isDue = (item: Listed): item is Due => "type" in item && item.type === "dueTree";
 
 /**
  * Where an item sits in its day: overdue todos first, then all-day entries,
