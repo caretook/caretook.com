@@ -12,17 +12,17 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 1** landed acc69573 (PR #253, 2026-11-27, `--no-review`: Codex out of credits; report a309).
 
-**Wave 2 running** (2026-11-27): slices 8-12 (B-956, B-958, B-959, B-960, B-963), all on Opus; dev needed no sync. Slice 11 waits for slice 10 (both measure the first load). B-963 filed this session from the wave 1 hand-over.
+**Wave 2: all merged, CI gate next** (2026-11-27): slices 8-12 (B-956, B-958, B-959, B-960, B-963), all on Opus; dev needed no sync. Slice 11 waits for slice 10 (both measure the first load). B-963 filed this session from the wave 1 hand-over.
 
 - At landing: browser checks `first-sync`, `roundtrip`, `live-notes` (slice 8's sync change); sync.md gets identical answers skipped (B-956), `startSettings` on the _Settings cache_ line (B-958), the WASM prefetch in `openSync` (B-959); slice 10 notes CDP throttling skips SharedWorker requests (measure behind a link shaper: scratchpad m10/ scripts).
 
-| Slice | Item  | State                | Merge    |
-| ----- | ----- | -------------------- | -------- |
-| 8     | B-956 | merged               | b2d5967b |
-| 9     | B-958 | merged               | 6abd6279 |
-| 10    | B-959 | merged               | 5fe00bdf |
-| 11    | B-960 | agent working (Opus) |          |
-| 12    | B-963 | merged               | 847722a6 |
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 8     | B-956 | merged | b2d5967b |
+| 9     | B-958 | merged | 6abd6279 |
+| 10    | B-959 | merged | 5fe00bdf |
+| 11    | B-960 | merged | c81f220e |
+| 12    | B-963 | merged | 847722a6 |
 
 ## Wave 1
 
