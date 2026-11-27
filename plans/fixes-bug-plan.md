@@ -10,10 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State          | Merge |
-| ----- | ----- | -------------- | ----- |
-| 74    | B-936 | started (opus) | —     |
-| 75    | B-951 | started (opus) | —     |
+| Slice | Item  | State          | Merge    |
+| ----- | ----- | -------------- | -------- |
+| 74    | B-936 | merged (opus)  | 6bed3d06 |
+| 75    | B-951 | started (opus) | —        |
 
 **Wave 17 (2026-11-27):** synced dev (c990d787), inbox empty; slices 74 (Back returns to the opener) and 75 (same-case tags kept on the server) run at once on Opus. B-750 still waits for files in its notes; B-752 stays open until B-753's watchdog (in dev) names a recurrence.
 
