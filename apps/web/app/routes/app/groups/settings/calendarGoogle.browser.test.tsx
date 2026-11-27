@@ -5,6 +5,7 @@ import type { GoogleStatus } from "./calendar/useGoogleStatus";
 import { beforeEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { forgetCalendarSettings } from "~/lib/calendars/calendarSettings";
+import { syncedText } from "./calendar/googleCardView";
 import * as calendar from "./calendar/route";
 import * as settingsLayout from "./layout/route";
 import { apiCalls } from "../../../../../test/api";
@@ -26,11 +27,12 @@ const ROUTES: DeviceRoute[] = [
 ];
 const CALENDAR = `/app/groups/${TEST_GROUP.id}/settings/calendar`;
 
+const PUSHED_AT = "2026-11-18T17:05:00.000Z";
 const CONNECTED: GoogleStatus = {
   connected: true,
   configured: true,
   calendarName: "Caretook: Grandma June",
-  lastPushedAt: "2026-11-18T17:05:00.000Z",
+  lastPushedAt: PUSHED_AT,
   lastPulledAt: null,
   error: null,
 };
@@ -109,7 +111,10 @@ describe("the Google Calendar card", () => {
   test("shows the connected calendar and when it last synced, to a viewer too", async () => {
     await open({ role: "viewer", api: googleServer("viewer", CONNECTED).api });
     await expect.element(page.getByText("Caretook: Grandma June")).toBeVisible();
-    await expect.element(page.getByText("Last synced 18 Nov, 9:05.")).toBeVisible();
+    // In the viewer's zone (9:05 in Los Angeles, 12:05 in New York); the wording
+    // itself is pinned in googleCardView.test.ts.
+    const synced = syncedText(PUSHED_AT);
+    await expect.element(page.getByText(`Last synced ${synced}.`)).toBeVisible();
     await expect.element(disconnectButton()).toBeVisible();
     await expect.poll(() => card()?.querySelector("[data-google-error]")).toBeNull();
   });
