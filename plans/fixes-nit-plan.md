@@ -8,13 +8,13 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"; the dispatcher's run-through start again 2026-11-26). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7: B-544, B-630, B-637, B-930) landed 2026-11-26 as a1d501f7 through PR #239: CI `components` green on db5aedae (below the proposed `full`, `--why`: `vitest.config.ts` changed one comment), Codex out of credits (`--no-review`), browser `--changed` 3/3; report filed; no area doc named what changed. Slice worktrees removed.
+Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-| Slice | Item  | State                                                                                                                | Merge    |
-| ----- | ----- | -------------------------------------------------------------------------------------------------------------------- | -------- |
-| 8     | B-931 | merged, CI `components` green on 87f36114, browser `--changed` 2/2, PR #240 (Codex out of credits), landing (sonnet) | 5e384aab |
+| Slice | Item  | State                            | Merge     |
+| ----- | ----- | -------------------------------- | --------- |
+| 9     | B-973 | merged, three cut lines restored | d5b824f11 |
 
-Wave 3 (slice 8, B-931): /80 → `text-muted`, /40 → `text-faint` picked by the orchestrator (in the slice). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in the State cell or below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
+Wave 4 (slice 9, B-973, docs only: no CI tier, `pnpm test:tooling`; sonnet, no logic) started 2026-11-27 after a dev sync. B-950 held for a later wave (todo-subtasks-3 holds `routes/app/groups/timeline/`).
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
@@ -156,5 +156,27 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 
 - [ ] No `text-base-content/` left in the three files; nothing else changed.
 - [ ] The existing component tests for `ChipList`, `TabNav`/`FormTabs` and `DateTimeField` pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 4 (written 2026-11-27 by the orchestrator, from the triaged fixes-nit items)
+
+B-950 (move TimelineEntryRow out of the timeline route) waits for a later wave: it touches `routes/app/groups/timeline/`, a hot path of the running todo-subtasks-3.
+
+## Slice 9: The components doc fits its budget again (B-973)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: none (Markdown)
+
+**Problem.** `docs/domain/components.md` is 10513 B on `dev`, over its 10240 B budget (`pnpm docs:budget`); it made fixes-ui's land need `risa sync --force`.
+
+**Build.** This slice is the exception to "loops never edit `docs/`": the fix is the doc.
+
+- Trim `docs/domain/components.md` to at most about 10 000 B (some room for the next fold-in) by tightening wording: drop repetition, stale lines (check a claim against the code before dropping it as stale) and examples the rule already makes plain. Keep every rule and every link; move nothing to other docs.
+- Change no other file.
+
+**Acceptance criteria.**
+
+- [ ] `pnpm docs:budget` shows `docs/domain/components.md` under budget; no rule or link lost (say in the hand-off what was cut).
+- [ ] `pnpm exec prettier --check docs/domain/components.md` and `pnpm test:tooling` pass.
 
 **Blocks:** none. **Blocked by:** none.
