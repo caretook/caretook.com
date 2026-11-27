@@ -140,7 +140,7 @@ describe("todoStrip and the tree (todo-subtasks-3)", () => {
       LA,
       ME,
     );
-    expect(s && { state: s.state, title: s.todo.title, more: s.more, ...todoStripText(s) }).toMatchObject({
+    expect(s && { state: s.state, more: s.more, ...todoStripText(s) }).toMatchObject({
       state: "today",
       title: "Book the ride",
       more: 0,
