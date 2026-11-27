@@ -15,13 +15,13 @@ import {
   KindIcon,
   RepeatMark,
 } from "~/components/entry";
-import { TagChips } from "~/components/tags";
+import { QuickTags } from "~/components/tags";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { useCopyLink } from "./CopyLinkButton";
-import { actionsLabel } from "./entryLabels";
+import { actionsLabel, entryLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
@@ -59,11 +59,39 @@ export type EntryViewProps = {
   easy?: boolean;
   /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
   openTodos?: number;
-  /** Its tags (tags PRD): two chips, then "+N", for every role and in the easy view. */
-  tags?: readonly { id: string; name: string }[];
-  /** The ⋯ menu's Tags, for whoever may tag it (`canTagRecord`). */
-  onTags?: () => void;
+  /**
+   * Its tags, from the list's one query (tags PRD): two chips, then "+N", for
+   * every role and in the easy view; × and "Add tag" for whoever may tag it
+   * (`RowTags`, tags-2).
+   */
+  tags?: readonly { id: string; name: string; color?: string | null }[];
 };
+
+const NO_TAGS: readonly { id: string; name: string }[] = [];
+
+/**
+ * A row's or card's tags (tags-2): `QuickTags` with two chips, then "+N",
+ * and a compact "Add tag", from the list's query (never one per row). Its
+ * taps sit above the stretched open target, so they never open the entry.
+ */
+export function RowTags({
+  entry,
+  tags,
+  className,
+}: Pick<EntryViewProps, "entry" | "tags"> & { className?: string }) {
+  return (
+    <QuickTags
+      target="entry"
+      recordId={entry.id}
+      label={entryLabel(entry)}
+      createdBy={entry.createdBy}
+      max={2}
+      tags={tags ?? NO_TAGS}
+      compact
+      className={className}
+    />
+  );
+}
 
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
@@ -87,7 +115,6 @@ export function TimelineEntryRow({
   easy,
   openTodos,
   tags,
-  onTags,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -124,21 +151,14 @@ export function TimelineEntryRow({
               </p>
             )}
             <OpenTodosMark count={openTodos} />
-            <TagChips tags={tags} className="mt-0.5" />
+            <RowTags entry={entry} tags={tags} className="mt-0.5" />
           </>
         }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
-        <EntryMenu
-          entry={entry}
-          onEdit={onEdit}
-          onTags={onTags}
-          cancel={cancel}
-          onRemind={onRemind}
-          onDelete={onDelete}
-        />
+        <EntryMenu entry={entry} onEdit={onEdit} cancel={cancel} onRemind={onRemind} onDelete={onDelete} />
         {easy ? (
           <AuthorCircle
             userId={entry.createdBy}
@@ -162,11 +182,10 @@ export function TimelineEntryRow({
 export function EntryMenu({
   entry,
   onEdit,
-  onTags,
   cancel,
   onRemind,
   onDelete,
-}: Pick<EntryViewProps, "entry" | "onEdit" | "onTags" | "cancel" | "onRemind" | "onDelete">) {
+}: Pick<EntryViewProps, "entry" | "onEdit" | "cancel" | "onRemind" | "onDelete">) {
   const link = useCopyLink(entryLinkPath(entry, localTimeZone()));
   return (
     <div className="relative z-10 flex shrink-0" data-copy-link="">
@@ -174,7 +193,6 @@ export function EntryMenu({
         kind={entry.kind}
         label={actionsLabel(entry)}
         onEdit={onEdit}
-        onTags={onTags}
         cancel={cancel}
         onRemind={onRemind}
         printHref={canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined}

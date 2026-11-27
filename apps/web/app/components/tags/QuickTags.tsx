@@ -29,6 +29,8 @@ type QuickTagsProps = {
   tags?: readonly QuickTag[];
   /** Chips only, whoever's looking (a deleted or unsaved record). */
   readOnly?: boolean;
+  /** A row's: "Add tag" as an icon alone (its name and tooltip stay "Add tag"). */
+  compact?: boolean;
   className?: string;
 };
 
@@ -59,6 +61,7 @@ function QuickTagsView({
   max,
   tags,
   readOnly,
+  compact,
   className = "",
 }: QuickTagsProps & { tags: readonly QuickTag[] }) {
   const group = useGroup();
@@ -77,16 +80,28 @@ function QuickTagsView({
     <div className={`relative z-10 space-y-1 ${className}`} data-quick-tags="">
       <div className="flex flex-wrap items-center gap-1">
         <TagChips tags={tags} max={max} onRemove={(t) => void remove(t.id)} onMore={pick} />
-        <Button
-          variant="ghost"
-          size="xs"
-          icon={Plus}
-          onClick={pick}
-          aria-haspopup="dialog"
-          data-quick-tag-add=""
-        >
-          Add tag
-        </Button>
+        {compact ? (
+          <Button
+            variant="ghost"
+            size="xs"
+            icon={Plus}
+            label="Add tag"
+            onClick={pick}
+            aria-haspopup="dialog"
+            data-quick-tag-add=""
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            size="xs"
+            icon={Plus}
+            onClick={pick}
+            aria-haspopup="dialog"
+            data-quick-tag-add=""
+          >
+            Add tag
+          </Button>
+        )}
       </div>
       {error && <Message tone="error">{error}</Message>}
       {picker.sheet}
