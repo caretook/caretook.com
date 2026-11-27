@@ -24,7 +24,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `todo-subtasks` | done | `planner-3`, `tags` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/app-shell/unsavedChanges.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `todo-subtasks-3` | done | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
-| `todo-links` | — | `todo-subtasks-3` | `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/entry/EntryTodos.tsx`, `apps/web/app/routes/app/groups/entry/route.tsx`, `apps/web/app/routes/app/groups/provider/route.tsx`, `apps/web/app/routes/app/groups/medication/route.tsx`, `apps/web/app/lib/core/recentlyViewed.ts`, `apps/web/app/lib/auth/forgetUserData.ts`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/lib/search/searchTables.sync.ts`, `packages/data/src/db/schema/search/searchDocument.ts` | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
+| `todo-links` | done | `todo-subtasks-3` | `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/entry/EntryTodos.tsx`, `apps/web/app/routes/app/groups/entry/route.tsx`, `apps/web/app/routes/app/groups/provider/route.tsx`, `apps/web/app/routes/app/groups/medication/route.tsx`, `apps/web/app/lib/core/recentlyViewed.ts`, `apps/web/app/lib/auth/forgetUserData.ts`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/lib/search/searchTables.sync.ts`, `packages/data/src/db/schema/search/searchDocument.ts` | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
@@ -252,7 +252,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-944 | feature | landed | todo-links | prd/todo-links | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
 | B-945 | feature | landed | todo-links | prd/todo-links | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
 | B-946 | feature | landed | todo-links | prd/todo-links | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
-| B-947 | feature | ready | todo-links | prd/todo-links | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
+| B-947 | feature | landed | todo-links | prd/todo-links | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
 | B-948 | feature | landed | todo-links | prd/todo-links | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
@@ -270,8 +270,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
 | B-988 | bug | landed | todo-links | prd/todo-links | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
 | B-989 | bug | landed | todo-links | prd/todo-links | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
-| B-990 | bug | ready | todo-links | prd/todo-links | Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot) |
-| B-991 | bug | ready | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
+| B-990 | bug | landed | todo-links | prd/todo-links | Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot) |
+| B-991 | bug | landed | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
 | B-992 | bug | triaged | symptom-catalog-3 |  | A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace) |
 | B-993 | bug | triaged | fixes-bug |  | Link to box suggestions: many all-day events from the last two days can crowd every upcoming event out of the suggestions (upcomingEvents limits before upcomingItems filters) |
 
@@ -1500,7 +1500,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-947 · feature · Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from)
 
-- status: ready
+- status: landed
 - prd: todo-links
 - owner: prd/todo-links
 - commit: 347fd297a
@@ -1666,7 +1666,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-990 · bug · Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot)
 
-- status: ready
+- status: landed
 - prd: todo-links
 - owner: prd/todo-links
 - commit: 347fd297a
@@ -1675,7 +1675,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-991 · bug · Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates)
 
-- status: ready
+- status: landed
 - prd: todo-links
 - owner: prd/todo-links
 - commit: 347fd297a
