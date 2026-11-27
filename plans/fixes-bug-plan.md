@@ -12,10 +12,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 | Slice | Item  | State           | Merge |
 | ----- | ----- | --------------- | ----- |
-| 76    | B-968 | starting (Opus) | —     |
-| 77    | B-969 | starting (Opus) | —     |
-| 78    | B-970 | starting (Opus) | —     |
-| 79    | B-971 | starting (Opus) | —     |
+| 76    | B-968 | running (Opus) | —     |
+| 77    | B-969 | running (Opus) | —     |
+| 78    | B-970 | running (Opus) | —     |
+| 79    | B-971 | running (Opus) | —     |
 
 **Wave 18 running** (2026-11-27): four America/New_York failures from dev's release run on 39b4beaf. Hot: `apps/web/app/routes/app/groups/settings/`, `scripts/browser-checks/`. B-750 (umbrella) and B-752 (waits on B-753's watchdog) stay triaged.
 
