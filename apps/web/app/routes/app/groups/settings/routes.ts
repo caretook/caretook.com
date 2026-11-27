@@ -10,5 +10,7 @@ export const groupSettingsRoutes: RouteConfigEntry[] = [
     route("assistants", "routes/app/groups/settings/assistants/route.tsx"),
     // Calendar & reminders (calendars, appointments-2): each member's own reminders, feed, Google and details.
     route("calendar", "routes/app/groups/settings/calendar/route.tsx"),
+    // The group's tags (tags-3): rename, recolor, delete.
+    route("tags", "routes/app/groups/settings/tags/route.tsx"),
   ]),
 ];

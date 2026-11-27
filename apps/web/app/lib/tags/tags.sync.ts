@@ -246,6 +246,25 @@ export const tagUsesQuery = (tagId: string): LocalQuery => ({
   params: [tagId],
 });
 
+export type TagUseRow = { tag_id: string; uses: number };
+
+/**
+ * How many live records carry each of the group's tags, in one query for the
+ * Tags page (`tagUsesQuery`'s count, by tag); a tag on none has no row.
+ */
+export const groupTagUsesQuery = (groupId: string): LocalQuery => ({
+  sql: `SELECT l.tag_id, count(*) AS uses FROM record_tag l
+        LEFT JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
+        LEFT JOIN todo t ON t.id = l.todo_id AND t.group_id = l.group_id
+        LEFT JOIN provider p ON p.id = l.provider_id AND p.group_id = l.group_id
+        LEFT JOIN medication m ON m.id = l.medication_id AND m.group_id = l.group_id
+        WHERE l.group_id = ?
+          AND COALESCE(e.deleted_at, t.deleted_at, p.deleted_at, m.deleted_at) IS NULL
+          AND COALESCE(e.id, t.id, p.id, m.id) IS NOT NULL
+        GROUP BY l.tag_id`,
+  params: [groupId],
+});
+
 const tagRow = async (db: SyncDb, tagId: string) => {
   const [row] = await readRows<{ group_id: string | null; created_by: string | null }>(db, {
     sql: "SELECT group_id, created_by FROM tag WHERE id = ?",
