@@ -223,6 +223,11 @@ const BOXES = fx.note({
   occurredAt: when(-3 * DAY),
   text: "Packed the kitchen boxes",
 });
+const EYE = fx.event({
+  id: "5b2d8e61-3c7a-4f19-9e04-1d6a2c8b0b0a",
+  title: "Eye doctor",
+  occurredAt: when(5 * DAY),
+});
 const MOVING = tag("Moving day");
 const BOXES_TAGGED = recordTag(MOVING.id, BOXES.id);
 const FINDS = [
@@ -237,6 +242,7 @@ const FINDS = [
   BOXES,
   MOVING,
   BOXES_TAGGED,
+  EYE,
 ];
 
 describe("what the Link to box finds by", () => {
@@ -276,6 +282,9 @@ describe("what the Link to box finds by", () => {
     await expect.poll(() => names().map((t) => t.slice(0, 15))).toEqual(["Picked up the w"]);
     await search("moving");
     await expect.poll(() => names().map((t) => t.slice(0, 15))).toEqual(["Packed the kitc"]);
+    // A type word that finds nothing of its type is searched as typed: an event named "Eye doctor".
+    await search("eye doctor");
+    await expect.poll(() => names().map((t) => t.slice(0, 10))).toEqual(["Eye doctor"]);
   });
 
   test("renaming a tag, or tagging and untagging, refreshes an open tag-name search (B-989)", async () => {

@@ -264,7 +264,8 @@ describe("the todo page's linked entries", () => {
     await open(plain.id, [plain]);
     const links = page.getByRole("region", { name: "Linked to" });
     await expect.element(links.getByRole("combobox", { name: "Link to" })).toBeInTheDocument();
-    expect(links.element().querySelector("ul")).toBeNull();
+    // No link rows (the box's type chips are a list too).
+    expect(links.element().querySelector("[data-todo-link]")).toBeNull();
   });
 });
 
@@ -314,7 +315,7 @@ describe("linking from the todo page", () => {
       await userEvent.click(page.getByRole("button", { name: `Remove link to ${name}` }));
       await device.settle();
     }
-    await expect.poll(() => document.querySelector("[data-todo-links] ul")).toBeNull();
+    await expect.poll(() => document.querySelector("[data-todo-links] [data-todo-link]")).toBeNull();
     expect(await slots(device)).toEqual({ provider_id: null, medication_id: null });
     expect(await device.query("SELECT id FROM timeline_entry_todo WHERE todo_id = ?", [PLAIN.id])).toEqual(
       [],
