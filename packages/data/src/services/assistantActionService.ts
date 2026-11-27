@@ -268,8 +268,9 @@ const passDoses = async (
   if (!pass || pass.groupId !== groupId) return newError({ code: "assistantActionService:passGone" });
 
   const [medications, passes] = await Promise.all([
-    medicationModel.list({ ...ctx, tx, filter, paginate: { page: 1, limit: 500 } }),
-    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true, paginate: { page: 1, limit: 100 } }),
+    // Every row: a page stops at 100 (B-986).
+    medicationModel.list({ ...ctx, tx, filter }),
+    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true }),
   ]);
   if (isError(medications)) return medications;
   if (isError(passes)) return passes;
@@ -933,13 +934,9 @@ export const logPastDoses = (
     if (from && last) {
       const filter = { groupId: { type: "eq" as const, value: groupId } };
       const [medications, passes] = await Promise.all([
-        medicationModel.list({ ...inTx, filter, paginate: { page: 1, limit: 500 } }),
-        medicationPassModel.list({
-          ...inTx,
-          filter,
-          includeDeleted: true,
-          paginate: { page: 1, limit: 100 },
-        }),
+        // Every row: a page stops at 100 (B-986).
+        medicationModel.list({ ...inTx, filter }),
+        medicationPassModel.list({ ...inTx, filter, includeDeleted: true }),
       ]);
       if (isError(medications)) return medications;
       if (isError(passes)) return passes;
