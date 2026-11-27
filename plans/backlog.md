@@ -198,7 +198,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-455 | chore | triaged | contract-migrations |  | Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them |
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
 | B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
-| B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
+| B-543 | question | staging | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
@@ -290,6 +290,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-969 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
 | B-970 | bug | triaged | fixes-bug |  | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
 | B-971 | bug | triaged | fixes-bug |  | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
+| B-972 | feature | inbox |  |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 
 ## Items
 
@@ -993,7 +994,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-543 · question · Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one
 
-- status: triaged
+- status: staging
 - prd: orchestration-split
 - owner:
 - commit: 57d604a2
@@ -1008,6 +1009,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (Robert Bo Davis): Moved from the done orchestration-split topic to stage 1d (orchestration-split-4) on the user's word, 2026-11-26; stays in progress until the move.
 - 2026-11-26 (Robert Bo Davis): Moved back to orchestration-split, owner cleared (2026-11-26): under orchestration-split-4 as in-progress it kept that topic from being marked done, and the dispatcher restarted it in a loop. It finishes with the move (plans/orchestration-split-move.md).
 - 2026-11-27 (Robert Bo Davis): Move step 5 on dev: 5ab4fbfc removes the core (Risa v0.1.2, fa38e19, is a pinned dev dependency), 5f8fdf94 renames the commands to risa/risa backlog. Rehearsed with pnpm check green and release CI run 46029713492 green but for layout-offline, which is B-967 and predates the move (accepted). Watchdog label stays com.caretook.prd-watchdog. Follow-ups in Risa: RISA-970, RISA-971, RISA-972.
+- 2026-11-27 (Robert Bo Davis): Move done 2026-11-27: the core is Risa (interrobangc/risa, v0.1.2 pinned); dev 5ab4fbfc + 5f8fdf94; dev release CI 46031731806 green but for B-967 (pre-existing) and second-zone reports B-968..B-971; watchdog com.caretook.prd-watchdog runs the release; dispatcher resumed. Open in Risa: RISA-970..974.
 
 ### B-561 · feature · Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites
 
@@ -1926,3 +1928,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 2f974a423a03] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
+
+### B-972 · feature · Tags tab on the planner: a unified view listing all tags and the items tagged with each
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-27 (prd/fixes-ui): From the inbox: Has the common search/filter bar. Where possible, uses the shared component to display items in the list. Has condensed and full views, defaulting to condensed.
