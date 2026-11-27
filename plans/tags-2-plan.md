@@ -9,13 +9,13 @@
 | 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
 | 2     | 2    | landed  | 7b892610 (d362bd70)                     |
 | 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                     |
-| 4     | 4    | planned |                                         |
+| 4     | 4    | running |                                         |
 | 5     | 5    | planned |                                         |
 | 6     | 5    | planned |                                         |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 3 (slice 3, opus) **landed** in dev through PR #247, `--no-review` (Codex out of credits), tier full (run 45941751708, a flake outside the branch, filed); report a302 filed; tags doc folded; worktree tags-2-3 removed. **Next session:** wave 4, slice 4 (QuickTags on the entry and todo pages; opus; claim B-892; it touches `routes/app/groups/todos/`, a todo-subtasks-2 hot file: sync dev first if that topic is running). `Badge` takes `fill` (`tagColorClass`) for palette chips. After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
+**Now:** wave 4 started 2026-11-26: dev sync was a no-op; B-892 claimed; worktree tags-2-4 made, slice 4 agent spawned on **opus**; watch running. todo-subtasks-2 isn't running (no worktree), so no hot-file sync needed. Waves 1–3 landed (wave 3 via PR #247, `--no-review`, Codex out of credits). `Badge` takes `fill` (`tagColorClass`) for palette chips. After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
 
 ## Architectural decisions
 
