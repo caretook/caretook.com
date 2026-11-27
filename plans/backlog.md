@@ -283,6 +283,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-976 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry vitals in any order: '140/78 74bpm 97 o2' drops the O2 (only 'o2 97' works); HR/bpm the same, label before the number works, after doesn't. Very common entries: accept label before or after each number |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
 | B-978 | bug | ready | fixes-bug | prd/fixes-bug | Installed PWA shows no update notice until it's closed and reopened |
+| B-979 | bug | triaged | fixes-bug |  | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
 
 ## Items
 
@@ -1820,3 +1821,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: e524785a8
 
 - 2026-11-27 (Robert Bo Davis): User report. Likely cause: serviceWorkerRegister.ts registers /sw.js once at load and relies on the browser's navigation-time update check; an installed PWA resumed from the background never navigates, so no updatefound fires and UpdateNotice stays hidden. Fix idea: call registration.update() when the page becomes visible (visibilitychange) and on a slow interval (e.g. hourly), throttled; test with the fake container in serviceWorkerRegister.test.ts. fixes-bug: wrong behaviour.
+
+### B-979 · bug · Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata)
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-27 (prd/tags-3): Codex on PR #271 (tags-3), verified: useSearchPage.ts reruns loadSearch on watched tag ids, linkKey and index changes, but not on a named tag's name or color; tags aren't an index change source, so result chips (data.namedTags) go stale while the filter chips update. Fix: add the matching tags' names and colors to the effect's deps (or read result chips from the live group tags by id).
