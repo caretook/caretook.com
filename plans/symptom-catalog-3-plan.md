@@ -6,10 +6,13 @@
 
 | Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | planned |                                                    |
+| 1     | 1    | running |                                                    |
 | 2     | 2    | planned |                                                    |
 | 3     | 2    | planned |                                                    |
 | 4     | 3    | planned |                                                    |
+
+- **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
+- 2026-11-27: synced with dev (up to date); B-920 claimed. Wave 1: slice 1 worktree `.loops/symptom-catalog-3-1`, agent spawned on opus.
 
 ## Architectural decisions
 
