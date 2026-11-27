@@ -4,17 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State                                            | Merge into `prd/symptom-catalog-2` (slice commits) |
-| ----- | ---- | ------------------------------------------------ | -------------------------------------------------- |
-| 1     | 1    | running                                          |                                                    |
-| 2     | 1    | handed off (e5905ecec), reviewed; merges after 1 |                                                    |
-| 3     | 2    | planned                                          |                                                    |
-| 4     | 3    | planned                                          |                                                    |
-| 5     | 3    | planned                                          |                                                    |
+| Slice | Wave | State   | Merge into `prd/symptom-catalog-2` (slice commits) |
+| ----- | ---- | ------- | -------------------------------------------------- |
+| 1     | 1    | running |                                                    |
+| 2     | 1    | merged  | 284076ebd (e5905ecec)                              |
+| 3     | 2    | planned |                                                    |
+| 4     | 3    | planned |                                                    |
+| 5     | 3    | planned |                                                    |
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Now (2026-11-27):** wave 1 running. Slice 1 (opus) in `.loops/symptom-catalog-2-1`, slice 2 (opus) in `.loops/symptom-catalog-2-2`. B-890, B-898 claimed. Plan anchors reworded (slices 1, 3, 5) so `risa anchors` passes.
+**Now (2026-11-27):** wave 1 merged (slices 1, 2 on opus); full CI run out (migration 0049). B-898 done; B-890 spans slices 1, 3-5.
+
+**For later slices:** slice 1 already appended `archived_at, replaced_by_id` to `sync-config.yaml` (rolesSql test needs whole-table streams), so slice 3 adds them only to the device schema (and the roundtrip matrix may need them as server-set). `ensure`/backfill keep an archived row archived. Quick entry no longer uses `SymptomGate` (its `takeFocus={false}` has no caller). At landing: `docs/domain/assistant.md` (symptom cards save the closest name, no wait), timeline.md catalog line.
 
 ## Architectural decisions
 
