@@ -549,6 +549,13 @@ const tokenize = (text: string): Token[] => {
       tokens.push({ raw: raw.slice(joined[1]!.length), w: joined[2]! });
       continue;
     }
+    // "97o2", "97spo2": a number joined to its keyword after it (not a unit: "7hr" stays hours).
+    const trailing = /^(\d+(?:\.\d+)?)([a-z][a-z0-9]*)$/.exec(w);
+    if (trailing && VITAL_SINGLE_WORDS.has(trailing[2]!) && !(trailing[2]! in UNIT_WORDS)) {
+      tokens.push({ raw: raw.slice(0, trailing[1]!.length), w: trailing[1]! });
+      tokens.push({ raw: raw.slice(trailing[1]!.length), w: trailing[2]! });
+      continue;
+    }
     tokens.push({ raw, w });
   }
   return tokens;
@@ -734,30 +741,106 @@ const readVitalValue = (
   return { reading: { value: n.value }, units: readUnits, used };
 };
 
+/**
+ * The reading typed just before a label ("97 o2", "74 bpm hr", "140/78 bp"),
+ * ending right at it. Less sure than a label-first one, so only a value the
+ * field accepts counts ("7 hr sleep" isn't a heart rate of 7).
+ */
+const readValueBefore = (
+  type: VitalType,
+  tokens: readonly Token[],
+  label: number,
+  free: (i: number) => boolean,
+  units: UnitChoices,
+): Omit<FoundVital, "type"> | null => {
+  for (const start of [label - 1, label - 2]) {
+    if (start < 0) continue;
+    const value = readVitalValue(type, tokens, start, (i) => i >= start && i < label && free(i), units);
+    if (!value || value.used[0] !== start || Math.max(...value.used) !== label - 1) continue;
+    if (toReading({ type, ...value }).warnings.some((w) => w.blocking)) continue;
+    return value;
+  }
+  return null;
+};
+
+type LabelledVital = FoundVital & { label: number[]; value: number[] };
+
+/**
+ * Vitals by their keywords. A keyword reads the number after it ("o2 97"), or,
+ * with none after it, the number before it ("97 o2", "74 hr"). A number between
+ * two keywords stays the first's ("hr 74 o2"), unless the first has its own
+ * number before it and the second has no other ("74 hr 97 o2").
+ */
 const findVitals = (tokens: readonly Token[], taken: ReadonlySet<number>, units: UnitChoices) => {
   const used = new Set<number>();
   const free = (i: number) => !taken.has(i) && !used.has(i);
-  const found: FoundVital[] = [];
+  const found: LabelledVital[] = [];
   const seen = new Set<VitalType>();
-  const add = (v: FoundVital) => {
+  const add = (v: LabelledVital) => {
     if (seen.has(v.type)) return;
     seen.add(v.type);
     found.push(v);
     for (const i of v.used) used.add(i);
   };
+  const labelled = (type: VitalType, label: number[], value: Omit<FoundVital, "type">): LabelledVital => ({
+    type,
+    ...value,
+    label,
+    value: value.used,
+    used: [...label, ...value.used],
+  });
 
+  // Keywords with no number after them, to read the number before them.
+  const orphans: { type: VitalType; label: number[] }[] = [];
   for (let i = 0; i < tokens.length; i++) {
     if (!free(i)) continue;
+    let orphan: { type: VitalType; label: number[] } | undefined;
     for (const [words, type] of VITAL_WORDS) {
       if (seen.has(type)) continue;
       if (!words.every((word, k) => free(i + k) && tokens[i + k]?.w === word)) continue;
+      const label = words.map((_, k) => i + k);
       const value = readVitalValue(type, tokens, i + words.length, free, units);
-      if (!value) continue;
-      add({ type, ...value, used: [...words.map((_, k) => i + k), ...value.used] });
+      if (!value) {
+        orphan ??= { type, label };
+        continue;
+      }
+      add(labelled(type, label, value));
+      orphan = undefined;
       break;
     }
+    if (orphan) orphans.push(orphan);
   }
-  return { found, used };
+
+  for (const o of orphans) {
+    if (seen.has(o.type) || !o.label.every(free)) continue;
+    const start = o.label[0]!;
+    const before = readValueBefore(o.type, tokens, start, free, units);
+    if (before) {
+      add(labelled(o.type, o.label, before));
+      continue;
+    }
+    // "74 hr 97 o2": the keyword before took this number, but has its own before it.
+    const prev = found.findIndex((f) => f.value.length && Math.max(...f.value) === start - 1);
+    if (prev < 0) continue;
+    const p = found[prev]!;
+    p.value.forEach((i) => used.delete(i));
+    const mine = readValueBefore(o.type, tokens, start, free, units);
+    const theirs =
+      mine && readValueBefore(p.type, tokens, p.label[0]!, (i) => free(i) && !mine.used.includes(i), units);
+    if (!mine || !theirs) {
+      p.value.forEach((i) => used.add(i));
+      continue;
+    }
+    found[prev] = labelled(p.type, p.label, theirs);
+    theirs.used.forEach((i) => used.add(i));
+    add(labelled(o.type, o.label, mine));
+  }
+
+  found.sort((a, b) => a.label[0]! - b.label[0]!);
+  return {
+    found: found.map(({ type, reading, units, used }): FoundVital => ({ type, reading, units, used })),
+    used,
+  };
 };
 
 /** Numbers whose unit says which vital they are, and bare blood pressures, with no keyword. */
