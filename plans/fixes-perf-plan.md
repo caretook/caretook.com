@@ -12,7 +12,7 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 1** landed acc69573 (PR #253, 2026-11-27, `--no-review`: Codex out of credits; report a309).
 
-- At landing: browser checks `first-sync`, `roundtrip`, `live-notes` (slice 8's sync change); sync.md gets identical answers skipped (B-956), `startSettings` on the _Settings cache_ line (B-958), the WASM prefetch in `openSync` (B-959); slice 10 notes CDP throttling skips SharedWorker requests (measure behind a link shaper: scratchpad m10/ scripts).
+**Wave 2 landed 82a12072** (PR #254, 2026-11-27, `--no-review`: Codex out of credits; full CI green, run 46005700354; changed browser checks 10/11, layout-offline predates the wave: B-967). Slices 8-12 (B-956, B-958, B-959, B-960, B-963), all Opus, merged; worktrees removed. **Topic closed on the user's word** (`pnpm prd rm fixes-perf`). Next run: B-965 (group the small helper chunks), B-966 (the icons chunk on marketing and sign-in); measure behind a link shaper (CDP throttling skips SharedWorker requests).
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
