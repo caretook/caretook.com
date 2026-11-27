@@ -12,7 +12,7 @@
 
 | Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
 | ----- | ---- | -------------- | ------------------------------------------------ |
-| 1     | 1    | running (opus) |                                                  |
+| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad) |
 | 2     | 1    | running (opus) |                                                  |
 | 3     | 1    | handed off (opus), check green at 6fcc18325; merges after 1, 2 |                                                  |
 | 4     | 2    | —              |                                                  |
