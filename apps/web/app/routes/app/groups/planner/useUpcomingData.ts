@@ -35,6 +35,7 @@ import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
 import { showsTodos, plannerTodos, withDueTodos } from "~/lib/todos/plannerTodos";
 import {
+  inUpcomingHorizon,
   pastDocumentsQuery,
   pastQueries,
   pastTextCondition,
@@ -209,7 +210,7 @@ export function useUpcomingData({
     ? []
     : support
         .withPreview(toTimelineEntries(entryRows))
-        .filter((e) => matchesText(tokens, e.title, e.place, e.body));
+        .filter((e) => inUpcomingHorizon(e, at) && matchesText(tokens, e.title, e.place, e.body));
   const sections = upcomingSections(shown, at, zone);
   // Open dated todos through Upcoming's last day, live: completing one drops it out.
   const dueTodos = useDueTodos(groupId, todoZone, {
