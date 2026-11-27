@@ -12,7 +12,7 @@
 
 **Wave 2 landed 2026-11-27** in dev through PR #288 (dev 3da5039; components run 46080875098 green on c261a994c; Codex clean on 187323e). Slices 2 and 3 (opus) merged; slice 3's CI fix (test queries past the chips; a type word that finds nothing searches the whole text) merged as b04d9d146. Docs folded (todos, search, ui-kit). Report a349; to-test/2026-11-27-1825-todo-links.md. B-944, B-945, B-946, B-988, B-989 done. Slice worktrees 2, 3 removed.
 
-**Wave 3 started 2026-11-27 (this session):** slice 5 worktree todo-links-5 made, agent spawned on opus, with **B-990** (send only the sheet's own entry adds and removes, not a first snapshot) and **B-991** (`chosenEntriesQuery` uses `previewText` with pending note updates) and slice 3's nit (the type-word fallback leaves the typed type's chip on) folded in. B-947, B-990, B-991 claimed. Anchors warn on `cameFrom` (a new prop, expected). Server `searchService` doesn't match phones or condition names (parity: maybe a backlog item). Never `--by-user` without the user's word this landing (the classifier refused it).
+**Wave 3 started 2026-11-27 (this session):** slice 5 worktree todo-links-5 made, agent spawned on opus, with **B-990** (send only the sheet's own entry adds and removes, not a first snapshot) and **B-991** (`chosenEntriesQuery` uses `previewText` with pending note updates) and slice 3's nit (the type-word fallback leaves the typed type's chip on) folded in. B-947, B-990, B-991 claimed. **Slice 5 merged** as 347fd297a (14 files, over 12: B-990, B-991 widened it). It changed shared `ui/ComboBox.tsx`: in focus mode a pick closes the list until typing, a tap, an arrow key or leaving; the components run checks the other focus-mode boxes. Next: sync, components CI run, PR, Codex, land (the last wave), then `risa rm todo-links`. Anchors warn on `cameFrom` (a new prop, expected). Server `searchService` doesn't match phones or condition names (parity: maybe a backlog item). Never `--by-user` without the user's word this landing (the classifier refused it).
 
 **From slice 2:** the form always sends an empty `entryIds` marker (present-empty unlinks all, absent leaves links). Cleanup leftovers: `todoSheet.ts` `useLinkChoices` still reads recent events (unused); `todos/new/route.tsx`'s top comment is stale.
 
@@ -22,14 +22,14 @@
 
 **For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
 
-| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits)      |
-| ----- | ---- | ----- | ------- | ------------------------------------------------ |
-| 1     | 1    | opus  | landed  | c3c95a1aa (d7e688c6a), fix ac83828e8 (92a6baa3b) |
-| 2     | 2    | opus  | landed  | e1bee6730 (ded397686)                            |
-| 3     | 2    | opus  | landed  | 70982ff9e (3bd80f9eb, 87e6426ce)                 |
-| 4     | 1    | opus  | landed  | 755f9b1e4 (db2656198)                            |
-| 5     | 3    | opus  | started |                                                  |
-| 6     | 1    | opus  | landed  | b7fb8d218 (14dfb3f7f)                            |
+| Slice | Wave | Model | State  | Merge into `prd/todo-links` (slice commits)      |
+| ----- | ---- | ----- | ------ | ------------------------------------------------ |
+| 1     | 1    | opus  | landed | c3c95a1aa (d7e688c6a), fix ac83828e8 (92a6baa3b) |
+| 2     | 2    | opus  | landed | e1bee6730 (ded397686)                            |
+| 3     | 2    | opus  | landed | 70982ff9e (3bd80f9eb, 87e6426ce)                 |
+| 4     | 1    | opus  | landed | 755f9b1e4 (db2656198)                            |
+| 5     | 3    | opus  | merged | 347fd297a (816d6e347)                            |
+| 6     | 1    | opus  | landed | b7fb8d218 (14dfb3f7f)                            |
 
 ## Architectural decisions
 
