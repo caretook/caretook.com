@@ -10,3 +10,5 @@ export { useGroupRecordTags, useGroupTags, useRecordTags } from "./useTags";
 export { DeleteTagDialog } from "./DeleteTagDialog";
 export { TagEditor } from "./TagEditor";
 export { useGroupTagUses } from "./useTags";
+// tags-3 (slice 4): merging one tag into another, on the Tags page.
+export { MergeTagDialog } from "./MergeTagDialog";

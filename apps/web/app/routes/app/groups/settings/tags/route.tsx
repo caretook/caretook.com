@@ -13,9 +13,9 @@ import { TagSettingsRow } from "./TagSettingsRow";
 // `…/settings/tags` (tags-3 slice 2). Shared by web + native. The group's
 // one tag list, A to Z, from the device's copy (live, so it follows another
 // device's change), each with how many live records carry it (one counts
-// query for the list). Rename, Color and Delete are local writes like the
+// query for the list). Rename, Color, Merge and Delete are local writes like the
 // picker's, so they work offline; who sees each is the tag rules'
-// (`canRenameTag`, `canDeleteTag`), and the writes check again.
+// (`canRenameTag`; `canDeleteTag` for Merge and Delete), and the writes check again.
 
 export const meta = () => [{ title: "Tags · Group settings · Caretook" }];
 
@@ -49,6 +49,7 @@ export default function GroupTags({ loaderData }: Route.ComponentProps) {
                 key={t.id}
                 tag={t}
                 uses={uses.get(t.id) ?? 0}
+                others={tags.filter((o) => o.id !== t.id)}
                 role={group.role}
                 userId={group.userId}
               />
