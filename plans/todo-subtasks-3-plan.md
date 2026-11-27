@@ -12,21 +12,21 @@
 
 **Wave 2 landed 2026-11-27** in dev as `9480f19` through PR #257 (slice 4, merged `c7e7f6035`; Codex clean on c719e42; CI green at components on the pre-sync tip, run 46041028561, and on the synced tip, run 46042026452). Worktree 4 removed. Docs folded (components: `TodoTree`; todos: `siblingOrder`, `todoTreeView.ts`); each at dev's size or under (todos is exactly at it: trim before adding).
 
-**Next (for the fresh session):** wave 3, slices 5 and 6, both ready (blocked only by 4). Start both on opus; merge 5 before 6 (both add a query to `lib/todos/todos.sync.ts`). No slice in flight, no CI run or review out. Slice 1 noted `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` even on `context` rows; slice 4: quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level.
+**Wave 3 under way (2026-11-27, new session):** worktrees 5 and 6 made, an opus agent spawned on each; B-941, B-942 claimed. Merge 5 before 6 (both add a query to `lib/todos/todos.sync.ts`). No CI run or review out. Carried notes: `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` even on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level.
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
-| Slice | Wave | State         | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad)                            |
-| 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
-| 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
-| 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
-| 5     | 3    | —             |                                                  |
-| 6     | 3    | —             |                                                  |
-| 7     | 4    | —             |                                                  |
-| 8     | 4    | —             |                                                  |
-| 9     | 5    | —             |                                                  |
+| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus)  | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | working (opus) |                                                  |
+| 6     | 3    | working (opus) |                                                  |
+| 7     | 4    | —              |                                                  |
+| 8     | 4    | —              |                                                  |
+| 9     | 5    | —              |                                                  |
 
 ## Architectural decisions
 
