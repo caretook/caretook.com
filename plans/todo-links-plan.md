@@ -6,14 +6,18 @@
 
 **Planned 2026-11-27** by the dispatcher's planner. Six slices, three waves; each small (B-947's suggestions are split from the recently viewed store so neither passes about eight files; B-964, unrelated to links, went to `todo-links-2`). Skeptic s74's go added `searchTables.sync.ts` to slice 3 and `updateTodo`'s no-`entryIds` rule to slice 2. Reworked after skeptic s71's send-back: med conditions indexed (B-946), slice 5 blocked by 2, `chosenLinkChip` stays put, B-964 cut.
 
-| Slice | Wave | State   | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------- |
-| 1     | 1    | planned |                                             |
-| 2     | 2    | planned |                                             |
-| 3     | 2    | planned |                                             |
-| 4     | 1    | planned |                                             |
-| 5     | 3    | planned |                                             |
-| 6     | 1    | planned |                                             |
+**Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Wave 1 started 2026-11-27** (orchestrator session 1): slices 1, 4, 6 worktrees made, agents spawned on opus. B-944, B-947, B-948 claimed. `risa anchors` misses are all files or symbols earlier slices create (no plan fix needed).
+
+| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits) |
+| ----- | ---- | ----- | ------- | ------------------------------------------- |
+| 1     | 1    | opus  | working |                                             |
+| 2     | 2    |       | planned |                                             |
+| 3     | 2    |       | planned |                                             |
+| 4     | 1    | opus  | working |                                             |
+| 5     | 3    |       | planned |                                             |
+| 6     | 1    | opus  | working |                                             |
 
 ## Architectural decisions
 
