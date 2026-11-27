@@ -15,6 +15,8 @@ Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 written 2026-11-26: slice
 | 6     | B-637 | merged | fec66e7e |
 | 7     | B-930 | merged | 93466070 |
 
+Wave 2 green: CI `components` on db5aedae (run 45914323737), after a dev sync. Slice worktrees removed. PR #239; Codex out of credits (exit 4): land `--no-review`. Browser: `--changed --base dev` (app-shell, layout-offline, invites: 3/3 passed); the suite was refused (the user's rule: ask before `--suite`). Next: land, docs, status-trim, rotate.
+
 Models: slices 4, 6 and 7 on sonnet (no logic), slice 5 on opus. First CI run (aeb6d9bc, run 45913590395): `file`; the plan's table had a Model column the fixes-plans test refuses (fixed), and doc.test.mjs's project-config case (dev's, fixed in c75dc65a, B-928: synced in).
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
