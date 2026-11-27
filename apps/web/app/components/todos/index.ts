@@ -11,5 +11,6 @@ export { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";
 export { TodoRow } from "./TodoRow";
 export type { TodoRowLook } from "./TodoRow";
 export { TodoTree } from "./TodoTree";
-export { mayAddSubtask, TodoQuickAdd } from "./TodoQuickAdd";
-export type { QuickAddParent } from "./TodoQuickAdd";
+export { mayAddSubtask, mayAddTodo, TodoQuickAdd } from "./TodoQuickAdd";
+export type { QuickAddLink, QuickAddParent } from "./TodoQuickAdd";
+export { useQuickAddChains } from "./useQuickAddChains";
