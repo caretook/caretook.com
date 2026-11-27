@@ -7,6 +7,7 @@ import type {
   TimelineEntryCreateInput,
   Tx,
 } from "../db";
+import type { SeriesVisit } from "../db/schema/appointments/seriesVisits";
 import type { IncludeDeleted } from "../models/appointmentSeries";
 import type { ServiceContext } from "./types";
 
@@ -117,31 +118,46 @@ const checkProviders = async (ctx: ServiceContext, tx: Tx, groupId: string, ids:
 };
 
 /**
- * The id to write `day`'s visit under, or null when the day has one already
- * (live or deleted): a row of this group and series for that day, or its id
- * held by one. When another row holds the computed id (another group's, or
- * not this series': B-289), the visit takes `seriesVisitFallbackId`.
+ * The visits to write, each with its id, leaving out days that have one
+ * already (live or deleted): a row of this group and series for that day,
+ * or its id held by one. When another row holds the computed id (another
+ * group's, or not this series': B-289), the visit takes
+ * `seriesVisitFallbackId`. Two reads for all the days (B-755).
  */
-const visitSlot = async (tx: Tx, series: AppointmentSeries, day: string) => {
-  const sameDay = await timelineEntryModel.get({
+const visitSlots = async (tx: Tx, series: AppointmentSeries, visits: readonly SeriesVisit[]) => {
+  if (!visits.length) return [];
+  const sameDay = await timelineEntryModel.list({
     authUser: SYSTEM_USER,
     tx,
     includeDeleted: true,
     filter: {
       groupId: { type: "eq", value: series.groupId },
       seriesId: { type: "eq", value: series.id },
-      seriesDay: { type: "eq", value: day },
+      seriesDay: { type: "inArray", value: visits.map((v) => v.day) },
     },
   });
   if (isError(sameDay)) return sameDay;
-  if (sameDay) return null;
-  const id = seriesVisitId(series.id, day);
-  const sameId = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  const done = new Set(sameDay.data.map((row) => row.seriesDay));
+  const open = visits.filter((visit) => !done.has(visit.day));
+  if (!open.length) return [];
+
+  const ids = open.map((visit) => seriesVisitId(series.id, visit.day));
+  const sameId = await timelineEntryModel.list({
+    authUser: SYSTEM_USER,
+    tx,
+    includeDeleted: true,
+    filter: { id: { type: "inArray", value: ids } },
+  });
   if (isError(sameId)) return sameId;
-  if (!sameId) return id;
-  // This series' own row under the id (its day changed since): the day is taken care of.
-  if (sameId.groupId === series.groupId && sameId.seriesId === series.id) return null;
-  return seriesVisitFallbackId(series.id, day);
+  const holders = new Map(sameId.data.map((row) => [row.id, row]));
+  return open.flatMap((visit, i) => {
+    const id = ids[i]!;
+    const holder = holders.get(id);
+    if (!holder) return [{ id, visit }];
+    // This series' own row under the id (its day changed since): the day is taken care of.
+    if (holder.groupId === series.groupId && holder.seriesId === series.id) return [];
+    return [{ id: seriesVisitFallbackId(series.id, visit.day), visit }];
+  });
 };
 
 /**
@@ -164,7 +180,9 @@ const linkableProviders = async (tx: Tx, series: AppointmentSeries) => {
  * Write the series' visits from `from` through `to` (local days), as the
  * actor, skipping days that already have one: an ordinary note or event
  * from the template, its provider links (deleted providers left out) and an
- * empty live document. Returns the ids written.
+ * empty live document. Each table's rows go in one statement, entries, then
+ * documents, then links, through their services' checks (B-755). Returns
+ * the ids written.
  */
 const writeVisits = async (
   ctx: ServiceContext,
@@ -173,42 +191,47 @@ const writeVisits = async (
   from: string,
   to: string,
 ) => {
-  const written: string[] = [];
   const event = series.kind === "event";
   const providerIds = await linkableProviders(tx, series);
   if (isError(providerIds)) return providerIds;
-  for (const visit of seriesVisits(series, from, to)) {
-    const id = await visitSlot(tx, series, visit.day);
-    if (isError(id)) return id;
-    if (!id) continue;
-    const entry = await timelineEntryService.create({ ...ctx, tx }, {
-      id,
-      groupId: series.groupId,
-      recipientId: series.recipientId,
-      kind: series.kind,
-      title: series.title,
-      occurredAt: visit.start,
-      timeZone: series.timeZone,
-      details: null,
-      allDay: series.allDay,
-      ...(event && { endsAt: visit.end, place: series.place }),
-      seriesId: series.id,
-      seriesDay: visit.day,
-      // The schema checks the kind's rules (an event's title, a note's lack of place).
-    } as TimelineEntryCreateInput);
-    if (isError(entry)) return entry;
-    const document = await noteDocumentService.create({ ...ctx, tx }, { id, groupId: series.groupId });
-    if (isError(document)) return document;
-    for (const providerId of providerIds) {
-      const link = await entryProviderService.link(
-        { ...ctx, tx },
-        { groupId: series.groupId, entryId: id, providerId },
-      );
-      if (isError(link)) return link;
-    }
-    written.push(id);
-  }
-  return written;
+  const slots = await visitSlots(tx, series, seriesVisits(series, from, to));
+  if (isError(slots)) return slots;
+  if (!slots.length) return [];
+
+  const entries = await timelineEntryService.createMany(
+    { ...ctx, tx },
+    slots.map(
+      ({ id, visit }) =>
+        ({
+          id,
+          groupId: series.groupId,
+          recipientId: series.recipientId,
+          kind: series.kind,
+          title: series.title,
+          occurredAt: visit.start,
+          timeZone: series.timeZone,
+          details: null,
+          allDay: series.allDay,
+          ...(event && { endsAt: visit.end, place: series.place }),
+          seriesId: series.id,
+          seriesDay: visit.day,
+          // The schema checks the kind's rules (an event's title, a note's lack of place).
+        }) as TimelineEntryCreateInput,
+    ),
+  );
+  if (isError(entries)) return entries;
+  const ids = slots.map((slot) => slot.id);
+  const documents = await noteDocumentService.createForEntries(
+    { ...ctx, tx },
+    { groupId: series.groupId, ids },
+  );
+  if (isError(documents)) return documents;
+  const links = await entryProviderService.linkMany(
+    { ...ctx, tx },
+    { groupId: series.groupId, entryIds: ids, providerIds },
+  );
+  if (isError(links)) return links;
+  return ids;
 };
 
 // ---------------------------------------------------------------------------
