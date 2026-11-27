@@ -1,11 +1,13 @@
-import type { TodoTickProgress } from "~/components/todos";
+import type { TodoTickProgress } from "./TodoTick";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { TagChips } from "~/components/tags";
-import { TodoPartOf, TodoProgressMark, TodoRepeatMark, TodoTick } from "~/components/todos";
+import { TodoRepeatMark } from "./TodoRepeatMark";
+import { TodoTick } from "./TodoTick";
+import { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -18,6 +20,8 @@ import { todoPageState } from "~/lib/todos/todoSheets";
  * line, the repeat mark when it repeats, the assignee chip, and its tags'
  * chips (`tagsOf`; tags PRD). A parent shows "n of m done" (its tick waits
  * on open subtasks); a listed subtask "Part of <parent>" (todo-subtasks-2).
+ * The `context` look (todo-subtasks-3) is an ancestor shown only to place a
+ * branch: dimmed, no tick, still a link to its page.
  */
 export function TodoRow({
   todo,
@@ -29,6 +33,7 @@ export function TodoRow({
   tagsOf,
   progressOf,
   parentOf,
+  look = "list",
 }: {
   todo: LocalTodo;
   nameOf: (userId: string) => string;
@@ -42,10 +47,13 @@ export function TodoRow({
   progressOf?: (todoId: string) => TodoTickProgress | undefined;
   /** A subtask's parent, for "Part of". */
   parentOf?: (parentId: string) => { id: string; title: string } | undefined;
+  /** `list` (the default), or `context`: a dimmed ancestor placing a branch, with no tick. */
+  look?: "list" | "context";
 }) {
   const group = useGroup();
   const { search } = useLocation();
-  const mayTick = canCompleteTodo({ role: group.role, userId: group.userId, todo: todo });
+  const context = look === "context";
+  const mayTick = !context && canCompleteTodo({ role: group.role, userId: group.userId, todo: todo });
   const state = todoState(todo, now, timeZone);
   const assignee = assigneeLabel(todo, nameOf);
   const line = todo.doneAt ? doneText(todo, nameOf, now, timeZone) : dueText(todo, now, timeZone);
@@ -53,7 +61,12 @@ export function TodoRow({
   const parent = todo.parentId ? parentOf?.(todo.parentId) : undefined;
 
   return (
-    <li className="flex items-start gap-3 py-2.5" data-todo={todo.id} data-todo-state={state}>
+    <li
+      className={`flex items-start gap-3 py-2.5 ${context ? "opacity-60" : ""}`}
+      data-todo={todo.id}
+      data-todo-state={state}
+      data-todo-look={look}
+    >
       {mayTick ? (
         <TodoTick
           title={todo.title}

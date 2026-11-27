@@ -1,7 +1,7 @@
 import type { SubtaskProgressRow, LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { loadTodo } from "./loadTodo";
 
-import { canHaveSubtask, subtaskProgress } from "@caretook/data/schema";
+import { subtaskProgress } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -17,8 +17,8 @@ import {
  * The todo's place in its tree, live (todo-subtasks): its parent (for "Part
  * of"), its live subtasks oldest first with their progress, each subtask's
  * own progress (`progressOf`, for its tick), how many todos a delete takes
- * with it (`descendants`), and whether it may take another
- * (`canHaveSubtask`: not repeating, within the depth limit). Three live
+ * with it (`descendants`), and its ancestor chain (`ancestors`, for
+ * whether it may take another: `TodoQuickAdd`'s rule). Three live
  * queries for the page (the progress is the group's one), never one per
  * subtask.
  */
@@ -50,6 +50,6 @@ export function useTodoSubtasks(todo: LocalTodo, initial: Awaited<ReturnType<typ
     progress: subtaskProgress(subtasks),
     progressOf,
     descendants,
-    canAdd: canHaveSubtask(ancestors, todo),
+    ancestors,
   };
 }

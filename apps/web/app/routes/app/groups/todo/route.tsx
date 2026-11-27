@@ -175,12 +175,11 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
           />
 
           <TodoSubtasks
-            todoId={todoId}
-            title={todo.title}
+            todo={todo}
+            ancestors={tree.ancestors}
             subtasks={tree.subtasks}
             progress={tree.progress}
             progressOf={tree.progressOf}
-            canAdd={tree.canAdd}
           />
 
           <TodoLinks groupId={groupId} todo={todo} loaded={loaderData.linkRows} linkPages={!group.easyRole} />
