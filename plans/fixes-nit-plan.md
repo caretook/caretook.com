@@ -10,9 +10,9 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-| Slice | Item  | State    | Merge |
-| ----- | ----- | -------- | ----- |
-| 9     | B-973 | starting | —     |
+| Slice | Item  | State                  | Merge |
+| ----- | ----- | ---------------------- | ----- |
+| 9     | B-973 | agent working (sonnet) | —     |
 
 Wave 4 (slice 9, B-973, docs only: no CI tier, `pnpm test:tooling`; sonnet, no logic) started 2026-11-27 after a dev sync. B-950 held for a later wave (todo-subtasks-3 holds `routes/app/groups/timeline/`).
 
