@@ -14,7 +14,7 @@
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`. **Amended (ask a333, decided by skeptic s76):** hold landing until every slice is merged; one lean browser suite and one landing at the end (the user can veto under "decided for you").
 
-**Now (2026-11-27):** all five slices merged (opus). Full CI green on ad431461 (run 46068182688); lean browser suite 10/11, `ui.spec` failed under load (load 15-19) and passed alone: filed B-983 (fixes-tooling). Synced dev (63a74d267, a merge: needs a components recheck, running). PR #277 open, Codex review running. Docs folded (timeline, care-groups, assistant; budgets kept). Next: land `--tier full`, report, `risa rm`. Slice worktrees 1-5 kept until landing.
+**Done (2026-11-27):** landed in dev through PR #277 at tier full (Codex clean on 94f2e56; CI full run 46068182688 + components recheck 46069127475; lean suite once, B-983 filed for a ui.spec flake). B-890, B-898 landed. Docs folded (timeline, care-groups, assistant). Slice worktrees removed. Follow-on: symptom-catalog-3 (B-920).
 
 **For later slices:** slice 1 already appended `archived_at, replaced_by_id` to `sync-config.yaml` (rolesSql test needs whole-table streams), so slice 3 adds them only to the device schema (and the roundtrip matrix may need them as server-set). `ensure`/backfill keep an archived row archived. Quick entry no longer uses `SymptomGate` (its `takeFocus={false}` has no caller). At landing: `docs/domain/assistant.md` (symptom cards save the closest name, no wait), timeline.md catalog line.
 
