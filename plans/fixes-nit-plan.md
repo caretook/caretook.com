@@ -10,11 +10,10 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-| Slice | Item  | State                            | Merge     |
-| ----- | ----- | -------------------------------- | --------- |
-| 9     | B-973 | merged, three cut lines restored | d5b824f11 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-Wave 4 (slice 9, B-973, docs only: no CI tier, `pnpm test:tooling`; sonnet, no logic) started 2026-11-27 after a dev sync. B-950 held for a later wave (todo-subtasks-3 holds `routes/app/groups/timeline/`).
+Idle hand-over, no slice in flight. Wave 4 (slice 9, B-973, sonnet; merge d5b824f11) landed 2026-11-27 as 646a4cc through PR #264 (Markdown only: tier none, no Codex review, `pnpm test:tooling` green): `docs/domain/components.md` 10513 → 10079 B; the orchestrator restored three lines the trim cut (keep polling after a save, no `WAIT_TIMEOUT` copies, the full `no-non-null-in-expect` name). Slice worktree removed. Waiting: B-950 (move TimelineEntryRow into `components/entry`), held because todo-subtasks-3 had `routes/app/groups/timeline/` hot; it landed a wave in dev (notice n208) but is still **running** with that path hot (2026-11-27). Its orchestrator says its wave 4 is the last to edit `routes/app/groups/timeline/` and it will drop that path from its hot files once wave 4 is in dev. On the backlog session's word, fixes-nit was cleaned up meanwhile (`risa rm`) rather than hold a lane: the next run checks `risa backlog prd list`, syncs and writes B-950 as wave 5 (slice 10). Lesson: a sonnet docs trim drops rules as "wording"; diff it line by line.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
