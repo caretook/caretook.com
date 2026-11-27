@@ -244,6 +244,23 @@ describe("doses", () => {
     expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
   });
 
+  test("a brand in a saved name's parentheses matches, and so does its generic", () => {
+    const medications = [
+      { id: APAP, name: "Acetaminophen (Tylenol)", strength: "500 mg", dose: "2 tablets" },
+      { id: MET, name: "Metformin", strength: "500 mg", dose: "1 tablet" },
+    ];
+    for (const line of ["gave Tylenol", "gave acetaminophen"]) {
+      const r = top(line, { medications });
+      expect(r.kind).toBe("dose");
+      expect(action(r)).toMatchObject({
+        type: "logDose",
+        medicationId: APAP,
+        status: "given",
+        amount: "2 tablets",
+      });
+    }
+  });
+
   test("a partial name that fits two medications offers both, as alternatives", () => {
     const readings = parse("gave met")[0]!.readings.filter((r) => r.kind === "dose");
     expect(readings.map((r) => (action(r) as { medicationId: string }).medicationId)).toEqual([MET, METO]);
