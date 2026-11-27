@@ -1,11 +1,13 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../appointments/upcoming";
 import type { UpcomingSection } from "../appointments/upcomingDays";
+import type { TodoTree, TodoTreeNode, TreeTodo } from "./todoTreeView";
 
-import { listsOnItsOwn, localDate, todoState } from "@caretook/data/schema";
+import { listsOnItsOwn, localDate, todoOrder, todoState } from "@caretook/data/schema";
 import { dayLabel } from "../core/format";
 import { NOW_KEY } from "../appointments/upcomingDays";
 import { startOfDay, zonedInstant } from "../core/zonedDay";
+import { todoDayOf, todoDayTrees } from "./todoTreeView";
 
 // Open todos with a due day in the Planner, under their day among the
 // appointments. Worked out, never written:
@@ -25,11 +27,31 @@ export type PlannerTodo<T extends TodoRuleFields = TodoRuleFields> = {
   at: string | null;
 };
 
+/**
+ * One day's tree as a Planner item (todo-subtasks-3; `plannerDayTrees`):
+ * `todo`, `state` and `at` are its lead's, the open todo the day is about
+ * (the top-level todo on its own day, else the most urgent step due then),
+ * so it's placed and ranked as that todo would be.
+ */
+export type PlannerTree<T extends TodoRuleFields = TodoRuleFields> = Omit<PlannerTodo<T>, "type"> & {
+  type: "dueTree";
+  /** "YYYY-MM-DD", or "overdue": the day view it was cut for (`todoDayTrees`). */
+  day: string;
+  tree: TodoTree<T>;
+};
+
 /** Anything the Planner lists with todos merged in. */
 export type WithTodos<T, K extends TodoRuleFields = TodoRuleFields> = T | PlannerTodo<K>;
 
+/** Anything the Planner lists with day trees merged in. */
+export type WithTrees<T, K extends TodoRuleFields = TodoRuleFields> = T | PlannerTree<K>;
+
 export const isPlannerTodo = <T extends object>(item: T | PlannerTodo): item is PlannerTodo =>
   "type" in item && item.type === "dueTodo";
+
+export const isPlannerTree = <T extends object, K extends TodoRuleFields>(
+  item: T | PlannerTree<K>,
+): item is PlannerTree<K> => "type" in item && item.type === "dueTree";
 
 /**
  * Open dated todos as Planner items, in the order given (`todoOrder`).
@@ -49,6 +71,50 @@ export const plannerTodos = <T extends TodoRuleFields & { parentId?: string | nu
   });
 
 /**
+ * The Planner's todos as trees (todo-subtasks-3): one item per day tree
+ * (`todoDayTrees`) instead of one per todo, in `todoOrder` of their leads.
+ * `trees` are `todoTrees`' (a match predicate's context rows never place a
+ * tree). A tree goes under each day one of its open shown todos is due
+ * (`todoDayOf`): on the top-level todo's own day the whole tree, on a step's
+ * day that step's branch under its dimmed ancestors, and overdue steps'
+ * branches with the overdue items. An undated tree with no dated step gives
+ * nothing. `through` ("YYYY-MM-DD") drops the days after it (the Planner's
+ * horizon); overdue is always kept.
+ */
+export const plannerDayTrees = <T extends TreeTodo>(
+  trees: readonly TodoTree<T>[],
+  now: Date | number,
+  timeZone: string,
+  { through }: { through?: string } = {},
+): PlannerTree<T>[] => {
+  const items = trees.flatMap((tree) => {
+    const days = new Set<string>();
+    const visit = (node: TodoTreeNode<T>) => {
+      const day = node.context ? null : todoDayOf(node.todo, now, timeZone);
+      if (day && (day === "overdue" || !through || day <= through)) days.add(day);
+      node.children.forEach(visit);
+    };
+    visit(tree);
+    return [...days].flatMap((day) =>
+      todoDayTrees([tree], day, now, timeZone).flatMap((cut) => {
+        const lead = cut.lead;
+        const state = lead && todoState(lead, now, timeZone);
+        if (!lead?.dueOn || (state !== "overdue" && state !== "today" && state !== "upcoming")) return [];
+        const at = lead.dueTime ? zonedInstant(lead.dueOn, lead.dueTime, timeZone).toISOString() : null;
+        const key = `tree:${tree.todo.id}:${day}`;
+        return [{ type: "dueTree" as const, key, day, tree: cut, todo: lead, state, at }];
+      }),
+    );
+  });
+  const byLead = new Map(items.map((item) => [item.todo.id, item]));
+  return todoOrder(
+    items.map((item) => item.todo),
+    now,
+    timeZone,
+  ).map((lead) => byLead.get(lead.id)!);
+};
+
+/**
  * Whether todos show with these filters: only unfiltered (a kind filter is
  * an event kind, and an author filter is about who
  * wrote an entry).
@@ -56,7 +122,12 @@ export const plannerTodos = <T extends TodoRuleFields & { parentId?: string | nu
 export const showsTodos = ({ kind, author }: { kind?: string | null; author?: string | null }) =>
   !kind && !author;
 
-type Listed = TimedEntry | PlannerTodo;
+/** A todo or a day tree, merged into the Planner's days. */
+type Due = PlannerTodo | PlannerTree;
+type Listed = TimedEntry | Due;
+
+const isDue = (item: Listed): item is Due =>
+  "type" in item && (item.type === "dueTodo" || item.type === "dueTree");
 
 /**
  * Where an item sits in its day: overdue todos first, then all-day entries,
@@ -64,7 +135,7 @@ type Listed = TimedEntry | PlannerTodo;
  * the moment they fall.
  */
 const rank = (item: Listed): { group: number; ms: number } => {
-  if (isPlannerTodo(item)) {
+  if (isDue(item)) {
     if (item.state === "overdue") return { group: 0, ms: 0 };
     return item.at ? { group: 3, ms: Date.parse(item.at) } : { group: 2, ms: 0 };
   }
@@ -84,17 +155,18 @@ const goesAfter = (todo: { group: number; ms: number }, item: Listed) => {
  * day it falls on where the viewer is, by its time; an all-day one under its
  * due day (today at the earliest), after the day's all-day entries. A day
  * with only todos gets its own section, in day order. `todos` come in
- * `todoOrder` and keep it among themselves.
+ * `todoOrder` and keep it among themselves. Day trees (`plannerDayTrees`)
+ * are placed the same way, by their lead.
  */
-export function withDueTodos<T extends Listed, K extends TodoRuleFields>(
+export function withDueTodos<T extends Listed, D extends Due>(
   sections: readonly UpcomingSection<T>[],
-  todos: readonly PlannerTodo<K>[],
+  todos: readonly D[],
   now: Date,
   viewerZone: string,
   todoZone: string,
   locale?: string,
-): UpcomingSection<T | PlannerTodo<K>>[] {
-  const out: UpcomingSection<T | PlannerTodo<K>>[] = sections.map((s) => ({ ...s, items: [...s.items] }));
+): UpcomingSection<T | D>[] {
+  const out: UpcomingSection<T | D>[] = sections.map((s) => ({ ...s, items: [...s.items] }));
   const today = localDate(now, viewerZone);
   const nowIso = now.toISOString();
   for (const todo of todos) {

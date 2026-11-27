@@ -4,14 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | planned |                                         |
-| 2     | 2    | planned |                                         |
-| 3     | 3    | planned |                                         |
-| 4     | 4    | planned |                                         |
-| 5     | 5    | planned |                                         |
-| 6     | 5    | planned |                                         |
+| Slice | Wave | State  | Merge into `prd/tags-2` (slice commits)     |
+| ----- | ---- | ------ | ------------------------------------------- |
+| 1     | 1    | landed | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
+| 2     | 2    | landed | 7b892610 (d362bd70)                         |
+| 3     | 3    | landed | 8cc6a9c5 (ca9829f5)                         |
+| 4     | 4    | landed | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
+| 5     | 5    | merged | bfdac885 (d29079bb)                         |
+| 6     | 5    | merged | 84dbac1c (ca68acc1, e314f75b)               |
+
+**Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
+
+**Now:** wave 5 (slices 5, 6, opus) merged; fix 14ad3a98 after run 45948140555 (tests still expected ⋯ Tags). Run 45949410404 components **green** on 14ad3a98 (synced with dev). Worktrees tags-2-5/6 removed. PR #249; Codex out of credits (exit 4) → land `--no-review`, `--tier components --why` (full proposed only for the quarantine.txt test rename). roundtrip browser check passed. Docs folded (f9afed22). Landing now; last wave, then `pnpm prd rm tags-2`. Open: condition-change timeline rows can be tagged (they could before via ⋯); B-921 noted as maybe fixed.
 
 ## Architectural decisions
 
@@ -57,7 +61,7 @@ Stack: no · Reads: docs/domain/tags.md, docs/domain/sync.md · Tests: integrati
 
 **Backlog:** B-893. **User stories:** 2, 3.
 
-**What to build:** the `tag` upload in `packages/api/src/syncRegistry.ts`: `color` a content column, a PUT passes it to `create`, a PATCH of `color` is `recolor` (with or beside `name`). `color` appended to the `tag` select in `powersync/sync-config.yaml` and to `tags` in `apps/web/app/lib/sync/schema.ts`. In `apps/web/app/lib/tags/tags.sync.ts`: `createTag` picks with `pickTagColor` over the group's local tags; new `recolorTag(db, tagId, color)` (`canRenameTag`); `TagRow`, `GroupTagRow` and their three queries carry `color`.
+**What to build:** the `tag` upload in `packages/api/src/syncRegistry.ts`, where the new color column is a content column: a PUT passes it to `create`, a PATCH of `color` is `recolor` (with or beside `name`). `color` appended to the `tag` select in `powersync/sync-config.yaml` and to `tags` in `apps/web/app/lib/sync/schema.ts`. In `apps/web/app/lib/tags/tags.sync.ts`: `createTag` picks with `pickTagColor` over the group's local tags; new `recolorTag(db, tagId, color)` (`canRenameTag`); `TagRow`, `GroupTagRow` and their three queries carry `color`.
 
 **Acceptance criteria:**
 
@@ -126,7 +130,7 @@ Stack: no · Reads: docs/domain/tags.md, docs/domain/timeline.md, docs/domain/co
 
 **Backlog:** B-892. **User stories:** 9, 10, 12.
 
-**What to build:** `routes/app/groups/timeline/TimelineEntryRow.tsx` and `TimelineEntryCard.tsx` render `QuickTags` (`max` 2, the tags from the list's one query) in place of `TagChips`, for the condensed, full and easy views; `TimelineEntryList.tsx` stops passing `onTags`, so rows' ⋯ loses Tags. The symptom and vital edit sheet `routes/app/groups/timeline/edit/route.tsx` gets `QuickTags`.
+**What to build:** slice 4's quick tags control (`max` 2, the tags from the list's one query) in place of `TagChips` in `routes/app/groups/timeline/TimelineEntryRow.tsx` and `TimelineEntryCard.tsx`, for the condensed, full and easy views; `TimelineEntryList.tsx` stops passing `onTags`, so rows' ⋯ loses Tags. The symptom and vital edit sheet `routes/app/groups/timeline/edit/route.tsx` gets the control too.
 
 **Acceptance criteria:**
 

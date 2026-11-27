@@ -2,6 +2,33 @@
 
 Finished-wave history moved out of [the plan](fixes-bug-plan.md)'s _Status_ by `pnpm prd status-trim fixes-bug`, the newest trim first.
 
+## Trimmed 2026-11-27 (wave 18)
+
+Wave 18 landed through PR #258 (2026-11-27).
+
+| Slice | Item  | State                                                             | Merge    |
+| ----- | ----- | ----------------------------------------------------------------- | -------- |
+| 79    | B-971 | merged (Opus; test-only: split label assumed LA)                  | 2375e299 |
+| 78    | B-970 | merged (Opus; app: quick tags line covered the row link, `w-fit`) | 8028c782 |
+| 77    | B-969 | merged (Opus; test-only: LA device zone hard-coded)               | 641ecbb5 |
+| 76    | B-968 | merged (Opus; test-only: LA time hard-coded)                      | d8ce4a4e |
+
+## Trimmed 2026-11-27
+
+| Slice | Item  | State         | Merge    |
+| ----- | ----- | ------------- | -------- |
+| 75    | B-951 | merged (opus) | 3618ca7a |
+| 74    | B-936 | merged (opus) | 6bed3d06 |
+
+## Trimmed 2026-11-26
+
+**Wave 16 landed** as 3dd61650 (PR #208, full, run 45764032795; Codex out of credits, --no-review; report a256). Idle: no triaged fixes-bug items ready. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 17 from new triaged items (B-750 only once its notes name files; B-752 once B-753 lands). Standing topic: never `pnpm prd rm fixes-bug`.
+
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 73    | B-840 | merged | 9dd61dda |
+| 72    | B-830 | merged | ab6da878 |
+
 ## Trimmed 2026-11-25
 
 **Wave 15 landed in dev through PR #183 as c605a868** (2026-11-25): `components` CI green on cb856531 (run 45616812492), browser lean set 11/11. **Codex did not review it** (out of credits, `--no-review`). Landed unsynced (dev's 2 newer commits shared no file). To-test: `to-test/2026-11-25-0805-fixes-bug.md`; landing report filed. Docs folded (connectors, app-shell, timeline; all under 10 240 B). Slice worktrees removed. Slice 68 (B-752) made no change: not reproducible; back to triaged, waits on B-753's watchdog (fixes-tooling).

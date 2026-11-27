@@ -153,7 +153,7 @@ const DAY_MS = 86_400_000;
 
 /**
  * The feed behind `token` at `now`: the group's appointments and
- * open todos with a due day, 90 days back to 90 days ahead (`calendarItems`),
+ * top-level open todos with a due day, 90 days back to 90 days ahead (`calendarItems`),
  * read as the member. Provider names are read only at the details level.
  * Null when the token resolves to no one.
  */
@@ -191,7 +191,11 @@ export const load = async (token: string, { now, appUrl }: { now: Date; appUrl: 
     cursor = page.nextCursor;
   } while (cursor);
 
-  const todos = await todoModel.list({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });
+  // Top-level todos only (todo-subtasks-3): a subtask shows in its tree in the app, never on a calendar.
+  const todos = await todoModel.list({
+    ...ctx,
+    filter: { groupId: { type: "eq", value: groupId }, parentId: { type: "isNull" } },
+  });
   if (isError(todos)) return todos;
 
   let providers = new Map<string, string[]>();

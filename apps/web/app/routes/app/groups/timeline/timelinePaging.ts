@@ -16,30 +16,41 @@ import { recall, remember } from "../../../../lib/sync/remembered";
 export const RESTORE_CAP = 5 * PAGE_SIZE;
 
 /** The rows the window last showed (its live queries' answers), so a restored first render needs no wait. */
-export type PagingRows<E, L, S, M> = { entryRows: E[]; linkRows: L[]; summaryRows: S[]; medicationRows: M[] };
+export type PagingRows<E, L, S, M, D> = {
+  entryRows: E[];
+  linkRows: L[];
+  summaryRows: S[];
+  medicationRows: M[];
+  /** The window's entries' documents (their previews). */
+  documentRows: D[];
+};
 
 /** Where the timeline was: its history entry, filters and window. */
-export type KeptPaging<E, L, S, M> = {
+export type KeptPaging<E, L, S, M, D> = {
   locationKey: string;
   filterKey: string;
   limit: number;
   /** A jump's bound as paging newer left it (null: it reached the ordinary history). */
   before?: string | null;
-  rows: PagingRows<E, L, S, M>;
+  rows: PagingRows<E, L, S, M, D>;
 };
 
 /** How the timeline starts: the window, and the rows to show at once (none: the loader's). */
-export type StartPaging<E, L, S, M> = {
+export type StartPaging<E, L, S, M, D> = {
   limit: number;
   /** The kept bound; absent: the loader's. */
   before?: string | null;
-  rows?: PagingRows<E, L, S, M>;
+  rows?: PagingRows<E, L, S, M, D>;
 };
 
 const keyOf = (groupId: string) => ({ groupId, name: "timeline:paging" });
 
 /** Keep the timeline's window for its history entry (the last one per user and group wins). */
-export const keepPaging = <E, L, S, M>(userId: string, groupId: string, kept: KeptPaging<E, L, S, M>) => {
+export const keepPaging = <E, L, S, M, D>(
+  userId: string,
+  groupId: string,
+  kept: KeptPaging<E, L, S, M, D>,
+) => {
   remember(userId, keyOf(groupId), kept);
 };
 
@@ -52,12 +63,12 @@ export const wasKept = (userId: string, groupId: string, locationKey: string) =>
  * these filters', capped at `RESTORE_CAP` (past the cap, no rows: the capped
  * window loads from the device like any page); otherwise one page.
  */
-export const startPaging = <E, L, S, M>(
+export const startPaging = <E, L, S, M, D>(
   userId: string,
   groupId: string,
   { locationKey, filterKey }: { locationKey: string; filterKey: string },
-): StartPaging<E, L, S, M> => {
-  const kept = recall<KeptPaging<E, L, S, M>>(userId, keyOf(groupId));
+): StartPaging<E, L, S, M, D> => {
+  const kept = recall<KeptPaging<E, L, S, M, D>>(userId, keyOf(groupId));
   if (!kept || kept.locationKey !== locationKey || kept.filterKey !== filterKey || kept.limit <= PAGE_SIZE)
     return { limit: PAGE_SIZE };
   const bound = kept.before === undefined ? {} : { before: kept.before };

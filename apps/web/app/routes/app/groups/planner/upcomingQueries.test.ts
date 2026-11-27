@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pastEventsWindow, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 import {
+  inUpcomingHorizon,
   pastQueries,
   pastTextCondition,
   pastTextQuery,
@@ -12,22 +13,38 @@ const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const AUTHOR = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c00a1";
 
 describe("windowStart", () => {
-  it("rounds down to the minute, so the query changes once a minute", () => {
-    expect(windowStart(new Date("2026-11-18T18:00:59.999Z")).toISOString()).toBe("2026-11-18T18:00:00.000Z");
-    expect(windowStart(Date.parse("2026-11-18T18:01:00.000Z")).toISOString()).toBe(
-      "2026-11-18T18:01:00.000Z",
+  it("rounds down to the UTC day, so the query changes once a day", () => {
+    expect(windowStart(new Date("2026-11-18T23:59:59.999Z")).toISOString()).toBe("2026-11-18T00:00:00.000Z");
+    expect(windowStart(Date.parse("2026-11-19T00:00:00.000Z")).toISOString()).toBe(
+      "2026-11-19T00:00:00.000Z",
     );
   });
 });
 
 describe("upcomingQueries", () => {
-  it("reads upcomingWindow from the minute, and the links for the same window", () => {
-    const filters = { kind: "event" as const, author: AUTHOR };
-    const window = upcomingWindow(GROUP, filters, new Date("2026-11-18T18:00:00.000Z"));
+  const filters = { kind: "event" as const, author: AUTHOR };
+  const key = (now: string) => JSON.stringify(upcomingQueries(GROUP, filters, new Date(now)));
+
+  it("reads upcomingWindow from the day, a day further out, and the links for the same window", () => {
+    const window = upcomingWindow(GROUP, filters, new Date("2026-11-18T00:00:00.000Z"), 91);
     const queries = upcomingQueries(GROUP, filters, new Date("2026-11-18T18:00:42.000Z"));
     expect(queries.entries).toEqual({ sql: `SELECT * ${window.sql}`, params: window.params });
     expect(queries.contacts.sql).toContain(`IN (SELECT id ${window.sql})`);
     expect(queries.contacts.params).toEqual(window.params);
+  });
+
+  it("stays the same query as the clock ticks, so a tick reruns nothing (B-910)", () => {
+    const at = key("2026-11-18T18:00:42.000Z");
+    expect(key("2026-11-18T18:01:12.000Z")).toBe(at);
+    expect(key("2026-11-18T19:30:00.000Z")).toBe(at);
+    expect(key("2026-11-19T00:00:00.000Z")).not.toBe(at);
+  });
+
+  it("keeps the horizon at now's: what starts 90 days on is left out", () => {
+    const now = new Date("2026-11-18T18:00:42.000Z");
+    const at = (ms: number) => ({ occurredAt: new Date(now.getTime() + ms).toISOString() });
+    expect(inUpcomingHorizon(at(90 * 86_400_000 - 1), now)).toBe(true);
+    expect(inUpcomingHorizon(at(90 * 86_400_000), now)).toBe(false);
   });
 });
 

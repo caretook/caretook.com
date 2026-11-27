@@ -20,9 +20,10 @@ import {
 } from "./providerWorld";
 
 // Tags on providers (tags slice 5): chips on the directory's rows and the
-// provider's page for every role, Tags on the page for writers (the picker
-// is entry/entryTags'), and the directory's Tag filter (`?tag=`) beside Type
-// and the search. The filter functions are providerDirectory.test.ts's.
+// provider's page for every role, `QuickTags` on the page and the edit sheet
+// for writers (tags-2 slice 5; the picker is entry/entryTags'), and the
+// directory's Tag filter (`?tag=`) beside Type and the search. The filter
+// functions are providerDirectory.test.ts's.
 
 const HEART = tag("Heart");
 const MOVE = tag("Care home move");
@@ -55,30 +56,88 @@ const pageChips = () =>
   [...document.querySelectorAll('main header [data-region="details"] [data-tag-chip]')]
     .map((c) => c.textContent?.trim())
     .join(",");
-/** The header's ⋯, where a writer's Tags is. */
+const sheetChips = () =>
+  [...document.querySelectorAll("[role=dialog] [data-provider-edit-tags] [data-tag-chip]")]
+    .map((c) => c.textContent?.trim())
+    .join(",");
+/** The header's ⋯ (Copy to another group only, since tags-2). */
 const ACTIONS = () => document.querySelector<HTMLButtonElement>("main header [data-provider-actions]");
 const params = (device: { location: () => string }) =>
   Object.fromEntries(new URLSearchParams(device.location().split("?")[1] ?? ""));
+const linksOf = async (device: Awaited<ReturnType<typeof open>>, providerId: string) =>
+  (
+    await device.query<{ name: string }>(
+      "SELECT t.name FROM record_tag r JOIN tag t ON t.id = r.tag_id WHERE r.provider_id = ? ORDER BY t.name_key",
+      [providerId],
+    )
+  ).map((r) => r.name);
+/** The page header's tags. */
+const PAGE_TAGS = 'main header [data-region="details"]';
+/**
+ * Add tag in `scope` (the page header's tags, or the edit sheet; the linked
+ * entries' rows have their own), then the picker's toggle for `name` (the
+ * picker stays open).
+ */
+const pick = async (name: string, scope: typeof PAGE_TAGS | "[role=dialog]") => {
+  await userEvent.click(page.getByCss(scope).getByRole("button", { name: "Add tag" }));
+  await found(() => document.querySelector("[data-tag-picker]"));
+  await userEvent.click(page.getByRole("checkbox", { name }));
+};
 const menuRadios = () =>
   [...document.querySelectorAll("[role=menuitemradio]")].map((m) => m.textContent?.trim());
 
 describe("tags on a provider", () => {
-  test("a writer tags a provider from its page; the chips follow live", async () => {
-    const device = await open(providerUrl(ALVAREZ.id));
-    expect(pageChips()).toBe("");
-    await userEvent.click(await found(ACTIONS));
-    await userEvent.click(page.getByRole("menuitem", { name: "Tags" }));
-    await found(() => document.querySelector("[data-tag-picker]"));
-    await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
+  test("a writer untags with one tap and tags through Add tag on the page; the header has no Tags", async () => {
+    const device = await open(providerUrl(PATEL.id));
+    await expect.poll(pageChips).toBe("Care home move,Heart,Knee");
+    // No ⋯ here (no other group to copy to), so no Tags anywhere in the header.
+    expect(ACTIONS()).toBeNull();
+    expect(document.querySelector("main [data-tag-record]")).toBeNull();
+
+    await userEvent.click(page.getByRole("button", { name: "Remove tag Knee" }));
     await device.settle();
-    await expect.poll(pageChips).toBe("Knee");
-    await userEvent.click(page.getByRole("button", { name: "Done" }));
+    await expect.poll(pageChips).toBe("Care home move,Heart");
+    expect(await linksOf(device, PATEL.id)).toEqual(["Care home move", "Heart"]);
+
+    await pick("Knee", PAGE_TAGS);
+    await device.settle();
+    await expect.poll(pageChips).toBe("Care home move,Heart,Knee");
+    await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
     await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    expect(await linksOf(device, PATEL.id)).toEqual(["Care home move", "Heart", "Knee"]);
   });
 
-  test("a viewer sees every chip on the page, and no Tags", async () => {
+  test("the edit sheet tags and untags at once, never through Save", async () => {
+    const device = await open(`${providerUrl(ALVAREZ.id)}/edit`);
+    const sheet = "[role=dialog] [data-provider-edit-tags]";
+    await found(() => document.querySelector(sheet));
+    expect(sheetChips()).toBe("");
+
+    await pick("Knee", "[role=dialog]");
+    await device.settle();
+    await expect.poll(sheetChips).toBe("Knee");
+    await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
+    await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    // The row under the sheet follows too.
+    await expect.poll(() => rowChips(ALVAREZ.id)).toBe("Knee");
+
+    await userEvent.click(page.getByRole("button", { name: "Remove tag Knee" }));
+    await device.settle();
+    await expect.poll(sheetChips).toBe("");
+    expect(await linksOf(device, ALVAREZ.id)).toEqual([]);
+    // Each tap its own write: nothing touched the provider, and the sheet is still open.
+    expect((await device.queued()).filter((w) => w.type === "provider")).toEqual([]);
+    await expect.element(page.getByRole("dialog", { name: "Edit Dr. Elena Alvarez" })).toBeInTheDocument();
+    // Tagging isn't an edit to discard: the sheet closes without asking.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector(sheet)).toBeNull();
+  });
+
+  test("a viewer sees every chip on the page, and nothing to press", async () => {
     await open(providerUrl(PATEL.id), "viewer");
     await expect.poll(pageChips).toBe("Care home move,Heart,Knee");
+    expect(document.querySelectorAll('main header [data-region="details"] button')).toHaveLength(0);
+    expect(document.querySelector("main [data-quick-tag-add]")).toBeNull();
     expect(ACTIONS()).toBeNull();
   });
 

@@ -1,20 +1,20 @@
 import type { SyncDb } from "~/lib/sync";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
-import type { SubtaskProgressRow, TodoRow } from "~/lib/todos/todos.sync";
+import type { TodoRow } from "~/lib/todos/todos.sync";
 import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 
 import { data } from "react-router";
 import { medicationQuery } from "~/lib/medications/medications.sync";
 import { providerQuery } from "~/lib/providers/providers.sync";
-import { subtaskProgressQuery, subtasksQuery, todoQuery, toTodo } from "~/lib/todos/todos.sync";
+import { todoDescendantsQuery, todoQuery, toTodo } from "~/lib/todos/todos.sync";
 import { todoEntriesQuery, todoEntryDocumentsQuery } from "~/lib/todos/entryTodos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 
 /**
  * The todo, the group's members (for the assignee and who finished it), its
- * links' rows, its parent and subtasks, and its notes document with pending updates. A todo that isn't on the device,
+ * links' rows, its parent and the live todos under it, and its notes document with pending updates. A todo that isn't on the device,
  * is deleted, or is in another group is a 404 with no names. (The group
  * route has already turned away a non-member.)
  */
@@ -23,7 +23,7 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
   const todo = todoRows[0] ? toTodo(todoRows[0]) : null;
   if (!todo || todo.groupId !== groupId || todo.deletedAt) throw data("Not found", { status: 404 });
   const none = Promise.resolve([]);
-  const [memberRows, [doc], provider, medication, entries, documents, parentRows, subtaskRows, progressRows] =
+  const [memberRows, [doc], provider, medication, entries, documents, parentRows, descendantRows] =
     await Promise.all([
       readRows<MemberRow>(db, membersQuery(groupId)),
       readRows<{ id: string; snapshot: string | null }>(db, {
@@ -35,8 +35,7 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
       readRows<EntryRow>(db, todoEntriesQuery(todoId)),
       readRows<NoteDocRow>(db, todoEntryDocumentsQuery(todoId)),
       todo.parentId ? readRows<TodoRow>(db, todoQuery(todo.parentId)) : Promise.resolve<TodoRow[]>([]),
-      readRows<TodoRow>(db, subtasksQuery(todoId)),
-      readRows<SubtaskProgressRow>(db, subtaskProgressQuery(groupId)),
+      readRows<TodoRow>(db, todoDescendantsQuery(groupId, todoId)),
     ]);
   const updates = doc
     ? await readRows<{ id: string; data: string | null }>(db, {
@@ -49,10 +48,9 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
     // Starting rows for the live queries (stable, so they don't reset each render).
     todoRows,
     memberRows,
-    // Its tree (todo-subtasks): the parent's row, its live subtasks, and the group's progress per parent.
+    // Its tree (todo-subtasks): the parent's row, and every live todo under it.
     parentRows,
-    subtaskRows,
-    progressRows,
+    descendantRows,
     linkRows: { provider, medication, entries, documents },
     hasDocument: !!doc,
     initial: { snapshot: doc?.snapshot ?? null, updates },

@@ -4,13 +4,41 @@
 const DAY_MS = 86_400_000;
 
 /** The calendar day an instant falls on in a zone, as a UTC-midnight timestamp (so days subtract evenly). */
+const dayFormats = new Map<string, Intl.DateTimeFormat>();
+const dayFormat = (timeZone: string) => {
+  let format = dayFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    });
+    dayFormats.set(timeZone, format);
+  }
+  return format;
+};
+
+/** The heading's formatter, built once per locale, zone and whether it shows the year. */
+const labelFormats = new Map<string, Intl.DateTimeFormat>();
+const labelFormat = (locale: string | undefined, timeZone: string, withYear: boolean) => {
+  const key = `${locale ?? ""}|${timeZone}|${withYear}`;
+  let format = labelFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, {
+      timeZone,
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      year: withYear ? "numeric" : undefined,
+    });
+    labelFormats.set(key, format);
+  }
+  return format;
+};
+
 const calendarDay = (date: Date, timeZone: string) => {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(date);
+  const parts = dayFormat(timeZone).formatToParts(date);
   const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return { year: part("year"), day: Date.UTC(part("year"), part("month") - 1, part("day")) };
 };
@@ -29,11 +57,5 @@ export const dayLabel = (iso: string, timeZone: string, now: Date, locale?: stri
   if (daysAgo === 0) return "Today";
   if (daysAgo === 1) return "Yesterday";
   if (daysAgo === -1) return "Tomorrow";
-  return new Intl.DateTimeFormat(locale, {
-    timeZone,
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-    year: then.year === today.year ? undefined : "numeric",
-  }).format(date);
+  return labelFormat(locale, timeZone, then.year !== today.year).format(date);
 };

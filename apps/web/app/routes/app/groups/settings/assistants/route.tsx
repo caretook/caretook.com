@@ -103,7 +103,7 @@ export default function GroupAssistants({ loaderData }: Route.ComponentProps) {
       offlineNotice={access.manage && !online ? OFFLINE_ASSISTANTS : undefined}
     >
       <SettingsCard id="assistants-switch" title="AI assistants">
-        <p className="text-base-content/70 text-sm">{assistantsExplained(enabled && readOnly)}</p>
+        <p className="text-muted text-sm">{assistantsExplained(enabled && readOnly)}</p>
         {access.toggle && online ? (
           <AssistantsSwitch enabled={enabled} connected={connections?.length ?? 0} />
         ) : (

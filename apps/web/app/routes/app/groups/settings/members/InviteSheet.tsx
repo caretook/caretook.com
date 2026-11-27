@@ -58,7 +58,7 @@ export function InviteButton({
         Invite by email
       </Button>
       {(!online || !enabled) && (
-        <p id="invite-offline" className="text-base-content/70 text-sm">
+        <p id="invite-offline" className="text-muted text-sm">
           {online ? INVITES_UNAVAILABLE.email : "Needs a connection to invite."}
         </p>
       )}
@@ -76,7 +76,7 @@ export function InviteButton({
         >
           <fetcher.Form method="post" className="space-y-2" data-invite-sheet="">
             <input type="hidden" name="intent" value="invite" />
-            <p className="text-base-content/70 text-sm">
+            <p className="text-muted text-sm">
               We'll email them a link that works for 7 days, with that address only.
             </p>
             <Field kind="input" label="Email" error={issue("email")}>

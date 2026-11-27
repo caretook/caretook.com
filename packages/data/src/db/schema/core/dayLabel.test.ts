@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { dayLabel } from "./dayLabel";
 
 const LA = "America/Los_Angeles";
@@ -88,5 +88,20 @@ describe("dayLabel", () => {
 
   it("gives a date, not a relative name, to days after tomorrow", () => {
     expect(label("2026-11-21T20:00:00.000Z", now)).toBe("Saturday, Nov 21");
+  });
+
+  it("builds its formatters once per zone and reuses them (B-798)", () => {
+    const spy = vi.spyOn(Intl, "DateTimeFormat");
+    try {
+      // A zone no other case uses, so the first call builds its formatters here.
+      expect(label("2026-11-16T20:00:00.000Z", now, "America/Phoenix")).toBe("Monday, Nov 16");
+      const built = spy.mock.calls.length;
+      expect(built).toBeGreaterThan(0);
+      expect(label("2026-11-15T20:00:00.000Z", now, "America/Phoenix")).toBe("Sunday, Nov 15");
+      expect(label("2026-11-18T20:00:00.000Z", now, "America/Phoenix")).toBe("Today");
+      expect(spy.mock.calls.length).toBe(built);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

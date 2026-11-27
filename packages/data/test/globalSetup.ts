@@ -122,8 +122,8 @@ const makeWorkerDatabases = async (db: Database, workers: number, hint: string) 
 // more than one worker (CARETOOK_INT_WORKERS, default 3) a copy of it for
 // each, `caretook_tw_<stem>_<hash>_w<n>` (workerDatabaseName), which that
 // worker's files use (setup.ts).
-// What the tool's command is called here (risa.json's tool.prd: `pnpm prd`, `risa`
-// after the move), read from the config itself, for the hint below.
+// What the tool's command is called here (risa.json's tool.prd: `risa`),
+// read from the config itself, for the hint below.
 const REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 function prdCommand(): string {
   try {

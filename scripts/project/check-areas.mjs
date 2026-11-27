@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Which browser checks a changed file needs: the rules in the check areas folder
-// (risa.json's paths.checkAreas), resolved most specific first. `pnpm prd browser
+// (risa.json's paths.checkAreas), resolved most specific first. `risa browser
 // --changed` (browser.sh) calls this.
 //
 // Rule files: one per area (check-areas.d/<area>), plus _global for docs,

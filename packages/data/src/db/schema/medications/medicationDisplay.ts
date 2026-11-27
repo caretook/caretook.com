@@ -137,16 +137,27 @@ export const medicationSummaryLine = (
     .filter(Boolean)
     .join(" · ");
 
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+const dateFormat = (locale: string | undefined) => {
+  const key = locale ?? "";
+  let format = dateFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    dateFormats.set(key, format);
+  }
+  return format;
+};
+
 /** A calendar day ("2026-11-10") as it reads: "Nov 10, 2026". Days have no zone, so none shifts it. */
 export const formatDate = (day: string, locale?: string) => {
   const date = new Date(`${day}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return day;
-  return new Intl.DateTimeFormat(locale, {
-    timeZone: "UTC",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return dateFormat(locale).format(date);
 };
 
 /**

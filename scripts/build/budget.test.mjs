@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkBudget, formatTable, packageOf } from "./budget.mjs";
+import { checkBudget, formatTable, formatViolation, isRouteModule, packageOf } from "./budget.mjs";
 import { buildListing, parseRouteManifest } from "./manifest.mjs";
 
 const budget = {
@@ -66,6 +66,33 @@ describe("checkBudget", () => {
   });
 });
 
+describe("checkBudget: chunk shape (B-960)", () => {
+  const icon = (name) => `/r/node_modules/.pnpm/l/node_modules/lucide-react/dist/esm/icons/${name}.mjs`;
+  const route = "/r/apps/web/app/routes/app/groups/timeline/route.tsx?route-chunk=main";
+  const shape = { together: ["lucide-react"], noRoutesIn: ["entry"] };
+
+  it("passes the icons in one shared chunk and the routes out of the entry", () => {
+    const l = { ...listing(), modules: { "icons.js": [icon("pill"), icon("clock")], "app.js": [route] } };
+    expect(checkBudget(l, shape)).toEqual([]);
+  });
+
+  it("reports icons split across chunks", () => {
+    const l = { ...listing(), modules: { "pill.js": [icon("pill")], "clock.js": [icon("clock")], "app.js": [route] } };
+    const v = checkBudget(l, shape);
+    expect(v).toEqual([{ kind: "split", pattern: "lucide-react", chunks: ["pill.js", "clock.js"] }]);
+    expect(formatViolation(v[0])).toMatch(/lucide-react is split across 2 chunks/);
+  });
+
+  it("reports a route's own code merged into the entry", () => {
+    const l = listing({ "entry.js": { gzip: 60, modules: ["/r/apps/web/app/entry.client.tsx", route] } });
+    const v = checkBudget(l, shape);
+    expect(v).toEqual([{ kind: "route", group: "entry", chunk: "entry.js", module: route }]);
+    // The root route and our shared code aren't route modules.
+    expect(isRouteModule("/r/apps/web/app/root.tsx")).toBe(false);
+    expect(isRouteModule("/r/apps/web/app/lib/core/api.ts")).toBe(false);
+  });
+});
+
 describe("packageOf", () => {
   it("names the package, scoped or not, or keeps our own path", () => {
     expect(packageOf("/r/node_modules/.pnpm/p/node_modules/@tiptap/core/dist/a.js")).toBe("@tiptap/core");
@@ -91,6 +118,8 @@ describe("buildListing", () => {
     expect(l.groups.root).toEqual(["assets/e.js", "assets/r.js", "assets/root.js"]);
     expect(l.groups.app).toEqual(["assets/e.js", "assets/r.js", "assets/root.js", "assets/app.js", "assets/x.js"]);
     expect(l.chunks["assets/e.js"]).toEqual({ gzip: 10, modules: ["a"] });
+    // Every chunk's modules, for the build-wide rules (`together`).
+    expect(l.modules["assets/x.js"]).toEqual([]);
   });
 
   it("refuses a chunk with no module list", () => {

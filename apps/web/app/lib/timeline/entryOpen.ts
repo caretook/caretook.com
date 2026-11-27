@@ -23,8 +23,11 @@ export const openRule = (kind: TimelineEntryKind, canWrite: boolean): OpenRule =
  */
 export { SHEET_LINK_STATE } from "./timelineSheet";
 
-/** A row's open link: the entry's page, or (`sheet`) its edit sheet over the timeline. */
-export type EntryOpen = { to: string; sheet: boolean };
+/**
+ * A row's open link: the entry's page, or (`sheet`) its edit sheet over the
+ * timeline; `state` is the page link's history state (its opener, B-936).
+ */
+export type EntryOpen = { to: string; sheet: boolean; state?: object };
 
 /** The link a row or card opens, or none. The edit sheet's URL carries the timeline's filters (`search`). */
 export const entryOpen = ({

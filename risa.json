@@ -1,8 +1,8 @@
 {
   "name": "caretook",
   "tool": {
-    "prd": "pnpm prd",
-    "backlog": "pnpm backlog"
+    "prd": "risa",
+    "backlog": "risa backlog"
   },
   "paths": {
     "backlog": "plans/backlog.md",
@@ -69,7 +69,7 @@
     "checkBuild": "apps/web/build"
   },
   "testProjects": {
-    "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
+    "tooling": ["project:unit", "project:tooling"],
     "browserHarness": "tooling:browser"
   },
   "hooks": {
@@ -88,7 +88,7 @@
     "serve": "scripts/project/serve.sh",
     "browser": "scripts/project/browser-run.sh",
     "testDb": "scripts/project/test-db.sh",
-    "lease": "bash scripts/loops/lease.sh hold"
+    "lease": "bash node_modules/risa/loops/lease.sh hold"
   },
   "boundary": {
     "appPaths": ["apps", "packages", "powersync", "docs/domain", "ops"]

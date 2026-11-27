@@ -17,6 +17,7 @@ import {
   repeatColumnsFor,
   ROLLUP_METADATA,
   rollupOf,
+  SIBLING_ORDER_SQL,
   todoContentOf,
   todoContentZSchema,
   todoCreateZSchema,
@@ -151,11 +152,28 @@ export type TodosFilter = {
   tagId?: string | null;
   /** Only the todos that list on their own (`listsOnItsOwn`: top-level, or a dated or assigned subtask). */
   listed?: boolean;
+  /**
+   * The Done list's rule (todo-subtasks-3): top-level todos, and subtasks whose
+   * top-level todo is done too. One whose top-level todo is open shows struck in
+   * that tree (`todoTreesQuery`) instead.
+   */
+  doneListed?: boolean;
 };
 
 /** `listsOnItsOwn` in SQL, for the queries that page or count (the Done list). */
 const LISTED_SQL = ` AND (parent_id IS NULL OR due_on IS NOT NULL OR assignee_id IS NOT NULL
   OR (assignee_name IS NOT NULL AND TRIM(assignee_name) <> ''))`;
+
+/**
+ * A todo's top-level todo's `done_at`, as a correlated subquery on the outer
+ * `todo` (never a join: the other conditions' columns are unqualified). With
+ * `MAX_TODO_DEPTH` 3 the top is the parent or the parent's parent.
+ */
+const TOP_DONE_AT_SQL = `(SELECT top_todo.done_at FROM todo top_todo WHERE top_todo.id = COALESCE(
+  (SELECT up_todo.parent_id FROM todo up_todo WHERE up_todo.id = todo.parent_id), todo.parent_id))`;
+
+/** `doneListed` in SQL: top-level, or under a done top-level todo. */
+const DONE_LISTED_SQL = ` AND (parent_id IS NULL OR ${TOP_DONE_AT_SQL} IS NOT NULL)`;
 
 const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unknown[] } => {
   if (who === "mine") return { sql: " AND assignee_id = ?", params: [userId ?? ""] };
@@ -170,7 +188,8 @@ const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unkn
 /** The chip's condition, the tag's and the listing rule's, ANDed. */
 const filterCondition = (filter: TodosFilter): { sql: string; params: unknown[] } => {
   const chip = whoCondition(filter);
-  const who = filter.listed ? { sql: chip.sql + LISTED_SQL, params: chip.params } : chip;
+  const listing = (filter.listed ? LISTED_SQL : "") + (filter.doneListed ? DONE_LISTED_SQL : "");
+  const who = listing ? { sql: chip.sql + listing, params: chip.params } : chip;
   if (!filter.tagId) return who;
   return {
     sql: `${who.sql} AND id IN (SELECT todo_id FROM record_tag WHERE tag_id = ? AND todo_id IS NOT NULL)`,
@@ -196,7 +215,7 @@ export const todosQuery = (groupId: string, filter: TodosFilter = {}): LocalQuer
 /** How many done todos the chip shows (the Done list's "Show more"). */
 export const doneCountQuery = (
   groupId: string,
-  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "listed"> = {},
+  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "listed" | "doneListed"> = {},
 ): LocalQuery => {
   const who = filterCondition(filter);
   return {
@@ -209,6 +228,19 @@ export const doneCountQuery = (
 export const todoQuery = (id: string): LocalQuery => ({
   sql: "SELECT * FROM todo WHERE id = ?",
   params: [id],
+});
+
+/**
+ * The trees' rows (todo-subtasks-3): the group's open live todos and its live
+ * done subtasks whose top-level todo is open (they show struck in their tree),
+ * in `siblingOrder`. One live query for a whole list of trees (`todoTrees`
+ * builds them on the device), never one per row.
+ */
+export const todoTreesQuery = (groupId: string): LocalQuery => ({
+  sql: `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL
+        AND (done_at IS NULL OR (parent_id IS NOT NULL AND ${TOP_DONE_AT_SQL} IS NULL))
+        ORDER BY ${SIBLING_ORDER_SQL}`,
+  params: [groupId],
 });
 
 // ---------------------------------------------------------------------------
@@ -978,12 +1010,27 @@ export const subtaskProgressQuery = (groupId: string): LocalQuery => ({
   params: [groupId],
 });
 
-/** The query's parents by id, with their titles (a listed subtask's "Part of"). */
-export const parentsById = (rows: readonly SubtaskProgressRow[]) =>
-  new Map(
-    rows.flatMap((r) => (r.title ? [[r.parent_id, { id: r.parent_id, title: r.title }] as const] : [])),
-  );
-
 /** The query's rows by parent id; a todo with no live subtask isn't there. */
 export const progressByParent = (rows: readonly SubtaskProgressRow[]) =>
   new Map(rows.map((r) => [r.parent_id, { done: Number(r.done), total: Number(r.total) }]));
+
+// ---------------------------------------------------------------------------
+// One todo's tree (todo-subtasks-3 slice 6)
+// ---------------------------------------------------------------------------
+
+/**
+ * The group's live todos under `todoId` (its subtasks, theirs, …), done ones
+ * too, not `todoId` itself: the todo page's tree (`todoTrees` with
+ * `rootId`), in one live query. Deleted ones and what's under them are left
+ * out, as the delete takes them.
+ */
+export const todoDescendantsQuery = (groupId: string, todoId: string): LocalQuery => ({
+  sql: `WITH RECURSIVE below(id, depth) AS (
+          SELECT id, 1 FROM todo WHERE parent_id = ? AND group_id = ? AND deleted_at IS NULL
+          UNION ALL
+          SELECT t.id, below.depth + 1 FROM todo t JOIN below ON t.parent_id = below.id
+            WHERE t.group_id = ? AND t.deleted_at IS NULL AND below.depth < ?
+        )
+        SELECT todo.* FROM todo JOIN below ON below.id = todo.id ORDER BY todo.created_at, todo.id`,
+  params: [todoId, groupId, groupId, MAX_TODO_DEPTH],
+});

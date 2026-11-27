@@ -1,5 +1,5 @@
 // Playwright Test's config for the browser-check specs (`<check>.spec.mjs`).
-// browser.sh (`pnpm prd browser`) runs one spec at a time with this config:
+// browser.sh (`risa browser`) runs one spec at a time with this config:
 // one worker, no retries (browser.sh retries once on contention and logs
 // FLAKY), and the checks' own reporter (reporter.mjs), which prints the PASS,
 // FAIL and SKIP lines and the "N/M passed" tally browser.sh reads. Test

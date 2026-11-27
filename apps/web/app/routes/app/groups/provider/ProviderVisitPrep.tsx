@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { Button, ConfirmDialog, Section } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { useEntryOpenerState } from "~/lib/timeline/entryOrigin";
 import { useLiveQuery } from "~/lib/sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { providerEventsQuery, toVisitEvents } from "~/lib/appointments/visitPrep.sync";
@@ -20,6 +21,7 @@ const TICK_MS = 60_000;
  * prep sheet for their next appointment (the soonest upcoming, not cancelled
  * event linked to them), then that appointment's page. With none coming up,
  * it offers to add one, with the day picked first and the provider linked.
+ * Either page's Back returns here (B-936).
  */
 export function ProviderVisitPrep({
   groupId,
@@ -35,7 +37,8 @@ export function ProviderVisitPrep({
   const rows = useLiveQuery(query.sql, query.params, NO_ROWS);
   const now = useNow(TICK_MS);
   const next = useMemo(() => nextUp(toVisitEvents(rows), new Date(now)).next, [rows, now]);
-  const prep = useVisitPrep(groupId, true, { openAfter: true });
+  const opener = useEntryOpenerState();
+  const prep = useVisitPrep(groupId, true, { openAfter: true, openState: opener });
   const [offer, setOffer] = useState(false);
 
   return (
@@ -63,7 +66,7 @@ export function ProviderVisitPrep({
           onClose={() => setOffer(false)}
           onConfirm={() => {
             setOffer(false);
-            void navigate(appUrls.newAppointmentWith(groupId, providerId));
+            void navigate(appUrls.newAppointmentWith(groupId, providerId), { state: opener });
           }}
         />
       </div>

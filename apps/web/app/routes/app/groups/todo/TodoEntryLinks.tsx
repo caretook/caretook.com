@@ -7,6 +7,7 @@ import { Badge, Button, ComboBox, IconButton, STATUS_TONE } from "~/components/u
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime } from "~/lib/core/format";
 import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { useEntryOpenerState } from "~/lib/timeline/entryOrigin";
 import { entryLinkOptions, linkedEntryName } from "~/lib/todos/entryTodoDisplay";
 import { useLinkableEntries } from "./useTodoEntryLinks";
 
@@ -43,7 +44,7 @@ const shortDay = (iso: string, zone: string) => {
 
 /**
  * A linked note or event: its name (an event's title; a note's title or
- * first line) opening its page, and its day; a cancelled event struck
+ * first line) opening its page (whose Back returns here, B-936), and its day; a cancelled event struck
  * through and labelled. Writers get Remove, which unlinks it and leaves
  * both the entry and the todo.
  */
@@ -60,6 +61,7 @@ export function EntryLinkRow({
   /** Writers: unlink it. */
   onRemove?: () => void;
 }) {
+  const opener = useEntryOpenerState();
   const isEvent = entry.kind === "event";
   const cancelled = isEvent ? cancelledLabel(entry) : null;
   const name = isEvent ? upcomingTitle(entry) : linkedEntryName(entry, text);
@@ -74,6 +76,7 @@ export function EntryLinkRow({
         <p className="text-muted text-sm">{isEvent ? "Event" : "Note"}</p>
         <Link
           to={appUrls.entry(groupId, entry.id)}
+          state={opener}
           className={`${STRETCHED} ${cancelled ? "text-faint line-through" : ""}`}
           data-todo-link-name
         >

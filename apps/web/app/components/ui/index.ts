@@ -99,3 +99,5 @@ export type { PageLoadingProps } from "./PageLoading";
 // fixes-ui (slice 95): form tabs, in the page tabs' look; panels switch in place (B-694).
 export { FormTabs, revealField } from "./FormTabs";
 export type { FormTab } from "./FormTabs";
+// tags-2 (slice 3): the tag colors' chip classes.
+export { tagColorClass } from "./tagLook";

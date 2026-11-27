@@ -10,7 +10,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 
-import { canChangeEntry, canHaveNoteDocument, canTagRecord, parseSearch } from "@caretook/data/schema";
+import { canChangeEntry, canHaveNoteDocument, parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -31,7 +31,7 @@ import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { useSymptomFilterTypes } from "~/lib/timeline/symptomFilter.sync";
 import { clearSymptoms } from "~/lib/timeline/timelineFilters";
-import { emptyTimelineText, entryLabel } from "./entryLabels";
+import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/timeline/entryOpen";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -53,7 +53,7 @@ import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
 import { useOpenTodoCounts } from "./useOpenTodoCounts";
-import { useGroupRecordTags, useTagPicker } from "~/components/tags";
+import { useGroupRecordTags } from "~/components/tags";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
@@ -197,11 +197,8 @@ export function TimelineEntryList({
   // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
   const mayChange = (createdBy: string | null) =>
     canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
-  // Tags (tags PRD): one live query for every row's chips; Tags in ⋯ by `canTagRecord`.
+  // Tags (tags PRD): one live query for every row's quick tags (`RowTags`; no Tags in ⋯).
   const entryTags = useGroupRecordTags(groupId, "entry");
-  const tagPicker = useTagPicker();
-  const mayTag = (createdBy: string | null) =>
-    canTagRecord(group.role, { target: "entry", createdBy }, group.userId);
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = group.recipient?.timeZone ?? "UTC";
   const now = new Date();
@@ -332,11 +329,6 @@ export function TimelineEntryList({
         easy={easy}
         openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}
         tags={entryTags.get(entry.id)}
-        onTags={
-          mayTag(entry.createdBy)
-            ? () => tagPicker.ask({ target: "entry", recordId: entry.id, label: entryLabel(entry) })
-            : undefined
-        }
       />
     );
   };
@@ -457,7 +449,6 @@ export function TimelineEntryList({
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
       {remind.sheet}
-      {tagPicker.sheet}
       {scope.element}
     </>
   );

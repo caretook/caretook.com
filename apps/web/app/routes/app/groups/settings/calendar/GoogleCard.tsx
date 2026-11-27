@@ -51,7 +51,7 @@ export function GoogleCard({ groupId, online }: CalendarCardProps) {
   return (
     <>
       <SettingsCard id="google-calendar" title="Google Calendar">
-        <p className="text-base-content/70 text-sm">{GOOGLE_EXPLAINED}</p>
+        <p className="text-muted text-sm">{GOOGLE_EXPLAINED}</p>
         {outcome && (
           <Message tone={outcome.tone} data-google-outcome="">
             {outcome.text}
@@ -73,7 +73,7 @@ export function GoogleCard({ groupId, online }: CalendarCardProps) {
             <p className="text-sm">
               Syncing to <span className="font-medium">{view.calendarName}</span> in your Google account.
             </p>
-            <p className="text-base-content/70 text-sm" data-google-synced="">
+            <p className="text-muted text-sm" data-google-synced="">
               {view.lastSynced ? `Last synced ${view.lastSynced}.` : "Not synced yet."}
             </p>
             {view.error && (

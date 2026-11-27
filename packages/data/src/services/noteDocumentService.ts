@@ -99,6 +99,13 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
     : newError({ code: "noteDocumentService:entryNotFound" });
 };
 
+/** Whether the actor writes any owner in the group: a writer, or the system. */
+const isWriterIn = async (ctx: ServiceContext, tx: Tx, groupId: string) => {
+  if (!ctx.authUser || isSystemUser(ctx.authUser)) return true;
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  return isError(role) ? role : isWriterRole(role);
+};
+
 /**
  * Whether the actor may write the document of this owner: a writer on any
  * owner; anyone else (an Easy helper, the one other role the tables let
@@ -112,10 +119,8 @@ const mayWriteOwner = async (
   id: string,
   groupId: string,
 ) => {
-  if (!ctx.authUser || isSystemUser(ctx.authUser)) return true;
-  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
-  if (isError(role)) return role;
-  if (isWriterRole(role)) return true;
+  const writer = await isWriterIn(ctx, tx, groupId);
+  if (isError(writer) || writer) return writer;
   if (subject !== "entry") return false;
   return timelineEntryModel.mayChange(id, "update", { ...ctx, tx });
 };
@@ -237,6 +242,73 @@ export const create = (ctx: ServiceContext, input: NoteDocumentCreateInput) =>
     if (!may) return rejectError(ctx.authUser);
 
     return noteDocumentModel.create({ ...ctx, tx, data: { id, groupId, ...ownerColumns(subject, id) } });
+  }, ctx);
+
+/**
+ * `create` for many entries' documents in one INSERT (a series' visits:
+ * B-755), with create's checks on each: a live note or event the actor
+ * sees, in `groupId`; an id already held answered as create answers it; the
+ * actor may write each entry. All or nothing. Returns the documents in
+ * `ids`' order.
+ */
+export const createForEntries = (ctx: ServiceContext, input: { groupId: string; ids: readonly string[] }) =>
+  withTransaction(async (tx) => {
+    for (const id of input.ids) {
+      const parsed = noteDocumentCreateZSchema.safeParse({ id, groupId: input.groupId });
+      if (!parsed.success) return invalid(parsed.error);
+    }
+    const { groupId } = input;
+    const ids = [...input.ids];
+    if (!ids.length) return [] as NoteDocument[];
+
+    const owners = await timelineEntryModel.list({
+      ...ctx,
+      tx,
+      filter: { id: { type: "inArray", value: ids } },
+    });
+    if (isError(owners)) return owners;
+    const ownerOf = new Map(owners.data.map((entry) => [entry.id, entry]));
+    for (const id of ids) {
+      const owner = ownerOf.get(id);
+      if (!owner) return newError({ code: "noteDocumentService:entryNotFound" });
+      if (owner.groupId !== groupId) return immutable();
+      if (!canHaveNoteDocument(owner.kind)) return newError({ code: "noteDocumentService:wrongKind" });
+    }
+
+    // Existence as the system (B-289), as in create.
+    const taken = await noteDocumentModel.list({
+      authUser: SYSTEM_USER,
+      tx,
+      filter: { id: { type: "inArray", value: ids } },
+    });
+    if (isError(taken)) return taken;
+    const documents = new Map<string, NoteDocument>();
+    for (const { id } of taken.data) {
+      const existing = await noteDocumentModel.getById(id, { ...ctx, tx });
+      if (isError(existing)) return existing;
+      if (!existing) return rejectError(ctx.authUser);
+      if (existing.subject !== "entry") return immutable();
+      documents.set(id, existing);
+    }
+
+    const fresh = ids.filter((id) => !documents.has(id));
+    if (fresh.length) {
+      const writer = await isWriterIn(ctx, tx, groupId);
+      if (isError(writer)) return writer;
+      for (const id of writer ? [] : fresh) {
+        const may = await timelineEntryModel.mayChange(id, "update", { ...ctx, tx });
+        if (isError(may)) return may;
+        if (!may) return rejectError(ctx.authUser);
+      }
+      const created = await noteDocumentModel.createMany({
+        ...ctx,
+        tx,
+        data: fresh.map((id) => ({ id, groupId, ...ownerColumns("entry", id) })),
+      });
+      if (isError(created)) return created;
+      for (const document of created) documents.set(document.id, document);
+    }
+    return ids.flatMap((id) => documents.get(id) ?? []);
   }, ctx);
 
 /**

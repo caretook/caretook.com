@@ -15,7 +15,6 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 Notes for every wave:
 
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
-- Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
 **Previous hand-over:** wave 16 landed 2026-11-26 as dev d6e934e9 through PR #231, `--no-review` (Codex out of credits), CI components green (run 45879574428, 200c4c14); report a283; to-test/2026-11-26-1413-fixes-ui.md. Slices 86–94 (B-885 sonnet; B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916 opus); rows in the history file. Parked mid-wave for orchestration-split-3 wave 1 (dev 00c60f0c, new browser.sh via hooks.browser) at the backlog session's request, then synced. Browser `--changed --base dev`: layout-offline, first-sync, marketing pass; ui failed once under load (0×0 sheet), passed alone twice: filed B-922 (fixes-tooling). Lesson: slice 93 ran to 13 files; split an item with a schema key, an API and two screens. Docs folded (5ef43e2c) into assistant, app-shell, ui-kit, providers, medications. Slice worktrees removed.
 
@@ -25,14 +24,18 @@ Notes for every wave:
 
 **Released 2026-11-26** by the backlog session (caretook-com-3c; ListAgents if it rotates again): orchestration-split-3 wave 5 is on dev (6265872b; that PRD is done). Synced: prd/fixes-ui merged dev as 95021acb (tooling and scripts only for us). Rotated right after so the next session runs on the new scripts. Reports go to caretook-com-3c.
 
-**Wave 18 (this session, 2026-11-26):** slices 99–102 written, all opus: 99 B-899 (copy link into ⋯, lands first for tags-2), 100 B-923 (specialty suggestions), 101 B-924 (provider header on a phone), 102 B-925 (care period arrows gap; after 99). The backlog session asked for a recheck after the 95021acb sync: the wave's CI run is the gate. Still held: B-325 (Capacitor). All four merged; sync skipped (dev docs only). Wave CI run 45903344661 on 9ccd9e8d: file. Dev's: doc.test.mjs (B-928). Ours, sent back: slice 99 (inScreens menus and Delete confirm, groupSettings viewer ⋯), slice 102 (timelineHeader no-overlap bound). Docs folded (197999f6). Fixes merged (99: 4d604b62, 102: 0df8ef02); rerun 45905436254 on abec828a: file, only dev's doc.test.mjs (B-928); ours green. Sync: no merge needed. Browser `--suite` was classifier-blocked; ran `--changed --base dev` (roundtrip, ui). PR #237 open, Codex review waiting. Next: land `--tier components`; then rotate (past the soft context limit).
+**Wave 18 landed 2026-11-26** as dev dc9bffb through PR #237, `--no-review` (Codex out of credits); CI components failed only dev's doc.test.mjs (B-928; run 45906838038, 765d0282); landed unsynced (dev's 1 commit in other files); report a290; to-test/2026-11-26-1755-fixes-ui.md. Slices 99–102 all opus (B-899 copy link into the entry ⋯; B-923 specialty datalist; B-924 provider header Edit + ⋯; B-925 arrows `-me-2`); rows in the history file. Two CI fix rounds for tests asserting the old menus and roundtrip's viewer step. Lesson: changing who sees a ⋯ breaks tests outside its folder and `scripts/browser-checks/`; grep `aria-label^="Actions"` there when writing such a slice. `browser --suite` is classifier-blocked (ask before it); ran `--changed --base dev`. Docs folded (197999f6). Slice worktrees removed. Rotated after (past the soft context limit).
 
-| Slice | Item  | State                                                                      | Merge        |
-| ----- | ----- | -------------------------------------------------------------------------- | ------------ |
-| 99    | B-899 | merged (opus); docs: timeline.md copy-link line                            | 63bebd6c     |
-| 100   | B-923 | merged (opus)                                                              | 33df29e0     |
-| 101   | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0     |
-| 102   | B-925 | merged (opus)                                                              | (this merge) |
+**Wave 19 landed 2026-11-27** as dev 36b84a4a through PR #250, `--no-review` (Codex out of credits), CI components flake only (search.sync perf, not ours; run 45953425948); to-test/2026-11-27-0155-fixes-ui.md; report filed. Slices 103–105 all opus (B-937, B-939, B-940); details in the history file. Browser roundtrip fails at its tags step from dev's tags-2 (B-951; the backlog session is raising it). Follow-up B-950 (fixes-nit). Docs folded (68cec34a, 3faeaeb1). Slice worktrees removed. Rotated after (past the soft context limit).
+
+**Wave 20 landed 2026-11-27** as dev 697b53fcd through PR #255 (Codex clean on 8651988), CI components green (run 46036495830, 91686c31), landed unsynced (dev's 1 commit in other files); to-test/2026-11-27-1222-fixes-ui.md; report filed. Slices 106 (B-957 first-load steps and progress bar, `lib/sync/startup.ts`) and 107 (B-962 note full screen edge to edge), both opus, merged 40d5df4c6 and e32df1434. Browser `--changed --base dev` 7/7 pass. Docs folded (7932e7a8a) into app-shell and live-notes. Slice worktrees removed. Lessons: slice 106 ran to 19 files; format the plan with prettier before slices start (both slice checks tripped on it); a Status commit after a clean Codex verdict stales it (commit Status before `risa pr`). `risa status-trim` fails (risa v0.1.2 can't import prettier; told the backlog session); Status is under 6 KB so untrimmed. Rotated after (past the soft context limit).
+
+**Idle (session of 2026-11-27, after wave 20):** `risa sync` needed no merge (todo-subtasks-3's 6d975d86a shares no file), ingest found nothing new; only B-325 (held for Capacitor) is triaged for fixes-ui. Inbox B-961 (shared displays audit, needs its own PRD) and B-972 (planner Tags tab, a feature) are the backlog session's. Wave 21 starts when a new fixes-ui item is triaged; a background loop on `risa backlog list` wakes this session. No slice in flight. Resumed run-through later on 2026-11-27: anchors ok, ingest empty, still only B-325; idle again. **Closed 2026-11-27** at the backlog session's request (caretook-com-69, standing order): hand-over docs landed, worktree removed. B-325 waits for Capacitor; a new fixes-ui item restarts the topic with `risa start fixes-ui`.
+
+**Restarted 2026-11-27 (fixes-ui-4f), run-through:** landing mode still run everything through. Anchors ok, ingest empty, dev = origin/dev (85aa63a6e). Only B-325 (Native readiness: safe-area inset and cold-start blank page) is triaged for fixes-ui, held for Capacitor; B-973 (trim components.md under budget) is fixes-nit, not ours. No wave to start. **Closed again 2026-11-27** at caretook-com-69's word: B-325 moved to hosting (held with the Capacitor prerequisites), so fixes-ui has 0 waiting and the dispatcher stops restarting it; B-973 stays fixes-nit. No slice in flight. A new fixes-ui item restarts the topic with `risa start fixes-ui`.
+
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1486,3 +1489,84 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 **Acceptance criteria.**
 
 - [ ] Component test (`timelineCarePeriods.browser.test.tsx`): the gap from the arrows' icon to the period icon equals the period icon to text gap, within 1px, in the full and the easy view; the button's box is still 32px.
+
+## Wave 19 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 103–105 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 103: Provider page's linked entries use the timeline's entry row (B-937)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/providers.md · Tests: component
+
+**Problem.** `routes/app/groups/provider/LinkedEntries.tsx` builds its own rows (kind icon, title, day and time), so a linked note or event looks different from the same entry on the timeline: no live dot, no cancelled badge, no open-todos mark.
+
+**Build.** Render each linked entry with the timeline's row (`routes/app/groups/timeline/TimelineEntryRow.tsx`, or the smallest shared piece of it), so it looks the same as on the timeline and opens its entry. Check which of the row's parts need timeline context (the ⋯ menu's actions, filter links, search marks, author, `useCopyLink`): pass what fits on the provider page, leave out what doesn't (no filter links: they'd point at the timeline's filters from another screen; a viewer still gets no Delete). Rows here are not grouped by day, so the row must show the day as well as the time. If reuse needs a prop or a small split in the timeline folder, make it there and keep the timeline's own rows unchanged. Keep the empty state and the live query.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a linked note and a linked event render with the timeline row's markup (the same data attributes or roles the timeline's row tests use), with their day and time, and each opens its entry.
+- [ ] Component test: a cancelled linked event shows the cancelled badge.
+- [ ] The timeline's own row tests still pass unchanged; grep `scripts/browser-checks/` and other tests for `data-linked-entries` and `data-entry-id` and update any that assert the old markup.
+
+## Slice 104: Medication names list brand names in parentheses (B-939)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/assistant.md · Tests: unit
+
+**Problem.** `apps/web/app/lib/medications/medicationNameList.ts` lists about 200 generic names only, so typing "Tylenol" suggests nothing and a family who knows a medication by its brand can't find it.
+
+**Build.** Add the common US brand name(s) in parentheses to each entry that has one, e.g. `Acetaminophen (Tylenol)`, `Atorvastatin (Lipitor)`; at most two brands per name, the best known first; entries without a well-known brand stay as they are. Keep the list alphabetical by generic, one entry per medication, names only, and keep the look-alike rule (each shown in full; a pick is the only way one fills the field). Update the file's header comment. The shared matcher (`lib/core/nameSuggestions.ts`) already matches any word of a name, so "Tylenol" should suggest `Acetaminophen (Tylenol)`; confirm with tests rather than changing it. Then confirm the text matchers find a brand word in a saved name: quick entry's `matchMedication` (`packages/data/src/db/schema/assistant/quickEntry.ts`, which splits names into words) for "gave Tylenol" against a medication saved as `Acetaminophen (Tylenol)`; fix only if a test shows it fails. The connector's dose tools take ids, so no change there. Don't touch medications already saved under a generic name (no data change).
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`medicationNames.test.ts`): typing "tylenol" suggests "Acetaminophen (Tylenol)"; typing "acetamin" suggests it too; a group's own saved "Acetaminophen" still comes first and isn't duplicated by the curated entry only when their folded text is the same (document what happens when it differs).
+- [ ] Unit test (quick entry's tests): "gave Tylenol" matches a group medication named "Acetaminophen (Tylenol)", and "gave acetaminophen" still does.
+- [ ] The list stays alphabetical and free of duplicates (a test checks both).
+
+## Slice 105: Provider rows show the primary phone and address (B-940)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md · Tests: component
+
+**Problem.** `routes/app/groups/providers/ProviderListItem.tsx`'s full row shows no contact details (B-422), so reading a number aloud to a front desk means opening the provider. The condensed row has no provider type icon.
+
+**Build.** Full row: under the details line, print the primary phone number and the address in full as readable text, each a link (`tel:`; the maps link `contactActions.ts` already builds), and an email icon button when there is an email. Use the provider's existing contact helpers in `lib/providers/contactActions.ts` (and tidy the stale comments about directory rows there and in `components/providers/ContactActions.tsx`). The links sit above the row's stretched name link (`relative z-10` or as condensed's `ContactActions` does), each at least 44px tall to tap, and wrap rather than truncate the number; a past provider's stay muted. Condensed row: the same `ProviderTypeIcon` as the full row, before the name. This reverses B-422's no-contact-links rule for the full view: say so in the hand-off (the orchestrator folds it into `docs/domain/providers.md`; loops don't edit docs).
+
+**Acceptance criteria.**
+
+- [ ] Component test: a full row with a phone, address and email shows the number and address as text, with `tel:` and maps links, and an email link with an accessible name; the name link still opens the provider.
+- [ ] Component test: a full row with none of them shows no contact line and no gap.
+- [ ] Component test: a condensed row shows the provider type icon.
+- [ ] Grep tests and `scripts/browser-checks/` for assertions that full rows have no contact links (B-422) and update them.
+
+## Wave 20 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 106 and 107 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 106: First load shows a friendlier loading screen with progress (B-957)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component, unit
+
+**Problem.** From sign-in to the first timeline row takes about 2 s on a 4G phone and 4 s on 3G (B-764). Meanwhile the user sees the mark and "Loading…" (`components/brand/AppLoading.tsx`, root's `HydrateFallback`) and then "Getting your care groups…" (`components/shell/FirstSyncPending.tsx`), with no sense that anything is moving.
+
+**Build.** One shared loading display with a short, friendly step line and a progress bar, used by both screens (extend `LoadingMark`, which `ui/PageLoading` shares, rather than making a second look). The steps, in order: opening the app (route chunks loading), opening your device copy (the local database, `lib/sync/client`), syncing your care groups (PowerSync's first sync: connecting, then `downloadProgress` when it has one, so the bar moves on a big download), and opening the screen. Keep the step state in one small client-only store under `lib/sync/` (or `lib/app-shell/`, whichever owns the startup), that the startup code advances and the display reads (`useSyncExternalStore`); never a server loader. Before scripts run (the server's page and the native SPA's file) the display shows its first step with no bar movement, as today; app.css's 300 ms invisible start and the reduced-motion rule stay (reduced motion: no animated bar, just the step line). The bar never moves backwards; a step that is skipped (a returning device with the copy already synced) is passed over, so a fast start still looks like today. Words: warm and short ("Opening Caretook…", "Getting your notes ready…", "Syncing your care groups… 40%"); no technical words (no "WASM", "database", "sync stream"). It still says nothing about being offline (the frame's banner does). Accessible: the bar is a `<progress>` with a label, the step line a polite live region that announces a step change, not every percent.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the startup store moves forward through the steps, never back, skips steps, and maps download progress to a percentage.
+- [ ] Component test: the loading display shows the current step's words and a labelled progress bar; with no progress it shows the step only.
+- [ ] Component test (`FirstSyncPending.browser.test.tsx`): first sync in progress shows the syncing step with its percentage; done still reruns the loaders.
+- [ ] Grep tests and `scripts/browser-checks/` for "Loading…" and "Getting your care groups…" and update any that assert the old words.
+
+## Slice 107: Live note full screen fills the screen, its title in the note's bar (B-962)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/live-notes.md · Tests: component
+
+**Problem.** The live note full screen (`components/notes/NoteFullScreen.tsx`, B-765) keeps a centred `max-w-3xl` column with padding and its own title row (the entry's heading and the editor avatars) above the editor frame, which keeps its rounded border, so on a phone it wastes width and reads as a card on a page, not full screen.
+
+**Build.** In full screen, the editor frame fills the dialog edge to edge: no max width, padding, border or radius, and safe-area aware (`env(safe-area-inset-*)` padding inside the bar and the text, so nothing sits under a notch). Drop the separate title row. The title (short, truncated, what the note is attached to: the `title` the caller passes today) and the avatars (`aside`) move into the frame's bar (`LiveNotesEditor.tsx`, the `BAR` row with the full screen toggle), left of Exit full screen; the dialog keeps its accessible name. Layout: on a wide screen one row (title, avatars, the writer's toolbar, Exit); on a phone, title + avatars + Exit on the first row and the toolbar on its own row below, so the toolbar never squeezes the title. On the page (not full screen) the bar looks as today: no title in it (the page has its heading). A viewer (no toolbar) still gets the title, avatars and Exit. The text area scrolls inside the frame; the keyboard handling (visual viewport height) and Escape behaviour stay.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in full screen the bar holds the title, the avatars and Exit full screen, and there is no separate heading row; the dialog's accessible name is the title.
+- [ ] Component test: a viewer in full screen sees the title and Exit, and no toolbar.
+- [ ] Component test: not in full screen, the bar has no title.
+- [ ] Existing NoteFullScreen and live notes tests still pass; grep tests and `scripts/browser-checks/` for `data-note-full-screen` and the old heading and update any that assert it.

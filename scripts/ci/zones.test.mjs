@@ -24,15 +24,7 @@ describe("the test zones", () => {
   it("every node project pins TZ to the primary zone; no browser project does", () => {
     const node = projects.filter((p) => !p.test.browser?.enabled);
     expect(node.map((p) => p.test.name)).toEqual(
-      expect.arrayContaining([
-        "data:unit",
-        "web:unit",
-        "core:unit",
-        "project:unit",
-        "project:tooling",
-        "tooling:unit",
-        "integration",
-      ]),
+      expect.arrayContaining(["data:unit", "web:unit", "project:unit", "project:tooling", "integration"]),
     );
     for (const p of node) expect([p.test.name, p.test.env?.TZ]).toEqual([p.test.name, PRIMARY_ZONE]);
     for (const p of projects.filter((p) => p.test.browser?.enabled)) expect(p.test.env?.TZ).toBeUndefined();

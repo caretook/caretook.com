@@ -7,6 +7,6 @@ coverage/
 pnpm-lock.yaml
 packages/data/src/db/migrations/
 
-# Written by scripts/backlog (pnpm backlog) on every change; formatting it would churn its diffs.
+# Written by scripts/backlog (risa backlog) on every change; formatting it would churn its diffs.
 plans/backlog.md
 plans/backlog-archive.md

@@ -2,8 +2,10 @@ import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
 import type * as SearchModuleNs from "../search/search.sync";
 
+import sqliteWasm from "@journeyapps/wa-sqlite/dist/wa-sqlite-async.wasm?url";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { clearRemembered } from "./remembered";
+import { advanceStartup, resetStartup } from "./startup";
 
 export type { SyncDb };
 
@@ -22,14 +24,33 @@ let searchIndex: Promise<SearchModule> | null = null;
 /** Set by `installTestDatabase` only: whether a test device counts as synced. */
 let testFirstSyncDone: boolean | null = null;
 
+/**
+ * Start the download of SQLite's WASM build (~0.8 MB, the database's biggest
+ * file) as the database starts opening (B-959). PowerSync's worker asks for it
+ * only once its own script and then SQLite's glue code have arrived, two
+ * round trips later; by then it is in the HTTP cache, or still coming and
+ * joined (`/assets/` files are immutable). On a 1.6 Mbps link the database
+ * opened ~0.4 s sooner. Earlier, at the sign-in click, it queued ahead of the
+ * session check and pushed it past its timeout.
+ */
+const prefetchSqlite = () => {
+  if (typeof fetch !== "function") return;
+  void fetch(sqliteWasm, { priority: "high" })
+    .then((response) => response.body?.pipeTo(new WritableStream()))
+    .catch(() => undefined);
+};
+
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
   // Someone else signed in on this tab: their predecessor's data goes first.
   if (ready && ready.userId !== userId) await closeSync();
+  if (!current) prefetchSqlite();
+  // The loading screen's "Getting your notes ready…" (B-957).
+  if (!ready) advanceStartup("device");
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
-      // Dev and check builds only (`pnpm prd serve --built` sets
+      // Dev and check builds only (`risa serve --built` sets
       // VITE_CHECK_BUILD): lets browser checks and the console query the local
       // copy, and load the device modules without Vite's source imports. A
       // production build drops this block.
@@ -72,6 +93,15 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
 };
 
 /**
+ * Start fetching the database's code (PowerSync and its worker) before
+ * `openSync` needs it: a sign-in calls this as it redirects, so the download
+ * runs beside the session check instead of after it (B-764). It opens nothing.
+ */
+export const preloadSync = (): void => {
+  void import("./client").catch(() => undefined);
+};
+
+/**
  * The test seam (component tests only: Vitest's mode is "test"): put a
  * database in place of `openSync`'s, so `getSync`, `useLiveQuery` and the
  * local writes use it. `apps/web/test/device.tsx` opens a local-only
@@ -88,8 +118,10 @@ export const installTestDatabase = async (
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
-  // A new device remembers nothing (as after a sign-out).
+  // A new device remembers nothing (as after a sign-out), and starts over.
   clearRemembered();
+  resetStartup();
+  closeWatches();
   current = db ? Promise.resolve(db) : null;
   ready = db;
   testFirstSyncDone = db ? (options.firstSyncDone ?? true) : null;
@@ -121,7 +153,10 @@ export const closeSync = async ({ keep = false }: { keep?: boolean } = {}) => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
+  closeWatches();
   owedFirst.clear();
+  // A next sign-in starts over.
+  resetStartup();
   // The tile cache goes with the local copy.
   clearRemembered();
   const search = searchIndex;
@@ -162,10 +197,40 @@ export const isFirstSyncDone = (db: SyncDb): boolean =>
  * `isFirstSyncDone` afterwards.
  */
 export const waitForFirstSync = async (db: SyncDb, ms = FIRST_SYNC_WAIT_MS): Promise<boolean> => {
-  if (isFirstSyncDone(db)) return true;
+  if (isFirstSyncDone(db)) {
+    // A returning device passes over the sync step (B-957).
+    advanceStartup("screen");
+    return true;
+  }
+  trackFirstSync(db);
   const signal = AbortSignal.timeout(ms);
   await db.powersync.waitForFirstSync({ signal }).catch(() => undefined);
   return isFirstSyncDone(db);
+};
+
+/** Databases whose first sync the loading screen follows. */
+const tracked = new WeakSet<SyncDb>();
+
+/**
+ * Follow a new device's first sync on the loading screen (`./startup`,
+ * B-957): the sync step, with PowerSync's download fraction once it knows
+ * one (a big download moves the bar), then the screen step once it's done.
+ * Its listener goes once the first sync is done; a closed database sends
+ * nothing more.
+ */
+const trackFirstSync = (db: SyncDb) => {
+  if (tracked.has(db)) return;
+  tracked.add(db);
+  const update = (status: SyncStatus) => {
+    if (ready && ready !== db) return dispose();
+    if (testFirstSyncDone ?? status.hasSynced) {
+      advanceStartup("screen");
+      return dispose();
+    }
+    advanceStartup("sync", status.downloadProgress?.downloadedFraction ?? null);
+  };
+  const dispose = db.powersync.registerListener({ statusChanged: update });
+  update(db.powersync.currentStatus);
 };
 
 /** `isFirstSyncDone` for components: flips to true when the first sync finishes. Below the /app layout only. */
@@ -221,29 +286,66 @@ const nextFrameResult = (hand: () => void) => {
 };
 
 /**
- * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
- * result to `onRows`, at the next frame with every other watch's result that
- * came in meanwhile (above); returns the cleanup, after which nothing more is
- * passed. With no database open it watches nothing: a component can still
- * mount while sign-out is closing the database (a watch result arriving
- * mid-sign-out renders a new child), and there's nothing left to show it then.
+ * One open watch, shared by every subscriber to the same query (B-910): a
+ * screen often asks the same thing more than once (the timeline back from an
+ * entry ran 38 watches, 11 of them repeats), and each repeat was a query of
+ * its own on every change. Closed when its last subscriber leaves.
  */
-export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
-  if (!ready) return () => undefined;
-  const controller = new AbortController();
+type SharedWatch = {
+  controller: AbortController;
+  subscribers: Set<(rows: unknown[]) => void>;
+  /** The latest result, handed at once to a subscriber that joins later. */
+  rows: unknown[] | null;
+};
+
+/** The open watches, by `key` (closed and cleared at sign-out). */
+const watches = new Map<string, SharedWatch>();
+
+const closeWatches = () => {
+  for (const shared of watches.values()) shared.controller.abort();
+  watches.clear();
+};
+
+/**
+ * Whether two answers hold the same rows: the same count, and each row the
+ * same columns with the same values (SQLite's are plain values, so `Object.is`).
+ */
+export const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] as Record<string, unknown>;
+    const y = b[i] as Record<string, unknown>;
+    if (x === y) continue;
+    const columns = Object.keys(x);
+    if (columns.length !== Object.keys(y).length) return false;
+    for (const column of columns) if (!(column in y) || !Object.is(x[column], y[column])) return false;
+  }
+  return true;
+};
+
+const openWatch = (db: SyncDb, key: string): SharedWatch => {
+  const shared: SharedWatch = { controller: new AbortController(), subscribers: new Set(), rows: null };
+  const { signal } = shared.controller;
   const [watchSql, watchParams] = JSON.parse(key) as [string, unknown[]];
   const first = {};
   owedFirst.add(first);
-  controller.signal.addEventListener("abort", () => owedFirst.delete(first));
-  ready.powersync.watch(
+  signal.addEventListener("abort", () => owedFirst.delete(first));
+  db.powersync.watch(
     watchSql,
     watchParams,
     {
       onResult: (result) => {
         owedFirst.delete(first);
-        const rows = (result.rows?._array ?? []) as T[];
+        const rows = result.rows?._array ?? [];
+        // PowerSync reruns a watch on any change to its tables, so most answers
+        // repeat the last one (a note preview's query on a keystroke off screen):
+        // passing those on re-rendered the whole screen for nothing (B-956).
+        if (shared.rows && sameRows(shared.rows, rows)) return;
+        shared.rows = rows;
+        // The subscribers this result is for: one joining before the frame got it at once.
+        const handed = [...shared.subscribers];
         nextFrameResult(() => {
-          if (!controller.signal.aborted) onRows(rows);
+          for (const onRows of handed) if (!signal.aborted && shared.subscribers.has(onRows)) onRows(rows);
         });
       },
       onError: (error) => {
@@ -251,9 +353,39 @@ export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (()
         console.error("Local query failed", error);
       },
     },
-    { signal: controller.signal, throttleMs: 30 },
+    { signal, throttleMs: 30 },
   );
-  return () => controller.abort();
+  return shared;
+};
+
+/**
+ * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
+ * result to `onRows`, at the next frame with every other watch's result that
+ * came in meanwhile (above); returns the cleanup, after which nothing more is
+ * passed. Subscribers to the same `key` share one watch (`SharedWatch`); one
+ * joining a watch that has answered gets its latest rows at once. An answer
+ * with the same rows as the last (`sameRows`) is passed to no one. With no
+ * database open it watches nothing: a component can still mount while
+ * sign-out is closing the database (a watch result arriving mid-sign-out
+ * renders a new child), and there's nothing left to show it then.
+ */
+export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
+  if (!ready) return () => undefined;
+  let shared = watches.get(key);
+  if (!shared) {
+    shared = openWatch(ready, key);
+    watches.set(key, shared);
+  }
+  const mine = shared;
+  // Its own function, so the same callback subscribed twice counts twice.
+  const subscriber = (rows: unknown[]) => onRows(rows as T[]);
+  mine.subscribers.add(subscriber);
+  if (mine.rows) onRows(mine.rows as T[]);
+  return () => {
+    if (!mine.subscribers.delete(subscriber) || mine.subscribers.size > 0) return;
+    mine.controller.abort();
+    if (watches.get(key) === mine) watches.delete(key);
+  };
 };
 
 /**

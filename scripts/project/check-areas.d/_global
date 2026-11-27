@@ -11,12 +11,10 @@ plans/                                   -
 docs/                                    -
 .githooks/                               -
 .claude/                                 -
-scripts/loops/                           -
-scripts/backlog/                         -
-# The project's own scripts and data (the tooling that stays when the core moves).
+# The project's own scripts and data.
 scripts/project/                         -
 scripts/build/                           -
-# The project config the tooling reads (scripts/loops/config.mjs).
+# The project config the tooling (Risa) reads.
 risa.json                                -
 # The local lint rules (eslint.config.js loads them): their rule tests cover them.
 scripts/eslint/                          -
@@ -85,7 +83,7 @@ apps/web/app/routes/api/webhooks/        -
 # Hosting (hosting slice 1): the deploy scripts have their own tests; the deploy
 # env check is unit tests (checks run with APP_ENV unset); env.d.ts is types only.
 scripts/deploy/                          -
-# CI (test-gates): the tiers, env, verdict and `pnpm prd ci` have their own tests.
+# CI (test-gates): the tiers, env, verdict and `risa ci` have their own tests.
 scripts/ci/                              -
 apps/web/app/.server/deployEnv.ts        -
 apps/web/app/env.d.ts                    -

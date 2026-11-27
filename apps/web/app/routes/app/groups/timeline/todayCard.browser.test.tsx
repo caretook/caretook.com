@@ -340,6 +340,23 @@ describe("the todos row", () => {
     await device.settle();
     await expect.poll(() => row("todos")).toBeNull();
   });
+
+  test("a step due today is named itself (no tree on one line); its link opens the Todos page", async () => {
+    // todo-subtasks-3 slice 3 (B-941): the parent is due later, its step today.
+    const trip = todo({ title: "Plan the clinic trip", dueOn: "2027-06-12" });
+    const step = todo({ title: "Book the ride", dueOn: TODAY, parentId: trip.id });
+    await open([DAY_NOTE, trip, step]);
+    const named = () => row("todos")?.querySelector<HTMLElement>("[data-todo]") ?? null;
+    await expect.poll(() => named()?.textContent).toBe("Today: Book the ride");
+    expect(named()?.dataset.todo).toBe(step.id);
+    expect(seeAll("todos").getAttribute("href")).toBe(`/app/groups/${G}/todos?who=everyone`);
+
+    await openCard();
+    await userEvent.click(seeAll("todos"));
+    await expect
+      .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/todos?who=everyone` }))
+      .toBeVisible();
+  });
 });
 
 describe("the appointment row", () => {

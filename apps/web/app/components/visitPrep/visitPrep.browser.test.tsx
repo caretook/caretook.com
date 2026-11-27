@@ -91,6 +91,8 @@ const button = (text: string, within = "") =>
 const menuItem = (text: string) => page.getByRole("menuitem", { name: text, exact: true });
 const actionsOf = (id: string) => getByCss(`[data-upcoming-item="${id}"] button[aria-label^="Actions for"]`);
 const GRID = () => document.querySelector("[role=grid]");
+/** The entry page's Back link, by its label. */
+const backLink = (label: string) => page.getByRole("main").getByRole("link", { name: label, exact: true });
 /** In the open calendar, pick the day `days` from today (as entry.browser.test.tsx does). */
 const pickDayAhead = async (days: number) => {
   const d = new Date();
@@ -361,6 +363,9 @@ describe("on a provider's page", () => {
     await insert();
     await expect.poll(() => device.location()).toBe(entryPath(APPT.id));
     await waitUntil(() => editorLines()[0]?.startsWith("Since your last visit"), "the section");
+    // Its Back returns to the provider (B-936).
+    await userEvent.click(backLink("Provider"));
+    await expect.poll(() => device.location()).toBe(`/app/groups/${GROUP}/providers/${LARK.id}`);
   });
 
   test("with nothing coming up, it offers to add an appointment with them, day first, linked once it's saved", async () => {
@@ -387,8 +392,11 @@ describe("on a provider's page", () => {
         ).map((r) => r.provider_id),
       )
       .toEqual([ORTIZ.id]);
-    // Now it's an upcoming appointment with them: ready to prepare.
+    // Now it's an upcoming appointment with them: ready to prepare; its Back (over the save's URL replace) is the provider.
     await expect.element(PREPARE()).toBeInTheDocument();
+    await expect
+      .element(backLink("Provider"))
+      .toHaveAttribute("href", `/app/groups/${GROUP}/providers/${ORTIZ.id}`);
   });
 
   test("a viewer gets no Prepare", async () => {
@@ -417,6 +425,9 @@ describe("in the Planner", () => {
     await previewReady();
     await insert();
     await expect.poll(() => device.location()).toBe(entryPath(APPT.id));
+    // Its Back returns to the Planner (B-690, B-936).
+    await userEvent.click(backLink("Planner"));
+    await expect.poll(() => device.location()).toBe(`/app/groups/${GROUP}/planner`);
   });
 
   test("a viewer's ⋯ is Remind me and Print", async () => {

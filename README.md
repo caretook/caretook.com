@@ -28,8 +28,7 @@ packages/auth/     Better Auth setup
 packages/data/     schema, permissions, models, services, migrations, seeds
 powersync/         sync service config (Sync Streams)
 plans/             the inbox, the tracker, PRDs and plans
-scripts/loops/     parallel worktrees for PRDs and slices (pnpm prd)
-scripts/backlog/   the inbox and tracker tool (pnpm backlog)
+scripts/project/   Caretook's hooks and checks for risa, the orchestration tool (interrobangc/risa)
 .githooks/         branch protection and commit message checks
 ```
 
@@ -57,8 +56,8 @@ Sign in as one of the seeded `@example.com` accounts (for example `member@exampl
 | `pnpm check`                | typecheck, lint, format check and every test: run before handing off |
 | `pnpm datastore:reset`      | wipe the local database, migrate and reseed                          |
 | `pnpm datastore:start:test` | the test database (needed by `pnpm test`)                            |
-| `pnpm backlog list`         | what's planned, and where it stands                                  |
-| `pnpm prd status`           | every parallel PRD worktree, with its dev server link                |
+| `risa backlog list`         | what's planned, and where it stands                                  |
+| `risa status`               | every parallel PRD worktree, with its dev server link                |
 
 AGENTS.md has the full command list.
 
@@ -71,33 +70,33 @@ Small changes need none of this: ask an agent in the main checkout and commit st
 | Command                                           | What it does                                                     |
 | ------------------------------------------------- | ---------------------------------------------------------------- |
 | edit [plans/inbox.md](plans/inbox.md)             | add a bug, change, feature or question as a plain line           |
-| `pnpm backlog ingest`                             | file new inbox lines into the tracker (each gets an id, `B-12`)  |
-| `pnpm backlog list`                               | open items; filter with `--prd <topic>`, `--status <s>`, `--all` |
-| `pnpm backlog show B-12`                          | one item, with its notes                                         |
-| `pnpm backlog set B-12 prd=search status=triaged` | move an item to a PRD, or `status=dropped`                       |
-| `pnpm backlog note B-12 "text"`                   | add a dated note                                                 |
+| `risa backlog ingest`                             | file new inbox lines into the tracker (each gets an id, `B-12`)  |
+| `risa backlog list`                               | open items; filter with `--prd <topic>`, `--status <s>`, `--all` |
+| `risa backlog show B-12`                          | one item, with its notes                                         |
+| `risa backlog set B-12 prd=search status=triaged` | move an item to a PRD, or `status=dropped`                       |
+| `risa backlog note B-12 "text"`                   | add a dated note                                                 |
 
 **Run a PRD**
 
-| Command                  | What it does                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------------- |
-| `pnpm prd status`        | everything running: worktree, branch, uncommitted changes, and each dev server's link           |
-| `pnpm prd plan <topic>`  | a docs-only worktree for writing a new PRD and its plan with an agent                           |
-| `pnpm prd start <topic>` | create (or reopen) the PRD's worktree and stack; prints the command that opens its orchestrator |
-| `pnpm prd serve <topic>` | start that PRD's dev server in the background and print its link (`--restart`, `--stop`)        |
+| Command              | What it does                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `risa status`        | everything running: worktree, branch, uncommitted changes, and each dev server's link           |
+| `risa plan <topic>`  | a docs-only worktree for writing a new PRD and its plan with an agent                           |
+| `risa start <topic>` | create (or reopen) the PRD's worktree and stack; prints the command that opens its orchestrator |
+| `risa serve <topic>` | start that PRD's dev server in the background and print its link (`--restart`, `--stop`)        |
 
 Then tell the orchestrator which slices to run.
 
 **Review and land**
 
-| Command                  | What it does                                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm prd ready <topic>` | the ready-to-land report: a link to try it, the bugs, features and changes it addresses, what changed, and anything still blocking   |
-| `pnpm prd land <topic>`  | merge `prd/<topic>` into `dev` (or just tell the orchestrator "land it"). Refuses unless the branch is synced with `dev` and checked |
-| `git push origin dev`    | publish `dev`; then open PRs on GitHub for `dev` → `staging` → `main`                                                                |
-| `pnpm prd rm <topic>`    | when the PRD is finished: remove its worktree, stack and merged branch                                                               |
+| Command               | What it does                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `risa ready <topic>`  | the ready-to-land report: a link to try it, the bugs, features and changes it addresses, what changed, and anything still blocking   |
+| `risa land <topic>`   | merge `prd/<topic>` into `dev` (or just tell the orchestrator "land it"). Refuses unless the branch is synced with `dev` and checked |
+| `git push origin dev` | publish `dev`; then open PRs on GitHub for `dev` → `staging` → `main`                                                                |
+| `risa rm <topic>`     | when the PRD is finished: remove its worktree, stack and merged branch                                                               |
 
-`pnpm prd help` lists the rest (`slice`, `check`, `sync`, `prompt`), which orchestrators run for you.
+`risa help` lists the rest (`slice`, `check`, `sync`, `prompt`), which orchestrators run for you.
 
 ## Commit messages
 

@@ -150,36 +150,53 @@ export const allActions = ({ name, phones, email, address, website }: Contactabl
     websiteAction(name, website),
   ]);
 
-/** One line of a directory row's contact details: the link, its text and an optional caption. */
+/** One visible contact link: the action, its text and an optional caption. */
 export type ContactDetail = {
   action: ContactAction;
-  /** What the row shows: the number, the address on one line, the email. */
+  /** What shows: the number, the address on one line, the email. */
   text: string;
   /** A number's label ("Office"), shown muted after it; null when there's none. */
   caption: string | null;
 };
 
+const callDetail = (name: string, phone: ProviderPhone): ContactDetail | null => {
+  const action = callAction(name, phone);
+  return action ? { action, text: phone.number.trim(), caption: phone.label.trim() || null } : null;
+};
+
+const mapDetail = (name: string, address: string | null): ContactDetail | null => {
+  const action = mapAction(name, address);
+  if (!action) return null;
+  const text = action.value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(", ");
+  return { action, text, caption: null };
+};
+
 /**
- * A directory row's visible contact details: each number (with its label),
- * then the address (lines joined with commas) and the email, each only when
- * it makes a link. The website stays on the provider's page.
+ * Every contact detail as visible links (Easy mode's search result): each
+ * number (with its label), then the address (lines joined with commas) and
+ * the email, each only when it makes a link. The website stays on the
+ * provider's page.
  */
 export const contactDetails = ({ name, phones, email, address }: Contactable): ContactDetail[] => {
-  const details: ContactDetail[] = [];
-  for (const phone of phones) {
-    const action = callAction(name, phone);
-    if (action) details.push({ action, text: phone.number.trim(), caption: phone.label.trim() || null });
-  }
-  const map = mapAction(name, address);
-  if (map) {
-    const text = map.value
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join(", ");
-    details.push({ action: map, text, caption: null });
-  }
+  const details = [...phones.map((phone) => callDetail(name, phone)), mapDetail(name, address)].filter(
+    (d): d is ContactDetail => d !== null,
+  );
   const mail = emailAction(name, email);
   if (mail) details.push({ action: mail, text: mail.value.trim(), caption: null });
   return details;
 };
+
+/**
+ * A Full directory row's contact line (B-940): the first number and the
+ * address as visible links, and the email as an icon button. Each is null
+ * when it can't make a link.
+ */
+export const rowContact = ({ name, phones, email, address }: Contactable) => ({
+  call: phones[0] ? callDetail(name, phones[0]) : null,
+  map: mapDetail(name, address),
+  email: emailAction(name, email),
+});

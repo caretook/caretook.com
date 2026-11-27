@@ -1,5 +1,5 @@
 // A CI run's verdict: one small JSON file, version 1, uploaded as the `verdict`
-// artifact and read on the Mac by `pnpm prd ci`, which reads it only as a file,
+// artifact and read on the Mac by `risa ci`, which reads it only as a file,
 // with its own reader: a change to the file's shape bumps VERDICT_VERSION. Pure
 // except for the CLI at the bottom, and it imports only its own modules: the
 // verdict job runs with no install.

@@ -10,12 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State  | Merge    |
-| ----- | ----- | ------ | -------- |
-| 72    | B-830 | merged | ab6da878 |
-| 73    | B-840 | merged | 9dd61dda |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. PR #208 open; Codex out of credits (exit 4: land --no-review). Browser --changed: app-shell, invites pass. Next: land --tier full --no-review once the recheck is green. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
+**Idle after wave 18** (landed through PR #258, 2026-11-27, Codex clean on 96ff344; components CI flake on 96ff3441, run 46048908769: `search.sync.browser.test.tsx` timing, not this branch's, filed by land). Slices 76 (B-968), 77 (B-969), 79 (B-971) were test-only (Los Angeles assumed); 78 (B-970) was an app bug: quick tags' line covered a row's open link (`w-fit` in `QuickTags.tsx`, folded into tags.md). To-test: `to-test/2026-11-27-1329-fixes-bug.md`. Slice worktrees removed. Lesson for zone slices: a test file not in `vitest.config.ts`'s `NY_INCLUDE` can't import `test/zone.ts`; compute the expectation with the screen's formatter or `Intl`. Browser checks at landing were roundtrip and layout-offline only (no `--suite`: the user asks first). `risa status-trim` (Risa v0.1.3) fails: "Cannot find package 'prettier'" from `~/.risa/releases/v0.1.3/loops/status-trim.mjs`; wave 18 rows moved to history by hand. Land twice refused on components.md's budget while dev moved: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 19 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
@@ -778,3 +776,55 @@ The offline banner (`routes/app/layout/OfflineBanner.tsx`) flashes while the con
 - Find what drives it (`navigator.onLine`, PowerSync's connected status from `lib/sync/`, or both) and say in the hand-off which flips while online, and why.
 - Show the banner only after the offline state has held for a short grace period (a few seconds, one named constant); hide it as soon as the connection is back. Don't change what counts as offline elsewhere (uploads, page cache).
 - Component tests with fake timers: a drop shorter than the grace never shows the banner; one longer shows it; reconnecting hides it at once.
+
+## Wave 17
+
+Two fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays standing until its notes name files; B-752 (the timeline jump hang) stays open until B-753's watchdog (now in dev) names it on a recurrence.
+
+### Slice 74: Back from an entry returns to the page that opened it (B-936)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/providers.md, docs/domain/todos.md · Tests: component
+
+`routes/app/groups/entry/useLiveEntry.ts` (`backTo`, ~line 390) knows only the Planner (`plannerReturnFrom(location.state)`) and otherwise goes to the Timeline, so an entry opened from a provider's page (`provider/LinkedEntries.tsx`), a todo (`todo/TodoEntryLinks.tsx`) or the visit prep sheet (`components/visitPrep/VisitPrepSheet.tsx`) goes back to the timeline.
+
+- First a failing component test: open an entry from a provider's linked entries, press Back, land on the provider.
+- Carry where the entry was opened from in navigation state (as the Planner's `returnTo` does), with the opener's label and URL; Back returns there (a history step when it is the previous entry, as the Planner does). Keep the Planner's behaviour and the Timeline default unchanged; an unknown or missing state still goes to the Timeline.
+- Wire the provider, todo and visit prep openers. Tests for each opener's Back, plus the Planner and default cases still passing.
+
+### Slice 75: two devices naming the same tag in different case keep it on the server (B-951)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/sync.md · Tests: integration, browser
+
+The browser check `scripts/browser-checks/roundtrip.spec.mjs:61` fails at its tags step: two devices create the same tag name in different case, both agree on one id with one link each, but the server holds 0 tags and 0 links. Suspect tags-2's d362bd70 (tag colors through sync: `apps/web/app/lib/tags/tags.sync.ts`, `packages/api/src/syncRegistry.ts`).
+
+- Reproduce first: an integration test beside `packages/api/src/syncTags.int.test.ts` that uploads the two devices' creates (same name, different case, as the devices write them since d362bd70) and their links, and expects one tag and both links on the server. Then run the roundtrip check once (`pnpm prd browser` for that spec) to confirm.
+- Find why the server drops them (a rejected upload, a conflict path that discards, a color field the server refuses) and say so in the hand-off; fix it in the upload handler or the device write, keeping one tag per case-insensitive name per group.
+- Uploads must not silently drop: if the server refuses a write, the test shows the error path, not a missing row.
+
+## Wave 18
+
+Four second-zone failures from dev's release run on 39b4beaf (2026-11-27), independent, run at once. Each slice owns one test file and follows wave 12's _The zone slices_: run it in both zones first (component files: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm exec vitest run --project web:components <file>`, then `America/Los_Angeles`; browser checks: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm prd browser <spec>`, then Los Angeles), find out why each failure happens, then fix the test (it assumed Los Angeles: state or compute its zone, never weaken it, change the runner's zone or skip it) or the app (small and inside the slice's area, with the test proving it; else file a `fixes-bug` item and say so). If it doesn't reproduce in either zone, say so in the hand-off with the runs that show it (three in New York) and change nothing. Stay out of todo-subtasks-3's hot files (`pnpm backlog prd list`), `vitest.config.ts` and `scripts/ci/`. B-750 stays the standing umbrella; B-752 waits on B-753's watchdog.
+
+### Slice 76: Google calendar settings test passes in New York (B-968)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/calendars.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above.
+
+### Slice 77: group settings test passes in New York (B-969)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above. Slice 76 runs beside it in the same folder: change only this file and what it tests.
+
+### Slice 78: the offline layout check passes in New York (B-970)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: e2e:layout-offline
+
+`scripts/browser-checks/layout-offline.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 was a stack missing one).
+
+### Slice 79: the roundtrip check passes in New York (B-971)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: e2e:roundtrip
+
+`scripts/browser-checks/roundtrip.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 failed this check on a stack missing one), and name the failing step in the hand-off.

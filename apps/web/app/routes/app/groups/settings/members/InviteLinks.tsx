@@ -82,7 +82,7 @@ export function CreateLinkButton({
         Create a link
       </Button>
       {online && !options.linkInvites && (
-        <p id="links-unavailable" className="text-base-content/70 text-sm">
+        <p id="links-unavailable" className="text-muted text-sm">
           {INVITES_UNAVAILABLE.link}
         </p>
       )}
@@ -102,7 +102,7 @@ export function CreateLinkButton({
         >
           <fetcher.Form method="post" className="space-y-2" data-link-sheet="">
             <input type="hidden" name="intent" value="createLink" />
-            <p className="text-base-content/70 text-sm">
+            <p className="text-muted text-sm">
               Anyone with the link can ask to join. You or another owner or admin approves each request, and
               they see nothing until then.
             </p>
@@ -274,12 +274,12 @@ function InviteLink({
     <ListRow data-invite-link={link.id} data-link-state={link.state} className="space-y-1">
       {/* The details take the card's width; the actions go below them on a phone, beside them from 28rem (B-843). */}
       <div className="flex items-start gap-3">
-        <Link2 aria-hidden="true" className="text-base-content/60 mt-0.5 size-5 shrink-0" />
+        <Link2 aria-hidden="true" className="text-faint mt-0.5 size-5 shrink-0" />
         <div className="@container min-w-0 flex-1">
           <div className="flex flex-col gap-2 @md:flex-row @md:items-center">
             <div className="min-w-0 flex-1 wrap-anywhere" data-link-details="">
               <p className="font-medium">{label}</p>
-              <p className="text-base-content/70 text-sm" data-link-uses="">
+              <p className="text-muted text-sm" data-link-uses="">
                 {linkStatusLine(link)}
                 {link.sentBy?.name ? ` · Made by ${link.sentBy.name}` : ""}
               </p>

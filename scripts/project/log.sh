@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # pnpm log [git log args…]: `git log` without the chore(backlog) commits
-# (every `pnpm backlog` write is one), every other argument passed through.
+# (every `risa backlog` write is one), every other argument passed through.
 # A user --grep would be inverted along with ours (git ORs the patterns, then
 # --invert-grep flips them), so with one the filter is dropped and says so.
 set -euo pipefail
