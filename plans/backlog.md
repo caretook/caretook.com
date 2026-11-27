@@ -262,10 +262,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-942 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
 | B-943 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
 | B-944 | feature | in-progress | todo-links | prd/todo-links | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
-| B-945 | feature | triaged | todo-links |  | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
-| B-946 | feature | triaged | todo-links |  | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
+| B-945 | feature | in-progress | todo-links | prd/todo-links | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
+| B-946 | feature | in-progress | todo-links | prd/todo-links | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
 | B-947 | feature | in-progress | todo-links | prd/todo-links | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
-| B-948 | feature | ready | todo-links | prd/todo-links | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
+| B-948 | feature | landed | todo-links | prd/todo-links | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
@@ -294,8 +294,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-985 | bug | ready | fixes-bug | prd/fixes-bug | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
 | B-986 | bug | ready | fixes-bug | prd/fixes-bug | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
 | B-987 | bug | triaged | fixes-bug |  | log_dose's pass read (slotDose, assistantActionService.ts ~405) pages at 100 with includeDeleted, so a group with over 100 passes ever made can miss a pass |
-| B-988 | bug | triaged | todo-links |  | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
-| B-989 | bug | triaged | todo-links |  | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
+| B-988 | bug | in-progress | todo-links | prd/todo-links | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
+| B-989 | bug | in-progress | todo-links | prd/todo-links | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
 
 ## Items
 
@@ -1634,9 +1634,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-945 · feature · Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest
 
-- status: triaged
+- status: in-progress
 - prd: todo-links
-- owner:
+- owner: prd/todo-links
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
@@ -1644,9 +1644,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-946 · feature · Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search
 
-- status: triaged
+- status: in-progress
 - prd: todo-links
-- owner:
+- owner: prd/todo-links
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
@@ -1664,7 +1664,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-948 · feature · Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part
 
-- status: ready
+- status: landed
 - prd: todo-links
 - owner: prd/todo-links
 - commit: b7fb8d218
@@ -1928,18 +1928,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-988 · bug · Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter)
 
-- status: triaged
+- status: in-progress
 - prd: todo-links
-- owner:
+- owner: prd/todo-links
 - commit:
 
 - 2026-11-27 (prd/todo-links): Codex P2 on PR #280 (linkSearch.sync.ts:127): searchGroup truncates the entry section before searchLinkables drops non-linkable kinds; the 5x overfetch can't guarantee results. Filter by kind before truncation or fetch until enough. Fits slice 3 (it extends searchLinkables) or a later slice.
+- 2026-11-27 (prd/todo-links): fold into slice 3 (linkSearch.sync.ts)
 
 ### B-989 · bug · Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged
 
-- status: triaged
+- status: in-progress
 - prd: todo-links
-- owner:
+- owner: prd/todo-links
 - commit:
 
 - 2026-11-27 (prd/todo-links): Codex P2 on PR #280 (useLinkSearch.ts:33): the hook reruns only on search index changes; tag and record_tag aren't index sources. Observe the group's tags and tag assignments as useSearchPage does. Fits slice 3 or a later slice.
+- 2026-11-27 (prd/todo-links): fold into slice 3 (useLinkSearch.ts)
