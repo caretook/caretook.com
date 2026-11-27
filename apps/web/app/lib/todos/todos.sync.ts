@@ -1054,6 +1054,16 @@ export const subtasksQuery = (todoId: string): LocalQuery => ({
   params: [todoId],
 });
 
+/**
+ * The parents of `parentIds`' todos, deleted ones too (they count for
+ * depth): each one's own parent, for a flat list's quick adds
+ * (`useQuickAddChains`).
+ */
+export const todoParentLinksQuery = (parentIds: readonly string[]): LocalQuery => ({
+  sql: `SELECT id, parent_id FROM todo WHERE id IN (${parentIds.map(() => "?").join(", ") || "NULL"})`,
+  params: [...parentIds],
+});
+
 /** One row per parent with live subtasks: how many, how many are done (`subtaskProgress`), and its title. */
 export type SubtaskProgressRow = { parent_id: string; done: number; total: number; title?: string | null };
 

@@ -60,7 +60,8 @@ const open = (
   id: string,
   fixtures: Parameters<typeof renderWithDevice>[0]["fixtures"],
   role: GroupRole = "owner",
-) => renderWithDevice({ route: ROUTES, url: pageOf(id), role, fixtures });
+  search = false,
+) => renderWithDevice({ route: ROUTES, url: pageOf(id), role, fixtures, search });
 
 const row = (kind: string) => document.querySelector<HTMLElement>(`[data-todo-link="${kind}"]`);
 const nameIn = (kind: string) => row(kind)?.querySelector("[data-todo-link-name]");
@@ -231,11 +232,12 @@ describe("the todo page's linked entries", () => {
     await expect.poll(linkNames).toEqual(["Cardiology follow-up"]);
   });
 
-  test("a reader sees no Remove and no Link an entry", async () => {
-    await open(REFILL.id, TWO_LINKED, "viewer");
-    await expect.poll(linkNames).toHaveLength(2);
+  test("a reader sees no Remove and no Link to box", async () => {
+    await open(LINKED.id, [LARK, VISIT, METFORMIN, LINKED, LINKED_ROW], "viewer");
+    await expect.poll(() => row("medication")).not.toBeNull();
+    expect(row("provider")).not.toBeNull();
     expect(document.querySelector("[data-todo-link-remove]")).toBeNull();
-    expect(document.querySelector("[data-todo-link-add]")).toBeNull();
+    expect(document.querySelector("[data-link-to-box]")).toBeNull();
   });
 
   test("a writer removes a link: the entry and the todo stay, the link row goes", async () => {
@@ -257,32 +259,66 @@ describe("the todo page's linked entries", () => {
     ]);
   });
 
-  test("a writer links another note from the search, offline", async () => {
-    const device = await open(REFILL.id, TWO_LINKED);
-    await expect.poll(linkNames).toHaveLength(2);
-    await userEvent.click(page.getByRole("button", { name: "Link an entry" }));
-    const search = page.getByRole("combobox", { name: "Link an entry" });
-    await expect.element(search).toHaveFocus();
-    // Linked ones aren't offered.
-    await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBe(1);
-    await userEvent.keyboard("sleep");
-    await userEvent.click(page.getByRole("option", { name: /^Sleep was better this week/ }));
-    await device.settle();
-    await expect
-      .poll(linkNames)
-      .toEqual(["Cardiology follow-up", "Sleep was better this week", "Pharmacy said the refill is late"]);
-    await expect.element(page.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
-    expect((await device.queued()).map((w) => `${w.op} ${w.id}`)).toEqual([
-      `PUT ${entryTodo(OTHER_NOTE.id, REFILL.id).id}`,
-    ]);
-  });
-
-  test("a writer sees Linked to with Link an entry on a todo without links", async () => {
+  test("a writer sees Linked to with the Link to box on a todo without links", async () => {
     const plain = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d04", title: "Water the plants" });
     await open(plain.id, [plain]);
     const links = page.getByRole("region", { name: "Linked to" });
-    await expect.element(links.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
+    await expect.element(links.getByRole("combobox", { name: "Link to" })).toBeInTheDocument();
     expect(links.element().querySelector("ul")).toBeNull();
+  });
+});
+
+// The shared "Link to" box on the page (todo-links slice 1): a pick links at
+// once, offline: a note or event adds a link row, a provider or medication
+// fills its slot (a second provider replaces the first); Remove unlinks each.
+
+const FINCH = fx.provider({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9a02", name: "Dr. Ana Finch" });
+const PLAIN = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d05", title: "Sort the paperwork" });
+const BOX = () => page.getByRole("combobox", { name: "Link to" });
+
+/** Type into the box and pick the option starting with `name`. */
+const pick = async (device: Awaited<ReturnType<typeof open>>, text: string, name: RegExp) => {
+  await userEvent.click(BOX());
+  await userEvent.keyboard(text);
+  await userEvent.click(page.getByRole("option", { name }));
+  await device.settle();
+};
+
+const slots = async (device: Awaited<ReturnType<typeof open>>) =>
+  (
+    await device.query<{ provider_id: string | null; medication_id: string | null }>(
+      "SELECT provider_id, medication_id FROM todo WHERE id = ?",
+      [PLAIN.id],
+    )
+  )[0];
+
+describe("linking from the todo page", () => {
+  test("a writer links a provider, a medication and a note; a second provider replaces the first; Remove unlinks each", async () => {
+    const device = await open(PLAIN.id, [PLAIN, LARK, FINCH, METFORMIN, OTHER_NOTE], "owner", true);
+    await expect.element(BOX()).toBeInTheDocument();
+
+    await pick(device, "lark", /^Dr\. Mira Lark/);
+    await expect.poll(() => nameIn("provider")?.textContent).toBe("Dr. Mira Lark");
+    await pick(device, "metformin", /^Metformin/);
+    await expect.poll(() => nameIn("medication")?.textContent).toBe("Metformin 500 mg");
+    await pick(device, "sleep", /^Sleep was better this week/);
+    await expect.poll(() => nameIn("note")?.textContent).toBe("Sleep was better this week");
+    expect(await slots(device)).toEqual({ provider_id: LARK.id, medication_id: METFORMIN.id });
+
+    await pick(device, "finch", /^Dr\. Ana Finch/);
+    await expect.poll(() => nameIn("provider")?.textContent).toBe("Dr. Ana Finch");
+    expect(document.querySelectorAll('[data-todo-link="provider"]')).toHaveLength(1);
+    expect(await slots(device)).toEqual({ provider_id: FINCH.id, medication_id: METFORMIN.id });
+
+    for (const name of ["Dr. Ana Finch", "Metformin 500 mg", "Sleep was better this week"]) {
+      await userEvent.click(page.getByRole("button", { name: `Remove link to ${name}` }));
+      await device.settle();
+    }
+    await expect.poll(() => document.querySelector("[data-todo-links] ul")).toBeNull();
+    expect(await slots(device)).toEqual({ provider_id: null, medication_id: null });
+    expect(await device.query("SELECT id FROM timeline_entry_todo WHERE todo_id = ?", [PLAIN.id])).toEqual(
+      [],
+    );
   });
 });
 

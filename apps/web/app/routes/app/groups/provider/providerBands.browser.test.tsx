@@ -29,12 +29,12 @@ describe("the provider page's bands", () => {
       "(header)",
       "Contact",
       "Visits",
-      "(band)",
+      "Todos",
       "Notes",
       "Linked entries",
       "Medications",
     ]);
-    expect(document.querySelector("main [data-band] [data-linked-todos-add]")).toBeTruthy();
+    expect(document.querySelector("main [data-band] [data-todo-quick-add]")).toBeTruthy();
     expect(bandsAlternate()).toBe(true);
   });
 

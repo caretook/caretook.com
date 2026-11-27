@@ -6,7 +6,7 @@
 - **Feature folders:** `brand/`, `contact/`, `entry/` (the timeline's and Planner's: `RepeatMark`, `SeriesScopeDialog`, `RemindMeSheet`), `groups/`, `medications/`, `notes/` (the Tiptap editor), `providers/` (contact pieces and the provider pickers, [providers](providers.md)), `quick-entry/`, `repeat/` (`RepeatField`, `RepeatSheet`, `SeriesEditSheet`), `schedule/`, `settings/`, `shell/`, `todos/`, `visitPrep/`.
 - **Import through a folder's `index.ts`**, never a file inside it; a route never imports another route's folder. An index brings its whole chunk: keep heavy pieces out of indexes light routes use.
 - **A component lives beside its route** until a second route needs it (then a feature folder or `ui/`).
-- `components/todos/` (todo screens) (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`, `TodoTreeMarks`; `TodoRow` (looks `list`, `card`, `easy`, `context`), `TodoTree` (`adding`: quick add per row), `TodoQuickAdd`).
+- `components/todos/` (todo screens) (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`, `TodoTreeMarks`; `TodoRow` (looks `list`, `card`, `easy`, `context`), `TodoTree` (`adding`: quick add per row), `TodoQuickAdd` (a parent, a `link`, or both), `LinkToBox`).
 
 ## Rules
 

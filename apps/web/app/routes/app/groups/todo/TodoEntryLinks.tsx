@@ -1,15 +1,13 @@
 import type { LinkedEntry } from "./useTodoEntryLinks";
 
-import { CalendarClock, Link2, NotebookPen, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CalendarClock, NotebookPen, X } from "lucide-react";
 import { Link } from "react-router";
-import { Badge, Button, ComboBox, IconButton, STATUS_TONE } from "~/components/ui";
+import { Badge, IconButton, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime } from "~/lib/core/format";
 import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { useEntryOpenerState } from "~/lib/timeline/entryOrigin";
-import { entryLinkOptions, linkedEntryName } from "~/lib/todos/entryTodoDisplay";
-import { useLinkableEntries } from "./useTodoEntryLinks";
+import { linkedEntryName } from "~/lib/todos/entryTodoDisplay";
 
 export const LINK_ROW = "hover:bg-base-200/50 relative isolate flex items-center gap-3 px-3 py-2.5";
 export const STRETCHED =
@@ -23,6 +21,19 @@ export function IconDot({ children }: { children: React.ReactNode }) {
     >
       {children}
     </span>
+  );
+}
+
+/** A link row's Remove (writers): unlinks it, leaving both sides. */
+export function RemoveLink({ name, onRemove }: { name: string; onRemove: () => void }) {
+  return (
+    <IconButton
+      label={`Remove link to ${name}`}
+      icon={X}
+      onPress={onRemove}
+      className="relative z-10"
+      data-todo-link-remove=""
+    />
   );
 }
 
@@ -91,72 +102,7 @@ export function EntryLinkRow({
           )}
         </p>
       </div>
-      {onRemove && (
-        <IconButton
-          label={`Remove link to ${name}`}
-          icon={X}
-          onPress={onRemove}
-          className="relative z-10"
-          data-todo-link-remove=""
-        />
-      )}
+      {onRemove && <RemoveLink name={name} onRemove={onRemove} />}
     </li>
-  );
-}
-
-/**
- * Writers' "Link an entry": a button that opens a search over the group's
- * notes and events this todo doesn't link yet (newest first); picking one
- * links it and closes the search. The candidates are read only while it's open.
- */
-export function LinkEntryPicker({
-  groupId,
-  todoId,
-  onLink,
-}: {
-  groupId: string;
-  todoId: string;
-  onLink: (entryId: string) => Promise<boolean>;
-}) {
-  const [open, setOpen] = useState(false);
-  if (!open)
-    return (
-      <Button variant="ghost" size="sm" icon={Link2} onClick={() => setOpen(true)} data-todo-link-add="">
-        Link an entry
-      </Button>
-    );
-  return <EntrySearch groupId={groupId} todoId={todoId} onLink={onLink} onClose={() => setOpen(false)} />;
-}
-
-function EntrySearch({
-  groupId,
-  todoId,
-  onLink,
-  onClose,
-}: {
-  groupId: string;
-  todoId: string;
-  onLink: (entryId: string) => Promise<boolean>;
-  onClose: () => void;
-}) {
-  const [text, setText] = useState("");
-  const candidates = useLinkableEntries(groupId, todoId);
-  const options = useMemo(() => entryLinkOptions(candidates, text, new Date()), [candidates, text]);
-  return (
-    <div data-todo-link-picker="">
-      <ComboBox
-        label="Link an entry"
-        placeholder="Search notes and events"
-        options={options}
-        inputValue={text}
-        onInputChange={setText}
-        onSelect={(id) => {
-          void onLink(id).then((ok) => ok && onClose());
-        }}
-        emptyText="No notes or events match"
-        onClose={onClose}
-        focusOnMount
-      />
-    </div>
   );
 }
