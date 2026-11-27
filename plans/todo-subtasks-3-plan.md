@@ -4,19 +4,29 @@
 
 ## Status
 
-**Planned 2026-11-27, revised the same day** at the user's approval: the same tree everywhere (the Todos page, the todo page, the Planner, the Easy view), no subtask on a row of its own; the Today card, one line, names the due step. Not started. Nine slices (three over the usual six: the calendars slice from s67, and the day views, split at s69's send-back); each is small.
+**Planned 2026-11-27, revised the same day** at the user's approval: the same tree everywhere (the Todos page, the todo page, the Planner, the Easy view), no subtask on a row of its own; the Today card, one line, names the due step. Nine slices (three over the usual six: the calendars slice from s67, and the day views, split at s69's send-back); each is small.
 
-| Slice | Wave | State | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------------ |
-| 1     | 1    | —     |                                                  |
-| 2     | 1    | —     |                                                  |
-| 3     | 1    | —     |                                                  |
-| 4     | 2    | —     |                                                  |
-| 5     | 3    | —     |                                                  |
-| 6     | 3    | —     |                                                  |
-| 7     | 4    | —     |                                                  |
-| 8     | 4    | —     |                                                  |
-| 9     | 5    | —     |                                                  |
+**Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Wave 1 landed 2026-11-27** in dev as `6d975d86a` through PR #256 (Codex clean on 69a8c1f; CI green at components, run 46039151595; dev was up to date, no sync). Browser: `risa browser --changed` named none; the lean `--suite` was not run (the user's rule: ask before any suite; the permission check refused it). Docs folded (todos, components, calendars, connectors, timeline; each at or under dev's size). Worktrees 1-3 removed. B-941, B-942, B-943 stay in progress (later slices carry them).
+
+**Wave 2 landed 2026-11-27** in dev as `9480f19` through PR #257 (slice 4, merged `c7e7f6035`; Codex clean on c719e42; CI green at components on the pre-sync tip, run 46041028561, and on the synced tip, run 46042026452). Worktree 4 removed. Docs folded (components: `TodoTree`; todos: `siblingOrder`, `todoTreeView.ts`); each at dev's size or under (todos is exactly at it: trim before adding).
+
+**Wave 3 (2026-11-27):** slices 5 and 6 merged (5 first, clean); worktrees kept until green. B-941, B-942 stay in progress (slices 7-9 carry them). CI green at components on 62cb1d9a (run 46044540245); dev up to date (no sync); browser `--changed` named none; PR #259 open, Codex review out. Docs folded (todos; components unchanged, over budget). Next: Codex clean, then land, `risa rm` 5 and 6, rotate. Slice 5 adds `todoTreesQuery`, `doneListed`, `SIBLING_ORDER_SQL`; slice 6 `todoDescendantsQuery` (could reuse slice 5's later). Watch `todos/todos.browser.test.tsx` in the run. Carried notes: `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` even on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level.
+
+**Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
+
+| Slice | Wave | State         | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | merged (opus) | ebdfb25e5 (90e2bbe57)                            |
+| 6     | 3    | merged (opus) | fb2420fd9 (2bb0cc1c0)                            |
+| 7     | 4    | —             |                                                  |
+| 8     | 4    | —             |                                                  |
+| 9     | 5    | —             |                                                  |
 
 ## Architectural decisions
 
@@ -45,7 +55,7 @@ Stack: no · Reads: docs/domain/todos.md, docs/domain/components.md, docs/domain
 
 **Backlog:** B-942. **User stories:** 5, 7, 8.
 
-**What to build:** `TodoRow` moves from `routes/app/groups/todos/TodoRow.tsx` to `components/todos/TodoRow.tsx` unchanged, exported from `components/todos/index.ts`; its importers follow (`routes/app/groups/todos/TodoSections.tsx`, `routes/app/groups/todos/DoneTodos.tsx`; about ten files in all, most of them import updates). It gains a `context` look (dimmed, no tick, still a link) for an ancestor shown only to place a branch. `components/todos/TodoQuickAdd.tsx` (new): over `createTodo` with a `parentId`; Enter adds and keeps the field focused; Escape closes; errors inline. Two forms: `compact` (an icon-only `ListPlus` "Add subtask to <title>" button with room from its neighbors, opening the field in place) and `full` (the field always shown). Writers only, when `canHaveSubtask`. `routes/app/groups/todo/TodoSubtasks.tsx` drops its `AddSubtask` for `TodoQuickAdd` (full).
+**What to build:** `TodoRow` moves from `routes/app/groups/todos/TodoRow.tsx` to a new `components/todos/TodoRow.tsx` unchanged, exported from `components/todos/index.ts`; its importers follow (`routes/app/groups/todos/TodoSections.tsx`, `routes/app/groups/todos/DoneTodos.tsx`; about ten files in all, most of them import updates). It gains a `context` look (dimmed, no tick, still a link) for an ancestor shown only to place a branch. `components/todos/TodoQuickAdd.tsx` (new): over `createTodo` with a `parentId`; Enter adds and keeps the field focused; Escape closes; errors inline. Two forms: `compact` (an icon-only `ListPlus` "Add subtask to <title>" button with room from its neighbors, opening the field in place) and `full` (the field always shown). Writers only, when `canHaveSubtask`. `routes/app/groups/todo/TodoSubtasks.tsx` drops its `AddSubtask` for `TodoQuickAdd` (full).
 
 **Acceptance criteria:**
 
@@ -122,7 +132,7 @@ Stack: no · Reads: docs/domain/todos.md, docs/domain/components.md · Tests: un
 
 **Backlog:** B-941, B-942. **User stories:** 1, 2, 3, 4, 5, 7.
 
-**What to build:** a new live query in `todos.sync.ts`, the trees' rows: the group's open live todos and its live done subtasks whose top-level todo is open, ordered by `siblingOrder`'s SQL; its initial rows in `routes/app/groups/todos/route.tsx`'s loader. `useTodoList.ts` builds the trees with `todoTrees` and the filters (who, tag, text) as the match; `todoList.ts` `todoSections` sections trees, not rows; `TodoSections.tsx` renders `TodoTree` with `adding` for writers. "Part of" rows go from this page. The Done list (`todosQuery` `done: true`, `doneCountQuery`, through `LISTED_SQL`) stays flat: top-level todos and done subtasks whose top-level todo is done; it leaves out a done subtask whose top-level todo is open, since it shows struck in that tree. The new rule is for done queries only (a `doneListed` filter); the open `listed: true` read that the Easy view's My todos uses keeps the old rule until slice 8; `todoList.ts` stops calling `listsOnItsOwn` (`LISTED_SQL` reaches the top-level todo through a correlated subquery, never a join: `whoCondition`'s columns are unqualified).
+**What to build:** a new live query in `todos.sync.ts`, the trees' rows: the group's open live todos and its live done subtasks whose top-level todo is open, ordered by `siblingOrder`'s SQL; its initial rows in `routes/app/groups/todos/route.tsx`'s loader. `useTodoList.ts` builds the trees; slice 4's `todoTrees` takes the filters (who, tag, text) as the match; `todoList.ts` `todoSections` sections trees, not rows; `TodoSections.tsx` renders the trees; slice 4's `TodoTree` with `adding` for writers. "Part of" rows go from this page. The Done list (`todosQuery` `done: true`, `doneCountQuery`, through `LISTED_SQL`) stays flat: top-level todos and done subtasks whose top-level todo is done; it leaves out a done subtask whose top-level todo is open, since it shows struck in that tree. The new rule is for done queries only (a `doneListed` filter); the open `listed: true` read that the Easy view's My todos uses keeps the old rule until slice 8; `todoList.ts` stops calling `listsOnItsOwn` (`LISTED_SQL` reaches the top-level todo through a correlated subquery, never a join: `whoCondition`'s columns are unqualified).
 
 **Acceptance criteria:**
 
@@ -156,7 +166,7 @@ Stack: no · Reads: docs/domain/todos.md, docs/domain/appointments.md, docs/doma
 
 **Backlog:** B-941. **User stories:** 13.
 
-**What to build:** a new export `plannerDayTrees` (`lib/todos/plannerTodos.ts`): one Planner item per day tree (`todoDayTrees`) instead of one per todo, ranked in its day by its top row's state and time as todos are today. `plannerTodos` stays, unchanged, for the Easy view's Upcoming until slice 8. The Planner reads the trees' query (slice 5) in `routes/app/groups/planner/useUpcomingData.ts` (and `past/route.tsx` where it lists todos). `UpcomingList.tsx` renders each item's `TodoTree` with `adding` for writers. **One row, two looks:** `PlannerTodoRow.tsx` folds into the shared `TodoRow` as its `card` look (the event-card layout of B-636, so a tree's top row lines up with the day's events), moved to `components/todos`; the steps under it are the list look, indented. About eight files.
+**What to build:** a new export `plannerDayTrees` (`lib/todos/plannerTodos.ts`): one Planner item per day tree (`todoDayTrees`) instead of one per todo, ranked in its day by its top row's state and time as todos are today. `plannerTodos` stays, unchanged, for the Easy view's Upcoming until slice 8. The Planner reads the trees' query (slice 5) in `routes/app/groups/planner/useUpcomingData.ts` (and `past/route.tsx` where it lists todos). `UpcomingList.tsx` renders each item's tree; slice 4's `TodoTree` with `adding` for writers. **One row, two looks:** `PlannerTodoRow.tsx` folds into the shared row; slice 1's `TodoRow` gains it as its `card` look (the event-card layout of B-636, so a tree's top row lines up with the day's events), moved to `components/todos`; the steps under it are the list look, indented. About eight files.
 
 **Acceptance criteria:**
 

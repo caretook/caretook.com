@@ -305,6 +305,33 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     ]);
   });
 
+  it("reminds a subtask's assignee: subtasks leave calendars, not reminders", async () => {
+    const { ana, ben, group, remindersOn } = await setup();
+    await remindersOn(ben, { reminderLeads: [60] });
+    const parent = ok(
+      await todoService.create(ana.ctx, {
+        groupId: group.id,
+        title: "Get the house ready",
+        assigneeId: ana.user.id,
+        dueOn: addDays(DAY, 1),
+      }),
+    )!;
+    const step = ok(
+      await todoService.create(ana.ctx, {
+        groupId: group.id,
+        parentId: parent.id,
+        title: "Fit the grab bar",
+        assigneeId: ben.user.id,
+        dueOn: DAY,
+        dueTime: "09:00",
+      }),
+    )!;
+
+    const mine = to((await sweep(HOUR_BEFORE)).sent, ben.user.email);
+    expect(mine.map((m) => m.name)).toEqual(["todoDue"]);
+    expect(mine[0]!.text).toContain(`/app/groups/${group.id}/todos/${step.id}`);
+  });
+
   it("turns reminders off from the email's unsubscribe link", async () => {
     const { ana, group, remindersOn, addAppointment } = await setup();
     await remindersOn(ana);

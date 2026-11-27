@@ -217,12 +217,15 @@ export const groupItems = async (groupId: string, now: Date): Promise<CalendarIt
           .where(and(inArray(timelineEntryProviderSchema.entryId, ids), isNull(providerSchema.deletedAt)))
           .orderBy(providerSchema.name)
       : [];
+    // Top-level todos only (todo-subtasks-3): a subtask never reaches Google, and
+    // `planPush` deletes an event held for one, its item being gone.
     const todos = await db
       .select()
       .from(todoSchema)
       .where(
         and(
           eq(todoSchema.groupId, groupId),
+          isNull(todoSchema.parentId),
           isNull(todoSchema.deletedAt),
           isNull(todoSchema.doneAt),
           isNotNull(todoSchema.dueOn),

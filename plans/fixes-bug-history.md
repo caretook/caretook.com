@@ -2,6 +2,17 @@
 
 Finished-wave history moved out of [the plan](fixes-bug-plan.md)'s _Status_ by `pnpm prd status-trim fixes-bug`, the newest trim first.
 
+## Trimmed 2026-11-27 (wave 18)
+
+Wave 18 landed through PR #258 (2026-11-27).
+
+| Slice | Item  | State                                                             | Merge    |
+| ----- | ----- | ----------------------------------------------------------------- | -------- |
+| 79    | B-971 | merged (Opus; test-only: split label assumed LA)                  | 2375e299 |
+| 78    | B-970 | merged (Opus; app: quick tags line covered the row link, `w-fit`) | 8028c782 |
+| 77    | B-969 | merged (Opus; test-only: LA device zone hard-coded)               | 641ecbb5 |
+| 76    | B-968 | merged (Opus; test-only: LA time hard-coded)                      | d8ce4a4e |
+
 ## Trimmed 2026-11-27
 
 | Slice | Item  | State         | Merge    |

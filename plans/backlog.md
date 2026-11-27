@@ -124,6 +124,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `onboarding-3` | hold | `onboarding-2` | — | — |
 | `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
 | `med-intervals` | — | — | — | Every-N-hours schedules for medications and Med times (B-938). |
+| `tags-4` | hold | `tags-3` | — | — |
+| `shared-displays` | hold | `todo-subtasks-3`, `tags-3` | — | — |
 
 ## Summary
 
@@ -262,9 +264,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
-| B-941 | feature | triaged | todo-subtasks-3 |  | Todos page shows each parent with all its nested todos under it, at every level |
-| B-942 | feature | triaged | todo-subtasks-3 |  | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
-| B-943 | feature | triaged | todo-subtasks-3 |  | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
+| B-941 | feature | in-progress | todo-subtasks-3 | prd/todo-subtasks-3 | Todos page shows each parent with all its nested todos under it, at every level |
+| B-942 | feature | in-progress | todo-subtasks-3 | prd/todo-subtasks-3 | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
+| B-943 | feature | in-progress | todo-subtasks-3 | prd/todo-subtasks-3 | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
 | B-944 | feature | triaged | todo-links |  | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
 | B-945 | feature | triaged | todo-links |  | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
 | B-946 | feature | triaged | todo-links |  | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
@@ -275,22 +277,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-955 | change | triaged | tags-3 |  | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
 | B-956 | change | landed | fixes-perf | prd/fixes-perf | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
-| B-957 | change | triaged | fixes-ui |  | First load: a friendlier loading screen with progress |
+| B-957 | change | landed | fixes-ui | prd/fixes-ui | First load: a friendlier loading screen with progress |
 | B-958 | change | landed | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | landed | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | landed | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
-| B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
-| B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
+| B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
+| B-962 | change | landed | fixes-ui | prd/fixes-ui | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | landed | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
-| B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
+| B-964 | feature | triaged | todo-links |  | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
-| B-968 | bug | triaged | fixes-bug |  | …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York |
-| B-969 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
-| B-970 | bug | triaged | fixes-bug |  | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
-| B-971 | bug | triaged | fixes-bug |  | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
-| B-972 | feature | inbox |  |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
+| B-968 | bug | landed | fixes-bug | prd/fixes-bug | …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York |
+| B-969 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
+| B-970 | bug | landed | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
+| B-971 | bug | landed | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
+| B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 
 ## Items
 
@@ -1085,6 +1087,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/orchestration-split-3. First failure: AssertionError: {"knee":11.599999999976717,"short of breath":20,"\"short of breath\"":21.399999999965075,"walk -cane":5.899999999965075,"pres":5.100000000034925,"the":85.79999999998836}: expected 85.79999999998836 to be less than 50 at http://127.0.0.1:37765/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:37765/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/…
 - 2026-11-26 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/tags-2. First failure: AssertionError: {"knee":11.20000000006985,"short of breath":14.5,"\"short of breath\"":7.5,"walk -cane":4.5,"pres":3.800000000046566,"the":51.39999999990687}: expected 51.39999999990687 to be less than 50 at http://127.0.0.1:42235/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:42235/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq-…
 - 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-ui. First failure: AssertionError: {"knee":19.100000000034925,"short of breath":22.900000000023283,"\"short of breath\"":19.899999999965075,"walk -cane":6.2000000000116415,"pres":5.600000000034925,"the":51.90000000002328}: expected 51.90000000002328 to be less than 50 at http://127.0.0.1:34249/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:34249/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bf…
+- 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-bug. First failure: AssertionError: {"knee":26,"short of breath":18.099999999976717,"\"short of breath\"":20.79999999998836,"walk -cane":7.400000000023283,"pres":4.7999999999883585,"the":63.5}: expected 63.5 to be less than 50 at http://127.0.0.1:44531/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:44531/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8V…
 
 ### B-625 · chore · Drop todo.event_id and its old-client mirror once no device writes it
 
@@ -1663,9 +1666,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-941 · feature · Todos page shows each parent with all its nested todos under it, at every level
 
-- status: triaged
+- status: in-progress
 - prd: todo-subtasks-3
-- owner:
+- owner: prd/todo-subtasks-3
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27 ('it is rough': subtasks must be MUCH easier to add and see on the main Todos page). Today (docs/domain/todos.md, Subtasks): subtasks are added and seen only in the todo page's Subtasks band; lists show a parent with a progress mark and dated or assigned children on their own with 'Part of'; depth max 3; no repeat on a tree. This item: the main Todos list renders the tree (children under the parent, indented, every level), instead of only a progress mark and Part-of rows. Planner: collapse or not, how filters (mine, overdue, tags) treat a parent whose children match, the Planner and Today card.
@@ -1676,9 +1679,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-942 · feature · Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter
 
-- status: triaged
+- status: in-progress
 - prd: todo-subtasks-3
-- owner:
+- owner: prd/todo-subtasks-3
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27 ('it is rough': subtasks must be MUCH easier to add and see on the main Todos page). Today (docs/domain/todos.md, Subtasks): subtasks are added and seen only in the todo page's Subtasks band; lists show a parent with a progress mark and dated or assigned children on their own with 'Part of'; depth max 3; no repeat on a tree. This item: a + on each row (writers, not at max depth, not on a repeating todo) opens an inline title field; Enter adds it as a child and keeps the field for the next; everything else defaults (due date from B-943's rule).
@@ -1690,10 +1693,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-943 · feature · Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made
 
-- status: triaged
+- status: in-progress
 - prd: todo-subtasks-3
-- owner:
-- commit:
+- owner: prd/todo-subtasks-3
+- commit: 69a8c1f28
 
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27 ('it is rough': subtasks must be MUCH easier to add and see on the main Todos page). Today (docs/domain/todos.md, Subtasks): subtasks are added and seen only in the todo page's Subtasks band; lists show a parent with a progress mark and dated or assigned children on their own with 'Part of'; depth max 3; no repeat on a tree. This item: a new child takes the parent's due date; a child's due date must not be after the parent's (enforce in the service and on the device; decide on-the-day vs strictly before, and what happens to children when the parent's date moves earlier); siblings sort by due date ascending, undated ones by created ascending (planner: dated first or undated first).
 - 2026-11-27 (Robert Bo Davis): The user 2026-11-27: the current nested todo management is almost unusable; treat this as a replacement of the subtask flow (todo page and list), not a polish.
@@ -1794,10 +1797,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-957 · change · First load: a friendlier loading screen with progress
 
-- status: triaged
+- status: landed
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: e32df1434
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): sign-in to the first timeline row is ~1.9 s on a 4G phone profile after the fix (2.5 s before), ~4.4 s on 3G; the wait shows brand/AppLoading or FirstSyncPending with no sense of progress. The user asked for a friendlier message with progress. Steps a progress line could follow: signing in, loading the app (route chunks), opening the device copy (lib/sync/client, WASM), first sync (PowerSync currentStatus: connected, hasSynced; downloadProgress), opening the timeline.
 
@@ -1832,8 +1835,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: shared-displays
 - owner:
 - commit:
 
@@ -1841,10 +1844,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-962 · change · Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen
 
-- status: triaged
+- status: landed
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: e32df1434
 
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27. Today (components/notes/NoteFullScreen.tsx, B-765): the dialog is full screen but its content is 'mx-auto max-w-3xl p-2 sm:p-4' with its own title row (h2 = the entry page's heading, plus EditorAvatars as aside) above the editor frame, which keeps its rounded border. Wanted: the frame edge to edge (no max width, padding, border radius; safe-area aware); drop the separate title row; the title (short, truncated: what the note is attached to, e.g. the entry's heading) and the avatars go into the frame's BAR (LiveNotesEditor.tsx ~191) left of the Exit full screen IconButton. On a phone the bar also holds the writer's toolbar: the planner decides the layout (e.g. title + avatars + Exit on one row, toolbar on the next) without losing the one-row toolbar on wide screens. Shared-UX rule (components.md): a note's header bar keeps one shape on the page and in full screen. Reads: live-notes.md (Full screen), components.md.
 
@@ -1860,11 +1863,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-964 · feature · View option to split todo trees into individual due todos (trees stay the default)
 
 - status: triaged
-- prd:
+- prd: todo-links
 - owner:
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): From the todo-subtasks-3 approval (2026-11-27): the user wants trees everywhere for now; this toggle comes later, after todo-subtasks-3.
+- 2026-11-27 (Robert Bo Davis): Backlog session 2026-11-27: triaged to todo-links, the next todos topic, which runs after todo-subtasks-3 as the note asks.
 
 ### B-965 · change · Group the tiny shared app helper chunks on the first /app load
 
@@ -1895,44 +1899,45 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-968 · bug · …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: d8ce4a4eb
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 05eeb40b7f34] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
 
 ### B-969 · bug · CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 641ecbb54
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 30b8d207bcc4] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
 
 ### B-970 · bug · CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 2375e2995
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 8b719e2e0ba0] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
+- 2026-11-27 (slice/fixes-bug/78): Not a zone bug: failed in LA too (same seeded dose row). QuickTags' full-width relative z-10 line covered the row's open target, so a tap beside the chips did nothing; now w-fit (slice 78, f18fdec55), proved by components/tags/quickTagsRow.browser.test.tsx.
 
 ### B-971 · bug · CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 2375e2995
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 2f974a423a03] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
 
 ### B-972 · feature · Tags tab on the planner: a unified view listing all tags and the items tagged with each
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: tags-4
 - owner:
 - commit:
 
