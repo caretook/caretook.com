@@ -6,7 +6,7 @@ import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 import type { TagRow } from "~/lib/tags/tags.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
-import type { LinkCandidate } from "./linkOptions";
+import type { LinkCandidate, LinkType } from "./linkOptions";
 
 import { isEmptySearch } from "@caretook/data/schema";
 import { previewText } from "~/lib/live-notes/notes.sync";
@@ -16,6 +16,7 @@ import { matchingTagIds, parseSearch, searchGroup } from "~/lib/search/search.sy
 import { compareHits } from "~/lib/search/searchResults";
 import { tagsQuery } from "~/lib/tags/tags.sync";
 import { readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { linkTypeWord } from "./linkOptions";
 
 // The "Link to…" box's search (todo-links): what a todo can link to (its
 // provider and medication slots, live notes and events) that matches the
@@ -24,9 +25,6 @@ import { readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
 
 /** How many candidates the box lists at most. */
 export const LINK_SEARCH_LIMIT = 20;
-
-/** Entries are over-fetched: doses, vitals, symptoms and cancelled events match too, and are dropped. */
-const ENTRY_OVERFETCH = 5;
 
 const inIds = (column: string) => `${column} IN (SELECT value FROM json_each(?))`;
 
@@ -73,6 +71,33 @@ const readMedications = async (db: SyncDb, groupId: string, ids: string) => {
   );
 };
 
+/** Every entry `searchGroup` matched: its sections are cut in JS, so asking for all costs no more SQL. */
+const ALL_ENTRIES = Number.MAX_SAFE_INTEGER;
+
+/**
+ * The first `limit` of the entry hits that are live notes or live, not
+ * cancelled events, in their order (B-988: many matching doses, vitals or
+ * symptoms never crowd them out). One light query over the ids; the rows
+ * and notes' text are read only for the ones kept.
+ */
+const linkableEntryHits = async (
+  db: SyncDb,
+  groupId: string,
+  hits: readonly RankedHit[],
+  { limit, skip, type }: { limit: number; skip: ReadonlySet<string>; type: LinkType | null },
+) => {
+  if (!hits.length || limit <= 0) return [];
+  const kinds = type === "note" || type === "event" ? [type] : ["note", "event"];
+  const rows = await db.powersync.getAll<{ id: string }>(
+    `SELECT id FROM timeline_entry
+     WHERE group_id = ? AND deleted_at IS NULL AND cancelled_at IS NULL
+       AND kind IN (SELECT value FROM json_each(?)) AND ${inIds("id")}`,
+    [groupId, JSON.stringify(kinds), idsOf(hits)],
+  );
+  const linkable = new Set(rows.map((r) => r.id));
+  return hits.filter((h) => linkable.has(h.id) && !skip.has(h.id)).slice(0, limit);
+};
+
 /** The live notes and events among `ids` (a cancelled event left out), with the notes' text. */
 const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
   const rows = await db.powersync.getAll<EntryRow>(
@@ -106,41 +131,58 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
  * condition or another entry kind. The text is site search's (its parser,
  * its tag-name match), and the list is in site search's order (title
  * matches first, then rank, then newest: `compareHits`), at most `limit`,
- * the ids in `exclude` (what's linked already) left out. An empty or
- * exclusion-only text finds nothing. Throws while the index is being
- * created; the caller says "Preparing search…".
+ * the ids in `exclude` (what's linked already) left out. A type word
+ * typed first or last (`linkTypeWord`: "provider lee") is read first and
+ * keeps only its type, as `type` does (the box's chip); the word wins. An
+ * empty or exclusion-only text (or a type word alone) finds nothing.
+ * Throws while the index is being created; the caller says "Preparing search…".
  */
 export const searchLinkables = async (
   db: SyncDb,
   groupId: string,
   text: string,
-  { exclude = [], limit = LINK_SEARCH_LIMIT }: { exclude?: readonly string[]; limit?: number } = {},
+  {
+    exclude = [],
+    limit = LINK_SEARCH_LIMIT,
+    type: chosen = null,
+  }: { exclude?: readonly string[]; limit?: number; type?: LinkType | null } = {},
 ): Promise<LinkCandidate[]> => {
-  const parsed = parseSearch(text);
+  const word = linkTypeWord(text);
+  const type = word.type ?? chosen;
+  const parsed = parseSearch(word.rest);
   if (isEmptySearch(parsed)) return [];
   const tags = await readRows<TagRow>(db, tagsQuery(groupId));
   const want = limit + exclude.length;
+  const wants = (t: LinkType | "entry") =>
+    type === null || type === t || (t === "entry" && (type === "note" || type === "event"));
   const results = await searchGroup(
     db,
     groupId,
     parsed,
-    { provider: want, medication: want, entry: want * ENTRY_OVERFETCH, todo: 0, condition: 0 },
+    {
+      provider: wants("provider") ? want : 0,
+      medication: wants("medication") ? want : 0,
+      entry: wants("entry") ? ALL_ENTRIES : 0,
+      todo: 0,
+      condition: 0,
+    },
     null,
     null,
     matchingTagIds(tags, parsed),
   );
+  const skip = new Set(exclude);
+  const entryHits = await linkableEntryHits(db, groupId, results.entry.hits, { limit, skip, type });
   const [providers, medications, entries] = await Promise.all([
     readProviders(db, groupId, idsOf(results.provider.hits)),
     readMedications(db, groupId, idsOf(results.medication.hits)),
-    readEntries(db, groupId, idsOf(results.entry.hits)),
+    readEntries(db, groupId, idsOf(entryHits)),
   ]);
   const found: Partial<Record<SearchItemType, Map<string, LinkCandidate>>> = {
     provider: providers,
     medication: medications,
     entry: entries,
   };
-  const skip = new Set(exclude);
-  return [...results.provider.hits, ...results.medication.hits, ...results.entry.hits]
+  return [...results.provider.hits, ...results.medication.hits, ...entryHits]
     .filter((hit) => !skip.has(hit.id) && found[hit.type]?.has(hit.id))
     .sort(compareHits)
     .slice(0, limit)

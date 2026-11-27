@@ -56,6 +56,8 @@ export type ProviderSearchSource = {
   name?: Text;
   specialty?: Text;
   practiceName?: Text;
+  /** Its phone numbers as stored ("(555) 010-0134"); each is indexed as stored and as digits only. */
+  phones?: Text[];
   documentText?: Text;
   deletedAt?: Text;
 };
@@ -69,6 +71,8 @@ export type MedicationSearchSource = {
   type?: Text;
   reason?: Text;
   directions?: Text;
+  /** The names of the conditions it's linked to (what it's for, `medication_condition`). */
+  conditionNames?: Text[];
   documentText?: Text;
   deletedAt?: Text;
 };
@@ -96,6 +100,16 @@ const join = (parts: Text[]) =>
     .map((p) => p?.trim())
     .filter((p): p is string => !!p)
     .join("\n");
+
+/**
+ * A phone number as stored and as its digits alone, so "555 0134" (the
+ * stored number's words) and "5550134" (one word) both match. One form
+ * when the number is digits only already.
+ */
+const phoneForms = (phone: Text): Text[] => {
+  const digits = phone?.replace(/\D/g, "") ?? "";
+  return digits && digits !== phone?.trim() ? [phone, digits] : [phone];
+};
 
 const str = (value: unknown): Text => (typeof value === "string" ? value : null);
 
@@ -156,7 +170,11 @@ export const providerSearchDocument = (provider: ProviderSearchSource): SearchDo
     type: "provider",
     groupId: provider.groupId,
     title: join([provider.name, provider.specialty]),
-    body: join([provider.practiceName, provider.documentText]),
+    body: join([
+      provider.practiceName,
+      ...(provider.phones ?? []).flatMap(phoneForms),
+      provider.documentText,
+    ]),
   };
 };
 
@@ -172,6 +190,7 @@ export const medicationSearchDocument = (medication: MedicationSearchSource): Se
       medication.type ? medicationTypeLabel(medication.type as MedicationType) : null,
       medication.reason,
       medication.directions,
+      ...(medication.conditionNames ?? []),
       medication.documentText,
     ]),
   };

@@ -6,6 +6,7 @@ import {
   conditionSearchDocument,
   entrySearchDocument,
   medicationSearchDocument,
+  parseProviderPhones,
   parseSearch,
   providerSearchDocument,
   SEARCH_ITEM_TYPES,
@@ -33,7 +34,7 @@ export { matchingTagIds } from "./tagMatch";
  * search document holds change: devices then rebuild their index on the
  * next open.
  */
-export const SEARCH_INDEX_VERSION = 5;
+export const SEARCH_INDEX_VERSION = 6;
 
 /** bm25 weights for (title, body): a match in a title-like field ranks above one in the text. */
 const WEIGHTS = "4.0, 1.0";
@@ -147,13 +148,14 @@ type ProviderSourceRow = DocumentColumns & {
   name: string | null;
   specialty: string | null;
   practice_name: string | null;
+  phones: string | null;
   deleted_at: string | null;
 };
 
 const readProviders = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
   const filter = idFilter("p.id", ids);
   const rows = await db.getAll<ProviderSourceRow>(
-    `SELECT p.id, p.group_id, p.name, p.specialty, p.deleted_at, pr.name AS practice_name,
+    `SELECT p.id, p.group_id, p.name, p.specialty, p.phones, p.deleted_at, pr.name AS practice_name,
             ${documentColumns("p.id")}
      FROM provider p
      LEFT JOIN provider pr ON pr.id = p.practice_id AND pr.group_id = p.group_id
@@ -169,6 +171,7 @@ const readProviders = async (db: SqlRunner, ids: string[] | null): Promise<Searc
       name: row.name,
       specialty: row.specialty,
       practiceName: row.practice_name,
+      phones: parseProviderPhones(row.phones).map((phone) => phone.number),
       deletedAt: row.deleted_at,
       documentText: row.deleted_at ? null : documentText(row),
     });
@@ -184,6 +187,7 @@ type MedicationSourceRow = DocumentColumns & {
   type: string | null;
   reason: string | null;
   directions: string | null;
+  condition_names: string | null;
   deleted_at: string | null;
 };
 
@@ -192,6 +196,9 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
   const rows = await db.getAll<MedicationSourceRow>(
     `SELECT m.id, m.group_id, m.name, m.strength, m.type, m.reason, m.directions,
             m.deleted_at,
+            (SELECT json_group_array(c.name) FROM medication_condition l
+               JOIN recipient_condition c ON c.id = l.condition_id AND c.group_id = l.group_id AND c.deleted_at IS NULL
+               WHERE l.medication_id = m.id) AS condition_names,
             ${documentColumns("m.id")}
      FROM medication m
      LEFT JOIN note_document d ON d.id = m.id
@@ -208,6 +215,7 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
       type: row.type,
       reason: row.reason,
       directions: row.directions,
+      conditionNames: parseJson<(string | null)[]>(row.condition_names) ?? [],
       deletedAt: row.deleted_at,
       documentText: row.deleted_at ? null : documentText(row),
     });
@@ -335,7 +343,10 @@ const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => 
       `${dirty("'provider', 'note_document', 'note_update'")}
        UNION SELECT p.id FROM provider p WHERE p.practice_id IN (${dirty("'provider'")})`,
     ),
-    tx.getAll<{ id: string | null }>(dirty("'medication', 'note_document', 'note_update'")),
+    tx.getAll<{ id: string | null }>(
+      `${dirty("'medication', 'medication_condition', 'note_document', 'note_update'")}
+       UNION SELECT l.medication_id FROM medication_condition l WHERE l.condition_id IN (${dirty("'recipient_condition'")})`,
+    ),
     tx.getAll<{ id: string | null }>(dirty("'todo', 'note_document', 'note_update'")),
     tx.getAll<{ id: string | null }>(dirty("'recipient_condition'")),
   ]);

@@ -1,7 +1,7 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 import type { PickableEvent } from "../../routes/app/groups/todos/todoLinks";
 
-import { dayLabel } from "@caretook/data/schema";
+import { dayLabel, foldSearchText } from "@caretook/data/schema";
 import { PROVIDER_TYPE_META } from "../providers/providerDirectory";
 import { upcomingTitle } from "../appointments/upcomingLabels";
 import { eventWhen } from "../../routes/app/groups/todos/todoLinks";
@@ -14,6 +14,54 @@ import { linkedEntryName } from "./entryTodoDisplay";
 
 /** What a todo links to: its provider or medication slot, or a note or event (a link row). */
 export type LinkType = "provider" | "medication" | "note" | "event";
+
+/** The box's type chips, in order: All (`null`), then one per type. */
+export const LINK_TYPE_CHIPS: readonly { type: LinkType | null; label: string }[] = [
+  { type: null, label: "All" },
+  { type: "provider", label: "Providers" },
+  { type: "event", label: "Events" },
+  { type: "medication", label: "Meds" },
+  { type: "note", label: "Notes" },
+];
+
+/** The words that name a type when typed first or last (folded: case and accents ignored). */
+const TYPE_WORDS: Record<string, LinkType> = {
+  provider: "provider",
+  providers: "provider",
+  doctor: "provider",
+  doctors: "provider",
+  dr: "provider",
+  med: "medication",
+  meds: "medication",
+  medication: "medication",
+  medications: "medication",
+  event: "event",
+  events: "event",
+  appt: "event",
+  appts: "event",
+  appointment: "event",
+  appointments: "event",
+  note: "note",
+  notes: "note",
+};
+
+const typeOfWord = (word: string | undefined): LinkType | null =>
+  word === undefined ? null : (TYPE_WORDS[foldSearchText(word).replace(/\.$/, "")] ?? null);
+
+/**
+ * A type word typed with the search ("provider lee", "lee meds", "Dr. Lee"):
+ * the first word, else the last, when it names a type (`TYPE_WORDS`), with
+ * the rest of the text to search. A word alone names its type and leaves
+ * nothing to search. No type word: `{ type: null, rest: text }`.
+ */
+export const linkTypeWord = (text: string): { type: LinkType | null; rest: string } => {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const first = typeOfWord(words[0]);
+  if (first) return { type: first, rest: words.slice(1).join(" ") };
+  const last = typeOfWord(words.at(-1));
+  if (last) return { type: last, rest: words.slice(0, -1).join(" ") };
+  return { type: null, rest: text };
+};
 
 /** A pick in the box. */
 export type LinkPick = { type: LinkType; id: string };
