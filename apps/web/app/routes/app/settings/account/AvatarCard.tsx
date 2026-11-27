@@ -1,13 +1,13 @@
 import type { AvatarChoice } from "@caretook/data/schema";
 import type { LucideIcon } from "lucide-react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 import type { ActionResult } from "~/lib/core/api";
 
 import { AVATAR_COLORS, AVATAR_ICONS } from "@caretook/data/schema";
 import { CircleOff } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { SaveRow, SettingsCard } from "~/components/settings";
-import { avatarColorClass, avatarIconGlyph, UserAvatar } from "~/components/ui";
+import { avatarColorClass, avatarIconGlyph, Swatch, SwatchGroup, UserAvatar } from "~/components/ui";
 import { saveMyAvatar, useMyAvatar } from "~/lib/app-shell/myAvatar";
 import { toActionResult } from "~/lib/core/api";
 
@@ -20,55 +20,6 @@ const failure = (e: unknown): ActionResult => {
     return { ok: false, error: "Couldn't save that. Check your connection and try again.", issues: [] };
   }
 };
-
-/** One round choice: a native radio, its look beside it. */
-function Swatch({
-  name,
-  label,
-  checked,
-  onChange,
-  className,
-  children,
-}: {
-  name: string;
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-  className: string;
-  children?: ReactNode;
-}) {
-  return (
-    <label title={label} className="cursor-pointer">
-      <input
-        type="radio"
-        name={name}
-        aria-label={label}
-        checked={checked}
-        onChange={onChange}
-        className="peer sr-only"
-      />
-      <span
-        className={`ring-offset-base-100 peer-checked:ring-base-content peer-focus-visible:outline-primary flex size-11 items-center justify-center rounded-full ring-offset-2 peer-checked:ring-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${className}`}
-      >
-        {children}
-      </span>
-    </label>
-  );
-}
-
-function SwatchGroup({ label, children }: { label: string; children: ReactNode }) {
-  const id = useId();
-  return (
-    <div className="space-y-2">
-      <p id={id} className="text-sm font-semibold">
-        {label}
-      </p>
-      <div role="radiogroup" aria-labelledby={id} className="flex flex-wrap gap-2">
-        {children}
-      </div>
-    </div>
-  );
-}
 
 const PENDING_TEXT = "Saved on this device. It'll sync when you're back online.";
 
