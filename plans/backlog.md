@@ -2118,6 +2118,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/fixes-nit): Found by fixes-nit's orchestrator 2026-11-26 running pnpm test:tooling inside its session: 'rm.sh from inside the worktree it removes (B-812)' > 'ends its own orchestrator's session…' (expected null to be 'SIGTERM') and '…refuses another caller inside it…' fail 2/2 runs; with RISA_SESSIONS_DIR, RISA_SESSION_PID, RISA_SESSION_NAME, RISA_CONTEXT_HOOK unset they pass (3/3). Fix: the test clears or sets those vars for its child processes.
+- 2026-11-27 (Robert Bo Davis): 2026-11-27: confirmed the cause of B-953 too. stack.test.mjs's two rm.sh B-812 tests fail with a tool session's RISA_*/CLAUDE* env and pass 18/18 with it unset; the B-929 standalone run hit the same 2 on all three roots.
 
 ### B-933 · chore · test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line
 
@@ -2316,6 +2317,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-27 (Robert Bo Davis): Backlog session 2026-11-27 ~06:05, dev 48de4b6f+: failed 4 of 4 runs of that file alone at low load, the same with the session's prompt edit stashed, so not caused by it. Run from inside a Claude Code session; may depend on that environment. Both tests: 'ends its own orchestrator's session once the worktree is gone', 'refuses another caller inside it'
 - 2026-11-27 (prd/fixes-bug): Seen again 2026-11-27 in fixes-bug's test:tooling run from its orchestrator session (2 of 3, same assertions); wave 17 touched no scripts/loops file.
+- 2026-11-27 (Robert Bo Davis): 2026-11-27: same cause as B-932 (session env leaks into the rm.sh tests); passes with RISA_*/CLAUDE* unset. Fix with B-932.
 
 ### B-954 · bug · Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause
 
