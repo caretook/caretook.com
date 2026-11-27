@@ -12,21 +12,21 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 
 **Wave 2 started** (session 2, 2026-11-26): `pnpm prd sync` up to date; slice 4 worktree made, agent spawned on opus. Slice 4 handed off (d1e98b1b), merged b8484072: `scripts/loops/fixture-project/` (12 files; project name `fixture`, folders `app/` `api/` so the boundary lint passes), `boundary.mjs` `isTest` matches `/fixture-project/`. Under `RISA_CONFIG=<fixture>`: land, land-gate, land-unsynced, land-force-resume, ci/gate, ci/outstanding pass; still failing for slices 5/6: doc (16), prompt (1, hotfix doc), shared-names (1), check-plan (1), ci/release (1, boundary.manifest from config root); Caretook-only project:unit check-plan-rules (44) and ci/tiers (1) fail only because RISA_CONFIG is forced; rotate (1) and recover (1) clear when slice 7 points FIXTURE_CONFIG at the fixture. Slice check failed only B-932. Wave 2 tier `none` (tooling only): the gate is slice 4's tooling step (2,927 passed, 2 B-932 failures, which wave 1's CI passed), not rerun. PR #242; Codex out of credits (exit 4): **Wave 2 landed** in dev as 066b28b4 (PR #242, tier none, `--no-review`: Codex out of credits; report filed). Fixture folded into `docs/agents/project-config.md`. Slice 4 worktree removed.
 
-**Wave 3 started** (session 3, 2026-11-26): ingest nothing new; `pnpm prd sync` up to date; slices 5 and 6 worktrees made, agents spawned on opus (briefs note slice 4's fixture failures and B-932). Acceptance measures `RISA_CONFIG=<fixture risa.json> pnpm test:tooling`; B-932 fails 2 `stack.test.mjs` cases locally, CI is the gate.
+**Wave 3 started** (session 3, 2026-11-26): ingest nothing new; `pnpm prd sync` up to date; slices 5 and 6 worktrees made, agents spawned on opus (briefs note slice 4's fixture failures and B-932). Acceptance measures `RISA_CONFIG=<fixture risa.json> pnpm test:tooling`; B-932 fails 2 `stack.test.mjs` cases locally, CI is the gate. Slice 5 handed off (fdb01d3f): `prompt-render.mjs` (core), project-check gains the golden line, allowlist rules and `--write-golden` (regenerates Caretook's golden; the sample's still `vitest -u`); Caretook role-doc section rows moved to `project-data.test.mjs`; `skeptic.mjs` brief reads rules via `loadConfig()` (same file for Caretook); standalone `--root project` 178 failed in 23 files. Slice 6 handed off (cc44718c): six test files on the fixture. Merged in order: 5 ddaa10cd, 6 77b3ee07. Wave 3 gate: CI tier full (scripts/ci), running.
 
 - Slice 1 handed off (3d1a6b44): `standalone.mjs` (300 s default per-file limit), `lib.sh` exits on no config, lease case. Baseline: sample 576 failed of 2046 in 66 files; project 221 of 2033 in 26 files; none 464 of 1191 in 77 files, 0 hung. Its check failed only `stack.test.mjs` (B-932).
 
 - Slice 2 handed off (98241866): `project-check` built; its slice check passed every unit test but timed out in the tooling step at load ~49 (600 s budget); `stack.test.mjs` "rm.sh from inside the worktree it removes (B-812)" fails 2 cases on the base too (maybe agent-session env): the wave's CI run decides. Also `makeRepo` stops copying `boundary.manifest`/`.allowlist`, adds `sampleData()`. Slice 3 handed off (3d79c811): `fixtureTierData()` in `config-fixture.mjs`; its slice check passed (unit 5454, tooling 2913). The `stack.test.mjs` B-812 failures are the orchestrator session's `RISA_SESSION_*`/`CLAUDE_PID` env leaking into subagent shells (pass with them unset): already B-932. Follow-up idea: `test:tooling` runs `tooling-lint.mjs` before the check, so broken tier data throws a stack trace first.
 
-| Slice | Wave | State                 | Model | Merge into `prd/orchestration-split-4` |
-| ----- | ---- | --------------------- | ----- | -------------------------------------- |
-| 1     | 1    | merged                | opus  | 8d6fdd82                               |
-| 2     | 1    | merged                | opus  | 78153d01                               |
-| 3     | 1    | merged                | opus  | 3f8e5900                               |
-| 4     | 2    | merged                | opus  | b8484072                               |
-| 5     | 3    | running               | opus  |                                        |
-| 6     | 3    | handed off (cc44718c) | opus  |                                        |
-| 7     | 4    | planned               |       |                                        |
+| Slice | Wave | State   | Model | Merge into `prd/orchestration-split-4` |
+| ----- | ---- | ------- | ----- | -------------------------------------- |
+| 1     | 1    | merged  | opus  | 8d6fdd82                               |
+| 2     | 1    | merged  | opus  | 78153d01                               |
+| 3     | 1    | merged  | opus  | 3f8e5900                               |
+| 4     | 2    | merged  | opus  | b8484072                               |
+| 5     | 3    | merged  | opus  | ddaa10cd                               |
+| 6     | 3    | merged  | opus  | 77b3ee07                               |
+| 7     | 4    | planned |       |                                        |
 
 ## Architectural decisions
 
