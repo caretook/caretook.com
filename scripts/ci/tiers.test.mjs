@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 
 import * as tiers from "./tiers.mjs";
-import { tierData } from "./tier-data.mjs";
+import { tierData } from "risa/ci/tier-data.mjs";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const CLI = fileURLToPath(new URL("./tiers.mjs", import.meta.url));

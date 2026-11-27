@@ -8,6 +8,7 @@ const ROWS = {
   linkRows: [{ entry_id: "e1" }],
   summaryRows: [],
   medicationRows: [],
+  documentRows: [],
 };
 const HERE = { locationKey: "k1", filterKey: "[null,null,null,null]" };
 const kept = (limit: number, at = HERE) => ({ ...at, limit, rows: ROWS });

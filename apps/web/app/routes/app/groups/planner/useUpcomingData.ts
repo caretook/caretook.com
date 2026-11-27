@@ -1,6 +1,6 @@
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
-import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
+import type { EntryFilters, EntryRow, LocalQuery, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/appointments/upcomingDays";
 import type { RecipientRow } from "~/lib/medications/medications.sync";
@@ -22,7 +22,7 @@ import { useLiveQuery } from "~/lib/sync";
 import { recipientQuery } from "~/lib/medications/medications.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { parentsById, progressByParent, subtaskProgressQuery, useDueTodos } from "~/lib/todos/todos.sync";
-import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import { toPreviews } from "~/lib/live-notes/notes.sync";
 import {
   fromLocalTimestamp,
   membersQuery,
@@ -35,6 +35,8 @@ import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
 import { showsTodos, plannerTodos, withDueTodos } from "~/lib/todos/plannerTodos";
 import {
+  inUpcomingHorizon,
+  pastDocumentsQuery,
   pastQueries,
   pastTextCondition,
   pastTextQuery,
@@ -115,9 +117,8 @@ function useSubtaskProgress(groupId: string, initial: SubtaskProgressRow[]) {
 
 /** Where a cancelled event was rescheduled to. */
 export type RescheduledTarget = { id: string; occurredAt: string };
-/** The group's documents' text, live, by id (a note's or event's document has its entry's id). */
-function useDocumentPreviews(groupId: string, initial: NoteDocRow[]) {
-  const documentsSql = groupDocumentsQuery(groupId);
+/** The list's documents' text, live, by id (a note's or event's document has its entry's id). */
+function useDocumentPreviews(documentsSql: LocalQuery, initial: NoteDocRow[]) {
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial);
   return useMemo(() => toPreviews(documentRows), [documentRows]);
 }
@@ -196,7 +197,7 @@ export function useUpcomingData({
     queries.contacts.params,
     initial.contactRows,
   );
-  const previews = useDocumentPreviews(groupId, initial.documentRows);
+  const previews = useDocumentPreviews(queries.documents, initial.documentRows);
   const support = useListSupport(groupId, initial, contactRows, previews);
   const tokens = textTokens(q);
   // The recipient's zone, which todos' due days and times are in.
@@ -209,7 +210,7 @@ export function useUpcomingData({
     ? []
     : support
         .withPreview(toTimelineEntries(entryRows))
-        .filter((e) => matchesText(tokens, e.title, e.place, e.body));
+        .filter((e) => inUpcomingHorizon(e, at) && matchesText(tokens, e.title, e.place, e.body));
   const sections = upcomingSections(shown, at, zone);
   // Open dated todos through Upcoming's last day, live: completing one drops it out.
   const dueTodos = useDueTodos(groupId, todoZone, {
@@ -273,7 +274,10 @@ export function usePastEvents({
   const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
   const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
-  const previews = useDocumentPreviews(groupId, initial.documentRows);
+  const previews = useDocumentPreviews(
+    pastDocumentsQuery(groupId, filters, initial.cutoff),
+    initial.documentRows,
+  );
   const textSql = pastTextQuery(groupId, filters, initial.cutoff);
   const textRows = useLiveQuery<PastTextRow>(textSql.sql, textSql.params, initial.textRows);
   const match = useMemo(() => pastTextCondition(textRows, previews, q), [textRows, previews, q]);

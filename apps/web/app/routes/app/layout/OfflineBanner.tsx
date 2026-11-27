@@ -26,7 +26,7 @@ export const UNREACHABLE_GRACE_MS = 30_000;
 
 /**
  * On the dev server the local PowerSync container and the dev server itself
- * restart under you (`docker compose restart powersync`, `pnpm prd serve
+ * restart under you (`docker compose restart powersync`, `risa serve
  * --restart`), and a busy machine stretches each reconnect: the drops that
  * showed the strip at random while online (B-904). Dev only; production keeps
  * `UNREACHABLE_GRACE_MS`.

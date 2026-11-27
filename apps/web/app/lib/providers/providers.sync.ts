@@ -161,7 +161,7 @@ export const providerEntriesQuery = (providerId: string): LocalQuery => ({
 
 /**
  * The documents of a provider's linked notes and events, with their pending
- * updates, like `groupDocumentsQuery`'s rows (their previews are the rows' text).
+ * updates, like `windowDocumentsQuery`'s rows (their previews are the rows' text).
  */
 export const providerEntryDocumentsQuery = (providerId: string): LocalQuery => ({
   sql: `SELECT d.id, d.snapshot, d.text,

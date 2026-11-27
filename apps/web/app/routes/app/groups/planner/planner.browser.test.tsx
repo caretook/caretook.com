@@ -294,8 +294,8 @@ describe("the list", () => {
     const device = await openPlanner();
     const mounted = document.querySelector("main[data-planner]");
     expect(rowOf(NURSE.id)?.heading).toBe("Now");
-    // The list rereads the clock on its tick (`UPCOMING_TICK_MS`), and each tick reruns its query: stepping
-    // hours tick by tick is hundreds of queries. Jump the clock (pending timers move with it), then one tick.
+    // The list rereads the clock on its tick (`UPCOMING_TICK_MS`) and splits the rows it has (its query
+    // changes only once a day). Jump the clock (pending timers move with it), then one tick.
     const jumpTo = async (at: number) => {
       vi.setSystemTime(at);
       await vi.advanceTimersByTimeAsync(UPCOMING_TICK_MS);

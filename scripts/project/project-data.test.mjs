@@ -16,11 +16,13 @@ import { describe, expect, it } from "vitest";
 import { REPO_ROOT, readRisa } from "./risa.mjs";
 
 const run = promisify(execFile);
+// This checkout's own config, so the tool checks the files beside this test: on a
+// machine with a machine config, a worktree's `risa` reads its main checkout's.
+const env = { ...process.env, RISA_CONFIG: join(REPO_ROOT, "risa.json") };
 
 describe.skipIf(!process.env.CI)("this checkout's project data", () => {
   it("passes the tool's project-data check", () => {
     const [cmd = "", ...args] = String(readRisa(REPO_ROOT).tool.prd).split(" ");
-    const { RISA_CONFIG: _, ...env } = process.env;
     const r = spawnSync(cmd, [...args, "project-check"], { cwd: REPO_ROOT, encoding: "utf8", env });
     expect(`${r.stdout}${r.stderr}`, "the check's lines").toContain("project-check: ok");
     expect(r.status).toBe(0);
@@ -40,7 +42,6 @@ describe("this checkout's shared names", () => {
 describe("this checkout's role docs", () => {
   const risa = readRisa(REPO_ROOT);
   const [cmd = "", ...prd] = String(risa.tool.prd).split(" ");
-  const { RISA_CONFIG: _, ...env } = process.env;
   /** The tool's merged doc for a role, or one section of it (without pnpm's `$ <script>` line). */
   const doc = async (/** @type {string[]} */ ...args) =>
     (await run(cmd, [...prd, "doc", ...args], { cwd: REPO_ROOT, env, encoding: "utf8" })).stdout.replace(
@@ -67,9 +68,7 @@ describe("this checkout's role docs", () => {
   });
 
   it("the loop additions open with a pointer to the doc command, left out of the merged text", async () => {
-    expect(readFileSync(join(REPO_ROOT, "docs/agents/loop.md"), "utf8")).toMatch(
-      /^<!-- .*`pnpm prd doc loop`/,
-    );
+    expect(readFileSync(join(REPO_ROOT, "docs/agents/loop.md"), "utf8")).toMatch(/^<!-- .*`risa doc loop`/);
     expect(await doc("loop")).not.toContain("<!--");
   }, 30_000);
 
@@ -97,11 +96,7 @@ describe("this checkout's role docs", () => {
       ["planner", "What to ask", /^## What to ask\n[\s\S]*\*\*Unattended\*\*/],
       ["planner", "The skeptic pass", /^## The skeptic pass\n[\s\S]*\*\*A second send-back\*\*/],
       ["backlog", "Deciding what's next", /Standing priorities:\n\n1\. Write the PRDs/],
-      [
-        "machinery",
-        "Worktrees and leases",
-        /\*\*`pnpm prd tidy`\*\*[\s\S]*- `new\.sh <kind>`[\s\S]*`pnpm prd wait/,
-      ],
+      ["machinery", "Worktrees and leases", /\*\*`risa tidy`\*\*[\s\S]*- `new\.sh <kind>`[\s\S]*`risa wait/],
       ["machinery", "The dispatcher", /^## The dispatcher\n/],
       ["machinery", "The context watch", /^## The context watch\n/],
       ["machinery", "Recorded sessions", /^## Recorded sessions\n/],

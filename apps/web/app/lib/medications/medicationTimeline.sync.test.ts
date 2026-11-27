@@ -38,8 +38,17 @@ describe("doseChoicesQuery", () => {
     const { sql, params } = doseChoicesQuery("g1");
     expect(one(sql)).toContain("m.deleted_at IS NULL AND m.status = 'current'");
     expect(one(sql)).toContain("json_extract(e.details, '$.status') = 'given'");
-    expect(one(sql)).toContain("ORDER BY last_given IS NULL, last_given DESC, m.name COLLATE NOCASE");
-    expect(params).toEqual(["g1"]);
+    expect(one(sql)).toContain("ORDER BY g.last_given IS NULL, g.last_given DESC, m.name COLLATE NOCASE");
+    expect(params).toEqual(["g1", "g1"]);
+  });
+
+  it("reads each medication's last given dose in one pass over the doses, not one per medication", () => {
+    const { sql } = doseChoicesQuery("g1");
+    expect(one(sql)).toContain(
+      "LEFT JOIN ( SELECT json_extract(e.details, '$.medicationId') AS medication_id",
+    );
+    expect(one(sql)).toContain("GROUP BY medication_id ) g ON g.medication_id = m.id");
+    expect(sql).not.toContain("= m.id) AS last_given");
   });
 
   it("maps rows to choices", () => {

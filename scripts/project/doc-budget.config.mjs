@@ -7,27 +7,17 @@ const KB = 1024;
 
 export const BUDGETS = [
   { pattern: "AGENTS.md", bytes: 8 * KB },
-  // A split role's two halves, adding up to the role's 15 KB: the core's generic doc and
-  // Caretook's additions. The generic docs are measured here until the move (residual).
-  { pattern: "scripts/loops/docs/hotfix.md", bytes: 3 * KB },
+  // A split role's two halves add up to the role's 15 KB: Risa's generic doc (its budget
+  // is Risa's loops/docs-budget.mjs) and Caretook's additions, which take the rest.
   { pattern: "docs/agents/hotfix.md", bytes: 12 * KB },
-  { pattern: "scripts/loops/docs/loop.md", bytes: 2218 }, // the role was at 15358 B of 15 KB; _Reads and turns_ moved the split
   { pattern: "docs/agents/loop.md", bytes: 15 * KB - 2218 },
-  { pattern: "scripts/loops/docs/recovery.md", bytes: 5 * KB },
   { pattern: "docs/agents/recovery.md", bytes: 10 * KB },
-  { pattern: "scripts/loops/docs/orchestrator.md", bytes: 3954 }, // the role was at 15350 B of 15 KB; the rotate hold moved the split
   { pattern: "docs/agents/orchestrator.md", bytes: 15 * KB - 3954 },
-  { pattern: "scripts/loops/docs/planner.md", bytes: 5 * KB },
   { pattern: "docs/agents/planner.md", bytes: 10 * KB },
-  { pattern: "scripts/loops/docs/backlog.md", bytes: 3 * KB },
   { pattern: "docs/agents/backlog.md", bytes: 12 * KB },
-  { pattern: "scripts/loops/docs/inbox.md", bytes: 2 * KB },
   { pattern: "docs/agents/inbox.md", bytes: 13 * KB },
-  { pattern: "scripts/loops/docs/machinery.md", bytes: 600 }, // the role was at 15349 B of 15 KB
   { pattern: "docs/agents/machinery.md", bytes: 15 * KB - 600 },
-  { pattern: "scripts/loops/docs/project-config.md", bytes: 1 * KB },
   { pattern: "docs/agents/project-config.md", bytes: 14 * KB },
-  { pattern: "scripts/loops/docs/orchestration.md", bytes: 174 }, // the guide was at 17390 B of 17 KB
   { pattern: "docs/agents/*.md", bytes: 15 * KB },
   { pattern: "docs/domain/*.md", bytes: 10 * KB },
   { pattern: "docs/layout.md", bytes: 10 * KB },

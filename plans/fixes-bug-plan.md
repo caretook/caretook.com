@@ -10,12 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State  | Merge    |
-| ----- | ----- | ------ | -------- |
-| 72    | B-830 | merged | ab6da878 |
-| 73    | B-840 | merged | 9dd61dda |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. PR #208 open; Codex out of credits (exit 4: land --no-review). Browser --changed: app-shell, invites pass. Next: land --tier full --no-review once the recheck is green. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
+**Idle after wave 17** (landed 44561c0e through PR #251, 2026-11-27, `--no-review`: Codex out of credits; components green, run 45989155987). Slices 74 (B-936, Opus) and 75 (B-951, Opus: no app bug, a stack missing migration 0048) merged; follow-up B-954 (fixes-tooling: browser checks refuse a stack behind on migrations). This stack needed `pnpm datastore:reset` after the sync for roundtrip to pass. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 18 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence). Lane freed with `pnpm prd rm fixes-bug` (standing).
 
 ## Wave 1
 
@@ -778,3 +776,27 @@ The offline banner (`routes/app/layout/OfflineBanner.tsx`) flashes while the con
 - Find what drives it (`navigator.onLine`, PowerSync's connected status from `lib/sync/`, or both) and say in the hand-off which flips while online, and why.
 - Show the banner only after the offline state has held for a short grace period (a few seconds, one named constant); hide it as soon as the connection is back. Don't change what counts as offline elsewhere (uploads, page cache).
 - Component tests with fake timers: a drop shorter than the grace never shows the banner; one longer shows it; reconnecting hides it at once.
+
+## Wave 17
+
+Two fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays standing until its notes name files; B-752 (the timeline jump hang) stays open until B-753's watchdog (now in dev) names it on a recurrence.
+
+### Slice 74: Back from an entry returns to the page that opened it (B-936)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/providers.md, docs/domain/todos.md · Tests: component
+
+`routes/app/groups/entry/useLiveEntry.ts` (`backTo`, ~line 390) knows only the Planner (`plannerReturnFrom(location.state)`) and otherwise goes to the Timeline, so an entry opened from a provider's page (`provider/LinkedEntries.tsx`), a todo (`todo/TodoEntryLinks.tsx`) or the visit prep sheet (`components/visitPrep/VisitPrepSheet.tsx`) goes back to the timeline.
+
+- First a failing component test: open an entry from a provider's linked entries, press Back, land on the provider.
+- Carry where the entry was opened from in navigation state (as the Planner's `returnTo` does), with the opener's label and URL; Back returns there (a history step when it is the previous entry, as the Planner does). Keep the Planner's behaviour and the Timeline default unchanged; an unknown or missing state still goes to the Timeline.
+- Wire the provider, todo and visit prep openers. Tests for each opener's Back, plus the Planner and default cases still passing.
+
+### Slice 75: two devices naming the same tag in different case keep it on the server (B-951)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/sync.md · Tests: integration, browser
+
+The browser check `scripts/browser-checks/roundtrip.spec.mjs:61` fails at its tags step: two devices create the same tag name in different case, both agree on one id with one link each, but the server holds 0 tags and 0 links. Suspect tags-2's d362bd70 (tag colors through sync: `apps/web/app/lib/tags/tags.sync.ts`, `packages/api/src/syncRegistry.ts`).
+
+- Reproduce first: an integration test beside `packages/api/src/syncTags.int.test.ts` that uploads the two devices' creates (same name, different case, as the devices write them since d362bd70) and their links, and expects one tag and both links on the server. Then run the roundtrip check once (`pnpm prd browser` for that spec) to confirm.
+- Find why the server drops them (a rejected upload, a conflict path that discards, a color field the server refuses) and say so in the hand-off; fix it in the upload handler or the device write, keeping one tag per case-insensitive name per group.
+- Uploads must not silently drop: if the server refuses a write, the test shows the error path, not a missing row.

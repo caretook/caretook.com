@@ -3,6 +3,7 @@ import type { Route } from "./+types/sign-in";
 
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { Button, Field, LINK, TabNav } from "~/components/ui/plain";
+import { preloadLanding } from "~/lib/app-shell/preloadRoutes";
 import { accountUrls, parseSignInMethod } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import { expireKeptCopy } from "~/lib/auth/keptCopy";
@@ -92,6 +93,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
     const { error } = await authClient.signIn.emailOtp({ email, otp: code }).catch(unreached);
     if (error) return failed(requestFailure(error) ?? authMessages.wrongCode);
     sessionChanged();
+    preloadLanding(redirectTo);
     throw redirect(redirectTo);
   }
 
@@ -109,6 +111,8 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
   // One message for every other failure: don't reveal which emails have accounts.
   if (error) return { intent: "password", error: requestFailure(error) ?? authMessages.wrongPassword };
   sessionChanged();
+  // The screen it lands on loads its chunks together, not one round at a time (B-764).
+  preloadLanding(redirectTo);
   throw redirect(redirectTo);
 }
 

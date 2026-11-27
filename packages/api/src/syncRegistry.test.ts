@@ -13,7 +13,7 @@ import { UPLOAD_REGISTRY } from "./syncRegistry";
 // A column in only one place is either dropped on the device, always null
 // there, or silently ignored (or refused) when the device uploads it.
 // No database: the device schema, the sync config and the registry are read
-// as they are. Prior art: scripts/loops/sync-matrix.test.mjs, rolesSql.test.ts.
+// as they are. Prior art: scripts/project/sync-matrix.test.mjs, rolesSql.test.ts.
 
 /** Device columns that no stream carries, on purpose. None so far. */
 const DEVICE_ONLY_COLUMNS: Readonly<Record<string, readonly string[]>> = {};
