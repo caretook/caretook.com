@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/symptom-catalog-2` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | running |                                                    |
-| 2     | 1    | running |                                                    |
-| 3     | 2    | planned |                                                    |
-| 4     | 3    | planned |                                                    |
-| 5     | 3    | planned |                                                    |
+| Slice | Wave | State                                            | Merge into `prd/symptom-catalog-2` (slice commits) |
+| ----- | ---- | ------------------------------------------------ | -------------------------------------------------- |
+| 1     | 1    | running                                          |                                                    |
+| 2     | 1    | handed off (e5905ecec), reviewed; merges after 1 |                                                    |
+| 3     | 2    | planned                                          |                                                    |
+| 4     | 3    | planned                                          |                                                    |
+| 5     | 3    | planned                                          |                                                    |
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
