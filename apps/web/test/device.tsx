@@ -116,7 +116,7 @@ export type DeviceOptions = {
   theme?: "light" | "dark";
   /** Render the real /app frame (header, menus, tab bar) around the screen. */
   frame?: boolean;
-  /** Whether the device counts as synced (default true; false shows "Getting your care groups…" states). */
+  /** Whether the device counts as synced (default true; false shows "Syncing your care groups…" states). */
   firstSyncDone?: boolean;
   /**
    * Build the search index (only search tests need it). The device starts

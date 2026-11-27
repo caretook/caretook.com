@@ -22,7 +22,7 @@ export type { GroupContext } from "./groupContext";
 // - components read `useGroup()`, which stays live (a rename or a changed
 //   role on another device shows without a reload).
 //
-// A group that isn't on the device is `notOnDevice` (404, or "Getting your
+// A group that isn't on the device is `notOnDevice` (404, or "Syncing your
 // care groups…" before the first sync). The middleware records it rather
 // than throwing it, and `getGroup` throws it from the loaders: an error
 // thrown by middleware on the native (SPA) build's first page load renders

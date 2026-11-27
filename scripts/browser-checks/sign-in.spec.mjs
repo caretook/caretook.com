@@ -7,7 +7,7 @@
 // request after the submit waits until the spec releases it, so /app's
 // middleware can't finish and the page stays on /sign-in, "loading", for as
 // long as the assertions take (B-161: holding /api/auth/token for a fixed 4 s
-// let a slow first sync give up and render /app's "Getting your care groups…"
+// let a slow first sync give up and render /app's "Syncing your care groups…"
 // first, at load 88).
 import { BASE, PASSWORD, expect, test } from "./fixtures.mjs";
 

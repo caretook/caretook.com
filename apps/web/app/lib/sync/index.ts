@@ -5,6 +5,7 @@ import type * as SearchModuleNs from "../search/search.sync";
 import sqliteWasm from "@journeyapps/wa-sqlite/dist/wa-sqlite-async.wasm?url";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { clearRemembered } from "./remembered";
+import { advanceStartup, resetStartup } from "./startup";
 
 export type { SyncDb };
 
@@ -44,6 +45,8 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
   // Someone else signed in on this tab: their predecessor's data goes first.
   if (ready && ready.userId !== userId) await closeSync();
   if (!current) prefetchSqlite();
+  // The loading screen's "Getting your notes ready…" (B-957).
+  if (!ready) advanceStartup("device");
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
@@ -115,8 +118,9 @@ export const installTestDatabase = async (
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
-  // A new device remembers nothing (as after a sign-out).
+  // A new device remembers nothing (as after a sign-out), and starts over.
   clearRemembered();
+  resetStartup();
   closeWatches();
   current = db ? Promise.resolve(db) : null;
   ready = db;
@@ -151,6 +155,8 @@ export const closeSync = async ({ keep = false }: { keep?: boolean } = {}) => {
   ready = null;
   closeWatches();
   owedFirst.clear();
+  // A next sign-in starts over.
+  resetStartup();
   // The tile cache goes with the local copy.
   clearRemembered();
   const search = searchIndex;
@@ -191,10 +197,40 @@ export const isFirstSyncDone = (db: SyncDb): boolean =>
  * `isFirstSyncDone` afterwards.
  */
 export const waitForFirstSync = async (db: SyncDb, ms = FIRST_SYNC_WAIT_MS): Promise<boolean> => {
-  if (isFirstSyncDone(db)) return true;
+  if (isFirstSyncDone(db)) {
+    // A returning device passes over the sync step (B-957).
+    advanceStartup("screen");
+    return true;
+  }
+  trackFirstSync(db);
   const signal = AbortSignal.timeout(ms);
   await db.powersync.waitForFirstSync({ signal }).catch(() => undefined);
   return isFirstSyncDone(db);
+};
+
+/** Databases whose first sync the loading screen follows. */
+const tracked = new WeakSet<SyncDb>();
+
+/**
+ * Follow a new device's first sync on the loading screen (`./startup`,
+ * B-957): the sync step, with PowerSync's download fraction once it knows
+ * one (a big download moves the bar), then the screen step once it's done.
+ * Its listener goes once the first sync is done; a closed database sends
+ * nothing more.
+ */
+const trackFirstSync = (db: SyncDb) => {
+  if (tracked.has(db)) return;
+  tracked.add(db);
+  const update = (status: SyncStatus) => {
+    if (ready && ready !== db) return dispose();
+    if (testFirstSyncDone ?? status.hasSynced) {
+      advanceStartup("screen");
+      return dispose();
+    }
+    advanceStartup("sync", status.downloadProgress?.downloadedFraction ?? null);
+  };
+  const dispose = db.powersync.registerListener({ statusChanged: update });
+  update(db.powersync.currentStatus);
 };
 
 /** `isFirstSyncDone` for components: flips to true when the first sync finishes. Below the /app layout only. */
