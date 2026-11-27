@@ -3,5 +3,6 @@ export { QuickTags } from "./QuickTags";
 export { TagChips } from "./TagChips";
 export type { TagPickerTarget } from "./TagPickerSheet";
 export { TagPickerSheet } from "./TagPickerSheet";
+export { TagSwatch } from "./TagSwatch";
 export { useTagPicker } from "./useTagPicker";
 export { useGroupRecordTags, useGroupTags, useRecordTags } from "./useTags";

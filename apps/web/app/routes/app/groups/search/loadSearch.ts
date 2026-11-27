@@ -15,7 +15,7 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
 import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { activeTag, isEmptySearch } from "@caretook/data/schema";
+import { activeTag, isEmptySearch, TAG_TARGET_COLUMNS, TAG_TARGETS } from "@caretook/data/schema";
 import { groupLinksByEntry } from "~/lib/providers/entryProviders";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { medicationIdOf, withMedication } from "~/lib/medications/medicationEntries";
@@ -29,7 +29,13 @@ import { toTodo } from "~/lib/todos/todos.sync";
 import { toConditions } from "~/lib/profiles/conditions.sync";
 import { rangeUntilNow } from "~/lib/care-periods/periodSearch";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
-import { parseSearch, searchGroup, searchIndexStatus, taggedItems } from "~/lib/search/search.sync";
+import {
+  matchingTagIds,
+  parseSearch,
+  searchGroup,
+  searchIndexStatus,
+  taggedItems,
+} from "~/lib/search/search.sync";
 import { tagsQuery } from "~/lib/tags/tags.sync";
 import { fromLocalTimestamp, readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
 
@@ -59,7 +65,12 @@ export type SearchPageData = SearchPageQuery & {
   conditions: Record<string, LocalCondition>;
   /** The notes' text of the providers, medications and todos shown (by their id), for snippets. */
   notes: Record<string, string>;
+  /** The tags the text names (`matchingTagIds`) that each result shown carries, by its id, A to Z. */
+  namedTags: Record<string, NamedTag[]>;
 };
+
+/** A tag the search's text names, as a result's chip shows it. */
+export type NamedTag = Pick<TagRow, "id" | "name" | "color">;
 
 const inIds = (column: string) => `${column} IN (SELECT value FROM json_each(?))`;
 
@@ -171,6 +182,26 @@ const readConditions = async (db: SyncDb, groupId: string, ids: string) => {
   return byId(toConditions(rows));
 };
 
+const LINK_TARGET = `coalesce(${TAG_TARGETS.map((t) => TAG_TARGET_COLUMNS[t]).join(", ")})`;
+
+/** Which of `tags` (named by the text) each of the results (`ids`) carries, in one query. */
+const readNamedTags = async (db: SyncDb, groupId: string, tags: readonly TagRow[], ids: string) => {
+  if (!tags.length) return {};
+  const links = await db.powersync.getAll<{ tag_id: string; record_id: string }>(
+    `SELECT tag_id, ${LINK_TARGET} AS record_id FROM record_tag
+     WHERE group_id = ? AND tag_id IN (SELECT value FROM json_each(?)) AND ${inIds(LINK_TARGET)}`,
+    [groupId, JSON.stringify(tags.map((t) => t.id)), ids],
+  );
+  const carried = new Set(links.map((l) => `${l.record_id} ${l.tag_id}`));
+  const shown = JSON.parse(ids) as string[];
+  return Object.fromEntries(
+    shown.flatMap((id) => {
+      const on = tags.filter((t) => carried.has(`${id} ${t.id}`));
+      return on.length ? [[id, on.map(({ id, name, color }): NamedTag => ({ id, name, color }))]] : [];
+    }),
+  );
+};
+
 /**
  * The range a search is narrowed to: the period's dates (the current one's
  * up to now), or null for any time. A period that isn't on the track (deleted
@@ -197,7 +228,11 @@ export const loadSearch = async (
 ): Promise<SearchPageData> => {
   const status = searchIndexStatus();
   const parsed = parseSearch(query.q);
-  const tag = query.tag ? activeTag(query.tag, await readRows<TagRow>(db, tagsQuery(groupId))) : null;
+  // A tag the text names finds the items carrying it (tags-3), so the tags are read for any text.
+  const groupTags = query.tag || query.q.trim() ? await readRows<TagRow>(db, tagsQuery(groupId)) : [];
+  const tag = query.tag ? activeTag(query.tag, groupTags) : null;
+  const named = new Set(matchingTagIds(groupTags, parsed));
+  const namedTags = groupTags.filter((t) => named.has(t.id));
   const none: SearchPageData = {
     ...query,
     tag: tag?.id ?? null,
@@ -211,6 +246,7 @@ export const loadSearch = async (
     todos: {},
     conditions: {},
     notes: {},
+    namedTags: {},
   };
   // A tag with no text lists what carries it, without the index.
   const listing = !!tag && !query.q.trim();
@@ -227,6 +263,7 @@ export const loadSearch = async (
           limits,
           await periodSearchRange(db, groupId, query.period),
           tag?.id ?? null,
+          namedTags.map((t) => t.id),
         );
     sections = searchSections(results, query);
   } catch (e) {
@@ -237,13 +274,15 @@ export const loadSearch = async (
   const ownerIds = JSON.stringify(
     sections.filter((s) => s.type !== "entry").flatMap((s) => s.hits.map((h) => h.id)),
   );
-  const [entries, providers, medications, todos, conditions, notes] = await Promise.all([
+  const hitIds = JSON.stringify(sections.flatMap((s) => s.hits.map((h) => h.id)));
+  const [entries, providers, medications, todos, conditions, notes, carried] = await Promise.all([
     readEntries(db, groupId, idsOf(sections, "entry")),
     readProviders(db, groupId, idsOf(sections, "provider")),
     readMedications(db, groupId, idsOf(sections, "medication")),
     readTodos(db, groupId, idsOf(sections, "todo")),
     readConditions(db, groupId, idsOf(sections, "condition")),
     readNotes(db, groupId, ownerIds),
+    readNamedTags(db, groupId, namedTags, hitIds),
   ]);
   // An item deleted since it was indexed drops out (the index catches up in a moment).
   const shown = {
@@ -262,5 +301,6 @@ export const loadSearch = async (
     todos,
     conditions,
     notes: Object.fromEntries(notes),
+    namedTags: carried,
   };
 };
