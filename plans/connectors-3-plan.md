@@ -4,12 +4,20 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Waits for `planner-3` to land in `dev` (`addTodo.repeatRule`, B-254).
+**Where it stands:** wave 1 running (2026-11-27). `planner-3` landed in `dev` (start condition met).
+
+**Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
+
+**Models:** slice 1 opus, slice 2 opus (both have real logic).
+
+**Anchors (2026-11-27):** two misses, both things the slices create (`doseSchedule.test.ts`, `todoRepeatInput`); nothing to fix.
+
+**Unplanned items on this topic:** B-760 (`add_provider`), B-761 (`add_medication`), B-917 (log doses from a photo of a weekly sheet) are triaged `connectors-3` but in no slice; they need a planning pass before any wave takes them.
 
 | Slice | Wave | State       | Merge into `prd/connectors-3` (slice commits) |
 | ----- | ---- | ----------- | --------------------------------------------- |
-| 1     | 1    | not started |                                               |
-| 2     | 1    | not started |                                               |
+| 1     | 1    | started     |                                               |
+| 2     | 1    | started     |                                               |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on it when the slice merges.
 
