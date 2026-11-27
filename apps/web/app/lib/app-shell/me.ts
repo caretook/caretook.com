@@ -252,6 +252,33 @@ const sharedRefresh = (request: Request, userId: string, send: SettingsChange | 
 };
 
 /**
+ * When each user's early refresh (`startSettings`) last brought the server's
+ * copy. A loader within `NETWORK_ANSWER_MS` of it answers from that copy
+ * without asking the server again.
+ */
+const earlyAt = new Map<string, number>();
+
+/**
+ * Start the settings fetch before any loader asks (B-958): the /app
+ * middleware calls it once the session is known, so on a new device the
+ * fetch runs while the screen's routes load, not after. Only with no cache
+ * (a cached answer wins, and its loaders refresh in the background); the
+ * loaders' `loadSettings` then shares the request in flight, or uses what
+ * it brought. A failure here is left to `loadSettings`, which asks again.
+ */
+export const startSettings = (request: Request, userId: string) => {
+  if (readCache(userId) !== null) return;
+  const plan = settingsPlan({ cached: false, pending: readPending(userId) });
+  const since = forgotten;
+  sharedRefresh(request, userId, plan.send).then(
+    (outcome) => {
+      if (outcome === "refreshed" && since === forgotten) earlyAt.set(userId, Date.now());
+    },
+    () => undefined,
+  );
+};
+
+/**
  * Settings for a clientLoader (`settingsPlan`): with a cache, the cached copy
  * with pending changes on top, at once, while a background refresh sends
  * what's pending, reads the server's copy and publishes it (a lost session
@@ -261,6 +288,9 @@ const sharedRefresh = (request: Request, userId: string, send: SettingsChange | 
  */
 export const loadSettings = async (request: Request, userId: string): Promise<MySettings> => {
   const plan = settingsPlan({ cached: readCache(userId) !== null, pending: readPending(userId) });
+  const early = earlyAt.get(userId);
+  if (plan.answer === "cache" && !plan.send && early !== undefined && Date.now() - early < NETWORK_ANSWER_MS)
+    return publish(userId);
   const refreshed = sharedRefresh(request, userId, plan.send);
   if (plan.answer === "cache") {
     refreshed.catch(() => undefined);
@@ -308,6 +338,7 @@ export const useCachedSettings = (userId: string): MySettings =>
 export const forgetSettings = () => {
   forgotten++;
   refreshing.clear();
+  earlyAt.clear();
   published.clear();
   snapshots.clear();
   try {

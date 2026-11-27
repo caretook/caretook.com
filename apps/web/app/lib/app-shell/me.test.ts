@@ -5,7 +5,7 @@ import { appUrls } from "./appUrls";
 const api = vi.hoisted(() => ({ get: vi.fn(), updatePreferences: vi.fn() }));
 vi.mock("../core/rpc", () => ({ rpc: { me: api } }));
 
-const { cachedSettings, forgetSettings, loadSettings, saveSettings, subscribeSettings } =
+const { cachedSettings, forgetSettings, loadSettings, saveSettings, startSettings, subscribeSettings } =
   await import("./me");
 
 const USER = "u1";
@@ -259,6 +259,85 @@ describe("loadSettings, cache first", () => {
     api.get.mockReturnValue(new Promise(() => undefined));
     await Promise.all([loadSettings(request, USER), loadSettings(request, USER)]);
     expect(api.get).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("startSettings, the early fetch (B-958)", () => {
+  it("shares its request with a loader that asks while it's in flight", async () => {
+    let answer!: (value: unknown) => void;
+    api.get.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    startSettings(request, USER);
+    const loaded = loadSettings(request, USER);
+    answer(serverSettings("cards"));
+    expect((await loaded).timelineView).toBe("cards");
+    expect(api.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers a loader from what it brought, without asking again", async () => {
+    api.get.mockResolvedValue(serverSettings("cards"));
+    startSettings(request, USER);
+    await vi.waitFor(() => expect(cached()?.timelineView).toBe("cards"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    expect(api.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a pending change first, as a loader would", async () => {
+    store.set(`caretook:settings-pending:${USER}`, JSON.stringify({ timelineView: "cards" }));
+    api.updatePreferences.mockResolvedValue({});
+    api.get.mockResolvedValue(serverSettings("cards"));
+    startSettings(request, USER);
+    expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    expect(api.updatePreferences).toHaveBeenCalledTimes(1);
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(pending()).toBeNull();
+  });
+
+  it("does nothing when there's a cache: the loader answers from it", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+    startSettings(request, USER);
+    expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it("when it fails offline, the loader asks again", async () => {
+    api.get.mockRejectedValueOnce(offline()).mockResolvedValue(serverSettings("cards"));
+    startSettings(request, USER);
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    expect(api.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("when it's refused, the loader asks again and fails as before", async () => {
+    api.get.mockRejectedValue(new ORPCError("INTERNAL_SERVER_ERROR"));
+    startSettings(request, USER);
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await expect(loadSettings(request, USER)).rejects.toBeInstanceOf(ORPCError);
+    expect(api.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("a loader asks again once it's no longer recent", async () => {
+    vi.useFakeTimers();
+    api.get.mockResolvedValue(serverSettings("cards"));
+    startSettings(request, USER);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(cached()?.timelineView).toBe("cards");
+    await vi.advanceTimersByTimeAsync(3000);
+    await loadSettings(request, USER);
+    expect(api.get).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("is forgotten at sign-out", async () => {
+    api.get.mockResolvedValue(serverSettings("cards"));
+    startSettings(request, USER);
+    await vi.waitFor(() => expect(cached()?.timelineView).toBe("cards"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    forgetSettings();
+    expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    expect(api.get).toHaveBeenCalledTimes(2);
   });
 });
 
