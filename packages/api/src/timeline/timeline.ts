@@ -12,6 +12,7 @@ import {
 import { iso, toTimelineEntry } from "../dto";
 import { unwrap } from "../errors";
 import { authedProcedure } from "../procedures";
+import { symptomTypes } from "./symptomTypes";
 
 const id = z.uuid();
 
@@ -77,4 +78,7 @@ export const timeline = {
     unwrap(await timelineEntryService.remove(context, input.id));
     return { id: input.id };
   }),
+
+  /** The group's symptom catalog: archive and unarchive (symptom-catalog-2). */
+  symptomTypes,
 };

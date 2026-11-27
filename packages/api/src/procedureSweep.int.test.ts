@@ -57,7 +57,14 @@ describe("every procedure, signed out", () => {
     // Recounted 2026-11-24: 91 procedures (the PRD counted 89), 8 of them public.
     expect(paths.length).toBeGreaterThanOrEqual(91);
     expect(paths).toEqual(
-      expect.arrayContaining(["me.get", "sync.upload", "admin.settings.set", "search.query"]),
+      expect.arrayContaining([
+        "me.get",
+        "sync.upload",
+        "admin.settings.set",
+        "search.query",
+        "timeline.symptomTypes.archive",
+        "timeline.symptomTypes.unarchive",
+      ]),
     );
   });
 

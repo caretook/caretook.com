@@ -510,6 +510,9 @@ export const symptomTypes = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // Server-set (symptom-catalog-2): when a writer archived it, and a merged row's replacement.
+    archivedAt: text("archived_at"),
+    replacedById: text("replaced_by_id"),
   },
   (t) => [index("symptom_type_group").on(t.groupId)],
 );
