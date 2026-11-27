@@ -10,12 +10,12 @@
 | 2     | 2    | landed  | 7b892610 (d362bd70)                         |
 | 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
 | 4     | 4    | landed  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
-| 5     | 5    | started |                                             |
+| 5     | 5    | merged  | bfdac885 (d29079bb)                         |
 | 6     | 5    | started |                                             |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 5 under way (session after the wave 4 landing, a39507ab through PR #248). dev synced into prd/tags-2 (backlog and CI lists only, no recheck). Worktrees tags-2-5 and tags-2-6 made; one opus agent each spawned; watch running. B-892 claimed. Slice 4 notes passed on: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; a compact "Add tag" is an allowed small `QuickTags` change; Planner rows keep ⋯ Tags. Merge 5 then 6; after both, `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) and [tags](../docs/domain/tags.md) at this landing (the last: then `pnpm prd rm tags-2`).
+**Now:** wave 5 under way (session after the wave 4 landing, a39507ab through PR #248). dev synced into prd/tags-2 (backlog and CI lists only, no recheck). Worktrees tags-2-5 and tags-2-6 made; one opus agent each spawned; watch running. B-892 claimed. Slice 4 notes passed on: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; a compact "Add tag" is an allowed small `QuickTags` change; Planner rows keep ⋯ Tags. Slice 5 handed off and merged (bfdac885); its helper edits in `providerWorld.tsx`/`medicationWorld.tsx` are used by other component tests the CI tier will run. Merge 6 next; after both, `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) and [tags](../docs/domain/tags.md) at this landing (the last: then `pnpm prd rm tags-2`).
 
 ## Architectural decisions
 
