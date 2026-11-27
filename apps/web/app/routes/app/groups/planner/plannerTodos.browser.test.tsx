@@ -188,13 +188,15 @@ describe("todos on the Planner tab", () => {
   });
 });
 
-describe("the tree on the Planner tab (todo-subtasks-2)", () => {
+describe("trees by day on the Planner tab (todo-subtasks-3)", () => {
   const PARENT = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0001";
   const STEP = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0002";
+  const PACK = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0003";
+  const PARENT_TITLE = "Get ready for the hospital stay";
   const tree = () => [
-    todo({ id: PARENT, title: "Get ready for the hospital stay", dueOn: day(2) }),
+    todo({ id: PARENT, title: PARENT_TITLE, dueOn: day(2) }),
     todo({ id: STEP, title: "Arrange the dog sitter", parentId: PARENT, dueOn: day(1) }),
-    todo({ title: "Pack the bag", parentId: PARENT }),
+    todo({ id: PACK, title: "Pack the bag", parentId: PARENT }),
     todo({
       title: "Print the medication list",
       parentId: PARENT,
@@ -202,31 +204,74 @@ describe("the tree on the Planner tab (todo-subtasks-2)", () => {
       doneBy: TEST_USER.id,
     }),
   ];
+  const openTree = (role: GroupRole = "owner") =>
+    renderWithDevice({ route: ROUTES, url: `${PLANNER}?show=todos`, role, fixtures: tree() });
+  /** The rows of a day's trees, as `id:look`, in order. */
+  const rowsOn = (key: string) =>
+    [
+      ...document.querySelectorAll<HTMLElement>(`[data-day="${key}"] [data-planner-tree] [data-todo-look]`),
+    ].map((r) => `${r.dataset.todo}:${r.dataset.todoLook}`);
+  const titleIn = (key: string, id: string) =>
+    document
+      .querySelector(`[data-day="${key}"] [data-todo="${id}"] [data-todo-title]`)!
+      .getBoundingClientRect();
 
-  test("Todos shows a parent's “n of m done” with a waiting tick, and a dated subtask with “Part of”", async () => {
-    await renderWithDevice({ route: ROUTES, url: `${PLANNER}?show=todos`, role: "owner", fixtures: tree() });
+  test("a day shows the tree, its top row as an event card and its steps indented; an earlier step's day shows it under a dimmed parent", async () => {
+    await openTree();
+    // The card first, then its three steps (their sibling order is the tree's unit tests').
+    await expect.poll(() => rowsOn(day(2)).length).toBe(4);
+    const [top, ...steps] = rowsOn(day(2));
+    expect(top).toBe(`${PARENT}:card`);
+    expect(steps).toEqual(
+      expect.arrayContaining([`${STEP}:list`, `${PACK}:list`, expect.stringMatching(/:list$/)]),
+    );
+    expect(steps.every((r) => r.endsWith(":list"))).toBe(true);
+    const card = rowOf({ id: PARENT })!;
+    expect(card.querySelector("[data-when]")?.textContent).toBe("All day");
+    expect(card.querySelector("[data-todo-progress]")?.textContent).toBe("1 of 3 done");
+    // The steps sit under the card's text, not under its tick.
+    expect(titleIn(day(2), STEP).left).toBeGreaterThanOrEqual(titleIn(day(2), PARENT).left - 1);
+    // Only the top row is a card: a step is never a Planner row of its own.
+    expect(allTodos()).toHaveLength(1);
+
+    // Tomorrow: the step, under its parent dimmed (no tick, still its link).
+    expect(rowsOn(day(1))).toEqual([`${PARENT}:context`, `${STEP}:list`]);
+    const context = document.querySelector<HTMLElement>(`[data-day="${day(1)}"] [data-todo="${PARENT}"]`)!;
+    expect(context.querySelector("[data-todo-tick]")).toBeNull();
+    expect(context.querySelector("a")?.getAttribute("href")).toBe(
+      `/app/groups/${TEST_GROUP.id}/todos/${PARENT}`,
+    );
+    expect(titleIn(day(1), STEP).left).toBeGreaterThan(titleIn(day(1), PARENT).left);
+    expect(
+      document.querySelector(`[data-day="${day(1)}"] [data-todo="${STEP}"] [data-todo-tick]`),
+    ).toBeTruthy();
+    // The undated step shows only in the whole tree.
+    expect(document.querySelectorAll(`[data-todo="${PACK}"]`)).toHaveLength(1);
+  });
+
+  test("a writer adds a step from a row; it shows in the tree", async () => {
+    await openTree();
+    const add = page.getByRole("button", { name: `Add subtask to ${PARENT_TITLE}` });
+    await expect.element(add).toBeInTheDocument();
+    // The dimmed parent on the step's day has no quick add: only the card does.
+    expect(
+      document.querySelectorAll(`[data-day="${day(1)}"] [data-todo="${PARENT}"] [data-todo-quick-add]`),
+    ).toHaveLength(0);
+    await userEvent.click(add);
+    await userEvent.type(page.getByRole("textbox", { name: "New subtask" }), "Call the vet{Enter}");
     await expect
-      .poll(() => rowOf({ id: PARENT })?.querySelector("[data-todo-progress]")?.textContent)
-      .toBe("1 of 3 done");
-    await expect
-      .element(
-        page.getByRole("checkbox", { name: "“Get ready for the hospital stay”: 1 of 3 subtasks done" }),
+      .poll(() =>
+        [...document.querySelectorAll(`[data-day="${day(2)}"] [data-planner-tree] [data-todo-title]`)].map(
+          (t) => t.textContent?.trim(),
+        ),
       )
-      .toBeDisabled();
-    // The row's mark says it; the tick shows no second count.
-    expect(rowOf({ id: PARENT })?.querySelector("[data-tick-progress]")).toBeNull();
+      .toContain("Call the vet");
+  });
 
-    expect(todoTitles(day(1))).toEqual(["Arrange the dog sitter"]);
-    const partOf = rowOf({ id: STEP })?.querySelector("[data-todo-part-of]");
-    expect(partOf?.textContent).toBe("Part of Get ready for the hospital stay");
-    const up = partOf!.querySelector<HTMLAnchorElement>("a")!;
-    expect(up.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/todos/${PARENT}`);
-    expect(rowOf({ id: PARENT })?.querySelector("[data-todo-part-of]")).toBeNull();
-    // The undated subtask shows on its parent's page only.
-    expect(allTodos()).toHaveLength(2);
-
-    // "Part of" sits above the row's own link: it opens the parent, not the subtask.
-    await userEvent.click(up);
-    await expect.element(page.getByRole("heading", { name: `Todo page ${PARENT}` })).toBeInTheDocument();
+  test("a viewer sees no add-a-step control", async () => {
+    await openTree("viewer");
+    await expect.poll(() => rowsOn(day(2)).length).toBe(4);
+    expect(document.querySelectorAll("[data-todo-quick-add]")).toHaveLength(0);
+    expect(page.getByRole("button", { name: /^Add subtask to / }).query()).toBeNull();
   });
 });

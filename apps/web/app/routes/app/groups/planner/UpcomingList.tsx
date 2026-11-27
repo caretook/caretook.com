@@ -15,6 +15,7 @@ import {
   useSeriesScope,
 } from "~/components/entry";
 import { TagChips, useTagPicker } from "~/components/tags";
+import { TodoTree, useTodoTick } from "~/components/todos";
 import { ConfirmDialog, EmptyState, Message, TITLE_SECTION } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -26,10 +27,9 @@ import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { isUpcoming } from "~/lib/appointments/upcoming";
-import { isPlannerTodo } from "~/lib/todos/plannerTodos";
+import { isPlannerTree } from "~/lib/todos/plannerTodos";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { UpcomingRow } from "./UpcomingRow";
-import { PlannerTodoRow } from "./PlannerTodoRow";
 import { usePlannerOpener } from "./usePlannerOpener";
 
 // The Planner tab lists notes and events only, which show no vital readings: the default units do.
@@ -47,7 +47,12 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Print, then Delete, with one Cancel and one Delete confirm for the list;
  * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
  * ask Only this visit or This and later visits first (`useSeriesScope`).
- * The Planner tab's sections can also hold open dated todos (`PlannerTodoRow`).
+ * The Planner tab's sections can also hold todo trees, one per day
+ * (`plannerDayTrees`; todo-subtasks-3): the shared `TodoTree`, its top row
+ * in the `card` look (lined up with the day's events) and its steps
+ * indented under it; a step due before its top-level todo shows under its
+ * dimmed ancestors. Writers get each row's quick add. One tick for the list
+ * (Undo in the route's `TodoUndoStatus`).
  * `readOnly` (the easy roles' Planner): no ⋯ menus and no filter links.
  */
 export function UpcomingList({
@@ -73,6 +78,7 @@ export function UpcomingList({
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
   const remind = useRemindMe(groupId);
+  const tick = useTodoTick(groupId);
   const [deleting, setDeleting] = useState<string | null>(null);
   // The last delete's refusal (no permission): a local write, so the list says so itself.
   const [removeError, setRemoveError] = useState<string | null>(null);
@@ -143,8 +149,8 @@ export function UpcomingList({
       <h2 id="upcoming-list-heading" className="sr-only">
         {label}
       </h2>
-      {(removeError || cancelling.error || scope.error) && (
-        <Message tone="error">{removeError ?? cancelling.error ?? scope.error}</Message>
+      {(removeError || cancelling.error || scope.error || tick.error) && (
+        <Message tone="error">{removeError ?? cancelling.error ?? scope.error ?? tick.error}</Message>
       )}
       {data.sections.length === 0 && <EmptyState data-empty="">{empty}</EmptyState>}
       {data.sections.map((section) => (
@@ -157,17 +163,26 @@ export function UpcomingList({
           </h3>
           <ol className={LIST_CLASS}>
             {section.items.map((entry) =>
-              isPlannerTodo(entry) ? (
-                <PlannerTodoRow
+              isPlannerTree(entry) ? (
+                // A branch's dimmed top row is the list look: the card's padding is its own.
+                <li
                   key={entry.key}
-                  item={entry}
-                  nameOf={todoNameOf}
-                  timeZone={data.todoZone ?? "UTC"}
-                  now={data.now}
-                  tags={<TagChips tags={data.tagsOf("todo", entry.todo.id)} className="mt-0.5" />}
-                  progress={data.progressOf?.(entry.todo.id)}
-                  parent={entry.todo.parentId ? data.parentOf?.(entry.todo.parentId) : undefined}
-                />
+                  className={entry.tree.context ? "px-3" : ""}
+                  data-planner-tree={entry.key}
+                >
+                  <TodoTree
+                    trees={[entry.tree]}
+                    look="card"
+                    adding={!readOnly}
+                    nameOf={todoNameOf}
+                    now={data.now.getTime()}
+                    timeZone={data.todoZone ?? "UTC"}
+                    onTick={(todo, done) => void (done ? tick.complete(todo) : tick.reopen(todo))}
+                    busy={tick.busy}
+                    tagsOf={(id) => data.tagsOf("todo", id)}
+                    progressOf={data.progressOf}
+                  />
+                </li>
               ) : (
                 <UpcomingRow
                   key={entry.id}

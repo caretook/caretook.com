@@ -35,17 +35,17 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: a title, an assigne
 - ✅ **A subtask is a todo with `parent_id`** (`0047_todo_subtasks`; FK, index `(group_id, parent_id)`), set on create and upsert only.
 - ✅ **Tree rules** (`todoTree.ts`, both sides): `MAX_TODO_DEPTH` 3, `depthOf`, `canHaveSubtask`, `rollupOf` (live children; none: no change), `subtaskProgress`, `listsOnItsOwn` (top-level, dated or assigned), `upcomingListsSubtask` (connectors), `siblingOrder` (by day, time, created). Trees: `todoTreeView.ts` (`todoTrees`, `todoDayTrees`).
 - ✅ **Service:** a bad parent (missing, deleted, other group, repeating, too deep) is `todoService:badParent`; a rule on a subtask or a parent is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
-- ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`): after a child's create, complete, reopen or remove, up to the top, as the system with the actor as `done_by` (a viewer's last subtask can do it). A hand reopen reopens only that todo. `complete` with an open subtask: `todoService:openSubtasks`. `remove` cascades to live descendants, then rolls up; returns `{ ids }`.
-- ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants in its transaction. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. Rollup: `planRollup` writes the chain in the change's transaction, flagged `ROLLUP_METADATA`; `todoOp` sends it to `rollUpUploaded` (any member; server rows decide).
+- ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`): after a child's create, complete, reopen or remove, to the top, as the system (the actor as `done_by`) (a viewer's last subtask can do it). A hand reopen reopens just that todo. `complete` with an open subtask: `todoService:openSubtasks`. `remove` cascades to live descendants, then rolls up; returns `{ ids }`.
+- ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants along. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. Rollup: `planRollup` writes the chain in the change's transaction, flagged `ROLLUP_METADATA`; `todoOp` sends it to `rollUpUploaded` (any member; server rows decide).
 - ✅ **The page:** a Subtasks band (`TodoSubtasks`): "n of m done" (direct children), the descendants' `TodoTree` (`todoDescendantsQuery`, `rootId`), `TodoQuickAdd` (full); "Part of" links up.
 - ✅ **The parent's tick:** `TodoTick`'s `progress` (`waitsOnSubtasks`): with open subtasks it's disabled, "n of m" (server-enforced); Mark done too. Delete counts descendants; `TodoForm`'s `repeatable` hides Repeat on a tree.
-- ✅ **Lists:** the Todos page sections trees (`todoTreesQuery`: open todos, done steps of open trees; filters match, ancestors as context). Done stays flat (`doneListed`). `plannerTodos`, `listed` keep `listsOnItsOwn` until slices 7-9.
+- ✅ **Lists:** the Todos page sections trees (`todoTreesQuery`: open todos, open trees' done steps; filters match, ancestors as context). Done stays flat (`doneListed`). Planner and easy view: day trees ([appointments](appointments.md)). `listed` keeps `listsOnItsOwn` (slice 9).
 
 ## On the device (`lib/todos/todos.sync.ts`)
 
 - `todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo` (`plannedTodo`), `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. An unflagged done PATCH maps to `complete` or `reopen`.
-- `dueTodosQuery`, `dueTodosThrough`, `useDueTodos` feed the Planner, Today card, easy view; `linkedTodosQuery`, `linkOf` and `TodoLink` serve provider and medication links.
-- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; the tick's Undo in `todoUndo.ts`: newest first, each 10 s; `TodoUndoStatus` ("Undo <title>", not a `Notice`: it stays mounted).
+- `dueTodosQuery`, `dueTodosThrough` feed the Today card; `linkedTodosQuery`, `linkOf` and `TodoLink` serve provider and medication links.
+- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; the tick's Undo in `todoUndo.ts`: newest first, each 10 s; `TodoUndoStatus` ("Undo <title>"; stays mounted, not a `Notice`).
 
 ## Screens
 
