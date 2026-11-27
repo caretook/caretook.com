@@ -34,11 +34,12 @@ const COLUMNS: Record<string, string[]> = {
   note_document: ["group_id", "snapshot", "text"],
   note_update: ["group_id", "document_id", "data"],
   user: ["name"],
-  provider: ["group_id", "type", "name", "specialty", "practice_id", "deleted_at"],
+  provider: ["group_id", "type", "name", "specialty", "practice_id", "phones", "deleted_at"],
   medication: ["group_id", "name", "strength", "type", "reason", "directions", "deleted_at"],
   timeline_entry_provider: ["group_id", "entry_id", "provider_id"],
   todo: ["group_id", "title", "done_at", "deleted_at"],
   recipient_condition: ["group_id", "name", "note", "status", "deleted_at"],
+  medication_condition: ["group_id", "medication_id", "condition_id"],
 };
 
 const makeStore = () => {
@@ -392,6 +393,42 @@ describe("the device search index", () => {
     expect(await conditionIds("diet")).toEqual([]);
     expect(await conditionIds("mellitus")).toEqual(["c-dm"]);
     expect(await conditionIds("fracture")).toEqual([]);
+  });
+
+  it("finds a provider by a phone number, as stored or as digits only", async () => {
+    s.put("provider", "p-patel", {
+      group_id: G1,
+      type: "clinician",
+      name: "Dr. Anita Patel",
+      practice_id: "p-practice",
+      phones: [{ label: "Office", number: "(555) 010-0134" }],
+    });
+    await indexSearchChanges(s.store);
+    const providerIds = async (q: string) =>
+      (await searchGroup(s.db, G1, parseSearch(q))).provider.hits.map((h) => h.id);
+    expect(await providerIds("555 010 0134")).toEqual(["p-patel"]);
+    expect(await providerIds("5550100134")).toEqual(["p-patel"]);
+  });
+
+  it("finds a medication by a linked condition's name, following links and renames", async () => {
+    s.put("recipient_condition", "c-ht", { group_id: G1, name: "Hypertension" });
+    await indexSearchChanges(s.store);
+    const medicationIds = async (q: string) =>
+      (await searchGroup(s.db, G1, parseSearch(q))).medication.hits.map((h) => h.id);
+    expect(await medicationIds("hypertension")).toEqual([]);
+
+    s.put("medication_condition", "mc-1", { group_id: G1, medication_id: "m-lis", condition_id: "c-ht" });
+    await indexSearchChanges(s.store);
+    expect(await medicationIds("hypertension")).toEqual(["m-lis"]);
+
+    s.put("recipient_condition", "c-ht", { group_id: G1, name: "High blood pressure" });
+    await indexSearchChanges(s.store);
+    expect(await medicationIds("hypertension")).toEqual([]);
+    expect(await medicationIds("high")).toEqual(["m-lis"]);
+
+    s.remove("medication_condition", "mc-1");
+    await indexSearchChanges(s.store);
+    expect(await medicationIds("high")).toEqual([]);
   });
 
   it("rebuilds when the format version changes", async () => {

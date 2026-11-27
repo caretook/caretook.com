@@ -1,7 +1,7 @@
 import type { LinkCandidate } from "./linkOptions";
 
 import { describe, expect, it } from "vitest";
-import { linkOptions } from "./linkOptions";
+import { linkOptions, linkTypeWord } from "./linkOptions";
 
 const ZONE = "America/Los_Angeles";
 const WHERE = { locale: "en-US", timeZone: ZONE };
@@ -90,5 +90,41 @@ describe("the Link to box's options", () => {
     expect(
       linkOptions([lark, metformin, visit, note], NOW, { ...WHERE, linked: ["p1", "e1"] }).map((o) => o.id),
     ).toEqual(["m1", "n1"]);
+  });
+});
+
+describe("a typed type word", () => {
+  it.each([
+    ["provider lee", "provider", "lee"],
+    ["Providers Lee Smith", "provider", "Lee Smith"],
+    ["Dr. Lee", "provider", "Lee"],
+    ["doctor lark", "provider", "lark"],
+    ["metformin med", "medication", "metformin"],
+    ["MEDS refill", "medication", "refill"],
+    ["medication metformin", "medication", "metformin"],
+    ["appt cardiology", "event", "cardiology"],
+    ["cardiology appointment", "event", "cardiology"],
+    ["events lark", "event", "lark"],
+    ["note diet", "note", "diet"],
+    ["diet notes", "note", "diet"],
+    ["Nóte diet", "note", "diet"],
+  ])("%s: the first or last word names the type", (text, type, rest) => {
+    expect(linkTypeWord(text)).toEqual({ type, rest });
+  });
+
+  it("reads the first word before the last", () => {
+    expect(linkTypeWord("note about meds")).toEqual({ type: "note", rest: "about meds" });
+  });
+
+  it("names its type alone, leaving nothing to search", () => {
+    expect(linkTypeWord("med")).toEqual({ type: "medication", rest: "" });
+    expect(linkTypeWord(" notes ")).toEqual({ type: "note", rest: "" });
+  });
+
+  it("is no type word in the middle, inside a word or missing", () => {
+    expect(linkTypeWord("lee provider smith")).toEqual({ type: null, rest: "lee provider smith" });
+    expect(linkTypeWord("medford clinic")).toEqual({ type: null, rest: "medford clinic" });
+    expect(linkTypeWord("lark")).toEqual({ type: null, rest: "lark" });
+    expect(linkTypeWord("")).toEqual({ type: null, rest: "" });
   });
 });

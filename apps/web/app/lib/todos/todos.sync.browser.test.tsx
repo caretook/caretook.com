@@ -33,7 +33,8 @@ import {
 // local transaction; Undo takes an untouched next away again, or keeps an
 // edited one and stops the reopened todo repeating; skip deletes this one
 // and writes the next; edits move the anchor as todoService does. What the
-// server makes of these uploads is syncTodos.int.test.ts's.
+// server makes of these uploads is syncTodos.int.test.ts's. The sheets'
+// note and event links (todo-links): `entryIds` on create and update.
 
 const DAILY = "FREQ=DAILY;INTERVAL=1";
 const today = localDate(new Date(), TEST_TIME_ZONE);
@@ -283,6 +284,71 @@ describe("edit", () => {
     expect(await read(db, BINS_ID)).toMatchObject({ repeatStartsOn: tomorrow, repeatId: BINS_ID });
     ok(await updateTodo(db, BINS_ID, { repeatRule: null }));
     expect(await read(db, BINS_ID)).toMatchObject({ repeatRule: null, repeatStartsOn: null, repeatId: null });
+  });
+});
+
+describe("entry links (todo-links)", () => {
+  const PLAIN_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb501";
+  const plain = todo({ id: PLAIN_ID, title: "Ask about the eye drops" });
+  const NOTE = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb502", text: "Drops sting" });
+  const NEW_NOTE = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb503", text: "Drops help now" });
+  const GONE_NOTE = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb504", deletedAt: hoursAgo(1) });
+  const SYMPTOM = fx.symptom({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb505" });
+  const linkedWorld = () => [
+    plain,
+    NOTE,
+    NEW_NOTE,
+    GONE_NOTE,
+    SYMPTOM,
+    entryTodo(NOTE.id, PLAIN_ID),
+    entryTodo(VISIT.id, PLAIN_ID),
+    entryTodo(GONE_NOTE.id, PLAIN_ID),
+  ];
+  const linksOf = async (db: Db, todoId: string) =>
+    (
+      await readRows<{ entry_id: string }>(db, {
+        sql: "SELECT entry_id FROM timeline_entry_todo WHERE todo_id = ? ORDER BY entry_id",
+        params: [todoId],
+      })
+    ).map((r) => r.entry_id);
+
+  test("updateTodo with entryIds links the new ones and unlinks the left-out ones, with the edit", async () => {
+    const { db } = await device(linkedWorld());
+    ok(
+      await updateTodo(db, PLAIN_ID, {
+        title: "Ask about the drops",
+        entryIds: [VISIT.id, NEW_NOTE.id, SYMPTOM.id, "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb5ff"],
+      }),
+    );
+    // The note left out is unlinked; a symptom and an unknown id are ignored; the deleted note's link stays.
+    expect(await linksOf(db, PLAIN_ID)).toEqual([VISIT.id, NEW_NOTE.id, GONE_NOTE.id].sort());
+    const ops = await queued(db);
+    expect(ops.map((o) => o.op)).toEqual(["PATCH", "PUT", "DELETE"]);
+    expect(oneTransaction(ops)).toBe(true);
+
+    ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops", entryIds: [] }));
+    expect(await linksOf(db, PLAIN_ID)).toEqual([GONE_NOTE.id]);
+  });
+
+  test("without entryIds (a title or provider change) the note and event links stay", async () => {
+    const { db } = await device(linkedWorld());
+    ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops" }));
+    ok(await updateTodo(db, PLAIN_ID, { providerId: LARK.id }));
+    expect(await linksOf(db, PLAIN_ID)).toEqual([NOTE.id, VISIT.id, GONE_NOTE.id].sort());
+    expect((await queued(db)).map((o) => o.op)).toEqual(["PATCH", "PATCH"]);
+  });
+
+  test("createTodo links each live note or event in entryIds, once, in its transaction", async () => {
+    const { db } = await device(linkedWorld());
+    const made = await createTodo(db, TEST_GROUP.id, {
+      title: "Bring the drops",
+      entryIds: [NOTE.id, VISIT.id, NOTE.id, GONE_NOTE.id, SYMPTOM.id],
+    });
+    if (!made.ok) throw new Error(made.error);
+    expect(await linksOf(db, made.id)).toEqual([NOTE.id, VISIT.id].sort());
+    const ops = await queued(db);
+    expect(ops.map((o) => o.op)).toEqual(["PUT", "PUT", "PUT"]);
+    expect(oneTransaction(ops)).toBe(true);
   });
 });
 

@@ -8,24 +8,22 @@
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 started 2026-11-27** (orchestrator session 1): slices 1, 4, 6 worktrees made, agents spawned on opus. B-944, B-947, B-948 claimed. `risa anchors` misses are all files or symbols earlier slices create (no plan fix needed).
+**Wave 1 landed 2026-11-27** in dev through PR #280 (dev 2b82fa9; components run 46072898158 green on the synced tip c105ba7d1; Codex clean). The user said to land without waiting for Codex; its two P2s came in first and were filed as B-988 (entry hits capped before the kind filter) and B-989 (tag changes don't refresh the box), both `prd=todo-links` triaged: fold them into slice 3 if they fit its files (linkSearch.sync.ts, useLinkSearch.ts), else a later slice. Report a342; to-test/2026-11-27-1658-todo-links.md. B-948 done; B-944, B-947 continue.
 
-**Docs at wave 1 landing (slice 6):** todos.md Screens (LinkedTodos, entry Todos) and components.md still say "Add todo" opens the sheet: now the full `TodoQuickAdd` (link, no parent) plus a compact one per open row; a writer's provider/medication Todos band is always titled (keeps focus on the first add); the `todos/new?providerId=` prefill stays but has no button there.
-
-**Wave 1 green:** fix ac83828e8 (slice 1's ComboBox `Option` markup restored for icon-less options) merged; `risa sync` skipped (no shared files); components run 46070440273 green on ac83828e. Docs folded (d09143303: todos, components, search; recently viewed in search.md). Slice worktrees 1, 4, 6 removed. PR #280 open; Codex review and `risa browser --changed` running. Next: land wave 1, then rotate; wave 2 (slices 2, 3) starts in the fresh session.
+**Wave 2 (session 2, 2026-11-27):** dev sync clean (up to date). B-988 and B-989 folded into slice 3 (noted, claimed with B-945, B-946). Started 17:45 after the usage reset: worktrees todo-links-2 and todo-links-3, one opus agent each; watch running. **From slice 2:** the form always sends an empty `entryIds` marker (present-empty unlinks all, absent leaves links); leftovers for a cleanup: `todoSheet.ts` `useLinkChoices` still reads recent events (unused), `todos/new/route.tsx`'s top comment is stale; fold todos.md's sheet-picker lines at landing. **From slice 3:** `useLinkSearch(groupId, text, linked, type = null)`; a type word alone finds nothing (slice 5: show that type's suggestions); `ComboBox` gained `reopenOn` (fold into ui-kit.md); server `searchService` doesn't match phones or condition names (parity follow-up?). **Wave 2 CI** (components) on 4863752a: `file`, run 46079614953; blame: three branch failures, all slice 3's chips (`ul[aria-label="Link type"]`) against slice 1's page test and slice 2's sheet test: slice 3's fix (f9463593e: test queries narrowed; a type word that finds nothing falls back to the whole text, "eye doctor") merged as b04d9d146. Its nit: in the fallback the typed type's chip still shows on (fold into slice 5, which edits the box). Rerun green: components run 46080875098 on c261a994c. Sync: none needed. PR #288: Codex's two P2s filed as B-990 (the edit sheet's entryIds snapshot overwrites others' link changes) and B-991 (chip labels ignore pending Yjs note updates), both for slice 5; threads answered and resolved; Codex clean on c261a99. Changed browser checks 3/3 (the full suite not run: ask first). Landing; then wave 3 (slice 5, with B-990, B-991 and slice 3's chip nit).
 
 **From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
 
 **For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
 
-| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ----- | ------- | ------------------------------------------- |
-| 1     | 1    | opus  | working |                                             |
-| 2     | 2    |       | planned |                                             |
-| 3     | 2    |       | planned |                                             |
-| 4     | 1    | opus  | merged  | 755f9b1e4 (db2656198)                       |
-| 5     | 3    |       | planned |                                             |
-| 6     | 1    | opus  | working |                                             |
+| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits)      |
+| ----- | ---- | ----- | ------- | ------------------------------------------------ |
+| 1     | 1    | opus  | landed  | c3c95a1aa (d7e688c6a), fix ac83828e8 (92a6baa3b) |
+| 2     | 2    | opus  | merged  | e1bee6730 (ded397686)                            |
+| 3     | 2    | opus  | merged  | 70982ff9e (3bd80f9eb, 87e6426ce)                 |
+| 4     | 1    | opus  | landed  | 755f9b1e4 (db2656198)                            |
+| 5     | 3    |       | planned |                                                  |
+| 6     | 1    | opus  | landed  | b7fb8d218 (14dfb3f7f)                            |
 
 ## Architectural decisions
 

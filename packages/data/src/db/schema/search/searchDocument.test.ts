@@ -129,6 +129,19 @@ describe("providerSearchDocument", () => {
     });
   });
 
+  it("indexes each phone number in the body, as stored and as digits only", () => {
+    expect(
+      providerSearchDocument({
+        id: "p1",
+        groupId: "g1",
+        name: "Dr. Anita Patel",
+        practiceName: "Valley Heart Clinic",
+        phones: ["(555) 010-0134", "5550100199", null, " "],
+        documentText: "Prefers morning calls.",
+      })?.body,
+    ).toBe("Valley Heart Clinic\n(555) 010-0134\n5550100134\n5550100199\nPrefers morning calls.");
+  });
+
   it("has no document for a deleted provider", () => {
     expect(
       providerSearchDocument({ id: "p1", groupId: "g1", name: "X", deletedAt: "2026-11-01" }),
@@ -169,6 +182,20 @@ describe("medicationSearchDocument", () => {
       medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", type: null, reason: "R" })?.body,
     ).toBe("R");
     expect(medicationSearchDocument({ id: "m1", groupId: "g1", name: "X" })?.body).toBe("");
+  });
+
+  it("indexes the names of its linked conditions in the body, after directions", () => {
+    expect(
+      medicationSearchDocument({
+        id: "m1",
+        groupId: "g1",
+        name: "Metformin",
+        reason: "Blood sugar",
+        directions: "Take with food",
+        conditionNames: ["Type 2 diabetes", null, "Prediabetes"],
+        documentText: "Notes.",
+      })?.body,
+    ).toBe("Blood sugar\nTake with food\nType 2 diabetes\nPrediabetes\nNotes.");
   });
 
   it("has no document for a deleted medication", () => {
