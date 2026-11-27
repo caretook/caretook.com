@@ -13,7 +13,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
-**Idle after wave 23** (idle hand-over; landed through PR #285, 2026-11-27, Codex clean on cc772da, CI integration green run 46078822158; to-test `to-test/2026-11-27-1757-fixes-bug.md`; landed unsynced, dev had 4 unrelated commits). Slice 87 (B-987, opus, 061b55605): `log_dose`'s `scheduledDose` reads every pass unpaged. Docs folded into connectors.md. **Next session:** ingest, `risa backlog list`; write wave 24 from `risa status-trim fixes-bug --next`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table (a bad row fails every slice check).
+**Idle after wave 23** (idle hand-over; landed through PR #285, 2026-11-27, Codex clean on cc772da, CI integration green run 46078822158; to-test `to-test/2026-11-27-1757-fixes-bug.md`; landed unsynced, dev had 4 unrelated commits). Slice 87 (B-987, opus, 061b55605): `log_dose`'s `scheduledDose` reads every pass unpaged. Docs folded into connectors.md. **2026-11-27 resume:** ingest found nothing new and no item is workable (only B-750 and B-752 wait, both held), so the docs-only hand-over was landed and the lane freed (`risa rm fixes-bug`; standing). **Next session:** ingest, `risa backlog list`; write wave 24 from `risa status-trim fixes-bug --next`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table (a bad row fails every slice check).
 
 ## Wave 1
 
