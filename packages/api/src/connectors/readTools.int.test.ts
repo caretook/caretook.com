@@ -548,6 +548,140 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(pass.structuredContent.entryIds).toHaveLength(1);
   });
 
+  describe("dose_schedule", () => {
+    // 12:00 in Los Angeles (PDT), the group's zone: today is Wednesday 2030-06-12.
+    const clock = new Date("2030-06-12T19:00:00.000Z");
+    type Schedule = {
+      timeZone: string;
+      from: string;
+      days: {
+        day: string;
+        weekday: string;
+        rounds: {
+          name: string;
+          time: string;
+          at: string;
+          medications: { medicationId: string; medication: string; amount: string | null }[];
+        }[];
+      }[];
+      asNeeded: { medicationId: string; medication: string; maxPerDay: number | null }[];
+    };
+    const scheduleWorld = async () => {
+      const w = await world();
+      const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
+      const morning = passes.find((p) => p.name === "Morning")!;
+      const evening = passes.find((p) => p.name === "Evening")!;
+      const metformin = await addMedication(w.caretaker.ctx, w.group.id, {
+        name: "Metformin",
+        strength: "500 mg",
+        schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+      });
+      const vitamin = await addMedication(w.caretaker.ctx, w.group.id, {
+        name: "Vitamin D",
+        strength: null,
+        dose: "1 capsule",
+        schedule: { type: "scheduled", slots: [{ time: "13:00" }] },
+      });
+      const pain = await addMedication(w.caretaker.ctx, w.group.id, {
+        name: "Ibuprofen",
+        strength: null,
+        schedule: { type: "asNeeded", maxPerDay: 3 },
+      });
+      await addMedication(w.owner.ctx, w.second.group.id, { name: "Elsewhere" });
+      return { ...w, metformin, vitamin, pain };
+    };
+
+    it("gives 7 days from today with the group's rounds, in the recipient's offset, to a viewer's read grant", async () => {
+      const handler = handlerAt(clock);
+      const w = await scheduleWorld();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "dose_schedule");
+      expect(result.isError).toBeUndefined();
+      const out = result.structuredContent as Schedule;
+      expect(out.timeZone).toBe("America/Los_Angeles");
+      expect(out.from).toBe("2030-06-12");
+      expect(out.days.map((d) => d.day)).toEqual([
+        "2030-06-12",
+        "2030-06-13",
+        "2030-06-14",
+        "2030-06-15",
+        "2030-06-16",
+        "2030-06-17",
+        "2030-06-18",
+      ]);
+      expect(out.days[0]!.weekday).toBe("Wednesday");
+      for (const d of out.days) {
+        expect(d.rounds.map((r) => [r.name, r.time])).toEqual([
+          ["Morning", "08:00"],
+          ["Vitamin D", "13:00"],
+          ["Evening", "20:00"],
+        ]);
+        expect(d.rounds.map((r) => r.medications.map((m) => m.medicationId))).toEqual([
+          [w.metformin.id],
+          [w.vitamin.id],
+          [w.metformin.id],
+        ]);
+        for (const r of d.rounds) expect(r.at).toBe(`${d.day}T${r.time}:00-07:00`);
+      }
+      expect(out.days[0]!.rounds[0]!.medications[0]).toEqual({
+        medicationId: w.metformin.id,
+        medication: "Metformin 500 mg",
+        amount: "1 tablet",
+      });
+      expect(out.asNeeded).toEqual([{ medicationId: w.pain.id, medication: "Ibuprofen", maxPerDay: 3 }]);
+      const text = result.content[0]!.text;
+      // The same rounds every day: one range.
+      expect(text).toContain("Wednesday 2030-06-12 to Tuesday 2030-06-18:");
+      expect(text).toContain("  Morning (08:00): Metformin 500 mg, 1 tablet");
+      expect(text).toContain("  Vitamin D (13:00): Vitamin D, 1 capsule");
+      expect(text).toContain("As needed: Ibuprofen (at most 3 a day).");
+      expect(JSON.stringify(result)).not.toContain("Elsewhere");
+    });
+
+    it("from tomorrow for one day gives that day only", async () => {
+      const handler = handlerAt(clock);
+      const w = await scheduleWorld();
+      const token = await w.connect(w.caretaker, "readWrite");
+      const result = await callTool(handler, token, "dose_schedule", { from: "2030-06-13", days: 1 });
+      const out = result.structuredContent as Schedule;
+      expect(out.days.map((d) => [d.day, d.weekday, d.rounds.length])).toEqual([
+        ["2030-06-13", "Thursday", 3],
+      ]);
+      expect(result.content[0]!.text).toContain("Thursday 2030-06-13:");
+    });
+
+    it("refuses more than 14 days, and a day before today, naming list_timeline", async () => {
+      const handler = handlerAt(clock);
+      const w = await scheduleWorld();
+      const token = await w.connect(w.viewer);
+      expect((await callTool(handler, token, "dose_schedule", { days: 15 })).isError).toBe(true);
+      const past = await callTool(handler, token, "dose_schedule", { from: "2030-06-11" });
+      expect(past.isError).toBe(true);
+      expect(past.structuredContent).toMatchObject({
+        error: {
+          issues: [
+            {
+              path: "from",
+              message: "The schedule is for today onward. Use list_timeline for doses already logged.",
+            },
+          ],
+        },
+      });
+      expect(past.content[0]!.text).toContain("Use list_timeline for doses already logged.");
+    });
+
+    it("says so for a day with no scheduled doses", async () => {
+      const handler = handlerAt(clock);
+      const w = await world();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "dose_schedule", { days: 2 });
+      expect((result.structuredContent as Schedule).days.map((d) => d.rounds)).toEqual([[], []]);
+      expect(result.content[0]!.text).toContain(
+        "Wednesday 2030-06-12 to Thursday 2030-06-13:\n  No scheduled doses",
+      );
+    });
+  });
+
   it("upcoming: events soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
@@ -1246,6 +1380,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         "search",
         "list_medications",
         "todays_doses",
+        "dose_schedule",
         "upcoming",
         "list_todos",
         "list_providers",

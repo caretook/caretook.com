@@ -8,6 +8,7 @@ import { listTodos } from "./listTodos";
 import { listTimeline } from "./listTimeline";
 import { recipientProfile } from "./recipientProfile";
 import { search } from "./search";
+import { doseSchedule } from "./doseSchedule";
 import { todaysDoses } from "./todaysDoses";
 import { upcoming } from "./upcoming";
 import {
@@ -35,6 +36,7 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   search,
   listMedications,
   todaysDoses,
+  doseSchedule,
   upcoming,
   listTodos,
   listProviders,
