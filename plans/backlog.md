@@ -275,12 +275,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-955 | change | triaged | tags-3 |  | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
 | B-956 | change | landed | fixes-perf | prd/fixes-perf | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
-| B-957 | change | in-progress | fixes-ui | prd/fixes-ui | First load: a friendlier loading screen with progress |
+| B-957 | change | ready | fixes-ui | prd/fixes-ui | First load: a friendlier loading screen with progress |
 | B-958 | change | landed | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | landed | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | landed | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
 | B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
-| B-962 | change | in-progress | fixes-ui | prd/fixes-ui | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
+| B-962 | change | ready | fixes-ui | prd/fixes-ui | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | landed | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 | B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
@@ -1794,10 +1794,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-957 · change · First load: a friendlier loading screen with progress
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: e32df1434
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): sign-in to the first timeline row is ~1.9 s on a 4G phone profile after the fix (2.5 s before), ~4.4 s on 3G; the wait shows brand/AppLoading or FirstSyncPending with no sense of progress. The user asked for a friendlier message with progress. Steps a progress line could follow: signing in, loading the app (route chunks), opening the device copy (lib/sync/client, WASM), first sync (PowerSync currentStatus: connected, hasSynced; downloadProgress), opening the timeline.
 
@@ -1841,10 +1841,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-962 · change · Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: e32df1434
 
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27. Today (components/notes/NoteFullScreen.tsx, B-765): the dialog is full screen but its content is 'mx-auto max-w-3xl p-2 sm:p-4' with its own title row (h2 = the entry page's heading, plus EditorAvatars as aside) above the editor frame, which keeps its rounded border. Wanted: the frame edge to edge (no max width, padding, border radius; safe-area aware); drop the separate title row; the title (short, truncated: what the note is attached to, e.g. the entry's heading) and the avatars go into the frame's BAR (LiveNotesEditor.tsx ~191) left of the Exit full screen IconButton. On a phone the bar also holds the writer's toolbar: the planner decides the layout (e.g. title + avatars + Exit on one row, toolbar on the next) without losing the one-row toolbar on wide screens. Shared-UX rule (components.md): a note's header bar keeps one shape on the page and in full screen. Reads: live-notes.md (Full screen), components.md.
 
