@@ -2,10 +2,12 @@ import type { DoseSlot, DueDose, DueMedication } from "./dueDoses";
 import type { PassLike } from "./medicationPass";
 import type { ScheduleChange } from "./scheduleHistory";
 
+import { z } from "zod";
 import { addDays } from "../core/entryTiming";
 import { startOfDay } from "../core/zonedDay";
 import { doseSlotsBetween } from "./dueDoses";
 import { duePasses } from "./duePasses";
+import { DOSE_STATUSES, MEDICATION_LIMITS, scheduleTimeZSchema } from "./medication";
 
 // The dose record (the connector's `past_doses`): each past day's rounds with
 // every slot's state and the dose that answered it, the shape of the printed
@@ -95,4 +97,83 @@ export function doseRecord({
       })),
     })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// A dose sheet's marks (the connector's `log_past_doses`): a photographed
+// week of the paper sheet, each box marked given, skipped or refused, read
+// against the record. Pure; the server writes the `add`s.
+// ---------------------------------------------------------------------------
+
+/** At most this many marks a call (a week of a full sheet fits). */
+export const SHEET_DOSE_MARKS_MAX = 200;
+
+/** One marked box: a scheduled slot named as `past_doses` lists it, and the answer on the sheet. */
+export const sheetDoseMarkZSchema = z.object({
+  medicationId: z.uuid(),
+  /** The recipient's day, "YYYY-MM-DD". */
+  day: z.iso.date(),
+  /** The slot's time, "HH:MM" in the recipient's zone. */
+  time: scheduleTimeZSchema,
+  status: z.enum(DOSE_STATUSES),
+  note: z.string().trim().max(MEDICATION_LIMITS.doseNote).optional(),
+});
+export type SheetDoseMark = z.infer<typeof sheetDoseMarkZSchema>;
+
+/**
+ * What a mark comes to: `add` (the slot is open: missed, or due or overdue
+ * today), `alreadyLogged` (its dose has the mark's status), `conflict` (its
+ * dose has another; never changed), `noSlot` (no slot for that medication,
+ * day and time), `notYet` (the slot is after `now`), `tooOld` (its day is
+ * before `earliestDay`), `repeated` (an earlier mark named the slot).
+ */
+export type SheetDoseOutcome =
+  | { outcome: "add"; slot: DoseSlot }
+  | { outcome: "alreadyLogged" | "conflict"; slot: DoseSlot; dose: DueDose }
+  | { outcome: "notYet" | "repeated"; slot: DoseSlot }
+  | { outcome: "noSlot" | "tooOld" };
+
+/** A slot's name on a sheet: medication, day and time. */
+const markKey = (medicationId: string, day: string, time: string) =>
+  `${medicationId.toLowerCase()}|${day}|${time}`;
+
+/**
+ * Each mark's outcome, in the marks' order, against `record` (built with the
+ * doses and settled at `now`, covering the marks' days from `earliestDay`).
+ * The day's reach is decided first, then the slot (from the record only: no
+ * slot rule of its own), then an earlier mark for it, then its dose.
+ */
+export function sheetDoseOutcomes({
+  record,
+  marks,
+  now,
+  earliestDay,
+}: {
+  record: DoseRecord;
+  marks: readonly Pick<SheetDoseMark, "medicationId" | "day" | "time" | "status">[];
+  now: Date;
+  /** The first day a mark may name, "YYYY-MM-DD". */
+  earliestDay: string;
+}): SheetDoseOutcome[] {
+  const slots = new Map<string, DoseSlot>();
+  for (const day of record.days)
+    for (const round of day.rounds)
+      for (const slot of round.slots) slots.set(markKey(slot.medication.id, slot.day, slot.time), slot);
+  const named = new Set<string>();
+  return marks.map((mark): SheetDoseOutcome => {
+    if (mark.day < earliestDay) return { outcome: "tooOld" };
+    const key = markKey(mark.medicationId, mark.day, mark.time);
+    const slot = slots.get(key);
+    if (!slot) return { outcome: "noSlot" };
+    if (named.has(key)) return { outcome: "repeated", slot };
+    named.add(key);
+    if (slot.dose)
+      return {
+        outcome: slot.dose.details.status === mark.status ? "alreadyLogged" : "conflict",
+        slot,
+        dose: slot.dose,
+      };
+    if (new Date(slot.at).getTime() > now.getTime()) return { outcome: "notYet", slot };
+    return { outcome: "add", slot };
+  });
 }

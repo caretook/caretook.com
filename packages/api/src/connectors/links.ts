@@ -15,6 +15,9 @@ export const entryPath = (groupId: string, entry: { id: string; kind: string }) 
 export const passLogPath = (groupId: string, passLogId: string) =>
   `${groupPath(groupId)}/timeline/pass/${encodeURIComponent(passLogId)}/edit`;
 
+/** The group's timeline. */
+export const timelinePath = (groupId: string) => `${groupPath(groupId)}/timeline`;
+
 /** A todo's page. */
 export const todoPath = (groupId: string, todoId: string) =>
   `${groupPath(groupId)}/todos/${encodeURIComponent(todoId)}`;
