@@ -84,7 +84,7 @@ export function UpcomingList({
   const navigate = useNavigate();
   // The entry page goes back to this tab (B-690).
   const opener = usePlannerOpener(false);
-  const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
+  const prep = useVisitPrep(groupId, canWrite, { openAfter: true, openState: plannerReturnState(opener) });
   const preparable = (entry: TimelineEntry) =>
     entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
   const menuOf = (entry: TimelineEntry) => (

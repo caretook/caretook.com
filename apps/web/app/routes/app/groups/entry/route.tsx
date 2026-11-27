@@ -142,7 +142,7 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
           <Notice
             tone="error"
             action={{
-              label: `Back to the ${live.back.label === "Planner" ? "Planner" : "timeline"}`,
+              label: `Back to the ${live.back.label === "Planner" ? "Planner" : live.back.label.toLowerCase()}`,
               to: live.back.to,
             }}
           >

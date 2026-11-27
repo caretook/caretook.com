@@ -26,6 +26,7 @@ import {
   plannerReturnState,
   plannerReturnUrl,
 } from "~/lib/appointments/plannerReturn";
+import { entryOriginFrom, entryOriginState } from "~/lib/timeline/entryOrigin";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { linkProvider } from "~/lib/providers/providers.sync";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
@@ -89,7 +90,8 @@ export type LiveEntry = {
   remove: () => Promise<void>;
   /**
    * Where the back link goes, worked out now: the Planner when it opened the
-   * page (B-690; see lib/appointments/plannerReturn.ts), else the timeline.
+   * page (B-690; see lib/appointments/plannerReturn.ts), a provider's or a
+   * todo's page when one did (B-936; lib/timeline/entryOrigin.ts), else the timeline.
    */
   back: { label: string; to: string };
   /** Leaves the page for `back`, decided at the moment it's called (a time edited here counts). */
@@ -135,9 +137,13 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Opened from the Planner (B-690): read once, and carried over the first save's URL replace.
+  // Opened from the Planner (B-690), or a provider's or todo's page (B-936): read once, and
+  // carried over the first save's URL replace.
   const [returnTo] = useState(() => plannerReturnFrom(location.state));
-  const [savedState] = useState(() => (returnTo ? plannerReturnState(returnTo) : undefined));
+  const [origin] = useState(() => (returnTo ? null : entryOriginFrom(groupId, location.state)));
+  const [savedState] = useState(() =>
+    returnTo ? plannerReturnState(returnTo) : origin ? entryOriginState(origin) : undefined,
+  );
 
   // The draft's fields, read when it's saved.
   const [draft] = useState(data.entry);
@@ -390,12 +396,15 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const backTo = (stored: boolean, now: Date) =>
     returnTo
       ? { label: "Planner", to: plannerReturnUrl(returnTo, { groupId, entry, stored, now }) }
-      : { label: "Timeline", to: appUrls.timeline(groupId) };
+      : origin
+        ? { label: origin.label, to: origin.from }
+        : { label: "Timeline", to: appUrls.timeline(groupId) };
   const leave = () => {
     const { to } = backTo(seen || saved.current || !isNew, new Date());
     // Right after its opener in history: a step back, so the tab's scroll comes back.
     const idx: unknown = (window.history.state as { idx?: unknown } | null)?.idx;
-    if (returnTo && backIsHistoryStep(returnTo, to, idx)) void navigate(-1);
+    const opener = returnTo ?? origin;
+    if (opener && backIsHistoryStep(opener, to, idx)) void navigate(-1);
     else void navigate(to);
   };
 
