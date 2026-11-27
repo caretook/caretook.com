@@ -7,7 +7,8 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge; agent shells need nvm's Node 24 bin first on `PATH`.
-- Follow-up filed: B-956 (live queries skip identical answers; from slice 3), next wave.
+- Follow-ups filed: B-956 (live queries skip identical answers; slice 3); B-957 (fixes-ui loading screen), B-958, B-959, B-960 (first-load costs; slice 7), next wave.
+- Slice 7: first timeline row on 4G 2.53 s → 1.91 s via modulepreload of the landing routes after sign-in (gain needs HTTP/2).
 - CI watch list (slice 3): timelineBack, timelineScroll, timelineJumpPaging, timelineRichText, planner paging/Back.
 - Docs at landing: appointments.md's top-up: only due series are read; an ended series is never rewritten (slice 1).
 - **Wave 1** (2026-11-27): slices 1-7, all Opus. Ready now: 1, 3, 4, 6, 7; 2 waits on 1, 5 on 3.
@@ -20,7 +21,7 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 | 4     | B-884 | merged                             | 4c969a9d |
 | 5     | B-910 | working (Opus)                     | —        |
 | 6     | B-798 | handed off 13501fbf, merge after 5 | —        |
-| 7     | B-764 | working (Opus)                     | —        |
+| 7     | B-764 | handed off 900f2f3f, merge after 6 | —        |
 
 ## Wave 1
 
