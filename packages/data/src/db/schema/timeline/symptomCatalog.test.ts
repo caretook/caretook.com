@@ -119,12 +119,12 @@ describe("similarSymptoms (the check before a new name)", () => {
     const rows = [
       { id: "a", name: "Knee pain", archived: true },
       { id: "b", name: "Nausea", archived: false },
-      { id: "c", name: "Left knee pain" },
+      { id: "c", name: "Back ache" },
     ];
     expect(similarSymptoms("knee PAIN", rows)).toEqual({ exact: rows[0], similar: [] });
     expect(similar("pain knee", rows)).toEqual([]);
     expect(similar("Knee pains", rows)).toEqual([]);
-    expect(similar("Sharp left knee pain", rows)).toEqual(["Left knee pain"]);
+    expect(similar("Sharp back ache", rows)).toEqual(["Back ache"]);
     expect(similar("Nausia", rows)).toEqual(["Nausea"]);
   });
 
