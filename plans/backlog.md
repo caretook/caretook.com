@@ -234,12 +234,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-bug |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-752 | bug | triaged | fixes-bug | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
-| B-755 | change | in-progress | fixes-perf | prd/fixes-perf | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
+| B-755 | change | ready | fixes-perf | prd/fixes-perf | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-760 | feature | triaged | connectors-3 |  | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
 | B-761 | feature | triaged | connectors-3 |  | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
-| B-764 | change | in-progress | fixes-perf | prd/fixes-perf | App first load is way too long. |
+| B-764 | change | ready | fixes-perf | prd/fixes-perf | App first load is way too long. |
 | B-772 | chore | triaged | test-time-gates-2 |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
@@ -253,7 +253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
 | B-797 | plan | triaged | risa-next |  | Risa: prove it on a second repo with tests, then make it usable by others |
-| B-798 | change | in-progress | fixes-perf | prd/fixes-perf | Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline |
+| B-798 | change | ready | fixes-perf | prd/fixes-perf | Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline |
 | B-799 | change | triaged | risa-next |  | Include captain name and backlog agent name so other agents can find it. |
 | B-802 | bug | triaged | fixes-tooling |  | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
 | B-808 | bug | triaged | fixes-tooling |  | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
@@ -294,7 +294,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
-| B-910 | chore | in-progress | fixes-perf | prd/fixes-perf | Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3) |
+| B-910 | chore | ready | fixes-perf | prd/fixes-perf | Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3) |
 | B-911 | chore | triaged | fixes-tooling |  | pnpm prd wait check's default timeout outlasts the harness's ~170 s foreground limit, so a foreground wait is itself moved to the background; default it under 170 s (or say so in the loop doc) |
 | B-912 | plan | triaged | self-recovery-2 |  | Slices as their own headless sessions: started by a prd command, hand-offs to a file the orchestrator watches, so a slice survives an orchestrator rotation and can rotate or resume mid-slice itself |
 | B-913 | plan | triaged | self-recovery-2 |  | Any role's long work runs as a job the machinery owns, so a hand-off never interrupts it: commands (check, land, CI waits, deploys, dev servers), watchers with a follow-up action (durable triggers the dispatcher fires), side-work subagents (headless sessions); each writes a result file, the hand-off records job ids, and the next session re-attaches instead of rerunning or re-arming |
@@ -337,6 +337,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-958 | change | triaged | fixes-perf |  | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | triaged | fixes-perf |  | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | triaged | fixes-perf |  | First /app load fetches about 205 JS files, many of them tiny |
+| B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
+| B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 
 ## Items
 
@@ -1400,12 +1402,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-755 · change · Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: 4adf10d3
 
 - 2026-11-24 (prd/fixes-tooling): Found by fixes-tooling slice 40 (B-500), 2026-11-24: appointmentSeriesService.ts writeVisits writes each visit's entry, document and links in turn; creating a series on the server without toppedUpThrough pays it too. Batching would speed the product and appointmentSeries.int.test.ts.
+- 2026-11-27 (slice/fixes-perf/2): fixes-perf slice 2 (ce2c9fc0): writeVisits batches each table's rows (createMany/createForEntries/linkMany on baseModel.createMany); 39-visit series create 1143 -> 46 statements, 778 -> ~90 ms; appointmentSeries.int.test.ts 6.1-6.5 s -> 3.4-3.6 s at load 5-10.
 
 ### B-757 · chore · Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list
 
@@ -1446,10 +1449,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-764 · change · App first load is way too long.
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: 68a26101
 
 - 2026-11-24 (Robert Bo Davis): From the inbox: We need to either speed it up or make the loading message more friendly with a progress bar.
 - 2026-11-24 (Robert Bo Davis): Triage: measure the first load (bundle, first sync) before fixing; may grow into its own topic.
@@ -1583,10 +1586,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-798 · change · Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: fb6c8b7b
 
 - 2026-11-24 (prd/fixes-ui): From fixes-ui slice 69 (B-793): both still build a formatter per call; minor in the profile, same pattern.
 - 2026-11-27 (slice/fixes-perf/6): fixes-perf slice 6 (13501fbf): measured first: 3 dayLabel calls in one zone built 8 formatters, 3 formatDate calls 3; now cached by zone (dayLabel's calendar-day format), locale|zone|year (its heading) and locale (formatDate). The code lives in @caretook/data/schema/medications/medicationDisplay.ts; apps/web's file only re-exports.
@@ -1982,10 +1985,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-910 · chore · Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3)
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: 69b26356
 
 - 2026-11-26 (prd/fixes-tooling): Found by fixes-tooling slice 79 (B-870, 2026-11-26): sharing them would cut about 30% more query work after a remount. Also slice 78: Upcoming/Past rerun their local query on every 30 s useNow tick.
 
@@ -2377,3 +2380,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): sign-in to the first timeline row requests ~205 JS chunks (~560 KB encoded); dozens are 0.7 to 1.5 KB (lucide icons such as map-pin, clock, pill; small helpers). Over HTTP/2 the cost is modest, over HTTP/1.1 (6 connections) the queue dominated (6.4 s on a 3G profile). Grouping tiny shared chunks (Rolldown advancedChunks / manualChunks for icons) would cut requests; check the budget (scripts/build/budget.json) after.
+
+### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): User's word 2026-11-27: one look and one way per thing everywhere (docs/domain/components.md _Rules_, dev 90b1ecdb). Today timeline rows/cards, Planner rows, Todos rows, provider and medication list items and their pages each render their own way. First step: an inventory of the variants per record kind and the shared parts they could take (B-955 does tags; B-942/B-948 quick add todos). Needs a topic: likely its own PRD (touches most list and page screens), after tags-3 and todo-subtasks-3.
+
+### B-962 · change · Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): User's word 2026-11-27. Today (components/notes/NoteFullScreen.tsx, B-765): the dialog is full screen but its content is 'mx-auto max-w-3xl p-2 sm:p-4' with its own title row (h2 = the entry page's heading, plus EditorAvatars as aside) above the editor frame, which keeps its rounded border. Wanted: the frame edge to edge (no max width, padding, border radius; safe-area aware); drop the separate title row; the title (short, truncated: what the note is attached to, e.g. the entry's heading) and the avatars go into the frame's BAR (LiveNotesEditor.tsx ~191) left of the Exit full screen IconButton. On a phone the bar also holds the writer's toolbar: the planner decides the layout (e.g. title + avatars + Exit on one row, toolbar on the next) without losing the one-row toolbar on wide screens. Shared-UX rule (components.md): a note's header bar keeps one shape on the page and in full screen. Reads: live-notes.md (Full screen), components.md.
