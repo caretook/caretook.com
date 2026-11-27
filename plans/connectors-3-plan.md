@@ -17,7 +17,7 @@
 | Slice | Wave | State       | Merge into `prd/connectors-3` (slice commits) |
 | ----- | ---- | ----------- | --------------------------------------------- |
 | 1     | 1    | started     |                                               |
-| 2     | 1    | started     |                                               |
+| 2     | 1    | handed off (f2edd4a62, check passed); merges after slice 1 | |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on it when the slice merges.
 
