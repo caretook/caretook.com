@@ -8,15 +8,17 @@ Planned 2026-11-26 (dev 153d6b95). Started 2026-11-26 on prd/orchestration-split
 
 **Landing mode: run everything through** (dispatcher start): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 started: slices 1, 2, 3 worktrees made, agents spawned on opus.
+Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 started: slices 1, 2, 3 worktrees made, agents spawned on opus. All three merged; wave 1 CI run requested next.
 
-- Slice 2 handed off (98241866): `project-check` built; its slice check passed every unit test but timed out in the tooling step at load ~49 (600 s budget); `stack.test.mjs` "rm.sh from inside the worktree it removes (B-812)" fails 2 cases on the base too (maybe agent-session env): the wave's CI run decides. Also `makeRepo` stops copying `boundary.manifest`/`.allowlist`, adds `sampleData()`. Slice 3 handed off (3d79c811): `fixtureTierData()` in `config-fixture.mjs`; its slice check passed (unit 5454, tooling 2913). The `stack.test.mjs` B-812 failures are the orchestrator session's `RISA_SESSION_*`/`CLAUDE_PID` env leaking into subagent shells (pass with them unset): a follow-up to file. Follow-up idea: `test:tooling` runs `tooling-lint.mjs` before the check, so broken tier data throws a stack trace first.
+- Slice 1 handed off (3d1a6b44): `standalone.mjs` (300 s default per-file limit), `lib.sh` exits on no config, lease case. Baseline: sample 576 failed of 2046 in 66 files; project 221 of 2033 in 26 files; none 464 of 1191 in 77 files, 0 hung. Its check failed only `stack.test.mjs` (B-932).
+
+- Slice 2 handed off (98241866): `project-check` built; its slice check passed every unit test but timed out in the tooling step at load ~49 (600 s budget); `stack.test.mjs` "rm.sh from inside the worktree it removes (B-812)" fails 2 cases on the base too (maybe agent-session env): the wave's CI run decides. Also `makeRepo` stops copying `boundary.manifest`/`.allowlist`, adds `sampleData()`. Slice 3 handed off (3d79c811): `fixtureTierData()` in `config-fixture.mjs`; its slice check passed (unit 5454, tooling 2913). The `stack.test.mjs` B-812 failures are the orchestrator session's `RISA_SESSION_*`/`CLAUDE_PID` env leaking into subagent shells (pass with them unset): already B-932. Follow-up idea: `test:tooling` runs `tooling-lint.mjs` before the check, so broken tier data throws a stack trace first.
 
 | Slice | Wave | State   | Model | Merge into `prd/orchestration-split-4` |
 | ----- | ---- | ------- | ----- | -------------------------------------- |
-| 1     | 1    | working | opus  |                                        |
-| 2     | 1    | handed off 98241866 | opus  |                                        |
-| 3     | 1    | handed off 3d79c811 | opus  |                                        |
+| 1     | 1    | merged  | opus  | 8d6fdd82                               |
+| 2     | 1    | merged  | opus  | 78153d01                               |
+| 3     | 1    | merged  | opus  | 3f8e5900                               |
 | 4     | 2    | planned |       |                                        |
 | 5     | 3    | planned |       |                                        |
 | 6     | 3    | planned |       |                                        |
