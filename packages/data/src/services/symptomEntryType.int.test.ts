@@ -7,11 +7,12 @@ import {
   careGroupSchema,
   careRecipientSchema,
   symptomTypeId,
+  symptomTypeRow,
   symptomTypeSchema,
   timelineEntrySchema,
 } from "../db/schema";
 import { isError } from "../errors";
-import { symptomTypeService, timelineEntryService } from ".";
+import { assistantActionService, symptomTypeService, timelineEntryService } from ".";
 
 // Every symptom entry points at its type (symptom-catalog slice 2): the
 // entry service derives `symptom_type_id` from `details.name` on every
@@ -45,6 +46,21 @@ const typeKeys = async (groupId: string) =>
       .from(symptomTypeSchema)
       .where(eq(symptomTypeSchema.groupId, groupId))
   ).map((r) => r.key);
+
+/**
+ * "Nauseous" deleted into "Nausea" (symptom-catalog-3): its tombstone written
+ * straight to the table, as `replace` leaves it.
+ */
+const tombstone = async (groupId: string, name = "Nauseous", into = "Nausea") => {
+  await getDb()
+    .insert(symptomTypeSchema)
+    .values({
+      ...symptomTypeRow(groupId, name),
+      archivedAt: "2026-11-21T10:00:00.000Z",
+      replacedById: symptomTypeId(groupId, into),
+      ...audits,
+    });
+};
 
 describe("writing a symptom", () => {
   it("points a new symptom at its type, and adds an unknown name to the catalog", async () => {
@@ -219,6 +235,15 @@ describe("the backfill's pointers", () => {
     expect((await rowOf(lower.id)).updatedAt).toBe(lower.updatedAt);
   });
 
+  it("points a deleted name's entry at its replacement, wording as it was", async () => {
+    const g = await oldGroup();
+    ok(await symptomTypeService.backfill());
+    await tombstone(g.groupId);
+    const old = await g.entry({ name: "nauseous", severity: 4 });
+    ok(await symptomTypeService.backfill());
+    expect(await rowOf(old.id)).toEqual({ ...old, symptomTypeId: symptomTypeId(g.groupId, "Nausea") });
+  });
+
   it("leaves a soft-deleted entry, an unreadable name and other kinds without a pointer", async () => {
     const g = await oldGroup();
     const deleted = await g.entry({ name: "Ghost ache" }, { deletedAt: "2026-11-21T10:00:00.000Z" });
@@ -226,5 +251,64 @@ describe("the backfill's pointers", () => {
     const note = await g.entry(null, { kind: "note" });
     ok(await symptomTypeService.backfill());
     for (const row of [deleted, blank, note]) expect((await rowOf(row.id)).symptomTypeId).toBeNull();
+  });
+});
+
+describe("writing a deleted symptom's name", () => {
+  it("stores the replacement's id and name on a create, in any case, adding nothing", async () => {
+    const { u, groupId } = await createWorld({ members: ["caretaker"] });
+    await tombstone(groupId);
+    const before = await typeKeys(groupId);
+    for (const name of ["Nauseous", " nAUSEOUS "]) {
+      const entry = ok(await timelineEntryService.create(u.caretaker.ctx, symptom(groupId, name)));
+      expect(entry?.symptomTypeId, name).toBe(symptomTypeId(groupId, "Nausea"));
+      expect(entry?.details, name).toMatchObject({ name: "Nausea", severity: 3 });
+    }
+    expect((await typeKeys(groupId)).sort()).toEqual(before.sort());
+  });
+
+  it("stores the replacement's id and name on a rename, in any case", async () => {
+    const { u, groupId } = await createWorld({ members: ["caretaker"] });
+    await tombstone(groupId);
+    const entry = ok(await timelineEntryService.create(u.caretaker.ctx, symptom(groupId, "Fever")));
+    const renamed = ok(
+      await timelineEntryService.update(u.caretaker.ctx, entry!.id, {
+        details: { name: "NAUSEOUS", severity: 6 },
+      }),
+    );
+    expect(renamed?.symptomTypeId).toBe(symptomTypeId(groupId, "Nausea"));
+    expect(renamed?.details).toMatchObject({ name: "Nausea", severity: 6 });
+  });
+
+  it("lands a connector's log of the deleted name on the replacement", async () => {
+    const { u, groupId } = await createWorld({ members: [] });
+    await tombstone(groupId);
+    const { byAction } = ok(
+      await assistantActionService.run(
+        u.owner.ctx,
+        groupId,
+        [
+          {
+            type: "logSymptom",
+            name: "nauseous",
+            severity: 2,
+            occurredAt: new Date(Date.now() - 60_000).toISOString(),
+          },
+        ],
+        { via: "Test Claude" },
+      ),
+    );
+    const [[entryId]] = byAction as [[string]];
+    const entry = ok(await timelineEntryService.getById(u.owner.ctx, entryId));
+    expect(entry?.symptomTypeId).toBe(symptomTypeId(groupId, "Nausea"));
+    expect(entry?.details).toMatchObject({ name: "Nausea" });
+    expect(entry?.via).toBe("Test Claude");
+  });
+
+  it("answers ensure with the replacement", async () => {
+    const { u, groupId } = await createWorld({ members: [] });
+    await tombstone(groupId);
+    const row = ok(await symptomTypeService.ensure(u.owner.ctx, groupId, "Nauseous"));
+    expect(row).toMatchObject({ id: symptomTypeId(groupId, "Nausea"), name: "Nausea", replacedById: null });
   });
 });

@@ -145,3 +145,29 @@ export const similarSymptoms = <T extends { name: string; archived?: boolean }>(
     .map((c) => c.row);
   return { exact: null, similar };
 };
+
+// ---------------------------------------------------------------------------
+// Tombstones: a deleted name follows its replacement (symptom-catalog-3).
+// ---------------------------------------------------------------------------
+
+/**
+ * The row `name` logs under: the catalog row for its key, or, when that row
+ * is a tombstone (`replacedById`, a deleted symptom), the row it was merged
+ * into. One step only: a delete repoints older tombstones, so there's no
+ * chain. A tombstone whose replacement isn't in `catalog` (a device that
+ * hasn't synced it yet) is returned as it is. Null for a name the catalog
+ * doesn't have. The one rule for following a tombstone: the server and the
+ * device both call it, and nothing reads `replacedById` by hand.
+ */
+export const resolveSymptom = <T extends { id: string; name: string; replacedById?: string | null }>(
+  name: string,
+  catalog: readonly T[],
+): T | null => {
+  const key = symptomKey(name);
+  if (!key) return null;
+  const row = catalog.find((r) => symptomKey(r.name) === key);
+  if (!row) return null;
+  if (!row.replacedById) return row;
+  const to = row.replacedById.toLowerCase();
+  return catalog.find((r) => r.id.toLowerCase() === to) ?? row;
+};

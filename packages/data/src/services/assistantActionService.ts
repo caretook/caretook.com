@@ -657,10 +657,11 @@ const planAction = async (
   if (refused) return refused;
 
   // A symptom named like a catalog row (any case or spacing) takes its
-  // spelling; a new name is added as it is when the entry is written
-  // (`timelineEntryService`), with no similar-name question: nobody is there to answer it.
+  // spelling, and a deleted one its replacement's (symptom-catalog-3); a new
+  // name is added as it is when the entry is written (`timelineEntryService`),
+  // with no similar-name question: nobody is there to answer it.
   if (content.data.kind === "symptom" && isSymptomDetails(content.data.details)) {
-    const type = await symptomTypeService.getByName({ ...ctx, tx }, groupId, content.data.details.name);
+    const type = await symptomTypeService.getResolved({ ...ctx, tx }, groupId, content.data.details.name);
     if (isError(type)) return type;
     if (type) content.data.details = { ...content.data.details, name: type.name };
   }

@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../../data/src/db/client";
+import { symptomTypeRow, symptomTypeSchema } from "../../data/src/db/schema";
 import { SYNC_CONFIG_PATH } from "../../data/src/db/roles/applyRoles";
 import { parseYaml } from "../../data/src/db/roles/syncConfig";
 import { createGroup, createUser, createWorld, ok } from "../../data/test/fixtures";
@@ -193,6 +194,63 @@ describe("sync.upload: a device's new symptom type", () => {
     ).toEqual(["symptomTypeService:invalid", "sync:readOnlyTable", "sync:readOnlyTable"]);
     expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, "Sore heel"))).toBeNull();
     expect(ok(await symptomTypeService.getById(u.owner.ctx, nausea))?.name).toBe("Nausea");
+  });
+});
+
+describe("sync.upload: a deleted symptom (symptom-catalog-3)", () => {
+  /** "Nauseous" deleted into "Nausea": its tombstone written straight to the table. */
+  const tombstone = (groupId: string, actorId: string) =>
+    getDb()
+      .insert(symptomTypeSchema)
+      .values({
+        ...symptomTypeRow(groupId, "Nauseous"),
+        archivedAt: "2026-11-21T10:00:00.000Z",
+        replacedById: symptomTypeId(groupId, "Nausea"),
+        createdBy: actorId,
+        updatedBy: actorId,
+      });
+
+  it("lands an offline device's entry naming the deleted symptom on the replacement", async () => {
+    const { u, groupId, recipient } = await createWorld({ members: ["caretaker"] });
+    await tombstone(groupId, u.owner.user.id);
+    const api = clientFor(u.caretaker.ctx.authUser);
+    const [made, renamed] = [randomUUID(), randomUUID()];
+    // As a device that hasn't synced the tombstone writes them: the old name, its derived id.
+    const old = { details: JSON.stringify({ name: "nauseous", severity: 4 }) };
+    const results = await upload(api, [
+      putOp(
+        "timeline_entry",
+        made,
+        entryRow(groupId, recipient.id, { ...old, symptom_type_id: symptomTypeId(groupId, "Nauseous") }),
+      ),
+      putOp("timeline_entry", renamed, entryRow(groupId, recipient.id)),
+      patchOp("timeline_entry", renamed, { ...old, symptom_type_id: symptomTypeId(groupId, "Nauseous") }),
+    ]);
+    expect(statuses(results)).toEqual(["applied", "applied", "applied"]);
+    for (const id of [made, renamed]) {
+      const entry = ok(await timelineEntryService.getById(u.caretaker.ctx, id));
+      expect(entry?.symptomTypeId).toBe(symptomTypeId(groupId, "Nausea"));
+      expect(entry?.details).toMatchObject({ name: "Nausea", severity: 4 });
+    }
+  });
+
+  it("adds nothing for a PUT of the deleted name's catalog row", async () => {
+    const { u, groupId } = await createWorld({ members: ["caretaker"] });
+    await tombstone(groupId, u.owner.user.id);
+    const before = ok(await symptomTypeService.list(u.owner.ctx, { groupId })).data;
+    const api = clientFor(u.caretaker.ctx.authUser);
+    expect(await outcomes(api, [typeOp(groupId, "Nauseous"), typeOp(groupId, "NAUSEOUS")])).toEqual([
+      "applied",
+      "applied",
+    ]);
+    expect(ok(await symptomTypeService.list(u.owner.ctx, { groupId })).data).toEqual(before);
+    expect(
+      ok(await symptomTypeService.getById(u.owner.ctx, symptomTypeId(groupId, "Nauseous"))),
+    ).toMatchObject({
+      name: "Nauseous",
+      replacedById: symptomTypeId(groupId, "Nausea"),
+      updatedBy: u.owner.user.id,
+    });
   });
 });
 
