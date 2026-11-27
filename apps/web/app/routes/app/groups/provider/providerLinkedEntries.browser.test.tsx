@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { formatTime } from "~/lib/core/format";
+import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { found, waitUntil } from "../../../../../test/found";
 import { at, entryTodo, fx, todo } from "../../../../../test/fixtures";
-import { entryUrl, PROVIDER_ROUTES, providerUrl } from "../providers/providerWorld";
+import { entryUrl, GROUP, PROVIDER_ROUTES, providerUrl } from "../providers/providerWorld";
 
 // A provider's linked entries are the timeline's rows (B-937): the same
 // markup (`TimelineEntryRow`: its open link, cancelled badge, live dot and
@@ -121,5 +122,50 @@ describe("linked entries as timeline rows", () => {
     const items = [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
     expect(items).toContain("Print");
     expect(items).not.toContain("Delete");
+  });
+});
+
+// Back from an entry opened here returns to the provider (B-936): the
+// opener rides in history state, as the Planner's does (B-690).
+describe("back from a linked entry", () => {
+  const backLink = () =>
+    [...document.querySelectorAll<HTMLAnchorElement>("main a")].find(
+      (a) => a.textContent?.trim() === "Provider",
+    ) ?? null;
+
+  test("opened from the linked entries, Back reads Provider and lands on the provider", async () => {
+    const device = await open();
+    await waitUntil(() => rows().length === 3, "the linked entries");
+    await userEvent.click(await found(() => openOf(rowWith("Follow-up visit"))));
+    await expect.poll(() => device.location()).toBe(entryUrl(EVENT.id));
+    expect((await found(backLink)).getAttribute("href")).toBe(providerUrl(LARK.id));
+    await userEvent.click(await found(backLink));
+    await expect.poll(() => device.location()).toBe(providerUrl(LARK.id));
+  });
+
+  test("deleted on another device while open, its notice goes back to the provider", async () => {
+    const device = await open();
+    await waitUntil(() => rows().length === 3, "the linked entries");
+    await userEvent.click(await found(() => openOf(rowWith("Follow-up visit"))));
+    await expect.poll(() => device.location()).toBe(entryUrl(EVENT.id));
+    await found(backLink);
+    expect((await removeEntry(device.db, EVENT.id)).ok).toBe(true);
+    const notice = await found(() =>
+      [...document.querySelectorAll<HTMLAnchorElement>("main a")].find(
+        (a) => a.textContent?.trim() === "Back to the provider",
+      ),
+    );
+    expect(notice.getAttribute("href")).toBe(providerUrl(LARK.id));
+  });
+
+  test("a direct link to the entry keeps the Timeline", async () => {
+    await renderWithDevice({ route: PROVIDER_ROUTES, url: entryUrl(EVENT.id), role: "caretaker", fixtures });
+    const timeline = await found(() =>
+      [...document.querySelectorAll<HTMLAnchorElement>("main a")].find(
+        (a) => a.textContent?.trim() === "Timeline",
+      ),
+    );
+    expect(timeline.getAttribute("href")).toBe(`/app/groups/${GROUP}/timeline`);
+    expect(backLink()).toBeNull();
   });
 });
