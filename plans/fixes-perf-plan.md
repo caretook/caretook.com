@@ -14,6 +14,8 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 2 running** (2026-11-27): slices 8-12 (B-956, B-958, B-959, B-960, B-963), all on Opus; dev needed no sync. Slice 11 waits for slice 10 (both measure the first load). B-963 filed this session from the wave 1 hand-over.
 
+- At landing: browser checks `first-sync`, `roundtrip`, `live-notes` (slice 8's sync change); sync.md gets identical answers skipped (B-956), `startSettings` on the _Settings cache_ line (B-958), the WASM prefetch in `openSync` (B-959); slice 10 notes CDP throttling skips SharedWorker requests (measure behind a link shaper: scratchpad m10/ scripts).
+
 | Slice | Item  | State                | Merge    |
 | ----- | ----- | -------------------- | -------- |
 | 8     | B-956 | merged               | b2d5967b |
