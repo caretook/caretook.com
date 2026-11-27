@@ -133,8 +133,10 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
  * matches first, then rank, then newest: `compareHits`), at most `limit`,
  * the ids in `exclude` (what's linked already) left out. A type word
  * typed first or last (`linkTypeWord`: "provider lee") is read first and
- * keeps only its type, as `type` does (the box's chip); the word wins. An
- * empty or exclusion-only text (or a type word alone) finds nothing.
+ * keeps only its type, as `type` does (the box's chip); the word wins.
+ * When that finds nothing, the whole text is searched as typed (an event
+ * named "Eye doctor" is still found by "eye doctor"). An empty or
+ * exclusion-only text (or a type word alone) finds nothing.
  * Throws while the index is being created; the caller says "Preparing search…".
  */
 export const searchLinkables = async (
@@ -148,8 +150,21 @@ export const searchLinkables = async (
   }: { exclude?: readonly string[]; limit?: number; type?: LinkType | null } = {},
 ): Promise<LinkCandidate[]> => {
   const word = linkTypeWord(text);
-  const type = word.type ?? chosen;
-  const parsed = parseSearch(word.rest);
+  const found = await searchOne(db, groupId, word.rest, word.type ?? chosen, exclude, limit);
+  if (found.length || !word.type || !word.rest) return found;
+  return searchOne(db, groupId, text, chosen, exclude, limit);
+};
+
+/** `searchLinkables` for one reading of the text: `text` to search, of `type` only (null: all). */
+const searchOne = async (
+  db: SyncDb,
+  groupId: string,
+  text: string,
+  type: LinkType | null,
+  exclude: readonly string[],
+  limit: number,
+): Promise<LinkCandidate[]> => {
+  const parsed = parseSearch(text);
   if (isEmptySearch(parsed)) return [];
   const tags = await readRows<TagRow>(db, tagsQuery(groupId));
   const want = limit + exclude.length;
