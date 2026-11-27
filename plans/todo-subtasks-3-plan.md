@@ -8,7 +8,7 @@
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 started 2026-11-27:** anchors fixed (five future-state anchors reworded); slices 1, 2, 3 started, all on opus; all merged. Wave 1's CI run (components) requested on the merged tip. Slice 4 started early (its only blocker, slice 1, merged), opus. fixes-perf has landed (timeline hot files free).
+**Wave 1 started 2026-11-27:** anchors fixed (five future-state anchors reworded); slices 1, 2, 3 started, all on opus; all merged. Wave 1's CI run green (components, run 46039151595, 69a8c1f2); sync: up to date with dev; served at :6273; `risa browser --changed`: none needed; lean `--suite` not run (the user's rule: ask before any suite; the classifier refused it). PR #256 open; Codex review waiting. Slice 4 started early (its only blocker, slice 1, merged), opus. fixes-perf has landed (timeline hot files free).
 
 | Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
 | ----- | ---- | -------------- | ------------------------------------------------ |
