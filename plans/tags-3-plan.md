@@ -1,15 +1,19 @@
 # Plan: Tags, part 3: copy link, the Tags page, merge and search
 
-> Source PRD: [`plans/tags-2-prd.md`](tags-2-prd.md). User-story numbers (US) refer to it. Backlog items B-891, B-895, B-899. Topic `tags-3`, the follow-on of [`tags-2`](tags-2-plan.md) (colors, seeds and quick tags), which it runs after.
+> Source PRD: [`plans/tags-2-prd.md`](tags-2-prd.md). User-story numbers (US) refer to it. Backlog items B-955, B-891, B-895 (B-899 moved to `fixes-ui`). Topic `tags-3`, the follow-on of [`tags-2`](tags-2-plan.md) (colors, seeds and quick tags), which it runs after.
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/tags-3` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | planned |                                         |
-| 2     | 1    | planned |                                         |
-| 3     | 1    | planned |                                         |
-| 4     | 2    | planned |                                         |
+**Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**2026-11-27, orchestrator start:** slice 1 rewritten for B-955 (the one tag control; filed by the user's word as tags-3's first slice); the copy-link slice it replaces (B-899) went to `fixes-ui` and is in `dev`. Slices 2 and 3 run beside it (no shared files; reason under _How to run_). Wave 1 starting: slices 1, 2, 3 on opus.
+
+| Slice | Wave | State          | Merge into `prd/tags-3` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------- |
+| 1     | 1    | started (opus) |                                         |
+| 2     | 1    | started (opus) |                                         |
+| 3     | 1    | started (opus) |                                         |
+| 4     | 2    | planned        |                                         |
 
 ## Architectural decisions
 
@@ -20,29 +24,29 @@
 
 ## How to run this plan
 
-- **Waves:** 1 (slices 1, 2 and 3 at once) → 2 (slice 4).
-- **What each slice owns:** 1 copy link (`CopyLinkButton`, `entryActionItems`, `EntryActions`, the timeline row and card); 2 the settings subpage; 3 the search page and `search.sync.ts`; 4 `mergeTags` and the page's Merge.
-- **Across PRDs:** slice 1 touches `routes/app/groups/timeline/` (the row and card), a hot file of `todo-subtasks-2`; if that topic is still running when it starts, sync `dev` first. No slice touches the Planner.
+- **Waves:** 1 (slices 1, 2 and 3 at once) → 2 (slice 4). Slices 2 and 3 don't wait for slice 1: neither uses the add or remove control it changes (the Tags page manages tags, search filters by one; both show tags through `TagChips` as it is), and they share no file with it.
+- **What each slice owns:** 1 the tag control (`QuickTags`, `TagChips`, the list rows' tags, the Planner's ⋯); 2 the settings subpage; 3 the search page and `search.sync.ts`; 4 `mergeTags` and the page's Merge.
+- **Across PRDs:** slice 1 touches `components/todos/TodoRow.tsx` and `routes/app/groups/planner/UpcomingList.tsx`, hot files of `todo-subtasks-3` (its last slice works in `lib/todos` and the services); sync `dev` before merging it if that topic lands first.
 - **Gates:** screens only: the quick check.
-- **Docs at landing:** [tags](../docs/domain/tags.md) (the page, merge, search; drop "no merge" from _Limits_), [search](../docs/domain/search.md), [timeline](../docs/domain/timeline.md) (copy link in ⋯), [app-shell](../docs/domain/app-shell.md) (the settings subpage): wave 1; tags again wave 2.
+- **Docs at landing:** [tags](../docs/domain/tags.md) (the page, merge, search; drop "no merge" from _Limits_), [search](../docs/domain/search.md), [components](../docs/domain/components.md) (the tag control on list rows), [app-shell](../docs/domain/app-shell.md) (the settings subpage): wave 1; tags again wave 2.
 - **When it's done:** `pnpm prd rm tags-3`.
 
 ---
 
-## Slice 1: Copy link into the entry's ⋯ menu
+## Slice 1: One tag control everywhere tags show
 
-Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: unit, component
+Stack: no · Reads: docs/domain/tags.md, docs/domain/components.md, docs/domain/ui-kit.md · Tests: component
 
-**Backlog:** B-899. **User stories:** 13.
+**Backlog:** B-955 (replaces the copy-link slice: B-899 moved to `fixes-ui` and is in `dev`).
 
-**What to build:** new `useCopyLink` out of `routes/app/groups/timeline/CopyLinkButton.tsx` (clipboard, a "Link copied" toast, the manual-copy dialog on failure); the day header's `CopyLinkButton` is built on it. `components/entry/entryActionItems.ts` and `EntryActions.tsx` gain a `copyLink` action before Print, offered when the caller passes one; `TimelineEntryRow.tsx` and `TimelineEntryCard.tsx` pass it and drop `EntryCopyLink`, so their ⋯ always shows.
+**What to build:** `QuickTags` (`components/tags/QuickTags.tsx`) always shows Add as an icon-only button with lucide `TagPlus` (its name and tooltip stay "Add tag"; the `compact` prop goes), with a wider gap between the chips and Add (`gap-1` today) so a tap meant for one doesn't hit the other. In `TagChips` (`components/tags/TagChips.tsx`) the × sits closer to the name (the badge's `pr-1` and the `size-4` button tightened), its hit area kept. A remove untags at once, then `toast({ message: "Removed <name>", undo })` (`components/ui/Toast.tsx`) whose Undo re-tags through `tagRecord` with the same derived link id. List rows that show read-only chips today get `QuickTags` (`max` 2, "+N" opens the picker, the list's one tags query passed as `tags`; chips alone for whoever can't `canTagRecord`): `components/todos/TodoRow.tsx`, `routes/app/groups/planner/UpcomingList.tsx` (its entries), `routes/app/groups/providers/ProviderListItem.tsx`, `routes/app/groups/medications/MedicationListItem.tsx`. The Planner's ⋯ Tags goes, and `EntryActions`' `onTags` with it if no caller is left. Each row keeps its stretched link (`relative z-10`, `w-fit`, as on timeline rows).
 
 **Acceptance criteria:**
 
-- [ ] Unit (`entryActionItems.test.ts`): `copyLink` sits before Print when offered and is absent otherwise.
-- [ ] Component (`timelineCopyLink.browser.test.tsx`): Copy link in a condensed row's and a full card's ⋯ copies the entry's link and shows "Link copied"; a clipboard failure shows the dialog; a viewer's row has ⋯ with Copy link; the day header's button still works; the easy view has none.
+- [ ] Component (`components/tags/quickTagsRow.browser.test.tsx`): Add is an icon-only "Add tag" button on rows, pages and sheets; removing a tag shows "Removed <name>" and Undo puts it back (one link); a viewer sees chips with no × or Add.
+- [ ] Component (the todos, Planner, providers and medications tag tests): a writer adds and removes a tag from a list row without opening the record; a tap beside the chips still opens it; the Planner's ⋯ has no Tags.
 
-**Blocked by:** `tags-2` (all of it). **Blocks:** none. Its merge runs `pnpm backlog done B-899`.
+**Blocked by:** `tags-2` (all of it). **Blocks:** none. Its merge runs `pnpm backlog done B-955`.
 
 ---
 
@@ -87,10 +91,10 @@ Stack: no · Reads: docs/domain/tags.md, docs/domain/components.md · Tests: com
 
 **Backlog:** B-891. **User stories:** 7.
 
-**What to build:** new `mergeTags(db, fromId, intoId)` in `lib/tags/tags.sync.ts` (one local transaction: a link to `into` under `recordTagId(into, record)` for each live record carrying `from` that lacks one, then `deleteTag(from)`; owners only by `canDeleteTag`, same group only). On the Tags page (`settings/tags/route.tsx`), an owner's Merge picks another tag and confirms with both names and the count.
+**What to build:** new `mergeTags(db, fromId, intoId)` in `lib/tags/tags.sync.ts` (one local transaction: a link to `into` under `recordTagId(into, record)` for each live record carrying `from` that lacks one, then `deleteTag(from)`; owners only by `canDeleteTag`, same group only). On the Tags page (slice 2's new `settings/tags/route.tsx`), an owner's Merge picks another tag and confirms with both names and the count.
 
 **Acceptance criteria:**
 
-- [ ] Component (`settings/tagsSettings.browser.test.tsx`): an owner merges "A" into "B": every record that carried A shows B once (one that carried both keeps one link), A is gone from the page and the picker; a caretaker has no Merge, and `mergeTags` refuses one.
+- [ ] Component (slice 2's new `settings/tagsSettings.browser.test.tsx`): an owner merges "A" into "B": every record that carried A shows B once (one that carried both keeps one link), A is gone from the page and the picker; a caretaker has no Merge, and `mergeTags` refuses one.
 
 **Blocked by:** 2. **Blocks:** none. Its merge runs `pnpm backlog done B-891`.
