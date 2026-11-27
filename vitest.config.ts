@@ -111,6 +111,9 @@ const unit = { maxWorkers: unitWorkerCount };
 // integration) so a run with every project doesn't put two caps in one group.
 // `pnpm test:tooling` and the check's tooling step run them alone.
 const tooling = { sequence: { groupOrder: 3 } };
+// The core's test setup, in each core project: RISA_CONFIG defaults to the fixture
+// project's config, never this checkout's risa.json.
+const coreSetup = fileURLToPath(new URL("./scripts/loops/test-setup.mjs", import.meta.url));
 
 // Quarantined tests are skipped in every project (scripts/ci/quarantine.txt), or
 // alone are run under CARETOOK_QUARANTINE=run. Handed over by `provide` so the
@@ -288,6 +291,7 @@ export default defineConfig({
           include: ["loops/check-times.test.mjs", "loops/check-plan.test.mjs", "ci/**/*.test.mjs"],
           exclude: PROJECT_UNIT,
           testTimeout: 20_000,
+          setupFiles: [coreSetup],
         },
       },
       {
@@ -308,6 +312,7 @@ export default defineConfig({
             "loops/browser.test.mjs",
           ],
           testTimeout: 20_000,
+          setupFiles: [coreSetup],
           // Off for every spawned script (they pass process.env on): new.sh and
           // check-run.sh would otherwise poll the real machine's load, 15 s at a
           // time for up to 600 s. The gate's own tests set it back to "".
@@ -321,6 +326,7 @@ export default defineConfig({
           root: "./scripts",
           include: ["loops/browser.test.mjs", "project/browser-run.test.mjs"],
           testTimeout: 20_000,
+          setupFiles: [coreSetup],
           env: { RISA_LOAD_GATE: "off" },
         },
       },
