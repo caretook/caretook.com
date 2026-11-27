@@ -6,11 +6,15 @@
 
 | Slice | Wave | State   | Merge into `prd/symptom-catalog-2` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | planned |                                                    |
-| 2     | 1    | planned |                                                    |
+| 1     | 1    | running |                                                    |
+| 2     | 1    | running |                                                    |
 | 3     | 2    | planned |                                                    |
 | 4     | 3    | planned |                                                    |
 | 5     | 3    | planned |                                                    |
+
+**Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Now (2026-11-27):** wave 1 running. Slice 1 (opus) in `.loops/symptom-catalog-2-1`, slice 2 (opus) in `.loops/symptom-catalog-2-2`. B-890, B-898 claimed. Plan anchors reworded (slices 1, 3, 5) so `risa anchors` passes.
 
 ## Architectural decisions
 
@@ -45,7 +49,7 @@ Stack: no · Reads: docs/domain/timeline.md, docs/domain/data-layer.md · Tests:
   - Both are idempotent, and both refuse a tombstone and another group's row.
   - The write sets `updated_by` to the actor.
 - Add the new error codes to `packages/data/src/errors/timeline.ts`.
-- `packages/data/src/models/symptomType/symptomTypeModel.ts` exposes `update` for the service, and its "never changed" comment goes.
+- `packages/data/src/models/symptomType/symptomTypeModel.ts` exposes an update function for the service, and its "never changed" comment goes.
 
 **Acceptance criteria:**
 
@@ -100,7 +104,8 @@ Stack: no · Reads: docs/domain/timeline.md, docs/domain/sync.md, docs/domain/ap
 **What to build:**
 
 - Add a new `packages/api/src/timeline/symptomTypes.ts` with `archive` and `unarchive` procedures (`groupId`, `id`). Register them under `timeline.symptomTypes` in `packages/api/src/timeline/timeline.ts`, and add them to `packages/api/src/procedureSweep.int.test.ts`.
-- Append `archived_at` and `replaced_by_id` to the `symptom_type` select in `powersync/sync-config.yaml` and to `symptomTypes` in `apps/web/app/lib/sync/schema.ts`.
+- Append `archived_at` and `replaced_by_id` to the `symptom_type` select in `powersync/sync-config.yaml`.
+- Append them to `symptomTypes` in `apps/web/app/lib/sync/schema.ts`.
 - The `symptom_type` upload (`packages/api/src/syncRegistry.ts`) doesn't change: PUT-only, taking neither column.
 
 **Acceptance criteria:**
@@ -149,7 +154,7 @@ Stack: no · Reads: docs/domain/care-groups.md, docs/domain/app-shell.md, docs/d
 
 - Append a `"symptoms"` page to `GROUP_SETTINGS_PAGES` (`apps/web/app/lib/care-groups/urls.ts`), to `groupSettingsPages` (`routes/app/groups/settings/layout/settingsPages.ts`) and to `routes/app/groups/settings/routes.ts`.
 - Add a new `apps/web/app/lib/timeline/symptomCatalogPage.sync.ts`: the group's active and archived rows, A to Z, each with its live-entry count, as a live query. No tombstones.
-- Add a new `symptomCatalogAccess(groupId, role)` to `routes/app/groups/settings/groupSettings.ts`: `archive` for writers, and `replace` for owners (which the follow-on uses).
+- Add a new `symptomCatalogAccess(groupId, role)` to `routes/app/groups/settings/groupSettings.ts`: archive for writers, and replace for owners (which the follow-on uses).
 - Add a new `routes/app/groups/settings/symptoms/route.tsx`:
   - The active list with counts, then an "Archived" section.
   - Archive and Unarchive (writers) call slice 3's procedures, and say `NEEDS_CONNECTION` when offline, through the existing `failedSave` in `routes/app/groups/settings/api.ts` (imported, not changed).
