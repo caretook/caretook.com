@@ -4,16 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | merged  | a84e4d658 (b74850034)                              |
-| 2     | 2    | planned |                                                    |
-| 3     | 2    | planned |                                                    |
-| 4     | 3    | planned |                                                    |
+| Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits)  |
+| ----- | ---- | ------- | --------------------------------------------------- |
+| 1     | 1    | landed  | a84e4d658 (b74850034); wave 1 landed via PR #287    |
+| 2     | 2    | merged  | 3ca82c624 (7a584c4cd, aa5ef7fcc); slice check green |
+| 3     | 2    | merged  | 82766a2a1 (075716d6c); slice check green            |
+| 4     | 3    | planned |                                                     |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
+- **Wave 2 running** (session 2): synced with dev (up to date, no merge); worktrees `.loops/symptom-catalog-3-2` and `-3`, both agents spawned on opus. Slice 3 got slice 1's note (map `replaced_by_id` to `replacedById`; a tombstone whose replacement isn't local resolves to itself). B-920 stays claimed until slice 4; mark it done at wave 3.
+- Wave 2: both slices handed off and merged (slice models: 2 opus, 3 opus). CI green at components (run 46082505274, 27470995f); `risa sync`: no merge needed; timeline doc folded. PR #289 open; Codex review waiting. Next: triage findings, land (`--tier components`). Slice 3's note for slice 4/follow-up: the sheet and quick entry still show the deleted name as typed before saving (suggestions leave tombstones out); only the stored entry changes.
 - 2026-11-27: synced with dev (up to date); B-920 claimed. Wave 1: slice 1 worktree `.loops/symptom-catalog-3-1`, agent spawned on opus.
-- Slice 1 handed off (quick check green on b74850034), merged as a84e4d658. Wave 1 CI: integration tier, running. B-920 stays claimed until slice 4. Slice 3 note from slice 1: map the device's `replaced_by_id` to `replacedById` for `resolveSymptom`; a tombstone whose replacement isn't local resolves to itself.
+- Slice 1 handed off (quick check green on b74850034), merged as a84e4d658. Wave 1 CI green at integration (run 46080707119); worktree removed; no dev sync needed; timeline doc folded. Codex clean on PR #287. **Wave 1 landed** in dev as bcd8ea8b1; to-test/2026-11-27-1816-symptom-catalog-3.md. Slice models: 1 opus.
 
 ## Architectural decisions
 

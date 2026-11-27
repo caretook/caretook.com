@@ -3,7 +3,7 @@ import type { AppError } from "../errors";
 import type { ServiceContext } from "./types";
 
 import { and, asc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
-import { isLoggerRole, isWriterRole, SYSTEM_USER } from "../constants";
+import { hasGroupRole, isLoggerRole, isWriterRole, OWNER_ROLES, SYSTEM_USER } from "../constants";
 import { dbMayFail, getDb, txOrDb, withTransaction } from "../db";
 import {
   careGroupSchema,
@@ -163,6 +163,103 @@ export const archive = (ctx: ServiceContext, input: { groupId: string; id: strin
 /** Bring an archived symptom back. See `setArchived`. */
 export const unarchive = (ctx: ServiceContext, input: { groupId: string; id: string }) =>
   setArchived(ctx, input, false);
+
+/**
+ * Delete symptom `id` into `replacementId` (symptom-catalog-3), as an owner
+ * (`OWNER_ROLES`): online only (oRPC), one transaction. Every entry pointing
+ * at `id`, soft-deleted ones too, moves to the replacement (its pointer and
+ * `details.name`, with `updated_at` now and the actor in `updated_by`);
+ * tombstones that pointed at `id` now point at the replacement, so there's
+ * never a chain; and `id` becomes a tombstone (`replaced_by_id`, archived
+ * when it wasn't), kept so its derived id can't come back as a new row.
+ * Locks both ids first: the advisory lock `ensure` takes (so an entry write
+ * naming either waits) and the rows. Refuses the same id (`sameSymptom`), a
+ * missing or another group's row (`notFound`) or replacement
+ * (`replacementNotFound`), and a tombstone as either (`merged`,
+ * `replacementMerged`): a rerun is refused and changes nothing. Returns how
+ * many entries moved.
+ */
+export const replace = (
+  ctx: ServiceContext,
+  { groupId, id, replacementId }: { groupId: string; id: string; replacementId: string },
+) =>
+  withTransaction(async (tx) => {
+    if (!ctx.authUser) return rejectError(null);
+    if (!isSystemUser(ctx.authUser)) {
+      const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+      if (isError(role)) return role;
+      if (!hasGroupRole(OWNER_ROLES, role)) return rejectError(ctx.authUser);
+    }
+    const from = id.toLowerCase();
+    const to = replacementId.toLowerCase();
+    if (from === to) return newError({ code: "symptomTypeService:sameSymptom" });
+
+    // In id order, so two replaces naming the same pair can't deadlock.
+    const ids = [from, to].sort();
+    for (const lockId of ids) {
+      const lock = await dbMayFail(
+        () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockId}, 0))`),
+        "baseModel:update",
+        { schemaName },
+      );
+      if (isError(lock)) return lock;
+    }
+    const t = symptomTypeSchema;
+    const rows = await dbMayFail(
+      () => tx.select().from(t).where(inArray(t.id, ids)).orderBy(asc(t.id)).for("update"),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(rows)) return rows;
+    const row = rows.find((r) => r.id === from);
+    const replacement = rows.find((r) => r.id === to);
+    if (!row || row.groupId !== groupId) return newError({ code: "symptomTypeService:notFound" });
+    if (row.replacedById) return newError({ code: "symptomTypeService:merged" });
+    if (!replacement || replacement.groupId !== groupId)
+      return newError({ code: "symptomTypeService:replacementNotFound" });
+    if (replacement.replacedById) return newError({ code: "symptomTypeService:replacementMerged" });
+
+    const actorId = ctx.authUser.id;
+    // Raw SQL: one statement for every entry, deleted ones too, with
+    // `details.name` set inside the JSON.
+    const moved = await dbMayFail(
+      () =>
+        tx.execute(sql`
+          UPDATE timeline_entry SET
+            symptom_type_id = ${to}::uuid,
+            details = jsonb_set(COALESCE(details, '{}'::jsonb), '{name}', to_jsonb(${replacement.name}::text)),
+            updated_at = now(),
+            updated_by = ${actorId}::uuid
+          WHERE group_id = ${groupId}::uuid AND symptom_type_id = ${from}::uuid`),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(moved)) return moved;
+
+    const repointed = await dbMayFail(
+      () =>
+        tx
+          .update(t)
+          .set({ replacedById: to, updatedBy: actorId })
+          .where(and(eq(t.groupId, groupId), eq(t.replacedById, from))),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(repointed)) return repointed;
+
+    const marked = await dbMayFail(
+      () =>
+        tx
+          .update(t)
+          .set({ replacedById: to, archivedAt: sql`COALESCE(${t.archivedAt}, now())`, updatedBy: actorId })
+          .where(and(eq(t.groupId, groupId), eq(t.id, from))),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(marked)) return marked;
+
+    return { moved: moved.rowCount ?? 0 };
+  }, ctx);
 
 /** Insert catalog rows as the system, leaving any the group already has. Returns how many were added. */
 const insertRows = async (tx: Tx | undefined, rows: ReturnType<typeof symptomTypeRow>[]) => {

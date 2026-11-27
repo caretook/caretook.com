@@ -55,4 +55,16 @@ export const TIMELINE_ERRORS = {
     message: "That symptom was merged into another and can't be archived or brought back",
     statusCode: 409,
   },
+  "symptomTypeService:sameSymptom": {
+    message: "A symptom can't be replaced by itself",
+    statusCode: 400,
+  },
+  "symptomTypeService:replacementNotFound": {
+    message: "The replacement symptom isn't in this care group's list",
+    statusCode: 404,
+  },
+  "symptomTypeService:replacementMerged": {
+    message: "The replacement symptom was itself merged into another",
+    statusCode: 409,
+  },
 } as const;
