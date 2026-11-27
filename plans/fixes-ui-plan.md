@@ -30,10 +30,10 @@ Notes for every wave:
 
 **Wave 20 (this session, 2026-11-27):** landing mode run-through (recorded above). Synced dev (ef18e42a, Risa split: scripts now under risa). Slices 106 (B-957 first-load progress) and 107 (B-962 note full screen edge to edge), both opus, parallel. B-972 (planner Tags tab) is a feature, left for the backlog session. Still held: B-325. Reports to the backlog session (ListAgents).
 
-| Slice | Item  | State                      | Merge |
-| ----- | ----- | -------------------------- | ----- |
-| 106   | B-957 | working (opus)             |       |
-| 107   | B-962 | handed off 69fa7b72 (opus) |       |
+| Slice | Item  | State                            | Merge |
+| ----- | ----- | -------------------------------- | ----- |
+| 106   | B-957 | fix: merge prd, recheck (format) |       |
+| 107   | B-962 | handed off 69fa7b72 (opus)       |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
