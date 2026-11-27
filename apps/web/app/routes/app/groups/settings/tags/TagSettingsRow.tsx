@@ -1,9 +1,9 @@
 import type { TagRow } from "~/lib/tags/tags.sync";
 
 import { TAG_COLORS, canDeleteTag, canRenameTag } from "@caretook/data/schema";
-import { Palette, Pencil, Trash2 } from "lucide-react";
+import { Merge, Palette, Pencil, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
-import { DeleteTagDialog, TagEditor } from "~/components/tags";
+import { DeleteTagDialog, MergeTagDialog, TagEditor } from "~/components/tags";
 import {
   Badge,
   Button,
@@ -27,22 +27,26 @@ const colorLabel = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
  * and how many live records carry it. Whoever may rename it
  * (`canRenameTag`) gets Rename (the picker's `TagEditor`, in place) and
  * Color (the palette as swatches; a pick is a local write at once, every
- * chip follows); owners get Delete (the count confirm). Anyone else sees
- * the row only.
+ * chip follows); owners get Merge (into one of `others`, when there are
+ * any; the confirm names both and the count) and Delete (the count
+ * confirm). Anyone else sees the row only.
  */
 export function TagSettingsRow({
   tag,
   uses,
+  others,
   role,
   userId,
 }: {
   tag: TagRow;
   uses: number;
+  /** The group's other tags, what Merge offers. */
+  others: readonly TagRow[];
   role: string | null | undefined;
   userId: string;
 }) {
   const [mode, setMode] = useState<"rename" | "color" | null>(null);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<"delete" | "merge" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const panel = useId();
   const canEdit = canRenameTag(role, { createdBy: tag.created_by }, userId);
@@ -98,11 +102,19 @@ export function TagSettingsRow({
                 data-tag-recolor={tag.id}
               />
             )}
+            {canDelete && others.length > 0 && (
+              <IconButton
+                label={`Merge ${tag.name} into another tag`}
+                icon={Merge}
+                onPress={() => setConfirming("merge")}
+                data-tag-merge={tag.id}
+              />
+            )}
             {canDelete && (
               <IconButton
                 label={`Delete ${tag.name}`}
                 icon={Trash2}
-                onPress={() => setConfirming(true)}
+                onPress={() => setConfirming("delete")}
                 data-tag-delete={tag.id}
               />
             )}
@@ -133,8 +145,18 @@ export function TagSettingsRow({
         <DeleteTagDialog
           tag={tag}
           uses={uses}
-          open={confirming}
-          onClose={() => setConfirming(false)}
+          open={confirming === "delete"}
+          onClose={() => setConfirming(null)}
+          onError={setError}
+        />
+      )}
+      {canDelete && others.length > 0 && (
+        <MergeTagDialog
+          tag={tag}
+          uses={uses}
+          others={others}
+          open={confirming === "merge"}
+          onClose={() => setConfirming(null)}
           onError={setError}
         />
       )}

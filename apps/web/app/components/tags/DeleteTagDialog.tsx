@@ -2,8 +2,8 @@ import { ConfirmDialog } from "~/components/ui";
 import { getSync } from "~/lib/sync";
 import { deleteTag } from "~/lib/tags/tags.sync";
 
-/** "3 records", "1 record", "no records". */
-const records = (n: number) => (n === 0 ? "no records" : n === 1 ? "1 record" : `${n} records`);
+/** "3 records", "1 record", "no records" (the delete and merge confirms). */
+export const recordCount = (n: number) => (n === 0 ? "no records" : n === 1 ? "1 record" : `${n} records`);
 
 /**
  * Deleting a tag (owners, `canDeleteTag`; the write checks it again): a
@@ -36,7 +36,7 @@ export function DeleteTagDialog({
     <ConfirmDialog
       open={open}
       title={`Delete the tag “${tag.name}”?`}
-      message={`It comes off ${records(uses)}, for everyone in the group. The records stay.`}
+      message={`It comes off ${recordCount(uses)}, for everyone in the group. The records stay.`}
       confirmLabel="Delete tag"
       onConfirm={() => void remove()}
       onClose={onClose}

@@ -276,7 +276,7 @@ const tagRow = async (db: SyncDb, tagId: string) => {
 /**
  * Rename a tag (`canRenameTag`: writers any, an Easy helper one they
  * created); every record carrying it shows the new name. A name another tag
- * holds, in any case or spacing, is refused (there's no merge). The key is
+ * holds, in any case or spacing, is refused (`mergeTags` joins two). The key is
  * the device's copy: the server derives its own.
  */
 export const renameTag = async (db: SyncDb, tagId: string, name: string): Promise<ActionResult> => {
@@ -332,6 +332,61 @@ export const deleteTag = async (db: SyncDb, tagId: string): Promise<ActionResult
   await db.drizzle.transaction(async (tx) => {
     await tx.delete(recordTags).where(eq(recordTags.tagId, tagId));
     await tx.delete(tags).where(eq(tags.id, tagId));
+  });
+  return { ok: true };
+};
+
+type FromLink = {
+  entry_id: string | null;
+  todo_id: string | null;
+  provider_id: string | null;
+  medication_id: string | null;
+};
+
+/**
+ * Merge one tag into another (owners only, `canDeleteTag`; both in one
+ * group): every live record carrying `from` gets `into` (under its derived
+ * link id, so a record that had both keeps one link), then `from` and its
+ * links go, all in one local transaction. Uploads are the ordinary
+ * `record_tag` PUTs and the `tag` DELETE, so the server checks each again.
+ */
+export const mergeTags = async (db: SyncDb, fromId: string, intoId: string): Promise<ActionResult> => {
+  if (fromId === intoId) return refuse("Choose another tag to merge into.");
+  const [from, into] = await Promise.all([tagRow(db, fromId), tagRow(db, intoId)]);
+  if (!from || !into || from.groupId !== into.groupId) return tagMissing;
+  if (!canDeleteTag((await groupFor(db, from.groupId))?.role)) return notAllowed;
+
+  const links = await readRows<FromLink>(db, {
+    sql: `SELECT l.entry_id, l.todo_id, l.provider_id, l.medication_id FROM record_tag l
+          LEFT JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
+          LEFT JOIN todo t ON t.id = l.todo_id AND t.group_id = l.group_id
+          LEFT JOIN provider p ON p.id = l.provider_id AND p.group_id = l.group_id
+          LEFT JOIN medication m ON m.id = l.medication_id AND m.group_id = l.group_id
+          WHERE l.tag_id = ? AND l.group_id = ?
+            AND COALESCE(e.deleted_at, t.deleted_at, p.deleted_at, m.deleted_at) IS NULL
+            AND COALESCE(e.id, t.id, p.id, m.id) IS NOT NULL`,
+    params: [fromId, from.groupId],
+  });
+  const existing = new Set(
+    (
+      await readRows<{ id: string }>(db, {
+        sql: "SELECT id FROM record_tag WHERE tag_id = ?",
+        params: [intoId],
+      })
+    ).map((r) => r.id),
+  );
+  const rows = links.flatMap((link) =>
+    (Object.keys(TARGET_TABLES) as TagTarget[]).flatMap((target) => {
+      const recordId = link[TAG_TARGET_COLUMNS[target]];
+      if (!recordId || existing.has(recordTagId(intoId, recordId))) return [];
+      return [recordTagRow(db, from.groupId, intoId, target, recordId)];
+    }),
+  );
+
+  await db.drizzle.transaction(async (tx) => {
+    if (rows.length) await tx.insert(recordTags).values(rows);
+    await tx.delete(recordTags).where(eq(recordTags.tagId, fromId));
+    await tx.delete(tags).where(eq(tags.id, fromId));
   });
   return { ok: true };
 };
