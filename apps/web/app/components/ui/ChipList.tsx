@@ -37,11 +37,7 @@ export function ChipList({
   return (
     <ul aria-label={label} className={`flex flex-wrap items-center gap-1.5 ${className}`}>
       {chips.map((chip) => (
-        <li
-          key={chip.id}
-          className={`${CHIP} ${chip.muted ? "text-base-content/50" : ""}`}
-          data-chip={chip.id}
-        >
+        <li key={chip.id} className={`${CHIP} ${chip.muted ? "text-faint" : ""}`} data-chip={chip.id}>
           {chip.to === null ? (
             <span className={`px-3 ${chip.onRemove ? "pr-1" : ""}`}>{chip.label}</span>
           ) : (
