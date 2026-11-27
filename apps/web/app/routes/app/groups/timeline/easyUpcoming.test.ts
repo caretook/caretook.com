@@ -1,4 +1,4 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
+import type { TreeTodo } from "../../../../lib/todos/todoTreeView";
 
 import { describe, expect, it } from "vitest";
 import { upcomingQueries } from "../planner/upcomingQueries";
@@ -8,7 +8,7 @@ const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const LA = "America/Los_Angeles";
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
-const NO_TODOS: TodoRuleFields[] = [];
+const NO_TODOS: TreeTodo[] = [];
 const NOW = new Date("2026-11-18T18:00:42.000Z");
 
 const event = (id: string, startsIn: number, lasts = HOUR) => ({
@@ -55,5 +55,37 @@ describe("easyUpcomingItems", () => {
   it("lists at most the cap", () => {
     const rows = Array.from({ length: EASY_UPCOMING_CAP + 2 }, (_, i) => event(`e${i}`, (i + 1) * HOUR));
     expect(ids(NOW, rows)).toHaveLength(EASY_UPCOMING_CAP);
+  });
+});
+
+describe("easyUpcomingItems' todos (todo-subtasks-3)", () => {
+  const node = (id: string, dueOn: string | null, parentId: string | null = null): TreeTodo => ({
+    id,
+    assigneeId: null,
+    assigneeName: null,
+    dueOn,
+    dueTime: null,
+    doneAt: null,
+    createdAt: "2026-11-10T12:00:00.000Z",
+    parentId,
+    deletedAt: null,
+  });
+
+  it("lists a parent's tree on its day, and a step's branch on the step's, through the horizon", () => {
+    const todos = [
+      node("trip", "2026-11-20"),
+      node("pack", null, "trip"),
+      node("tickets", "2026-11-19", "trip"),
+      node("later", "2026-12-30"),
+    ];
+    const items = easyUpcomingItems([], todos, NOW, LA, LA, "2026-11-25");
+    expect(items.map((item) => ("key" in item ? item.key : item.id))).toEqual([
+      "tree:trip:2026-11-19",
+      "tree:trip:2026-11-20",
+    ]);
+    const [step, whole] = items as Extract<(typeof items)[number], { type: "dueTree" }>[];
+    expect(step?.tree.context).toBe(true);
+    expect(step?.tree.children.map((c) => c.todo.id)).toEqual(["tickets"]);
+    expect(whole?.tree.children.map((c) => c.todo.id).sort()).toEqual(["pack", "tickets"]);
   });
 });

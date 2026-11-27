@@ -1010,12 +1010,6 @@ export const subtaskProgressQuery = (groupId: string): LocalQuery => ({
   params: [groupId],
 });
 
-/** The query's parents by id, with their titles (a listed subtask's "Part of"). */
-export const parentsById = (rows: readonly SubtaskProgressRow[]) =>
-  new Map(
-    rows.flatMap((r) => (r.title ? [[r.parent_id, { id: r.parent_id, title: r.title }] as const] : [])),
-  );
-
 /** The query's rows by parent id; a todo with no live subtask isn't there. */
 export const progressByParent = (rows: readonly SubtaskProgressRow[]) =>
   new Map(rows.map((r) => [r.parent_id, { done: Number(r.done), total: Number(r.total) }]));
