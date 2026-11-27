@@ -4,11 +4,13 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in dev as 300a65913 (PR #272; history in the wave 1 hand-offs). Wave 2 planned by the backlog session in dev as 028d99d80 (skeptic go s75); synced into prd/connectors-3 as 6e2360978 (`risa sync --force`, 2026-11-27, session connectors-3-23). Anchors: two misses (`doseRecord.ts`, `doseRecord.test.ts`), both files slice 4 creates; nothing to fix. **Wave 2a merged** (3 as b73368af5, 4 as 701a96e62); CI components green on cdbd62a18 (run 46066906433); then sync, PR, Codex, land (`--tier components`). B-760 ready; B-917 back to in-progress until slice 6. **Wave 2b started early** (slices 5, 6 ready, worktrees `connectors-3-5`, `-6`): hold their merges until 2a has landed, so the PR head stays 2a; then merge them, and rotate (2b lands in the next session). Slice 3's agent changed the never-returned sweep in `mcp.int.test.ts` (field names checked only on answers, emails everywhere): reviewed, sound.
+**Where it stands (brief for the fresh session):** wave 1 landed (300a65913, PR #272). **Wave 2a landed** in dev through PR #276 (2026-11-27, session connectors-3-23; tier components, CI green run 46066906433 on cdbd62a18, Codex clean on 088c4a5 after one finding filed as **B-982** (past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed; triaged for connectors-3, a later wave or fixes); landed on an unsynced tip; report filed; to-test `to-test/2026-11-27-1609-connectors-3.md`). Slice 3 and 4 worktrees removed. Docs for 2a folded (connectors, medications, providers, assistant) in this Status commit. **Wave 2b merged, not yet gated:** slice 5 as 77a9e74b9, slice 6 as 350cbf8a5 (tool-list test conflict, both sides kept); B-761 and B-917 marked ready. **Next:** `risa backlog ingest`/`list`; the wave's CI run `risa ci run integration --wait` (what `risa tier` proposes) on the tip; on green `risa sync`, `risa serve connectors-3 --restart`, `risa browser --changed --base dev`, `risa pr connectors-3`, `risa review connectors-3 --wait`, land `--tier integration`, fold 2b's docs (connectors: add_medication, log_past_doses; medications: `medicationService.create`'s server-only `via` on a `MedicationCreateOptions`, `sheetDoseOutcomes`, `assistantActionService.logPastDoses`), report (connectors, medications, providers, assistant are each within ~50 bytes of the 10 KB budget: trim at least what you add), then `risa rm connectors-3-5`, `-6`, and (unless B-982 is to be planned here) `risa rm connectors-3`. Slice agents 5 and 6 ended with this session; a CI failure goes to a fresh opus fix agent in that slice's worktree (merge prd/connectors-3 into it first).
+
+**Notes from 2b's hand-offs:** slice 5 keeps `via` off `MedicationWriteOptions` (create-only type, so `update`/`upsert` can't take it; `upsert`'s create passes only `changedAt`). Slice 6: `run`'s opening is now a private `openBatch` helper; `logPastDoses` returns an extra `passId`; marks on days after today come back `noSlot`; its integration test backdates medications' `created_at` by SQL (the due-dose core gives no slots before a medication was added); it didn't check whether the entry service refuses doses of stopped medications.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
-**Models:** slices 1 to 4 opus (real logic); 5 and 6 to be opus.
+**Models:** slices 1 to 6 opus (real logic); the docs fold on sonnet.
 
 **Notes for the landing fold:** slice 1 added error code `connectorTool:invalid` (400) for a read tool's zone-dependent input check; the frozen export list no longer exists (test-health removed it), so nothing to add. Slice 2: connectors doc's "drops a `repeatRule` (B-253)" becomes the structured `repeat`; planner-3's `firstDayOf` could be exported to drop the tool's copy (a nit).
 
@@ -16,14 +18,14 @@
 
 **Wave 2 planned** (2026-11-27, `plan/connectors-3`, the dispatcher's planner): slices 3 to 6 below, in two waves (2a: 3 and 4; 2b: 5 and 6). B-917 stays open until slice 6 merges.
 
-| Slice | Wave | State                                                           | Merge into `prd/connectors-3` (slice commits)                                |
-| ----- | ---- | --------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 1     | 1    | merged                                                          | a2383ef8b (ad3342564, c6147c2f9)                                             |
-| 2     | 1    | merged                                                          | 6e026ab18 (f0f00891c, f2edd4a62)                                             |
-| 3     | 2a   | merged                                                          | b73368af5 (b959e601d, a700add6e)                                             |
-| 4     | 2a   | merged                                                          | 701a96e62 (f169395d6; conflicts in the two tool-list tests, both sides kept) |
-| 5     | 2b   | handed off (2c9673ddb, quick check green); merge after 2a lands |                                                                              |
-| 6     | 2b   | running (opus); merge only after 2a lands                       |                                                                              |
+| Slice | Wave | State                | Merge into `prd/connectors-3` (slice commits) |
+| ----- | ---- | -------------------- | --------------------------------------------- |
+| 1     | 1    | merged               | a2383ef8b (ad3342564, c6147c2f9)              |
+| 2     | 1    | merged               | 6e026ab18 (f0f00891c, f2edd4a62)              |
+| 3     | 2a   | landed (PR #276)     | b73368af5 (b959e601d, a700add6e)              |
+| 4     | 2a   | landed (PR #276)     | 701a96e62 (f169395d6)                         |
+| 5     | 2b   | merged, gate pending | 77a9e74b9 (2c9673ddb)                         |
+| 6     | 2b   | merged, gate pending | 350cbf8a5 (b383e3e08)                         |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on it when the slice merges.
 
