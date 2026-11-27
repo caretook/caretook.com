@@ -28,12 +28,12 @@ Notes for every wave:
 
 **Wave 19 landed 2026-11-27** as dev 36b84a4a through PR #250, `--no-review` (Codex out of credits), CI components flake only (search.sync perf, not ours; run 45953425948); to-test/2026-11-27-0155-fixes-ui.md; report filed. Slices 103–105 all opus (B-937, B-939, B-940); details in the history file. Browser roundtrip fails at its tags step from dev's tags-2 (B-951; the backlog session is raising it). Follow-up B-950 (fixes-nit). Docs folded (68cec34a, 3faeaeb1). Slice worktrees removed. Rotated after (past the soft context limit).
 
-**Wave 20 (2026-11-27), landing:** slices 106 (B-957 first-load steps and progress bar) and 107 (B-962 note full screen edge to edge), both opus, merged 40d5df4c6 and e32df1434. CI components green (run 46036495830, 91686c31); dev sync up to date; browser `--changed --base dev` 7/7 pass; Codex clean on 7932e7a (PR #255). Docs folded (7932e7a8a) into app-shell and live-notes. Slice worktrees removed. Lesson: slice 106 ran to 19 files (shared wording); the plan table must be prettier-formatted before slices start. B-972 (planner Tags tab, a feature) left to the backlog session. Still held: B-325.
+**Wave 20 landed 2026-11-27** as dev 697b53fcd through PR #255 (Codex clean on 8651988), CI components green (run 46036495830, 91686c31), landed unsynced (dev's 1 commit in other files); to-test/2026-11-27-1222-fixes-ui.md; report filed. Slices 106 (B-957 first-load steps and progress bar, `lib/sync/startup.ts`) and 107 (B-962 note full screen edge to edge), both opus, merged 40d5df4c6 and e32df1434. Browser `--changed --base dev` 7/7 pass. Docs folded (7932e7a8a) into app-shell and live-notes. Slice worktrees removed. Lessons: slice 106 ran to 19 files; format the plan with prettier before slices start (both slice checks tripped on it); a Status commit after a clean Codex verdict stales it (commit Status before `risa pr`). `risa status-trim` fails (risa v0.1.2 can't import prettier; told the backlog session); Status is under 6 KB so untrimmed. Rotated after (past the soft context limit).
 
-| Slice | Item  | State         | Merge     |
-| ----- | ----- | ------------- | --------- |
-| 106   | B-957 | merged (opus) | 40d5df4c6 |
-| 107   | B-962 | merged (opus) | e32df1434 |
+**Idle (session of 2026-11-27, after wave 20):** `risa sync` needed no merge (todo-subtasks-3's 6d975d86a shares no file), ingest found nothing new; only B-325 (held for Capacitor) is triaged for fixes-ui. Inbox B-961 (shared displays audit, needs its own PRD) and B-972 (planner Tags tab, a feature) are the backlog session's. Wave 21 starts when a new fixes-ui item is triaged; a background loop on `risa backlog list` wakes this session. No slice in flight. Resumed run-through later on 2026-11-27: anchors ok, ingest empty, still only B-325; idle again. **Closed 2026-11-27** at the backlog session's request (caretook-com-69, standing order): hand-over docs landed, worktree removed. B-325 waits for Capacitor; a new fixes-ui item restarts the topic with `risa start fixes-ui`.
+
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
