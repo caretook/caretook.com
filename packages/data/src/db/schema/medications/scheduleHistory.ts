@@ -6,8 +6,8 @@ import { dayInZone, zonedInstant } from "../core/zonedDay";
 import { normalizeSchedule } from "./medication";
 import { scheduleHasPass, slotTimes } from "./medicationPass";
 
-// What a medication's schedule was on a past day, read from its change
-// entries: start from the present and undo each later change. Pure; the
+// What a medication's schedule (and usual dose) was on a past day, read from
+// its change entries: start from the present and undo each later change. Pure; the
 // missed-dose range (`doseSlotsBetween`) reads every day through it.
 
 /** A `medicationChange` entry (deleted ones count: deleting the line doesn't undo the change). */
@@ -23,6 +23,8 @@ export type ScheduleHistoryMedication = {
   id: string;
   schedule: MedicationSchedule;
   status: MedicationStatus;
+  /** The usual dose now (`slotAmount`'s fallback); left out: none. */
+  dose?: string | null;
   /** ISO 8601: with history but no "started" entry, no slot before this moment. */
   createdAt?: string | null;
   /** "YYYY-MM-DD": while stopped, no slots from this day on (also when no entry records the stop). */
@@ -60,17 +62,28 @@ export type ScheduleHistory = {
    * its day's schedule no longer has names nothing.
    */
   doseName: (dose: { occurredAt: string; details: DoseSlotName }, windowMinutes?: number) => DoseSlotName;
+  /** The usual dose at a moment (ms): the medication's dose then, as its change entries undo it. */
+  doseAt: (ms: number) => string | null;
 };
 
 type State = {
   schedule: MedicationSchedule;
   passTimes: ReadonlyMap<string, string>;
   taking: boolean;
+  dose: string | null;
 };
 
 type Parsed =
   | { type: "move"; ms: number; id: string; passId: string; beforeTime: string; medicationIds: unknown }
-  | { type: "own"; ms: number; id: string; change: string; before: MedicationSchedule | null };
+  | {
+      type: "own";
+      ms: number;
+      id: string;
+      change: string;
+      before: MedicationSchedule | null;
+      /** The dose before it, when the change edited the dose. */
+      beforeDose?: string | null;
+    };
 
 const MINUTE = 60_000;
 
@@ -94,8 +107,17 @@ const parseChange = ({ id, occurredAt, details }: ScheduleChange, medicationId: 
     };
   }
   if (d.medicationId !== medicationId || typeof d.change !== "string") return null;
-  const before = record(d.before)?.schedule;
-  return { type: "own", ms, id, change: d.change, before: before ? normalizeSchedule(before) : null };
+  const was = record(d.before);
+  const before = was?.schedule;
+  const own = {
+    type: "own" as const,
+    ms,
+    id,
+    change: d.change,
+    before: before ? normalizeSchedule(before) : null,
+  };
+  if (!was || !("dose" in was)) return own;
+  return { ...own, beforeDose: typeof was.dose === "string" ? was.dose : null };
 };
 
 /** The state just before a change, from the state just after it. */
@@ -106,10 +128,11 @@ const undo = (state: State, change: Parsed): State => {
     return { ...state, passTimes };
   }
   const schedule = change.before ?? state.schedule;
-  if (change.change === "stopped") return { ...state, schedule, taking: true };
+  const dose = change.beforeDose === undefined ? state.dose : change.beforeDose;
+  if (change.change === "stopped") return { ...state, schedule, dose, taking: true };
   if (change.change === "resumed" || change.change === "started")
-    return { ...state, schedule, taking: false };
-  return { ...state, schedule };
+    return { ...state, schedule, dose, taking: false };
+  return { ...state, schedule, dose };
 };
 
 const timedSlots = ({ schedule, passTimes }: State) =>
@@ -149,6 +172,7 @@ export function scheduleHistory({
     schedule: medication.schedule,
     passTimes: new Map(passes.map((p) => [p.id, p.time])),
     taking: medication.status === "current" || !stopRecorded,
+    dose: medication.dose ?? null,
   };
   const spans: { from: number; state: State }[] = [];
   for (const change of parsed) {
@@ -212,5 +236,7 @@ export function scheduleHistory({
     return hadSlotNear(ms, time, null, windowMinutes) ? { scheduledFor: time } : {};
   };
 
-  return { takenOn, slotsOn, doseName };
+  const doseAt = (ms: number) => stateAt(ms).dose;
+
+  return { takenOn, slotsOn, doseName, doseAt };
 }
