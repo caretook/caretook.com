@@ -12,18 +12,18 @@ Waves 1-3 (slices 1-6) landed in dev: 7b536192 (PR #241), 066b28b4 (PR #242), 52
 
 **Wave 4 started** (session 4, 2026-11-26): no cut-off landing; ingest nothing new; `pnpm prd sync` up to date; slice 7 worktree made, agent spawned on opus. Slice 7 stopped under its stop rule (138b1a40: test-setup.mjs, FIXTURE_CONFIG flipped, vitest setupFiles, allowlist vitest 9→10): checkout `test:tooling` 9 failed in 6 files (release, disk, land 3, prompt, shared-names 2, stack B-932); standalone sample 163/14 files, project 150/10, none 167/14, none hung (land files fail in bulk only in the copy). Decided a297 (skeptic s66): slice 7 fixes the checkout failures, new slice 8 (wave 5) the standalone proof; slice 7 agent sent back to it. Slice 7 handed off (531ea163): release/disk/land/prompt fixed on the fixture, shared-names' generic cases on the fixture plus a project-check shared-names line, Caretook's `caretook-*` pinned in `scripts/project/project-data.test.mjs`; allowlist shared-names line gone, vitest 10. `test:tooling` only B-932 fails; `test:project` 671 passed. Merged ef2d4d05. Standalone for slice 8: sample 158/10 files, project 145/6, none 162/10, none hung; every mode land-force-resume 34, land-gate 29, land-unsynced 43, land 36, sessions 1, stack 2 (B-932); sample/none config, context, usage, watchdog. Lead: `land-fixture.mjs` cpSyncs `scripts/project` (absent in the copy). Doc fold: `docs/agents/project-config.md` line 7 (test-setup.mjs sets RISA_MACHINE_CONFIG now), project-check's shared-names line. Wave 4 gate: CI run 45931843711 green at full on 680876bc; sync up to date. **Wave 4 landed** in dev as 5571d120 (PR #244, tier full, `--no-review`: Codex out of credits; report filed). Slice 7 worktree removed. Docs: `test-setup.mjs` and the shared-names check in `docs/agents/project-config.md`.
 
-**Wave 5 started** (session 5, 2026-11-26): no cut-off landing; ingest nothing new; sync up to date; B-929 claimed; slice 8 worktree made, agent spawned on opus (briefed with slice 7's standalone list and lead). After it: the last-landing docs (plan _How to run_: the generic `scripts/loops/docs/project-config.md` paragraph, `pnpm prd help` names `project-check`), the three totals in _Status_, `pnpm backlog done B-929`, `pnpm prd rm orchestration-split-4`.
+**Wave 5** (session 5, 2026-11-26): slice 8 on opus, handed off 43281bc5 (land fixture copies no `scripts/project`; config tests on the fixture; context/usage/watchdog pass `RISA_CONFIG` to hand-built envs; sessions' B-871 guard case works from a temp-dir checkout). Merged 191e9afb. **B-929's proof, standalone with `RISA_SESSION_*` unset: sample 0 failed of 2270 in 91 files, project 0 of 2270, none 0 of 2270, none hung.** Slice check: everything green but B-932's two `stack.test.mjs` cases (pass with the session env unset). Tier none (tooling only); the slice check's tooling run is the gate (no rerun). B-929 done. Docs: the standalone run in `docs/agents/project-config.md` (the generic doc is a header stub; `pnpm prd help` already names `project-check`). Landing next, then `pnpm prd rm orchestration-split-4`.
 
-| Slice | Wave | State   | Model | Merge into `prd/orchestration-split-4` |
-| ----- | ---- | ------- | ----- | -------------------------------------- |
-| 1     | 1    | merged  | opus  | 8d6fdd82                               |
-| 2     | 1    | merged  | opus  | 78153d01                               |
-| 3     | 1    | merged  | opus  | 3f8e5900                               |
-| 4     | 2    | merged  | opus  | b8484072                               |
-| 5     | 3    | merged  | opus  | ddaa10cd                               |
-| 6     | 3    | merged  | opus  | 77b3ee07                               |
-| 7     | 4    | merged  | opus  | ef2d4d05                               |
-| 8     | 5    | started | opus  |                                        |
+| Slice | Wave | State  | Model | Merge into `prd/orchestration-split-4` |
+| ----- | ---- | ------ | ----- | -------------------------------------- |
+| 1     | 1    | merged | opus  | 8d6fdd82                               |
+| 2     | 1    | merged | opus  | 78153d01                               |
+| 3     | 1    | merged | opus  | 3f8e5900                               |
+| 4     | 2    | merged | opus  | b8484072                               |
+| 5     | 3    | merged | opus  | ddaa10cd                               |
+| 6     | 3    | merged | opus  | 77b3ee07                               |
+| 7     | 4    | merged | opus  | ef2d4d05                               |
+| 8     | 5    | merged | opus  | 191e9afb                               |
 
 ## Architectural decisions
 
