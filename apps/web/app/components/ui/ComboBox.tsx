@@ -47,7 +47,9 @@ const ICON_ITEM = "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3";
  * later an allergy or a medication): focus opens nothing, the first typed
  * character opens the list, and an empty field shows none (clearing it
  * closes the list); a pick closes it until the text changes again. The
- * default, `"focus"`, opens it on focus to browse.
+ * default, `"focus"`, opens it on focus to browse; a pick closes it, and
+ * it stays closed (even when the caller clears the text) until the field is
+ * typed in, tapped, arrowed into or left.
  *
  * `reopenOn` is for a filter beside the field (the Link to box's type
  * chips): when it changes, the cursor goes back in the field and its list
@@ -109,7 +111,17 @@ export function ComboBox({
   // won't open it) once the collection is empty and empty ones aren't allowed.
   // Nor does the text a pick just put in (React Aria would reopen on it).
   const [picked, setPicked] = useState<string | null>(null);
-  const listed = opensOn === "focus" || (typed !== "" && inputValue !== picked);
+  // Focus mode: closed after a pick (React Aria would reopen it on the text
+  // the caller then puts in) until the field is typed in, tapped, arrowed into or left.
+  const [quiet, setQuiet] = useState(false);
+  const pickedLabel = useRef<string | null>(null);
+  const [woken, setWoken] = useState(0);
+  const listed = opensOn === "focus" ? !quiet : typed !== "" && inputValue !== picked;
+  const wake = () => {
+    if (!quiet) return;
+    setQuiet(false);
+    setWoken((n) => n + 1);
+  };
 
   return (
     <AriaComboBox
@@ -118,6 +130,11 @@ export function ComboBox({
       inputValue={inputValue}
       onInputChange={(text) => {
         if (text !== picked) setPicked(null);
+        // Read from a ref: React Aria may put the picked label in before this render has it.
+        if (text !== pickedLabel.current && text !== "") {
+          pickedLabel.current = null;
+          setQuiet(false);
+        }
         onInputChange(text);
       }}
       selectedKey={null}
@@ -125,10 +142,13 @@ export function ComboBox({
         if (key === null) return;
         if (key === CREATE) onCreate?.(typed);
         else {
-          if (opensOn === "typing")
-            setPicked(
-              [...options, ...sections.flatMap((s) => s.options)].find((o) => o.id === key)?.label ?? null,
-            );
+          const label =
+            [...options, ...sections.flatMap((s) => s.options)].find((o) => o.id === key)?.label ?? null;
+          if (opensOn === "typing") setPicked(label);
+          else {
+            pickedLabel.current = label;
+            setQuiet(true);
+          }
           onSelect(String(key));
         }
       }}
@@ -144,14 +164,21 @@ export function ComboBox({
         placeholder={placeholder}
         ref={input}
         autoComplete="off"
-        onBlur={() => onClose?.("blur")}
+        onBlur={() => {
+          setQuiet(false);
+          onClose?.("blur");
+        }}
+        onPointerDown={wake}
         onKeyDown={(e) => {
           if (e.key === "Escape" && !open.current) onClose?.("escape");
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") wake();
         }}
         className="input input-sm w-full"
         {...control}
       />
       <Reopen on={reopenOn} input={input} listed={listed} />
+      <Reopen on={woken} input={input} listed={listed} />
+      <CloseWhen quiet={quiet} />
       <AriaPopover
         placement="bottom start"
         className={`${SURFACE} max-h-72 w-[var(--trigger-width)] min-w-56 overflow-y-auto p-1`}
@@ -197,6 +224,15 @@ function Reopen({
     input.current?.focus();
     if (listed) state?.open(null, "manual");
   }, [on, input, listed, state]);
+  return null;
+}
+
+/** Inside the combo box: close the list once `quiet` (after a focus-mode pick React Aria leaves it open). */
+function CloseWhen({ quiet }: { quiet: boolean }) {
+  const state = useContext(ComboBoxStateContext);
+  useEffect(() => {
+    if (quiet) state?.close();
+  }, [quiet, state]);
   return null;
 }
 
