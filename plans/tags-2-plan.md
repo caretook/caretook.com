@@ -6,8 +6,8 @@
 
 | Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
 | ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | merged  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
-| 2     | 2    | merged  | 7b892610 (d362bd70)                     |
+| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
+| 2     | 2    | landed  | 7b892610 (d362bd70)                     |
 | 3     | 3    | planned |                                         |
 | 4     | 4    | planned |                                         |
 | 5     | 5    | planned |                                         |
@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** waves 1+2 land together. Slice 1 (opus) merged 5cb59418; slice 2 (opus) merged 7b892610; both worktrees removed. CI full green on b5b61d31 (run 45939841526); synced (nothing new); browser --changed 11/11 after `datastore:reset`; tags doc folded (9dcb13e8). PR #246 open, Codex review waiting. Then land (`--tier full`), slice 3. B-893 stays open until slice 3.
+**Now:** waves 1+2 (slices 1, 2, opus) **landed** in dev as aa146b2 through PR #246, `--no-review` (Codex out of credits), tier full (run 45939841526); report filed; tags doc folded. **Next session:** wave 3, slice 3 (colored chips and seeds; opus; claim B-894; its merge runs `pnpm backlog done B-893 B-894`). After a migration or seed change, the stack needs `pnpm datastore:reset` before browser checks.
 
 ## Architectural decisions
 
