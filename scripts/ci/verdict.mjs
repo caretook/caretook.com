@@ -15,6 +15,12 @@
 // that failed its rerun is a failure, one that passed it a flake, and one that
 // never ran (the job's time ran out) infra. On `release` the three suite runs read
 // as one (release-jobs.mjs), and the second zone only reports unless its setting is `block`.
+// Each failed test carries its first failure message (`message`, ANSI stripped,
+// capped at MAX_MESSAGE), absent when Vitest gave none: blame and filing print it.
+// A hung file (one a test step's watchdog stopped, or left unfinished when the
+// step was killed: progress-reporter.mjs's <report>.progress.json) is a failed
+// file, listed in `failed.hung` too (absent with none); with no report, the files the run finished
+// failed still count.
 //
 //   node scripts/ci/verdict.mjs summarize <vitest.json>…   prints `failures=<json>`
 //     for $GITHUB_OUTPUT: each report with its .rerun.json, .quarantine.json and .time.json,
@@ -25,6 +31,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
 
 import { isBrake, isQuarantined, readLists } from "./lists.mjs";
+import { hungFiles, progressFileOf } from "./progress-reporter.mjs";
 import { BROWSER_RUNS, ZONE_JOBS, combineRepeats, summarizeZone } from "./release-jobs.mjs";
 import { FORCED_FLAKE_FILE, NARROWED_FILE, jobsFor, narrowedJobs } from "./tiers.mjs";
 import { SECOND_ZONE, SECOND_ZONE_MODE } from "./zones.mjs";
@@ -33,25 +40,51 @@ export const VERDICT_VERSION = 1;
 /** Kept in a job output: GitHub limits them, and the verdict needs names, not logs. */
 export const MAX_TESTS = 100;
 const MAX_NAME = 300;
+/** A failure message's cap: enough for an assertion's numbers, small enough for a job output. */
+export const MAX_MESSAGE = 500;
+
+/**
+ * A failed test's first failure message, ANSI codes stripped and trimmed, or null.
+ * @param {unknown} messages Vitest's `failureMessages`
+ */
+export function failureMessage(messages) {
+  const first = Array.isArray(messages) ? messages.find((m) => typeof m === "string" && m.trim()) : null;
+  if (typeof first !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- the colour codes themselves
+  const plain = first.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").trim();
+  return plain.length > MAX_MESSAGE ? `${plain.slice(0, MAX_MESSAGE - 1)}…` : plain;
+}
+
+/** A failed test as the verdict keeps it: its message only when it has one. */
+const failedTest = (
+  /** @type {string} */ file,
+  /** @type {{ fullName?: string, title?: string, failureMessages?: unknown }} */ a,
+) => {
+  const message = failureMessage(a.failureMessages);
+  return {
+    file,
+    name: (a.fullName || a.title || "(unnamed)").trim().slice(0, MAX_NAME),
+    ...(message ? { message } : {}),
+  };
+};
 
 /**
  * The failed files and tests in a Vitest JSON report. A file that failed with
  * no failed test (an import error) is still listed.
- * @param {{ testResults?: { name: string, status?: string, assertionResults?: { status: string, fullName?: string, title?: string }[] }[] } | null} report
+ * @param {{ testResults?: { name: string, status?: string, assertionResults?: { status: string, fullName?: string, title?: string, failureMessages?: unknown }[] }[] } | null} report
  * @param {string} root paths are made relative to it
  */
 export function summarizeVitest(report, root) {
   if (!report?.testResults) return { reported: false, total: 0, files: [], tests: [], truncated: false };
   let total = 0;
   /** @type {string[]} */ const files = [];
-  /** @type {{ file: string, name: string }[]} */ const tests = [];
+  /** @type {{ file: string, name: string, message?: string }[]} */ const tests = [];
   for (const result of report.testResults) {
     const file = relative(root, result.name);
     total += result.assertionResults?.length ?? 0;
     const failed = (result.assertionResults ?? []).filter((a) => a.status === "failed");
     if (result.status === "failed" || failed.length) files.push(file);
-    for (const a of failed)
-      tests.push({ file, name: (a.fullName || a.title || "(unnamed)").trim().slice(0, MAX_NAME) });
+    for (const a of failed) tests.push(failedTest(file, a));
   }
   return {
     reported: true,
@@ -139,18 +172,43 @@ export function timeResult(result) {
 }
 
 /**
+ * A report's hung files and, when the report is missing (a stopped run writes
+ * none), the files its run finished failed: both from its progress file.
+ * @param {ReturnType<typeof summarizeVitest>} first
+ * @param {any} progress
+ */
+function progressFailures(first, progress) {
+  const hung = hungFiles(progress);
+  /** @type {string[]} */ const failed =
+    !first.reported && Array.isArray(progress?.failed) ? progress.failed : [];
+  return { hung, files: [...failed, ...hung] };
+}
+
+/**
  * One job's output: its first reports, what still failed after each rerun (null
- * when nothing reran), the quarantine step's results and each timed step's gate.
+ * when nothing reran), the quarantine step's results, each timed step's gate, and
+ * the files a stopped run hung on (`hung`, also in `files`).
  * @param {string[]} paths
  * @param {string} root
  * @param {(path: string) => any} readReport null for a missing file
  */
 export function summarizeJob(paths, root, readReport) {
-  const firsts = paths.map((p) => summarizeVitest(readReport(p), root));
+  const firsts = paths.map((p) => {
+    const first = summarizeVitest(readReport(p), root);
+    const extra = progressFailures(first, readReport(progressFileOf(p)));
+    const files = [...new Set([...first.files, ...extra.files])];
+    return {
+      ...first,
+      files: files.slice(0, MAX_TESTS),
+      truncated: first.truncated || files.length > MAX_TESTS,
+      hung: extra.hung,
+    };
+  });
   const reruns = paths.map((p) => readReport(p.replace(/\.json$/, ".rerun.json")));
   const after = firsts.map((first, i) => stillFailing(first, reruns[i], root));
   return {
     ...mergeSummaries(firsts),
+    hung: firsts.flatMap((f) => f.hung).slice(0, MAX_TESTS),
     rerun: reruns.some(Boolean)
       ? { files: after.flatMap((a) => a.files), tests: after.flatMap((a) => a.tests) }
       : null,
@@ -206,10 +264,13 @@ export function buildVerdict({
   /** @type {string[]} */ const infraJobs = [];
   /** @type {string[]} */ const brakeJobs = [];
   /** @type {string[]} */ const files = [];
-  /** @type {{ job: string, file: string, name: string }[]} */ const tests = [];
+  /** @type {string[]} */ const hung = [];
+  /** @typedef {{ job: string, file: string, name: string, message?: string }} JobTest */
+  /** @type {JobTest[]} */ const tests = [];
   /** @type {string[]} */ const afterFiles = [];
-  /** @type {{ job: string, file: string, name: string }[]} */ const afterTests = [];
-  /** @type {{ job: string, file: string, name: string | null, brake: boolean }[]} */ const flaky = [];
+  /** @type {JobTest[]} */ const afterTests = [];
+  /** @type {{ job: string, file: string, name: string | null, brake: boolean, message?: string }[]} */
+  const flaky = [];
   /** @type {{ job: string, file: string, name: string, status: string }[]} */ const quarantined = [];
   let truncated = false;
   let reran = false;
@@ -238,7 +299,7 @@ export function buildVerdict({
 
     const listed = (/** @type {{ file: string, name: string }} */ t) =>
       isQuarantined(entries, t.file, t.name);
-    /** @type {{ file: string, name: string }[]} */ const before = summary?.tests ?? [];
+    /** @type {{ file: string, name: string, message?: string }[]} */ const before = summary?.tests ?? [];
     for (const t of before.filter(listed))
       quarantined.push({ job, file: t.file, name: t.name, status: "failed" });
     const beforeTests = before.filter((t) => !listed(t));
@@ -251,6 +312,7 @@ export function buildVerdict({
     const hadQuarantined = before.length > beforeTests.length;
 
     files.push(...beforeFiles);
+    if (Array.isArray(summary?.hung)) hung.push(...summary.hung);
     tests.push(...beforeTests.map((t) => ({ job, ...t })));
 
     const rerun = summary?.rerun ?? null;
@@ -269,7 +331,13 @@ export function buildVerdict({
     if (rerun) {
       for (const t of beforeTests)
         if (!stillTests.includes(t))
-          flaky.push({ job, file: t.file, name: t.name, brake: isBrake(t.file, brakes) });
+          flaky.push({
+            job,
+            file: t.file,
+            name: t.name,
+            brake: isBrake(t.file, brakes),
+            ...(t.message ? { message: t.message } : {}),
+          });
       for (const f of beforeFiles)
         if (!stillFiles.includes(f) && !beforeTests.some((t) => t.file === f))
           flaky.push({ job, file: f, name: null, brake: isBrake(f, brakes) });
@@ -337,7 +405,15 @@ export function buildVerdict({
     // A proof run's forced check: this verdict never passes a gate.
     forcedFlake,
     kind,
-    failed: { jobs: [...failedJobs], files: [...new Set(files)], tests, truncated, unnamedJobs },
+    // `hung` (only when some): the files a stopped test step was stuck on, among `files`.
+    failed: {
+      jobs: [...failedJobs],
+      files: [...new Set(files)],
+      tests,
+      truncated,
+      unnamedJobs,
+      ...(hung.length ? { hung: [...new Set(hung)] } : {}),
+    },
     afterRerun: reran ? { files: [...new Set(afterFiles)], tests: afterTests } : null,
     flaky,
     brake: { jobs: brakeJobs, tests: brakeTests, files: [...new Set(brakeFiles)] },

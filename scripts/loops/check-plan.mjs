@@ -1,4 +1,4 @@
-// What `pnpm prd check` runs (the mode, the test files the diff itself adds or
+// What `prd check` runs (the mode, the test files the diff itself adds or
 // edits, whether the tooling tests join) and the CI tier a landing should wait
 // for. Pure: changed files in, a plan out. The CLI at the bottom reads them from stdin,
 // or for --propose with --base computes them (git diff base...head). It checks its
@@ -45,7 +45,7 @@ import { TierDataError, tierData } from "../ci/tier-data.mjs";
 /** The core's own folders, tooling while they sit in the repo (lib.sh's exempt_re too). */
 const CORE_TOOLING = ["scripts/loops", "scripts/backlog"];
 
-/** What the browser harness test (the core's browser.test.mjs) exercises of the core. */
+/** What the browser harness test (the core's browser.test.mjs, the gate's) exercises of the core. */
 const CORE_HARNESS = [
   "scripts/loops/browser.sh",
   "scripts/loops/browser.test.mjs",

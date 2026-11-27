@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// pnpm prd autostart install|remove|status: the one per-user LaunchAgent that
-// runs the watchdog (`pnpm prd watchdog`, watchdog.mjs) at login and every five
+// prd autostart install|remove|status: the one per-user LaunchAgent that
+// runs the watchdog (`prd watchdog`, watchdog.mjs) at login and every five
 // minutes, from the main checkout. Nothing else installs it: only the user's
-// own `pnpm prd autostart install`.
+// own `prd autostart install`.
 //
 //   node autostart.mjs install --main DIR   write the plist and load it (a job
 //       already loaded is unloaded first, so a second install changes nothing
@@ -19,10 +19,10 @@
 // child processes when it exits (AbandonProcessGroup: dev servers, tabs),
 // loads only in a login (Aqua) session, and logs to DIR/.loops/.watchdog.log.
 //
-// Env: CARETOOK_LAUNCH_AGENTS_DIR (~/Library/LaunchAgents), CARETOOK_LAUNCHCTL
-// (launchctl), CARETOOK_NODE_BIN (the Node 24 to put first; default this one
-// when it is 24, else nvm's newest v24). Under Vitest the first two must be set,
-// so no test reaches the real folder or launchd.
+// launchd itself is the host layer's (host.mjs: the LaunchAgents folder and
+// launchctl, each with its variable, both required under Vitest). Env:
+// RISA_NODE_BIN (the Node 24 to put first; default this one when it is 24,
+// else nvm's newest v24, which the host layer finds).
 import { spawnSync } from "node:child_process";
 import {
   accessSync,
@@ -34,14 +34,16 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { sharedNames, toolCmd } from "./config.mjs";
+import { CLAUDE, GH, HOST_TOOLS, launchd, nvmNode } from "./host.mjs";
 
-export const LABEL = "com.caretook.prd-watchdog";
+/** The watchdog's launchd job, from the project's name (config.mjs's sharedNames). */
+export const LABEL = sharedNames().launchdLabel;
 export const INTERVAL_SECS = 300;
 /** The tools the job runs, besides node. */
-export const TOOLS = ["docker", "gh", "git", "claude", "osascript", "pnpm"];
+export const TOOLS = ["docker", GH, "git", CLAUDE, ...HOST_TOOLS, "pnpm"];
 const SYSTEM_PATH = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"];
 
 const xml = (/** @type {string} */ s) =>
@@ -121,42 +123,22 @@ export function which(/** @type {string} */ name, /** @type {string} */ path) {
 
 /** The Node 24 binary to put first, or null. */
 export function nodeBin(env = process.env) {
-  if (env.CARETOOK_NODE_BIN) return env.CARETOOK_NODE_BIN;
+  if (env.RISA_NODE_BIN) return env.RISA_NODE_BIN;
   if (process.versions.node.split(".")[0] === "24") return process.execPath;
-  const versions = join(env.NVM_DIR || join(homedir(), ".nvm"), "versions/node");
-  const r = spawnSync(
-    "bash",
-    ["-c", 'ls -d "$1"/v24.*/bin/node 2>/dev/null | sort -V | tail -1', "_", versions],
-    {
-      encoding: "utf8",
-    },
-  );
-  return r.stdout.trim() || null;
+  const dir = nvmNode("24", env);
+  return dir ? join(dir, "node") : null;
 }
 
-/** Where things go. Under Vitest the folder and launchctl must be given. */
+/** Where things go (the host layer's LaunchAgents): under Vitest the folder and launchctl must be given. */
 export function where(env = process.env) {
-  if (env.VITEST && (!env.CARETOOK_LAUNCH_AGENTS_DIR || !env.CARETOOK_LAUNCHCTL))
-    throw new Error("autostart: a test must set CARETOOK_LAUNCH_AGENTS_DIR and CARETOOK_LAUNCHCTL");
-  const dir = env.CARETOOK_LAUNCH_AGENTS_DIR || join(homedir(), "Library/LaunchAgents");
-  const uid = typeof process.getuid === "function" ? process.getuid() : 0;
-  return {
-    dir,
-    file: join(dir, `${LABEL}.plist`),
-    launchctl: env.CARETOOK_LAUNCHCTL || "launchctl",
-    domain: `gui/${uid}`,
-  };
+  const agents = launchd(env);
+  return { ...agents, file: agents.fileOf(LABEL) };
 }
-
-const launchctl = (/** @type {ReturnType<typeof where>} */ w, /** @type {string[]} */ args) =>
-  spawnSync(w.launchctl, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-const loaded = (/** @type {ReturnType<typeof where>} */ w) =>
-  launchctl(w, ["print", `${w.domain}/${LABEL}`]).status === 0;
 
 function install(/** @type {string} */ main, env = process.env) {
   const w = where(env);
   const node = nodeBin(env);
-  if (!node) throw new Error("autostart: no Node 24 found (nvm install 24, or CARETOOK_NODE_BIN)");
+  if (!node) throw new Error("autostart: no Node 24 found (nvm install 24, or RISA_NODE_BIN)");
   const found = TOOLS.map((t) => [t, which(t, env.PATH ?? "")]);
   const path = jobPath(
     dirname(node),
@@ -169,10 +151,9 @@ function install(/** @type {string} */ main, env = process.env) {
     writeFileSync(`${w.file}.tmp`, text);
     renameSync(`${w.file}.tmp`, w.file);
   }
-  if (loaded(w)) launchctl(w, ["bootout", `${w.domain}/${LABEL}`]);
-  const r = launchctl(w, ["bootstrap", w.domain, w.file]);
-  if (r.status !== 0)
-    throw new Error(`autostart: launchctl bootstrap failed: ${(r.stderr || r.stdout).trim()}`);
+  if (w.loaded(LABEL)) w.unload(LABEL);
+  const r = w.load(w.file);
+  if (!r.ok) throw new Error(`autostart: ${r.out}`);
   console.log(
     `${same ? "Reloaded" : "Installed"} ${w.file}: the watchdog runs at login and every ${INTERVAL_SECS / 60} minutes, from ${main}.`,
   );
@@ -180,15 +161,17 @@ function install(/** @type {string} */ main, env = process.env) {
   const missing = found.filter(([, p]) => !p).map(([t]) => t);
   if (missing.length)
     console.log(
-      `Not found on this PATH, so not on the job's: ${missing.join(", ")} (pnpm prd autostart status)`,
+      `Not found on this PATH, so not on the job's: ${missing.join(", ")} (${toolCmd.prd} autostart status)`,
     );
-  console.log("pnpm prd down --stay keeps everything down; pnpm prd autostart remove uninstalls it.");
+  console.log(
+    `${toolCmd.prd} down --stay keeps everything down; ${toolCmd.prd} autostart remove uninstalls it.`,
+  );
 }
 
 function remove(env = process.env) {
   const w = where(env);
-  const was = loaded(w);
-  if (was) launchctl(w, ["bootout", `${w.domain}/${LABEL}`]);
+  const was = w.loaded(LABEL);
+  if (was) w.unload(LABEL);
   const had = existsSync(w.file);
   rmSync(w.file, { force: true });
   rmSync(`${w.file}.tmp`, { force: true });
@@ -210,19 +193,19 @@ async function status(/** @type {string} */ main, env = process.env) {
   const w = where(env);
   let ok = true;
   if (!existsSync(w.file)) {
-    console.log(`autostart: not installed (${w.file}); pnpm prd autostart install`);
+    console.log(`autostart: not installed (${w.file}); ${toolCmd.prd} autostart install`);
     return false;
   }
-  const isLoaded = loaded(w);
+  const isLoaded = w.loaded(LABEL);
   ok &&= isLoaded;
   console.log(
-    `autostart: installed (${w.file}), ${isLoaded ? "loaded" : "NOT loaded: pnpm prd autostart install"}`,
+    `autostart: installed (${w.file}), ${isLoaded ? "loaded" : `NOT loaded: ${toolCmd.prd} autostart install`}`,
   );
   const text = readFileSync(w.file, "utf8");
   const path = pathOf(text) ?? "";
   if (!text.includes(`<string>${xml(join(main, "scripts/loops/prd.sh"))}</string>`)) {
     ok = false;
-    console.log(`  it runs another checkout's watchdog, not ${main}'s: pnpm prd autostart install`);
+    console.log(`  it runs another checkout's watchdog, not ${main}'s: ${toolCmd.prd} autostart install`);
   }
   const node = which("node", path);
   const version = node ? spawnSync(node, ["-v"], { encoding: "utf8" }).stdout.trim() : "";
@@ -236,14 +219,14 @@ async function status(/** @type {string} */ main, env = process.env) {
     const p = which(t, path);
     if (!p) ok = false;
     console.log(
-      `  ${t}: ${p ?? "doesn't resolve on the job's PATH (install it, then pnpm prd autostart install)"}`,
+      `  ${t}: ${p ?? `doesn't resolve on the job's PATH (install it, then ${toolCmd.prd} autostart install)`}`,
     );
   }
   const loops = join(main, ".loops");
   const stay = readObject(join(loops, ".stay-down.json"));
   if (stay)
     console.log(
-      `  stay-down since ${stay.at ?? "?"}${stay.why ? ` (${stay.why})` : ""}: nothing comes back until pnpm prd recover`,
+      `  stay-down since ${stay.at ?? "?"}${stay.why ? ` (${stay.why})` : ""}: nothing comes back until ${toolCmd.prd} recover`,
     );
   const st = readObject(join(loops, ".watchdog.json"));
   if (st?.lastLine) console.log(`  last decision: ${st.lastLine}`);
@@ -253,7 +236,7 @@ async function status(/** @type {string} */ main, env = process.env) {
     );
   try {
     const { readUsage } = await import("./usage.mjs");
-    if (readUsage(env.CARETOOK_USAGE_DIR || join(loops, ".usage"), { env }).spendLimit)
+    if (readUsage(env.RISA_USAGE_DIR || join(loops, ".usage"), { env }).spendLimit)
       console.log(
         "  a spend limit is configured: the watchdog won't recover while limited, but only turning extra usage off in the account fully guarantees no extra spend",
       );
@@ -271,12 +254,12 @@ async function main() {
     if (argv[i] === "--main") mainDir = argv[++i] ?? "";
     else throw new Error(`autostart: unknown argument ${argv[i]}`);
   }
-  if (!mainDir) throw new Error("autostart: --main DIR (pnpm prd autostart passes it)");
+  if (!mainDir) throw new Error(`autostart: --main DIR (${toolCmd.prd} autostart passes it)`);
   if (cmd === "install") install(mainDir);
   else if (cmd === "remove") remove();
   else if (cmd === "status") process.exit((await status(mainDir)) ? 0 : 1);
   else {
-    console.error("usage: pnpm prd autostart install|remove|status");
+    console.error(`usage: ${toolCmd.prd} autostart install|remove|status`);
     process.exit(2);
   }
 }

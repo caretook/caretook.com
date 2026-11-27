@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatTime } from "../../../../lib/core/format";
-import { actionsLabel, emptyTimelineText, entryLabel, openLabel } from "./entryLabels";
+import { actionsLabel, emptyTimelineText, entryLabel, openLabel, rowDayLabel } from "./entryLabels";
 
 const AT = "2026-11-17T17:30:00.000Z";
 const time = formatTime(AT);
@@ -12,6 +12,22 @@ describe("entryLabel", () => {
   it("falls back to the kind, lower case", () => {
     expect(entryLabel({ kind: "note", title: null, occurredAt: AT })).toBe(`note at ${time}`);
     expect(entryLabel({ kind: "vital", title: "", occurredAt: AT })).toBe(`vitals at ${time}`);
+  });
+});
+
+describe("rowDayLabel", () => {
+  const NOW = new Date("2026-11-17T20:00:00.000Z");
+  const LA = "America/Los_Angeles";
+  it("says Today, Yesterday or Tomorrow near now", () => {
+    expect(rowDayLabel("2026-11-17T17:30:00.000Z", LA, NOW)).toBe("Today");
+    expect(rowDayLabel("2026-11-16T17:30:00.000Z", LA, NOW)).toBe("Yesterday");
+    expect(rowDayLabel("2026-11-18T17:30:00.000Z", LA, NOW)).toBe("Tomorrow");
+  });
+  it("gives a short date, with the year only in another year, in the zone", () => {
+    expect(rowDayLabel("2026-06-09T17:30:00.000Z", LA, NOW)).toBe("Jun 9");
+    expect(rowDayLabel("2025-06-09T17:30:00.000Z", LA, NOW)).toBe("Jun 9, 2025");
+    // 2 AM UTC on Jun 10 is still Jun 9 in Los Angeles.
+    expect(rowDayLabel("2026-06-10T02:00:00.000Z", LA, NOW)).toBe("Jun 9");
   });
 });
 
@@ -32,6 +48,18 @@ describe("actionsLabel", () => {
 });
 
 describe("emptyTimelineText", () => {
+  it("names a tag beside the other filters", () => {
+    expect(emptyTimelineText(null, null, null, null, null, "Knee")).toBe(
+      "No entries tagged “Knee” on the timeline yet.",
+    );
+    expect(emptyTimelineText("note", "Sam Lee", null, null, null, "Knee")).toBe(
+      "No notes tagged “Knee” by Sam Lee yet.",
+    );
+    expect(emptyTimelineText(null, null, "walk", null, null, "Knee")).toBe(
+      "No entries tagged “Knee” match “walk”.",
+    );
+  });
+
   it("with and without a filter", () => {
     expect(emptyTimelineText(null)).toBe("Nothing on the timeline yet.");
     expect(emptyTimelineText("symptom")).toBe("No symptoms on the timeline yet.");

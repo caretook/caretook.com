@@ -237,7 +237,7 @@ describe("watchFacts and the state", () => {
     };
     const facts = [
       f("topic", "prd/topic", [{ ...agent, agent: null, lastActivityAt: at(3) }]),
-      f("topic-4", "slice/topic/4", [agent], { changes: ["packages/data/src/db/migrations/0009_x.sql"] }),
+      f("topic-4", "slice/topic/4", [agent], { changes: ["db/migrations/0009_x.sql"] }),
       f("other-4", "slice/other/4", [agent]),
     ];
     const plan = planStates(
@@ -274,15 +274,15 @@ describe("the command", () => {
   let root, loops, sessions, watchDir, sleeper;
   const env = () => ({
     ...process.env,
-    CARETOOK_SESSIONS_DIR: sessions,
-    CARETOOK_ASKS_DIR: join(root, "asks"),
-    CARETOOK_WATCH_DIR: watchDir,
-    CARETOOK_LEASE_ROOT: join(root, "lease"),
-    CARETOOK_BROWSER_LEASES: "",
-    CARETOOK_RUN_LOG: join(root, "none.jsonl"),
-    CARETOOK_CHECK_LOG: join(root, "none.log"),
-    CARETOOK_WATCH_POLL: "1",
-    CARETOOK_WATCH_WAKE: "off",
+    RISA_SESSIONS_DIR: sessions,
+    RISA_ASKS_DIR: join(root, "asks"),
+    RISA_WATCH_DIR: watchDir,
+    RISA_LEASE_ROOT: join(root, "lease"),
+    RISA_BROWSER_LEASES: "",
+    RISA_RUN_LOG: join(root, "none.jsonl"),
+    RISA_CHECK_LOG: join(root, "none.log"),
+    RISA_WATCH_POLL: "1",
+    RISA_WATCH_WAKE: "off",
   });
   const watch = (...args) =>
     spawnSync("node", [join(HERE, "watch.mjs"), "topic", ...args], { encoding: "utf8", env: env() });

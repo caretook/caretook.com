@@ -1,9 +1,13 @@
 // The boundary lint (boundary.mjs): each rule and form on a sample project, the
-// manifest and the allowlist, and this repo itself, which must pass.
-import { spawnSync } from "node:child_process";
+// manifest and the allowlist, and the whole lint on a made-up tree. The lint of this
+// repo's own tree is the project-data check's (project-check.mjs), which the check
+// runs, and GitHub CI through the project's own test that runs that check.
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import {
   ALLOWLIST,
   FORMS,
@@ -23,7 +27,7 @@ import {
 } from "./boundary.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(HERE, "../..");
+const SAMPLE_CONFIG = join(HERE, "sample-project/risa.json");
 
 // A sample project, "acme": its folders are web/ and server/, its variables ACME_*.
 const project = { names: ["acme"], envPrefixes: ["ACME_"], appPaths: ["web", "server"] };
@@ -48,6 +52,25 @@ const lint = (file, text) =>
   );
 
 describe("a core file", () => {
+  it("names the tool's own commands through the config, never as this repo's literal names, but in a test", () => {
+    const text = 'echo "run pnpm prd land, then pnpm backlog done"\n# pnpm prd sync\necho "$prd_cmd land"\n';
+    expect(lint(CORE, text)).toEqual([
+      "1 tool-command - pnpm prd",
+      "1 tool-command - pnpm backlog",
+      "2 tool-command - pnpm prd",
+    ]);
+    const doc = "scripts/loops/docs/loop.md";
+    const docFound = findings({
+      files: new Map([[doc, "Run `pnpm prd check`, or `{{prd}} check`.\n"]]),
+      owners: new Map([...OWNERS, [doc, "core"]]),
+      project,
+    });
+    expect(docFound.map((f) => `${f.line} ${f.rule} ${f.text}`)).toEqual(["1 tool-command pnpm prd"]);
+    expect(lint(CORE_JS, "const hint = `${toolCmd.prd} land`; // pnpm prdx, pnpm prd-y\n")).toEqual([]);
+    expect(lint("scripts/loops/tool.test.mjs", 'expect(out).toContain("pnpm prd land");\n')).toEqual([]);
+    expect(lint("scripts/project/up.sh", 'echo "pnpm prd land"\n')).toEqual([]);
+  });
+
   it("may not hold a project variable or the project's name, in code or in a comment", () => {
     expect(lint(CORE, 'x=${ACME_SLOTS:-2}\n# the acme stack\necho "$ACME_HOME/.acme/inbox Acme"\n')).toEqual([
       "1 project-env - ACME_SLOTS",
@@ -135,6 +158,56 @@ describe("a core file", () => {
     expect(codeOf(CORE_JS, "a // b\n/* c\nd */ e\n")).toBe("a     \n    \n     e\n");
     expect(codeOf("x.yml", "run: x # y\n")).toBe("run: x    \n");
     expect(codeOf("x.json", '{"a": "# b"}')).toBe('{"a": "# b"}');
+  });
+});
+
+describe("the host layer", () => {
+  const owners = new Map([
+    ...OWNERS,
+    ["scripts/loops/host.mjs", "core"],
+    ["scripts/loops/host.test.mjs", "core"],
+    ["scripts/loops/land-fixture.mjs", "core"],
+    ["scripts/project/mac.sh", "project"],
+  ]);
+  const hostCalls = (file, text) =>
+    findings({ files: new Map([[file, text]]), owners, project })
+      .filter((f) => f.rule === "host-call")
+      .map((f) => `${f.line} ${f.text}`);
+
+  it("is the one core file that calls osascript or launchctl, in code", () => {
+    const text = '# osascript opens tabs\nosascript - "$line"\nlaunchctl print "gui/$uid"\n';
+    expect(hostCalls(CORE, text)).toEqual(["2 osascript", "3 launchctl"]);
+    expect(hostCalls(CORE_JS, 'spawnSync("osascript", ["-"]); // launchctl\n')).toEqual(["1 osascript"]);
+    expect(hostCalls("scripts/loops/host.mjs", 'spawnSync("osascript", ["-"]);\n')).toEqual([]);
+    // A test stubs them; a project file may call them; a longer name is another word.
+    expect(hostCalls("scripts/loops/host.test.mjs", 'stub("osascript");\n')).toEqual([]);
+    expect(hostCalls("scripts/project/mac.sh", "osascript -e x\n")).toEqual([]);
+    expect(hostCalls(CORE, "fake-osascript; osascript.args\n")).toEqual([]);
+  });
+
+  it("is the one core file that runs claude, codex or gh: a shell command, a JS string", () => {
+    const sh = [
+      'gh pr view "$n"',
+      'x=$(cd "$main" && gh repo view) || die "gh couldn\'t name the repo"',
+      'until claude -p ok; do :; done; merge=(gh pr merge "$n")',
+      'echo "PR $(gh pr view "$n" -q .url)"',
+      "codex() { :; }",
+      "# gh in a comment; host_cli gh pr list; command -v gh; run_log codex x",
+      "cat <<EOF",
+      "(claude --remote-control recover) in a here-document",
+      "EOF",
+      "echo '(gh is quoted)' \"codex: and quoted\"",
+    ].join("\n");
+    expect(hostCalls(CORE, sh)).toEqual(["1 gh", "2 gh", "3 claude", "3 gh", "4 gh", "5 codex"]);
+    const js = [
+      'spawnSync("gh", args);',
+      'const bin = env.CLAUDE || "claude"; // "codex"',
+      'if (e.kind !== "codex") log("gh pr create", `the claude`);',
+    ].join("\n");
+    expect(hostCalls(CORE_JS, js)).toEqual(["1 gh", "2 claude"]);
+    expect(hostCalls("scripts/loops/host.mjs", 'spawnSync("gh", args);\n')).toEqual([]);
+    expect(hostCalls("scripts/loops/land-fixture.mjs", 'join(bin, "gh");\n')).toEqual([]);
+    expect(hostCalls("scripts/project/mac.sh", "gh pr list\n")).toEqual([]);
   });
 });
 
@@ -376,21 +449,66 @@ describe("CI's two lists", () => {
   });
 });
 
-describe("this repo", () => {
-  const result = lintRepo(ROOT);
+describe("the lint of a made-up tree", () => {
+  const tmp = realpathSync(mkdtempSync(join(tmpdir(), "boundary-")));
+  afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-  it("has every file under the manifest's folders in the manifest, sorted, each with an owner", () => {
+  /** A git repo (nothing committed) on the sample config, with the files given. */
+  const tree = (/** @type {Record<string, string>} */ files) => {
+    const root = mkdtempSync(join(tmp, "tree-"));
+    execFileSync("git", ["init", "-q", root]);
+    const all = {
+      "risa.json": readFileSync(SAMPLE_CONFIG, "utf8"),
+      ".gitignore": "out/\n",
+      [MANIFEST]: `${ALLOWLIST} core\n${MANIFEST} core\nscripts/loops/tool.mjs core\nscripts/project/up.sh project\n`,
+      [ALLOWLIST]: "",
+      "scripts/loops/tool.mjs": "export const x = 1;\n",
+      "scripts/project/up.sh": "echo up\n",
+      ...files,
+    };
+    for (const [path, text] of Object.entries(all)) {
+      mkdirSync(dirname(join(root, path)), { recursive: true });
+      writeFileSync(join(root, path), text);
+    }
+    return root;
+  };
+
+  it("passes a tree that keeps to the line", () => {
+    const result = lintRepo(tree({}));
     expect(result.problems).toEqual([]);
-  });
-
-  it("crosses the line only where the allowlist says", () => {
     expect(result.failures).toEqual([]);
   });
 
-  it("passes from the command line too", () => {
-    const r = spawnSync(process.execPath, [join(HERE, "boundary.mjs")], { encoding: "utf8" });
-    expect(r.stdout).toMatch(/^boundary: ok \(\d+ allowed\)\n$/);
-    expect(r.status).toBe(0);
+  it("fails a crossing, and passes it once the allowlist counts it", () => {
+    const crossing = { "scripts/project/up.sh": "node scripts/loops/tool.mjs\n" };
+    expect(lintRepo(tree(crossing)).failures).toEqual([
+      "scripts/project/up.sh project-to-core: 1 found, none allowed",
+      "  scripts/project/up.sh:1: project-to-core (spawn): scripts/loops/tool.mjs",
+    ]);
+    const allowed = {
+      ...crossing,
+      [ALLOWLIST]: "scripts/project/up.sh project-to-core 1 # until the move\n",
+    };
+    expect(lintRepo(tree(allowed)).failures).toEqual([]);
+  });
+
+  it("names a file the manifest misses, and an allowlist line for no file", () => {
+    const { failures } = lintRepo(
+      tree({ "scripts/ci/new.mjs": "x\n", [ALLOWLIST]: "scripts/ci/gone.mjs project-to-core 1\n" }),
+    );
+    expect(failures).toContain(
+      `${MANIFEST}: no line for scripts/ci/new.mjs: add \`scripts/ci/new.mjs core\` or \`scripts/ci/new.mjs project\``,
+    );
+    expect(failures).toContain(`${ALLOWLIST}: scripts/ci/gone.mjs is no file: delete its line`);
+  });
+
+  it("ignores an ignored file, such as a CI test step's output written while it runs (B-753's progress file)", () => {
+    const started = ["scripts/loops/tool.mjs", "scripts/project/up.sh"];
+    const root = tree({ "out/boundary.progress.json": JSON.stringify({ started }) });
+    expect(lintRepo(root).failures).toEqual([]);
+  });
+
+  it("refuses an unknown flag from the command line", () => {
     expect(spawnSync(process.execPath, [join(HERE, "boundary.mjs"), "--nope"]).status).toBe(2);
   });
 });

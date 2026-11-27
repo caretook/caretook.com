@@ -1,10 +1,12 @@
+import type { ReactNode } from "react";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { PlannerTodo } from "~/lib/todos/plannerTodos";
+import type { TodoTickProgress } from "~/components/todos";
 
 import { canCompleteTodo } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link } from "react-router";
-import { TodoRepeatMark, TodoTick, useTodoTick } from "~/components/todos";
+import { TodoPartOf, TodoProgressMark, TodoRepeatMark, TodoTick, useTodoTick } from "~/components/todos";
 import { Badge, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -19,13 +21,18 @@ import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
  * repeat mark, the title under it, and the due line when it's overdue; the
  * assignee pill on the right, at the bottom, where an event has its author.
  * The row opens the todo's page. Ticking completes it (Undo in the list's
- * `TodoUndoStatus`), and it drops out. It's never an entry.
+ * `TodoUndoStatus`), and it drops out. It's never an entry. A parent shows
+ * "n of m done" by its time, and its tick waits on open subtasks; a listed
+ * subtask shows "Part of <parent>" under its title (todo-subtasks-2).
  */
 export function PlannerTodoRow({
   item,
   nameOf,
   timeZone,
   now,
+  tags,
+  progress,
+  parent,
 }: {
   item: PlannerTodo<LocalTodo>;
   /** A member's name ("you" for me). */
@@ -33,6 +40,12 @@ export function PlannerTodoRow({
   /** The recipient's zone. */
   timeZone: string;
   now: Date;
+  /** Its tags' chips (tags PRD). */
+  tags?: ReactNode;
+  /** A parent's subtask progress (the list's one progress query). */
+  progress?: TodoTickProgress;
+  /** A subtask's parent, for "Part of". */
+  parent?: { id: string; title: string };
 }) {
   const group = useGroup();
   const { todo, state } = item;
@@ -62,6 +75,8 @@ export function PlannerTodoRow({
             title={title}
             done={false}
             disabled={tick.busy}
+            progress={progress}
+            showCount={false}
             onChange={(done) => void (done ? tick.complete({ id: todo.id, title }) : tick.reopen(todo))}
           />
         ) : (
@@ -75,10 +90,14 @@ export function PlannerTodoRow({
         >
           <span data-when>{when}</span>
           <TodoRepeatMark todo={todo} />
+          <TodoProgressMark progress={progress} className="text-muted font-normal" />
         </p>
         <p className="font-semibold break-words" data-todo-title>
           {title}
         </p>
+        {/* Above the row's link, so its own link opens the parent. */}
+        <TodoPartOf groupId={group.id} parent={parent} className="text-muted relative z-10 block text-sm" />
+        {tags}
         {overdue && due && (
           <p className="text-error-ink text-sm" data-todo-due>
             {due}

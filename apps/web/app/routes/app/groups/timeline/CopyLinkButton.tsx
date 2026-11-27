@@ -3,23 +3,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Badge, Button, Field, IconButton, useShowModal } from "~/components/ui";
 
 /**
- * A small link button that copies an absolute link to `path` (an `appUrls`
- * path) and says "Link copied" beside it (a polite status). Where the
- * clipboard fails (no permission, an insecure page), a dialog shows the link
- * to copy by hand. Copying never navigates, so the timeline's scroll is
- * untouched. It sits above a row's stretched open target (`relative z-10`).
+ * Copies an absolute link to `path` (an `appUrls` path): `copy` writes it to
+ * the clipboard, and `feedback` says "Link copied" (a polite status, placed
+ * under the nearest positioned box) or, where the clipboard fails (no
+ * permission, an insecure page), opens a dialog with the link to copy by
+ * hand. Copying never navigates, so the timeline's scroll is untouched.
+ * `CopyLinkButton` (day headers) and an entry's ⋯ Copy link use it.
  */
-export function CopyLinkButton({
-  path,
-  label,
-  className = "",
-}: {
-  /** The page to link to, as `appUrls` builds it. */
-  path: string;
-  /** The button's accessible name: "Copy link to Today". */
-  label: string;
-  className?: string;
-}) {
+export function useCopyLink(path: string) {
   const [outcome, setOutcome] = useState<"copied" | "failed" | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -47,9 +38,8 @@ export function CopyLinkButton({
     );
   };
 
-  return (
-    <div className={`relative z-10 shrink-0 ${className}`} data-copy-link="">
-      <IconButton label={label} icon={Link2} onPress={copy} />
+  const feedback = (
+    <>
       <div role="status" className="pointer-events-none absolute top-full right-0 mt-1">
         {outcome === "copied" && <Badge className="whitespace-nowrap shadow">Link copied</Badge>}
       </div>
@@ -79,6 +69,33 @@ export function CopyLinkButton({
           </div>
         )}
       </dialog>
+    </>
+  );
+
+  return { copy, feedback };
+}
+
+/**
+ * A small link button that copies an absolute link to `path` and says so
+ * (`useCopyLink`): a day header's. It sits above a row's stretched open
+ * target (`relative z-10`).
+ */
+export function CopyLinkButton({
+  path,
+  label,
+  className = "",
+}: {
+  /** The page to link to, as `appUrls` builds it. */
+  path: string;
+  /** The button's accessible name: "Copy link to Today". */
+  label: string;
+  className?: string;
+}) {
+  const { copy, feedback } = useCopyLink(path);
+  return (
+    <div className={`relative z-10 shrink-0 ${className}`} data-copy-link="">
+      <IconButton label={label} icon={Link2} onPress={copy} />
+      {feedback}
     </div>
   );
 }

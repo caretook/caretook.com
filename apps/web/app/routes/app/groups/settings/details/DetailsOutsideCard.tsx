@@ -31,7 +31,7 @@ export function DetailsOutsideCard({ allowed, editable }: { allowed: boolean; ed
 
   return (
     <SettingsCard id="details-outside-allowed" title="Details outside Caretook">
-      <p className="text-base-content/70 text-sm">{DETAILS_OUTSIDE_EXPLAINED}</p>
+      <p className="text-muted text-sm">{DETAILS_OUTSIDE_EXPLAINED}</p>
       {editable ? (
         <ToggleField
           label="Let members include details"

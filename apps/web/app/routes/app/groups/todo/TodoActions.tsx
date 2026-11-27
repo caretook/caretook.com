@@ -13,11 +13,18 @@ export const DELETE_INTENT = "delete";
 /** Skip this occurrence of a repeating todo (planner-2): it goes, and the next one comes. */
 export const SKIP_INTENT = "skip";
 
+/** The delete confirm's words: the todo, its subtasks (when it has any) and its notes. */
+const deleteMessage = (title: string, subtasks: number) =>
+  subtasks > 0
+    ? `“${title}”, its ${subtasks === 1 ? "subtask" : `${subtasks} subtasks`} and their notes will be removed for everyone in the care group.`
+    : `“${title}” and its notes will be removed for everyone in the care group.`;
+
 /**
  * A writer's actions on a todo: Edit (the edit sheet, which comes back
  * here) and ⋯ with Reopen (once it's done) and Delete, behind a confirm:
  * for an open repeating todo, the choice of skipping this one or stopping
- * the repeat. `onDelete` hears the delete or skip as it's sent; the page
+ * the repeat. The confirm names how many subtasks go with it
+ * (todo-subtasks: `subtasks`, every level). `onDelete` hears the delete or skip as it's sent; the page
  * leaves once the live row shows it.
  */
 export function TodoActions({
@@ -26,6 +33,7 @@ export function TodoActions({
   title,
   done,
   repeats,
+  subtasks = 0,
   busy,
   onReopen,
   onDelete,
@@ -36,6 +44,8 @@ export function TodoActions({
   done: boolean;
   /** It repeats (and so has a next one to skip to). */
   repeats: boolean;
+  /** Its live descendants, which a delete takes with it. */
+  subtasks?: number;
   busy: boolean;
   onReopen: () => void;
   onDelete: () => void;
@@ -93,7 +103,7 @@ export function TodoActions({
         <ConfirmDialog
           open={confirming}
           title="Delete this todo?"
-          message={`“${title}” and its notes will be removed for everyone in the care group.`}
+          message={deleteMessage(title, subtasks)}
           confirmLabel="Delete"
           onClose={() => setConfirming(false)}
           onConfirm={() => send(DELETE_INTENT)}

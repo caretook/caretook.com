@@ -13,7 +13,8 @@
 // permissions (a member demoted while offline) and listed under Settings →
 // Changes not saved, a viewer's todo ticked
 // offline and their refused title change, a repeating todo ticked offline
-// bringing one next todo everywhere, and sign-out wiping the
+// bringing one next todo everywhere, a viewer's last subtask ticked offline
+// finishing its parent (the rollup), and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
 //
@@ -222,6 +223,13 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   const reopenViewerTodoSql = `UPDATE todo SET done_at = NULL, done_by = NULL, title = '${VIEWER_TODO_TITLE}' WHERE id = '${viewerTodo}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TODO_TITLE}')`;
   // A run that died mid-step left it done: open again before anyone loads.
   if (viewerTodo) psql(reopenViewerTodoSql);
+  // The viewer's seeded last open subtask and its parent (todo-subtasks): ticked offline in 6f.
+  const viewerStep = psql(
+    `SELECT id FROM todo WHERE group_id = '${DEV_FAMILY}' AND title = 'Charge the phone and tablet' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
+  );
+  const stepParent = viewerStep ? psql(`SELECT parent_id FROM todo WHERE id = '${viewerStep}'`) : "";
+  const reopenStepSql = `UPDATE todo SET done_at = NULL, done_by = NULL WHERE id IN ('${viewerStep}', '${stepParent}') AND done_at IS NOT NULL`;
+  if (viewerStep) psql(reopenStepSql);
   const tag = `RT-${Date.now().toString(36)}`;
   // 6b'': a fictional member this run adds and removes.
   const removedEmail = `${tag.toLowerCase()}-removed@example.com`;
@@ -488,13 +496,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await signIn(C, "viewer@example.com");
     await wf(C, rowWith(offName), 20_000);
     await check("viewer: sees the timeline, including the offline entry", true);
+    // A viewer's ⋯ holds no writer items: a symptom's is Copy link alone (every kind's items: component tests).
+    await press(C, `${rowWith(offName)}.querySelector('button[aria-label^="Actions"]')`);
+    await wf(C, menuItem("Copy link"), 10_000);
+    const viewerItems = await C.evaluate(
+      `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim()).join(",")`,
+    );
+    await C.keyboard.press("Escape");
     await check(
-      // A viewer's ⋯ is Print alone, on notes and events only (its items: component tests).
-      "viewer: no + button, no ⋯ menus but notes' and events' Print, no edit targets",
+      "viewer: no + button, no edit targets, and a symptom's ⋯ is Copy link alone",
       (await addButton(C).count()) === 0 &&
-        (await C.evaluate(
-          `!document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
-        )),
+        (await C.evaluate(`!document.querySelector('main ol [aria-label^="Edit "]')`)) &&
+        viewerItems === "Copy link",
+      viewerItems,
     );
 
     // 6-series. The series 5a made offline, checked once the viewer is in
@@ -695,14 +709,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const expectedRows = {};
     let queuedAtRead = 0;
     try {
+      // Each id goes into matrix.ids as its writer returns (a link with its
+      // producer), so a run that dies mid-loop still cleans up what it wrote (B-862).
       for (const [table, w] of Object.entries(SYNC_WRITERS)) {
-        if (table === "care_recipient" || w.by) continue;
-        const result = await A.evaluate(writerCall(table, wctx));
-        if (!result?.ok) writerRefusals.push(`${table} (${w.writer}): ${JSON.stringify(result)}`);
-        wctx.ids[table] = writtenId(table, wctx.ids, result);
+        if (table === "care_recipient") continue;
+        if (w.by) {
+          if (wctx.ids[w.by]) wctx.ids[table] = writtenId(table, wctx.ids);
+        } else {
+          const result = await A.evaluate(writerCall(table, wctx));
+          if (!result?.ok) writerRefusals.push(`${table} (${w.writer}): ${JSON.stringify(result)}`);
+          wctx.ids[table] = writtenId(table, wctx.ids, result);
+        }
+        for (const [key, id] of Object.entries(matrixIds(wctx.ids))) if (id) matrix.ids[key] = id;
       }
-      for (const [table, w] of Object.entries(SYNC_WRITERS))
-        if (w.by) wctx.ids[table] = writtenId(table, wctx.ids);
       for (const table of Object.keys(SYNC_WRITERS))
         if (table !== "care_recipient" && wctx.ids[table])
           expectedRows[table] = await rowOn(A, table, wctx.ids[table]);
@@ -711,7 +730,6 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     } finally {
       dA.proxy.release();
     }
-    Object.assign(matrix.ids, matrixIds(wctx.ids));
     await check(
       "matrix: every uploadable table's app writer accepts its row, read back before it uploads",
       writerRefusals.length === 0 && queuedAtRead > 0,
@@ -1071,6 +1089,40 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       `${Date.now() - t3} ms after reconnecting; viewer chain ${JSON.stringify(await chainOn(C))}`,
     );
 
+    // 6f. The rollup offline (todo-subtasks): viewer@ ticks their seeded
+    // last open subtask; the device shows its parent done at once (the
+    // rollup's flagged write, two uploads). On reconnect the server has the
+    // parent done by the viewer, though it isn't theirs.
+    const stepRow = `document.querySelector('main [data-todo="${viewerStep}"]')`;
+    const doneOn = async (page, id) =>
+      (await localRows(page, "SELECT done_at, done_by FROM todo WHERE id = ?", [id]))[0];
+    await wf(C, `${stepRow}?.querySelector("[data-todo-tick]")`, 20_000);
+    dC.offline(true);
+    await wf(C, `!window.caretookSync.powersync.currentStatus.connected`, 20_000);
+    await press(C, `${stepRow}.querySelector("[data-todo-tick]")`);
+    await wf(C, `${stepRow}?.querySelector("[data-todo-tick]")?.checked`);
+    const offParent = await doneOn(C, stepParent);
+    const stepQueued = await queued(C);
+    const parentServer = psql(`SELECT count(*) FROM todo WHERE id = '${stepParent}' AND done_at IS NOT NULL`);
+    await check(
+      "subtasks: offline, the viewer ticks their last open subtask and the parent is done on the device at once",
+      !!offParent?.done_at && offParent.done_by === viewerId && stepQueued === 2 && parentServer === "0",
+      `${JSON.stringify(offParent)}, ${stepQueued} queued, done on the server: ${parentServer}`,
+    );
+    dC.offline(false);
+    const t4 = Date.now();
+    const parentDoneBy = await waitForSql(
+      `SELECT coalesce(done_by::text, '') FROM todo WHERE id = '${stepParent}'`,
+      (r) => r !== "",
+      60_000,
+    );
+    const stepSettled = await until(async () => (await queued(C)) === 0);
+    await check(
+      "subtasks: on reconnect the server has the parent done, by the viewer; the queue empties",
+      parentDoneBy === viewerId && !!stepSettled,
+      `${parentDoneBy}, ${Date.now() - t4} ms after reconnecting`,
+    );
+
     // 7. Tidy up, then sign-out wipes the device.
     psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
     await wf(A, `!${rowWith(offName)}`, 15_000);
@@ -1130,6 +1182,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   } finally {
     try {
       if (viewerTodo) psql(reopenViewerTodoSql);
+      if (viewerStep) psql(reopenStepSql);
       psql(`UPDATE "user" SET avatar_color = NULL, avatar_icon = NULL WHERE id = '${memberId}'`);
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
@@ -1139,7 +1192,39 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       );
       psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
       psql(`DELETE FROM "user" WHERE email = '${removedEmail}'`);
+      // A run that died with device A's uploads queued: let them land first,
+      // so no matrix row reaches the server after its cleanup (B-862).
+      // (A page with no database open has nothing to wait for.)
+      await until(
+        () =>
+          queued(A).then(
+            (n) => n === 0,
+            () => true,
+          ),
+        10_000,
+      );
       psql(cleanupSql(matrix, recordedAt));
+      // And by the run's tag, for a row whose writer died before giving its id.
+      psql(
+        [
+          ["provider", "name"],
+          ["medication", "name"],
+          ["medication_pass", "name"],
+          ["recipient_allergy", "substance"],
+          ["care_period", "label"],
+          ["recipient_condition", "name"],
+          ["timeline_entry", "title"],
+        ]
+          .map(
+            ([t, c]) =>
+              `UPDATE ${t} SET deleted_at = now() WHERE group_id = '${DEV_FAMILY}' AND ${c} LIKE '${tag} matrix%' AND deleted_at IS NULL`,
+          )
+          .concat(
+            `DELETE FROM record_tag WHERE tag_id IN (SELECT id FROM tag WHERE group_id = '${DEV_FAMILY}' AND name LIKE '${tag} matrix%')`,
+            `DELETE FROM tag WHERE group_id = '${DEV_FAMILY}' AND name LIKE '${tag} matrix%'`,
+          )
+          .join(";\n"),
+      );
       // The run's symptom names in the catalog (rows are never soft-deleted), any case.
       psql(
         `UPDATE timeline_entry SET deleted_at = coalesce(deleted_at, now()), symptom_type_id = NULL WHERE group_id = '${DEV_FAMILY}' AND details->>'name' ILIKE '${tag}%';

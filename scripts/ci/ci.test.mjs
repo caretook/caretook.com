@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 import {
   EXIT,
@@ -21,6 +21,12 @@ import {
 } from "./ci.mjs";
 import { isVerdict } from "./ci-runs.mjs";
 import { tierData } from "./tier-data.mjs";
+import { sampleFoldersConfig } from "../loops/config-fixture.mjs";
+
+// The made-up files sit in the sample project's folders: the check plan reads its rules there.
+const CONFIG_DIR = mkdtempSync(join(tmpdir(), "ci-config-"));
+process.env.RISA_CONFIG = sampleFoldersConfig(CONFIG_DIR);
+afterAll(() => rmSync(CONFIG_DIR, { recursive: true, force: true }));
 
 const { TIERS, ciRefName, jobsFor, narrowedJobs, parseCiRef } = tierData();
 
@@ -484,7 +490,7 @@ describe("ci [<branch>]", () => {
 });
 
 describe("ci gate and ci file", () => {
-  const FLAKE = { job: "unit", file: "apps/web/x.test.ts", name: "wobbles", brake: false };
+  const FLAKE = { job: "unit", file: "web/x.test.ts", name: "wobbles", brake: false };
   const ranUnit = { ...green, ranTier: "unit" };
   const finished = { ...running, status: "completed", conclusion: "success" };
   const gateArgs = ["gate", "slice/t/2", "--tier", "unit", "--base", OTHER];
@@ -500,7 +506,7 @@ describe("ci gate and ci file", () => {
       }
       if (args[0] === "diff") {
         w.calls.push(`git ${args.join(" ")}`);
-        return { ok: true, out: "apps/web/b.ts" };
+        return { ok: true, out: "web/b.ts" };
       }
       return git(args);
     };
@@ -572,8 +578,8 @@ describe("ci gate and ci file", () => {
       const line = `git ${args.join(" ")}`;
       if (args[0] === "rev-list") return (w.calls.push(line), { ok: true, out: `${SHA}\n${WAVE}` });
       if (args[0] === "diff" && args[3] === `${SHA}^1`)
-        return (w.calls.push(line), { ok: true, out: "packages/data/src/a.ts\nscripts/loops/lib.sh" });
-      if (args[0] === "diff") return (w.calls.push(line), { ok: true, out: "apps/web/b.ts" });
+        return (w.calls.push(line), { ok: true, out: "db/src/a.ts\nscripts/loops/lib.sh" });
+      if (args[0] === "diff") return (w.calls.push(line), { ok: true, out: "web/b.ts" });
       if (args[0] === "rev-parse" && args.at(-1) === `${SHA}^2`) return { ok: true, out: DEV };
       if (args[0] === "merge-base") return (w.calls.push(line), { ok: args[2] === DEV });
       return git(args);
@@ -611,6 +617,48 @@ describe("ci gate and ci file", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it("ci gate asks for a fresh run on the tip, saying why, when a tooling fix follows a failing verdict", async () => {
+    const OLD = "c".repeat(40);
+    const failed = { ...ranUnit, kind: "file", commit: OLD, runId: "6" };
+    const w = world({ verdict: ranUnit });
+    const { git, gh } = w.io;
+    w.io.git = (/** @type {string[]} */ args) => {
+      const line = `git ${args.join(" ")}`;
+      if (args[0] === "rev-list") return (w.calls.push(line), { ok: true, out: `${SHA}\n${OLD}` });
+      if (args[0] === "diff" && args[3] === `${SHA}^1`)
+        return (w.calls.push(line), { ok: true, out: "scripts/loops/prompt.sh" });
+      if (args[0] === "diff") return (w.calls.push(line), { ok: true, out: "scripts/loops/prompt.sh" });
+      if (args[0] === "rev-parse" && args.at(-1) === `${SHA}^2`) return { ok: false, out: "" };
+      return git(args);
+    };
+    w.io.gh = (/** @type {string[]} */ args) => {
+      if (args[1] === "list" && args.includes(OLD))
+        return {
+          ok: true,
+          out: JSON.stringify([
+            {
+              ...running,
+              databaseId: 6,
+              headSha: OLD,
+              headBranch: "ci/unit/slice-t-2",
+              status: "completed",
+              conclusion: "failure",
+            },
+          ]),
+        };
+      if (args[1] === "download" && args[2] === "6") {
+        writeFileSync(join(args[args.indexOf("--dir") + 1], "verdict.json"), JSON.stringify(failed));
+        return { ok: true, out: "" };
+      }
+      return gh(args);
+    };
+    expect(await main(gateArgs, w.io)).toBe(EXIT.green);
+    expect(w.pushes()[0]).toContain(`${SHA}:refs/heads/${REF}`);
+    const log = w.lines.join("\n");
+    expect(log).toContain(`the file verdict on ${OLD.slice(0, 8)} is not carried`);
+    expect(log).toContain("requesting one");
   });
 
   it("ci file --run takes a list and files each run's flakes", async () => {

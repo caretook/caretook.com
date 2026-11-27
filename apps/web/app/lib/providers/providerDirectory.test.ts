@@ -2,6 +2,8 @@ import type { ListedProvider } from "./providerDirectory";
 
 import { describe, expect, it } from "vitest";
 import {
+  clearFilters,
+  clearTag,
   clearType,
   compareProviders,
   directoryList,
@@ -9,19 +11,24 @@ import {
   parseDirectoryFilters,
   queryTokens,
   setQuery,
+  setTag,
   setType,
 } from "./providerDirectory";
+
+const TAG = "1f0e9d8c-7b6a-4954-8a3b-2c1d0e9f8a7b";
+const OTHER_TAG = "2a1b0c9d-8e7f-4a6b-9c5d-4e3f2a1b0c9d";
 
 describe("parseDirectoryFilters", () => {
   it("reads q and type", () => {
     expect(parseDirectoryFilters("?q=%20cardio%20&type=clinician")).toEqual({
       q: "cardio",
       type: "clinician",
+      tag: null,
     });
-    expect(parseDirectoryFilters("")).toEqual({ q: "", type: null });
+    expect(parseDirectoryFilters("")).toEqual({ q: "", type: null, tag: null });
   });
   it("ignores unknown values", () => {
-    expect(parseDirectoryFilters("type=dentist")).toEqual({ q: "", type: null });
+    expect(parseDirectoryFilters("type=dentist")).toEqual({ q: "", type: null, tag: null });
   });
 });
 
@@ -120,5 +127,59 @@ describe("directoryList", () => {
   it("filters by type, with the search", () => {
     expect(directoryList(all, { q: "", type: "pharmacy" }).current).toEqual([pharmacy]);
     expect(directoryList(all, { q: "westside", type: "clinician" }).current).toEqual([alvarez]);
+  });
+});
+
+describe("the tag filter (tags PRD)", () => {
+  it("reads one tag id, lowercased, and anything else as no tag", () => {
+    expect(parseDirectoryFilters(`?tag=${TAG.toUpperCase()}`).tag).toBe(TAG);
+    expect(parseDirectoryFilters("?tag=urgent").tag).toBeNull();
+    expect(parseDirectoryFilters("?tag=").tag).toBeNull();
+  });
+
+  it("sets and clears the tag after q and type, keeping the rest", () => {
+    expect(setTag("?q=dr&type=clinician&x=1", TAG)).toBe(`?q=dr&type=clinician&tag=${TAG}&x=1`);
+    expect(setTag(`?tag=${TAG}`, OTHER_TAG)).toBe(`?tag=${OTHER_TAG}`);
+    expect(setTag("?q=dr", "not-an-id")).toBe("?q=dr");
+    expect(clearTag(`?q=dr&tag=${TAG}&type=practice`)).toBe("?q=dr&type=practice");
+    expect(setType(`?tag=${TAG}`, "pharmacy")).toBe(`?type=pharmacy&tag=${TAG}`);
+    expect(setQuery(`?tag=${TAG}`, "corner")).toBe(`?q=corner&tag=${TAG}`);
+  });
+
+  it("a change that changes nothing returns the search as it was", () => {
+    const search = `?tag=${TAG}&q=dr`;
+    expect(setTag(search, TAG)).toBe(search);
+    expect(clearTag("?q=dr")).toBe("?q=dr");
+  });
+
+  it("Clear filters drops the type and the tag, keeping the search", () => {
+    expect(clearFilters(`?q=dr&type=clinician&tag=${TAG}&x=1`)).toBe("?q=dr&x=1");
+  });
+
+  it("narrows the list to the providers carrying the tag, with the type and search", () => {
+    const patel = provider({ name: "Dr. Samuel Patel", specialty: "Cardiology" });
+    const lee = provider({ name: "Dr. Mina Lee", specialty: "Cardiology", status: "past" });
+    const corner = provider({ name: "Cornerstone Pharmacy", type: "pharmacy" });
+    const all = [patel, lee, corner];
+    const tags = new Map([
+      [patel.id, [{ id: TAG, name: "Heart" }]],
+      [
+        lee.id,
+        [
+          { id: OTHER_TAG, name: "Move" },
+          { id: TAG, name: "Heart" },
+        ],
+      ],
+      [corner.id, [{ id: OTHER_TAG, name: "Move" }]],
+    ]);
+    expect(directoryList(all, { q: "", type: null, tag: TAG }, tags)).toEqual({
+      current: [patel],
+      past: [lee],
+    });
+    expect(directoryList(all, { q: "", type: "pharmacy", tag: OTHER_TAG }, tags).current).toEqual([corner]);
+    expect(directoryList(all, { q: "mina", type: null, tag: TAG }, tags).past).toEqual([lee]);
+    expect(directoryList(all, { q: "", type: null, tag: TAG }, new Map())).toEqual({ current: [], past: [] });
+    // No tag: every provider, tags or not.
+    expect(directoryList(all, { q: "", type: null, tag: null }, tags).current).toHaveLength(2);
   });
 });

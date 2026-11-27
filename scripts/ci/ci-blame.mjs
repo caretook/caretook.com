@@ -1,4 +1,4 @@
-// ci-blame.mjs: part of `pnpm prd ci` (ci.mjs has the map). `ci blame`: a file or
+// ci-blame.mjs: part of `prd ci` (ci.mjs has the map). `ci blame`: a file or
 // brake verdict split against a run on dev's tip, dev's failures filed and their
 // brake notices posted or withdrawn (the pure rules are blame.mjs). The gate
 // shares splitAgainstDev.
@@ -8,6 +8,7 @@ import {
   devFindings,
   devResultUsable,
   devRunPlan,
+  messageLine,
   noticeKey,
   slicesNear,
   splitFailures,
@@ -35,6 +36,17 @@ function branchMerges(/** @type {Io} */ io, /** @type {string} */ devSha, /** @t
 
 export const failureLabel = (/** @type {import("./blame.mjs").Failure} */ f) =>
   f.file ? `${f.file}${f.name ? `: ${f.name}` : ""}` : `${f.job} job`;
+
+/** A failure's line, then its message indented beneath when the verdict kept one. */
+export function logFailure(
+  /** @type {Io} */ io,
+  /** @type {string} */ line,
+  /** @type {import("./blame.mjs").Failure} */ f,
+) {
+  io.log(line);
+  const message = messageLine(f);
+  if (message) io.log(`      ${message}`);
+}
 
 /** File dev's failures, post one notice per dev brake, and withdraw the ones a pass cleared. */
 function fileDevFailures(
@@ -155,18 +167,22 @@ export async function blame({ branch, sha, json = false, waitMin = DEFAULT_WAIT_
   else {
     io.log(`blame: ${branch} at ${sha.slice(0, 8)} against dev ${devSha.slice(0, 8)}`);
     for (const f of split.dev)
-      io.log(
+      logFailure(
+        io,
         `  dev's${f.brake ? " (brake)" : ""}: ${failureLabel(f)}${ids.get(f.key) ? ` (${ids.get(f.key)})` : ""}`,
+        f,
       );
     for (const f of split.branch) {
       const near = slices(f);
-      io.log(
+      logFailure(
+        io,
         `  the branch's: ${failureLabel(f)}${f.absent ? " (not on dev)" : ""}${
           near.length ? ` (slices ${near.join(", ")})` : ""
         }`,
+        f,
       );
     }
-    for (const f of split.unknown) io.log(`  unknown: ${failureLabel(f)}`);
+    for (const f of split.unknown) logFailure(io, `  unknown: ${failureLabel(f)}`, f);
     if (failures.partial) io.log("  the verdict's list is partial: see the run");
   }
   return code;

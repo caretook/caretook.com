@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pnpm prd browser: run browser checks from the current worktree, at most four
+# prd browser: run browser checks from the current worktree, at most four
 # at once machine-wide, so loops don't pile Chrome, Vite and PowerSync on top of
 # each other.
 #
@@ -7,7 +7,7 @@
 #   browser.sh --suite [--timeout S]           the lean end-to-end set (the manifest's e2e checks),
 #                                              one at a time, then a table
 #   browser.sh --changed [--base REF] [--list] only the checks the changed files need
-#                                              (scripts/loops/check-areas.d/), then a table
+#                                              (scripts/project/check-areas.d/), then a table
 #   browser.sh --dev …                         any of the above, against the dev server
 #   browser.sh --smoke …                       any of the above in smoke mode (SMOKE=1): each check
 #                                              runs only its core path (a spec's @smoke tests);
@@ -15,52 +15,59 @@
 #                                              checks run in full (SMOKE=0)
 #   browser.sh --verbose …                     any of the above, printing each check's whole output
 #
-# In a .loops worktree with a stack, checks run against a check build (pnpm prd
-# serve --built): one is started when no server is running, swapped in for a
-# running dev server, and rebuilt and restarted when the source is newer than
-# the build. --dev keeps (or starts) the dev server instead.
+# The checks are the project's: its browser hook (the config's hooks.browser, a
+# plain runner) lists them and runs one at a time; everything below is this
+# gate's, around it.
 #
-# --changed diffs REF (default: $BASE_BRANCH from .env.loop, else origin/dev,
-# else dev) against the working tree: committed, staged, unstaged and untracked
+#   <hook> list                                   "<check><TAB><file>" a line
+#   <hook> run --output DIR <check> -- [args…]    one check, its output on
+#                                                 stdout, its traces in DIR; exit 0
+#                                                 on a pass
+#
+# In a .loops worktree with a stack, checks run against a check build (the serve
+# hook's --built --fresh: started when no server is running, swapped in for a
+# running dev server, rebuilt when its source is newer than the build). --dev
+# keeps (or starts) the dev server instead.
+#
+# --changed diffs REF (default: $BASE_BRANCH from .env.loop, else origin/<trunk>,
+# else the trunk) against the working tree: committed, staged, unstaged and untracked
 # files. --base HEAD^ after a merge gives what that merge brought in; --head REF
 # compares with a commit instead of the working tree. --list
 # prints each file's checks and runs nothing. No checks needed → exit 0.
 #
-# A failed check is retried once (--no-retry, or CARETOOK_BROWSER_RETRY=0, turns
+# A failed check is retried once (--no-retry, or RISA_BROWSER_RETRY=0, turns
 # it off) when the failure looks like contention: the load was above
-# CARETOOK_BROWSER_BUSY (default 40) at its start or end, or the log shows a
+# RISA_BROWSER_BUSY (default 40) at its start or end, or the log shows a
 # timeout, a 401 or PSYNC_S2101. It first waits (up to 5 min) for the load to
 # drop below that. A pass on the retry is FLAKY: it counts as passing, and is
 # recorded in $main/.loops/.browser-flakes.log so flaky steps can be fixed.
-# Every check's result also goes to the run log (run-log.mjs, CARETOOK_RUN_LOG)
-# for pnpm prd metrics.
+# Every check's result also goes to the run log (run-log.mjs, RISA_RUN_LOG)
+# for prd metrics.
 #
 # Each run holds a browser lease (lease.sh), the directory $main/.loops/.lease/browser/<N>.
 # When every lease is taken it waits, polling every 5 s, and gives up after
-# CARETOOK_BROWSER_WAIT seconds (default 1200). A lease whose holder is gone is
+# RISA_BROWSER_WAIT seconds (default 1200). A lease whose holder is gone is
 # taken over. The lease is released on every exit: success, failure, timeout,
 # Ctrl-C, kill.
 #
-# A check is a Playwright Test spec, scripts/browser-checks/<check>.spec.mjs (run
-# through Playwright Test's CLI with playwright.config.mjs, one worker, its
-# reporter printing PASS, FAIL and SKIP lines and "N/M passed"; its traces go to
-# the log dir). Everything below (the lease, limits, retry, trimmed output,
-# smoke mode, the check build) applies to every check.
+# The runner prints PASS, FAIL and SKIP lines and an "N/M passed" tally.
+# Everything below (the lease, limits, retry, trimmed output, smoke mode, the
+# check build) applies to every check.
 #
-# The check runs from scripts/browser-checks/ with the worktree's .env.loop
-# (the main checkout's defaults when there is none) and Node from .nvmrc. Its
-# full output goes to a log in the worktree's git dir. The terminal gets only
+# The check runs with the worktree's .env.loop (the main checkout's defaults when
+# there is none) and Node from .nvmrc. Its full output goes to a log in the
+# worktree's git dir. The terminal gets only
 # the ▶ and ■ lines, FAIL lines with their diagnostics block (a timed-out wait's
 # page state), TIMEOUT and FLAKY lines, and the table (a failure that printed
 # none of those gets the log's last lines). --verbose prints everything.
 #
-# The manifest scripts/loops/checks lists every check: its cap, whether it
+# The manifest (the config's paths.checksManifest) lists every check: its cap, whether it
 # never exits, and whether it's in the lean set (e2e, the suite), in suite
 # order. --changed runs what the files need, lean or not. Three limits end a
 # check, each as TIMEOUT (so the one retry applies):
-#   - silence: no output line for CARETOOK_BROWSER_SILENCE seconds (default 90);
+#   - silence: no output line for RISA_BROWSER_SILENCE seconds (default 90);
 #   - its cap: --timeout S, else the manifest's cap, else 600 s;
-#   - the suite cap (--suite and --changed): CARETOOK_BROWSER_SUITE_CAP seconds,
+#   - the suite cap (--suite and --changed): RISA_BROWSER_SUITE_CAP seconds,
 #     default the sum of the selected checks' caps. Past it the running check is
 #     killed, nothing is retried, and the rest are listed as NOT-RUN.
 # A kill stops the check's whole process tree (node, Chrome, proxies).
@@ -68,15 +75,15 @@
 # they print their last line ($hang_done: "N/M passed", or "errors:"). Their
 # verdict comes from the "N/M passed" line, or "ended" when they print none.
 #
-# Env: CARETOOK_BROWSER_SLOTS (leases, default 2), CARETOOK_BROWSER_WAIT (s),
-# CARETOOK_BROWSER_SUITE (the suite, space or comma separated; default the
-# manifest's e2e checks), CARETOOK_BROWSER_SILENCE (s, default 90),
-# CARETOOK_BROWSER_SUITE_CAP (s), CARETOOK_BROWSER_PAUSE (s between suite
+# Env: RISA_BROWSER_SLOTS (leases, default 2), RISA_BROWSER_WAIT (s),
+# RISA_BROWSER_SUITE (the suite, space or comma separated; default the
+# manifest's e2e checks), RISA_BROWSER_SILENCE (s, default 90),
+# RISA_BROWSER_SUITE_CAP (s), RISA_BROWSER_PAUSE (s between suite
 # checks, default 2: Better Auth allows about 3 sign-ins per 10 s per client
-# IP, and the fixtures give every device its own), CARETOOK_BROWSER_RETRY (0: no
-# retry), CARETOOK_BROWSER_BUSY (the load that counts as busy, default 40),
-# CARETOOK_BROWSER_LEASES and CARETOOK_BROWSER_FLAKES (the lease directory and
-# the flakes log; tests point them elsewhere), CARETOOK_BROWSER_RESULTS (a file
+# IP, and the fixtures give every device its own), RISA_BROWSER_RETRY (0: no
+# retry), RISA_BROWSER_BUSY (the load that counts as busy, default 40),
+# RISA_BROWSER_LEASES and RISA_BROWSER_FLAKES (the lease directory and
+# the flakes log; tests point them elsewhere), RISA_BROWSER_RESULTS (a file
 # that --suite and --changed append "<check><TAB><result><TAB><retried 0|1>" to,
 # for CI's browser job).
 set -euo pipefail
@@ -89,22 +96,19 @@ default_cap=600
 # The line each never-exiting check prints last, once its work is done.
 hang_done='^([0-9]+/[0-9]+ passed|errors: )'
 hang_grace=2
-wait_max=${CARETOOK_BROWSER_WAIT:-1200}
-pause=${CARETOOK_BROWSER_PAUSE:-2}
-retry=${CARETOOK_BROWSER_RETRY:-1}
-busy=${CARETOOK_BROWSER_BUSY:-40}
-silence=${CARETOOK_BROWSER_SILENCE:-90}
-suite_cap=${CARETOOK_BROWSER_SUITE_CAP:-}
-flakes_log=${CARETOOK_BROWSER_FLAKES:-$loops/.browser-flakes.log}
+wait_max=${RISA_BROWSER_WAIT:-1200}
+pause=${RISA_BROWSER_PAUSE:-2}
+retry=${RISA_BROWSER_RETRY:-1}
+busy=${RISA_BROWSER_BUSY:-40}
+silence=${RISA_BROWSER_SILENCE:-90}
+suite_cap=${RISA_BROWSER_SUITE_CAP:-}
+flakes_log=${RISA_BROWSER_FLAKES:-$loops/.browser-flakes.log}
 # Log lines that mean contention more often than a bug (Playwright's included:
 # "Timeout 15000ms exceeded", "Test timeout of 90000ms exceeded").
 transient='(timed out|Timed out|timeout|Timeout [0-9]+ms|TIMEOUT| 401|401 |PSYNC_S2101|ECONNRESET|socket hang up)'
 # transient_lines LOG → the log without Playwright's call-log lines ("… with
 # timeout 10000ms"), which every locator failure prints, a timeout or not.
 transient_lines() { grep -Ev 'with timeout [0-9]+ms' "$1" 2>/dev/null || true; }
-# Checks run for a changed file no rule covers: check-areas.mjs's UNMAPPED_DEFAULT,
-# which prints them; this copy is for the warning below.
-unmapped_default="sign-in phase2 roundtrip"
 
 usage() { sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; }
 
@@ -124,37 +128,33 @@ while (($#)); do
     --timeout) timeout=${2:?--timeout needs seconds}; shift 2 ;;
     --timeout=*) timeout=${1#*=}; shift ;;
     -h | --help) usage; exit 0 ;;
-    -*) die "unknown option $1 (pnpm prd browser --help)" ;;
+    -*) die "unknown option $1 (${prd_cmd} browser --help)" ;;
     *) check=$1; shift; args=("$@"); break ;;
   esac
 done
 [[ -z $timeout || $timeout =~ ^[0-9]+$ ]] || die "--timeout takes whole seconds"
-[[ $silence =~ ^[0-9]+$ ]] || die "CARETOOK_BROWSER_SILENCE takes whole seconds"
-[[ -z $suite_cap || $suite_cap =~ ^[0-9]+$ ]] || die "CARETOOK_BROWSER_SUITE_CAP takes whole seconds"
+[[ $silence =~ ^[0-9]+$ ]] || die "RISA_BROWSER_SILENCE takes whole seconds"
+[[ -z $suite_cap || $suite_cap =~ ^[0-9]+$ ]] || die "RISA_BROWSER_SUITE_CAP takes whole seconds"
 [[ $mode != one || -n $check ]] || { usage >&2; exit 1; }
 
-top=$(git rev-parse --show-toplevel 2>/dev/null) || die "run pnpm prd browser inside the repo or a .loops worktree"
+top=$(git rev-parse --show-toplevel 2>/dev/null) || die "run ${prd_cmd} browser inside the repo or a .loops worktree"
 here=$(basename "$top"); [[ $top == "$main" ]] && here=main
-checks_dir=$top/scripts/browser-checks
-logdir=$(git -C "$top" rev-parse --absolute-git-dir)/caretook-browser
+logdir=$(git -C "$top" rev-parse --absolute-git-dir)/$project_name-browser
 mkdir -p "$logdir"
 
-# The manifest: this tree's, else the one beside this script.
-manifest=$top/scripts/loops/checks
-[[ -f $manifest ]] || manifest=$(dirname "$0")/checks
-[[ -f $manifest ]] || die "no browser-check manifest (scripts/loops/checks): pnpm prd sync --force"
+# The manifest, the config's paths.checksManifest in this tree.
+manifest_rel=$(config_get paths.checksManifest) || die "the config names no browser-check manifest (paths.checksManifest)"
+manifest=$top/$manifest_rel
+[[ -f $manifest ]] || die "no browser-check manifest ($manifest_rel): ${prd_cmd} sync --force"
 
-# check_name FILE → the check's name: sign-in for sign-in.spec.mjs.
-check_name() {
-  local b=${1##*/}
-  b=${b%.mjs}
-  echo "${b%.spec}"
-}
+# The checks this tree has, from the browser hook: "<check><TAB><file>" a line.
+config_get hooks.browser >/dev/null || die "the config names no browser runner (hooks.browser)"
+checks_list=$(cd "$top" && run_hook browser list) || die "the browser hook's list failed (hooks.browser)"
 
 # manifest_get CHECK COLUMN → a manifest field (2 cap, 3 never-exits, 4 e2e),
 # or nothing when the check isn't listed.
 manifest_get() {
-  awk -v c="$(check_name "$1")" -v k="$2" '!/^#/ && NF >= 4 && $1 == c { print $k; exit }' "$manifest"
+  awk -v c="$1" -v k="$2" '!/^#/ && NF >= 4 && $1 == c { print $k; exit }' "$manifest"
 }
 
 # The suite: the manifest's e2e checks (the lean set), in its order; every
@@ -175,41 +175,36 @@ cap_of() {
 # vsay … → echo only with --verbose (lease bookkeeping and other chatter).
 vsay() { [[ -z $verbose ]] || echo "$@"; }
 
-# resolve_check X → the check's absolute path (sign-in, sign-in.spec.mjs, or a path).
+# resolve_check X → the check's name, for X its name, its file's name (with or
+# without .mjs) or a path to its file; fails when the hook lists no such check.
 resolve_check() {
-  local x=$1 name
-  if [[ $x == */* ]]; then
-    [[ -f $x ]] || return 1
-    (cd "$(dirname "$x")" && echo "$PWD/$(basename "$x")")
-  else
-    name=$(check_name "$x")
-    [[ -f $checks_dir/$name.spec.mjs ]] || return 1
-    echo "$checks_dir/$name.spec.mjs"
-  fi
-}
-
-# playwright_cli → Playwright Test's CLI: this tree's, else the one beside this script.
-playwright_cli() {
-  local c
-  for c in "$top/node_modules/@playwright/test/cli.js" \
-    "$(cd "$(dirname "$0")/../.." && pwd)/node_modules/@playwright/test/cli.js"; do
-    [[ -f $c ]] && { echo "$c"; return 0; }
-  done
+  local x=$1 name file abs=""
+  [[ $x == */* && -f $x ]] && abs=$(cd "$(dirname "$x")" && echo "$PWD/$(basename "$x")")
+  while IFS=$'\t' read -r name file; do
+    [[ -n $name ]] || continue
+    if [[ $x == "$name" || $x == "${file##*/}" || $x.mjs == "${file##*/}" || (-n $abs && $abs == "$top/$file") ]]; then
+      echo "$name"
+      return 0
+    fi
+  done <<< "$checks_list"
   return 1
 }
 
-# start_check FILE [args…] → the check in the background (its pid in $child):
-# the spec through Playwright Test (one worker, this directory's config).
+# shown CHECK → how the lines name it: its file's name (sign-in.spec.mjs).
+shown() {
+  local name file
+  while IFS=$'\t' read -r name file; do
+    [[ $name == "$1" ]] && { echo "${file##*/}"; return 0; }
+  done <<< "$checks_list"
+  echo "$1"
+}
+
+# start_check CHECK [args…] → the check in the background (its pid in $child),
+# through the browser hook, its traces in the log dir.
 start_check() {
-  local file=$1 cli
+  local name=$1
   shift
-  if ! cli=$(playwright_cli); then
-    (echo "FAIL no @playwright/test in this tree (pnpm install)"; exit 1) >&3 2>&1 &
-    child=$!
-    return
-  fi
-  CARETOOK_PW_OUTPUT=$logdir/pw-$(check_name "$file") FORCE_COLOR=0 \
-    node "$cli" test --config "$checks_dir/playwright.config.mjs" --workers=1 "$(basename "$file")" "$@" >&3 2>&1 &
+  run_hook browser run --output "$logdir" "$name" -- "$@" >&3 2>&1 &
   child=$!
 }
 
@@ -267,7 +262,7 @@ trap 'exit 143' TERM
 
 # Leases come from lease.sh (kind browser): write_lease LABEL relabels ours
 # (the suite does, per check), acquire LABEL takes one, waiting while all are
-# taken, and gives up with exit 75 after CARETOOK_BROWSER_WAIT seconds.
+# taken, and gives up with exit 75 after RISA_BROWSER_WAIT seconds.
 lease_say=vsay
 write_lease() { lease_write "$1"; }
 acquire() {
@@ -288,14 +283,13 @@ fi
 export SMOKE=$([[ -n $smoke ]] && echo 1 || echo 0)
 
 # ensure_server → the server the checks run against, in a .loops worktree with
-# a stack: a check build (pnpm prd serve --built), started if nothing runs,
+# a stack: a check build (prd serve --built), started if nothing runs,
 # swapped in for a dev server, and rebuilt when the source (or the env baked
 # into it) is newer than the build, so checks never run against stale code.
 # With --dev, the dev server instead. The main checkout's server is the user's:
 # left alone.
 ensure_server() {
   [[ $here != main && -n $(web_port "$top") ]] || return 0
-  local newer
   # The project's dev server, through the config's serve hook.
   serve() { stack_hook serve "$@"; }
   if [[ -n $use_dev ]]; then
@@ -303,20 +297,9 @@ ensure_server() {
     return
   fi
   require_disk "a check build"
-  if [[ $(cat "$top/.serve-mode" 2>/dev/null) == built && -n $(server_pids "$(web_port "$top")") ]]; then
-    newer=$(cd "$top" && find apps/web/app apps/web/public apps/web/vite.config.ts apps/web/react-router.config.ts \
-      apps/web/build-target.ts apps/web/package.json apps/web/.env packages/*/src packages/*/package.json \
-      pnpm-lock.yaml -type f ! -name '*.test.ts' -newer .serve-built 2>/dev/null | head -1)
-    if [[ -z $newer && -f $top/.serve-built ]]; then
-      serve "$here" --built
-      return
-    fi
-    echo "The check build is older than the source (${newer:-no build yet}): rebuilding."
-    serve "$here" --restart --built
-    return
-  fi
-  echo "Checks run against a check build (pnpm prd browser --dev for the dev server)."
-  serve "$here" --built
+  echo "Checks run against a check build (${prd_cmd} browser --dev for the dev server)."
+  # --fresh: the hook rebuilds a running check build that's older than its source.
+  serve "$here" --built --fresh
 }
 
 # start_server → ensure_server, its output in the log dir unless --verbose
@@ -343,31 +326,30 @@ show_output() {
     END { print n + 0 > shown }'
 }
 
-# run_once FILE [args…] → runs it; sets verdict (pass, FAIL, TIMEOUT, ended),
+# run_once CHECK [args…] → runs it; sets verdict (pass, FAIL, TIMEOUT, ended),
 # rc, elapsed and log. A check is killed when it's silent for $silence s, at its
 # cap, or at the suite's deadline ($deadline, epoch seconds, when set).
 run_once() {
-  local file=$1 base t why start load0 marker finished silent shown_file hang="" tally tee_pid left i shown killed
+  local name=$1 base t why start load0 marker finished silent shown_file hang="" tally tee_pid left i shown killed
   shift
-  base=$(basename "$file")
-  t=${timeout:-$(cap_of "$base")} why=cap
+  base=$(shown "$name")
+  t=${timeout:-$(cap_of "$name")} why=cap
   [[ -n $timeout ]] && why=--timeout
   if [[ -n ${deadline:-} ]]; then
     left=$((deadline - $(date +%s)))
     ((left < 1)) && left=1
     ((left < t)) && { t=$left why="suite cap"; }
   fi
-  never_exits "$base" && hang=1
-  log=$logdir/$(check_name "$base")-$(date +%Y%m%d-%H%M%S).log
+  never_exits "$name" && hang=1
+  log=$logdir/$name-$(date +%Y%m%d-%H%M%S).log
   [[ -e $log ]] && log=${log%.log}-retry.log
   marker=$log.timedout finished=$log.finished silent=$log.silent shown_file=$log.shown
   start=$(date +%s) load0=$(load_avg)
   echo "▶ $base in $here · lease $lease_n/$(lease_slots browser) · $(date +%H:%M:%S) · load $load0 · BASE ${BASE:-(default)} · cap ${t}s$([[ $why != cap ]] && echo " ($why)")$([[ -n $smoke ]] && echo " · smoke")"
-  cd "$checks_dir"
   : > "$log"
   exec 3> >(tee -a "$log" | show_output "$shown_file")
   tee_pid=$!
-  start_check "$file" "$@"
+  start_check "$name" "$@"
   # One watcher: stop a never-exiting check once its last line is out, and any
   # check that goes silent or reaches its cap.
   (
@@ -399,7 +381,6 @@ run_once() {
   for i in $(seq 1 40); do kill -0 "$tee_pid" 2>/dev/null || break; sleep 0.1; done
   kill_tree "$tee_pid" TERM
   wait "$tee_pid" 2>/dev/null || true
-  cd "$top"
   elapsed=$(($(date +%s) - start))
   if [[ -f $finished ]]; then
     rm -f "$finished" "$marker" "$silent"
@@ -443,9 +424,9 @@ looks_transient() {
   transient_lines "$log" | grep -Eq "$transient"
 }
 
-# run_check FILE [args…] → run_once, and once more if it failed on contention.
+# run_check CHECK [args…] → run_once, and once more if it failed on contention.
 run_check() {
-  local file=$1 first_log first_elapsed waited=0 why
+  local name=$1 first_log first_elapsed waited=0 why
   retried=0
   run_once "$@"
   [[ $verdict == pass || $verdict == ended ]] && return 0
@@ -464,35 +445,35 @@ run_check() {
     sleep 15; waited=$((waited + 15))
   done
   sleep "$pause"
-  echo "↻ retrying $(basename "$file") once ($why)"
+  echo "↻ retrying $(shown "$name") once ($why)"
   retried=1
   run_once "$@"
   elapsed=$((elapsed + first_elapsed))
   if [[ $verdict == pass || $verdict == ended ]]; then
     verdict=FLAKY rc=0
-    printf '%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$here" "$(basename "$file")" "$why" "$first_log" \
+    printf '%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$here" "$(shown "$name")" "$why" "$first_log" \
       >> "$flakes_log"
-    echo "■ $(basename "$file"): FLAKY (failed, then passed on the retry; recorded in $flakes_log)"
+    echo "■ $(shown "$name"): FLAKY (failed, then passed on the retry; recorded in $flakes_log)"
   fi
 }
 
-# log_result FILE → the run log's line for the check just run (run-log.mjs): its
+# log_result CHECK → the run log's line for the check just run (run-log.mjs): its
 # result (pass, ended, flaky, fail, timeout), seconds and whether it was retried.
 # It never fails the run.
 log_result() {
   local result
   result=$(tr '[:upper:]' '[:lower:]' <<< "$verdict")
-  run_log browser "check=$(check_name "$(basename "$1")")" "result=$result" "seconds:=${elapsed:-0}" \
+  run_log browser "check=$1" "result=$result" "seconds:=${elapsed:-0}" \
     "retried:=$([[ ${retried:-0} == 1 ]] && echo true || echo false)" "worktree=$here" \
     "branch=$(git -C "$top" branch --show-current 2>/dev/null || true)" "mode=$mode" "smoke:=$([[ -n $smoke ]] && echo true || echo false)"
 }
 
 if [[ $mode == one ]]; then
-  file=$(resolve_check "$check") || die "no check $check in $checks_dir"
+  name=$(resolve_check "$check") || die "no check $check (the browser hook lists: $(cut -f1 <<< "$checks_list" | xargs))"
   start_server
-  acquire "$(basename "$file")"
-  run_check "$file" "${args[@]}"
-  log_result "$file"
+  acquire "$(shown "$name")"
+  run_check "$name" "${args[@]}"
+  log_result "$name"
   done_with "$rc"
 fi
 
@@ -504,7 +485,7 @@ if [[ $mode == changed ]]; then
   areas=$top/$areas_rel
   [[ -d $areas ]] || die "no $areas"
   if [[ -z $base_ref ]]; then
-    for r in "${BASE_BRANCH:-}" origin/dev dev; do
+    for r in "${BASE_BRANCH:-}" "origin/$trunk" "$trunk"; do
       [[ -n $r ]] && git rev-parse -q --verify "$r^{commit}" >/dev/null && { base_ref=$r; break; }
     done
   fi
@@ -515,7 +496,7 @@ if [[ $mode == changed ]]; then
   else
     files=$( { git diff --name-only "$mb"; git ls-files --others --exclude-standard; } | sort -u)
   fi
-  selected=() full="" unmapped=()
+  selected=() full="" unmapped=() unmapped_default=""
   echo "Changed since $base_ref ($(git rev-parse --short "$mb")): $(grep -c . <<< "$files" || true) file(s)"
   # One line per file: "<file><TAB><checks>". A tie (two equally specific
   # rules) exits 2 after naming them on stderr: the first still answers.
@@ -528,7 +509,7 @@ if [[ $mode == changed ]]; then
     case $c in
       @suite) full=1 ;;
       -*) ;;
-      UNMAPPED*) unmapped+=("$f"); read -r -a more <<< "${c#UNMAPPED }"; selected+=("${more[@]}") ;;
+      UNMAPPED*) unmapped+=("$f"); unmapped_default=${c#UNMAPPED }; read -r -a more <<< "$unmapped_default"; selected+=("${more[@]}") ;;
       *) read -r -a more <<< "$c"; selected+=("${more[@]}") ;;
     esac
   done <<< "$resolved"
@@ -538,7 +519,7 @@ if [[ $mode == changed ]]; then
   }
   if [[ -n $full ]]; then
     # The lean set, plus whatever else the other files named.
-    read -r -a more <<< "${CARETOOK_BROWSER_SUITE:-$suite_default}"
+    read -r -a more <<< "${RISA_BROWSER_SUITE:-$suite_default}"
     selected+=("${more[@]}")
     echo "A change needs the whole lean set (build, config, dependencies, sync rules or migrations)."
   fi
@@ -561,13 +542,14 @@ if [[ $mode == changed ]]; then
   [[ -n $list_only ]] && exit 0
 else
   # --suite: every check.
-  read -r -a suite <<< "${CARETOOK_BROWSER_SUITE:-$suite_default}"
+  read -r -a suite <<< "${RISA_BROWSER_SUITE:-$suite_default}"
 fi
 
-# record_result CHECK RESULT RETRIED → one line for CI's browser job, when it asks.
+# record_result CHECK RESULT RETRIED → one line for a caller that asks
+# (RISA_BROWSER_RESULTS).
 record_result() {
-  if [[ -n ${CARETOOK_BROWSER_RESULTS:-} ]]; then
-    printf '%s\t%s\t%s\n' "$(check_name "$1")" "$2" "$3" >> "$CARETOOK_BROWSER_RESULTS"
+  if [[ -n ${RISA_BROWSER_RESULTS:-} ]]; then
+    printf '%s\t%s\t%s\n' "$(resolve_check "$1" || echo "$1")" "$2" "$3" >> "$RISA_BROWSER_RESULTS"
   fi
 }
 
@@ -588,18 +570,18 @@ echo "Running ${#suite[@]} checks (suite cap $(fmt_secs "$suite_cap")): ${suite[
 for c in "${suite[@]}"; do
   i=$((i + 1))
   if (($(date +%s) >= deadline)); then
-    rows+=("$(printf '%-24s %-8s %s' "$(basename "$(resolve_check "$c" || echo "$c")")" NOT-RUN "-")"); notrun=$((notrun + 1)); record_result "$c" NOT-RUN 0; continue
+    rows+=("$(printf '%-24s %-8s %s' "$(shown "$(resolve_check "$c" || echo "$c")")" NOT-RUN "-")"); notrun=$((notrun + 1)); record_result "$c" NOT-RUN 0; continue
   fi
-  if ! file=$(resolve_check "$c"); then
+  if ! name=$(resolve_check "$c"); then
     rows+=("$(printf '%-24s %-8s %s' "$c" MISSING "-")"); failed=$((failed + 1)); record_result "$c" MISSING 0; continue
   fi
   ((i > 1)) && sleep "$pause"
-  write_lease "$mode $i/${#suite[@]}: $(basename "$file")"
-  run_check "$file"
-  log_result "$file"
-  record_result "$c" "$verdict" "$retried"
+  write_lease "$mode $i/${#suite[@]}: $(shown "$name")"
+  run_check "$name"
+  log_result "$name"
+  record_result "$name" "$verdict" "$retried"
   [[ $verdict == pass || $verdict == ended || $verdict == FLAKY ]] || failed=$((failed + 1))
-  rows+=("$(printf '%-24s %-8s %s' "$(basename "$file")" "$verdict" "$(fmt_secs "$elapsed")")")
+  rows+=("$(printf '%-24s %-8s %s' "$(shown "$name")" "$verdict" "$(fmt_secs "$elapsed")")")
 done
 echo
 echo "Browser $([[ $mode == changed ]] && echo "checks for the changes" || echo suite)$([[ -n $smoke ]] && echo " (smoke)") in $here: $((${#suite[@]} - failed - notrun))/${#suite[@]} passed$( ((notrun)) && echo ", $notrun not run (suite cap $(fmt_secs "$suite_cap") reached)") in $(fmt_secs $(($(date +%s) - suite_start))) · load now $(load_avg)"

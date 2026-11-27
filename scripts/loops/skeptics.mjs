@@ -17,7 +17,7 @@
 // is recorded and again when it is used: the never list is the user's. A stall
 // record (the watch's `skeptic` on a slice agent) is bound to its slice and
 // class: `waits` is a step on the never list, which only `ask` answers; its
-// `ask` lets `pnpm prd ask` file a question naming that slice.
+// `ask` lets `prd ask` file a question naming that slice.
 import { createHash } from "node:crypto";
 import {
   closeSync,
@@ -31,14 +31,14 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { CONFIG_NAME, loadConfig } from "./config.mjs";
+import { CONFIG_NAME, loadConfig, toolCmd } from "./config.mjs";
 import { DocError, roleDoc } from "./doc.mjs";
 
 const ID = /^s(\d+)$/;
 const ID_FILE = /^s(\d+)\.json$/;
 const FULL_SHA = /^[0-9a-f]{40}$/;
 
-/** How long a verdict counts, in minutes (CARETOOK_SKEPTIC_MAX_MIN). */
+/** How long a verdict counts, in minutes (RISA_SKEPTIC_MAX_MIN). */
 export const DEFAULT_MAX_MIN = 60;
 /** The verdicts each kind of skeptic can give. */
 export const VERDICTS = {
@@ -50,7 +50,7 @@ export const VERDICTS = {
 
 export class SkepticError extends Error {}
 
-/** @param {string | undefined} value CARETOOK_SKEPTIC_MAX_MIN @returns {number} minutes */
+/** @param {string | undefined} value RISA_SKEPTIC_MAX_MIN @returns {number} minutes */
 export function maxAgeMin(value) {
   const n = Number(value);
   return value != null && value !== "" && Number.isFinite(n) && n >= 0 ? n : DEFAULT_MAX_MIN;
@@ -242,7 +242,9 @@ function checkAsk(record, wanted) {
     return { ok: true };
   }
   if (record.verdict === "decide")
-    return no(`the skeptic decided this one: file it with pnpm prd ask --decided --skeptic ${record.id}`);
+    return no(
+      `the skeptic decided this one: file it with ${toolCmd.prd} ask --decided --skeptic ${record.id}`,
+    );
   if (record.verdict !== "ask") return no(`${record.id} has no ask verdict`);
   if (record.questionHash !== wanted.questionHash)
     return no(`${record.id} judged another question or other options`);
@@ -265,7 +267,7 @@ function checkDecided(record, wanted) {
 
 /**
  * Does this record allow this action? Pure, given `now` and `maxMin` (their
- * defaults are the clock and CARETOOK_SKEPTIC_MAX_MIN).
+ * defaults are the clock and RISA_SKEPTIC_MAX_MIN).
  * @param {object | null} record
  * @param {{ use: "land", topic: string, action: string, tip: string }
  *   | { use: "ask", topic: string, questionHash: string, askerClass: "defaults" | "waits",
@@ -278,7 +280,7 @@ function checkDecided(record, wanted) {
 export function checkRecord(
   record,
   wanted,
-  { now = Date.now(), maxMin = maxAgeMin(process.env.CARETOOK_SKEPTIC_MAX_MIN) } = {},
+  { now = Date.now(), maxMin = maxAgeMin(process.env.RISA_SKEPTIC_MAX_MIN) } = {},
 ) {
   if (!record) return no("no such skeptic record");
   if (record.topic !== wanted.topic) return no(`${record.id} is for ${record.topic}, not ${wanted.topic}`);
@@ -310,7 +312,7 @@ export function useRecord(dir, id, wanted, opts) {
   return { ...record, usedAt: usedAt(dir, id) };
 }
 
-/** The records as lines for `pnpm prd skeptic`. */
+/** The records as lines for `prd skeptic`. */
 export function formatRecords(records) {
   if (!records.length) return "No skeptic verdicts.";
   return records
@@ -370,8 +372,7 @@ export function readRules(root, config = loadConfig({ path: join(root, CONFIG_NA
 }
 
 /** The slice-size cap (B-596), which the plan brief carries beside the handbook's skeptic pass. */
-export const SLICE_SIZE_RULE =
-  "**A slice too big:** one that would touch more than about 8 files, or more than one running topic's hot file (`pnpm backlog prd list`), is a send-back: split it into slices that each land on their own.";
+export const SLICE_SIZE_RULE = `**A slice too big:** one that would touch more than about 8 files, or more than one running topic's hot file (\`${toolCmd.backlog} prd list\`), is a send-back: split it into slices that each land on their own.`;
 
 const JOB = {
   ask: (r) =>
@@ -399,7 +400,7 @@ ${SLICE_SIZE_RULE}
 
 Never list (an assumed decision here must be a question): ${r.neverList}.`,
   stall: (r) =>
-    `An orchestrator's watch says a slice agent has stalled and needs judgement (\`pnpm prd watch\`'s \`skeptic\`): no progress while still making calls, a second stall, uncommitted changes, a changed migration, a merge under way, or a restart whose stop isn't confirmed. The evidence names the slice, its ages, the agent's last output and its worktree's git state. Decide what the orchestrator does next.
+    `An orchestrator's watch says a slice agent has stalled and needs judgement (\`${toolCmd.prd} watch\`'s \`skeptic\`): no progress while still making calls, a second stall, uncommitted changes, a changed migration, a merge under way, or a restart whose stop isn't confirmed. The evidence names the slice, its ages, the agent's last output and its worktree's git state. Decide what the orchestrator does next.
 
 Answer **restart** only when the agent is really stuck and a fresh \`--continue\` agent in the same worktree is safe: its old agent is gone (a stop recorded, or no call for long), and its uncommitted work stays as it is (a restart never resets, cleans or removes a worktree). A slice is restarted once: one already restarted can't be again. Answer **leave** when it is plausibly working (a long debug, a slow check) and should get more time. Answer **ask** when it is the user's: two agents might end up in one worktree, work could be lost, or you can't tell.
 
@@ -443,6 +444,6 @@ ${evidence.trim()}
 
 ## Your answer
 
-The first line is the verdict and nothing else: \`${ANSWER[kind]}\`. The second line is one line of why. The session records it with \`pnpm prd skeptic record\`.
+The first line is the verdict and nothing else: \`${ANSWER[kind]}\`. The second line is one line of why. The session records it with \`${toolCmd.prd} skeptic record\`.
 `;
 }

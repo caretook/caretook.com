@@ -406,4 +406,4 @@ export const timelineEntryUpdateZSchema = z.strictObject({
 });
 export type TimelineEntryUpdateInput = z.input<typeof timelineEntryUpdateZSchema>;
 
-export const timelineEntrySelectZSchema = createSelectSchema(timelineEntrySchema);
+export const timelineEntrySelectZSchema = /* @__PURE__ */ createSelectSchema(timelineEntrySchema);

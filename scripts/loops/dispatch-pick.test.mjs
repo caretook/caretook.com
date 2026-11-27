@@ -57,7 +57,7 @@ describe("worktreeKind and hotCollision", () => {
     expect(hotCollision(["scripts/loops/open-session."], ["scripts/loops/open-session.mjs"])).toBe(
       "scripts/loops/open-session.mjs",
     );
-    expect(hotCollision(["apps/web/"], ["scripts/"])).toBeNull();
+    expect(hotCollision(["web/"], ["scripts/"])).toBeNull();
     expect(hotCollision([], ["scripts/"])).toBeNull();
   });
 });
@@ -286,7 +286,7 @@ describe("rule 4: starts", () => {
     const rows = [
       row("check-speed", "running", { hot: ["scripts/loops/prompt.sh"] }),
       row("a", "planned", { hot: ["scripts/loops/"] }),
-      row("b", "planned", { hot: ["apps/web/"] }),
+      row("b", "planned", { hot: ["web/"] }),
     ];
     const p = go({ rows, ...runningFacts(["check-speed"]) });
     expect(p.topic).toBe("b");
@@ -474,6 +474,62 @@ describe("rule 6: planning", () => {
   });
 });
 
+describe("rule 6: the lookahead (lane cap + 1)", () => {
+  // Two lanes full, so no planned topic may start: only the plan is in question.
+  const full = (planned, extra = {}) => ({
+    rows: [
+      row("x", "running"),
+      row("y", "running"),
+      ...planned.map((t) => row(t, "planned")),
+      row("w", "to-write", { waiting: 2 }),
+    ],
+    ...runningFacts(["x", "y"]),
+    caps: { prds: 2 },
+    ...extra,
+  });
+
+  it("cap 2 with 3 planned topics waiting plans nothing, and says why", () => {
+    const p = go(full(["a", "b", "c"]));
+    expect(p.action).toBe("none");
+    expect(whyOf(p, "w")).toBe(
+      "the lookahead is full: 3 planned waiting, lane cap 2 + 1 (plan it by hand: pnpm prd plan)",
+    );
+  });
+
+  it("cap 2 with 2 planned topics waiting plans one", () => {
+    expect(go(full(["a", "b"]))).toMatchObject({ action: "plan", topic: "w" });
+  });
+
+  it("a running planner counts toward the lookahead", () => {
+    const facts = full(["a", "b"], {
+      worktrees: [prdWt("x"), prdWt("y"), planWt("p")],
+      sessions: [session("prd-x"), session("prd-y"), session("plan-p")],
+      asks: [question("q1", "p", { session: "plan-p" })],
+    });
+    facts.rows.push(row("p", "to-write", { waiting: 1 }));
+    const p = go(facts);
+    expect(p.action).toBe("none");
+    expect(whyOf(p, "w")).toBe(
+      "the lookahead is full: 2 planned waiting and 1 being planned, lane cap 2 + 1 (plan it by hand: pnpm prd plan)",
+    );
+  });
+
+  it("standing and held topics don't fill it", () => {
+    const facts = full(["a", "b"]);
+    facts.rows.push(
+      row("fixes-ui", "planned", { flags: ["standing"], waiting: 5, hot: ["x"] }),
+      row("h", "hold", { flags: ["hold"] }),
+    );
+    expect(go(facts)).toMatchObject({ action: "plan", topic: "w" });
+  });
+
+  it("a held topic is never planned, even with items waiting and room ahead (already so: its state is hold)", () => {
+    const p = go({ rows: [row("h", "hold", { flags: ["hold"], waiting: 4 })] });
+    expect(p.action).toBe("none");
+    expect(whyOf(p, "h")).toBe("on hold");
+  });
+});
+
 describe("rule 7: ordering", () => {
   it("a start beats a plan, even when the plan's row comes first", () => {
     const p = go({ rows: [row("a", "to-write", { waiting: 4 }), row("b", "planned")] });
@@ -595,5 +651,54 @@ describe("the keep-alive's question", () => {
       caps: { prds: 1 },
     });
     expect(p).toMatchObject({ action: "start", topic: "a" });
+  });
+});
+
+// B-431: planner-3 landed with its row still planned and was started nine times.
+describe("rule 8: a landed topic is never started or reopened", () => {
+  const landed = { a: { sha: "8c1fa06aabbccdd" } };
+
+  it("skips a planned topic whose last landing is in dev with no slice left, and starts the next", () => {
+    const p = go({ rows: [row("a", "planned"), row("b", "planned")], landed });
+    expect(p).toMatchObject({ action: "start", topic: "b" });
+    expect(whyOf(p, "a")).toBe(
+      "landed in dev as 8c1fa06 with no slice left: never started again (mark it done: pnpm backlog prd set a flags=done)",
+    );
+    expect(go({ rows: [row("a", "planned")], landed }).action).toBe("none");
+  });
+
+  it("never reopens its worktree's dead orchestrator, and says how to finish it", () => {
+    const p = go({
+      rows: [row("a", "planned")],
+      worktrees: [prdWt("a")],
+      sessions: [session("prd-a", { live: false })],
+      landed,
+    });
+    expect(p.action).toBe("none");
+    expect(whyOf(p, "a")).toBe(
+      "landed in dev as 8c1fa06 with no slice left: not reopened (pnpm prd rm a marks it done)",
+    );
+  });
+
+  it("leaves a live orchestrator be: it is finishing the topic", () => {
+    const p = go({ rows: [row("a", "running")], ...runningFacts(["a"]), landed });
+    expect(whyOf(p, "a")).toBe("running");
+  });
+
+  it("a standing topic stays: its next wave starts as before", () => {
+    const p = go({
+      rows: [row("fixes-a", "planned", { flags: ["standing"], waiting: 3 })],
+      landed: { "fixes-a": landed.a },
+    });
+    expect(p).toMatchObject({ action: "start", topic: "fixes-a" });
+  });
+
+  it("doesn't fill the lookahead", () => {
+    const p = go({
+      rows: [row("a", "planned"), row("w", "to-write", { waiting: 2 })],
+      caps: { prds: 0 },
+      landed,
+    });
+    expect(p).toMatchObject({ action: "plan", topic: "w" });
   });
 });

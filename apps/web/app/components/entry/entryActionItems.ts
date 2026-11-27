@@ -3,7 +3,17 @@ import type { TimelineEntryKind } from "@caretook/data/schema";
 import { canHaveNoteDocument, isSystemWrittenKind } from "@caretook/data/schema";
 
 export type EntryAction =
-  "edit" | "editSeries" | "reschedule" | "cancel" | "uncancel" | "delete" | "prepare" | "remind" | "print";
+  | "edit"
+  | "editSeries"
+  | "tags"
+  | "reschedule"
+  | "cancel"
+  | "uncancel"
+  | "delete"
+  | "prepare"
+  | "remind"
+  | "print"
+  | "copyLink";
 
 /**
  * The entry ⋯ menu's items, in order, wherever it shows (rows, cards,
@@ -20,7 +30,11 @@ export type EntryAction =
  * print, viewers included: with `canDelete` false (a viewer) Print is the
  * only item. A visit of a repeating series (`canEditSeries`) gets Edit
  * first, for notes and events too: it asks Only this visit or This and
- * later visits.
+ * later visits. Tags (the picker sheet, tags PRD) follows Edit for every
+ * kind, for whoever may tag the entry (`canTag`: writers, an Easy helper on
+ * their own). Copy link (the entry's link, `canCopyLink`) comes before
+ * Delete for every kind and role: copying a link isn't a write, so a viewer
+ * whose menu would be empty gets one with Copy link alone.
  */
 export function entryActionItems(
   kind: TimelineEntryKind,
@@ -34,6 +48,8 @@ export function entryActionItems(
     canPrint = false,
     canDelete = true,
     canEditSeries = false,
+    canTag = false,
+    canCopyLink = false,
   }: {
     canEdit: boolean;
     canCancel?: boolean;
@@ -44,16 +60,20 @@ export function entryActionItems(
     canPrint?: boolean;
     canDelete?: boolean;
     canEditSeries?: boolean;
+    canTag?: boolean;
+    canCopyLink?: boolean;
   },
 ): EntryAction[] {
   const items: EntryAction[] = [];
   if (canEditSeries && canHaveNoteDocument(kind)) items.push("editSeries");
   if (canEdit && !canHaveNoteDocument(kind) && !isSystemWrittenKind(kind)) items.push("edit");
+  if (canTag) items.push("tags");
   if (canPrepare && kind === "event") items.push("prepare");
   if (canReschedule && kind === "event") items.push("reschedule");
   if (canCancel && kind === "event") items.push(cancelled ? "uncancel" : "cancel");
   if (canRemind && kind === "event") items.push("remind");
   if (canPrint && canHaveNoteDocument(kind)) items.push("print");
+  if (canCopyLink) items.push("copyLink");
   if (canDelete) items.push("delete");
   return items;
 }

@@ -1,5 +1,5 @@
 // The throwaway repo land.sh's tests share (land*.test.mjs): these scripts
-// copied in, a bare origin, a stubbed `gh` and backlog; the CARETOOK_PR_THROWAWAY
+// copied in, a bare origin, a stubbed `gh` and backlog; the RISA_PR_THROWAWAY
 // seam stops land before the merge, so nothing is pushed. A test file calls
 // useLandRepo() once; root and repo are each test's own.
 import { execFileSync, spawnSync } from "node:child_process";
@@ -8,11 +8,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach } from "vitest";
 
-// For its RISA_CONFIG: the scripts land runs read this repo's config through it.
-import "./config-fixture.mjs";
+import { FIXTURE_CONFIG, sampleFoldersConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
-export let root, repo;
+/** Each test's config (`root/config/`), for RISA_CONFIG: sampleFoldersConfig's. */
+export let root, repo, config;
 export const git = (...a) =>
   execFileSync("git", ["-C", repo, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
 export const commit = (files, msg) => {
@@ -45,8 +45,10 @@ case "$1 $2" in
 esac
 `;
 
-// The stub backlog: `list` prints the items; `ci-file` logs what it was given and
-// whether the branch was already in dev, and files everything as B-77.
+// The stub backlog: `list` prints the items, deriving an item's status as the real
+// one does (ready, then landed once dev holds its commit; here its commitRef);
+// `ci-file` logs what it was given and whether the branch was already in dev, and
+// files everything as B-77.
 const BACKLOG = (items) => `import { spawnSync } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 if (process.argv[2] === "ci-file") {
@@ -56,7 +58,12 @@ if (process.argv[2] === "ci-file") {
   if (process.env.CI_FILE_LOG)
     appendFileSync(process.env.CI_FILE_LOG, JSON.stringify({ merged, push: process.argv.includes("--push"), keys: findings.map((f) => f.key) }) + "\\n");
   console.log(JSON.stringify({ filed: findings.map((f) => ({ key: f.key, id: "B-77", created: true })), removed: [], pushed: !(process.env.CI_FILE_UNPUSHED && process.argv.includes("--push")) }));
-} else process.stdout.write(${JSON.stringify(JSON.stringify(items))});
+} else {
+  const items = ${JSON.stringify(items)};
+  const inDev = (ref) => spawnSync("git", ["merge-base", "--is-ancestor", ref, "dev"]).status === 0;
+  for (const it of items) if (it.commitRef && inDev(it.commitRef)) it.status = "landed";
+  process.stdout.write(JSON.stringify(items));
+}
 `;
 
 // The stub of GitHub's runs. $GH_CI_FIXTURE holds the verdicts already there
@@ -106,7 +113,7 @@ export const landWith = (extra, ...args) =>
     env: {
       ...process.env,
       PATH: `${join(root, "bin")}:${process.env.PATH}`,
-      CARETOOK_PR_THROWAWAY: "1",
+      RISA_PR_THROWAWAY: "1",
       PR_HEAD: git("rev-parse", "prd/throwaway-x"),
       ...extra,
     },
@@ -120,9 +127,11 @@ export function useLandRepo() {
     repo = join(root, "repo");
     // The run log outside the throwaway repo, whose .loops/ isn't ignored: a log
     // there would be committed by a test's `git add -A`.
-    process.env.CARETOOK_RUN_LOG = join(root, "run-log.jsonl");
+    process.env.RISA_RUN_LOG = join(root, "run-log.jsonl");
     // The landing journal outside it too, for the same reason.
-    process.env.CARETOOK_LANDING_DIR = join(root, "landing");
+    process.env.RISA_LANDING_DIR = join(root, "landing");
+    // The scripts land runs read the config through RISA_CONFIG (they pass process.env on).
+    config = process.env.RISA_CONFIG = sampleFoldersConfig(join(root, "config"));
     mkdirSync(join(root, "bin"));
     writeFileSync(join(root, "bin", "gh"), GH);
     chmodSync(join(root, "bin", "gh"), 0o755);
@@ -133,20 +142,26 @@ export function useLandRepo() {
     git("config", "core.hooksPath", "/dev/null");
     git("remote", "add", "origin", join(root, "origin.git"));
     mkdirSync(join(repo, "scripts"), { recursive: true });
-    for (const dir of ["loops", "ci", "project"])
+    for (const dir of ["loops", "ci"])
       cpSync(join(HERE, "..", dir), join(repo, "scripts", dir), {
         recursive: true,
         filter: (src) => !src.endsWith(".test.mjs"),
       });
     // A stubbed backlog: what `backlog list --prd throwaway-x --json` would print.
     const items = [
-      { id: "B-1", type: "feature", status: "ready", title: "A throwaway feature" },
+      {
+        id: "B-1",
+        type: "feature",
+        status: "ready",
+        title: "A throwaway feature",
+        commitRef: "prd/throwaway-x",
+      },
       { id: "B-2", type: "bug", status: "triaged", title: "A follow-up bug" },
       { id: "B-3", type: "feature", status: "landed", title: "An earlier wave" },
     ];
     commit(
       {
-        "apps/web/a.ts": "1",
+        "web/a.ts": "1",
         "README.md": "r",
         "scripts/backlog/backlog.mjs": BACKLOG(items),
       },
@@ -156,7 +171,10 @@ export function useLandRepo() {
     git("checkout", "-qb", "feature");
     git("checkout", "-q", "dev");
   });
-  afterEach(() => rmSync(root, { recursive: true, force: true }));
+  afterEach(() => {
+    process.env.RISA_CONFIG = FIXTURE_CONFIG;
+    rmSync(root, { recursive: true, force: true });
+  });
 }
 
 export const branch = (files) => {

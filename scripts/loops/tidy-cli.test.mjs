@@ -19,9 +19,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { collectTidyFacts, processCwds } from "./tidy-cli.mjs";
+import { collectTidyFacts, processCwds, removeLease } from "./tidy-cli.mjs";
 import { tidy as sortFacts } from "./tidy.mjs";
-import { stubHookConfig } from "./config-fixture.mjs";
+import { fixtureTierData, stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -90,12 +90,12 @@ beforeAll(() => {
     NVM_DIR: nvm,
     FAKE_LOG: log,
     TRUNK: "dev",
-    CARETOOK_CLAUDE_BIN: join(bin, "claude"),
-    CARETOOK_ASKS_DIR: asks,
-    CARETOOK_ASK_NOTIFY: "",
-    CARETOOK_SESSIONS_DIR: sessions,
-    CARETOOK_SESSION: "",
-    CARETOOK_LEASE_ROOT: leases,
+    RISA_CLAUDE_BIN: join(bin, "claude"),
+    RISA_ASKS_DIR: asks,
+    RISA_ASK_NOTIFY: "",
+    RISA_SESSIONS_DIR: sessions,
+    RISA_SESSION: "",
+    RISA_LEASE_ROOT: leases,
     SAMPLE_STACK_STATE: join(root, "stack-state"),
     SAMPLE_STACK_LOG: log,
   };
@@ -116,8 +116,9 @@ beforeAll(() => {
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   env.RISA_CONFIG = stubHookConfig(main);
   mkdirSync(join(main, "scripts/ci"), { recursive: true });
-  for (const f of ["outstanding.mjs", "tier-data.mjs", "tiers.json"])
+  for (const f of ["outstanding.mjs", "tier-data.mjs"])
     copyFileSync(join(HERE, "../ci", f), join(main, "scripts/ci", f));
+  fixtureTierData(main);
   writeFileSync(join(main, "scripts/backlog/backlog.mjs"), FAKE_BACKLOG);
   writeFileSync(join(main, ".gitignore"), ".loops/\n.env\n.env.*\nnode_modules/\n");
   mkdirSync(join(main, "plans"));
@@ -362,6 +363,46 @@ describe("tidy --yes", () => {
     expect(out).toMatch(/Nothing to ask about: no report filed\./);
     expect(filedAsks()).toEqual([]);
     expect(existsSync(join(loops, "t-2"))).toBe(true);
+  });
+});
+
+describe("tidy removes a dead lease only through lease.sh's takeover", () => {
+  const second = () => join(leases, "browser", "2");
+  const take = (pid) => {
+    mkdirSync(second(), { recursive: true });
+    writeFileSync(join(second(), "name"), `pid=${pid}\nworktree=t-3\ncheck=pnpm prd browser\n`);
+    old(second());
+  };
+  const listed = () =>
+    JSON.parse(ok(["--json"])).safe.some((/** @type {{ target: string }} */ f) => f.target === second());
+
+  it("keeps a lease that was dead at the snapshot but taken again before the delete", () => {
+    take(999999);
+    expect(listed()).toBe(true);
+    // Retaken in between, by a running process (this one, which has no cmd= to match).
+    take(process.pid);
+    expect(removeLease(second(), { env })).toBe("kept");
+    expect(readFileSync(join(second(), "name"), "utf8")).toMatch(`pid=${process.pid}`);
+  });
+
+  it("removes one still dead at the delete, and leaves no takeover mutex", () => {
+    take(999999);
+    expect(listed()).toBe(true);
+    expect(removeLease(second(), { env })).toBe("removed");
+    expect(existsSync(second())).toBe(false);
+    expect(existsSync(join(leases, "browser", ".takeover"))).toBe(false);
+  });
+
+  it("keeps a dead lease while another taker holds the takeover mutex", () => {
+    take(999999);
+    mkdirSync(join(leases, "browser", ".takeover"));
+    try {
+      expect(removeLease(second(), { env })).toBe("kept");
+      expect(existsSync(second())).toBe(true);
+    } finally {
+      rmSync(join(leases, "browser", ".takeover"), { recursive: true, force: true });
+      rmSync(second(), { recursive: true, force: true });
+    }
   });
 });
 

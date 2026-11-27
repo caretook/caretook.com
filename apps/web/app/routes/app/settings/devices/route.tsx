@@ -112,7 +112,7 @@ export default function DevicesSettings({ loaderData }: Route.ComponentProps) {
     <SettingsPage id="devices" title="Devices" offlineNotice={online ? undefined : OFFLINE_DEVICES}>
       {online && (
         <SettingsCard>
-          <p className="text-base-content/70 text-sm">
+          <p className="text-muted text-sm">
             Where you&apos;re signed in. Sign out a device you no longer use, or one you&apos;ve lost.
           </p>
           <DeviceList devices={devices} />

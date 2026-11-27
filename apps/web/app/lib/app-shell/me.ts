@@ -4,6 +4,7 @@ import { ORPCError } from "@orpc/client";
 import {
   DEFAULT_DAY_SUMMARY_MODE,
   DEFAULT_EASY_MODE_SETTING,
+  DEFAULT_PROVIDERS_VIEW,
   DEFAULT_TIMELINE_VIEW,
   DEFAULT_UNITS,
   EASY_MODE_SETTINGS,
@@ -15,7 +16,7 @@ import { load } from "../core/api";
 import { rpc } from "../core/rpc";
 import { settingsPlan } from "./settingsPlan";
 
-// The signed-in user's settings (units, timeline layout, easy mode, day summaries). They live on
+// The signed-in user's settings (units, timeline and providers layouts, easy mode, day summaries). They live on
 // `user.preferences`, which isn't synced, so the last copy is cached on the
 // device: screens still show the right units offline.
 //
@@ -33,7 +34,7 @@ import { settingsPlan } from "./settingsPlan";
 
 export type MySettings = Pick<
   ApiOutputs["me"]["get"],
-  "units" | "timelineView" | "easyMode" | "daySummary" | "setupDismissed"
+  "units" | "timelineView" | "providersView" | "easyMode" | "daySummary" | "setupDismissed"
 >;
 /** A change to some settings. `units` may name only some measures; `setupDismissed` adds to the list. */
 export type SettingsChange = Partial<Omit<MySettings, "units">> & { units?: Partial<MySettings["units"]> };
@@ -41,6 +42,7 @@ export type SettingsChange = Partial<Omit<MySettings, "units">> & { units?: Part
 const DEFAULTS: MySettings = {
   units: DEFAULT_UNITS,
   timelineView: DEFAULT_TIMELINE_VIEW,
+  providersView: DEFAULT_PROVIDERS_VIEW,
   easyMode: DEFAULT_EASY_MODE_SETTING,
   daySummary: DEFAULT_DAY_SUMMARY_MODE,
   setupDismissed: [],
@@ -110,6 +112,7 @@ const clearPending = (userId: string, sent: SettingsChange) => {
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   const left: SettingsChange = { ...pending };
   if ("timelineView" in sent && same(left.timelineView, sent.timelineView)) delete left.timelineView;
+  if ("providersView" in sent && same(left.providersView, sent.providersView)) delete left.providersView;
   if ("easyMode" in sent && same(left.easyMode, sent.easyMode)) delete left.easyMode;
   if ("daySummary" in sent && same(left.daySummary, sent.daySummary)) delete left.daySummary;
   if (left.setupDismissed && sent.setupDismissed) {

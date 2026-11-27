@@ -70,10 +70,10 @@ function JoinRequest({
   return (
     <ListRow data-join-request={request.id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <UserRoundPlus aria-hidden="true" className="text-base-content/60 size-5 shrink-0" />
+        <UserRoundPlus aria-hidden="true" className="text-faint size-5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{request.name?.trim() || request.email}</p>
-          <p className="text-base-content/70 truncate text-sm">
+          <p className="text-muted truncate text-sm">
             {request.name?.trim() && request.email ? `${request.email} · ` : ""}
             {roleLabel(request.role)} · {requestedLine(request)}
           </p>

@@ -67,6 +67,10 @@ export const todoSchema = pgTable(
     repeatRule: text("repeat_rule"),
     repeatStartsOn: date("repeat_starts_on", { mode: "string" }),
     repeatId: uuid("repeat_id"),
+    // A subtask's parent (todo-subtasks): a todo in the same group (composite
+    // FK, NO ACTION: todos are only soft-deleted). Null for a top-level todo.
+    // Set on create only; the tree's rules are in todoTree.ts.
+    parentId: uuid("parent_id"),
     ...timestamps,
     ...audits,
   },
@@ -106,6 +110,12 @@ export const todoSchema = pgTable(
     ),
     check("todo_repeat_due_check", sql`${t.repeatRule} IS NULL OR ${t.dueOn} IS NOT NULL`),
     index("todo_group_repeat_idx").on(t.groupId, t.repeatId),
+    foreignKey({
+      name: "todo_parent_fk",
+      columns: [t.groupId, t.parentId],
+      foreignColumns: [t.groupId, t.id],
+    }),
+    index("todo_group_parent_idx").on(t.groupId, t.parentId),
   ],
 );
 
@@ -134,6 +144,16 @@ export const REPEAT_NEEDS_DAY_ISSUE = { path: "repeatRule", message: "Choose a d
 export const ASSIGNEE_NOT_MEMBER_ISSUE = {
   path: "assigneeId",
   message: "Choose someone in this care group",
+} as const;
+/** The field issue when a subtask's parent can't take one (gone, elsewhere, repeating or too deep). */
+export const BAD_PARENT_ISSUE = {
+  path: "parentId",
+  message: "Choose a todo in this care group that can have subtasks",
+} as const;
+/** The field issue when a subtask, or a todo with subtasks, is given a repeat. */
+export const REPEAT_WITH_SUBTASKS_ISSUE = {
+  path: "repeatRule",
+  message: "A subtask, or a todo with subtasks, can't repeat",
 } as const;
 /** The field issues when a link isn't live in the group (or the event isn't an event). */
 export const BAD_TODO_LINK_ISSUES = {
@@ -252,15 +272,31 @@ export const todoContentZSchema = z
 export type TodoContent = z.output<typeof todoContentZSchema>;
 export type TodoContentInput = z.input<typeof todoContentZSchema>;
 
-/** Create input. `id` may come from an offline device; `recipientId` defaults to the group's recipient. */
+/**
+ * Create input. `id` may come from an offline device; `recipientId` defaults
+ * to the group's recipient; `parentId` makes it a subtask (create only: the
+ * parent never changes).
+ */
 export const todoCreateZSchema = z
-  .object({ id: z.uuid().optional(), groupId: z.uuid(), recipientId: z.uuid().optional(), ...todoFields })
+  .object({
+    id: z.uuid().optional(),
+    groupId: z.uuid(),
+    recipientId: z.uuid().optional(),
+    parentId: optionalId,
+    ...todoFields,
+  })
   .superRefine(crossFields);
 export type TodoCreateInput = z.input<typeof todoCreateZSchema>;
 
 /** Upsert input (PowerSync's upload queue): a create whose `id` is required. */
 export const todoUpsertZSchema = z
-  .object({ id: z.uuid(), groupId: z.uuid(), recipientId: z.uuid().optional(), ...todoFields })
+  .object({
+    id: z.uuid(),
+    groupId: z.uuid(),
+    recipientId: z.uuid().optional(),
+    parentId: optionalId,
+    ...todoFields,
+  })
   .superRefine(crossFields);
 export type TodoUpsertInput = z.input<typeof todoUpsertZSchema>;
 
@@ -284,7 +320,10 @@ export const todoOccurrenceZSchema = z
   });
 export type TodoOccurrenceInput = z.input<typeof todoOccurrenceZSchema>;
 
-/** Update input: any content field. The group and recipient never change; done goes through complete and reopen. */
+/**
+ * Update input: any content field. The group, recipient and parent never
+ * change; done goes through complete and reopen.
+ */
 export const todoUpdateZSchema = z.strictObject({
   title: z.string().optional(),
   assigneeId: z.uuid().nullish(),

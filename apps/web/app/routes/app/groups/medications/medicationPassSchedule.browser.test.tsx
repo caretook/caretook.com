@@ -5,6 +5,9 @@ import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import {
+  closeSchedule,
+  editSchedule,
+  errorOf,
   EVENING,
   field,
   FORM,
@@ -17,7 +20,10 @@ import {
   medPage,
   MORNING,
   RECIPIENT,
+  SCHEDULE_OVERLAY,
+  scheduleSummary,
   SHEET,
+  showFormTab,
   submit,
   times,
   openAddMedication,
@@ -78,6 +84,9 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await userEvent.click(
     await found(() => FORM()?.querySelector('input[name="scheduleType"][value="scheduled"]')),
   );
+  // At set times opens its overlay; the passes and times are in it.
+  await waitUntil(() => SCHEDULE_OVERLAY()?.open === true, "the set times overlay");
+  expect(scheduleSummary()).toBe("No times chosen yet.");
   await userEvent.click(await found(() => passBox(MORNING.id)));
   await expect.poll(() => passAmount(MORNING.id)).toBeTruthy();
   const placeholder = passAmount(MORNING.id)!.placeholder;
@@ -87,6 +96,13 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await expect.poll(() => times().length).toBe(1);
   await pickTime(() => times()[0], "14:00");
   await userEvent.fill(await found(() => timeAmounts()[0]), "12.5 mg");
+  // Closed, the form reads the chosen times in one line; Edit times reopens them as chosen.
+  await closeSchedule();
+  expect(scheduleSummary()).toBe(BY_PASS);
+  await expect.poll(() => passBox(MORNING.id).checkVisibility({ visibilityProperty: true })).toBe(false);
+  await editSchedule();
+  expect(passAmount(MORNING.id)?.value).toBe("50 mg");
+  await closeSchedule();
   await userEvent.click(submit());
   await expect.poll(() => SHEET()).toBeNull();
   await device.settle();
@@ -153,6 +169,11 @@ describe("a schedule by passes", () => {
     await waitUntil(() => !!document.querySelector<HTMLElement>("main [data-edit-medication]"), "Edit");
     await userEvent.click(getByCss("main [data-edit-medication]"));
     await waitUntil(() => !!FORM() && !!passAmount(MORNING.id), "the edit sheet");
+    // Saved set times show as the summary, with the slots behind Edit times.
+    expect(scheduleSummary()).toBe(BY_PASS);
+    expect(SCHEDULE_OVERLAY()?.open).toBe(false);
+    await expect.poll(() => passBox(MORNING.id).checkVisibility({ visibilityProperty: true })).toBe(false);
+    await editSchedule();
     expect(passBox(MORNING.id).checked).toBe(true);
     expect(passAmount(MORNING.id)?.value).toBe("50 mg");
     expect(passBox(EVENING.id).checked).toBe(true);
@@ -161,6 +182,8 @@ describe("a schedule by passes", () => {
 
     await userEvent.click(passBox(EVENING.id));
     await userEvent.fill(await found(() => passAmount(MORNING.id)), "75 mg");
+    await closeSchedule();
+    expect(scheduleSummary()).toBe("Morning (75 mg) and 14:00 (12.5 mg)");
     await userEvent.click(submit());
     await expect.poll(() => !SHEET() && page.location()).toBe(medicationUrl(id));
     await expect.poll(() => historyTexts()[0]).toBe("Removed from Evening; Morning amount 50 mg → 75 mg");
@@ -176,5 +199,39 @@ describe("a schedule by passes", () => {
         }),
       ),
     );
+  });
+});
+
+describe("the set times overlay (B-694)", () => {
+  test("an amount past its limit reopens the overlay at that field, from another tab too", async () => {
+    const device = await open(LIST);
+    await openAddMedication();
+    await userEvent.fill(await found(() => field("name")), "Propranolol");
+    await userEvent.click(
+      await found(() => FORM()?.querySelector('input[name="scheduleType"][value="scheduled"]')),
+    );
+    await waitUntil(() => SCHEDULE_OVERLAY()?.open === true, "the set times overlay");
+    await userEvent.click(await found(() => passBox(MORNING.id)));
+    // Past the field's own limit, as a script (not typing) could set it.
+    const amount = await found(() => passAmount(MORNING.id));
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(
+      amount,
+      "1 tablet ".repeat(20),
+    );
+    amount.dispatchEvent(new Event("input", { bubbles: true }));
+    await closeSchedule();
+    expect(scheduleSummary()).toMatch(/^Morning \(1 tablet/);
+
+    await showFormTab("Details");
+    await userEvent.click(submit());
+    await waitUntil(() => SCHEDULE_OVERLAY()?.open === true, "the overlay to reopen");
+    await expect.poll(() => document.activeElement).toBe(passAmount(MORNING.id));
+    expect(errorOf(`passAmount:${MORNING.id}`)).toBeTruthy();
+    // Closed again, the summary keeps the message; nothing was saved.
+    await closeSchedule();
+    expect(FORM()?.querySelector("[data-schedule-summary-error]")?.textContent).toBe(
+      errorOf(`passAmount:${MORNING.id}`),
+    );
+    expect(await device.query("SELECT id FROM medication WHERE name = 'Propranolol'")).toEqual([]);
   });
 });

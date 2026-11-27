@@ -1,4 +1,5 @@
 import type { AppError, AuthUser, ErrorCode, Tx, Upserted } from "@caretook/data";
+import type { TagColor } from "@caretook/data/schema";
 import type { CrudOp } from "./sync";
 
 import {
@@ -17,6 +18,7 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  ROLLUP_METADATA,
   symptomTypeService,
   tagService,
   timelineEntryService,
@@ -399,6 +401,8 @@ const todo = softDelete({
   errors: "todoService",
   fixed: GROUP_RECIPIENT,
   content: TODO_CONTENT,
+  // A subtask's parent (todo-subtasks): on create only; the service checks it.
+  createOnly: { parent_id: text },
   handled: ["done_at", "repeat_id", "repeat_starts_on"],
   serverSet: ["done_by", "via"],
   // A repeating todo's later occurrence (its chain is another todo's): the
@@ -412,6 +416,10 @@ const todo = softDelete({
   afterPut: async (ctx, op) => (op.data?.done_at ? setTodoDone(ctx, op.id, op.data.done_at) : applied),
   patch: async (ctx, op, { remove, update }) => {
     const data = op.data ?? {};
+    // A device's rollup of a parent (todo-subtasks): the server recomputes it
+    // from its own rows; an unflagged done PATCH is still a complete or reopen.
+    if (op.metadata === ROLLUP_METADATA)
+      return outcome(await todoService.rollUpUploaded(ctx, op.id, { doneAt: timestamp(data.done_at) }));
     // An Undo's soft delete of the next occurrence: only an untouched one goes (B-382).
     if (data.deleted_at && op.metadata === UNDO_NEXT_METADATA)
       return outcome(await todoService.removeUndoneNext(ctx, op.id));
@@ -518,14 +526,48 @@ const symptomType: UploadEntry = {
 // tag: a group's shared tags (tags). A device adds one (PUT) under the id it
 // derives from the group, the name and a counter; a replay, or another
 // device's PUT of that id, returns the one tag, even renamed. A name another
-// tag holds is `tagService:nameTaken`. Loggers only. Rename (a name PATCH)
-// and delete come with tags slice 3; until then both are read-only.
+// tag holds is `tagService:nameTaken`. Loggers only. A PATCH of `name` is a
+// rename (the server derives `name_key`; the device's is ignored): an Easy
+// helper's of a tag someone else created is `permissions:unauthorized`, as
+// `softDelete`'s refused own-row update. `color` (tags-2) is content: a PUT
+// passes it to `create` (none: the server picks one no group tag has), a
+// PATCH of it is `recolor` under rename's rule, and a PATCH of both runs
+// them in one transaction. A DELETE is an owner's hard delete (links
+// cascade); a deleted tag's is a replay.
+const tagColumns = columnsOf({ fixed: ["group_id"], content: ["name", "color"], serverSet: ["name_key"] });
+const tagKnown = new Set(Object.values(tagColumns).flat());
+
 const tag: UploadEntry = {
-  columns: columnsOf({ fixed: ["group_id"], content: ["name"], serverSet: ["name_key"] }),
+  columns: tagColumns,
   handle: async (ctx, op) => {
-    if (op.op !== "PUT") return readOnly("tag", op.op);
-    const of = (column: string) => text(op.data?.[column]) ?? "";
-    return outcome(await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name") }));
+    if (op.op === "DELETE") {
+      const res = await tagService.remove(ctx, op.id);
+      return isError(res) && res.code === "tagService:notFound" ? applied : outcome(res);
+    }
+    const data = op.data ?? {};
+    if (op.op === "PATCH") {
+      const unknown = Object.keys(data).filter((c) => !tagKnown.has(c));
+      if (unknown.length > 0)
+        return newError({ code: "sync:unknownColumn", meta: { table: op.table, columns: unknown } });
+      if ("group_id" in data) return newError({ code: "tagService:immutable" });
+      const renaming = "name" in data;
+      const recoloring = "color" in data;
+      if (!renaming && !recoloring) return applied;
+      return outcome(
+        await withTransaction(async (tx) => {
+          const within = { ...ctx, tx };
+          const renamed = renaming ? await tagService.rename(within, op.id, text(data.name) ?? "") : applied;
+          if (isError(renamed) || !recoloring) return renamed;
+          return tagService.recolor(within, op.id, text(data.color) ?? "");
+        }, ctx),
+      );
+    }
+    const of = (column: string) => text(data[column]) ?? "";
+    // Any text: `create` refuses one outside the palette (`tagService:invalid`).
+    const color = text(data.color) as TagColor | null;
+    return outcome(
+      await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name"), color }),
+    );
   },
 };
 

@@ -2,22 +2,22 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 
-import { Pencil } from "lucide-react";
+import { canTagRecord } from "@caretook/data/schema";
 import { useState } from "react";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
+import { QuickTags, useRecordTags } from "~/components/tags";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink, Button, Message, Notice, Page, Section } from "~/components/ui";
+import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { ContactList } from "./ContactList";
-import { CopyToGroup } from "./CopyToGroup";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
+import { ProviderActions } from "./ProviderActions";
 import { ProviderConditions } from "./ProviderConditions";
 import { ProviderHeader } from "./ProviderHeader";
 import { ProviderMedications } from "./ProviderMedications";
@@ -54,7 +54,7 @@ export default function Provider(props: Route.ComponentProps) {
 function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const { groupId, providerId } = params;
   // Live: a role changed on another device shows without a reload.
-  const { canWrite, displayName } = useGroup();
+  const { canWrite, displayName, role, userId } = useGroup();
   const [copyStatus, setCopyStatus] = useState("");
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
@@ -66,6 +66,10 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toProvider(rows[0]) : null;
   const provider = live ?? loaderData.provider;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
+  // Tags (tags-2): every chip for every role; × and Add tag for whoever may tag it (`QuickTags`).
+  const tags = useRecordTags("provider", providerId);
+  const mayTag =
+    !deleted && canTagRecord(role, { target: "provider", createdBy: provider.createdBy }, userId);
 
   const { ensureSaved, saveError } = useProviderNotes(providerId, loaderData.hasDocument);
   // The group's providers, for mentions in the notes (chips only: nothing links here).
@@ -78,27 +82,27 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
 
         <ProviderHeader
           provider={provider}
+          tags={
+            !deleted &&
+            (mayTag || tags.length > 0) && (
+              <QuickTags
+                target="provider"
+                recordId={providerId}
+                label={provider.name}
+                createdBy={provider.createdBy}
+                max={null}
+                tags={tags}
+                className="mt-1"
+              />
+            )
+          }
           editors={
             !deleted && <EditorAvatars documentId={providerId} groupId={groupId} viewerId={db.userId} />
           }
           actions={
             canWrite &&
             !deleted && (
-              <>
-                <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
-                <Button
-                  to={appUrls.editProvider(groupId, providerId)}
-                  // Closing the sheet goes back here.
-                  state={PROVIDER_SHEET_STATE}
-                  prefetch="render"
-                  variant="ghost"
-                  size="sm"
-                  icon={Pencil}
-                  data-edit-provider=""
-                >
-                  Edit
-                </Button>
-              </>
+              <ProviderActions provider={provider} groupName={displayName} onCopied={setCopyStatus} />
             )
           }
         />

@@ -9,11 +9,14 @@
 //   node check-tooling.mjs [--harness] [--state DIR] [--rerun-max N]
 //
 // No tooling tests in the config (testProjects.tooling unset): the project has
-// none, so the step runs nothing and passes (tooling-tests.mjs too).
+// none, so the step runs nothing and passes (tooling-tests.mjs too). First, the
+// project-data check (project-check.mjs): its failure fails the step with its
+// lines (step `tooling`), and no test runs.
 import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, relative } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 
 /**
@@ -69,6 +72,24 @@ export function slowestFiles(text, cwd, n = 10) {
     }))
     .sort((a, b) => b.seconds - a.seconds || a.name.localeCompare(b.name))
     .slice(0, n);
+}
+
+/**
+ * Whether a Vitest run's output reports an unhandled error: only the runner's own
+ * report line (`Vitest caught N unhandled error(s) during the test run`, or a
+ * collection's `There were unhandled errors during test collection`), at a line's
+ * start, colours stripped, so a test's title that says "unhandled error" (a `✓`
+ * line, its file and describe first) never counts. The core's copy of the
+ * project's check-failed.mjs's.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function unhandledError(text) {
+  // eslint-disable-next-line no-control-regex -- the colour codes themselves
+  const plain = text.replace(/\x1b\[[0-9;]*m/g, "");
+  return /^(Vitest caught \d+ unhandled errors? during the test run|There were unhandled errors during test collection)/m.test(
+    plain,
+  );
 }
 
 /**
@@ -165,7 +186,7 @@ export async function toolingStep({ root, projects, state = "", rerunMax = 20, v
       console.log("tooling failed with no test file to rerun");
       return run.code;
     }
-    if (/Unhandled (Error|Rejection)|unhandled error/.test(run.out)) {
+    if (unhandledError(run.out)) {
       console.log("tooling: an unhandled error, so no rerun");
       record("failed", failed);
       return run.code;
@@ -220,7 +241,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   };
   const max = Number(opt("--rerun-max") ?? 20);
   const projects = checkProjects(loadConfig().config, args.includes("--harness"));
-  if (!projects) {
+  const state = opt("--state") ?? "";
+  const here = dirname(fileURLToPath(import.meta.url));
+  const checked = spawnSync(process.execPath, [join(here, "project-check.mjs")], {
+    cwd: root || process.cwd(),
+    stdio: "inherit",
+  });
+  if (checked.status !== 0) {
+    if (state) writeFileSync(join(state, "step"), "tooling\n");
+    console.log("tooling: the project-data check failed (above), so no tooling test ran");
+    process.exitCode = checked.status ?? 1;
+  } else if (!projects) {
     console.log(
       "The project config names no tooling tests (testProjects.tooling): the tooling step has none to run.",
     );
@@ -228,7 +259,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exitCode = await toolingStep({
       root: root || process.cwd(),
       projects,
-      state: opt("--state") ?? "",
+      state,
       rerunMax: Number.isInteger(max) && max >= 0 ? max : 20,
     });
   }

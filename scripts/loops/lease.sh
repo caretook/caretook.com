@@ -13,11 +13,11 @@
 #                                                           kind is worktree W's (default: this one);
 #                                                           exit 75 after S seconds (default 3600)
 #
-# Kinds and their limits: browser (CARETOOK_BROWSER_SLOTS, default 2), check
-# (CARETOOK_CHECK_SLOTS, default 2), anything else (CARETOOK_<KIND>_SLOTS,
-# default 1). The wait is --wait S, else CARETOOK_<KIND>_WAIT, else 1200 s
-# (check: 1800 s); giving up exits 75. Waiters poll every CARETOOK_<KIND>_POLL
-# (else CARETOOK_LEASE_POLL, else 5) seconds.
+# Kinds and their limits: browser (RISA_BROWSER_SLOTS, default 2), check
+# (RISA_CHECK_SLOTS, default 2), anything else (RISA_<KIND>_SLOTS,
+# default 1). The wait is --wait S, else RISA_<KIND>_WAIT, else 1200 s
+# (check: 1800 s); giving up exits 75. Waiters poll every RISA_<KIND>_POLL
+# (else RISA_LEASE_POLL, else 5) seconds.
 #
 # A lease is the directory <dir>/<N> (mkdir is the atomic take), holding a
 # `name` file of key=value lines: kind, worktree, check (what the holder is
@@ -30,17 +30,17 @@
 # trap EXIT, TERM and INT, and a SIGKILLed holder is taken over).
 #
 # Where: the main checkout's .loops/.lease/<kind>/, browser included.
-# CARETOOK_LEASE_ROOT moves every kind (tests use a temp dir);
-# CARETOOK_BROWSER_LEASES moves the browser kind alone. CARETOOK_LEASES=off
+# RISA_LEASE_ROOT moves every kind (tests use a temp dir);
+# RISA_BROWSER_LEASES moves the browser kind alone. RISA_LEASES=off
 # takes nothing (every take succeeds at once).
 #
 # The move: browser leases used to live in .loops/.browser/<N>, and a worktree
 # that hasn't synced since still takes them there. While any live holder is
-# left in that old directory (CARETOOK_BROWSER_OLD_LEASES moves it; with
-# CARETOOK_LEASE_ROOT or CARETOOK_BROWSER_LEASES set there is none unless it's
+# left in that old directory (RISA_BROWSER_OLD_LEASES moves it; with
+# RISA_LEASE_ROOT or RISA_BROWSER_LEASES set there is none unless it's
 # set), each one counts against the limit here, and `holders` lists them. An
 # old browser.sh can't see the new directory, so the limit holds only once
-# every worktree has run `pnpm prd sync`. Drop this once nothing uses the old path.
+# every worktree has run `prd sync`. Drop this once nothing uses the old path.
 #
 # Source it for the functions (browser.sh does): lease_take, lease_write,
 # lease_release, lease_holders. Node callers in the core use lease.mjs
@@ -55,11 +55,15 @@ declare -F env_get >/dev/null || source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # Callers may set lease_worktree, lease_pid and lease_cmd before taking, and
 # lease_say to a function for chatter (browser.sh: vsay).
 lease_path="" lease_n="" lease_kind="" lease_started=""
+# Tests only: "<marker>" pauses a take between its mkdir and recording the lease
+# (lease_test_pause), "write:<marker>" before it writes the name file
+# (lease_test_write_pause).
+lease_test_hook=${RISA_LEASE_TEST_PAUSE:-}
 
 lease_valid_kind() { [[ $1 =~ ^[a-z][a-z0-9-]*$ ]]; }
 
-# lease_var KIND SUFFIX → CARETOOK_<KIND>_<SUFFIX>.
-lease_var() { echo "CARETOOK_$(tr '[:lower:]-' '[:upper:]_' <<< "$1")_$2"; }
+# lease_var KIND SUFFIX → RISA_<KIND>_<SUFFIX>.
+lease_var() { echo "RISA_$(tr '[:lower:]-' '[:upper:]_' <<< "$1")_$2"; }
 
 # lease_env KIND SUFFIX DEFAULT → that variable's value, or DEFAULT.
 lease_env() {
@@ -68,12 +72,12 @@ lease_env() {
   echo "${!v:-$3}"
 }
 
-lease_root() { echo "${CARETOOK_LEASE_ROOT:-$loops/.lease}"; }
+lease_root() { echo "${RISA_LEASE_ROOT:-$loops/.lease}"; }
 
 # lease_dir KIND → the directory its leases live in.
 lease_dir() {
-  if [[ $1 == browser && -n ${CARETOOK_BROWSER_LEASES:-} ]]; then
-    echo "$CARETOOK_BROWSER_LEASES"
+  if [[ $1 == browser && -n ${RISA_BROWSER_LEASES:-} ]]; then
+    echo "$RISA_BROWSER_LEASES"
   else
     echo "$(lease_root)/$1"
   fi
@@ -81,12 +85,12 @@ lease_dir() {
 
 # lease_old_dir KIND → the browser kind's old directory (.loops/.browser), whose
 # live holders still count (see the top); nothing for other kinds, or when the
-# leases were moved (tests) and CARETOOK_BROWSER_OLD_LEASES isn't set.
+# leases were moved (tests) and RISA_BROWSER_OLD_LEASES isn't set.
 lease_old_dir() {
   [[ $1 == browser ]] || return 0
-  if [[ -n ${CARETOOK_BROWSER_OLD_LEASES:-} ]]; then
-    echo "$CARETOOK_BROWSER_OLD_LEASES"
-  elif [[ -z ${CARETOOK_LEASE_ROOT:-}${CARETOOK_BROWSER_LEASES:-} ]]; then
+  if [[ -n ${RISA_BROWSER_OLD_LEASES:-} ]]; then
+    echo "$RISA_BROWSER_OLD_LEASES"
+  elif [[ -z ${RISA_LEASE_ROOT:-}${RISA_BROWSER_LEASES:-} ]]; then
     echo "$loops/.browser"
   fi
 }
@@ -122,7 +126,7 @@ lease_wait_max() {
   [[ $1 == check ]] && d=1800
   lease_env "$1" WAIT "$d"
 }
-lease_poll() { lease_env "$1" POLL "${CARETOOK_LEASE_POLL:-5}"; }
+lease_poll() { lease_env "$1" POLL "${RISA_LEASE_POLL:-5}"; }
 
 # lease_here → the worktree's name (main for the main checkout).
 lease_here() {
@@ -211,13 +215,45 @@ lease_holders() {
   done
 }
 
-# lease_write LABEL → (re)write our lease's name file atomically.
+# lease_write LABEL → (re)write our lease's name file atomically, each writer
+# through its own temp file (name.tmp.<pid>). The first write links it in as
+# `name`, which fails when another taker's name is already there; a rewrite
+# renames it over a name that records our pid, and only then. On CI two takers
+# once shared one slot (B-867): a takeover's rm -rf hit a lease made just after
+# the stale one went, a second taker made the slot again, and both wrote the
+# one name.tmp. So a writer that finds the slot gone or recorded as another's
+# drops it (lease_path cleared, the directory left to its holder) and returns 1,
+# and the taker carries on as if the slot were taken.
 lease_write() {
   [[ -n $lease_path ]] || return 0
-  printf 'kind=%s\nworktree=%s\ncheck=%s\npid=%s\ncmd=%s\nstarted=%s\n' "$lease_kind" \
-    "${lease_worktree:-$(lease_here)}" "${1//$'\n'/ }" "${lease_pid:-$$}" "${lease_cmd-$(basename "$0")}" \
-    "${lease_started:-$(date +%s)}" > "$lease_path/name.tmp"
-  mv "$lease_path/name.tmp" "$lease_path/name"
+  local p=$lease_path me=${lease_pid:-$$} tmp ok=""
+  tmp=$p/name.tmp.${BASHPID:-$$}
+  [[ $lease_test_hook != write:* ]] || lease_test_write_pause "${lease_test_hook#write:}"
+  if printf 'kind=%s\nworktree=%s\ncheck=%s\npid=%s\ncmd=%s\nstarted=%s\n' "$lease_kind" \
+    "${lease_worktree:-$(lease_here)}" "${1//$'\n'/ }" "$me" "${lease_cmd-$(basename "$0")}" \
+    "${lease_started:-$(date +%s)}" 2>/dev/null > "$tmp"; then
+    if [[ ! -f $p/name ]]; then
+      ln "$tmp" "$p/name" 2>/dev/null && ok=1
+    elif [[ $(lease_field "$p" pid) == "$me" ]]; then
+      mv -f "$tmp" "$p/name" 2>/dev/null && ok=1
+    fi
+  fi
+  rm -f "$tmp" 2>/dev/null
+  [[ -n $ok && $(lease_field "$p" pid 2>/dev/null) == "$me" ]] && return 0
+  ${lease_say:-:} "Lost $lease_kind lease $lease_n to another taker; trying again."
+  lease_path="" lease_n=""
+  return 1
+}
+
+# lease_test_write_pause MARKER → (tests only) touch MARKER, then wait before
+# writing the name file until MARKER.go exists (or 30 s pass).
+lease_test_write_pause() {
+  local i
+  : > "$1"
+  for ((i = 0; i < 300; i++)); do
+    [[ ! -e $1.go ]] || return 0
+    sleep 0.1
+  done
 }
 
 # lease_claim KIND DIR N → make lease DIR/N (mkdir is the atomic take) and
@@ -234,7 +270,7 @@ lease_claim() {
   trap 'lease_deferred=TERM' TERM
   trap 'lease_deferred=INT' INT
   if mkdir "$2/$3" 2>/dev/null; then
-    [[ -z ${CARETOOK_LEASE_TEST_PAUSE:-} ]] || lease_test_pause "$CARETOOK_LEASE_TEST_PAUSE"
+    [[ -z $lease_test_hook || $lease_test_hook == write:* ]] || lease_test_pause "$lease_test_hook"
     lease_kind=$1 lease_path=$2/$3 lease_n=$3 lease_started=$(date +%s)
     rc=0
   fi
@@ -264,7 +300,9 @@ lease_take_over() {
     (($(date +%s) - $(lease_mtime "$mutex") > 30)) && rmdir "$mutex" 2>/dev/null
     return 0
   fi
-  if [[ -d $d ]] && ! lease_alive "$d" "$1"; then
+  # The second test: a lease released while lease_alive read it is gone, not
+  # stale, and the directory there now may be a new taker's (B-867).
+  if [[ -d $d ]] && ! lease_alive "$d" "$1" && [[ -d $d ]]; then
     echo "Taking over stale $1 lease $2: $(lease_line "$d") isn't running." >&2
     rm -rf "$d"
   fi
@@ -282,8 +320,7 @@ lease_take_counted() {
   fi
   if (($(lease_held "$1") + $4 < $3)); then
     for n in $(seq 1 "$3"); do
-      if lease_claim "$1" "$dir" "$n"; then
-        lease_write "$2"
+      if lease_claim "$1" "$dir" "$n" && lease_write "$2"; then
         ${lease_say:-:} "Took $1 lease $n of $3 ($4 more under the old path)."
         rc=0
         break
@@ -363,7 +400,7 @@ lease_wait() {
 lease_take() {
   local kind=$1 label=$2 wait_max=${3:-} dir slots poll n free old waited=0 announced=""
   lease_valid_kind "$kind" || { echo "lease: not a kind: $kind" >&2; return 64; }
-  if [[ ${CARETOOK_LEASES:-} == off ]]; then
+  if [[ ${RISA_LEASES:-} == off ]]; then
     lease_kind=$kind lease_path="" lease_n=0
     return 0
   fi
@@ -383,8 +420,7 @@ lease_take() {
       fi
     fi
     ((old > 0)) || for n in $(seq 1 "$slots"); do # (with old holders, only the counted take)
-      if lease_claim "$kind" "$dir" "$n"; then
-        lease_write "$label"
+      if lease_claim "$kind" "$dir" "$n" && lease_write "$label"; then
         lease_waiting_clear
         if [[ -n $announced ]]; then
           echo "Took $kind lease $n of $slots after waiting $(fmt_secs "$waited")." >&2

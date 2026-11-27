@@ -129,7 +129,10 @@ function DayPeriod({
       className={`text-muted flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
       data-period-line={period.id}
     >
-      {/* Before the icon, so Today's text ends where the days' below do (B-618). */}
+      {/* Before the icon, so Today's text ends where the days' below do (B-618). Its
+          end margin takes back the ghost padding (8px a side), so its glyph sits the
+          row's 6px gap from the period's icon, as the icon from the text (B-906,
+          B-925); the hit box stays full size. Easy mode has no Change. */}
       {change && group.canWrite && (
         <Button
           to={appUrls.newPeriod(groupId)}
@@ -140,7 +143,7 @@ function DayPeriod({
           size="sm"
           icon={ArrowRightLeft}
           label="Change care period"
-          className="-my-1 shrink-0"
+          className="-my-1 -me-2 shrink-0"
           data-period-change=""
         />
       )}

@@ -1,4 +1,4 @@
-// lease.sh and lease.mjs against a throwaway lease root (CARETOOK_LEASE_ROOT),
+// lease.sh and lease.mjs against a throwaway lease root (RISA_LEASE_ROOT),
 // so these never take one of the machine's real leases.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
@@ -16,16 +16,20 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { LEASE_SH, takeLease } from "./lease.mjs";
 
 const PRD_SH = new URL("./prd.sh", import.meta.url).pathname;
+// The variable naming the lease root lease.sh reads, named once (the boundary lint counts each).
+const ROOT_VAR = "RISA_LEASE_ROOT";
+// The test hook's variable: a marker pauses a take after its mkdir, write:<marker> before its name file.
+const PAUSE_VAR = "RISA_LEASE_TEST_PAUSE";
 
 let root, env;
 const children = [];
 
 beforeAll(() => {
   root = realpathSync(mkdtempSync(join(tmpdir(), "lease-test-")));
-  env = { ...process.env, CARETOOK_LEASE_ROOT: join(root, "leases"), CARETOOK_LEASE_POLL: "1" };
+  env = { ...process.env, [ROOT_VAR]: join(root, "leases"), RISA_LEASE_POLL: "1" };
   for (const k of Object.keys(env)) {
     if (
-      /^CARETOOK_(BROWSER_LEASES|BROWSER_OLD_LEASES|BROWSER_SLOTS|CHECK_SLOTS|LEASES)$/.test(k) ||
+      /^RISA_(BROWSER_LEASES|BROWSER_OLD_LEASES|BROWSER_SLOTS|CHECK_SLOTS|LEASES)$/.test(k) ||
       /_WAIT$/.test(k)
     )
       delete env[k];
@@ -51,10 +55,12 @@ const start = (args, extra = {}) => {
   p.exit = new Promise((r) => child.once("exit", (code, signal) => r(code ?? signal)));
   return p;
 };
-const until = async (cond, ms = 10_000) => {
+// until(cond, ms, state) → once cond() holds; past ms, fails with state()'s
+// account of what it saw instead, so a CI-only timeout says which part stuck.
+const until = async (cond, ms = 10_000, state) => {
   const end = Date.now() + ms;
   while (!cond()) {
-    if (Date.now() > end) throw new Error("timed out");
+    if (Date.now() > end) throw new Error(`timed out after ${ms} ms${state ? `:\n${state()}` : ""}`);
     await sleep(50);
   }
 };
@@ -69,13 +75,13 @@ const cli = (args, extra = {}) => {
   const r = spawnSync("bash", [LEASE_SH, ...args], { env: { ...env, ...extra }, encoding: "utf8" });
   return { out: r.stdout, err: r.stderr, status: r.status };
 };
-const dir = (kind, n) => join(env.CARETOOK_LEASE_ROOT, kind, String(n));
+const dir = (kind, n) => join(env[ROOT_VAR], kind, String(n));
 
 const SLOW = { timeout: 40_000 };
 
 describe("taking and waiting", SLOW, () => {
   it("lets three takers of a three-slot kind in, and the fourth waits for a release", async () => {
-    const extra = { CARETOOK_TRIO_SLOTS: "3" };
+    const extra = { RISA_TRIO_SLOTS: "3" };
     const held = [];
     for (const label of ["one", "two", "three"]) held.push(await hold("trio", label, extra));
     expect(held.map((h) => h.n).sort()).toEqual([1, 2, 3]);
@@ -109,6 +115,18 @@ describe("taking and waiting", SLOW, () => {
     await h.exit;
   });
 
+  it("stops at once, with the config's line, when the project config doesn't load", () => {
+    const started = Date.now();
+    const r = spawnSync("bash", [LEASE_SH, "take", "solo", "--wait", "30"], {
+      env: { ...env, RISA_CONFIG: join(root, "no-such-risa.json") },
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("lib.sh: the project config didn't load");
+    expect(Date.now() - started).toBeLessThan(10_000);
+  });
+
   it("takes over a lease whose holder was killed", async () => {
     const h = await hold("killed", "doomed");
     h.child.kill("SIGKILL");
@@ -123,6 +141,56 @@ describe("taking and waiting", SLOW, () => {
     expect(readFileSync(join(dir("killed", 1), "name"), "utf8")).toMatch(/^check=next$/m);
     expect(cli(["release", "killed", "--pid", String(process.pid)]).status).toBe(0);
     expect(existsSync(dir("killed", 1))).toBe(false);
+  });
+
+  // B-867: on CI a takeover removed a lease made a moment before, a second taker
+  // made the slot again, and both went ahead. Here the test makes that
+  // interleaving by hand: each taker stops after its mkdir, before writing its
+  // name file (the test hook, `write:<marker>`), and goes on once MARKER.go exists.
+  it.each([
+    ["the first taker writes first", ["a", "b"]],
+    ["the second taker writes first", ["b", "a"]],
+  ])("never lets two takers hold one slot when it is made twice (%s)", async (_, order) => {
+    const kind = `race-${order[0]}`;
+    const takers = {};
+    for (const who of ["a", "b"]) {
+      const marker = join(root, `${kind}-${who}`);
+      // (start's object, not a copy: its out and err grow as the taker writes)
+      takers[who] = Object.assign(start(["hold", kind, "--label", who], { [PAUSE_VAR]: `write:${marker}` }), {
+        marker,
+      });
+      await until(() => existsSync(marker));
+      expect(existsSync(dir(kind, 1))).toBe(true);
+      // a's slot goes as a takeover's rm -rf took it; b then makes it again.
+      if (who === "a") rmSync(dir(kind, 1), { recursive: true });
+    }
+    const [first, second] = order.map((who) => takers[who]);
+    writeFileSync(`${first.marker}.go`, "");
+    await until(() => holdLine(first));
+    expect(holdLine(first)[1]).toBe("1");
+    writeFileSync(`${second.marker}.go`, "");
+    await until(() => second.err.includes("All 1 race"));
+    expect(holdLine(second)).toBeNull();
+    expect(readFileSync(join(dir(kind, 1), "name"), "utf8")).toMatch(
+      new RegExp(`^check=${order[0]}\\npid=${first.child.pid}$`, "m"),
+    );
+    expect(cli(["holders", kind]).out).toMatch(/^race-\w leases: 1 of 1 held$/m);
+
+    first.child.stdin.end();
+    expect(await first.exit).toBe(0);
+    await until(() => holdLine(second), 8000);
+    expect(readFileSync(join(dir(kind, 1), "name"), "utf8")).toMatch(new RegExp(`^check=${order[1]}$`, "m"));
+    second.child.stdin.end();
+    expect(await second.exit).toBe(0);
+    expect(existsSync(dir(kind, 1))).toBe(false);
+  });
+
+  it("leaves a lone taker's name file whole, with no temp file beside it", async () => {
+    const h = await hold("lone", "alone");
+    expect(readFileSync(join(h.path, "name"), "utf8")).toMatch(/^check=alone\npid=\d+$/m);
+    expect(execFileSync("ls", ["-A", h.path], { encoding: "utf8" }).trim()).toBe("name");
+    h.child.stdin.end();
+    expect(await h.exit).toBe(0);
   });
 });
 
@@ -173,7 +241,7 @@ describe("waiting for a worktree's lease to go (lease.sh wait, pnpm prd wait)", 
   });
 
   it("counts a check still queued for a lease, and forgets it once it takes one or is killed", async () => {
-    const extra = { CARETOOK_QUEUE_SLOTS: "1" };
+    const extra = { RISA_QUEUE_SLOTS: "1" };
     const first = await hold("queue", "first", { ...extra, lease_worktree: "wt-other" });
     const queued = start(["hold", "queue", "--label", "queued"], { ...extra, ...wt });
     await until(() => queued.err.includes("All 1 queue leases are taken; waiting"));
@@ -183,7 +251,7 @@ describe("waiting for a worktree's lease to go (lease.sh wait, pnpm prd wait)", 
 
     first.child.stdin.end();
     await until(() => holdLine(queued), 8000);
-    const waiting = join(env.CARETOOK_LEASE_ROOT, "queue", ".waiting");
+    const waiting = join(env[ROOT_VAR], "queue", ".waiting");
     expect(existsSync(join(waiting, String(queued.child.pid)))).toBe(false);
     queued.child.stdin.end();
     await Promise.all([first.exit, queued.exit]);
@@ -220,7 +288,7 @@ describe("releasing", SLOW, () => {
     ["run", ["run", "window", "--", "true"]],
   ])("leaves no lease when %s is TERMed between making the lease and recording it", async (_, args) => {
     const marker = join(root, `window-${args[0]}`);
-    const p = start(args, { CARETOOK_LEASE_TEST_PAUSE: marker });
+    const p = start(args, { [PAUSE_VAR]: marker });
     await until(() => existsSync(marker));
     expect(existsSync(dir("window", 1))).toBe(true); // made, not yet recorded
     p.child.kill("SIGTERM");
@@ -276,16 +344,23 @@ describe("pnpm prd check's check lease", SLOW, () => {
 
   // Every run's command holds until the test creates `go`, so nothing ends
   // while the test looks: no real-time race between a 2 s fake check, the
-  // takers' start-up (slow under load) and `holders`. `delay` spawns one taker
-  // late, past where the old 2 s fake would have ended (B-654).
+  // takers' start-up (slow under load) and `holders` (B-654). The late case
+  // spawns its fifth taker only once the first four have settled (two started,
+  // two told to wait), a state, not a fixed sleep; both cases give the four
+  // start-ups the same budget, since they are the same work (B-824: the late
+  // case's first wait had half of it and was the only one that timed out on CI).
+  // Each case has its own lease root, so nothing an earlier test left can count.
   it.each([
-    ["all at once", 0],
-    ["one taker slowed", 2500],
+    ["all at once", false],
+    ["one taker slowed", true],
   ])(
     "makes the runs beyond the default limit of two wait, and holders shows who holds what (%s)",
-    async (_, delay) => {
-      const log = join(root, `check-log-${delay}`);
-      const go = join(root, `check-go-${delay}`);
+    async (name, late) => {
+      const here = join(root, `check-${late ? "late" : "once"}`);
+      const extra = { [ROOT_VAR]: join(here, "leases") };
+      mkdirSync(here);
+      const log = join(here, "log");
+      const go = join(here, "go");
       writeFileSync(log, "");
       // A fake pnpm check: note its start, hold until `go`, note its end.
       const fake = [
@@ -293,19 +368,27 @@ describe("pnpm prd check's check lease", SLOW, () => {
         "-c",
         `echo start >> ${log}; while [ ! -e ${go} ]; do sleep 0.05; done; echo end >> ${log}`,
       ];
-      const run = () => start(["run", "check", "--label", "pnpm check", "--", ...fake]);
+      const run = () => start(["run", "check", "--label", "pnpm check", "--", ...fake], extra);
       const lines = () => readFileSync(log, "utf8").split("\n").filter(Boolean);
       const waiting = (r) => r.err.includes("All 2 check leases are taken; waiting");
+      const settled = (n) => () => lines().length === 2 && runs.filter(waiting).length === n;
+      // What each taker saw, for a timeout: the log, each run's exit and stderr, holders.
+      const state = () =>
+        [
+          `${name}: log ${JSON.stringify(lines())}`,
+          ...runs.map(
+            (r, i) =>
+              `run ${i} (pid ${r.child.pid}, exit ${r.child.exitCode ?? r.child.signalCode ?? "-"}): ${JSON.stringify(r.err)}`,
+          ),
+          cli(["holders", "check"], extra).out,
+        ].join("\n");
       const runs = [];
       for (let i = 0; i < 4; i++) runs.push(run());
-      if (delay) {
-        await until(() => lines().length === 2 && runs.filter(waiting).length === 2);
-        await sleep(delay);
-      }
+      if (late) await until(settled(2), 20_000, state);
       runs.push(run());
       // Each taker's own state: two started, three told they wait.
-      await until(() => lines().length === 2 && runs.filter(waiting).length === 3, 20_000);
-      const { out } = cli(["holders"]);
+      await until(settled(3), 20_000, state);
+      const { out } = cli(["holders"], extra);
       expect(out).toMatch(/^check leases: 2 of 2 held$/m);
       expect(out.match(/lease \d: \S+: pnpm check \(pid \d+/g)).toHaveLength(2);
       expect(out).toMatch(/^browser leases: 0 of 2 held$/m);
@@ -327,21 +410,21 @@ describe("pnpm prd check's check lease", SLOW, () => {
 });
 
 describe("browser leases and the old path", SLOW, () => {
-  it("lives under the lease root, and CARETOOK_BROWSER_LEASES still moves it", () => {
+  it("lives under the lease root, and RISA_BROWSER_LEASES still moves it", () => {
     const pid = String(process.pid);
     const r = cli(["take", "browser", "--pid", pid]);
     expect(r.out.trim()).toBe(join(root, "leases", "browser", "1"));
     cli(["release", "browser", "--pid", pid]);
     const own = join(root, "own-browser");
-    const o = cli(["take", "browser", "--pid", pid], { CARETOOK_BROWSER_LEASES: own });
+    const o = cli(["take", "browser", "--pid", pid], { RISA_BROWSER_LEASES: own });
     expect(o.out.trim()).toBe(join(own, "1"));
-    cli(["release", "browser", "--pid", pid], { CARETOOK_BROWSER_LEASES: own });
+    cli(["release", "browser", "--pid", pid], { RISA_BROWSER_LEASES: own });
     expect(existsSync(join(own, "1"))).toBe(false);
   });
 
   it("counts live holders under the old path until they're gone, and lists them", async () => {
     const old = join(root, "old-browser");
-    const extra = { CARETOOK_BROWSER_OLD_LEASES: old, CARETOOK_BROWSER_SLOTS: "2" };
+    const extra = { RISA_BROWSER_OLD_LEASES: old, RISA_BROWSER_SLOTS: "2" };
     // An unsynced worktree's browser.sh holding old lease 2 (a lease.sh name file).
     const holder = spawn("bash", ["-c", "sleep 30; :", "browser.sh"]);
     children.push(holder);
@@ -369,7 +452,7 @@ describe("browser leases and the old path", SLOW, () => {
   it("keeps a holder whose program name differs from its process name (Linux's comm)", () => {
     const holder = spawn("bash", ["-c", "exec -a lease-holder-prog sleep 30"]);
     children.push(holder);
-    const extra = { CARETOOK_BROWSER_SLOTS: "1", CARETOOK_BROWSER_LEASES: join(root, "comm-browser") };
+    const extra = { RISA_BROWSER_SLOTS: "1", RISA_BROWSER_LEASES: join(root, "comm-browser") };
     const pid = String(holder.pid);
     spawnSync("sh", [
       "-c",
@@ -392,7 +475,7 @@ describe("browser leases and the old path", SLOW, () => {
 
 describe("takeLease (Node)", SLOW, () => {
   it("takes a lease, waits behind holders, and releases", async () => {
-    const extra = { ...env, CARETOOK_NODEK_SLOTS: "1" };
+    const extra = { ...env, RISA_NODEK_SLOTS: "1" };
     const first = await takeLease("nodek", { label: "vitest one", env: extra });
     expect(first.n).toBe(1);
     expect(readFileSync(join(first.path, "name"), "utf8")).toMatch(/^check=vitest one$/m);
@@ -408,12 +491,12 @@ describe("takeLease (Node)", SLOW, () => {
     expect(existsSync(dir("nodek", 1))).toBe(false);
   });
 
-  it("rejects when lease.sh gives up, and takes nothing with CARETOOK_LEASES=off", async () => {
-    const extra = { ...env, CARETOOK_NODEK_SLOTS: "1" };
+  it("rejects when lease.sh gives up, and takes nothing with RISA_LEASES=off", async () => {
+    const extra = { ...env, RISA_NODEK_SLOTS: "1" };
     const held = await takeLease("nodek", { env: extra });
     await expect(takeLease("nodek", { wait: 1, env: extra })).rejects.toThrow(/exited with 75/);
     await held.release();
-    const off = await takeLease("nodek", { env: { ...extra, CARETOOK_LEASES: "off" } });
+    const off = await takeLease("nodek", { env: { ...extra, RISA_LEASES: "off" } });
     expect(off).toMatchObject({ n: 0, path: null });
     await off.release();
   });

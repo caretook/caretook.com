@@ -29,13 +29,14 @@ import {
 } from "~/lib/profiles/medicationConditions.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
+import { MedicationTags } from "../MedicationTags";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
 
 // Shared by web + native. `medications/<tab>/:medicationId/edit`: the edit
 // sheet, over Schedule or the list (opened from a tab or from the
-// medication's page, over the list, which it goes back to), with the status
-// actions (Mark completed, Discontinue, Restart) and Delete. A viewer, and a
+// medication's page, over the list, which it goes back to), with its Tags
+// (tags PRD), the status actions (Mark completed, Discontinue, Restart) and Delete. A viewer, and a
 // medication that's missing, deleted or in another group, land on the tab.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
@@ -145,6 +146,7 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
         onDone={() => close()}
         onCancel={() => close()}
       />
+      {!gone && <MedicationTags medication={medication} />}
       <div className="border-base-300 mt-4 border-t pt-4">
         <MedicationStatusActions
           medication={medication}

@@ -18,7 +18,7 @@
 # shellcheck source=lib.sh
 declare -F env_get >/dev/null || source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-unsynced_marker() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/caretook-unsynced-merge"; }
+unsynced_marker() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/$project_name-unsynced-merge"; }
 
 # unsynced_started PID → when that process started, or nothing.
 unsynced_started() { ps -p "$1" -o lstart= 2>/dev/null | xargs; }
@@ -69,28 +69,43 @@ unsynced_verdict() {
 # and `ready` share this, so a skipped sync never blocks the next step.
 unsynced_safe() {
   local go
-  [[ ${CARETOOK_UNSYNCED:-} != off ]] || return 1
+  [[ ${RISA_UNSYNCED:-} != off ]] || return 1
   IFS=$'\t' read -r go _ <<< "$(unsynced_verdict "$2" "$1")"
   [[ $go == go ]]
 }
 
 # unsynced_dev_brake SHA → sets dev_brake to why dev is known to be braked, or
-# empty: SHA's latest whole-tier verdict is a brake, or a dev-brake notice is live
-# (a brake on an earlier commit stays in force through it). Read only: `ci <sha>`
-# requests no run. No verdict, unknown or an unreachable GitHub is no known brake;
-# an unreadable board is no notice, and says so once. Paths are resolved because
-# ci.mjs's main guard compares its path with import.meta.url.
-dev_brake="" dev_brake_warned=""
+# empty, and dev_brake_unread to why its state couldn't all be read, or empty.
+# Known braked: the latest whole-tier verdict of SHA, or of origin/<trunk>'s tip
+# after a fetch (a brake on a newer origin the local dev hasn't pulled), is a
+# brake, or a dev-brake notice is live (a brake on an earlier commit stays in
+# force through it). Read only: `ci <sha>` requests no run. No verdict or an
+# unknown one is no known brake; an unreachable GitHub, a failed fetch or an
+# unreadable board is an unread state, which callers judge (a skeptic's --force
+# refuses on it; an unsynced landing warns and goes on). Paths are resolved
+# because ci.mjs's main guard compares its path with import.meta.url.
+dev_brake="" dev_brake_unread="" dev_brake_warned=""
 unsynced_dev_brake() {
-  local sha=$1 here out rc=0
-  dev_brake=""
+  local sha=$1 here out rc=0 origin="" unread=()
+  dev_brake="" dev_brake_unread=""
   here=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-  out=$(cd "$main" && node "$here/../ci/ci.mjs" "$sha" 2>/dev/null) || rc=$?
-  if ((rc == 1)) && grep -q "^verdict: brake · [^ ]* · ${sha:0:8} · " <<< "$out"; then
+  if git -C "$main" fetch --quiet origin "$trunk" 2>/dev/null; then
+    origin=$(git -C "$main" rev-parse --verify --quiet "refs/remotes/origin/$trunk") || origin=""
+  fi
+  [[ -n $origin ]] || unread+=("couldn't fetch origin/$trunk")
+  # SHA first: its brake reads as dev's, as before.
+  if unsynced_tip_brake "$sha"; then
     dev_brake="CI reads a brake on $trunk's tip ${sha:0:8}"
     return 0
   fi
-  rc=0
+  ((tip_brake_rc != 2)) || unread+=("GitHub couldn't be read for ${sha:0:8}'s verdict")
+  if [[ -n $origin && $origin != "$sha" ]]; then
+    if unsynced_tip_brake "$origin"; then
+      dev_brake="CI reads a brake on origin/$trunk's tip ${origin:0:8}, newer than the $trunk it measures against"
+      return 0
+    fi
+    ((tip_brake_rc != 2)) || unread+=("GitHub couldn't be read for origin/$trunk's tip ${origin:0:8}")
+  fi
   out=$(node -e '
     const [blame, notices, dir] = process.argv.slice(1);
     Promise.all([import(blame), import(notices)])
@@ -99,13 +114,36 @@ unsynced_dev_brake() {
         if (hit) console.log(hit.text);
       })
       .catch(() => process.exit(3));
-  ' "$here/../ci/blame.mjs" "$here/notices.mjs" "${CARETOOK_NOTICES_DIR:-$loops/.notices}" 2>/dev/null) || rc=$?
+  ' "$here/../ci/blame.mjs" "$here/notices.mjs" "${RISA_NOTICES_DIR:-$loops/.notices}" 2>/dev/null) || rc=$?
   if ((rc != 0)); then
-    [[ -n $dev_brake_warned ]] || echo "warning: couldn't read the dev-brake notices; going on as if there are none" >&2
-    dev_brake_warned=1
+    unread+=("couldn't read the dev-brake notices")
   elif [[ -n $out ]]; then
     dev_brake="a dev-brake notice is live: $out"
+    return 0
   fi
+  if ((${#unread[@]})); then
+    dev_brake_unread=$(printf '%s; ' "${unread[@]}")
+    dev_brake_unread=${dev_brake_unread%; }
+  fi
+  return 0
+}
+
+# unsynced_tip_brake SHA → true when SHA's latest whole-tier verdict is a brake.
+# Sets tip_brake_rc: 0 a brake, 1 none known (no verdict, or not a brake), 2
+# unreadable (GitHub couldn't be reached, or ci.mjs didn't run).
+tip_brake_rc=1
+unsynced_tip_brake() {
+  local here out rc=0
+  here=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+  out=$(cd "$main" && node "$here/../ci/ci.mjs" "$1" 2>/dev/null) || rc=$?
+  if ((rc == 1)) && grep -q "^verdict: brake · [^ ]* · ${1:0:8} · " <<< "$out"; then
+    tip_brake_rc=0
+  elif ((rc > 6)) || { ((rc == 5)) && grep -q "^verdict: unknown (GitHub can't be reached)" <<< "$out"; }; then
+    tip_brake_rc=2
+  else
+    tip_brake_rc=1
+  fi
+  ((tip_brake_rc == 0))
 }
 
 # unsynced_commits BASE DEV → how many of dev's first-parent commits since BASE
@@ -128,7 +166,7 @@ unsynced_typecheck() {
   wt=$(basename "$dir")
   gd=$(git -C "$dir" rev-parse --absolute-git-dir)
   marker=$(unsynced_marker "$dir")
-  log=$gd/caretook-unsynced.log
+  log=$gd/$project_name-unsynced.log
   for kind in check browser; do
     if ! "$(dirname "${BASH_SOURCE[0]}")/lease.sh" wait "$kind" --worktree "$wt" --timeout 0 >/dev/null 2>&1; then
       echo "$wt holds a $kind lease" >&2

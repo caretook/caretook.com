@@ -5,9 +5,12 @@ import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import type { ProvidersOutlet } from "./providerSheet";
 
+import { activeTag } from "@caretook/data/schema";
 import { Import } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router";
+import { LayoutMenu } from "~/components/settings";
+import { useGroupRecordTags, useGroupTags } from "~/components/tags";
 import { Button, Page, PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -22,10 +25,11 @@ import { myGroupsQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { DirectoryFilterRow } from "./DirectoryFilters";
 import { DirectoryResults } from "./DirectoryResults";
 import { onlyProviderSheetChanged } from "./providerSheetGuard";
+import { useProvidersView } from "./useProvidersView";
 
 // Shared by web + native. The group's provider directory, read from the
 // device's local copy (live, so it works offline and follows other members'
-// changes). Search (`?q=`) and the type (`?type=`) live in the URL; the list is
+// changes). Search (`?q=`), the type (`?type=`) and a tag (`?tag=`) live in the URL; the list is
 // filtered and ordered on the device (`lib/providers/providerDirectory.ts`).
 
 export const meta = () => [{ title: "Providers · Caretook" }];
@@ -77,12 +81,18 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
   const mine = myGroupsQuery(group.userId);
   const groups = useLiveQuery<GroupRow>(mine.sql, mine.params, loaderData.groups);
   const canImport = group.canWrite && groups.some((g) => g.id !== groupId);
+  // Tags (tags PRD): the rows' chips, and the filter (an unknown or deleted tag is none).
+  const tags = useGroupTags(groupId);
+  const recordTags = useGroupRecordTags(groupId, "provider");
+  const tag = activeTag(filters.tag ?? null, tags)?.id ?? null;
+  // Condensed rows or the fuller items: the viewer's own setting (B-909).
+  const [view, setView] = useProvidersView(group.userId);
 
   // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
-    () => directoryList(providers, { q: text, type: filters.type }),
-    [providers, text, filters.type],
+    () => directoryList(providers, { q: text, type: filters.type, tag }, recordTags),
+    [providers, text, filters.type, tag, recordTags],
   );
 
   return (
@@ -91,18 +101,21 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         title="Providers"
         {...sectionAccent("providers", { easy: group.easyRole })}
         actions={
-          canImport && (
-            <Button
-              size="sm"
-              icon={Import}
-              label={IMPORT_ACTION}
-              to={appUrls.importProviders(groupId, search)}
-              state={PROVIDER_SHEET_STATE}
-              prefetch="render"
-              preventScrollReset
-              data-import-providers=""
-            />
-          )
+          <>
+            <LayoutMenu view={view} onChange={setView} />
+            {canImport && (
+              <Button
+                size="sm"
+                icon={Import}
+                label={IMPORT_ACTION}
+                to={appUrls.importProviders(groupId, search)}
+                state={PROVIDER_SHEET_STATE}
+                prefetch="render"
+                preventScrollReset
+                data-import-providers=""
+              />
+            )}
+          </>
         }
         add={
           group.canWrite && {
@@ -117,7 +130,14 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         }
       />
 
-      <DirectoryFilterRow value={text} urlQuery={filters.q} onChange={setText} type={filters.type} />
+      <DirectoryFilterRow
+        value={text}
+        urlQuery={filters.q}
+        onChange={setText}
+        type={filters.type}
+        tag={tag}
+        tags={tags}
+      />
 
       <DirectoryResults
         total={providers.length}
@@ -125,6 +145,9 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         practiceNames={practiceNames}
         text={text}
         type={filters.type}
+        tagged={!!tag}
+        recordTags={recordTags}
+        view={view}
       />
 
       <Outlet context={{ providers } satisfies ProvidersOutlet} />

@@ -2,7 +2,7 @@ import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../appointments/upcoming";
 import type { UpcomingSection } from "../appointments/upcomingDays";
 
-import { localDate, todoState } from "@caretook/data/schema";
+import { listsOnItsOwn, localDate, todoState } from "@caretook/data/schema";
 import { dayLabel } from "../core/format";
 import { NOW_KEY } from "../appointments/upcomingDays";
 import { startOfDay, zonedInstant } from "../core/zonedDay";
@@ -33,16 +33,17 @@ export const isPlannerTodo = <T extends object>(item: T | PlannerTodo): item is 
 
 /**
  * Open dated todos as Planner items, in the order given (`todoOrder`).
- * Done and undated todos are left out.
+ * Done and undated todos are left out, and a subtask that doesn't list on
+ * its own (`listsOnItsOwn`; todo-subtasks-2), which shows on its parent's page.
  */
-export const plannerTodos = <T extends TodoRuleFields>(
+export const plannerTodos = <T extends TodoRuleFields & { parentId?: string | null }>(
   todos: readonly T[],
   now: Date | number,
   timeZone: string,
 ): PlannerTodo<T>[] =>
   todos.flatMap((todo) => {
     const state = todoState(todo, now, timeZone);
-    if (state === "done" || state === "undated" || !todo.dueOn) return [];
+    if (state === "done" || state === "undated" || !todo.dueOn || !listsOnItsOwn(todo)) return [];
     const at = todo.dueTime ? zonedInstant(todo.dueOn, todo.dueTime, timeZone).toISOString() : null;
     return [{ type: "dueTodo" as const, key: `todo:${todo.id}`, todo, state, at }];
   });

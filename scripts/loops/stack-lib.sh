@@ -23,7 +23,7 @@ lease_free_slot() {
   slot=""
   if [[ -n $want ]]; then
     [[ $want =~ ^[0-9]+$ ]] && ((want >= 1 && want <= 19)) || die "slot must be 1-19"
-    slot_busy "$want" && die "slot $want is taken (pnpm prd status)"
+    slot_busy "$want" && die "slot $want is taken (${prd_cmd} status)"
     lease_slot "$want" "$1" || die "slot $want was just taken"
     slot=$want
   else
@@ -91,8 +91,8 @@ slice_state() {
 }
 
 # gc_stopped_after → how long a stack may sit stopped before status flags it
-# and gc offers to take it down (seconds; CARETOOK_GC_STOPPED_HOURS, 24).
-gc_stopped_after() { echo $((${CARETOOK_GC_STOPPED_HOURS:-24} * 3600)); }
+# and gc offers to take it down (seconds; RISA_GC_STOPPED_HOURS, 24).
+gc_stopped_after() { echo $((${RISA_GC_STOPPED_HOURS:-24} * 3600)); }
 
 # fmt_age SECS → 3d, 5h or 12m.
 fmt_age() {

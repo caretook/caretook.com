@@ -1,32 +1,32 @@
-// The parts `pnpm prd status` prints after the worktree table: the dispatcher
-// (running, paused and why, or stopped, and its log's last entry), the recorded
+// The parts `prd status` prints after the worktree table: the dispatcher
+// (running, its code current or stale, paused and why, or stopped, and its log's last entry), the recorded
 // sessions (.loops/.sessions: name, kind, live or ended, age, run-through or not,
 // managed by the dispatcher or opened by hand) and the open asks (the count,
 // split into questions awaiting an answer, reports and those decided for you;
 // the oldest awaiting one, else the oldest, and its age), and the workers: every lease
-// holder (and waiter), every `pnpm prd` command under a live session and every slice
+// holder (and waiter), every `prd` command under a live session and every slice
 // agent, each with its age, its usual time (metrics.mjs) and its state. The sessions,
 // asks and workers parts print nothing, heading included, when they have nothing to
 // show; the dispatcher's always prints.
 // Ended sessions older than a day are left out to keep the list short.
 //
-//   node status-extra.mjs      CARETOOK_SESSIONS_DIR and CARETOOK_ASKS_DIR name the folders;
+//   node status-extra.mjs      RISA_SESSIONS_DIR and RISA_ASKS_DIR name the folders;
 //                              the dispatcher's files are in the main checkout's .loops
-//                              (CARETOOK_DISPATCH_MAIN names another main checkout); the
-//                              workers' worktrees, heartbeats, leases (CARETOOK_LEASE_ROOT,
-//                              CARETOOK_BROWSER_LEASES) and logs (CARETOOK_RUN_LOG,
-//                              CARETOOK_CHECK_LOG) are beside the sessions folder
+//                              (RISA_DISPATCH_MAIN names another main checkout); the
+//                              workers' worktrees, heartbeats, leases (RISA_LEASE_ROOT,
+//                              RISA_BROWSER_LEASES) and logs (RISA_RUN_LOG,
+//                              RISA_CHECK_LOG) are beside the sessions folder
 import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { age, awaitsAnswer, listAsks, shorten, span } from "./asks.mjs";
-import { contextDirOf, hardLimitFor, sizeNote, sizeRecord } from "./context.mjs";
-import { lockHolder, mainCheckout, pathsOf, readState } from "./dispatch.mjs";
+import { contextDirOf, hardLimitFor, limitOf, sizeNote, sizeRecord } from "./context.mjs";
+import { codeHash, lockHolder, mainCheckout, pathsOf, readState, staleCode } from "./dispatch.mjs";
 import { branchKind, readData, usualTime } from "./metrics.mjs";
 import { pendingPart } from "./session-requests.mjs";
 import { isLive, processOf, readRecords } from "./sessions.mjs";
 import { ancestorsOf, processCwds, readLeases, workerFacts } from "./workers.mjs";
-import { branchKinds } from "./config.mjs";
+import { branchKinds, toolCmd } from "./config.mjs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How much of the dispatcher's log's end is read for its last entry. */
@@ -54,19 +54,39 @@ export function lastEntry(/** @type {string} */ file) {
 }
 
 /**
- * The dispatcher's part: its state from its lock (a live pid: running) and its
- * state file (paused and why), and its log's last entry.
- * @param {{ lock: string, state: string, log: string }} files
- * @param {{ now?: number, holder?: (lock: string) => number | null }} [opts]
+ * The dispatcher's code against the main checkout's (CURRENT: its hash, null
+ * unreadable): "" when unknown, else ", code current" or ", code stale …". A
+ * running dispatcher with no code record of its pid started before the check (B-809).
+ * @param {import("./dispatch.mjs").DispatchState["code"]} code
+ * @param {number} pid @param {string | null} current
  */
-export function dispatcherPart(files, { now = Date.now(), holder = lockHolder } = {}) {
+export function codePart(code, pid, current) {
+  if (!code || code.pid !== pid)
+    return `, code unknown (it predates the code check: ${toolCmd.prd} dispatch --stop, then ${toolCmd.prd} dispatch)`;
+  if (!current) return "";
+  return staleCode(code.hash, current)
+    ? `, code stale (${code.hash}; the main checkout has ${current}: it re-execs before its next tick)`
+    : ", code current";
+}
+
+/**
+ * The dispatcher's part: its state from its lock (a live pid: running), its
+ * code (current or stale) and its state file (paused and why), and its log's last entry.
+ * @param {{ main?: string, lock: string, state: string, log: string }} files
+ * @param {{ now?: number, holder?: (lock: string) => number | null, current?: () => string | null }} [opts]
+ */
+export function dispatcherPart(
+  files,
+  { now = Date.now(), holder = lockHolder, current = () => (files.main ? codeHash(files.main) : null) } = {},
+) {
   const pid = holder(files.lock);
-  const paused = readState(files.state).paused;
+  const st = readState(files.state);
+  const paused = st.paused;
   const since = paused?.at && !Number.isNaN(Date.parse(paused.at)) ? `, ${age(paused.at, now)} ago` : "";
   const why = paused ? `paused${since}: ${paused.why || "by hand"}` : "";
   const state = pid
-    ? `running (pid ${pid})${paused ? `, ${why} (pnpm prd dispatch --resume)` : ""}`
-    : `stopped${paused ? ` (and ${why})` : ""}: start it in a tab of its own with pnpm prd dispatch`;
+    ? `running (pid ${pid})${codePart(st.code, pid, current())}${paused ? `, ${why} (${toolCmd.prd} dispatch --resume)` : ""}`
+    : `stopped${paused ? ` (and ${why})` : ""}: start it in a tab of its own with ${toolCmd.prd} dispatch`;
   const last = lastEntry(files.log);
   return [`DISPATCHER: ${state}`, ...(last ? [`last: ${shorten(last, 120)}`] : []), ""].join("\n") + "\n";
 }
@@ -95,6 +115,7 @@ export function statusParts(sessionsDir, asksDir, { now = Date.now(), live } = {
       record.managed ? "managed" : "by hand",
       up
         ? sizeNote(sizeRecord(contextDirOf(sessionsDir), name, record.pid ?? 0), {
+            limit: limitOf(process.env, record.kind),
             hard: hardLimitFor(record.kind),
             now,
           })
@@ -126,7 +147,7 @@ export function statusParts(sessionsDir, asksDir, { now = Date.now(), live } = {
       [defaulted.length, "decided for you"],
     ].flatMap(([n, what]) => (n ? [`${n} ${what}`] : []));
     const o = awaiting[0] ?? asks[0];
-    out.push(`OPEN ASKS: ${asks.length} (pnpm prd asks): ${counts.join(", ")}`);
+    out.push(`OPEN ASKS: ${asks.length} (${toolCmd.prd} asks): ${counts.join(", ")}`);
     out.push(`oldest: ${o.id} ${o.kind} ${o.topic}, ${age(o.askedAt, now)} ago: ${shorten(o.text, 80)}`);
     out.push("");
   }
@@ -138,7 +159,7 @@ const QUIET_MS = 10 * 60_000;
 /** How recent a slice worktree's progress or process must be to show its agent as unknown. */
 const UNKNOWN_RECENT_MS = 30 * 60_000;
 
-/** A `pnpm prd` command line's arguments ("check --quick …"), or null for any other process. */
+/** A `prd` command line's arguments ("check --quick …"), or null for any other process. */
 export function prdArgs(/** @type {string} */ command) {
   const m =
     /^(?:\S*node\s+)?\S*\bpnpm(?:\.c?js)?\s+(?:(?:-s|--silent|-C\s+\S+|--dir\s+\S+)\s+)*prd(?:\s+(.*))?$/.exec(
@@ -148,7 +169,7 @@ export function prdArgs(/** @type {string} */ command) {
 }
 
 /**
- * Every `pnpm prd` command under a live session: the outermost of each (pnpm, then the
+ * Every `prd` command under a live session: the outermost of each (pnpm, then the
  * prd.sh it runs, count once). Pure.
  * @param {{ pid: number, ppid: number, ageSeconds: number | null, command: string }[]} table
  * @param {Map<number, string>} sessions a live session's pid to its name
@@ -163,7 +184,7 @@ export function prdCommands(table, sessions) {
     const up = ancestorsOf(p.ppid, table);
     const session = up.find((pid) => sessions.has(pid));
     if (session === undefined) continue;
-    // A pnpm prd above this one, below the session: this is its prd.sh.
+    // A prd above this one, below the session: this is its prd.sh.
     const below = up.slice(0, up.indexOf(session));
     if (below.some((pid) => prdArgs(byPid.get(pid)?.command ?? "") !== null)) continue;
     out.push({ session: sessions.get(session) ?? "?", pid: p.pid, args, ageSeconds: p.ageSeconds });
@@ -184,7 +205,7 @@ export function againstUsual(
   return seconds > u.slowestSeconds ? "slow" : "";
 }
 
-/** A call or process "Bash: pnpm prd check --quick" for an agent's state. */
+/** A call or process "Bash: prd check --quick" for an agent's state. */
 const callNote = (/** @type {any} */ c) =>
   shorten(
     c.command ? `${c.source === "process" ? `pid ${c.pid}` : c.tool}: ${c.command}` : (c.tool ?? "?"),
@@ -246,7 +267,7 @@ export function workersPart({ facts, leases, commands, usual, now }) {
     const verb = c.args.split(/\s+/)[0];
     const u =
       verb === "check" ? usual({ kind: "check" }) : verb === "land" ? usual({ kind: "landing" }) : null;
-    row("command", c.session, `pnpm prd ${c.args}`, c.ageSeconds, u, "running");
+    row("command", c.session, `${toolCmd.prd} ${c.args}`, c.ageSeconds, u, "running");
   }
 
   for (const f of facts) {
@@ -307,8 +328,8 @@ export function gatherWorkers(sessionsDir, { now = Date.now(), env = process.env
   const live = new Map();
   for (const { name, record } of readRecords(sessionsDir))
     if (record.pid && isLive(record, processOf(record.pid, now), now)) live.set(record.pid, name);
-  const leaseRoot = env.CARETOOK_LEASE_ROOT || join(loops, ".lease");
-  const browserRoot = env.CARETOOK_BROWSER_LEASES || undefined;
+  const leaseRoot = env.RISA_LEASE_ROOT || join(loops, ".lease");
+  const browserRoot = env.RISA_BROWSER_LEASES || undefined;
   // The process table only when it's needed: commands need a live session, workerFacts a worktree.
   const table = live.size ? processCwds() : undefined;
   const facts = workerFacts({
@@ -325,28 +346,28 @@ export function gatherWorkers(sessionsDir, { now = Date.now(), env = process.env
   if (!leases.length && !commands.length && !facts.some((f) => branchKinds().is(f.branch, "slice")))
     return "";
   const data = readData({
-    runLog: env.CARETOOK_RUN_LOG || join(loops, ".run-log.jsonl"),
-    checkLog: env.CARETOOK_CHECK_LOG || join(loops, ".check-times.log"),
+    runLog: env.RISA_RUN_LOG || join(loops, ".run-log.jsonl"),
+    checkLog: env.RISA_CHECK_LOG || join(loops, ".check-times.log"),
   });
   return workersPart({ facts, leases, commands, usual: (q) => usualTime(data, q), now });
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const s = process.env.CARETOOK_SESSIONS_DIR;
-  const a = process.env.CARETOOK_ASKS_DIR;
+  const s = process.env.RISA_SESSIONS_DIR;
+  const a = process.env.RISA_ASKS_DIR;
   if (!s || !a) {
-    console.error("CARETOOK_SESSIONS_DIR and CARETOOK_ASKS_DIR must be set");
+    console.error("RISA_SESSIONS_DIR and RISA_ASKS_DIR must be set");
     process.exit(2);
   }
   let dispatcher = "";
   try {
-    dispatcher = dispatcherPart(pathsOf(process.env.CARETOOK_DISPATCH_MAIN || mainCheckout()));
+    dispatcher = dispatcherPart(pathsOf(process.env.RISA_DISPATCH_MAIN || mainCheckout()));
   } catch {
     /* no git here: no dispatcher part */
   }
   let requests = "";
   try {
-    requests = pendingPart(process.env.CARETOOK_REQUESTS_DIR || join(dirname(s), ".requests"));
+    requests = pendingPart(process.env.RISA_REQUESTS_DIR || join(dirname(s), ".requests"));
   } catch {
     /* an unreadable store: no requests part */
   }

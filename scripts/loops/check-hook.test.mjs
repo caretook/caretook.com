@@ -2,7 +2,9 @@
 // the project's check (the config's hooks.check, the sample's two-line script)
 // with the mode, the base and the own test files, and then, when the plan says the
 // diff touches the tooling, the tooling tests (check-tooling.mjs) with the
-// check's rerun rules and state files. A stub vitest stands in for the tests.
+// check's rerun rules and state files, after the project-data check
+// (project-check.mjs), which passes on the repo's sample data. A stub vitest
+// stands in for the tests.
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
@@ -17,8 +19,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { checkProjects, failedFiles, slowestFiles } from "./check-tooling.mjs";
-import { makeRepo } from "./sample-project/repo.mjs";
+import { checkProjects, failedFiles, slowestFiles, unhandledError } from "./check-tooling.mjs";
+import { makeRepo, sampleData } from "./sample-project/repo.mjs";
 
 let root, repo, calls, state;
 
@@ -32,6 +34,7 @@ const args = process.argv.slice(2);
 fs.appendFileSync(process.env.STUB_CALLS, args.filter((a) => !a.startsWith("--reporter=") && !a.startsWith("--outputFile.json=")).join(" ") + "\\n");
 const out = args.find((a) => a.startsWith("--outputFile.json=")).split("=")[1];
 if (process.env.STUB_UNHANDLED) console.log("Vitest caught 1 unhandled error during the test run");
+if (process.env.STUB_TITLE) console.log(" \u2713 scripts/x.test.mjs > the check > " + process.env.STUB_TITLE + " 12ms");
 const seen = process.env.STUB_CALLS + ".seen";
 const counts = fs.existsSync(seen) ? JSON.parse(fs.readFileSync(seen, "utf8")) : {};
 const rerun = args.includes("--no-file-parallelism");
@@ -57,7 +60,7 @@ beforeAll(() => {
   repo = join(root, "repo");
   calls = join(root, "calls");
   state = join(root, "state");
-  makeRepo(repo);
+  makeRepo(repo, { files: sampleData() });
   mkdirSync(join(repo, "node_modules/.bin"), { recursive: true });
   writeFileSync(join(repo, "node_modules/.bin/vitest"), STUB);
   chmodSync(join(repo, "node_modules/.bin/vitest"), 0o755);
@@ -79,9 +82,10 @@ const hook = (args, extra = {}, cwd = repo) => {
       STUB_TESTS: "",
       STUB_TIMES: "",
       STUB_UNHANDLED: "",
+      STUB_TITLE: "",
       SAMPLE_CHECK_EXIT: "",
-      CARETOOK_CHECK_STATE: state,
-      CARETOOK_CHECK_RERUN_MAX: "",
+      RISA_CHECK_STATE: state,
+      RISA_CHECK_RERUN_MAX: "",
       ...extra,
     },
   });
@@ -132,6 +136,22 @@ describe("check-hook.sh", () => {
     expect(hook(["full", "abc123", "2"]).ran).toEqual([`${TOOLS} --project tools:browser`]);
   });
 
+  it("fails the tooling step on the project-data check, with its lines, before any test", () => {
+    const inbox = join(repo, "work/inbox.md");
+    const text = readFileSync(inbox, "utf8");
+    rmSync(inbox);
+    try {
+      const r = hook(["slice", "abc123", "1"]);
+      expect(r.status).toBe(1);
+      expect(r.out).toContain("work/inbox.md: missing (paths.inbox)\n");
+      expect(r.out).toContain("the project-data check failed");
+      expect(r.step).toBe("tooling");
+      expect(r.ran).toEqual([]);
+    } finally {
+      writeFileSync(inbox, text);
+    }
+  });
+
   it("fails with no check hook in the config", () => {
     const cfg = JSON.parse(readFileSync(join(repo, "risa.json"), "utf8"));
     delete cfg.hooks;
@@ -172,11 +192,21 @@ describe("the check's tooling step reruns a failed test file", () => {
     expect(u.ran).toEqual([TOOLS]);
     const m = hook(["slice", "abc123", "1"], {
       STUB_TESTS: "a.test.mjs:1,b.test.mjs:1",
-      CARETOOK_CHECK_RERUN_MAX: "1",
+      RISA_CHECK_RERUN_MAX: "1",
     });
     expect(m.status).toBe(1);
     expect(m.failed).toEqual(["a.test.mjs", "b.test.mjs"]);
     expect(m.ran).toEqual([TOOLS]);
+  });
+  it("reruns when only a passing test's title says unhandled error (B-623, B-860)", () => {
+    const r = hook(["slice", "abc123", "1"], {
+      STUB_TESTS: "a.test.mjs:1",
+      STUB_TITLE: "doesn't rerun after an Unhandled Error or an unhandled error",
+    });
+    expect(r.status).toBe(0);
+    expect(r.flaky).toEqual(["a.test.mjs"]);
+    expect(r.out).not.toContain("an unhandled error, so no rerun");
+    expect(r.ran).toEqual([TOOLS, `run --no-file-parallelism --project tools:unit a.test.mjs`]);
   });
 });
 
@@ -205,6 +235,24 @@ describe("the check's tooling step's times", () => {
 });
 
 describe("check-tooling.mjs", () => {
+  it("finds an unhandled error only in Vitest's own report line, never in a test's title", () => {
+    expect(unhandledError("\nVitest caught 1 unhandled error during the test run.\nThis might cause")).toBe(
+      true,
+    );
+    expect(unhandledError("\x1b[31m\x1b[1m\nVitest caught 2 unhandled errors during the test run.")).toBe(
+      true,
+    );
+    expect(unhandledError("x\n\x1b[31mVitest caught 1 unhandled error during the test run.")).toBe(true);
+    expect(unhandledError("There were unhandled errors during test collection\n")).toBe(true);
+    expect(
+      unhandledError(
+        " ✓ scripts/x.test.mjs > the check > doesn't rerun after an unhandled error 12ms\n" +
+          " ✓ scripts/x.test.mjs > Unhandled Error and Unhandled Rejection are named 3ms\n" +
+          " ✓ a > says Vitest caught 1 unhandled error during the test run 1ms\n",
+      ),
+    ).toBe(false);
+  });
+
   it("names the projects, and none for a config with no tooling tests", () => {
     const config = { testProjects: { tooling: ["t:unit"], browserHarness: "t:browser" } };
     expect(checkProjects(config, false)).toEqual(["t:unit"]);

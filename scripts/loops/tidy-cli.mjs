@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pnpm prd tidy [--yes] [--json]: collects the facts tidy.mjs sorts, prints the
+// prd tidy [--yes] [--json]: collects the facts tidy.mjs sorts, prints the
 // safe and ask lists, and with --yes removes the safe ones and files the ask
 // list as one report in the asks queue.
 //
@@ -7,25 +7,27 @@
 //   --facts  the raw facts as JSON
 //   --yes    remove the safe ones (rm.sh, the testDb hook's drop-db, git fetch
 //            --prune, the stackLeftovers hook's remove, deleting tickets, logs and ended records,
-//            pnpm backlog archive for finished items), then
-//            file the ask list with `pnpm prd ask --report` (none when it's empty)
+//            backlog archive for finished items; a dead lease only through
+//            lease.sh's takeover, which keeps one retaken since), then
+//            file the ask list with `prd ask --report` (none when it's empty)
 //
 // Reading runs git, the hooks' read-only forms (stackEngine status, stackReady,
 // testDb facts and orphans, stackLeftovers), `lsof` (processes' working
 // directories and listening ports), `ps` and the backlog's
 // `list --json` and `prd list --json`; it writes nothing. The main checkout is
-// the repo this file is in. Env: TRUNK (dev), CARETOOK_SESSIONS_DIR,
-// CARETOOK_ASKS_DIR, CARETOOK_LEASE_ROOT.
+// the repo this file is in. Env: TRUNK (dev), RISA_SESSIONS_DIR,
+// RISA_ASKS_DIR, RISA_LEASE_ROOT.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describeRun, isTopicRun, outstandingRuns } from "../ci/outstanding.mjs";
 import { collectFacts, parentOf } from "./inventory-facts.mjs";
 import { isLive, processOf, readRecords } from "./sessions.mjs";
 import { formatTidy, reportText, tidy } from "./tidy.mjs";
 import { factList, runHook } from "./hooks.mjs";
-import { branchKinds } from "./config.mjs";
+import { branchKinds, loadConfig, toolCmd } from "./config.mjs";
+import { gh as hostGh } from "./host.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -92,7 +94,7 @@ export const unknownProcesses = (
 export function collectCiRefs(
   /** @type {string} */ main,
   /** @type {number} */ now,
-  gh = (/** @type {string[]} */ args) => run("gh", args, { cwd: main, timeout: 15_000 }),
+  gh = (/** @type {string[]} */ args) => hostGh(args, { cwd: main, timeout: 15_000 }),
 ) {
   const listed = run("git", ["-C", main, "ls-remote", "origin", "refs/heads/ci/*"], { timeout: 15_000 });
   if (!listed.ok) return [];
@@ -126,7 +128,9 @@ export function collectCiRefs(
  * unreadable lists nothing, so tidy never removes an entry on a guess.
  */
 export function collectQuarantineDone(/** @type {string} */ main) {
-  const text = git(main, ["show", "HEAD:scripts/ci/quarantine.txt"]);
+  const list = loadConfig().config.paths.quarantine;
+  if (!list) return [];
+  const text = git(main, ["show", `HEAD:${list}`]);
   const listed = run(process.execPath, [join(HERE, "../backlog/backlog.mjs"), "list", "--all", "--json"], {
     cwd: main,
     timeout: 15_000,
@@ -166,7 +170,7 @@ export function collectTidyFacts({
   outstanding = () =>
     outstandingRuns({
       git: (args) => git(main, args),
-      gh: (args) => run("gh", args, { cwd: main, timeout: 15_000 }),
+      gh: (args) => hostGh(args, { cwd: main, timeout: 15_000 }),
     }),
 } = {}) {
   const trunk = env.TRUNK || "dev";
@@ -230,7 +234,7 @@ export function collectTidyFacts({
     if (held) Object.assign(w, { held });
   }
 
-  const sessionsDir = env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions");
+  const sessionsDir = env.RISA_SESSIONS_DIR || join(loops, ".sessions");
   const sessions = readRecords(sessionsDir).map(({ name, record }) => {
     const m = /^(prd|plan|hotfix)-(.+)$/.exec(name);
     const worktree = m ? (m[1] === "prd" ? m[2] : `${m[1]}-${m[2]}`) : null;
@@ -348,6 +352,43 @@ export function collectTidyFacts({
   };
 }
 
+/**
+ * Removes the machine-wide lease at PATH (<root>/<kind>/<N>) only through
+ * lease.sh's takeover (lease_take_over): under the kind's `.takeover` mutex and
+ * after a fresh liveness check, so a lease taken again since tidy's snapshot
+ * stays. "removed" when it's gone, "kept" when it's still there (its holder is
+ * running, or another taker holds the mutex), "failed" when lease.sh failed.
+ */
+export function removeLease(/** @type {string} */ path, { env = process.env } = {}) {
+  const n = basename(path);
+  const kindDir = dirname(path);
+  const kind = basename(kindDir);
+  if (!/^\d+$/.test(n) || !/^[a-z][a-z0-9-]*$/.test(kind)) {
+    console.error(`tidy: ${path} isn't a lease (<root>/<kind>/<N>)`);
+    return "failed";
+  }
+  // lease_dir answers with this lease's own directory, wherever the kind's
+  // leases were moved to: the takeover acts on exactly the path tidy found.
+  const r = spawnSync(
+    "bash",
+    [
+      "-c",
+      'source "$1" && tidy_kind_dir=$4 && lease_dir() { echo "$tidy_kind_dir"; } && lease_take_over "$2" "$3"',
+      "tidy",
+      join(HERE, "lease.sh"),
+      kind,
+      n,
+      kindDir,
+    ],
+    { env, encoding: "utf8", stdio: ["ignore", "ignore", "pipe"] },
+  );
+  if (r.status !== 0) {
+    console.error(`tidy: lease.sh's takeover of ${path} failed${r.stderr ? `:\n${r.stderr.trim()}` : ""}`);
+    return "failed";
+  }
+  return existsSync(path) ? "kept" : "removed";
+}
+
 /** Removes the safe findings; returns how many failed. */
 function act(/** @type {ReturnType<typeof tidy>["safe"]} */ safe, /** @type {string} */ main) {
   let failed = 0;
@@ -437,10 +478,18 @@ function act(/** @type {ReturnType<typeof tidy>["safe"]} */ safe, /** @type {str
       case "volume":
         step(label, () => hook("stackLeftovers", ["remove", "volume", f.target]));
         break;
+      case "lease": {
+        // Through lease.sh's takeover, never from the snapshot: a lease retaken
+        // since it was read is live again and stays (B-442).
+        const r = removeLease(f.target);
+        if (r === "kept")
+          console.log(`kept ${label}: its holder is running again, or another taker is taking it over`);
+        else step(label, () => r === "removed");
+        break;
+      }
       case "record":
       case "hang-log":
       case "slot":
-      case "lease":
         step(label, () => {
           rmSync(f.path ?? f.target, { recursive: true, force: true });
           return true;
@@ -463,7 +512,9 @@ function main() {
     else if (a === "--json") mode = "json";
     else if (a === "--facts") mode = "facts";
     else if (a === "-h" || a === "--help") {
-      console.log("pnpm prd tidy [--yes] [--json]: list leftovers (safe, ask); --yes removes the safe ones");
+      console.log(
+        `${toolCmd.prd} tidy [--yes] [--json]: list leftovers (safe, ask); --yes removes the safe ones`,
+      );
       return;
     } else {
       console.error(`tidy: unknown argument ${a} (--yes, --json)`);
@@ -483,7 +534,7 @@ function main() {
   if (mode === "json") return console.log(JSON.stringify(lists, null, 2));
   console.log(formatTidy(lists));
   if (!yes) {
-    if (lists.safe.length) console.log("\nNothing changed. pnpm prd tidy --yes removes the safe ones.");
+    if (lists.safe.length) console.log(`\nNothing changed. ${toolCmd.prd} tidy --yes removes the safe ones.`);
     return;
   }
   console.log("");
@@ -506,12 +557,12 @@ function main() {
         stdio: ["ignore", "inherit", "inherit"],
         env: {
           ...process.env,
-          CARETOOK_ASKS_DIR: process.env.CARETOOK_ASKS_DIR || join(mainDir, ".loops/.asks"),
+          RISA_ASKS_DIR: process.env.RISA_ASKS_DIR || join(mainDir, ".loops/.asks"),
         },
       },
     );
     if (r.status !== 0) {
-      console.error("tidy: couldn't file the report (pnpm prd ask --report)");
+      console.error(`tidy: couldn't file the report (${toolCmd.prd} ask --report)`);
       process.exit(1);
     }
   } else console.log("Nothing to ask about: no report filed.");

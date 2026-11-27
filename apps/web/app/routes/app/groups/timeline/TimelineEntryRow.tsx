@@ -15,12 +15,13 @@ import {
   KindIcon,
   RepeatMark,
 } from "~/components/entry";
+import { QuickTags } from "~/components/tags";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
-import { CopyLinkButton } from "./CopyLinkButton";
-import { actionsLabel, entryLabel } from "./entryLabels";
+import { useCopyLink } from "./CopyLinkButton";
+import { actionsLabel, entryLabel, rowDayLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
@@ -56,14 +57,52 @@ export type EntryViewProps = {
   search?: ParsedSearch;
   /** Easy mode: the kind icon and the author aren't filters (rows only). */
   easy?: boolean;
+  /**
+   * Away from the timeline (a provider's linked entries; rows only): the kind
+   * icon and the author aren't filters (they'd point at the timeline's), and
+   * the day shows over the time, since the rows aren't grouped by day.
+   */
+  elsewhere?: boolean;
   /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
   openTodos?: number;
+  /**
+   * Its tags, from the list's one query (tags PRD): two chips, then "+N", for
+   * every role and in the easy view; × and "Add tag" for whoever may tag it
+   * (`RowTags`, tags-2).
+   */
+  tags?: readonly { id: string; name: string; color?: string | null }[];
 };
+
+const NO_TAGS: readonly { id: string; name: string }[] = [];
+
+/**
+ * A row's or card's tags (tags-2): `QuickTags` with two chips, then "+N",
+ * and a compact "Add tag", from the list's query (never one per row). Its
+ * taps sit above the stretched open target, so they never open the entry.
+ */
+export function RowTags({
+  entry,
+  tags,
+  className,
+}: Pick<EntryViewProps, "entry" | "tags"> & { className?: string }) {
+  return (
+    <QuickTags
+      target="entry"
+      recordId={entry.id}
+      label={entryLabel(entry)}
+      createdBy={entry.createdBy}
+      max={2}
+      tags={tags ?? NO_TAGS}
+      compact
+      className={className}
+    />
+  );
+}
 
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
- * to two lines, with "More"), then a right-hand column with the ⋯ menu and,
- * under it, the author's avatar (a filter).
+ * to two lines, with "More"), then a right-hand column with the ⋯ menu
+ * (Copy link for every role) and, under it, the author's avatar (a filter).
  */
 export function TimelineEntryRow({
   entry,
@@ -80,9 +119,13 @@ export function TimelineEntryRow({
   providers,
   search,
   easy,
+  elsewhere,
   openTodos,
+  tags,
 }: EntryViewProps) {
-  const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
+  const otherZone = formatTimeInZone(entry.occurredAt, entry.timeZone);
+  // Plain icon and author: easy mode, and away from the timeline.
+  const plain = easy || elsewhere;
   const cancelled = cancelledLabel(entry);
   return (
     <li
@@ -91,11 +134,16 @@ export function TimelineEntryRow({
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      {easy ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
+      {plain ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <time
         dateTime={entry.occurredAt}
-        className="text-muted w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
+        className={`text-muted ${elsewhere ? "w-[5.5rem]" : "w-[4.1rem]"} shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums`}
       >
+        {elsewhere && (
+          <span className="block" data-row-day="">
+            {rowDayLabel(entry.occurredAt, localTimeZone(), new Date())}
+          </span>
+        )}
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
         {/* A series visit: the mark under its time, so the text column stays aligned. */}
         {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
@@ -109,7 +157,7 @@ export function TimelineEntryRow({
         className={`pt-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         footer={
           <>
-            {elsewhere && <p className="text-faint text-xs">{elsewhere}</p>}
+            {otherZone && <p className="text-faint text-xs">{otherZone}</p>}
             {cancelled && <CancelledBadge label={cancelled} />}
             {entry.via && (
               <p className="inline-block">
@@ -117,27 +165,15 @@ export function TimelineEntryRow({
               </p>
             )}
             <OpenTodosMark count={openTodos} />
+            <RowTags entry={entry} tags={tags} className="mt-0.5" />
           </>
         }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
-      {!easy && <EntryCopyLink entry={entry} />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
-        {(onDelete || canHaveNoteDocument(entry.kind)) && (
-          <EntryActions
-            kind={entry.kind}
-            label={actionsLabel(entry)}
-            onEdit={onEdit}
-            cancel={cancel}
-            onRemind={onRemind}
-            printHref={
-              canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
-            }
-            onDelete={onDelete}
-          />
-        )}
-        {easy ? (
+        <EntryMenu entry={entry} onEdit={onEdit} cancel={cancel} onRemind={onRemind} onDelete={onDelete} />
+        {plain ? (
           <AuthorCircle
             userId={entry.createdBy}
             name={authorName}
@@ -152,13 +188,33 @@ export function TimelineEntryRow({
   );
 }
 
-/** An entry's copy-link button (rows and cards): its page, or its day for a kind without one. */
-export function EntryCopyLink({ entry }: { entry: TimelineEntry }) {
+/**
+ * An entry's ⋯ menu on rows and cards, with Copy link for every role (its
+ * page, or its day for a kind without one: `entryLinkPath`) and "Link copied"
+ * under it. It sits above the row's stretched open target (`relative z-10`).
+ */
+export function EntryMenu({
+  entry,
+  onEdit,
+  cancel,
+  onRemind,
+  onDelete,
+}: Pick<EntryViewProps, "entry" | "onEdit" | "cancel" | "onRemind" | "onDelete">) {
+  const link = useCopyLink(entryLinkPath(entry, localTimeZone()));
   return (
-    <CopyLinkButton
-      path={entryLinkPath(entry, localTimeZone())}
-      label={`Copy link to ${entryLabel(entry)}`}
-    />
+    <div className="relative z-10 flex shrink-0" data-copy-link="">
+      <EntryActions
+        kind={entry.kind}
+        label={actionsLabel(entry)}
+        onEdit={onEdit}
+        cancel={cancel}
+        onRemind={onRemind}
+        printHref={canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined}
+        onCopyLink={link.copy}
+        onDelete={onDelete}
+      />
+      {link.feedback}
+    </div>
   );
 }
 

@@ -72,14 +72,14 @@ function PendingInvite({
     <ListRow data-invite={invite.id} data-invite-status={invite.state} className="space-y-1">
       {/* The address shows in full, wrapping anywhere; the actions go below it on a phone, beside it from 28rem (B-843). */}
       <div className="flex items-start gap-3">
-        <Mail aria-hidden="true" className="text-base-content/60 mt-0.5 size-5 shrink-0" />
+        <Mail aria-hidden="true" className="text-faint mt-0.5 size-5 shrink-0" />
         <div className="@container min-w-0 flex-1">
           <div className="flex flex-col gap-2 @md:flex-row @md:items-center">
             <div className="min-w-0 flex-1 wrap-anywhere" data-invite-details="">
               <p className="font-medium" data-invite-email="">
                 {address}
               </p>
-              <p className="text-base-content/70 text-sm">
+              <p className="text-muted text-sm">
                 {roleLabel(invite.role)} · {inviteStatusLine(invite)}
               </p>
             </div>

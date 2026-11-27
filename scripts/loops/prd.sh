@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pnpm prd <command>: one front door for running PRDs in parallel worktrees.
+# prd <command>: one front door for running PRDs in parallel worktrees.
 # Run it from any worktree. Each command is a thin wrapper; the scripts beside
 # this one document the details.
 set -euo pipefail
@@ -15,12 +15,13 @@ use_node || true
 
 usage() {
   cat <<USAGE
-pnpm prd <command>
+${prd_cmd} <command>
 
   See what's going on
     status                    every worktree: branch, changes, dev server link; sessions (managed or by hand);
-                              the dispatcher (running, paused and why, stopped; its last line); lease holders; the load;
-                              the workers (each lease, pnpm prd command and slice agent: age, usual time, state)
+                              the dispatcher (running, paused and why, stopped; its last line) and its code (current or
+                              stale); lease holders; the load;
+                              the workers (each lease, ${prd_cmd} command and slice agent: age, usual time, state)
     status-watch [seconds]    status, redrawn every few seconds (default 5) until Ctrl-C
     watch [topic] [--json] [--wait [--timeout <s>]]   each slice agent's state (ok, slow, quiet, no-progress,
                               stopped, unknown) and the next action (none, nudge, restart, skeptic); --wait
@@ -31,36 +32,41 @@ pnpm prd <command>
 
   Start and stop work
     start <topic>             create (or resume) a PRD's worktree and stack; prints how to open its orchestrator
+    anchors [topic] [--base <ref>]   the plan's anchors on <ref> (default $trunk), run at PRD start: every
+                              backticked path in an unmerged slice exists there and every symbol named
+                              beside a path is in that file; only warns (exit 0): the misses, line numbers
     dispatch [--every <s>]    the dispatcher, left in a tab of its own: every minute it plans, starts and
-                              reopens PRDs by itself, one action a tick, in the registry's row order
+                              reopens PRDs by itself, one action a tick, in the registry's row order; new code
+                              on the main checkout re-execs it between ticks
     dispatch --once|--dry-run one tick; --dry-run only shows the next action and every reason
     dispatch --pause [<why>]|--resume|--stop   the brakes, from any shell (the hold flag is the row's)
     queue <topic>             put the topic first in the PRD registry and return: the dispatcher takes it next
-                              (or, with none running, says to start one or pnpm prd start <topic>)
+                              (or, with none running, says to start one or ${prd_cmd} start <topic>)
     plan <topic> [--open] [${backlog_id_prefix}n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
-                              (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
+                              (on opus, a \`design\` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next; its Remote Control
                               name and tab title are a captain's, a new one each session; its record stays backlog)
     inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
                               adds, rewords, moves or removes inbox lines on origin/dev; Opus at low effort
                               (--model <m>: another model, this session only; a reopen or rotation is Opus),
-                              Remote Control "inbox", opened in its own directory outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
+                              Remote Control "inbox", opened in its own directory outside the repository (\$RISA_INBOX_DIR, default ~/.risa/inbox; created);
                               the dispatcher keeps it open once you have opened it by hand and trusted the folder
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on ${hotfix_prefix}<name> from dev, for a fix
                               outside any PRD (reused if it exists); --open starts its session here
                               (on opus; --model <m> for another model)
                               (prompt hotfix <name> ["<the fix>"] is that session's first prompt)
-                              (pnpm prd check there, then pnpm prd land ${hotfix_prefix}<name> on your word)
+                              (${prd_cmd} check there, then ${prd_cmd} land ${hotfix_prefix}<name> on your word)
     stack up|down [name]      add or remove a worktree's dev stack (slot, env files, Compose, seed)
     rm <name> [--force]       remove a worktree, its stack, its test database and, if merged, its branch
+                              (from inside a ${prd_prefix} or ${plan_prefix} worktree, by its own session: then ends it)
     gc [--list|--yes]         merged slice worktrees and stacks stopped over a day: list, ask, remove
     reclaim [--list|--yes]    disk: merged worktrees, dangling Docker volumes and images, check builds and
                               Vite caches, with sizes; frees them after a yes
     tidy [--yes] [--json]     leftovers sorted into safe (merged slice and landed plan worktrees, dead tickets,
-                              orphan test databases, stale remote refs, dangling caretook volumes, old hang
+                              orphan test databases, stale remote refs, dangling stack volumes, old hang
                               logs, ended records, finished items whose topic has no ${prd_prefix} worktree) and ask
                               (finished-looking live sessions, branches without a worktree, registry rows
                               that look done); --yes removes the safe
@@ -78,7 +84,7 @@ pnpm prd <command>
     down                      before a planned restart: record what's up (the dispatcher too), stop the
                               dispatcher, servers, stacks, the test Postgres
     down --stay [<why>]       the same, and stay down: nothing brings it back by itself (the watchdog,
-                              recover --unattended) until pnpm prd recover by hand
+                              recover --unattended) until ${prd_cmd} recover by hand
     autostart install|remove|status   the LaunchAgent (yours to install) that runs the watchdog at login and
                               every 5 minutes from the main checkout; status: loaded, each tool on its PATH
     watchdog [--dry-run [--json]]   recover --unattended only on a reboot or crash (a down record older than
@@ -89,7 +95,7 @@ pnpm prd <command>
                               backlog and recovery sessions (main checkout) always open fresh
                               (--background: iTerm2 stays where it is and the selected tab stays selected)
     end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
-                              orchestrator or planner, after pnpm prd rm); its tab closes
+                              session; ${prd_cmd} rm ends a finished orchestrator or planner itself); its tab closes
     bye [--dry-run] [--json]  a session's hand-over check, when the user says just "bye": clean (no uncommitted or
                               unpushed work, worktree, branch, stack, server, running lease, background job or open
                               question of its own left), it prints the hand-off line, releases its leases and ends the
@@ -98,7 +104,7 @@ pnpm prd <command>
                               alone for 30 minutes; --all lists every live session
     usage [--json]            the plan's usage limits as the sessions' status lines last read them: the 5-hour
                               and weekly (a gateway's spend limit too) use and reset times, unknown when no
-                              reading is newer than \$CARETOOK_USAGE_STALE_MIN (15) min, and the sessions
+                              reading is newer than \$RISA_USAGE_STALE_MIN (15) min, and the sessions
                               stopped on a rate limit (.loops/.usage/<session>.json)
     rotate [<topic>] [--mid-wave] [--reason <text>]   replace an orchestrator's session with a fresh one
     rotate --self [--brief <file>]    replace the calling backlog session (or orchestrator) with a fresh one
@@ -110,13 +116,16 @@ pnpm prd <command>
 
     doc <role> [section]      a role's doc as its sessions read it (the generic doc, then the project's
                               additions; or its replacement), or one section of it; no role: the roles
+    project-check             the project's own data through the core's readers (the config's paths, tier
+                              data, check plan rules, CI lists, role docs, never list, gates, boundary);
+                              one line per problem, exit 1 on any; the tooling tests and the check run it first
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
     ask --topic <t> --question <text> --skeptic <id> [--option <a>]… [--recommend <a|n> --defaults|--waits]
                               file a question past a skeptic (the dispatcher's own need none); prints its id and the PushNotification line to send; a macOS
-                              notification, and \$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text> when set
+                              notification, and \$RISA_ASK_NOTIFY <id> <kind> <topic> <text> when set
                               (failures ignored). With a recommendation, --defaults takes it after
-                              \$CARETOOK_ASK_DEFAULT_MIN (30) min unanswered; --waits (money, data, a live
+                              \$RISA_ASK_DEFAULT_MIN (30) min unanswered; --waits (money, data, a live
                               deploy, a destructive step, a new dependency, compliance) waits however long
     ask --decided --skeptic <id> --topic <t> --question <text> --option <a>… --chose <a|n>   file what a
                               skeptic decided: settled, never pushed, listed under decided for you
@@ -138,7 +147,7 @@ pnpm prd <command>
                               [--slice <n> --defaults|--waits]   (stall; --waits: a never-list step)
                               record its answer (ask: decide, ask; land: go, no; plan: go, send-back;
                               stall: restart, leave, ask);
-                              prints the id; counts for \$CARETOOK_SKEPTIC_MAX_MIN (60) min
+                              prints the id; counts for \$RISA_SKEPTIC_MAX_MIN (60) min
     skeptic [list] [--topic <t>] [--json]   the verdicts, oldest first
 
   Notices (one-way lines for other sessions, in the main checkout's .loops/.notices; nothing waits on them)
@@ -152,15 +161,14 @@ pnpm prd <command>
 
   Inside a worktree (name or topic defaults to the one you're in)
     serve [name] [--restart|--stop|--built|--dev]   its server in the background (--built: a check build)
-    check [--quick "<why>"]   pnpm check (at most two at once machine-wide; CARETOOK_CHECK_SLOTS), timed in
+    check [--quick "<why>"]   pnpm check (at most two at once machine-wide; RISA_CHECK_SLOTS), timed in
                               .loops/.check-times.log, and record that
                               this commit passed; --quick: typecheck, lint, format, every unit test, and the
                               integration and component test files the diff adds or edits, recorded with its
                               reason. On a ${slice_prefix} branch that is all (the slice check, against its ${prd_prefix}
                               branch). On a ${prd_prefix} or ${hotfix_prefix} branch it adds the integration tests related to
-                              the diff since the last full pass, and a diff touching a migration, seeds, the
-                              sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
-                              check; the tooling tests join when the diff touches the tooling
+                              the diff since the last full pass. It stays quick: what the diff needs beyond it
+                              is the landing's CI tier (\`tier\`); the tooling tests join when the diff touches the tooling
                               (docs and tooling-only changes need neither: prd doc orchestrator "The check gate")
     status-trim [topic] [--dry-run] [--next]   keep the plan's _Status_ short (after each landing): move the
                               hand-offs but the latest, and a fixes plan's landed waves (their paragraphs and
@@ -186,8 +194,9 @@ pnpm prd <command>
   CI (runs only on request; nothing starts it on a push to dev, staging or main, or on a PR)
     ci run <tier> [--ref <branch>] [--files <file>…] [--wait [min]]   push the commit to ci/<tier>/<branch>, which runs that tier (--files: only those test files, a verdict that is never a gate)
                               (static, unit, integration, components, full; each includes the ones before);
-                              --wait blocks for the verdict (0 green, 1 not green, 75 at the timeout)
-    ci [<branch>]             the latest whole-tier verdict for the branch's tip
+                              --wait blocks for the verdict, exiting by its kind: 0 green, 1 brake, 2 file,
+                              3 flake, 4 infra, 5 unknown, 6 time; 75 at the timeout
+    ci [<branch>]             the latest whole-tier verdict for the branch's tip (exits by kind, as above)
     tier [--base <ref>]       the CI tier this worktree's commits propose against <ref> (default $trunk), and why
 
   Land
@@ -211,12 +220,12 @@ pnpm prd <command>
                               a clean verdict carries over a plain dev merge
     pr <topic|${hotfix_prefix}name> [-m subject] [--tier <t> [--why "<reason>"]]   push dev (fast-forward only) and the branch, then open its PR into
                               dev, or update the open one (title: the landing subject; body: backlog items,
-                              the check pass); ${plan_prefix} branches are refused
+                              the tier and its CI verdict on the tip); ${plan_prefix} branches are refused
     dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
                               it): fast-forward, replay unshared backlog commits, or merge; never stops on the inbox
 
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
-                     recover: the recovery agent (pnpm prd recover opens it)
+                     recover: the recovery agent (${prd_cmd} recover opens it)
                      tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
                      skeptic ask|land|plan|stall --evidence <file>: the brief for a fresh skeptic
                      orchestrator <topic> --resume [--auto]: take over after an interruption
@@ -228,17 +237,17 @@ cmd=${1:-help}; (($#)) && shift
 # The notice board (notice.mjs): other sessions' live notices on stderr, five
 # lines at most, before the commands that touch shared work. It never fails
 # the command (an unreadable board prints nothing).
-notices_dir=${CARETOOK_NOTICES_DIR:-$loops/.notices}
+notices_dir=${RISA_NOTICES_DIR:-$loops/.notices}
 here_session() {
   local h; h=$(here_name)
-  if [[ -n ${CARETOOK_SESSION:-} ]]; then echo "$CARETOOK_SESSION"
+  if [[ -n ${RISA_SESSION:-} ]]; then echo "$RISA_SESSION"
   elif [[ $h == plan-* ]]; then echo "$h"
   elif [[ -n $h ]]; then echo "prd-$(topic_of "$h")"; fi
 }
 case $cmd in
   check | sync | slice | browser | pr | ready | land)
     [[ $cmd == check && " $* " == *" --times "* ]] ||
-      CARETOOK_NOTICES_DIR=$notices_dir node "$bin/notice.mjs" gate --self "$(here_session 2>/dev/null)" 1>&2 2>/dev/null || true
+      RISA_NOTICES_DIR=$notices_dir node "$bin/notice.mjs" gate --self "$(here_session 2>/dev/null)" 1>&2 2>/dev/null || true
     ;;
 esac
 case $cmd in
@@ -250,7 +259,7 @@ case $cmd in
     while :; do
       # Collect first, then redraw, so the screen never sits empty while ls.sh
       # runs. A failed poll shows its error and the watch carries on.
-      out=$("$bin/ls.sh" 2>&1) || out+=$'\n'"(pnpm prd status failed; retrying)"
+      out=$("$bin/ls.sh" 2>&1) || out+=$'\n'"(${prd_cmd} status failed; retrying)"
       [[ -t 1 ]] && printf '\033[H\033[2J\033[3J'
       printf '%s\n\n%s  ·  every %ss  ·  Ctrl-C to stop\n' "$out" "$(date '+%H:%M:%S')" "$every"
       sleep "$every"
@@ -261,12 +270,12 @@ case $cmd in
     t=""
     [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
     if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "watch: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
-    CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks} \
+    RISA_SESSIONS_DIR=${RISA_SESSIONS_DIR:-$loops/.sessions} RISA_ASKS_DIR=${RISA_ASKS_DIR:-$loops/.asks} \
       exec node "$bin/watch.mjs" "$t" "$@" ;;
   metrics)
-    exec node "$bin/metrics.mjs" --run-log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
-      --check-log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" \
-      --flake-log "${CARETOOK_BROWSER_FLAKES:-$loops/.browser-flakes.log}" "$@" ;;
+    exec node "$bin/metrics.mjs" --run-log "${RISA_RUN_LOG:-$loops/.run-log.jsonl}" \
+      --check-log "${RISA_CHECK_LOG:-$loops/.check-times.log}" \
+      --flake-log "${RISA_BROWSER_FLAKES:-$loops/.browser-flakes.log}" "$@" ;;
   land) exec "$bin/land.sh" "$@" ;;
   # The project's dev server and test database, through the config's hooks.
   serve) stack_hook serve "$@"; exit $? ;;
@@ -285,26 +294,33 @@ case $cmd in
   test-db | testdb) stack_hook testDb "$@"; exit $? ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
   doc) exec node "$bin/doc.mjs" "$@" ;;
-  queue) exec node "$bin/queue.mjs" "$@" ;;
+  project-check) exec node "$bin/project-check.mjs" "$@" ;;
+  queue) work_switch queue; exec node "$bin/queue.mjs" "$@" ;;
   status-trim)
     t=""
     [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
     if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "status-trim: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
     exec node "$bin/status-trim.mjs" "$t" "$@"
     ;;
+  anchors)
+    t=""
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
+    if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "anchors: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
+    exec node "$bin/anchors.mjs" "$t" --base "$trunk" --plans "$(config_get paths.plans)" "$@"
+    ;;
   dispatch) exec node "$bin/dispatch.mjs" "$@" ;;
   recover) exec "$bin/recover.sh" "$@" ;;
   down) exec "$bin/down.sh" "$@" ;;
   autostart) exec node "$bin/autostart.mjs" "$@" --main "$main" ;;
-  watchdog) CARETOOK_USAGE_DIR=${CARETOOK_USAGE_DIR:-$loops/.usage} exec node "$bin/watchdog.mjs" --main "$main" "$@" ;;
+  watchdog) RISA_USAGE_DIR=${RISA_USAGE_DIR:-$loops/.usage} exec node "$bin/watchdog.mjs" --main "$main" "$@" ;;
   open) exec "$bin/open-session.sh" "$@" ;;
   end) exec "$bin/end-session.sh" "$@" ;;
   bye) exec node "$bin/bye.mjs" "$@" ;;
   rotate) exec "$bin/rotate.sh" "$@" ;;
   context) exec node "$bin/context.mjs" "$@" ;;
   session)
-    CARETOOK_REQUESTS_DIR=${CARETOOK_REQUESTS_DIR:-$loops/.requests} \
-      CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} \
+    RISA_REQUESTS_DIR=${RISA_REQUESTS_DIR:-$loops/.requests} \
+      RISA_SESSIONS_DIR=${RISA_SESSIONS_DIR:-$loops/.sessions} \
       exec node "$bin/session-requests.mjs" "$@"
     ;;
   review) exec "$bin/review.sh" "$@" ;;
@@ -313,8 +329,8 @@ case $cmd in
     tbase=$trunk
     while (($#)); do
       case $1 in
-        --base) tbase=${2:?"usage: pnpm prd tier [--base <ref>]"}; shift 2 ;;
-        *) die "usage: pnpm prd tier [--base <ref>]" ;;
+        --base) tbase=${2:?"usage: ${prd_cmd} tier [--base <ref>]"}; shift 2 ;;
+        *) die "usage: ${prd_cmd} tier [--base <ref>]" ;;
       esac
     done
     tip=$(git rev-parse HEAD) || die "not in a git worktree"
@@ -346,11 +362,12 @@ case $cmd in
       (($# <= 1)) || die "plan: give a topic before other arguments"
       wrapper=$(cd "$bin" && pwd)/session.sh
       # Its display name is a captain's (captain.mjs), unlike the last; the record stays backlog.
-      captain=$(CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} node "$bin/captain.mjs" next) ||
+      captain=$(RISA_SESSIONS_DIR=${RISA_SESSIONS_DIR:-$loops/.sessions} node "$bin/captain.mjs" next) ||
         die "plan: couldn't pick the backlog session's captain"
       cd "$main" && exec "$wrapper" backlog --kind backlog -- \
-        ${model_args[@]+"${model_args[@]}"} --remote-control "$captain" "$(CARETOOK_CAPTAIN=$captain "$bin/prompt.sh" backlog)"
+        ${model_args[@]+"${model_args[@]}"} --remote-control "$captain" "$(RISA_CAPTAIN=$captain "$bin/prompt.sh" backlog)"
     fi
+    work_switch plan
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
       case $a in
@@ -378,7 +395,7 @@ case $cmd in
     # --dir and --managed are the reopen's and rotation's (open-session.mjs,
     # rotate-into.sh): the recorded directory, and the dispatcher's record. They
     # pass no --model, so a reopen or rotation is always on inbox_model.
-    model=$inbox_model dir=${CARETOOK_INBOX_DIR:-$HOME/.caretook/inbox} managed=()
+    model=$inbox_model dir=${RISA_INBOX_DIR:-$HOME/.risa/inbox} managed=()
     while (($#)); do
       case $1 in
         --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "inbox: --model needs a model name (e.g. opus)"; model=$2; shift ;;
@@ -393,12 +410,12 @@ case $cmd in
     [[ -d $dir ]] || { mkdir -p "$dir" || die "inbox: can't create $dir"; fresh=1; }
     dir=$(cd "$dir" && pwd -P)
     if top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null); then
-      die "inbox: $dir is inside the git repository $top, where AGENTS.md would load; set CARETOOK_INBOX_DIR to a directory outside any repository"
+      die "inbox: $dir is inside the git repository $top, where AGENTS.md would load; set RISA_INBOX_DIR to a directory outside any repository"
     fi
     d=$dir
     while :; do
       for f in CLAUDE.md CLAUDE.local.md AGENTS.md; do
-        [[ ! -e $d/$f ]] || die "inbox: $d/$f would load into the inbox session; set CARETOOK_INBOX_DIR to a directory with none above it"
+        [[ ! -e $d/$f ]] || die "inbox: $d/$f would load into the inbox session; set RISA_INBOX_DIR to a directory with none above it"
       done
       [[ $d != / ]] || break
       d=$(dirname "$d")
@@ -408,9 +425,9 @@ case $cmd in
     prompt_text=$("$bin/prompt.sh" inbox)
     cd "$dir" && exec "$wrapper" inbox --kind inbox ${managed[@]+"${managed[@]}"} -- --model "$model" --remote-control inbox "$prompt_text"
     ;;
-  slice) exec "$bin/new.sh" slice "$@" ;;
+  slice) work_switch slice; exec "$bin/new.sh" slice "$@" ;;
   hotfix)
-    name=${1:?"usage: pnpm prd hotfix <name> [--open] [--model <m>] [\"<the fix>\"]"}; shift; open=0 fix="" model=$agent_model
+    name=${1:?"usage: ${prd_cmd} hotfix <name> [--open] [--model <m>] [\"<the fix>\"]"}; shift; open=0 fix="" model=$agent_model
     while (($#)); do
       case $1 in
         --open) open=1 ;;
@@ -434,6 +451,7 @@ case $cmd in
     ;;
   start)
     topic=${1:?topic}
+    work_switch start
     if [[ -d $loops/$topic ]]; then
       echo "Worktree $topic already exists at $loops/$topic."
       echo
@@ -454,9 +472,9 @@ case $cmd in
         esac
         shift
       done
-      exec node "$bin/check-times.mjs" --log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" ${since:+--since "$since"}
+      exec node "$bin/check-times.mjs" --log "${RISA_CHECK_LOG:-$loops/.check-times.log}" ${since:+--since "$since"}
     fi
-    name=$(here_name); [[ -n $name ]] || die "run pnpm prd check inside a .loops worktree"
+    name=$(here_name); [[ -n $name ]] || die "run ${prd_cmd} check inside a .loops worktree"
     dir=$loops/$name; quick=0 why=""
     while (($#)); do
       case $1 in
@@ -488,7 +506,7 @@ case $cmd in
     { read -r pmode || true; read -r ptooling || true; read -r pown || true; } <<< "$plan"
     [[ -n $pmode ]] || die "check: the check plan (check-plan.mjs) gave no mode, so no check ran"
     rm -f "$record"
-    # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
+    # A check lease (lease.sh; RISA_CHECK_SLOTS, default 2) around it, so a
     # wave of loops finishing together doesn't run every pnpm check at once.
     # The project's check (the config's check hook) prints its own steps;
     # check-hook.sh runs it, then the tooling tests when the plan says so.
@@ -506,7 +524,7 @@ case $cmd in
     fi
     ;;
   sync)
-    name=$(here_name); [[ -n $name ]] || die "run pnpm prd sync inside a PRD's worktree"
+    name=$(here_name); [[ -n $name ]] || die "run ${prd_cmd} sync inside a PRD's worktree"
     dir=$loops/$name; branch=$(git -C "$dir" branch --show-current)
     [[ $branch == "$prd_prefix"* || $branch == "$plan_prefix"* || $branch == "$hotfix_prefix"* ]] ||
       die "$branch isn't a $prd_prefix, $plan_prefix or $hotfix_prefix branch"
@@ -520,7 +538,7 @@ case $cmd in
       *) die "sync: unknown option $1 (--force merges even when dev's changes don't need it)" ;;
     esac
     # CI reads the branch's own copy of its two lists, so a sync always brings
-    # dev's in. A list-only change keeps the recorded check (keeps_check).
+    # dev's in. A list-only change keeps a CI verdict (check-plan.mjs, keepsVerdict).
     lists=$(trunk_lists "$branch")
     if [[ -z $(trunk_drift "$branch") && -z $lists ]]; then
       echo "$branch is up to date with $trunk (only backlog commits are newer, if any)"
@@ -535,16 +553,16 @@ case $cmd in
         git -C "$dir" commit -q -m "chore(${branch#*/}): take $trunk's CI lists" -- $lists
         echo "Took $trunk's CI lists ($(echo $lists | tr ' ' ',')) into $branch"
       fi
-      echo "$branch needs no merge: $trunk's changes share no file with it and bring nothing risky. No recheck needed (pnpm prd sync --force merges anyway, when you need that code)"
+      echo "$branch needs no merge: $trunk's changes share no file with it and bring nothing risky. No recheck needed (${prd_cmd} sync --force merges anyway, when you need that code)"
     else
       git -C "$dir" merge --no-ff -m "chore(${branch#*/}): merge $trunk into $branch" "$trunk"
-      echo "Merged $trunk into $branch. If seeds or migrations changed: $(project_command datastoreReset). Then: pnpm prd check"
+      echo "Merged $trunk into $branch. If seeds or migrations changed: $(project_command datastoreReset). Then: ${prd_cmd} check"
     fi
     ;;
   ask | asks | answer)
     # The asking session and topic default to the worktree's: plan-<t> → plan-<t>, else prd-<topic>.
-    export CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks}
-    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
+    export RISA_ASKS_DIR=${RISA_ASKS_DIR:-$loops/.asks}
+    export RISA_SKEPTIC_DIR=${RISA_SKEPTIC_DIR:-$loops/.skeptic}
     here=$(here_name) here_args=()
     if [[ $cmd == ask && -n $here ]]; then
       if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
@@ -554,7 +572,7 @@ case $cmd in
     ;;
   skeptic)
     # The recording session and topic default to the worktree's, as for ask.
-    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
+    export RISA_SKEPTIC_DIR=${RISA_SKEPTIC_DIR:-$loops/.skeptic}
     here=$(here_name) here_args=()
     if [[ ${1:-} == record && -n $here ]]; then
       if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
@@ -569,9 +587,9 @@ case $cmd in
       if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
       else here_topic=$(topic_of "$here"); here_args=(--here-topic "$here_topic" --here-session "prd-$here_topic"); fi
     fi
-    CARETOOK_NOTICES_DIR=$notices_dir exec node "$bin/notice.mjs" "$cmd" "$@" ${here_args[@]+"${here_args[@]}"}
+    RISA_NOTICES_DIR=$notices_dir exec node "$bin/notice.mjs" "$cmd" "$@" ${here_args[@]+"${here_args[@]}"}
     ;;
-  usage) CARETOOK_USAGE_DIR=${CARETOOK_USAGE_DIR:-$loops/.usage} exec node "$bin/usage.mjs" "$@" ;;
+  usage) RISA_USAGE_DIR=${RISA_USAGE_DIR:-$loops/.usage} exec node "$bin/usage.mjs" "$@" ;;
   help | -h | --help) usage ;;
   *) usage >&2; exit 1 ;;
 esac

@@ -4,12 +4,17 @@
 
 ## Status
 
-**Where it stands (2026-11-25): planned, held** with `todo-subtasks` (lift with `pnpm backlog prd set todo-subtasks-2 flags-=hold`). Runs after `todo-subtasks`.
+**Where it stands (2026-11-26): wave 2 green, PR #229 open, landing.** Landing mode: **run everything through** (started run-through; land each green wave, ask only real questions). Models: slices on opus. `todo-subtasks` is done (landed bacd6b65).
 
-| Slice | Wave | State   | Merge into `prd/todo-subtasks-2` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------ |
-| 1     | 1    | planned |                                                  |
-| 2     | 2    | planned |                                                  |
+**Wave 1 (2026-11-26):** ingest: nothing new for this topic (B-914 flavor packs is unrelated). Sync: up to date with dev. B-550 is still owned by `prd/todo-subtasks` (a forced claim was blocked; that topic is done, so left as is). Worktree `.loops/todo-subtasks-2-1` made (no stack); slice 1 agent (opus) spawned with todo-subtasks' notes (`subtaskProgressQuery` + `progressByParent`, `TodoTick` `progress`, `TodoParentLink`). Watch running. Slice 1 handed off (6955c09e; quick check passed), merged at 9c2effa9. Notes for slice 2: `TodoProgressMark`, `TodoPartOf` (components/todos/TodoTreeMarks), `parentsById` + `progressByParent` from the one `subtaskProgressQuery` (now joins the parent's title), `TodosFilter.listed`, `TodoTick` `showCount`; list rows disable a waiting parent's tick. Docs to fold: todos.md ("Only the todo page feeds it yet" stale), components.md (the marks). Docs folded (d0ea9cd6; todos.md 10,231 B, components.md 10,229 B). Gate green: `components` run 45867409043 on c895b271. Slice 1 worktree removed. Sync: no merge needed. `prd browser --changed`: none needed. PR #228; Codex out of credits: landing `--no-review`.
+
+**Wave 1 landed** in `dev` as 8e4bfba8 through PR #228, tier `components` (run 45867409043 on c895b271, green), **without Codex (out of credits)**; landed unsynced (dev's 2 commits shared no file). to-test `to-test/2026-11-26-1234-todo-subtasks-2.md`. Lean browser suite not run (standing rule: ask before `--suite`; `--changed` named none).
+**Wave 2 (2026-11-26):** fresh session after rotation; no cut-off landing. Ingest: nothing new. Sync: no merge needed. Anchors ok. Worktree `.loops/todo-subtasks-2-2` made (no stack); slice 2 agent (opus) spawned with slice 1's notes. Slice 2 handed off (076b1b2b; quick check passed), merged at 21e619f8; B-550 marked done. Docs to fold: appointments.md (Planner rows' marks), timeline.md (Easy My todos' marks and `listed`, the strip's rule). Today card strip has the rule but no row marks (single line). Docs folded (db6a77e3; all three under 10,240 B). Gate green: `components` run 45870183061 on 78d84f3c. Slice 2 worktree removed. Sync merged dev (00d00274; tooling plus app test fixtures): `components` recheck requested. `prd browser --changed`: none needed; lean suite not run (ask before `--suite`). PR #229; Codex review waiting.
+
+| Slice | Wave | State  | Merge into `prd/todo-subtasks-2` (slice commits) |
+| ----- | ---- | ------ | ------------------------------------------------ |
+| 1     | 1    | landed | 9c2effa9 (6955c09e)                              |
+| 2     | 2    | merged | 21e619f8 (076b1b2b)                              |
 
 ## Architectural decisions
 

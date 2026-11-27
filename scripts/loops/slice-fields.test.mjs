@@ -1,7 +1,7 @@
 // The slice fields parser, through its exports and its command line.
 import { execFileSync, spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { formatFields, sliceFields, splitList } from "./slice-fields.mjs";
+import { formatFields, lineAnchors, sliceFields, sliceSections, splitList } from "./slice-fields.mjs";
 
 const CLI = new URL("./slice-fields.mjs", import.meta.url).pathname;
 
@@ -23,7 +23,7 @@ Stack: yes · Reads: docs/loops.md, AGENTS.md (all of it, once) · Tests: unit, 
 
 ## Slice 3: Some given, other separators
 
-Reads: docs/domain/sync.md; tests: component
+Reads: handbook/sync.md; tests: component
 
 ## Slice 4: Malformed
 
@@ -34,6 +34,18 @@ Stack: maybe · Colour: blue · Tests:
 Some text first.
 
 Stack: yes
+
+## Slice 6: Blocked by
+
+Stack: no · Reads: none · Tests: unit · Blocked by: slice 3, 4
+
+## Slice 7: Blocked by, other forms
+
+Stack: no · Tests: unit · blocked  BY: none · Colour: blue
+
+## Slice 8: Blocked by, malformed
+
+Blocked by: 2, later · Stack: no · Reads: none · Tests: unit
 
 ## Slice 12: Two digits
 
@@ -63,7 +75,7 @@ describe("sliceFields", () => {
 
   it("accepts ; and | separators and any case", () => {
     const f = sliceFields(plan, 3);
-    expect(f).toMatchObject({ stack: false, reads: ["docs/domain/sync.md"], tests: ["component"] });
+    expect(f).toMatchObject({ stack: false, reads: ["handbook/sync.md"], tests: ["component"] });
     expect(f.missing).toEqual(["stack"]);
     expect(sliceFields(plan, 12)).toMatchObject({
       stack: false,
@@ -87,6 +99,21 @@ describe("sliceFields", () => {
     );
   });
 
+  it("knows Blocked by, parses its value and still warns on an unknown field", () => {
+    const f = sliceFields(plan, 6);
+    expect(f).toMatchObject({ stack: false, tests: ["unit"], blockedBy: [3, 4], missing: [], warnings: [] });
+    const g = sliceFields(plan, 7);
+    expect(g.blockedBy).toEqual([]);
+    expect(g.warnings).toEqual(['unknown field "Colour"', "no Reads field"]);
+    expect(sliceFields(plan, 1).blockedBy).toEqual([]);
+  });
+
+  it("warns on a Blocked by that isn't slice numbers, and starts a fields line with it", () => {
+    const f = sliceFields(plan, 8);
+    expect(f).toMatchObject({ tests: ["unit"], blockedBy: [2], missing: [] });
+    expect(f.warnings).toEqual(['Blocked by takes slice numbers, not "later"']);
+  });
+
   it("only reads fields directly under the heading", () => {
     const f = sliceFields(plan, 5);
     expect(f.stack).toBe(false);
@@ -94,9 +121,9 @@ describe("sliceFields", () => {
   });
 
   it("says when the slice isn't in the plan", () => {
-    const f = sliceFields(plan, 7);
+    const f = sliceFields(plan, 9);
     expect(f.found).toBe(false);
-    expect(f.warnings).toEqual(['no "Slice 7" heading in the plan']);
+    expect(f.warnings).toEqual(['no "Slice 9" heading in the plan']);
     // "Slice 1" doesn't match "Slice 12", nor the other way round
     expect(sliceFields(plan, 12).found).toBe(true);
   });
@@ -117,11 +144,37 @@ describe("splitList", () => {
   });
 });
 
+describe("lineAnchors", () => {
+  it("finds a line number beside a file, or alone in a code span", () => {
+    expect(lineAnchors("Change `scripts/loops/file.mjs ~158`, then file.mjs:231 and `:231`.")).toEqual([
+      "scripts/loops/file.mjs ~158",
+      "file.mjs:231",
+      "`:231`",
+    ]);
+    expect(lineAnchors("see `land.sh` line 40")).toEqual(["land.sh` line 40"]);
+  });
+
+  it("leaves plain numbers in prose alone", () => {
+    expect(lineAnchors("Rotate past ~120k; 3 files in `land.sh`, port :5436, 10:30, slice 158.")).toEqual([]);
+  });
+});
+
+describe("sliceSections", () => {
+  it("gives each slice's body, to the next heading of its level or above", () => {
+    const text =
+      "## Wave 1\n\n### Slice 1: a\n\nx\n\n#### Notes\n\ny\n\n### Slice 2: b\n\nz\n\n## Wave 2\n\nw";
+    expect(sliceSections(text).map((s) => [s.n, s.body.trim()])).toEqual([
+      [1, "x\n\n#### Notes\n\ny"],
+      [2, "z"],
+    ]);
+  });
+});
+
 describe("the command line", () => {
   it("prints the fields of a plan on stdin, with warnings on stderr", () => {
     const r = spawnSync("node", [CLI, "3"], { input: plan, encoding: "utf8" });
     expect(r.status).toBe(0);
-    expect(r.stdout).toBe("Stack: no\nReads: docs/domain/sync.md\nTests: component\n");
+    expect(r.stdout).toBe("Stack: no\nReads: handbook/sync.md\nTests: component\n");
     expect(r.stderr).toBe("warning: slice 3: no Stack field\n");
   });
 

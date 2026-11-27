@@ -1,7 +1,7 @@
 // Rotation (`pnpm prd rotate`: rotate.sh, rotate-into.sh, rotate.mjs) and the
 // done flag `pnpm prd rm` writes, against a throwaway repo with these scripts
-// and the backlog tool copied in, a stub claude (CARETOOK_CLAUDE_BIN, named
-// claude-stub so no walk up finds a real claude), CARETOOK_ITERM_APP pointing
+// and the backlog tool copied in, a stub claude (RISA_CLAUDE_BIN, named
+// claude-stub so no walk up finds a real claude), RISA_ITERM_APP pointing
 // nowhere (the opener prints its command) and the stack hooks on the sample
 // project's stub (config-fixture.mjs's stubHookConfig). Nothing here
 // starts a real claude, opens a tab or signals a process it didn't start.
@@ -23,8 +23,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CAPTAINS } from "./captain.mjs";
-import { clearsHot, doneFlags, slicesLeft } from "./rotate.mjs";
-import { stubHookConfig } from "./config-fixture.mjs";
+import { clearsHot, contextHold, doneFlags, slicesLeft } from "./rotate.mjs";
+import { fixtureTierData, stubHookConfig } from "./config-fixture.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: "pipe" }).trim();
@@ -79,12 +79,27 @@ describe("the pure part", () => {
     const rows = [
       { topic: "f", flags: ["standing"], hot: ["scripts/loops/"] },
       { topic: "g", flags: ["standing"], hot: [] },
-      { topic: "p", flags: [], hot: ["apps/web/"] },
+      { topic: "p", flags: [], hot: ["web/"] },
     ];
     expect(clearsHot(rows, "f")).toBe(true);
     expect(clearsHot(rows, "g")).toBe(false);
     expect(clearsHot(rows, "p")).toBe(false);
     expect(clearsHot(rows, "missing")).toBe(false);
+  });
+
+  it("holds a context rotation for the slices still at work, until the hard limit", () => {
+    const planText = plan(`${MERGED}\n| 3 | 2 | handed off d4e5 | |\n| 4 | 2 | running (opus) | |`);
+    // 1 merged, 3 handed off: done with; 4 running and 5 with no row: at work.
+    expect(contextHold({ planText, slices: ["1", "3", "4", "5"], hard: 225_000 })).toEqual(["4", "5"]);
+    expect(contextHold({ planText, slices: ["1", "3"], hard: 225_000 })).toEqual([]);
+    // Under the hard limit (B-877: 166k) it holds; past it, or once marked over, it doesn't.
+    expect(contextHold({ planText, slices: ["4"], record: { size: 166_000 }, hard: 225_000 })).toEqual(["4"]);
+    expect(contextHold({ planText, slices: ["4"], record: { size: 230_000 }, hard: 225_000 })).toEqual([]);
+    expect(
+      contextHold({ planText, slices: ["4"], record: { size: 200_000, hardOverAt: "x" }, hard: 225_000 }),
+    ).toEqual([]);
+    // No table to read: every slice counts as at work.
+    expect(contextHold({ planText: "# Plan\n", slices: ["2"], hard: 225_000 })).toEqual(["2"]);
   });
 });
 
@@ -94,16 +109,16 @@ const STUB = `#!/usr/bin/env bash
 mkdir -p "$STUB_STATE"
 echo "$$" > "$STUB_STATE/pid"
 printf '%s\\n' "$@" > "$STUB_STATE/args"
-[[ -z \${STUB_NAME:-} ]] || cat "$CARETOOK_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-start" 2>/dev/null || true
+[[ -z \${STUB_NAME:-} ]] || cat "$RISA_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-start" 2>/dev/null || true
 case \${STUB_MODE:-exit} in
   exit) exit 0 ;;
   wait)
-    trap 'cat "$CARETOOK_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-term"; exit 143' TERM
+    trap 'cat "$RISA_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-term"; exit 143' TERM
     touch "$STUB_STATE/ready"; for i in $(seq 200); do sleep 0.1; done ;;
   stubborn) trap '' TERM; touch "$STUB_STATE/ready"; for i in $(seq 200); do sleep 0.1; done ;;
   rotate) bash "$PRD_SH" rotate > "$STUB_STATE/rotate.out" 2>&1; echo "$?" > "$STUB_STATE/rotate.code" ;;
   self)
-    trap 'cat "$CARETOOK_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-term" 2>/dev/null; exit 143' TERM
+    trap 'cat "$RISA_SESSIONS_DIR/$STUB_NAME.json" > "$STUB_STATE/record-at-term" 2>/dev/null; exit 143' TERM
     bash "$PRD_SH" rotate --self \${STUB_ARGS:-} > "$STUB_STATE/rotate.out" 2>&1; echo "$?" > "$STUB_STATE/rotate.code"
     [[ -n \${STUB_STAY:-} ]] || exit 0
     touch "$STUB_STATE/ready"; for i in $(seq 200); do sleep 0.1; done ;;
@@ -200,8 +215,12 @@ beforeAll(() => {
     "rotate.sh",
     "rotate-into.sh",
     "rotate.mjs",
+    "landed.mjs",
+    "context.mjs",
+    "heartbeat.mjs",
     "open-session.sh",
     "open-session.mjs",
+    "host.mjs",
     "planner-model.mjs",
     "prompt.sh",
     "rm.sh",
@@ -215,8 +234,9 @@ beforeAll(() => {
     copyFileSync(join(backlogDir, f), join(main, "scripts/backlog", f));
   const ciDir = join(HERE, "../ci");
   mkdirSync(join(main, "scripts/ci"), { recursive: true });
-  for (const f of ["outstanding.mjs", "tier-data.mjs", "tiers.json"])
+  for (const f of ["outstanding.mjs", "tier-data.mjs"])
     copyFileSync(join(ciDir, f), join(main, "scripts/ci", f));
+  fixtureTierData(main);
   writeFileSync(join(main, ".gitignore"), ".loops/\n");
   // The stack hooks on the sample project's stub: rm.sh's stack down and test-db drop.
   const config = stubHookConfig(main);
@@ -229,10 +249,10 @@ beforeAll(() => {
     ...process.env,
     PATH: `${bin}:${process.env.PATH}`,
     TRUNK: "dev",
-    CARETOOK_CLAUDE_BIN: stub,
-    CARETOOK_ITERM_APP: join(root, "no-iterm"),
-    CARETOOK_SESSIONS_DIR: "",
-    CARETOOK_ROTATE_WAIT: "",
+    RISA_CLAUDE_BIN: stub,
+    RISA_ITERM_APP: join(root, "no-iterm"),
+    RISA_SESSIONS_DIR: "",
+    RISA_ROTATE_WAIT: "",
     BACKLOG_BY: "",
     STUB_STATE: state,
     PRD_SH: scripts("prd.sh"),
@@ -345,6 +365,34 @@ describe("pnpm prd rotate", () => {
       git(main, "branch", "-D", "slice/w/1");
     }
   });
+
+  it("holds a mid-wave context rotation for a slice still at work, until the hard limit", async () => {
+    // Slice 3's row is "not started": its agent would be cut off (B-877).
+    git(main, "worktree", "add", "-q", "-b", "slice/w/3", join(loops, "w-3"), "prd/w");
+    const sizeFile = join(loops, ".context/prd-w.json");
+    try {
+      const { s, pid } = await liveSession();
+      let r = run("prd.sh", ["rotate", "w", "--mid-wave", "--reason", "context"]);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("waits for the slices still at work (3)");
+      expect(spawnSync("kill", ["-0", String(pid)]).status).toBe(0);
+      // Another reason (the user's word) goes ahead.
+      r = run("prd.sh", ["rotate", "w", "--mid-wave", "--reason", "user"]);
+      expect(r.status).toBe(0);
+      // Past the hard limit, a context rotation goes ahead too.
+      mkdirSync(join(loops, ".context"), { recursive: true });
+      writeFileSync(sizeFile, JSON.stringify({ pid, size: 230_000, hardOverAt: new Date().toISOString() }));
+      r = run("prd.sh", ["rotate", "w", "--mid-wave", "--reason", "context"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain("mid-wave (the agents of w-3 end too).");
+      process.kill(pid, "SIGTERM");
+      await s.done;
+    } finally {
+      rmSync(sizeFile, { force: true });
+      git(main, "worktree", "remove", "--force", join(loops, "w-3"));
+      git(main, "branch", "-D", "slice/w/3");
+    }
+  });
 });
 
 describe("rotate-into.sh", () => {
@@ -447,7 +495,7 @@ describe("rotate-into.sh", () => {
     const s = start(stub, [], { STUB_MODE: "stubborn" }, wt);
     await until(() => existsSync(join(state, "ready")));
     const pid = stubPid();
-    const r = runLine(`cd ${wt} && ${scripts("rotate-into.sh")} prd-w ${pid}`, { CARETOOK_ROTATE_WAIT: "1" });
+    const r = runLine(`cd ${wt} && ${scripts("rotate-into.sh")} prd-w ${pid}`, { RISA_ROTATE_WAIT: "1" });
     expect(r.status).toBe(0);
     expect(r.stdout).toContain(`pid ${pid} ignored TERM for 1s: killed it.`);
     expect((await s.done).signal).toBe("SIGKILL");
@@ -663,8 +711,8 @@ describe("pnpm prd rotate --self", () => {
   });
 
   describe("the inbox session", () => {
-    const inboxDir = () => join(root, "home/.caretook/inbox");
-    const inboxEnv = () => ({ CARETOOK_INBOX_DIR: join(root, "elsewhere") });
+    const inboxDir = () => join(root, "home/.risa/inbox");
+    const inboxEnv = () => ({ RISA_INBOX_DIR: join(root, "elsewhere") });
     const startInbox = async (extraArgs = "") => {
       mkdirSync(inboxDir(), { recursive: true });
       const s = start(
@@ -824,7 +872,11 @@ The registry.
 | \`unm\` | — | — | — | not merged |
 | \`notable\` | — | — | — | no table |
 | \`fixes-x\` | standing, alone | — | \`scripts/loops/\`, \`docs/\` | a fixes wave |
-| \`busy\` | — | — | \`apps/web/\` | a PRD with hot files |
+| \`busy\` | — | — | \`web/\` | a PRD with hot files |
+| \`tailp\` | — | — | — | landed, then its plan's status |
+| \`taild\` | — | — | — | landed, then docs |
+| \`tailc\` | — | — | — | landed, then code |
+| \`itm\` | — | — | — | an item not landed |
 
 ## Items
 
@@ -832,6 +884,11 @@ The registry.
 
 - status: triaged
 - prd: std
+
+### B-2 · bug · Still open
+
+- status: triaged
+- prd: itm
 `;
   const OLD = `# Backlog tracker
 
@@ -920,6 +977,80 @@ Intro.
     });
   });
 
+  // B-431: the orchestrator's 'landed' commit after the final land left the branch
+  // unmerged, so rm kept it and never set done, and the dispatcher started it again.
+  describe("a landed branch with a tail past its landing", () => {
+    /** prd/<topic>: a commit landed in dev with a merge, then TAIL committed on the branch. */
+    const landedWorktree = (topic, tail) => {
+      const dir = join(loops, topic);
+      git(main, "worktree", "add", "-q", "-b", `prd/${topic}`, dir, "dev");
+      writeFileSync(join(dir, `${topic}.txt`), "work\n");
+      git(dir, "add", "-A");
+      git(dir, "commit", "-q", "-m", `feat(${topic}): work`);
+      git(main, "merge", "-q", "--no-ff", "-m", `feat(${topic}): land`, `prd/${topic}`);
+      for (const [f, text] of Object.entries(tail)) {
+        mkdirSync(join(dir, f, ".."), { recursive: true });
+        writeFileSync(join(dir, f), text);
+      }
+      git(dir, "add", "-A");
+      git(dir, "commit", "-q", "-m", `docs(${topic}): landed`);
+    };
+    beforeAll(() => {
+      commitOnDev({
+        "plans/backlog.md": REGISTRY,
+        "plans/tailp-plan.md": plan(MERGED),
+        "plans/taild-plan.md": plan(MERGED),
+        "plans/tailc-plan.md": plan(MERGED),
+        "plans/itm-plan.md": plan(MERGED),
+      });
+      landedWorktree("tailp", { "plans/tailp-plan.md": `${plan(MERGED)}\nLanded in dev.\n` });
+      landedWorktree("taild", { "docs/tail-notes.md": "# Notes\n" });
+      landedWorktree("tailc", { "plans/tailc-plan.md": `${plan(MERGED)}\nLanded.\n`, "code.mjs": "x\n" });
+      prdWorktree("itm");
+    }, 60_000);
+
+    it("marks it done when the tail changes only its plan, and drops the tail with the branch", () => {
+      const r = run("rm.sh", ["tailp"]);
+      expect(r.status, r.stderr).toBe(0);
+      expect(r.stdout).toContain("Marked tailp done in the PRD registry (flags done)");
+      expect(r.stdout).toContain(
+        "Removed tailp and its branch prd/tailp, dropping its 1 commit(s) past its last landing in dev (they change only plans/tailp-plan.md)",
+      );
+      expect(flagsOf("tailp")).toEqual(["done"]);
+      expect(git(main, "branch", "--list", "prd/tailp")).toBe("");
+    });
+
+    it("marks it done when the tail is other docs, landing them in dev first", () => {
+      const r = run("rm.sh", ["taild"]);
+      expect(r.status, r.stderr).toBe(0);
+      expect(r.stdout).toMatch(
+        /Landed prd\/taild's 1 docs commit\(s\) past its last landing in dev as [0-9a-f]{7}/,
+      );
+      expect(r.stdout).toContain("Marked taild done");
+      expect(r.stdout).toContain("Removed taild and its branch prd/taild (merged into dev)");
+      expect(readFileSync(join(main, "docs/tail-notes.md"), "utf8")).toBe("# Notes\n");
+      expect(git(main, "log", "-2", "--format=%s").split("\n")).toEqual([
+        "chore(backlog): prd set taild: flags=done",
+        "docs(taild): the docs after its last landing",
+      ]);
+    });
+
+    it("leaves it undone, branch kept, when the tail has code", () => {
+      const r = run("rm.sh", ["tailc"]);
+      expect(r.stdout).toContain(
+        "Not marking tailc done: prd/tailc has 1 commit(s) past its last landing in dev that aren't Markdown only",
+      );
+      expect(r.stdout).toMatch(/kept prd\/tailc: it isn't merged/);
+      expect(flagsOf("tailc")).toEqual([]);
+    });
+
+    it("leaves a merged topic undone while one of its items isn't landed", () => {
+      const r = run("rm.sh", ["itm"]);
+      expect(r.stdout).toContain("Not marking itm done: B-2 aren't landed yet");
+      expect(flagsOf("itm")).toEqual([]);
+    });
+  });
+
   it("clears a standing topic's hot files when its worktree goes, keeping its flags; others keep theirs", () => {
     commitOnDev({
       "plans/backlog.md": REGISTRY,
@@ -939,7 +1070,28 @@ Intro.
     r = run("rm.sh", ["busy"]);
     expect(r.status).toBe(0);
     expect(r.stdout).not.toContain("hot files");
-    expect(rowOf("busy").hot).toEqual(["apps/web/"]);
+    expect(rowOf("busy").hot).toEqual(["web/"]);
+  });
+
+  it("reads the registry once per rm (B-545)", () => {
+    commitOnDev({ "plans/backlog.md": REGISTRY, "plans/fin-plan.md": plan(MERGED) });
+    for (const b of ["prd/fin"]) if (git(main, "branch", "--list", b)) git(main, "branch", "-D", b);
+    prdWorktree("fin");
+    const file = join(main, "scripts/backlog/backlog.mjs");
+    const original = readFileSync(file, "utf8");
+    const log = join(root, "registry-reads");
+    rmSync(log, { force: true });
+    // A counting stub: the real tool, with a line appended per `prd list` call.
+    const counter = `import { appendFileSync as __a } from "node:fs";\nif (process.argv.slice(2, 4).join(" ") === "prd list") __a(${JSON.stringify(log)}, "x\\n");\n`;
+    writeFileSync(file, counter + original.replace(/^#!.*\n/, ""));
+    try {
+      const r = run("rm.sh", ["fin"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain("Marked fin done");
+      expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(1);
+    } finally {
+      writeFileSync(file, original);
+    }
   });
 
   it("--no-registry marks nothing done and clears no hot files (the dispatcher's undo, B-452)", () => {

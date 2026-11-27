@@ -1,4 +1,4 @@
-// ci-runs.mjs: part of `pnpm prd ci` (ci.mjs has the map). Runs on GitHub:
+// ci-runs.mjs: part of `prd ci` (ci.mjs has the map). Runs on GitHub:
 // requesting one (a push to its ci/ ref), waiting for it (an infra verdict is
 // rerun once), reading its verdict artifact, writing the commit status, and
 // finding a commit's verdict (findVerdict, latestVerdict, findTipVerdict).
@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { EXIT, RUN_FIELDS, WORKFLOW_NAME, exitFor } from "./ci-io.mjs";
 import { ciTiers } from "./tier-data.mjs";
+import { sharedNames, toolCmd } from "../loops/config.mjs";
 
 /**
  * @typedef {import("./ci-io.mjs").Io} Io
@@ -68,7 +69,7 @@ export function readVerdict(
   /** @type {number} */ runId,
   /** @type {number=} */ timeoutMs,
 ) {
-  const dir = mkdtempSync(join(tmpdir(), "caretook-ci-"));
+  const dir = mkdtempSync(join(tmpdir(), "risa-ci-"));
   try {
     const r = io.gh(["run", "download", String(runId), "--name", "verdict", "--dir", dir], timeoutMs);
     if (!r.ok) return null;
@@ -135,7 +136,7 @@ function writeCommitStatus(/** @type {Io} */ io, /** @type {any} */ v, /** @type
     "-f",
     `state=${COMMIT_STATE[v.kind] ?? "error"}`,
     "-f",
-    `context=caretook-ci/${v.tier}`,
+    `context=${sharedNames().ciContext}/${v.tier}`,
     "-f",
     `description=${v.kind} (${v.tier})`,
     ...(url ? ["-f", `target_url=${url}`] : []),
@@ -191,13 +192,13 @@ async function awaitRun(
             io.log(reran ? "still infra after its one rerun" : "infra: the rerun could not be started");
           writeCommitStatus(io, verdict, run.url);
           onVerdict?.(verdict, run);
-          if (!deleteRef(io, ref, sha)) io.log(`could not delete ${ref}; pnpm prd tidy lists it`);
+          if (!deleteRef(io, ref, sha)) io.log(`could not delete ${ref}; ${toolCmd.prd} tidy lists it`);
           return exitFor(verdict.kind);
         }
       }
     }
     if (io.now() >= deadline) {
-      io.log(`timed out waiting for run ${run.databaseId}; ${ref} is kept (pnpm prd tidy lists it)`);
+      io.log(`timed out waiting for run ${run.databaseId}; ${ref} is kept (${toolCmd.prd} tidy lists it)`);
       return EXIT.timeout;
     }
     await io.sleep(io.pollMs);

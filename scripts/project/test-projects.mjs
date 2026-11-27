@@ -9,6 +9,13 @@ export const TOOLING_PROJECTS = {
 };
 
 /**
+ * The browser harness project (`pnpm test:browser-harness`) holds both owners'
+ * harness tests until the move: the core's gate (loops/browser.test.mjs) and
+ * Caretook's runner (project/browser-run.test.mjs).
+ */
+export const SHARED_PROJECTS = ["tooling:browser"];
+
+/**
  * Each manifest file's owner: `<path> core|project` lines, `#` comments.
  * @param {string} text
  * @returns {Map<string, string>}
@@ -34,7 +41,10 @@ export function misplaced(tracked, byFile, owners) {
   for (const file of tracked) {
     const projects = byFile.get(file) ?? [];
     const owner = owners.get(file) ?? "project";
-    const own = owner === "core" ? TOOLING_PROJECTS.core : TOOLING_PROJECTS.project;
+    const own = [
+      ...(owner === "core" ? TOOLING_PROJECTS.core : TOOLING_PROJECTS.project),
+      ...SHARED_PROJECTS,
+    ];
     if (projects.length !== 1 || !own.includes(/** @type {string} */ (projects[0])))
       wrong.push(`${file} (${owner}): ${projects.join(", ") || "in no tooling project"}`);
   }

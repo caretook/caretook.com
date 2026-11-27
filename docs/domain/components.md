@@ -5,8 +5,8 @@
 - **`ui/`** holds the primitives, the only importers of `react-aria-components`; what's there, which to use and their contracts are in [ui-kit](ui-kit.md). **The guard** (`caretook/no-kit-classes` and a restricted import; lists in `scripts/eslint/kit-guard.mjs`) fails lint on React Aria or a raw `btn`, `card`, `badge` or `alert` class outside `ui/`, marketing, printed sheets and `/dev/ui`. `KIT_CLASSES_NOT_SWEPT` holds only `ui-kit-5`'s group.
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and the Planner: `RepeatMark`, `SeriesScopeDialog`, `RemindMeSheet`), `groups/`, `medications/`, `notes/` (the Tiptap editor), `providers/` (contact pieces and the provider pickers, [providers](providers.md)), `quick-entry/`, `repeat/` (`RepeatField`, `RepeatSheet`, `SeriesEditSheet`), `schedule/`, `settings/`, `shell/`, `todos/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it; a route never imports another route's folder. An index brings its whole chunk: keep heavy pieces out of indexes light routes use.
-- **A component lives beside its route** until a second route needs it (then its feature folder or `ui/`).
-- `components/todos/`: what the todo list and the todo page share (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`).
+- **A component lives beside its route** until a second route needs it (then a feature folder or `ui/`).
+- `components/todos/`: what todo screens share (`TodoTick`, `useTodoTick`, `TodoUndoStatus`, `LinkedTodos`, `useLinkedTodos`, `TodoTreeMarks`).
 
 ## Rules
 
@@ -33,9 +33,9 @@
 - **Server-loaded and auth routes:** a `DeviceRoute` with a server `loader` or `action` takes `loaderData` and `actionResult` (a value, or a function); without one it throws, naming what to give. Paths outside `/app` mount beside it. `~/.server/*` resolves to throwing stubs in `apps/web/test/server/` (one per module). An `api` key starting with `/` answers that path with plain JSON, for Better Auth calls.
 - **Fixtures:** the `fx` builders cover groups, people, every entry kind, documents, providers, links, medications, passes and periods (todos through `todo({ … })`), with fictional defaults (`TEST_USER`…); overrides are checked against the device schema. Shared worlds (`*World.tsx`) sit beside their routes. Helpers in `apps/web/test/`: `refusal(code)` and `apiCalls()` (`api.ts`), `commands.colorScheme(...)`, `commands.media("print" | "screen" | null)` (`commands.ts`; reset after the test).
 - **Gotchas:**
-  - Test Back with a `BackProbe` capturing `navigate(-1)`, never `history.back()` under `createRoutesStub`; pending navigation needs a `createRoutesStub` with loaders.
-  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element, since settle covers the database only: `await found(() => X()?.querySelector(…))` (`test/found.ts`: `found`, `waitUntil`, `stopsMoving`, `fixClock`, one 5 s `WAIT_TIMEOUT`; no copies) before acting on it, never `X()!`; `expect.poll` for values. For a `data-` hook, `getByCss(sel, { within? })` (`test/locators.ts`, also `page.getByCss`) is a strict, retrying locator for `expect.element` and `userEvent`.
+  - Test Back with a `BackProbe` capturing `navigate(-1)`, never `history.back()` under `createRoutesStub`; pending navigation needs one with loaders.
+  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element, since settle covers the database only: `await found(() => X()?.querySelector(…))` (`test/found.ts`: `found`, `waitUntil`, `stopsMoving`, `fixClock`, one 5 s `WAIT_TIMEOUT`; no copies) before acting on it, never `X()!`; `expect.poll` for values. For a `data-` hook, `getByCss(sel, { within? })` (`test/locators.ts`, also `page.getByCss`) is a strict, retrying locator.
   - **Lint (`caretook/*`, `scripts/eslint/plugin.mjs`; errors):** `no-call-timeout`, `no-non-null-user-event`, `no-non-null-in-expect`, `no-fixed-sleep`, on `*.browser.test.tsx`, `test/` and `*World.tsx`. A real exception: `// eslint-disable-next-line caretook/<rule> -- <reason>`.
-  - A closed native `<dialog>` drops out of `getByRole` (assert `dialog.open`; poll `dialog[open]` after a `ConfirmDialog`).
-  - Click a row's text with `{ force: true }` (a stretched link covers it). Pass a locator to `userEvent.hover`; a tooltip shows on hover only after the next pointer press.
+  - A closed native `<dialog>` drops out of `getByRole` (assert `dialog.open`; poll `dialog[open]` after a `ConfirmDialog`). A menu popover is a `dialog`: find sheets by name.
+  - Click a row's text with `{ force: true }` (a stretched link is over it). Pass a locator to `userEvent.hover`; a tooltip shows on hover only after the next pointer press.
   - A `DeviceRoute` child on its parent's path needs an `id`.

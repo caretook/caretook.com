@@ -11,7 +11,7 @@
 #          (`vitest --changed BASE`); no component test beyond the OWN files
 #   full:  what `pnpm check` runs, then the build budget
 # A slice or quick check writes "<test files run> <test files in all>" to
-# $CARETOOK_CHECK_COUNTS when it is set (the tool logs them).
+# $RISA_CHECK_COUNTS when it is set (the tool logs them).
 #
 # The static steps: one typegen, then tsc, ESLint and Prettier side by side (they
 # only read), each one's output printed whole, in that order, once all are done.
@@ -19,7 +19,7 @@
 # pass there passes the step and names the files as flakes. No rerun after an
 # unhandled error (no file owns it) or past CARETOOK_CHECK_RERUN_MAX failed files
 # (20: that many is a real break).
-# $CARETOOK_CHECK_STATE, a directory, when set, gets the current `step` and the
+# $RISA_CHECK_STATE, a directory, when set, gets the current `step` and the
 # `failed` and `flaky` files, one per line; `times`, each step's seconds once it
 # ends (`<seconds> <step>` lines: typegen, static, unit, integration, components,
 # lint, docs, build, `count` for a slice or quick check's file listing, or `tests`
@@ -30,7 +30,7 @@ set -euo pipefail
 here=$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mode=$1 base=$2; shift 2
 unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit)
-state=${CARETOOK_CHECK_STATE:-}
+state=${RISA_CHECK_STATE:-}
 work=$(mktemp -d)
 # The step being timed and its start; the last one's seconds are written at exit.
 timed="" timed_at=0
@@ -65,7 +65,8 @@ static() {
   # Type-aware ESLint sits at Node's default heap limit (about 4 GB), as in ci.yml.
   NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=6144" \
     pnpm exec eslint . > "$work/lint.log" 2>&1 & pids+=($!)
-  pnpm exec prettier --check . > "$work/format.log" 2>&1 & pids+=($!)
+  # --cache: Prettier's cache in this worktree's node_modules/.cache (about 26 s cold, 2.5 s warm).
+  pnpm exec prettier --check --cache . > "$work/format.log" 2>&1 & pids+=($!)
   for i in 0 1 2; do
     code=0; wait "${pids[$i]}" || code=$?
     if ((code)) && [[ -z $failed ]]; then failed=${names[$i]}; first=$code; fi
@@ -88,7 +89,7 @@ tests() {
   while IFS= read -r f; do [[ -z $f ]] || failed+=("$f"); done < <(node "$here/check-failed.mjs" "$json")
   if [[ $name == tests ]]; then name=$(node "$here/check-failed.mjs" --step ${failed[@]+"${failed[@]}"}); step "$name"; fi
   if ((${#failed[@]} == 0)); then echo "$name failed with no test file to rerun"; exit "$code"; fi
-  if grep -qE 'Unhandled (Error|Rejection)|unhandled error' "$out"; then
+  if node "$here/check-failed.mjs" --unhandled "$out"; then
     echo "$name: an unhandled error, so no rerun"; record failed "${failed[@]}"; exit "$code"
   fi
   if ((${#failed[@]} > ${CARETOOK_CHECK_RERUN_MAX:-20})); then
@@ -132,7 +133,7 @@ else
   run=$( { files "${unit[@]}"
            if [[ $mode == quick ]]; then files --project integration --changed "$base"; fi
            printf '%s\n' ${own_int[@]+"${own_int[@]}"} ${own_browser[@]+"${own_browser[@]}"}; } | sort -u | grep -c . || true)
-  [[ -z ${CARETOOK_CHECK_COUNTS:-} ]] || echo "$run $all" > "$CARETOOK_CHECK_COUNTS"
+  [[ -z ${RISA_CHECK_COUNTS:-} ]] || echo "$run $all" > "$RISA_CHECK_COUNTS"
   what="every unit test, and the integration and component tests the diff adds or edits"
   [[ $mode == slice ]] || what+=", plus the integration tests related to the diff"
   echo "$mode check: $run of $all test files ($what)"

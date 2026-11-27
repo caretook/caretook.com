@@ -14,8 +14,8 @@
     "preferences": "docs/agents/preferences.md",
     "promptGolden": "scripts/project/prompt-golden.txt",
     "browserChecks": "scripts/browser-checks",
-    "checksManifest": "scripts/loops/checks",
-    "checkAreas": "scripts/loops/check-areas.d",
+    "checksManifest": "scripts/project/checks",
+    "checkAreas": "scripts/project/check-areas.d",
     "brakeList": "scripts/ci/brake-list.txt",
     "quarantine": "scripts/ci/quarantine.txt",
     "tierData": "scripts/ci/tiers.json",
@@ -58,13 +58,15 @@
     "toolingTests": "pnpm test:tooling",
     "log": "pnpm log",
     "docBudget": "pnpm docs:budget",
+    "format": "pnpm exec prettier --write --ignore-unknown",
     "datastoreStart": "pnpm datastore:start",
     "datastoreReset": "pnpm datastore:reset",
     "datastoreSeed": "pnpm datastore:seed",
     "hooksInstall": "git config core.hooksPath .githooks"
   },
   "stack": {
-    "portEnv": "apps/web/.env"
+    "portEnv": "apps/web/.env",
+    "checkBuild": "apps/web/build"
   },
   "testProjects": {
     "tooling": ["tooling:unit", "core:unit", "project:unit", "project:tooling"],
@@ -84,6 +86,7 @@
     "stackEngine": "scripts/project/stack.sh engine",
     "stackLeftovers": "scripts/project/stack.sh leftovers",
     "serve": "scripts/project/serve.sh",
+    "browser": "scripts/project/browser-run.sh",
     "testDb": "scripts/project/test-db.sh",
     "lease": "bash scripts/loops/lease.sh hold"
   },

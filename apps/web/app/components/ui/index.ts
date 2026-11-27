@@ -93,3 +93,11 @@ export type { SearchFilterBarProps } from "./SearchFilterBar";
 export { ToastRegion } from "./Toast";
 export { clearToasts, dismissToast, toast, TOAST_TIMEOUT } from "./toastQueue";
 export type { ToastAction, ToastOptions } from "./toastQueue";
+// fixes-ui (slice 92): the full-page loader inside the /app frame (B-908).
+export { PAGE_LOADING_SLOW_AFTER, PageLoading } from "./PageLoading";
+export type { PageLoadingProps } from "./PageLoading";
+// fixes-ui (slice 95): form tabs, in the page tabs' look; panels switch in place (B-694).
+export { FormTabs, revealField } from "./FormTabs";
+export type { FormTab } from "./FormTabs";
+// tags-2 (slice 3): the tag colors' chip classes.
+export { tagColorClass } from "./tagLook";

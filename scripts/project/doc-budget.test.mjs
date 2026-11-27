@@ -178,6 +178,8 @@ describe("plan status warnings", () => {
           "",
         ].join("\n"),
       );
+      // The hint names the tool's command as this repo's config calls it.
+      write(dir, "risa.json", JSON.stringify({ tool: { prd: "risa", backlog: "risa backlog" } }));
       write(dir, "plans/long-plan.md", status(7 * KB));
       write(dir, "plans/short-plan.md", status(5 * KB));
       write(dir, "plans/old-plan.md", status(9 * KB));
@@ -185,7 +187,7 @@ describe("plan status warnings", () => {
       const out = [];
       expect(run(["warn", "--repo", dir], { out: (s) => out.push(s), err: () => {} })).toBe(0);
       expect(out.join("\n")).toContain("plans/long-plan.md's _Status_ is 7.0 KB, over 6.0 KB");
-      expect(out.join("\n")).toContain("pnpm prd status-trim long");
+      expect(out.join("\n")).toContain("risa status-trim long");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

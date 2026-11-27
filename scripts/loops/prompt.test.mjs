@@ -202,7 +202,10 @@ describe("orchestrator", () => {
         "when `add` stops on a look-alike (exit 3), `note` the item it names if that covers the finding, or rerun with `--anyway` if it doesn't",
       );
       expect(out).toContain("Reply on every thread before resolving it");
-      expect(out).toContain("resolve each answered thread");
+      expect(out).toContain(
+        "resolve each answered thread that is declined or current (`review --resolve <threadId>`",
+      );
+      expect(out).toContain("an outdated one stops blocking once Codex's state on the head is clean");
       expect(out).toContain("`review --again` until clean");
       expect(out).toContain("After about three rounds, ask the user");
       expect(out).toContain(
@@ -229,12 +232,16 @@ describe("orchestrator", () => {
         "After a landing and its docs (not the last one), start no new slice; once the slices in flight are merged, commit _Status_ and run `pnpm prd rotate`; with none in flight, rotate at once.",
       );
       expect(out).toContain("`pnpm prd rotate --mid-wave`");
-      expect(out).toContain("**past the context limit** (160k tokens; a hook reminds you)");
+      expect(out).toContain("**past the hard context limit** (225k tokens; a hook reminds you)");
+      expect(out).toContain(
+        "**Past the soft limit** (120k tokens; a hook reminds you) rotate unasked between waves only: at the next wave boundary write _Status_ as the brief, commit it and run `pnpm prd rotate`, never `--mid-wave` for it.",
+      );
+      expect(out).not.toContain("160k");
       expect(out).toContain('`pnpm prd rotate --mid-wave --reason "context"`');
       expect(out).toContain('`pnpm prd context --keep "<why>"` and write the reason in _Status_');
       expect(out).toContain("only on the user's word");
       expect(out).toMatch(
-        /When the last wave has landed, run `pnpm prd rm T`, then `cd \S+ && pnpm prd end`/,
+        /When the last wave has landed, run `pnpm prd rm T` from this worktree as your last step: once it has removed the worktree it ends this session/,
       );
     }
   });
@@ -482,6 +489,22 @@ describe("sending failures back", () => {
     expect(out).toContain('git merge --no-ff -m "chore(T): merge prd/T for a fix" prd/T');
     expect(out).toContain('`pnpm prd check --quick "slice fix"`');
   });
+
+  it("the slice's prompt formats the changed files before each check, with the config's formatter (B-608)", () => {
+    for (const out of [ok("slice", "T", "1"), ok("slice", "T", "2"), ok("slice", "T", "1", "--continue")]) {
+      expect(out).toContain(
+        "- **Before each check, format the files you changed and commit what it changes:** `pnpm exec prettier --write --ignore-unknown $(git diff --name-only --diff-filter=d prd/T)`",
+      );
+    }
+  });
+
+  it("the slice's prompt points to the handbook's rule on batching reads and edits (B-873)", () => {
+    for (const out of [ok("slice", "T", "1"), ok("slice", "T", "1", "--continue")]) {
+      expect(out).toContain(
+        "- **Batch your turns:** independent reads, greps, commands and edits go in one turn, and a file under about 400 lines is read whole, not in `sed -n` chunks (your handbook's _Reads and turns_).",
+      );
+    }
+  });
 });
 
 describe("waiting on a check", () => {
@@ -490,6 +513,16 @@ describe("waiting on a check", () => {
       expect(out).toContain("`pnpm prd wait check`");
       expect(out).toContain("never `pgrep -f`");
     }
+  });
+});
+
+describe("helpers", () => {
+  it("the slice prompt hands long exploration and long check output to a helper", () => {
+    const out = ok("slice", "T", "1");
+    expect(out).toContain(
+      "**Past about 10 reads into unfamiliar code, hand the exploration to one Explore helper**",
+    );
+    expect(out).toContain("long check output goes to a haiku helper too");
   });
 });
 
@@ -564,13 +597,15 @@ describe("plan and backlog", () => {
     }
   });
 
-  it("plan adds its registry row through pnpm backlog prd and ends with pnpm prd end", () => {
+  it("plan adds its registry row through pnpm backlog prd and ends with pnpm prd rm", () => {
     const plan = ok("plan", "T");
     expect(plan).toContain("`pnpm backlog prd add T`");
     expect(plan).toContain("`pnpm backlog prd set T after=<topic> hot=<path prefixes>`");
-    expect(plan.indexOf("`pnpm prd rm plan-T`")).toBeLessThan(plan.indexOf("&& pnpm prd end`"));
-    // rm deleted the worktree: end runs from the main checkout
-    expect(plan).toMatch(/`cd \S+ && pnpm prd end`/);
+    // rm, run from the worktree, ends the session itself (B-812): it's the last step, after the report.
+    expect(plan).toMatch(
+      /how to start it, then `pnpm prd rm plan-T`, your last step: run from this worktree, `rm` ends this session/,
+    );
+    expect(plan).not.toContain("&& pnpm prd end`");
     expect(plan.trimEnd()).toMatch(/Start by summarising[^]*$/);
   });
 
@@ -647,14 +682,15 @@ describe("plan and backlog", () => {
       );
       expect(plan).toContain("The tool, never you, puts the recommendation in place of an answer");
       expect(plan).not.toContain("wait for it however long it takes");
-      // After the landing: the report, then rm, then end.
+      // After the landing: the report, then rm, which ends the session (B-812).
       const land = plan.indexOf("`pnpm prd land plan/T -m");
       const report = plan.indexOf('`pnpm prd ask --topic T --report "<text>"`');
       const rm = plan.indexOf("`pnpm prd rm plan-T`");
       expect(land).toBeGreaterThan(0);
       expect(report).toBeGreaterThan(land);
       expect(rm).toBeGreaterThan(report);
-      expect(plan.indexOf("&& pnpm prd end`")).toBeGreaterThan(rm);
+      expect(plan).toContain("Then `pnpm prd rm plan-T`, your last step: run from this worktree");
+      expect(plan).not.toContain("&& pnpm prd end`");
       expect(plan).toContain("`pnpm backlog prd set T flags+=hold`");
       expect(plan).not.toContain("flags=");
     }
@@ -913,10 +949,14 @@ describe("hotfix", () => {
     expect(text).toContain("**Ask the user before every step that takes time or changes shared state**");
     expect(text).toContain("Background agents are allowed");
     expect(text).toContain("`pnpm prd doc hotfix`");
-    expect(text).toContain("into its file, docs/agents/hotfix.md.");
+    // The fixture names no hotfix additions file: the prompt says which one it means.
+    expect(text).toContain("into its file, the hotfix role's additions file.");
     expect(text).toContain('**"PR or local?"**');
     expect(text).toContain("`pnpm prd land hotfix/trim --pr` or `--local`");
     expect(text).toContain("`pnpm prd pr hotfix/trim`");
+    expect(text).toContain(
+      "`pnpm prd tier` proposes the tier and why; `pnpm prd ci run <tier> --wait` in the background runs it",
+    );
     expect(text).toContain("The fix: Trim the day summary");
     expect(text).not.toContain(RESUME);
   });
@@ -944,6 +984,7 @@ describe("fix categories", () => {
     expect(text).toContain("append one slice per waiting item");
     expect(text).toContain("plans/fixes-rules.md");
     expect(text).toContain("there's no plans/fixes-bug-prd.md: the plan is the whole spec");
+    expect(text).toContain("slice table keeps its header and separator with no slice in flight"); // B-807
     expect(ok("orchestrator", "T")).not.toContain("append one slice per waiting item");
   });
 });

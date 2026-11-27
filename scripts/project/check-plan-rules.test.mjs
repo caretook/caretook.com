@@ -37,8 +37,10 @@ describe("the tier by rule", () => {
     ["scripts/loops/lib.sh", "integration", "the browser harness"],
     ["scripts/loops/lease.sh", "integration", "the browser harness"],
     ["scripts/project/serve.sh", "integration", "the browser harness"],
-    ["scripts/loops/checks", "integration", "the browser harness"],
-    ["scripts/loops/check-areas.d/timeline", "integration", "the browser harness"],
+    ["scripts/project/browser-run.sh", "integration", "the browser harness"],
+    ["scripts/project/browser-run.test.mjs", "integration", "the browser harness"],
+    ["scripts/project/checks", "integration", "the browser harness"],
+    ["scripts/project/check-areas.d/timeline", "integration", "the browser harness"],
     ["scripts/project/check-areas.mjs", "integration", "the browser harness"],
     ["scripts/browser-checks/a.spec.mjs", "integration", "the browser harness"],
     ["eslint.config.js", "full", "a file no rule covers"],
@@ -169,9 +171,10 @@ describe("what pnpm test:tooling runs", () => {
   it.each([
     "scripts/loops/browser.sh",
     "scripts/project/serve.sh",
-    "scripts/loops/checks",
+    "scripts/project/browser-run.sh",
+    "scripts/project/checks",
     "scripts/project/check-areas.mjs",
-    "scripts/loops/check-areas.d/timeline",
+    "scripts/project/check-areas.d/timeline",
     "scripts/browser-checks/fixtures.mjs",
   ])("adds the browser harness for %s", (f) => {
     expect(toolingProjects(["docs/x.md", f])).toEqual(WITH);
@@ -179,7 +182,7 @@ describe("what pnpm test:tooling runs", () => {
 
   it.each([
     "scripts/loops/land.sh",
-    "scripts/loops/checks.mjs",
+    "scripts/project/checks.mjs",
     "scripts/backlog/backlog.mjs",
     ".githooks/commit-msg",
   ])("skips it for %s", (f) => expect(toolingProjects([f])).toEqual(BASE));

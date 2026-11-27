@@ -2,10 +2,19 @@ import type { TagTarget } from "../db";
 
 import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
-import { TAG_TARGET_FIELDS, recordTagId, recordTagSchema, tagId } from "../db/schema";
+import {
+  TAG_COLORS,
+  TAG_TARGET_FIELDS,
+  recordTagId,
+  recordTagSchema,
+  tagId,
+  tagKey,
+  tagSchema,
+} from "../db/schema";
 import { isError } from "../errors";
 import {
   medicationService,
@@ -16,9 +25,11 @@ import {
   todoService,
 } from ".";
 
-// Tags and their links (tags slice 1): tagService.create (idempotent on the
-// derived id, a taken name refused) and recordTagService (every role on
-// every target, refusals, one row per pair, cascades). Every test builds its
+// Tags and their links (tags slices 1 and 3): tagService.create (idempotent
+// on the derived id, a taken name refused), rename and remove (who may, in
+// SQL; a taken name; cascades) and recordTagService (every role on every
+// target, refusals, one row per pair, cascades). Colors (tags-2 slice 1):
+// create's pick, recolor and the migration's backfill. Every test builds its
 // own group and users.
 
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
@@ -89,7 +100,7 @@ describe("tagService.create", () => {
   it("returns a tag replayed after a rename, by its id", async () => {
     const { u, group, newTag } = await setup();
     const tag = await newTag("Urgent");
-    await getDb().execute(sql`UPDATE tag SET name = 'Pressing', name_key = 'pressing' WHERE id = ${tag.id}`);
+    ok(await tagService.rename(u.admin.ctx, tag.id, "Pressing"));
     const again = ok(
       await tagService.create(u.caretaker.ctx, { id: tag.id, groupId: group.id, name: "Urgent" }),
     );
@@ -150,6 +161,96 @@ describe("tagService.create", () => {
         "Urgent",
       ]);
     expect(ok(await tagService.list(u.outsider.ctx, { groupId: group.id })).data).toEqual([]);
+  });
+});
+
+describe("tagService.rename", () => {
+  const nameOf = async (id: string) => ok(await tagService.getById(system, id));
+
+  it("a writer renames any tag: the key follows the name, the id and links stay", async () => {
+    const { u, group, records, newTag, link, linksOf } = await setup();
+    const ids = await records();
+    const tag = await newTag("Urgent", "easy_helper");
+    ok(await link("caretaker", tag.id, "todo", ids.todo));
+    for (const [who, name] of [
+      ["owner", "Pressing"],
+      ["admin", "  Very   pressing "],
+      ["caretaker", "Follow up"],
+    ] as const) {
+      const renamed = ok(await tagService.rename(u[who].ctx, tag.id, name));
+      expect(renamed).toMatchObject({ id: tag.id, groupId: group.id, updatedBy: u[who].user.id });
+    }
+    expect(await nameOf(tag.id)).toMatchObject({ name: "Follow up", nameKey: "follow up" });
+    expect(await linksOf(tag.id)).toHaveLength(1);
+    // A new spelling of its own name is no clash.
+    expect(ok(await tagService.rename(u.caretaker.ctx, tag.id, "FOLLOW UP"))).toMatchObject({
+      name: "FOLLOW UP",
+      nameKey: "follow up",
+    });
+  });
+
+  it("an Easy helper renames only a tag they created; the SQL refuses theirs, and the name stays", async () => {
+    const { u, newTag } = await setup();
+    const mine = await newTag("Knee", "easy_helper");
+    const theirs = await newTag("Urgent", "caretaker");
+    ok(await tagService.rename(u.easy_helper.ctx, mine.id, "Sore knee"));
+    expect(await nameOf(mine.id)).toMatchObject({ name: "Sore knee", nameKey: "sore knee" });
+
+    expect(codeOf(await tagService.rename(u.easy_helper.ctx, theirs.id, "Pressing"))).toBe(
+      "permissions:unauthorized",
+    );
+    expect(await nameOf(theirs.id)).toMatchObject({ name: "Urgent", nameKey: "urgent" });
+  });
+
+  it("refuses viewers, Easy viewers and non-members; a missing tag is notFound", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent");
+    for (const who of ["viewer", "easy_viewer", "outsider"] as const)
+      expect(codeOf(await tagService.rename(u[who].ctx, tag.id, "Pressing"))).toBe(
+        "permissions:unauthorized",
+      );
+    expect(await nameOf(tag.id)).toMatchObject({ name: "Urgent" });
+    expect(codeOf(await tagService.rename(u.owner.ctx, randomUUID(), "Pressing"))).toBe(
+      "tagService:notFound",
+    );
+  });
+
+  it("refuses a name another tag holds (nameTaken) and a bad name", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent");
+    const other = await newTag("Knee");
+    expect(codeOf(await tagService.rename(u.owner.ctx, tag.id, "  KNEE "))).toBe("tagService:nameTaken");
+    expect(codeOf(await tagService.rename(u.owner.ctx, tag.id, "   "))).toBe("tagService:invalid");
+    expect(codeOf(await tagService.rename(u.owner.ctx, tag.id, "x".repeat(41)))).toBe("tagService:invalid");
+    expect(await nameOf(tag.id)).toMatchObject({ name: "Urgent" });
+    expect(await nameOf(other.id)).toMatchObject({ name: "Knee" });
+  });
+});
+
+describe("tagService.remove", () => {
+  it("only owners delete; admins, caretakers, Easy helpers and the rest are refused", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent", "easy_helper");
+    for (const who of ["admin", "caretaker", "easy_helper", "viewer", "easy_viewer", "outsider"] as const)
+      expect(codeOf(await tagService.remove(u[who].ctx, tag.id))).toBe("permissions:unauthorized");
+    expect(ok(await tagService.getById(system, tag.id))).not.toBeNull();
+    ok(await tagService.remove(u.owner.ctx, tag.id));
+    expect(ok(await tagService.getById(system, tag.id))).toBeNull();
+    expect(codeOf(await tagService.remove(u.owner.ctx, tag.id))).toBe("tagService:notFound");
+  });
+
+  it("takes the tag off every record; the records stay, and a later link is refused", async () => {
+    const { u, records, newTag, link, linksOf } = await setup();
+    const ids = await records();
+    const tag = await newTag();
+    for (const target of TARGETS) ok(await link("caretaker", tag.id, target, ids[target]));
+    ok(await tagService.remove(u.owner.ctx, tag.id));
+    expect(await linksOf(tag.id)).toEqual([]);
+    expect(ok(await timelineEntryService.getById(system, ids.entry))).not.toBeNull();
+    expect(ok(await todoService.getById(system, ids.todo))).not.toBeNull();
+    expect(ok(await providerService.getById(system, ids.provider))).not.toBeNull();
+    expect(ok(await medicationService.getById(system, ids.medication))).not.toBeNull();
+    expect(codeOf(await link("caretaker", tag.id, "entry", ids.entry))).toBe("recordTagService:tagNotFound");
   });
 });
 
@@ -314,5 +415,164 @@ describe("recordTagService", () => {
     await getDb().execute(sql`DELETE FROM tag WHERE id = ${tag.id}`);
     expect(await linksOf(tag.id)).toEqual([]);
     expect(ok(await todoService.getById(system, ids.todo))).not.toBeNull();
+  });
+});
+
+describe("tag colors (tags-2)", () => {
+  const colorOf = async (id: string) => ok(await tagService.getById(system, id))?.color;
+
+  it("create keeps a given color, and without one takes a color no group tag has", async () => {
+    const { u, group } = await setup();
+    // Nine colors given; the tenth is the only free one.
+    for (const [i, color] of TAG_COLORS.slice(1).entries())
+      expect(
+        ok(await tagService.create(u.caretaker.ctx, { groupId: group.id, name: `Given ${i}`, color })),
+      ).toMatchObject({ color });
+    const picked = ok(await tagService.create(u.caretaker.ctx, { groupId: group.id, name: "Picked" }))!;
+    expect(picked.color).toBe(TAG_COLORS[0]);
+    // All ten used: any palette color, and a null color is a pick too.
+    const more = ok(
+      await tagService.create(u.easy_helper.ctx, { groupId: group.id, name: "More", color: null }),
+    )!;
+    expect(TAG_COLORS).toContain(more.color);
+    expect(
+      codeOf(
+        await tagService.create(u.caretaker.ctx, { groupId: group.id, name: "Bad", color: "teal" as never }),
+      ),
+    ).toBe("tagService:invalid");
+  });
+
+  it("tags created without a color in one group all differ until ten are used", async () => {
+    const { u, group, newTag } = await setup();
+    const colors = [];
+    for (let i = 0; i < TAG_COLORS.length; i++) colors.push((await newTag(`Topic ${i}`)).color);
+    expect(new Set(colors).size).toBe(TAG_COLORS.length);
+    // A replay keeps the color the tag has.
+    const first = ok(await tagService.getById(u.caretaker.ctx, tagId(group.id, "Topic 0")))!;
+    expect(
+      ok(await tagService.create(u.caretaker.ctx, { id: first.id, groupId: group.id, name: "Topic 0" })),
+    ).toMatchObject({ color: first.color });
+  });
+
+  it("recolor: writers recolor any tag, an Easy helper only their own", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent", "easy_helper");
+    for (const [who, color] of [
+      ["owner", "sky"],
+      ["admin", "jade"],
+      ["caretaker", "violet"],
+      ["easy_helper", "rose"],
+    ] as const)
+      expect(ok(await tagService.recolor(u[who].ctx, tag.id, color))).toMatchObject({
+        id: tag.id,
+        color,
+        name: "Urgent",
+        updatedBy: u[who].user.id,
+      });
+
+    const theirs = await newTag("Knee", "caretaker");
+    const before = await colorOf(theirs.id);
+    expect(codeOf(await tagService.recolor(u.easy_helper.ctx, theirs.id, "moss"))).toBe(
+      "permissions:unauthorized",
+    );
+    expect(await colorOf(theirs.id)).toBe(before);
+  });
+
+  it("recolor refuses viewers, Easy viewers, non-members and an unknown color; a missing tag is notFound", async () => {
+    const { u, newTag } = await setup();
+    const tag = await newTag("Urgent");
+    const before = await colorOf(tag.id);
+    for (const who of ["viewer", "easy_viewer", "outsider"] as const)
+      expect(codeOf(await tagService.recolor(u[who].ctx, tag.id, "moss"))).toBe("permissions:unauthorized");
+    for (const color of ["teal", "", "Coral"])
+      expect(codeOf(await tagService.recolor(u.owner.ctx, tag.id, color))).toBe("tagService:invalid");
+    expect(await colorOf(tag.id)).toBe(before);
+    expect(codeOf(await tagService.recolor(u.owner.ctx, randomUUID(), "moss"))).toBe("tagService:notFound");
+  });
+});
+
+describe("the color migration's backfill", () => {
+  /** The migration's hand-written backfill `UPDATE` (not its column or check statements). */
+  const backfill = () => {
+    const dir = new URL("../db/migrations/", import.meta.url);
+    const statements = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .flatMap((f) => readFileSync(new URL(f, dir), "utf8").split("--> statement-breakpoint"))
+      .filter((s) => /^UPDATE "tag"/m.test(s));
+    if (statements.length !== 1)
+      throw new Error(`expected one tag color backfill, found ${statements.length}`);
+    return statements[0]!;
+  };
+
+  /** Colorless tags as an older build left them, a second apart in `names`' order. */
+  const insertTags = async (
+    groupId: string,
+    userId: string,
+    names: readonly string[],
+    color: (typeof TAG_COLORS)[number] | null = null,
+    start = Date.now() - 86_400_000,
+  ) => {
+    const ids = names.map((name) => tagId(groupId, name));
+    await getDb()
+      .insert(tagSchema)
+      .values(
+        names.map((name, i) => ({
+          id: ids[i]!,
+          groupId,
+          name,
+          nameKey: tagKey(name),
+          color,
+          createdAt: new Date(start + i * 1000).toISOString(),
+          createdBy: userId,
+          updatedBy: userId,
+        })),
+      );
+    return ids;
+  };
+
+  it("colors only colorless tags: per group in creation order, distinct until ten are used", async () => {
+    const a = await createWorld({});
+    const b = await createWorld({});
+    const day = Date.now() - 86_400_000;
+    // A tag that has a color is created first and keeps it; it doesn't shift the rest.
+    const [colored] = await insertTags(a.group.id, a.u.owner.user.id, ["Already rose"], "rose", day - 60_000);
+    // Inserted out of creation order: the second batch is older.
+    const later = await insertTags(a.group.id, a.u.owner.user.id, ["K", "L"], null, day + 10_000);
+    const first = await insertTags(
+      a.group.id,
+      a.u.owner.user.id,
+      ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+      null,
+      day,
+    );
+    const otherGroup = await insertTags(b.group.id, b.u.owner.user.id, ["A", "B"], null, day);
+
+    const client = await getDb().$client.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(backfill());
+      const colorsIn = async (groupId: string) => {
+        const { rows } = await client.query<{ id: string; color: string | null }>(
+          `SELECT id, color FROM tag WHERE group_id = $1 ORDER BY created_at, id`,
+          [groupId],
+        );
+        return rows;
+      };
+      expect(await colorsIn(a.group.id)).toEqual([
+        { id: colored, color: "rose" },
+        ...first.map((id, i) => ({ id, color: TAG_COLORS[i] })),
+        ...later.map((id, i) => ({ id, color: TAG_COLORS[i] })),
+      ]);
+      expect(await colorsIn(b.group.id)).toEqual(otherGroup.map((id, i) => ({ id, color: TAG_COLORS[i] })));
+
+      // Run again, nothing is colorless: it touches no tag of these groups.
+      const again = await client.query(`${backfill().trim().replace(/;$/, "")} RETURNING t.group_id`);
+      expect(
+        again.rows.filter((r: { group_id: string }) => [a.group.id, b.group.id].includes(r.group_id)),
+      ).toEqual([]);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
   });
 });

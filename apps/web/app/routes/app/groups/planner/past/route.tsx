@@ -22,7 +22,8 @@ import { usePastEvents } from "../useUpcomingData";
 
 // Shared by web + native. The Planner's Past tab: past events, newest first,
 // cancelled ones included, paged like the timeline. `?author=` (the Filter
-// menu's By, or a card's initials) and the search box's `?q=` filter it.
+// menu's By, or a card's initials), `?tag=` (a chip carried from Upcoming;
+// tags PRD) and the search box's `?q=` filter it.
 
 export const meta = () => [{ title: "Past · Caretook" }];
 
@@ -47,23 +48,34 @@ export function shouldRevalidate({
 }
 
 export default function PastEvents({ loaderData, params }: Route.ComponentProps) {
-  const { author } = loaderData;
+  const { author, tag } = loaderData;
   const { groupId } = params;
   // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const urlQuery = plannerQueryOf(useLocation().search);
   const [text, setText] = useState(urlQuery);
-  const data = usePastEvents({ groupId, filters: { kind: null, author }, q: text, initial: loaderData });
+  const data = usePastEvents({
+    groupId,
+    filters: { kind: null, author, tag },
+    q: text,
+    initial: loaderData,
+  });
   const authorName = author ? data.nameOf(author) : null;
   const bar = pastFilterBar(
     { value: text, urlQuery, onChange: setText },
     data.members,
     author && authorName ? { userId: author, name: authorName } : null,
+    data.tag,
   );
 
   return (
     <Page data-past-events>
       <PlannerHeader view="past" bar={bar} />
-      <UpcomingList data={data} groupId={groupId} label="Past events" empty={emptyPastText(authorName, text)}>
+      <UpcomingList
+        data={data}
+        groupId={groupId}
+        label="Past events"
+        empty={emptyPastText(authorName, text, data.tag?.name)}
+      >
         <OlderEntries
           hasOlder={data.hasOlder}
           loading={data.loadingOlder}

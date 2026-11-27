@@ -10,13 +10,28 @@ vi.mock("./client", () => ({
 }));
 
 const KEY = JSON.stringify(["SELECT * FROM provider WHERE group_id = ?", ["g1"]]);
+const OTHER = JSON.stringify(["SELECT * FROM medication WHERE group_id = ?", ["g1"]]);
+
+/** The handlers and options `watch` got on its `n`th call. */
+const watchCall = (n = 0) =>
+  watch.mock.calls[n] as [string, unknown[], { onResult: (r: unknown) => void }, { signal: AbortSignal }];
+const result = (id: string) => ({ rows: { _array: [{ id }] } });
 
 describe("watchLiveQuery", () => {
+  /** The frame callbacks waiting to run. */
+  let frames: FrameRequestCallback[];
+  const runFrame = () => frames.splice(0).forEach((f) => f(0));
   beforeEach(() => {
     vi.stubGlobal("window", {});
+    frames = [];
+    // Each batch's fallback timer too, so none is left over for the next test.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.stubGlobal("requestAnimationFrame", (f: FrameRequestCallback) => frames.push(f));
     watch.mockReset();
   });
   afterEach(async () => {
+    runFrame();
+    vi.useRealTimers();
     await closeSync();
     vi.unstubAllGlobals();
   });
@@ -26,17 +41,94 @@ describe("watchLiveQuery", () => {
     const onRows = vi.fn();
     const stop = watchLiveQuery(KEY, onRows);
     expect(watch).toHaveBeenCalledOnce();
-    const [sql, params, handlers, options] = watch.mock.calls[0] as [
-      string,
-      unknown[],
-      { onResult: (r: unknown) => void },
-      { signal: AbortSignal },
-    ];
+    const [sql, params, handlers, options] = watchCall();
     expect([sql, params]).toEqual(JSON.parse(KEY));
-    handlers.onResult({ rows: { _array: [{ id: "p1" }] } });
+    handlers.onResult(result("p1"));
+    runFrame();
     expect(onRows).toHaveBeenCalledWith([{ id: "p1" }]);
     stop();
     expect(options.signal.aborted).toBe(true);
+  });
+
+  it("hands over the results that came in before a frame together, at the frame (B-633)", async () => {
+    await openSync("u1");
+    const first = vi.fn();
+    const second = vi.fn();
+    watchLiveQuery(KEY, first);
+    watchLiveQuery(KEY, second);
+    watchCall(0)[2].onResult(result("p1"));
+    watchCall(1)[2].onResult(result("p2"));
+    expect(first).not.toHaveBeenCalled();
+    expect(second).not.toHaveBeenCalled();
+    expect(frames).toHaveLength(1);
+    runFrame();
+    expect(first).toHaveBeenCalledWith([{ id: "p1" }]);
+    expect(second).toHaveBeenCalledWith([{ id: "p2" }]);
+  });
+
+  it("holds the frame while another watch's first result is owed, then hands them over together (B-870)", async () => {
+    await openSync("u1");
+    const first = vi.fn();
+    const second = vi.fn();
+    watchLiveQuery(KEY, first);
+    watchLiveQuery(OTHER, second);
+    watchCall(0)[2].onResult(result("p1"));
+    runFrame();
+    expect(first).not.toHaveBeenCalled();
+    // The hidden page's timer holds too.
+    vi.advanceTimersByTime(100);
+    expect(first).not.toHaveBeenCalled();
+    watchCall(1)[2].onResult(result("m1"));
+    runFrame();
+    expect(first).toHaveBeenCalledWith([{ id: "p1" }]);
+    expect(second).toHaveBeenCalledWith([{ id: "m1" }]);
+  });
+
+  it("holds no longer than the cap for a first result that doesn't come, nor for a watch cleaned up", async () => {
+    await openSync("u1");
+    const now = vi.spyOn(performance, "now").mockReturnValue(1000);
+    const onRows = vi.fn();
+    watchLiveQuery(KEY, onRows);
+    watchLiveQuery(OTHER, vi.fn());
+    const stop = watchLiveQuery(OTHER, vi.fn());
+    watchCall(0)[2].onResult(result("p1"));
+    runFrame();
+    expect(onRows).not.toHaveBeenCalled();
+    now.mockReturnValue(1500);
+    runFrame();
+    expect(onRows).toHaveBeenCalledOnce();
+
+    // The next result waits again while the second watch's is owed, but not for the third's once it's stopped.
+    watchCall(0)[2].onResult(result("p2"));
+    watchCall(1)[2].onResult(result("m1"));
+    stop();
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([{ id: "p2" }]);
+    now.mockRestore();
+  });
+
+  it("passes nothing after cleanup, even a result that came in before it", async () => {
+    await openSync("u1");
+    const onRows = vi.fn();
+    const stop = watchLiveQuery(KEY, onRows);
+    watchCall()[2].onResult(result("p1"));
+    stop();
+    runFrame();
+    expect(onRows).not.toHaveBeenCalled();
+  });
+
+  it("on a hidden page, which runs no frames, hands them over after a short wait", async () => {
+    await openSync("u1");
+    const onRows = vi.fn();
+    watchLiveQuery(KEY, onRows);
+    watchCall()[2].onResult(result("p1"));
+    vi.advanceTimersByTime(99);
+    expect(onRows).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(onRows).toHaveBeenCalledOnce();
+    // The frame that comes later passes nothing twice.
+    runFrame();
+    expect(onRows).toHaveBeenCalledOnce();
   });
 
   it("watches nothing, and doesn't throw, once sign-out has closed the database", async () => {

@@ -16,16 +16,19 @@ const NO_ROWS: ProviderRow[] = [];
  * Primary or Past badge, and its type, specialty and practice (a link).
  *
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Copy to another group and Edit, for writers.
+ * - `actions`: Edit and a ⋯ menu (`ProviderActions`), for writers.
+ * - `tags`: its tags (`QuickTags`), under the details (chips for every role; tags PRD).
  */
 export function ProviderHeader({
   provider,
   editors,
   actions,
+  tags,
 }: {
   provider: LocalProvider;
   editors?: ReactNode;
   actions?: ReactNode;
+  tags?: ReactNode;
 }) {
   const past = provider.status === "past";
   return (
@@ -50,6 +53,7 @@ export function ProviderHeader({
               <PracticeLink groupId={provider.groupId} practiceId={provider.practiceId} />
             </>
           )}
+          {tags}
         </>
       }
       editors={editors}

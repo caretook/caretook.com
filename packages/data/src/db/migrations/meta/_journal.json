@@ -330,6 +330,20 @@
       "when": 1795665884920,
       "tag": "0046_tags",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795684750752,
+      "tag": "0047_todo_subtasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1795751389510,
+      "tag": "0048_tag_colors",
+      "breakpoints": true
     }
   ]
 }

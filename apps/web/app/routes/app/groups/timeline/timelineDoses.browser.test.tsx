@@ -200,14 +200,14 @@ describe("on the timeline", () => {
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=dose`);
   });
 
-  test("a change opens nothing and its ⋯ is Delete only; Delete removes it and the medication stays; its edit URL is the timeline, filters kept", async () => {
+  test("a change opens nothing and its ⋯ is Copy link and Delete; Delete removes it and the medication stays; its edit URL is the timeline, filters kept", async () => {
     const device = await open({ query: "?kind=medicationChange" });
     const row = () => rowWith("Changed strength 5 mg → 10 mg");
     await expect
       .poll(() => row()?.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]'))
       .toBeNull();
     await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
-    await expect.poll(menuItems).toEqual(["Delete"]);
+    await expect.poll(menuItems).toEqual(["Copy link", "Delete"]);
     await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(row).toBeUndefined();
@@ -254,14 +254,16 @@ describe("on the timeline", () => {
     expect(texts()).toContain("Metoprolol: Removed from Evening; Morning amount 50 mg → 75 mg");
   });
 
-  test("a viewer sees doses with no + button, no row that opens a sheet and no ⋯; /new/dose is the timeline, filters kept", async () => {
+  test("a viewer sees doses with no + button, no row that opens a sheet and a ⋯ of Copy link alone; /new/dose is the timeline, filters kept", async () => {
     const device = await open({ role: "viewer", query: "?kind=dose" });
     expect(rows().length).toBeGreaterThan(0);
     expect(document.querySelector('main header button[aria-label="Add to timeline"]')).toBeNull();
     expect(
       document.querySelector('main ol a[aria-label^="Edit "], main ol a[aria-label^="Open "]'),
     ).toBeNull();
-    expect(document.querySelector('main ol button[aria-label^="Actions"]')).toBeNull();
+    await userEvent.click(await found(() => document.querySelector('main ol button[aria-label^="Actions"]')));
+    await expect.poll(menuItems).toEqual(["Copy link"]);
+    await userEvent.keyboard("{Escape}");
     await device.screen.unmount();
     const sheet = await open({ role: "viewer", url: `${TIMELINE_URL}/new/dose?kind=dose` });
     await expect.poll(() => sheet.location()).toBe(`${TIMELINE_URL}?kind=dose`);
@@ -306,7 +308,7 @@ describe("the Dose sheet", () => {
     );
   });
 
-  test("a dose opens its edit sheet with the medication fixed; Skipped saves; its ⋯ has Edit and Delete, and Delete removes it", async () => {
+  test("a dose opens its edit sheet with the medication fixed; Skipped saves; its ⋯ has Edit, Copy link and Delete, and Delete removes it", async () => {
     const dose = fx.dose({
       medicationId: IBUPROFEN.id,
       amount: "2 tablets",
@@ -326,7 +328,7 @@ describe("the Dose sheet", () => {
     await userEvent.click(
       await found(() => rowWith(LABEL)?.querySelector('button[aria-label^="Actions for"]')),
     );
-    await expect.poll(menuItems).toEqual(["Edit", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Edit", "Copy link", "Delete"]);
     await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(() => rowWith(LABEL)).toBeUndefined();
@@ -485,10 +487,11 @@ describe("the Dose sheet's + New medication", () => {
     await userEvent.click(await found(NAME));
     expect(document.querySelector('[role="listbox"]')).toBeNull();
     await userEvent.keyboard("ibu");
-    await expect.element(page.getByRole("option", { name: "Ibuprofen", exact: true })).toBeVisible();
+    const option = page.getByRole("option", { name: "Ibuprofen (Advil, Motrin)", exact: true });
+    await expect.element(option).toBeVisible();
     expect(SHEET()?.textContent).not.toContain("Matches an allergy on file");
-    await userEvent.click(page.getByRole("option", { name: "Ibuprofen", exact: true }));
-    await expect.poll(() => NAME()?.value).toBe("Ibuprofen");
+    await userEvent.click(option);
+    await expect.poll(() => NAME()?.value).toBe("Ibuprofen (Advil, Motrin)");
     await expect.poll(() => SHEET()!.textContent).toContain("Matches an allergy on file: Ibuprofen (severe)");
     expect(NEW_DOSE()?.value).toBe("");
     expect(AMOUNT().value).toBe("");

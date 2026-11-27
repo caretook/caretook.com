@@ -53,6 +53,7 @@ import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
 import { useOpenTodoCounts } from "./useOpenTodoCounts";
+import { useGroupRecordTags } from "~/components/tags";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
@@ -82,6 +83,7 @@ export type TimelineEntryListFilters = {
   author: string | null;
   vital?: VitalType | null;
   symptoms?: readonly string[];
+  tag?: { id: string; name: string } | null;
   search?: { q: string; state: TimelineSearchState };
 };
 
@@ -113,6 +115,7 @@ export function TimelineEntryList({
   author,
   vital = null,
   symptoms = NO_SYMPTOMS,
+  tag = null,
   search: searching = NO_SEARCH,
   easy = false,
   summaryMode = "highlights",
@@ -149,6 +152,8 @@ export function TimelineEntryList({
   vital?: VitalType | null;
   /** The symptom-type filter's catalog ids (`?symptom=`), when it's on. */
   symptoms?: readonly string[];
+  /** The tag filter (`?tag=`), when it's on (the empty list names it). */
+  tag?: { id: string; name: string } | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
   /** Easy mode's list (above). */
@@ -192,6 +197,8 @@ export function TimelineEntryList({
   // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
   const mayChange = (createdBy: string | null) =>
     canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
+  // Tags (tags PRD): one live query for every row's quick tags (`RowTags`; no Tags in ⋯).
+  const entryTags = useGroupRecordTags(groupId, "entry");
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = group.recipient?.timeZone ?? "UTC";
   const now = new Date();
@@ -248,7 +255,7 @@ export function TimelineEntryList({
   // above the screen (a kind icon or author tapped far down), bring it back,
   // before the end of a shorter list could load another page.
   const list = useRef<HTMLElement>(null);
-  const filterKey = `${kind}|${vital}|${symptoms.join(",")}|${author}|${searching.q}`;
+  const filterKey = `${kind}|${vital}|${symptoms.join(",")}|${tag?.id}|${author}|${searching.q}`;
   const lastFilter = useRef(filterKey);
   useLayoutEffect(() => {
     if (lastFilter.current === filterKey) return;
@@ -262,7 +269,14 @@ export function TimelineEntryList({
   // The symptom-type filter's names, for the empty list ("No pain or nausea …"), with a way back to every symptom.
   const symptomTypes = useSymptomFilterTypes(groupId);
   const symptomNames = symptoms.flatMap((id) => symptomTypes.find((t) => t.id === id)?.name ?? []);
-  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q, vital, symptomNames);
+  const emptyText = emptyTimelineText(
+    kind,
+    author && data.nameOf(author),
+    searching.q,
+    vital,
+    symptomNames,
+    tag?.name,
+  );
   const clearSymptomsAction =
     kind === "symptom" && symptoms.length > 0
       ? { label: "Show all symptoms", to: { search: clearSymptoms(search) } }
@@ -314,6 +328,7 @@ export function TimelineEntryList({
         search={marked ? parsed : undefined}
         easy={easy}
         openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}
+        tags={entryTags.get(entry.id)}
       />
     );
   };

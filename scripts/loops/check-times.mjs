@@ -1,5 +1,5 @@
 // The check log (.loops/.check-times.log, written by check-run.sh) and its
-// summary: `pnpm prd check --times [--since <date>]`. Pure functions, plus a
+// summary: `prd check --times [--since <date>]`. Pure functions, plus a
 // small CLI at the bottom.
 //
 // A line has eighteen tab-separated fields: start, worktree, branch, mode,
@@ -211,7 +211,7 @@ export function formatSummary(s, { since } = {}) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   let since;
-  let file = process.env.CARETOOK_CHECK_LOG;
+  let file = process.env.RISA_CHECK_LOG;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--since" && args[i + 1]) since = args[++i];
     else if (args[i] === "--log" && args[i + 1]) file = args[++i];
@@ -221,7 +221,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
   }
   if (!file) {
-    console.error("check-times.mjs needs --log <file> (or CARETOOK_CHECK_LOG)");
+    console.error("check-times.mjs needs --log <file> (or RISA_CHECK_LOG)");
     process.exit(1);
   }
   try {

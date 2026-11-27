@@ -51,7 +51,7 @@ export default function ContactSettings({ loaderData }: Route.ComponentProps) {
   return (
     <SettingsPage id="contact" title="Contact details" offlineNotice={online ? undefined : OFFLINE_CONTACT}>
       <SettingsCard>
-        <p className="text-base-content/70 text-sm">
+        <p className="text-muted text-sm">
           Each care group sees only what you choose on its Members page. Nothing is shared until you do.
         </p>
         {contact && <ContactForm contact={contact} signInEmail={signInEmail} />}

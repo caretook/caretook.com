@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pnpm prd skeptic | prompt skeptic: the skeptic's command line (the store, the
+// prd skeptic | prompt skeptic: the skeptic's command line (the store, the
 // checker and the brief are skeptics.mjs).
 //
 //   record --kind ask|land|plan|stall --verdict <v> --why "<one line>"
@@ -9,13 +9,13 @@
 //          [--slice <n> --defaults|--waits]                 stall (--waits: a never-list step, only ask)
 //          [--topic <t>] [--session <s>]                    prints the id
 //   [list] [--topic <t>] [--json]                           the verdicts, oldest first
-//   brief ask|land|plan|stall --evidence <file>                   (pnpm prd prompt skeptic …)
+//   brief ask|land|plan|stall --evidence <file>                   (prd prompt skeptic …)
 //
-// The directory is CARETOOK_SKEPTIC_DIR (prd.sh sets the main checkout's
+// The directory is RISA_SKEPTIC_DIR (prd.sh sets the main checkout's
 // .loops/.skeptic). The topic and session default to what prd.sh passes as
 // --here-topic and --here-session.
+import { loadConfig, toolCmd } from "./config.mjs";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import {
   SkepticError,
   formatRecords,
@@ -25,15 +25,13 @@ import {
   skepticBrief,
 } from "./skeptics.mjs";
 
-const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-
 const fail = (msg) => {
-  console.error(`pnpm prd: ${msg}`);
+  console.error(`${toolCmd.prd}: ${msg}`);
   process.exit(1);
 };
 
 const dirOf = () =>
-  process.env.CARETOOK_SKEPTIC_DIR || fail("CARETOOK_SKEPTIC_DIR isn't set (run this through pnpm prd)");
+  process.env.RISA_SKEPTIC_DIR || fail(`RISA_SKEPTIC_DIR isn't set (run this through ${toolCmd.prd})`);
 
 function parse(argv, valued, flags = []) {
   const opts = { offer: [] };
@@ -81,7 +79,7 @@ function record(argv) {
     why: opts.why,
     topic:
       opts.topic || opts["here-topic"] || fail("skeptic record needs --topic <topic> outside a worktree"),
-    session: opts.session || process.env.CARETOOK_SESSION || opts["here-session"] || null,
+    session: opts.session || process.env.RISA_SESSION || opts["here-session"] || null,
     option: opts.option ?? null,
     tip: opts.tip ?? null,
     action: opts.action ?? null,
@@ -102,7 +100,7 @@ function list(argv) {
 
 function brief(argv) {
   const { opts, rest } = parse(argv, ["evidence"]);
-  if (rest.length !== 1) fail("usage: pnpm prd prompt skeptic ask|land|plan|stall --evidence <file>");
+  if (rest.length !== 1) fail(`usage: ${toolCmd.prd} prompt skeptic ask|land|plan|stall --evidence <file>`);
   if (!opts.evidence) fail("the skeptic's brief needs --evidence <file>");
   let evidence;
   try {
@@ -110,7 +108,9 @@ function brief(argv) {
   } catch {
     fail(`can't read the evidence file ${opts.evidence}`);
   }
-  process.stdout.write(skepticBrief(rest[0], { evidence, rules: readRules(ROOT) }));
+  // The configured project's rules (RISA_CONFIG, else the repo's risa.json).
+  const { config, root } = loadConfig();
+  process.stdout.write(skepticBrief(rest[0], { evidence, rules: readRules(root, config) }));
 }
 
 const [cmd, ...argv] = process.argv.slice(2);

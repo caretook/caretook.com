@@ -103,13 +103,15 @@ describe("the deploy workflows", () => {
         encoding: "utf8",
       });
     expect(list("tooling:unit")).not.toContain("loops/browser.test.mjs");
+    expect(list("project:tooling")).not.toContain("project/browser-run.test.mjs");
     expect(list("tooling:unit")).toContain("loops/lease.test.mjs");
     expect(
       list("tooling:browser")
         .trim()
         .split("\n")
         .filter((l) => l.includes(".test.")),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
+    expect(list("tooling:browser")).toContain("project/browser-run.test.mjs");
     const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
     expect(step.run).toContain("--project tooling:browser");
     expect(step.if).toBe("${{ !cancelled() }}");
@@ -245,7 +247,7 @@ describe("the deploy workflows", () => {
 
   it("gives each release suite run its own job, within one suite's limit", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    const capS = read("scripts/loops/checks")
+    const capS = read("scripts/project/checks")
       .split("\n")
       .filter((line) => !line.startsWith("#"))
       .map((line) => line.trim().split(/\s+/))

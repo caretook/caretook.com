@@ -149,6 +149,17 @@ export function Prose({ content }: { content: ProseContent }) {
             {p}
           </p>
         ))}
+        {content.subsections?.map((sub) => (
+          <div key={sub.heading} className="mt-8">
+            <h3 className="text-lg font-semibold">{sub.heading}</h3>
+            {sub.label && <p className="text-sm text-base-content/60">{sub.label}</p>}
+            {sub.paragraphs.map((p) => (
+              <p key={p} className="mt-2 leading-relaxed text-base-content/80">
+                {p}
+              </p>
+            ))}
+          </div>
+        ))}
       </div>
     </section>
   );

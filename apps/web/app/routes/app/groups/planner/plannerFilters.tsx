@@ -3,13 +3,17 @@ import type { UpcomingShow } from "./upcomingFilters";
 
 import { MemberAvatar } from "~/components/members";
 import { clearAuthor, setAuthor, setQuery } from "~/lib/timeline/timelineFilters";
-import { setShow, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
+import { setTagFilter } from "~/lib/tags/tagFilter";
+import { pastTagChip, setShow, upcomingFilterSections } from "./upcomingFilters";
 
 // The Planner tabs' search and filter bars (the header puts each under the
 // tabs; it acts on the open tab only): the search box (`?q=`, which the tab
-// links never carry), and each tab's own Filter menu. Upcoming: Show, and
-// the author as an extra chip (set from a card's initials). Past: By (the
-// author). Todos: its own (`todos/TodoFilters`).
+// links never carry), and each tab's own Filter menu. Upcoming: Show and
+// Tag (when the group has tags), and the author as an extra chip (set from
+// a card's initials). Past: By (the author), and the tag carried from
+// Upcoming as a chip. Todos: its own (`todos/TodoFilters`).
+
+type Named = { id: string; name: string };
 
 export type PlannerAuthor = { userId: string; name: string; image: string | null };
 
@@ -28,23 +32,12 @@ export const upcomingFilterBar = (
   text: BarText,
   show: UpcomingShow,
   author: PlannerAuthor | null,
+  tags: readonly Named[] = [],
 ): SearchFilterBarProps =>
   barOf(text, (search) => ({
     label: "Filter the Planner",
-    clear: setShow(search, "all"),
-    sections: [
-      {
-        id: "show",
-        title: "Show",
-        current: show,
-        defaultId: "all",
-        options: UPCOMING_SHOWS.map((s) => ({
-          id: s,
-          label: UPCOMING_SHOW_LABELS[s],
-          search: setShow(search, s),
-        })),
-      },
-    ],
+    clear: setTagFilter(setShow(search, "all"), null),
+    sections: upcomingFilterSections(search, show, tags),
     chips: author
       ? [
           {
@@ -77,13 +70,15 @@ export const pastFilterBar = (
   text: BarText,
   members: readonly { userId: string; name: string }[],
   author: { userId: string; name: string } | null,
+  tag: Named | null = null,
 ): SearchFilterBarProps =>
   barOf(text, (search) => {
     const choices =
       author && !members.some((m) => m.userId === author.userId) ? [...members, author] : members;
     return {
       label: "Filter past events",
-      clear: clearAuthor(search),
+      clear: setTagFilter(clearAuthor(search), null),
+      chips: pastTagChip(search, tag),
       sections: [
         {
           id: "author",

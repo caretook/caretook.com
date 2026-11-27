@@ -1,16 +1,13 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
-import { canHaveNoteDocument } from "@caretook/data/schema";
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import { AuthorFilterLink, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
 import { ViaTag } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
-import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
-import { CANCELLED_TEXT, CancelledBadge, EntryCopyLink } from "./TimelineEntryRow";
+import { CANCELLED_TEXT, CancelledBadge, EntryMenu, RowTags } from "./TimelineEntryRow";
 
 /** One entry as a compact card: the body's first line beside the time, all its text (a note's or event's formatted), then who wrote it. */
 export function TimelineEntryCard({
@@ -28,6 +25,7 @@ export function TimelineEntryCard({
   richText,
   search,
   openTodos,
+  tags,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -58,6 +56,7 @@ export function TimelineEntryCard({
           <>
             {cancelled && <CancelledBadge label={cancelled} />}
             <OpenTodosMark count={openTodos} />
+            <RowTags entry={entry} tags={tags} />
             <p className="text-faint inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
               <ViaTag via={entry.via} className="ml-1.5" />
@@ -66,20 +65,7 @@ export function TimelineEntryCard({
           </>
         }
       />
-      <EntryCopyLink entry={entry} />
-      {(onDelete || canHaveNoteDocument(entry.kind)) && (
-        <EntryActions
-          kind={entry.kind}
-          label={actionsLabel(entry)}
-          onEdit={onEdit}
-          cancel={cancel}
-          onRemind={onRemind}
-          printHref={
-            canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
-          }
-          onDelete={onDelete}
-        />
-      )}
+      <EntryMenu entry={entry} onEdit={onEdit} cancel={cancel} onRemind={onRemind} onDelete={onDelete} />
     </li>
   );
 }

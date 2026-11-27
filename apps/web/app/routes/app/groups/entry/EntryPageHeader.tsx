@@ -11,6 +11,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
+import { QuickTags } from "~/components/tags";
 import { ConfirmDialog, Message, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
@@ -32,7 +33,7 @@ import { ShareButton } from "./ShareButton";
  * link to, Share and the ⋯ menu (for writers, an event's Reschedule, its
  * Cancel or Undo cancel, then Print and Delete, each confirmed but Undo; for
  * viewers, Print);
- * who it was with (providers); for writers on an event that says the
+ * its tags (`QuickTags`); who it was with (providers); for writers on an event that says the
  * recipient moved, a care period to start; and, for events, where it is.
  * On an upcoming series visit, the ⋯ menu's Edit, Reschedule, Cancel and
  * Delete, and a title, time or place typed here, ask Only this visit or
@@ -156,6 +157,19 @@ export function EntryPageHeader({
         editors={editors}
         via={entry.via && <ViaTag via={entry.via} />}
         repeat={<EntryRepeat live={live} />}
+        // Tags (tags-2): every chip for every role; × and Add tag for whoever may tag it.
+        tags={
+          !deleted &&
+          stored && (
+            <QuickTags
+              target="entry"
+              recordId={entry.id}
+              label={heading}
+              createdBy={entry.createdBy}
+              max={null}
+            />
+          )
+        }
         with={
           !deleted && (
             <EntryWithRow

@@ -9,7 +9,7 @@ import { root, repo, git, commit, branch, GH_CI, useLandRepo } from "./land-fixt
 useLandRepo();
 
 describe("land.sh's CI gate", () => {
-  const TEST = "apps/web/x.test.ts";
+  const TEST = "web/x.test.ts";
   const failing = { job: "unit", file: TEST, name: "fails" };
   const failed = { tests: [failing], files: [TEST], jobs: ["unit"], unnamedJobs: [] };
   const fileLog = () => join(root, "ci-file.log");
@@ -57,8 +57,8 @@ describe("land.sh's CI gate", () => {
           GH_CI: join(root, "gh-ci.mjs"),
           GH_CI_FIXTURE: join(root, "fixture.json"),
           CI_FILE_LOG: fileLog(),
-          CARETOOK_CI_POLL: "0",
-          CARETOOK_NOTICES_DIR: join(root, "notices"),
+          RISA_CI_POLL: "0",
+          RISA_NOTICES_DIR: join(root, "notices"),
           ...extra,
         },
       },
@@ -72,7 +72,7 @@ describe("land.sh's CI gate", () => {
     writeFileSync(join(repo, ".git", "info", "exclude"), ".loops/\nto-test/\n");
     commit({ [TEST]: "t" }, "a test");
     git("push", "-q", "origin", "dev");
-    branch({ "apps/web/b.ts": "2" });
+    branch({ "web/b.ts": "2" });
     tip = git("rev-parse", "prd/throwaway-x");
   });
 
@@ -144,15 +144,33 @@ describe("land.sh's CI gate", () => {
         env: {
           ...process.env,
           PATH: `${join(root, "bin")}:${process.env.PATH}`,
-          CARETOOK_PR_THROWAWAY: "1",
+          RISA_PR_THROWAWAY: "1",
           GH_PR_BODY: body(),
+          GH_CI: join(root, "gh-ci.mjs"),
+          GH_CI_FIXTURE: join(root, "fixture.json"),
+          PR_HEAD: tip,
         },
       });
+    const fixture = (f) => writeFileSync(join(root, "fixture.json"), JSON.stringify({ byCommit: {}, ...f }));
 
-    it("puts the tier and the proposal in the PR body", () => {
+    it("puts the tier, the proposal and the tip's CI verdict in the PR body, not a local check", () => {
+      fixture(on(verdict("green")));
       const r = pr();
       expect(r.status, out(r)).toBe(0);
-      expect(readFileSync(body(), "utf8")).toContain("**Tier:** components (proposed components: app code");
+      const text = readFileSync(body(), "utf8");
+      expect(text).toContain("**Tier:** components (proposed components: app code");
+      expect(text).toContain(`**CI:** verdict: green · components · ${tip.slice(0, 8)}`);
+      expect(text).not.toContain("**Check:**");
+    });
+
+    it("says the landing will request a run when the tip has no verdict, and requests none", () => {
+      fixture({});
+      const r = pr();
+      expect(r.status, out(r)).toBe(0);
+      expect(readFileSync(body(), "utf8")).toContain(
+        `**CI:** no components verdict for ${tip.slice(0, 8)}: the landing will request one`,
+      );
+      expect(git("ls-remote", "origin", "refs/heads/ci/*")).toBe("");
     });
 
     it("refuses a tier below the proposal without --why, before anything is written", () => {
@@ -193,6 +211,7 @@ describe("land.sh's CI gate", () => {
       expect(r.status, out(r)).toBe(0);
       expect(r.stdout).toContain("Proposed tier: **components** (app code");
       expect(r.stdout).toContain(`CI: verdict: green · components · ${tip.slice(0, 8)}`);
+      expect(r.stdout).not.toContain("Check:");
     });
 
     it("says the landing will request a run, and requests none", () => {
@@ -206,10 +225,10 @@ describe("land.sh's CI gate", () => {
   });
 
   it("a flake in a file the branch touched refuses, names it and files nothing", () => {
-    const flaky = [{ job: "unit", file: "apps/web/b.ts", name: "wobbles", brake: false }];
+    const flaky = [{ job: "unit", file: "web/b.ts", name: "wobbles", brake: false }];
     const r = land(on(verdict("flake", { flaky })));
     expect(r.status).toBe(2);
-    expect(out(r)).toContain("apps/web/b.ts: wobbles");
+    expect(out(r)).toContain("web/b.ts: wobbles");
     expect(merged()).toBe(false);
     expect(filed()).toEqual([]);
   });
@@ -325,7 +344,7 @@ describe("land.sh's CI gate", () => {
   it("a code commit since the verdict doesn't keep it", () => {
     const checked = tip;
     git("checkout", "-q", "prd/throwaway-x");
-    commit({ "apps/web/b.ts": "3" }, "more");
+    commit({ "web/b.ts": "3" }, "more");
     git("checkout", "-q", "dev");
     tip = git("rev-parse", "prd/throwaway-x");
     const r = land({ ...on(verdict("green", { commit: checked }), checked), requested: verdict("infra") });

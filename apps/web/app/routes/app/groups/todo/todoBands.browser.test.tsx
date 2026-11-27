@@ -47,7 +47,8 @@ describe("the todo page's bands", () => {
   test("a writer's bands in order", async () => {
     await open(LINKED.id, "caretaker");
     await onPageWith(LINKED.id, () => bandNames().includes("Linked to"));
-    expect(bandNames()).toEqual(["(header)", "Details", "Linked to", "Status", "Notes"]);
+    // Subtasks: empty, for the writer's "Add subtask".
+    expect(bandNames()).toEqual(["(header)", "Details", "Subtasks", "Linked to", "Status", "Notes"]);
     expect(bandsAlternate()).toBe(true);
   });
 

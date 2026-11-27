@@ -19,8 +19,8 @@ import { useUpcomingData } from "./useUpcomingData";
 // todos merged in by day, read from the device's local
 // copy (live, so it works offline and follows other members' changes). What
 // counts as upcoming is worked out from the clock (`lib/appointments/upcoming`), never
-// stored. `?kind=event` (events only), `?show=todos` (todos only), `?author=`
-// and the search box's `?q=` filter it.
+// stored. `?kind=event` (events only), `?show=todos` (todos only), `?author=`,
+// `?tag=` (events and todos; tags PRD) and the search box's `?q=` filter it.
 // For the easy roles it's the list alone, read-only: no Add, tabs, filters
 // or row menus (they tick only their own todos).
 
@@ -47,7 +47,7 @@ export function shouldRevalidate({
 }
 
 export default function Planner({ loaderData, params }: Route.ComponentProps) {
-  const { kind, author, show, todosOnly } = loaderData;
+  const { kind, author, show, todosOnly, tag } = loaderData;
   const { groupId } = params;
   const { easyRole } = useGroup();
   // The box filters as you type; the URL follows (see `SearchFilterBar`). The easy roles have no box.
@@ -56,7 +56,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
   const text = easyRole ? "" : typed;
   const data = useUpcomingData({
     groupId,
-    filters: { kind, author },
+    filters: { kind, author, tag },
     todosOnly,
     q: text,
     initial: loaderData,
@@ -74,6 +74,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
             { value: text, urlQuery, onChange: setText },
             show,
             author && authorName ? { userId: author, name: authorName, image: data.imageOf(author) } : null,
+            data.tags,
           )}
         />
       )}
@@ -83,7 +84,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         data={data}
         groupId={groupId}
         label="Upcoming"
-        empty={emptyUpcomingText(show, authorName, text)}
+        empty={emptyUpcomingText(show, authorName, text, data.tag?.name)}
         readOnly={easyRole}
       />
     </Page>

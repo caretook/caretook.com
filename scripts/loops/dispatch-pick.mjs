@@ -1,4 +1,4 @@
-// The dispatcher's pick: what `pnpm prd dispatch` does this tick, and why it
+// The dispatcher's pick: what `prd dispatch` does this tick, and why it
 // passed every other topic over. Pure: the facts in (the dispatcher gathers
 // them), one action and its reasons out. No hold: a topic whose plan just
 // landed is `planned` like any other and may start on the next tick.
@@ -26,16 +26,29 @@
 //      start this tick.
 //   6. A `to-write` topic with waiting items may be `plan`ned when every
 //      `After` topic is `done` and no planner runs, other than ones whose
-//      topic has an open question (at most caps.planners + 1 planners).
+//      topic has an open question (at most caps.planners + 1 planners), and
+//      the lookahead has room: the planned topics waiting to start (state
+//      `planned`, not `standing`, not `hold`, not running) plus the planners
+//      running number fewer than the lane cap (caps.prds) + 1. A `hold` topic
+//      is never planned here (its state is `hold`, not `to-write`); planning
+//      one early stays possible by hand (`prd plan`).
 //   7. Starts before plans; within each, row order. `hold`, `done` and `idle`
 //      rows are never picked.
+//   8. A landed topic (facts.landed, landed.mjs's landedTopics: its last
+//      landing is in dev with only docs past it and no slice left in its
+//      plan) is never started or reopened, whatever its row says: the guard
+//      beside the `done` flag (B-431: planner-3 landed with its row still
+//      planned, and was started nine times). A standing topic is never one.
+//   9. The work switch off (machine.mjs; facts.work): no start and no plan,
+//      each planned and to-write row's reason naming it (reopens still happen).
 //
 // Hot files collide when a prefix of one topic starts with a prefix of the
 // other, as plain text (`scripts/loops/session` and
 // `scripts/loops/session.sh`); a topic with no hot files collides with nothing.
 
 import { awaitsAnswer } from "./asks.mjs";
-import { branchKinds } from "./config.mjs";
+import { branchKinds, toolCmd } from "./config.mjs";
+import { WORK_VAR } from "./machine.mjs";
 
 /** A managed session that died is reopened this many times; the next death is an ask. */
 export const MAX_REOPENS = 2;
@@ -47,13 +60,13 @@ export const DISPATCH_SESSION = "dispatch";
 export const KEEP_SESSION = "dispatch-keep";
 /** The answers a reopen ask offers. */
 export const REOPEN_OPTIONS = ["reopen again", "hold the topic"];
-/** The caps when the caller gives none: CARETOOK_MAX_PRDS, CARETOOK_MAX_PLANNERS, CARETOOK_FIXES_MIN. */
+/** The caps when the caller gives none: RISA_MAX_PRDS, RISA_MAX_PLANNERS, RISA_FIXES_MIN. */
 export const DEFAULT_CAPS = { prds: 4, planners: 1, fixesMin: 3 };
 
 /**
  * @typedef {{ topic: string, flags?: string[], after?: string[], hot?: string[],
  *   state: string, waiting?: number }} PickRow
- *   a `pnpm backlog prd list --json` row: state worked out, waiting items counted
+ *   a `backlog prd list --json` row: state worked out, waiting items counted
  * @typedef {{ name: string, branch: string }} PickWorktree
  *   a worktree in .loops: only prd/<topic> and plan/<topic> branches count
  * @typedef {{ name: string, live: boolean, managed?: boolean, rotating?: boolean,
@@ -66,7 +79,8 @@ export const DEFAULT_CAPS = { prds: 4, planners: 1, fixesMin: 3 };
  * @typedef {{ rows: PickRow[], worktrees?: PickWorktree[], sessions?: PickSession[],
  *   asks?: PickAsk[], reopens?: Record<string, number>, busy?: boolean, paused?: boolean,
  *   caps?: Partial<typeof DEFAULT_CAPS>, now?: number,
- *   drain?: { state: "normal" | "draining" | "limited", why: string } }} PickFacts
+ *   drain?: { state: "normal" | "draining" | "limited", why: string },
+ *   landed?: Record<string, { sha: string }>, work?: { on: boolean, why: string } }} PickFacts
  * @typedef {{ topic?: string, why: string }} Reason
  * @typedef {{ action: "start" | "plan" | "reopen" | "ask" | "resume" | "none", topic?: string,
  *   session?: string, worktree?: string, why?: string, text?: string, options?: string[],
@@ -108,9 +122,20 @@ export function pick(facts) {
   const sessions = new Map((facts.sessions ?? []).map((s) => [s.name, s]));
   const reopens = facts.reopens ?? {};
   const flags = (/** @type {PickRow | undefined} */ r) => r?.flags ?? [];
+  /** Why a landed topic stays down (rule 8), or null; never a standing one. @param {string} topic */
+  const landedWhy = (topic) => {
+    const l = facts.landed?.[topic];
+    if (!l || flags(byTopic.get(topic)).includes("standing")) return null;
+    return `landed in dev as ${l.sha.slice(0, 7)} with no slice left`;
+  };
   // Near or past a usage limit: nothing new opens (drain.mjs).
   const held = facts.drain && facts.drain.state !== "normal" ? facts.drain : null;
   const heldWhy = held ? `usage is ${held.state}: ${held.why}` : "";
+  // The work switch (rule 9): off, nothing new starts or is planned in this repo.
+  const workOff =
+    facts.work && !facts.work.on
+      ? `the work switch is off (${facts.work.why}; ${WORK_VAR}=1 turns it on for one process)`
+      : null;
 
   // An open question is one that awaits an answer: a defaulted one has its answer.
   const asks = (facts.asks ?? []).filter((a) => awaitsAnswer(a) && a.session !== KEEP_SESSION);
@@ -149,7 +174,9 @@ export function pick(facts) {
     let why;
     // A landed planner's worktree is tidy's; the topic speaks for itself.
     if (finished && w.kind === "plan") continue;
+    const landed = w.kind === "prd" ? landedWhy(w.topic) : null;
     if (finished) why = "done; its worktree is left over";
+    else if (landed && !s?.live) why = `${landed}: not reopened (${toolCmd.prd} rm ${w.name} marks it done)`;
     // The user's brake (or the answer "hold the topic"): a dead session stays down.
     else if (flags(row).includes("hold") && !s?.live) why = `on hold; ${what} isn't live (not reopened)`;
     else if (!s?.managed)
@@ -221,7 +248,7 @@ export function pick(facts) {
     return null;
   };
 
-  const planned = rows.filter((r) => r.state === "planned" && !running.has(r.topic));
+  const planned = rows.filter((r) => r.state === "planned" && !running.has(r.topic) && !landedWhy(r.topic));
   const mayStart = planned.filter((r) => !startBlock(r));
   const short = (/** @type {PickRow} */ r) =>
     flags(r).includes("standing") && (r.waiting ?? 0) < caps.fixesMin;
@@ -235,6 +262,10 @@ export function pick(facts) {
   });
   const activePlanners = planners.filter((w) => !questionOf(w.topic));
   const plannerFree = activePlanners.length < caps.planners && planners.length < caps.planners + 1;
+  // The lookahead: plans written ahead of the lanes, so none goes stale on a topic held meanwhile.
+  const waitingPlans = planned.filter((r) => !flags(r).includes("standing") && !flags(r).includes("hold"));
+  const ahead = waitingPlans.length + planners.length;
+  const lookahead = caps.prds + 1;
   /** Why `r` may not be planned, or null when it may. @param {PickRow} r */
   const planBlock = (r) => {
     if (!(r.waiting ?? 0)) return "nothing waiting to plan";
@@ -245,6 +276,8 @@ export function pick(facts) {
     if (waits.length) return `waits for ${waits.join(", ")}`;
     if (!plannerFree)
       return `a planner is running (${activePlanners.map((w) => w.session).join(", ") || planners.map((w) => w.session).join(", ")})`;
+    if (ahead >= lookahead)
+      return `the lookahead is full: ${waitingPlans.length} planned waiting${planners.length ? ` and ${planners.length} being planned` : ""}, lane cap ${caps.prds} + 1 (plan it by hand: ${toolCmd.prd} plan)`;
     return null;
   };
   const toWrite = rows.filter((r) => r.state === "to-write");
@@ -252,7 +285,7 @@ export function pick(facts) {
 
   const chosen = reopen
     ? null
-    : held || facts.busy
+    : workOff || held || facts.busy
       ? null
       : startPick
         ? { action: /** @type {const} */ ("start"), row: startPick }
@@ -270,7 +303,10 @@ export function pick(facts) {
     else if (running.has(r.topic)) why = "running";
     else if (r.state === "done") continue;
     else if (r.state === "hold") why = "on hold";
+    else if (r.state === "planned" && landedWhy(r.topic))
+      why = `${landedWhy(r.topic)}: never started again (mark it done: ${toolCmd.backlog} prd set ${r.topic} flags=done)`;
     else if (r.state === "idle") why = "no waiting items";
+    else if (workOff && (r.state === "planned" || r.state === "to-write")) why = workOff;
     else if (r.state === "planned") {
       why = startBlock(r);
       if (!why && held) why = `no start while ${heldWhy}`;
@@ -306,7 +342,7 @@ export function pick(facts) {
   }
   return {
     action: "none",
-    why: held ? heldWhy : facts.busy ? "the machine is busy" : "nothing to do",
+    why: workOff ?? (held ? heldWhy : facts.busy ? "the machine is busy" : "nothing to do"),
     reasons,
   };
 }

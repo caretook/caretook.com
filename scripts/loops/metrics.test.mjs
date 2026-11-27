@@ -319,7 +319,7 @@ describe("usualTime", () => {
       "other",
     ]);
     expect(
-      ["roundtrip.mjs", "roundtrip.spec.mjs", "scripts/browser-checks/roundtrip.spec.mjs", "roundtrip"].map(
+      ["roundtrip.mjs", "roundtrip.spec.mjs", "checks/browser/roundtrip.spec.mjs", "roundtrip"].map(
         checkName,
       ),
     ).toEqual(["roundtrip", "roundtrip", "roundtrip", "roundtrip"]);
@@ -370,7 +370,7 @@ describe("the CLI", () => {
       [new URL("./metrics.mjs", import.meta.url).pathname, "--run-log", join(dir, "none")],
       {
         encoding: "utf8",
-        env: { ...process.env, CARETOOK_CHECK_LOG: "", CARETOOK_BROWSER_FLAKES: "" },
+        env: { ...process.env, RISA_CHECK_LOG: "", RISA_BROWSER_FLAKES: "" },
       },
     );
     expect(r.status, r.stderr).toBe(0);

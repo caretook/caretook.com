@@ -7,18 +7,27 @@
 //
 // Fields are separated by "·", ";" or "|"; names are case-insensitive. A missing
 // field gets its default (no stack, nothing extra to read, no tests named) and a
-// warning, as does a malformed one. (`prd doc planner "Slice fields"`.)
+// warning, as does a malformed one. An optional `Blocked by: slice 3` (or `3`,
+// `1, 2`, `none`) names the slices this one waits for; leaving it out is fine.
+// (`prd doc planner "Slice fields"`.)
 //
 //   node slice-fields.mjs <n> [plan-file]   (the plan on stdin when no file)
 //     prints "Stack: …", "Reads: …" and "Tests: …", warnings on stderr
 //   node slice-fields.mjs <n> [plan-file] --get stack|reads|tests
 //     prints one field's value only (stack: yes or no)
+// A slice's body is also read for line-number anchors (`file.mjs ~158`,
+// `:231`), which go stale on hot files: `lineAnchors` finds them, and
+// `prd anchors` (anchors.mjs) warns on each.
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const FIELDS = ["stack", "reads", "tests"];
+/** Known fields a slice may leave out without a warning. */
+export const OPTIONAL_FIELDS = ["blocked by"];
+const KNOWN = [...FIELDS, ...OPTIONAL_FIELDS];
 const HEADING = /^#{2,4}\s+Slice\s+(\d+)\b/i;
-const FIELD = /^([A-Za-z]+)\s*:\s*(.*)$/;
+const FIELD = /^([A-Za-z]+(?:\s+[A-Za-z]+)*)\s*:\s*(.*)$/;
+const fieldName = (raw) => raw.toLowerCase().replace(/\s+/g, " ");
 
 /** Split on commas outside parentheses: "a (b, c), d" → ["a (b, c)", "d"]. */
 export function splitList(text) {
@@ -40,7 +49,7 @@ export function splitList(text) {
 /** Is this line a fields line (it starts with a known field name and a colon)? */
 export function isFieldsLine(line) {
   const m = FIELD.exec(line.trim());
-  return !!m && FIELDS.includes(m[1].toLowerCase());
+  return !!m && KNOWN.includes(fieldName(m[1]));
 }
 
 /**
@@ -57,8 +66,8 @@ export function parseFieldsLine(line) {
       warnings.push(`can't read "${part}" (expected Name: value)`);
       continue;
     }
-    const name = m[1].toLowerCase();
-    if (!FIELDS.includes(name)) warnings.push(`unknown field "${m[1]}"`);
+    const name = fieldName(m[1]);
+    if (!KNOWN.includes(name)) warnings.push(`unknown field "${m[1]}"`);
     else if (name in values) warnings.push(`${m[1]} is given twice; using the first`);
     else values[name] = m[2].trim();
   }
@@ -67,7 +76,7 @@ export function parseFieldsLine(line) {
 
 /**
  * The fields of slice `n` in a plan's text.
- * → { found, stack: boolean, reads: string[], readsText, tests: string[], missing: string[], warnings: string[] }
+ * → { found, stack: boolean, reads: string[], readsText, tests: string[], blockedBy: number[], missing: string[], warnings: string[] }
  * `found` is false when the plan has no such slice heading. Defaults apply to
  * anything missing or malformed, and each such case adds a warning.
  */
@@ -79,6 +88,7 @@ export function sliceFields(planText, n) {
     reads: [],
     readsText: "",
     tests: [],
+    blockedBy: [],
     missing: [],
     warnings: [],
   };
@@ -118,9 +128,64 @@ export function sliceFields(planText, n) {
     result.tests = splitList(values.tests);
     if (!result.tests.length) result.warnings.push("Tests is empty");
   }
+  if ("blocked by" in values) {
+    for (const item of splitList(values["blocked by"])) {
+      const m = /^(?:slices?\s+)?(\d+)$/i.exec(item);
+      if (m) result.blockedBy.push(Number(m[1]));
+      else if (!/^nothing$/i.test(item))
+        result.warnings.push(`Blocked by takes slice numbers, not "${item}"`);
+    }
+  }
   result.missing = FIELDS.filter((f) => !(f in values));
   for (const f of result.missing) result.warnings.push(`no ${f[0].toUpperCase()}${f.slice(1)} field`);
   return result;
+}
+
+const EXTS = "mjs|cjs|js|jsx|ts|tsx|mts|cts|md|mdx|json|jsonc|ya?ml|sh|bash|sql|css|html|txt|toml|svg|png";
+/** A backticked word ending in one of these extensions names a file (anchors.mjs too). */
+export const FILE_EXT = new RegExp(`\\.(?:${EXTS})$`);
+const FILE_WORD = `[\\w./-]*\\.(?:${EXTS})\\b`;
+/** A file name, maybe backticked, then ~158, :231, line 158 or #L158. */
+const ANCHOR_AFTER_FILE = new RegExp(
+  `(${FILE_WORD})\`?(?:\\s*~\\s*\\d+|:\\d+|#L\\d+|,?\\s+(?:at\\s+|near\\s+)?lines?\\s+~?\\d+)`,
+  "g",
+);
+/** A code span that is only a line number: `~158`, `:231`, `L158`, `line 158`. */
+const ANCHOR_SPAN = /`(?:~\s*\d+|:\d+(?:-\d+)?|L\d+|lines?\s+\d+)`/g;
+
+/**
+ * The line-number anchors in a slice's text (`file.mjs ~158`, `` `:231` ``,
+ * `file.mjs line 40`), as written. A plain number in prose (`~120k`, `3 files`)
+ * is not one.
+ */
+export function lineAnchors(/** @type {string} */ text) {
+  const found = [];
+  for (const re of [ANCHOR_AFTER_FILE, ANCHOR_SPAN])
+    for (const m of text.matchAll(re)) found.push({ at: m.index, text: m[0] });
+  return found.sort((a, b) => a.at - b.at).map((f) => f.text);
+}
+
+/**
+ * Each slice's heading number and body (the heading to the next heading of its
+ * level or above), in plan order.
+ */
+export function sliceSections(/** @type {string} */ planText) {
+  const lines = planText.split(/\r?\n/);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = HEADING.exec(lines[i]);
+    if (!m) continue;
+    const level = /^#+/.exec(lines[i])[0].length;
+    const ends = (/** @type {string} */ l) => {
+      const h = /^(#+)\s/.exec(l);
+      return !!h && h[1].length <= level;
+    };
+    let j = i + 1;
+    while (j < lines.length && !ends(lines[j])) j++;
+    out.push({ n: Number(m[1]), heading: lines[i], body: lines.slice(i + 1, j).join("\n") });
+    i = j - 1;
+  }
+  return out;
 }
 
 /** The three lines prompt.sh prints. */

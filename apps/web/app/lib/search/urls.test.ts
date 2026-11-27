@@ -26,4 +26,12 @@ describe("searchUrls", () => {
     expect(appUrls.search(G, "", { period: P })).toBe(`/app/groups/${G}/search`);
     expect(appUrls.search(G, "knee", { period: null })).toBe(`/app/groups/${G}/search?q=knee`);
   });
+
+  it("carries the tag, with or without a search; with one, a full section needs no text", () => {
+    const T = "9a77e3f1-5d1a-4c2e-0b6f-3c1e2b8c0bbb";
+    expect(appUrls.search(G, "knee", { tag: T })).toBe(`/app/groups/${G}/search?q=knee&tag=${T}`);
+    expect(appUrls.search(G, "", { tag: T })).toBe(`/app/groups/${G}/search?tag=${T}`);
+    expect(appUrls.search(G, "", { all: "todo", tag: T })).toBe(`/app/groups/${G}/search?all=todo&tag=${T}`);
+    expect(appUrls.search(G, "knee", { tag: null })).toBe(`/app/groups/${G}/search?q=knee`);
+  });
 });

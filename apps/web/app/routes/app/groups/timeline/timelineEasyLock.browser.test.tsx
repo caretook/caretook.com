@@ -173,11 +173,13 @@ describe("an Easy helper's timeline", () => {
       .toBe(1);
   });
 
-  test("gets a ⋯ menu on their own row and none on another member's; Edit opens their own's sheet", async () => {
+  test("gets a ⋯ menu on their own row and only Copy link on another member's; Edit opens their own's sheet", async () => {
     const device = await open({ fixtures: [SAM, mine, sams] });
     await waitUntil(() => isEasy() && rows().length === 2, "the rows");
-    expect(actions(await found(() => rowWith("Cough")))).toBeNull();
     expect(rowWith("Cough")?.querySelector("a[href*='/edit']")).toBeNull();
+    await userEvent.click(await found(() => actions(rowWith("Cough")!)));
+    await expect.poll(menuItems).toEqual(["Copy link"]);
+    await userEvent.keyboard("{Escape}");
 
     await userEvent.click(await found(() => actions(rowWith("Dizzy")!)));
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
@@ -206,7 +208,7 @@ describe("an Easy helper's timeline", () => {
 });
 
 describe("an Easy viewer's timeline", () => {
-  test("has no box, tiles, removing or row menus", async () => {
+  test("has no box, tiles or removing, and row menus of Copy link alone", async () => {
     const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
     await open({
       role: "easy_viewer",
@@ -220,8 +222,10 @@ describe("an Easy viewer's timeline", () => {
     expect(page.getByRole("textbox", { name: "What happened?" }).elements()).toHaveLength(0);
     expect(document.querySelector("[data-easy-tiles]")).toBeNull();
     expect(page.getByRole("button", { name: "Remove my last entry" }).elements()).toHaveLength(0);
-    expect(document.querySelectorAll('[data-easy-list] button[aria-label^="Actions"]')).toHaveLength(0);
     expect(page.getByRole("button", { name: "Full app" }).elements()).toHaveLength(0);
+    expect(document.querySelectorAll('[data-easy-list] button[aria-label^="Actions"]')).toHaveLength(2);
+    await userEvent.click(await found(() => rows()[0]?.querySelector('button[aria-label^="Actions"]')));
+    await expect.poll(menuItems).toEqual(["Copy link"]);
   });
 });
 

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
@@ -29,8 +30,9 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //                and the core's scripts/ci tests
 //   tooling:unit the other tooling tests (scripts/loops, backlog), against
 //                throwaway git repos in the OS temp dir; `pnpm test:tooling`
-//   tooling:browser  scripts/loops/browser.test.mjs alone: it launches Playwright
-//                and waits on specs that hang on purpose. `pnpm test:browser-harness`;
+//   tooling:browser  loops/browser.test.mjs (the gate) and project/browser-run.test.mjs
+//                (Caretook's runner) alone: they launch Playwright and wait on
+//                checks that hang on purpose. `pnpm test:browser-harness`;
 //                `pnpm test:tooling` adds it when the change touches what it tests
 //                (check-plan.mjs); CI runs it in the integration job
 //   integration  real Postgres, every package (*.int.test.ts): the test
@@ -66,6 +68,7 @@ const PROJECT_UNIT = [
   "verdict",
   "zones",
   "quick-guards",
+  "unit-workers",
 ].map((name) => `{loops,ci,project}/${name}.test.mjs`);
 const PROJECT_TOOLING = ["fixes-plans", "lint-heap", "workspace-config"].map(
   (name) => `loops/${name}.test.mjs`,
@@ -86,6 +89,31 @@ const freePort = () =>
 // Integration workers, each on its own database (packages/data/test/globalSetup.ts).
 const integrationWorkers = intWorkers(process.env.CARETOOK_INT_WORKERS);
 if (integrationWorkers === undefined) throw new Error("CARETOOK_INT_WORKERS must be a number from 1 to 16");
+
+// The unit projects' workers (CARETOOK_UNIT_WORKERS): Vitest's default is cores − 1,
+// so two overlapping checks ran ~18 test processes on 10 cores (B-542). Half the
+// cores, at most 4, unless set (1 to 64). The tooling projects keep the default.
+const MAX_UNIT_WORKERS = 64;
+export const unitWorkers = (
+  value: string | undefined,
+  cores = availableParallelism(),
+): number | undefined => {
+  if (value === undefined || value.trim() === "") return Math.max(1, Math.min(4, Math.floor(cores / 2)));
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_UNIT_WORKERS ? n : undefined;
+};
+const unitWorkerCount = unitWorkers(process.env.CARETOOK_UNIT_WORKERS);
+if (unitWorkerCount === undefined) throw new Error("CARETOOK_UNIT_WORKERS must be a number from 1 to 64");
+// The unit projects: one group (Vitest runs the projects that share a
+// sequence.groupOrder on one pool, so they must share maxWorkers too).
+const unit = { maxWorkers: unitWorkerCount };
+// The tooling projects: Vitest's default workers, in a group of their own (3, after
+// integration) so a run with every project doesn't put two caps in one group.
+// `pnpm test:tooling` and the check's tooling step run them alone.
+const tooling = { sequence: { groupOrder: 3 } };
+// The core's test setup, in each core project: RISA_CONFIG defaults to the fixture
+// project's config, never this checkout's risa.json.
+const coreSetup = fileURLToPath(new URL("./scripts/loops/test-setup.mjs", import.meta.url));
 
 // Quarantined tests are skipped in every project (scripts/ci/quarantine.txt), or
 // alone are run under CARETOOK_QUARANTINE=run. Handed over by `provide` so the
@@ -192,6 +220,7 @@ export default defineConfig({
       {
         test: {
           name: "data:unit",
+          ...unit,
           root: "./packages/data",
           include: ["src/**/*.test.ts"],
           exclude: ["src/**/*.int.test.ts"],
@@ -204,6 +233,7 @@ export default defineConfig({
         // parts (test/*.test.ts: the browser lease helper).
         test: {
           name: "web:unit",
+          ...unit,
           root: "./apps/web",
           include: ["app/**/*.test.ts", "test/**/*.test.ts"],
         },
@@ -212,6 +242,7 @@ export default defineConfig({
         // @caretook/notifications' pure parts: templates, links, allowlist.
         test: {
           name: "notifications:unit",
+          ...unit,
           root: "./packages/notifications",
           include: ["src/**/*.test.ts"],
           exclude: ["src/**/*.int.test.ts"],
@@ -222,6 +253,7 @@ export default defineConfig({
         // no db call (host.ts, the /rpc handler's CORS answer).
         test: {
           name: "server:unit",
+          ...unit,
           include: ["packages/auth/src/**/*.test.ts", "packages/api/src/**/*.test.ts"],
           exclude: ["**/*.int.test.ts"],
         },
@@ -230,6 +262,7 @@ export default defineConfig({
         // Caretook's tooling tests the default run keeps.
         test: {
           name: "project:unit",
+          ...unit,
           root: "./scripts",
           include: [...PROJECT_UNIT, "deploy/**/*.test.mjs", "build/**/*.test.mjs", "eslint/**/*.test.mjs"],
           testTimeout: 20_000,
@@ -240,21 +273,25 @@ export default defineConfig({
         // tooling:unit below (the same timeout and load gate, for the same reasons).
         test: {
           name: "project:tooling",
+          ...tooling,
           root: "./scripts",
           include: [...PROJECT_TOOLING, "project/**/*.test.mjs", "hooks.test.mjs"],
-          exclude: PROJECT_UNIT,
+          // The runner's test is the browser harness's (tooling:browser).
+          exclude: [...PROJECT_UNIT, "project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       {
         // The core's tooling tests the default run keeps.
         test: {
           name: "core:unit",
+          ...unit,
           root: "./scripts",
           include: ["loops/check-times.test.mjs", "loops/check-plan.test.mjs", "ci/**/*.test.mjs"],
           exclude: PROJECT_UNIT,
           testTimeout: 20_000,
+          setupFiles: [coreSetup],
         },
       },
       {
@@ -264,6 +301,7 @@ export default defineConfig({
         // project out; `pnpm test:tooling` runs it.
         test: {
           name: "tooling:unit",
+          ...tooling,
           root: "./scripts",
           include: ["loops/**/*.test.mjs", "backlog/**/*.test.mjs"],
           exclude: [
@@ -274,19 +312,22 @@ export default defineConfig({
             "loops/browser.test.mjs",
           ],
           testTimeout: 20_000,
+          setupFiles: [coreSetup],
           // Off for every spawned script (they pass process.env on): new.sh and
           // check-run.sh would otherwise poll the real machine's load, 15 s at a
           // time for up to 600 s. The gate's own tests set it back to "".
-          env: { CARETOOK_LOAD_GATE: "off" },
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       {
         test: {
           name: "tooling:browser",
+          ...tooling,
           root: "./scripts",
-          include: ["loops/browser.test.mjs"],
+          include: ["loops/browser.test.mjs", "project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          env: { CARETOOK_LOAD_GATE: "off" },
+          setupFiles: [coreSetup],
+          env: { RISA_LOAD_GATE: "off" },
         },
       },
       componentsProject("web:components", testZone(), await freePort()),
@@ -308,10 +349,10 @@ export default defineConfig({
             CARETOOK_INT_WORKERS: String(integrationWorkers),
           },
           globalSetup: ["./packages/data/test/globalSetup.ts"],
-          // Points each worker at its own database, `<name>_w<VITEST_POOL_ID>`.
+          // Points each worker at its own database, `caretook_tw_<stem>_<hash>_w<n>` (named in scripts/project/test-db.sh).
           setupFiles: ["./packages/data/test/setup.ts"],
           // Files in parallel, one per worker database. Its own maxWorkers needs
-          // a group of its own: after web:components (1), last as before, so
+          // a group of its own: after web:components (1), before the tooling (3), so
           // the databases' load doesn't overlap Chromium's.
           maxWorkers: integrationWorkers,
           sequence: { groupOrder: 2 },

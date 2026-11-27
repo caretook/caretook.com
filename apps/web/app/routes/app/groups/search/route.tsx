@@ -2,6 +2,8 @@ import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
+import { activeTag } from "@caretook/data/schema";
+import { useGroupTags } from "~/components/tags";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { loadSettings } from "~/lib/app-shell/me";
 import { findPeriodChoice } from "~/lib/care-periods/periodSearch";
@@ -14,6 +16,7 @@ import { PeriodField } from "./PeriodField";
 import { RecentSearches } from "./RecentSearches";
 import { SearchField } from "./SearchField";
 import { SearchResults } from "./SearchResults";
+import { TagField } from "./TagField";
 import { useSearchPage } from "./useSearchPage";
 
 // Shared by web + native. Search one care group's entries, providers,
@@ -22,7 +25,8 @@ import { useSearchPage } from "./useSearchPage";
 // from a result comes back to the same results. A search that's used
 // (the field left with it, or one of its results opened) joins this
 // device's recent searches, which the empty page offers with a tip. A
-// search can be narrowed to one care period (`?period=`).
+// search can be narrowed to one care period (`?period=`) and to one tag
+// (`?tag=`); a tag with no text lists everything carrying it.
 
 export const meta = () => [{ title: "Search · Caretook" }];
 
@@ -54,7 +58,9 @@ export function shouldRevalidate({
 
 export default function SearchPage({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
-  const { q, period, data, preparing, unavailable } = useSearchPage(params.groupId, loaderData.data);
+  const { q, period, tag, data, preparing, unavailable } = useSearchPage(params.groupId, loaderData.data);
+  const tags = useGroupTags(params.groupId);
+  const currentTag = activeTag(tag, tags);
   const periods = useSearchPeriods(params.groupId, loaderData.periodRows, group.recipient?.timeZone ?? "UTC");
   const currentPeriod = findPeriodChoice(periods, period);
   return (
@@ -64,6 +70,7 @@ export default function SearchPage({ loaderData, params }: Route.ComponentProps)
         groupId={params.groupId}
         urlQuery={q}
         period={currentPeriod?.id ?? null}
+        tag={currentTag?.id ?? null}
         label={`Search ${group.displayName}`}
         onUsed={(text) => recordSearch(group.userId, text)}
       />
@@ -72,8 +79,19 @@ export default function SearchPage({ loaderData, params }: Route.ComponentProps)
           groupId={params.groupId}
           q={q}
           all={data.all}
+          tag={currentTag?.id ?? null}
           choices={periods}
           current={currentPeriod}
+        />
+      )}
+      {tags.length > 0 && (
+        <TagField
+          groupId={params.groupId}
+          q={q}
+          all={data.all}
+          period={currentPeriod?.id ?? null}
+          tags={tags}
+          current={currentTag?.id ?? null}
         />
       )}
       {/* Opening a result (any link in them, or an easy role's sheet) uses the search they're for. */}
@@ -92,7 +110,7 @@ export default function SearchPage({ loaderData, params }: Route.ComponentProps)
           unavailable={unavailable}
         />
       </div>
-      {!q.trim() && <RecentSearches groupId={params.groupId} userId={group.userId} />}
+      {!q.trim() && !currentTag && <RecentSearches groupId={params.groupId} userId={group.userId} />}
     </Page>
   );
 }
