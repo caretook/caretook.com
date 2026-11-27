@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import type { FieldControl } from "./fieldIds";
 
 import { useEffect, useRef, useState } from "react";
@@ -12,8 +13,8 @@ import {
 } from "react-aria-components";
 import { SURFACE } from "./styles";
 
-/** One choice in a combo box: `description` is a second, dimmer line. */
-export type ComboBoxOption = { id: string; label: string; description?: string };
+/** One choice in a combo box: `description` is a second, dimmer line; `icon` says what it is (decorative). */
+export type ComboBoxOption = { id: string; label: string; description?: string; icon?: LucideIcon };
 
 /** A titled run of choices after the plain ones (ids unique across the whole list). */
 export type ComboBoxSection = { id: string; heading: string; options: readonly ComboBoxOption[] };
@@ -172,8 +173,23 @@ function Option({ item }: { item: ComboBoxOption }) {
       textValue={item.label}
       className={`${ITEM} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
     >
+      {item.icon ? (
+        <span className="flex min-w-0 items-center gap-3">
+          <item.icon aria-hidden="true" className="text-muted size-4 shrink-0" />
+          <OptionText item={item} />
+        </span>
+      ) : (
+        <OptionText item={item} />
+      )}
+    </ListBoxItem>
+  );
+}
+
+function OptionText({ item }: { item: ComboBoxOption }) {
+  return (
+    <span className="flex min-w-0 flex-col">
       <span className="truncate">{item.label}</span>
       {item.description && <span className="text-muted truncate text-sm">{item.description}</span>}
-    </ListBoxItem>
+    </span>
   );
 }

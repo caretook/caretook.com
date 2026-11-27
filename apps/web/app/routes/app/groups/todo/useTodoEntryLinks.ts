@@ -1,20 +1,13 @@
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
-import type { LinkableEntryRow } from "~/lib/todos/entryTodos.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
-import type { LinkableEntry } from "~/lib/todos/entryTodoDisplay";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
 import { toPreviews } from "~/lib/live-notes/notes.sync";
 import { getSync, useLiveQuery } from "~/lib/sync";
-import {
-  linkableEntriesQuery,
-  linkTodo,
-  todoEntriesQuery,
-  todoEntryDocumentsQuery,
-  unlinkTodo,
-} from "~/lib/todos/entryTodos.sync";
-import { fromLocalTimestamp, toTimelineEntries } from "~/lib/timeline/timeline.sync";
+import { linkTodo, todoEntriesQuery, todoEntryDocumentsQuery, unlinkTodo } from "~/lib/todos/entryTodos.sync";
+import { updateTodo } from "~/lib/todos/todos.sync";
+import { toTimelineEntries } from "~/lib/timeline/timeline.sync";
 
 export type LinkedEntry = ReturnType<typeof toTimelineEntries>[number];
 
@@ -42,7 +35,11 @@ export function useTodoEntries(
   return { entries, textOf };
 }
 
-/** Link or remove an entry (writers; local writes that upload), with the last refusal's message. */
+/**
+ * Link or remove an entry, and set or clear the provider or medication slot
+ * (writers; local writes that upload; a new provider or medication replaces
+ * the one there), with the last refusal's message.
+ */
 export function useEntryLinking(todoId: string) {
   const [error, setError] = useState<string | null>(null);
   const run = useCallback(async (write: Promise<{ ok: boolean; error?: string }>) => {
@@ -52,24 +49,10 @@ export function useEntryLinking(todoId: string) {
   }, []);
   const link = useCallback((entryId: string) => run(linkTodo(getSync(), entryId, todoId)), [run, todoId]);
   const unlink = useCallback((entryId: string) => run(unlinkTodo(getSync(), entryId, todoId)), [run, todoId]);
-  return { link, unlink, error };
-}
-
-const NO_ROWS: LinkableEntryRow[] = [];
-
-/** "Link an entry"'s candidates: the group's live notes and events this todo doesn't link yet, newest first. */
-export function useLinkableEntries(groupId: string, todoId: string): LinkableEntry[] {
-  const q = linkableEntriesQuery(groupId, todoId);
-  const rows = useLiveQuery<LinkableEntryRow>(q.sql, q.params, NO_ROWS);
-  return useMemo(
-    () =>
-      rows.map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        title: r.title,
-        occurredAt: fromLocalTimestamp(r.occurred_at),
-        text: r.text,
-      })),
-    [rows],
+  const setSlot = useCallback(
+    (slot: "providerId" | "medicationId", id: string | null) =>
+      run(updateTodo(getSync(), todoId, { [slot]: id })),
+    [run, todoId],
   );
+  return { link, unlink, setSlot, error };
 }

@@ -13,3 +13,4 @@ export type { TodoRowLook } from "./TodoRow";
 export { TodoTree } from "./TodoTree";
 export { mayAddSubtask, TodoQuickAdd } from "./TodoQuickAdd";
 export type { QuickAddParent } from "./TodoQuickAdd";
+export { LinkToBox } from "./LinkToBox";
