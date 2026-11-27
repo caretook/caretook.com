@@ -10,11 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                                   | Merge |
-| ----- | ----- | ------------------------------------------------------- | ----- |
-| 81    | B-978 | handed off (opus), check stopped on Status table format | —     |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 20 running** (2026-11-27): slice 81 (B-978, installed PWA update notice; opus) merged e524785a8, B-978 done; CI components run requested (the wave gate). At landing: app-shell.md's service worker entry gains the resume/hourly update check (5-min throttle). Wave 19 landed through PR #268 (to-test `to-test/2026-11-27-1446-fixes-bug.md`; rows in history). `risa status-trim` fails ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches. Held: B-750 (no files named yet), B-752 (only if B-753's watchdog names a recurrence).
+**Idle after wave 20** (landed through PR #273, 2026-11-27, Codex clean on 9fdb0b9, CI components green run 46060732992; to-test `to-test/2026-11-27-1513-fixes-bug.md`; landed unsynced, dev had 1 unrelated commit). Slice 81 (B-978, opus, merge e524785a8): the page asks its registration for a new worker on resume and hourly while visible, at most once per 5 min (folded into app-shell.md). Browser checks: app-shell and layout-offline by name (no `--suite` without asking: the user's rule). **Next session:** ingest, `risa backlog list`; write wave 21 from new triaged items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
