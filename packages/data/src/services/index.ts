@@ -46,7 +46,7 @@ export { staffGroupService };
 export type { StaffGroupInput } from "./staffGroupService";
 import * as medicationService from "./medicationService";
 export { medicationService };
-export type { MedicationWriteOptions } from "./medicationService";
+export type { MedicationCreateOptions, MedicationWriteOptions } from "./medicationService";
 
 import * as waitlistService from "./waitlistService";
 export { waitlistService };

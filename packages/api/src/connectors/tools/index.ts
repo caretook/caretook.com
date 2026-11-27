@@ -1,5 +1,6 @@
 import type { Tool } from "../registry";
 
+import { addMedication } from "./addMedication";
 import { addProvider } from "./addProvider";
 import { groupOverview } from "./groupOverview";
 import { latestVitals } from "./latestVitals";
@@ -58,4 +59,5 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   updateCondition,
   resolveCondition,
   addProvider,
+  addMedication,
 ];
