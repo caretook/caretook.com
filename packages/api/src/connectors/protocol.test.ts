@@ -166,6 +166,18 @@ describe("handleMcp", () => {
     expect(names[names.indexOf("resolve_condition") + 1]).toBe("add_provider");
   });
 
+  it("lists the connector's add_medication right after add_provider, for write grants only", async () => {
+    const namesFor = async (scope: "read" | "readWrite") => {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      return (result?.tools ?? []).map((t) => t.name);
+    };
+    expect(await namesFor("read")).not.toContain("add_medication");
+    const names = await namesFor("readWrite");
+    expect(names[names.indexOf("add_provider") + 1]).toBe("add_medication");
+  });
+
   it("lists the connector's past_doses right after dose_schedule, for read and write grants", async () => {
     for (const scope of ["read", "readWrite"] as const) {
       const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);

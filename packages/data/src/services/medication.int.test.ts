@@ -447,6 +447,14 @@ describe("medicationService: change entries", () => {
     expect(page.data.map((e) => e.id)).toEqual([changes[0]!.id]);
   });
 
+  it("puts the server-only via on the 'started' entry, and none without it", async () => {
+    const { u, input, changesOf } = await setup();
+    const viaClaude = ok(await medicationService.create(u.caretaker.ctx, input(), { via: "Claude" }))!;
+    const plain = ok(await medicationService.create(u.caretaker.ctx, input({ name: "Metformin" })))!;
+    expect((await changesOf(viaClaude.id)).map((c) => c.via)).toEqual(["Claude"]);
+    expect((await changesOf(plain.id)).map((c) => c.via)).toEqual([null]);
+  });
+
   it("derives the id from the time of the save when the caller gives none", async () => {
     const { changesOf, addMedication } = await setup();
     const before = Date.now();
