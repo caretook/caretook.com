@@ -58,8 +58,12 @@ export function shouldRevalidate({
 
 export default function SearchPage({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
-  const { q, period, tag, data, preparing, unavailable } = useSearchPage(params.groupId, loaderData.data);
   const tags = useGroupTags(params.groupId);
+  const { q, period, tag, data, preparing, unavailable } = useSearchPage(
+    params.groupId,
+    loaderData.data,
+    tags,
+  );
   const currentTag = activeTag(tag, tags);
   const periods = useSearchPeriods(params.groupId, loaderData.periodRows, group.recipient?.timeZone ?? "UTC");
   const currentPeriod = findPeriodChoice(periods, period);

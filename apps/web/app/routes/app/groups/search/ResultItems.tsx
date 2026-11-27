@@ -1,5 +1,5 @@
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
-import type { EntryResult, ProviderResult } from "./loadSearch";
+import type { EntryResult, NamedTag, ProviderResult } from "./loadSearch";
 import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
@@ -10,6 +10,7 @@ import { highlightRanges, notesSnippet } from "@caretook/data/schema";
 import { CircleCheck, ClipboardPlus, ListTodo, Pill } from "lucide-react";
 import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
+import { TagChips } from "~/components/tags";
 import { ProviderTypeIcon } from "~/components/providers";
 import { Badge, Highlight, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -69,6 +70,11 @@ const Marked = ({ text, search }: { text: string; search: ParsedSearch }) => (
   <Highlight text={text} ranges={highlightRanges(text, search)} />
 );
 
+/** The tags the text names that a result carries (tags-3): why it's here when its text doesn't say. */
+const NamedTags = ({ tags }: { tags: readonly NamedTag[] | undefined }) => (
+  <TagChips tags={tags} max={null} className="mt-1" />
+);
+
 /** A line from the notes, around the match that's only there. */
 function NotesSnippet({ snippet }: { snippet: Snippet | null }) {
   if (!snippet) return null;
@@ -93,6 +99,7 @@ export function EntryResultItem({
   units,
   now,
   search,
+  namedTags,
 }: {
   entry: EntryResult;
   groupId: string;
@@ -100,6 +107,7 @@ export function EntryResultItem({
   units: UnitChoices;
   now: Date;
   search: ParsedSearch;
+  namedTags?: readonly NamedTag[];
 }) {
   const open = entryOpen({ groupId, entry, canWrite, search: "" });
   const day = dayLabel(entry.occurredAt, localTimeZone(), now);
@@ -128,12 +136,15 @@ export function EntryResultItem({
         providers={entry.providers}
         search={search}
         footer={
-          <p className="text-faint mt-0.5 text-xs">
-            <time dateTime={entry.occurredAt}>
-              {day}, {time}
-            </time>{" "}
-            · {entry.authorName}
-          </p>
+          <>
+            <p className="text-faint mt-0.5 text-xs">
+              <time dateTime={entry.occurredAt}>
+                {day}, {time}
+              </time>{" "}
+              · {entry.authorName}
+            </p>
+            <NamedTags tags={namedTags} />
+          </>
         }
       />
     </li>
@@ -150,10 +161,12 @@ export function ProviderResultItem({
   notes,
   search,
   onOpen,
+  namedTags,
 }: {
   provider: ProviderResult;
   notes?: string;
   search: ParsedSearch;
+  namedTags?: readonly NamedTag[];
   /** Opens its read-only sheet instead of its page (the easy roles). */
   onOpen?: () => void;
 }) {
@@ -190,6 +203,7 @@ export function ProviderResultItem({
           <Marked text={line} search={search} />
         </p>
         <NotesSnippet snippet={snippet} />
+        <NamedTags tags={namedTags} />
       </div>
     </li>
   );
@@ -206,8 +220,10 @@ export function MedicationResultItem({
   notes,
   search,
   onOpen,
+  namedTags,
 }: {
   medication: LocalMedication;
+  namedTags?: readonly NamedTag[];
   /** The group's passes, deleted ones too: the schedule reads by pass name. */
   passes: readonly SchedulePass[];
   notes?: string;
@@ -254,6 +270,7 @@ export function MedicationResultItem({
           <Marked text={summary} search={search} />
         </p>
         <NotesSnippet snippet={snippet} />
+        <NamedTags tags={namedTags} />
       </div>
     </li>
   );
@@ -270,8 +287,10 @@ export function TodoResultItem({
   now,
   timeZone,
   search,
+  namedTags,
 }: {
   todo: LocalTodo;
+  namedTags?: readonly NamedTag[];
   notes?: string;
   now: Date;
   /** The recipient's zone: due days and times are theirs. */
@@ -311,6 +330,7 @@ export function TodoResultItem({
         </p>
         {due && <p className="text-muted text-sm">{due}</p>}
         <NotesSnippet snippet={snippet} />
+        <NamedTags tags={namedTags} />
       </div>
     </li>
   );
