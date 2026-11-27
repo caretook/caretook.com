@@ -33,6 +33,20 @@ const chunkModules = (): Plugin => ({
   },
 });
 
+// Client chunk groups (B-960): every lucide-react icon goes in one `icons`
+// chunk, so the first /app load fetches one file for its icons, not one per
+// icon. React has its own group, ahead of the icons, or the icons group would
+// take React with it (a group takes its modules' dependencies) and drag every
+// icon into the entry. Route chunks are left to the automatic split, so routes
+// stay lazy; `pnpm build:budget` checks both (budget.json's `together` and
+// `noRoutesIn`).
+const clientChunks = {
+  groups: [
+    { name: "react", test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 1 },
+    { name: "icons", test: /node_modules[\\/]lucide-react[\\/]/ },
+  ],
+};
+
 export default defineConfig({
   // VITE_* as usual, plus APP_ENV (staging | production): it's public, and
   // prerendered pages and every page's noindex read it at build (lib/marketing/noindex.ts).
@@ -48,6 +62,8 @@ export default defineConfig({
   plugins: [tailwindcss(), !process.env.VITEST && reactRouter(), chunkModules()],
   // The bundle budget reads .vite/manifest.json from the web client build.
   build: { manifest: true },
+  // Both targets' client builds (the server build keeps its default split).
+  environments: { client: { build: { rolldownOptions: { output: { codeSplitting: clientChunks } } } } },
   // One copy each of yjs (Yjs breaks with two: its `instanceof` checks fail),
   // React, and ProseMirror's packages.
   resolve: {
