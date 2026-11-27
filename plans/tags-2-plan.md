@@ -7,7 +7,7 @@
 | Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
 | ----- | ---- | ------- | --------------------------------------- |
 | 1     | 1    | merged  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
-| 2     | 2    | planned |                                         |
+| 2     | 2    | started |                                         |
 | 3     | 3    | planned |                                         |
 | 4     | 4    | planned |                                         |
 | 5     | 5    | planned |                                         |
@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 1: slice 1 (opus) merged 5cb59418; wave gate CI run `full` (a migration) requested. Slice 1 also appended `color` to the `tag` select in `powersync/sync-config.yaml` (rolesSql.test needs it): slice 2 must not add it again. B-893 stays open until slice 3.
+**Now:** wave 1 (slice 1, opus) merged 5cb59418, CI full green on e5327e07 (run 45937387929), synced (dev had nothing new); worktree removed. **Wave 1 doesn't land alone:** `roundtrip.spec.mjs` fails (`tag.color` streamed, but the device writes no color, so device and server differ): slice 2's device schema and `createTag` pick close it. Waves 1 and 2 land together. Slice 1 already appended `color` to the `tag` select in `powersync/sync-config.yaml`: slice 2 must not add it again. Slice 2 started (opus). After a migration the stack needs `pnpm datastore:reset` before browser checks. B-893 stays open until slice 3.
 
 ## Architectural decisions
 
