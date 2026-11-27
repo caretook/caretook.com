@@ -157,7 +157,7 @@ streams:
         FROM timeline_entry_todo WHERE group_id IN my_groups
       # The group's shared tags, and which records carry them (tags; hard deletes).
       - >-
-        SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by
+        SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by, color
         FROM tag WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, tag_id, entry_id, todo_id, provider_id, medication_id, created_at, updated_at, created_by, updated_by
