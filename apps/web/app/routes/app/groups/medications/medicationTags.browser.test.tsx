@@ -58,9 +58,9 @@ const linksOf = async (device: Awaited<ReturnType<typeof open>>, medicationId: s
       [medicationId],
     )
   ).map((r) => r.name);
-/** Add tag, then the picker's toggle for `name` (the picker stays open). */
-const pick = async (name: string) => {
-  await userEvent.click(page.getByRole("button", { name: "Add tag" }));
+/** Add tag in `scope` (the edit sheet's, over the list's rows), then the picker's toggle for `name` (the picker stays open). */
+const pick = async (name: string, scope = "main") => {
+  await userEvent.click(page.getByCss(scope).getByRole("button", { name: "Add tag" }));
   await found(() => document.querySelector("[data-tag-picker]"));
   await userEvent.click(page.getByRole("checkbox", { name }));
 };
@@ -106,7 +106,7 @@ describe("tags on a medication", () => {
     expect(sheetChips()).toBe("");
     expect(document.querySelector("[role=dialog] [data-tag-record]")).toBeNull();
 
-    await pick("Knee");
+    await pick("Knee", "[role=dialog]");
     await device.settle();
     await expect.poll(sheetChips).toBe("Knee");
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
@@ -114,10 +114,10 @@ describe("tags on a medication", () => {
     // The row under the sheet follows too.
     await expect.poll(() => rowChips(METFORMIN.id)).toBe("Knee");
 
-    await pick("Heart");
+    await pick("Heart", "[role=dialog]");
     await device.settle();
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
-    await userEvent.click(page.getByRole("button", { name: "Remove tag Knee" }));
+    await userEvent.click(page.getByCss("[role=dialog]").getByRole("button", { name: "Remove tag Knee" }));
     await device.settle();
     await expect.poll(sheetChips).toBe("Heart");
     expect(await linksOf(device, METFORMIN.id)).toEqual(["Heart"]);

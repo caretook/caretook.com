@@ -122,7 +122,7 @@ describe("tags on a provider", () => {
     // The row under the sheet follows too.
     await expect.poll(() => rowChips(ALVAREZ.id)).toBe("Knee");
 
-    await userEvent.click(page.getByRole("button", { name: "Remove tag Knee" }));
+    await userEvent.click(page.getByCss("[role=dialog]").getByRole("button", { name: "Remove tag Knee" }));
     await device.settle();
     await expect.poll(sheetChips).toBe("");
     expect(await linksOf(device, ALVAREZ.id)).toEqual([]);
