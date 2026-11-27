@@ -102,8 +102,10 @@ describe("registerServiceWorker's update checks", () => {
     return clock;
   }
 
-  const registrationWith = (update = vi.fn(() => Promise.resolve())) =>
-    Object.assign(new EventTarget(), { waiting: null, installing: null as unknown, update });
+  const registrationWith = (update = vi.fn(() => Promise.resolve())) => {
+    const workers: { waiting: null; installing: object | null } = { waiting: null, installing: null };
+    return Object.assign(new EventTarget(), workers, { update });
+  };
 
   it("asks for an update when the page becomes visible again", async () => {
     const registration = registrationWith();
