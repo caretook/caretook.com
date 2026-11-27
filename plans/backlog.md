@@ -287,7 +287,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-890 | feature | triaged | symptom-catalog-2 |  | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
 | B-891 | feature | triaged | tags-3 |  | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
 | B-892 | feature | triaged | tags-2 |  | Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu |
-| B-893 | feature | triaged | tags-2 |  | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
+| B-893 | feature | in-progress | tags-2 | prd/tags-2 | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
 | B-894 | chore | triaged | tags-2 |  | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
 | B-895 | feature | triaged | tags-3 |  | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
@@ -1914,9 +1914,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-893 · feature · Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it
 
-- status: triaged
+- status: in-progress
 - prd: tags-2
-- owner:
+- owner: prd/tags-2
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: like user avatars (AvatarColor, components/ui/avatarLook.ts the one class map). New tag: a random palette color not yet used by the group's tags (any when all are taken); pick it on the tags page (B-891). A synced column on tag (additive migration); offline devices pick independently, so two may land on one color (fine). Chips (TagChips) and the picker show it; contrast in light and dark.
