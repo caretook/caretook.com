@@ -127,9 +127,12 @@ const checkDoseMedication = async (
 /**
  * A symptom's catalog row (symptom-catalog), derived from `details.name` on
  * every write, whatever a device sent: the group's row for the name, added
- * (as the actor, a logger) when the group has none. `current` is the stored
- * pointer: when it's already the derived one, nothing is read or added.
- * Null for every other kind.
+ * (as the actor, a logger) when the group has none. A deleted name (a
+ * tombstone) resolves to its replacement (symptom-catalog-3): its id, and
+ * its name for `details.name`; otherwise the name stays as written. `current`
+ * is the stored pointer: when it's already the derived one, nothing is read
+ * or added (a delete moves every entry off a tombstone, so it's never one).
+ * Null for every other kind, and then `details` is as given.
  */
 const symptomTypeFor = async (
   ctx: ServiceContext,
@@ -139,11 +142,13 @@ const symptomTypeFor = async (
   details: TimelineEntry["details"] | undefined,
   current?: string | null,
 ) => {
-  if (kind !== "symptom" || !isSymptomDetails(details)) return null;
-  if (current && current === symptomTypeId(groupId, details.name)) return current;
+  if (kind !== "symptom" || !isSymptomDetails(details)) return { id: null, details };
+  const derived = symptomTypeId(groupId, details.name);
+  if (current && current === derived) return { id: current, details };
   const row = await ensureSymptomType({ ...ctx, tx }, groupId, details.name);
   if (isError(row)) return row;
-  return row ? row.id : rejectError(ctx.authUser);
+  if (!row) return rejectError(ctx.authUser);
+  return { id: row.id, details: row.id === derived ? details : { ...details, name: row.name } };
 };
 
 /** Postgres timestamptz text → ISO 8601, so stored rows re-validate. */
@@ -486,8 +491,8 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
         ...schedulingColumns(data),
         cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
         recipientId: resolved,
-        details: details ?? null,
-        symptomTypeId: symptomType,
+        details: symptomType.details ?? null,
+        symptomTypeId: symptomType.id,
         ...(opts.via ? { via: opts.via } : {}),
       },
     });
@@ -571,8 +576,8 @@ export const createMany = (
         ...schedulingColumns(data),
         cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
         recipientId: resolved,
-        details: details ?? null,
-        symptomTypeId: symptomType,
+        details: symptomType.details ?? null,
+        symptomTypeId: symptomType.id,
         ...(opts.via ? { via: opts.via } : {}),
       });
     }
@@ -726,8 +731,8 @@ export const update = (
         ...content,
         ...schedulingColumns(content),
         cancelledBy: cancelledByFor(ctx, existing, content.cancelledAt),
-        details: content.details ?? null,
-        symptomTypeId: symptomType,
+        details: symptomType.details ?? null,
+        symptomTypeId: symptomType.id,
       },
     });
     if (isError(updated)) return updated;

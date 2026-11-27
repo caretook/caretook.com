@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SYMPTOMS,
+  resolveSymptom,
   SIMILAR_SYMPTOMS_MAX,
   SYMPTOM_NAME_MAX,
   similarSymptoms,
@@ -139,5 +140,38 @@ describe("similarSymptoms (the check before a new name)", () => {
     // Reordered words and a typo come before the words inside.
     const mixed = catalog("Sharp knee pain", "Sharp back pain", "Pain sharp", "Sharp paine");
     expect(similar("Sharp pain", mixed)).toEqual(["Pain sharp", "Sharp paine", "Sharp back pain"]);
+  });
+});
+
+describe("resolveSymptom", () => {
+  const row = (name: string, replacedBy?: string) => ({
+    id: symptomTypeId(GROUP, name),
+    name,
+    replacedById: replacedBy ? symptomTypeId(GROUP, replacedBy) : null,
+  });
+  const catalog = [row("Nausea"), row("Nauseous", "Nausea"), row("Queasy", "Nausea"), row("Fever")];
+
+  it("finds a name's row by key, in any case or spacing", () => {
+    expect(resolveSymptom("  fEVER ", catalog)?.name).toBe("Fever");
+    expect(resolveSymptom("NAUSEA", catalog)?.name).toBe("Nausea");
+  });
+
+  it("follows a tombstone to its replacement, in any case", () => {
+    expect(resolveSymptom("nauseous", catalog)).toBe(catalog[0]);
+    expect(resolveSymptom(" QUEASY", catalog)).toBe(catalog[0]);
+  });
+
+  it("follows one step only, and keeps a tombstone whose replacement isn't there", () => {
+    // Never written by the server (a delete repoints older tombstones), so no chain is followed.
+    const chained = [row("Ill", "Unwell"), row("Unwell", "Sick"), row("Sick")];
+    expect(resolveSymptom("Ill", chained)?.name).toBe("Unwell");
+    const unsynced = [row("Nauseous", "Nausea")];
+    expect(resolveSymptom("Nauseous", unsynced)).toBe(unsynced[0]);
+  });
+
+  it("returns null for an unknown or empty name", () => {
+    expect(resolveSymptom("Sore heel", catalog)).toBeNull();
+    expect(resolveSymptom("   ", catalog)).toBeNull();
+    expect(resolveSymptom("Nausea", [])).toBeNull();
   });
 });
