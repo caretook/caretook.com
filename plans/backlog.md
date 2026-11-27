@@ -326,7 +326,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 | B-928 | bug | landed | fixes-tooling |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
-| B-929 | chore | triaged | orchestration-split-4 |  | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
+| B-929 | chore | in-progress | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-930 | chore | landed | fixes-nit | prd/fixes-nit | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
 | B-931 | chore | landed | fixes-nit | prd/fixes-nit | The UI kit's own primitives (ChipList, tabLook, DateTimeField) still use text-base-content opacity classes |
 | B-932 | bug | triaged | fixes-tooling |  | rm.sh session tests in stack.test.mjs fail when run from an orchestrator session (they inherit RISA_SESSION_*) |
@@ -2317,9 +2317,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-929 · chore · Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config
 
-- status: triaged
+- status: in-progress
 - prd: orchestration-split-4
-- owner:
+- owner: prd/orchestration-split-4
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): Found 2026-11-26 by a dry run in a scratch copy of only the 257 core files: on the sample config 565 of 1,988 tests failed in 65 files; with Caretook's config copied in 210 failed in 25 (land*, doc, skeptics, ci/gate); with no root config the run hung in lease.sh (file_mtime: command not found). Proof when done: that dry run passes. The move (B-543 step 2) waits for it.
