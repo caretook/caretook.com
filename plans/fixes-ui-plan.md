@@ -32,6 +32,8 @@ Notes for every wave:
 
 **Idle (session of 2026-11-27, after wave 20):** `risa sync` needed no merge (todo-subtasks-3's 6d975d86a shares no file), ingest found nothing new; only B-325 (held for Capacitor) is triaged for fixes-ui. Inbox B-961 (shared displays audit, needs its own PRD) and B-972 (planner Tags tab, a feature) are the backlog session's. Wave 21 starts when a new fixes-ui item is triaged; a background loop on `risa backlog list` wakes this session. No slice in flight. Resumed run-through later on 2026-11-27: anchors ok, ingest empty, still only B-325; idle again. **Closed 2026-11-27** at the backlog session's request (caretook-com-69, standing order): hand-over docs landed, worktree removed. B-325 waits for Capacitor; a new fixes-ui item restarts the topic with `risa start fixes-ui`.
 
+**Restarted 2026-11-27 (fixes-ui-4f), run-through:** landing mode still run everything through. Anchors ok, ingest empty, dev = origin/dev (85aa63a6e). Only B-325 (Native readiness: safe-area inset and cold-start blank page) is triaged for fixes-ui, held for Capacitor; B-973 (trim components.md under budget) is fixes-nit, not ours. No wave to start; asked caretook-com-69 whether to stay idle or close. No slice in flight.
+
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
