@@ -57,9 +57,14 @@ describe("a past slot's usual dose", { timeout: 60_000 }, () => {
     await getDb().$client.query(`UPDATE medication SET created_at = $1 WHERE id = $2`, [added, metformin.id]);
     // 1 tablet to 2 at 07:00 today, before today's first slot.
     ok(
-      await medicationService.update(owner.ctx, metformin.id, { dose: "2 tablets" } as never, {
-        changedAt: zonedInstant(TODAY, "07:00", LA).toISOString(),
-      }),
+      await medicationService.update(
+        owner.ctx,
+        metformin.id,
+        { dose: "2 tablets" },
+        {
+          changedAt: zonedInstant(TODAY, "07:00", LA).toISOString(),
+        },
+      ),
     );
 
     const token = (
