@@ -14,21 +14,21 @@
 
 **Wave 3 landed 2026-11-27** in dev as `6ab74942c` through PR #259 (slices 5 `ebdfb25e5`, 6 `fb2420fd9`; Codex clean on ebf8bd7; CI green at components on 62cb1d9a, run 46044540245; dev up to date, no sync; browser `--changed` named none). Worktrees 5, 6 removed. Docs folded (todos, under dev's size; components unchanged, over budget: trim before adding). Report a317 filed.
 
-**Next (for the fresh session):** wave 4: slice 7 (ready: 4, 5 merged), then slice 8 once 7 is merged; opus for both. No slice in flight, no CI run or review out. Carried notes: `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level. Slice 5 added `todoTreesQuery` (the Planner and Easy view read it), `doneListed`, `SIBLING_ORDER_SQL`; slice 6 `todoDescendantsQuery`. `parentsById` is still used by `useUpcomingData` and `useEasyTodos`. The todo page's tree rows show progress as "n of m done" in the row line, not beside the tick. Docs at wave 4: appointments (Planner), timeline (Easy view), todos.
+**Wave 4 started 2026-11-27** (fresh session after rotation): dev sync was a no-op; backlog ingest found nothing new for this topic. Slice 7 worktree made, agent spawned (opus). Slice 8 waits for slice 7's merge (opus). Carried notes (passed to slice 7): `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level; `todoTreesQuery` (slice 5) and `todoDescendantsQuery` (slice 6) exist; `parentsById` still used by `useUpcomingData` and `useEasyTodos`; the todo page's tree rows show progress as "n of m done" in the row line. Docs at wave 4: appointments (Planner), timeline (Easy view), todos.
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
-| Slice | Wave | State         | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad)                            |
-| 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
-| 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
-| 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
-| 5     | 3    | merged (opus) | ebdfb25e5 (90e2bbe57)                            |
-| 6     | 3    | merged (opus) | fb2420fd9 (2bb0cc1c0)                            |
-| 7     | 4    | —             |                                                  |
-| 8     | 4    | —             |                                                  |
-| 9     | 5    | —             |                                                  |
+| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus)  | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | merged (opus)  | ebdfb25e5 (90e2bbe57)                            |
+| 6     | 3    | merged (opus)  | fb2420fd9 (2bb0cc1c0)                            |
+| 7     | 4    | working (opus) |                                                  |
+| 8     | 4    | —              |                                                  |
+| 9     | 5    | —              |                                                  |
 
 ## Architectural decisions
 
