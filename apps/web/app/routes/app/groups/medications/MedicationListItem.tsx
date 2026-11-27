@@ -5,7 +5,7 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { Plus } from "lucide-react";
 import { useLocation } from "react-router";
 import { MedicationCard } from "~/components/medications";
-import { TagChips } from "~/components/tags";
+import { QuickTags } from "~/components/tags";
 import { Badge, Button, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
@@ -18,6 +18,8 @@ import {
 } from "~/lib/medications/medicationDisplay";
 import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
 
+const NO_TAGS: readonly { id: string; name: string }[] = [];
+
 /**
  * A medication in the list, as its `MedicationCard` (the whole card opens
  * its page): its name and strength, a badge with its type at the name's
@@ -27,7 +29,8 @@ import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
  * list (closing or saving it comes back to the list, search kept), an
  * as-needed one logs a dose now (asking first past its maximum, once
  * today's doses are known: `dueReady`). A stopped one has no Log. Its tags
- * show as chips (two, then "+N"; tags PRD) for every role.
+ * show as `QuickTags` (two chips, then "+N"; × and Add tag for whoever may
+ * tag it; tags-3), above the card's stretched link.
  */
 export function MedicationListItem({
   medication,
@@ -106,7 +109,15 @@ export function MedicationListItem({
           {stopped}
         </p>
       )}
-      <TagChips tags={tags} className="mt-0.5" />
+      <QuickTags
+        target="medication"
+        recordId={medication.id}
+        label={title}
+        createdBy={medication.createdBy}
+        max={2}
+        tags={tags ?? NO_TAGS}
+        className="mt-0.5"
+      />
     </MedicationCard>
   );
 }
