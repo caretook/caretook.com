@@ -14,7 +14,7 @@
 
 **Notes for the landing fold:** slice 1 added error code `connectorTool:invalid` (400) for a read tool's zone-dependent input check; the frozen export list no longer exists (test-health removed it), so nothing to add. Slice 2: connectors doc's "drops a `repeatRule` (B-253)" becomes the structured `repeat`; planner-3's `firstDayOf` could be exported to drop the tool's copy (a nit).
 
-**Unplanned items on this topic:** B-760 (`add_provider`), B-761 (`add_medication`), B-917 (log doses from a photo of a weekly sheet) are triaged `connectors-3` but in no slice; they need a planning pass before any wave takes them.
+**Wave 2 (the user's pick, via the backlog session, 2026-11-27):** keep connectors-3 open and plan a wave 2 for B-760 (`add_provider`), B-761 (`add_medication`) and B-917 (log doses from a photo of the weekly sheet). Don't re-home them; no `risa rm` after wave 1 lands. Land PR #272, then plan wave 2.
 
 | Slice | Wave | State  | Merge into `prd/connectors-3` (slice commits) |
 | ----- | ---- | ------ | --------------------------------------------- |
