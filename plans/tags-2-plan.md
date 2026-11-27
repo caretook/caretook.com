@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4 green (flake verdict, run 45945943940 on d5e4b103: sheetExit flake outside the branch); dev sync a no-op; worktree tags-2-4 removed; PR #248 opened; Codex out of credits → landing `--no-review`, tier components; tags doc folded. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
+**Now:** wave 4 (slice 4, opus) **landed** in dev as a39507ab through PR #248, `--no-review` (Codex out of credits), tier components (run 45945943940, flake outside the branch, filed B-949); report filed; tags doc folded; worktree tags-2-4 removed. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
 
 ## Architectural decisions
 
