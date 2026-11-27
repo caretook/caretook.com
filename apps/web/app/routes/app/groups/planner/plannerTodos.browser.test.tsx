@@ -218,9 +218,14 @@ describe("trees by day on the Planner tab (todo-subtasks-3)", () => {
 
   test("a day shows the tree, its top row as an event card and its steps indented; an earlier step's day shows it under a dimmed parent", async () => {
     await openTree();
-    await expect
-      .poll(() => rowsOn(day(2)))
-      .toEqual([`${PARENT}:card`, `${STEP}:list`, `${PACK}:list`, expect.stringMatching(/:list$/)]);
+    // The card first, then its three steps (their sibling order is the tree's unit tests').
+    await expect.poll(() => rowsOn(day(2)).length).toBe(4);
+    const [top, ...steps] = rowsOn(day(2));
+    expect(top).toBe(`${PARENT}:card`);
+    expect(steps).toEqual(
+      expect.arrayContaining([`${STEP}:list`, `${PACK}:list`, expect.stringMatching(/:list$/)]),
+    );
+    expect(steps.every((r) => r.endsWith(":list"))).toBe(true);
     const card = rowOf({ id: PARENT })!;
     expect(card.querySelector("[data-when]")?.textContent).toBe("All day");
     expect(card.querySelector("[data-todo-progress]")?.textContent).toBe("1 of 3 done");
