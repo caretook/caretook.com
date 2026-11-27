@@ -8,19 +8,23 @@
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 started 2026-11-27:** anchors fixed (five future-state anchors reworded); slices 1, 2, 3 started, all on opus; all merged. Wave 1's CI run green (components, run 46039151595, 69a8c1f2); sync: up to date with dev; served at :6273; `risa browser --changed`: none needed; lean `--suite` not run (the user's rule: ask before any suite; the classifier refused it). PR #256 open; Codex review waiting. Slice 4 started early (its only blocker, slice 1, merged), opus. fixes-perf has landed (timeline hot files free).
+**Wave 1 landed 2026-11-27** in dev as `6d975d86a` through PR #256 (Codex clean on 69a8c1f; CI green at components, run 46039151595; dev was up to date, no sync). Browser: `risa browser --changed` named none; the lean `--suite` was not run (the user's rule: ask before any suite; the permission check refused it). Docs folded (todos, components, calendars, connectors, timeline; each at or under dev's size). Worktrees 1-3 removed. B-941, B-942, B-943 stay in progress (later slices carry them).
 
-| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
-| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
-| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
-| 4     | 2    | running (opus) |                                                  |
-| 5     | 3    | —              |                                                  |
-| 6     | 3    | —              |                                                  |
-| 7     | 4    | —              |                                                  |
-| 8     | 4    | —              |                                                  |
-| 9     | 5    | —              |                                                  |
+**Next (for the fresh session):** wave 2 is slice 4, already merged (`c7e7f6035`; its check green at a47523112). Its worktree `todo-subtasks-3-4` stays until wave 2 is green. Run wave 2's gate: `risa tier`, `risa ci run <tier> --wait`, `risa sync`, `risa pr`, `risa review`, land, docs (components: `TodoTree`, `TodoRow`'s `addSubtask`/`children`, dimming on an inner div; todos: `siblingOrder`, `todoTreeView.ts`). Slices 5 and 6 (wave 3) are ready now (blocked only by 4): start them while wave 2's gate runs, merge 5 before 6. Slices: opus for all.
+
+**Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
+
+| Slice | Wave | State         | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | —             |                                                  |
+| 6     | 3    | —             |                                                  |
+| 7     | 4    | —             |                                                  |
+| 8     | 4    | —             |                                                  |
+| 9     | 5    | —             |                                                  |
 
 ## Architectural decisions
 
