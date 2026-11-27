@@ -2,7 +2,17 @@ import type { TodoRuleFields } from "@caretook/data/schema";
 
 import { describe, expect, it } from "vitest";
 import { upcomingSections } from "../appointments/upcomingDays";
-import { isPlannerTodo, showsTodos, plannerTodos, withDueTodos } from "./plannerTodos";
+import type { TodoTreeNode } from "./todoTreeView";
+
+import {
+  isPlannerTodo,
+  isPlannerTree,
+  plannerDayTrees,
+  showsTodos,
+  plannerTodos,
+  withDueTodos,
+} from "./plannerTodos";
+import { todoTrees } from "./todoTreeView";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
@@ -191,5 +201,84 @@ describe("plannerTodos and the tree (todo-subtasks-2)", () => {
     );
     // An undated subtask is never a Planner item, assigned or not: it lists on the Todos tab.
     expect(items.map((i) => i.todo.id)).toEqual(["parent", "dated-step", "mine-step"]);
+  });
+});
+
+describe("plannerDayTrees (todo-subtasks-3)", () => {
+  const TUESDAY = "2026-11-24";
+  const FRIDAY = "2026-11-27";
+  const node = (id: string, dueOn: string | null, parentId: string | null = null) => ({
+    ...todo(id, dueOn),
+    parentId,
+    deletedAt: null,
+  });
+  const trees = (todos: ReturnType<typeof node>[]) => todoTrees(todos, { now: NOW, timeZone: LA });
+  /** A tree as nested ids, context ones marked with `~`. */
+  type Shape = { [id: string]: Shape };
+  const treeShape = (n: TodoTreeNode<{ id: string }>): Shape => ({
+    [`${n.context ? "~" : ""}${n.todo.id}`]: Object.assign({}, ...n.children.map(treeShape)) as Shape,
+  });
+  const items = (todos: ReturnType<typeof node>[], through?: string) =>
+    plannerDayTrees(trees(todos), NOW, LA, { through }).map((i) => [
+      i.day,
+      i.state,
+      i.todo.id,
+      treeShape(i.tree),
+    ]);
+
+  it("a Friday parent with a Tuesday step: the whole tree on Friday, the step's branch on Tuesday", () => {
+    const todos = [node("trip", FRIDAY), node("sitter", TUESDAY, "trip"), node("pack", null, "trip")];
+    expect(items(todos)).toEqual([
+      [TUESDAY, "upcoming", "sitter", { "~trip": { sitter: {} } }],
+      [FRIDAY, "upcoming", "trip", { trip: { sitter: {}, pack: {} } }],
+    ]);
+    const [first] = plannerDayTrees(trees(todos), NOW, LA);
+    expect(first?.key).toBe(`tree:trip:${TUESDAY}`);
+    expect(first && isPlannerTree(first)).toBe(true);
+    expect(first && isPlannerTodo(first as never)).toBe(false);
+  });
+
+  it("an overdue step's branch sits with the overdue items, first under today", () => {
+    const todos = [node("trip", FRIDAY), node("forms", "2026-11-16", "trip")];
+    expect(items(todos)).toEqual([
+      ["overdue", "overdue", "forms", { "~trip": { forms: {} } }],
+      [FRIDAY, "upcoming", "trip", { trip: { forms: {} } }],
+    ]);
+    const sections = withDueTodos(
+      upcomingSections([entry("visit", "2026-11-18T19:00:00.000Z")], NOW, LA),
+      plannerDayTrees(trees(todos), NOW, LA),
+      NOW,
+      LA,
+      LA,
+    );
+    expect(shape(sections)).toEqual([
+      ["Today", [`tree:trip:overdue`, "visit"]],
+      ["Friday, Nov 27", [`tree:trip:${FRIDAY}`]],
+    ]);
+  });
+
+  it("an undated tree with no dated step gives nothing; with one, only that step's branch", () => {
+    expect(items([node("move", null), node("boxes", null, "move")])).toEqual([]);
+    expect(items([node("move", null), node("boxes", null, "move"), node("movers", TUESDAY, "move")])).toEqual(
+      [[TUESDAY, "upcoming", "movers", { "~move": { movers: {} } }]],
+    );
+  });
+
+  it("drops the days after `through`, keeping overdue", () => {
+    const todos = [
+      node("trip", FRIDAY),
+      node("sitter", TUESDAY, "trip"),
+      node("forms", "2026-11-16", "trip"),
+    ];
+    expect(items(todos, "2026-11-25").map(([day]) => day)).toEqual(["overdue", TUESDAY]);
+  });
+
+  it("a match's context rows place no tree", () => {
+    const matched = todoTrees([node("trip", FRIDAY), node("sitter", TUESDAY, "trip")], {
+      now: NOW,
+      timeZone: LA,
+      matches: (t) => t.id === "sitter",
+    });
+    expect(plannerDayTrees(matched, NOW, LA).map((i) => i.day)).toEqual([TUESDAY]);
   });
 });

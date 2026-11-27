@@ -15,7 +15,9 @@ type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo" | "look" | "addSubtas
  * the `context` look. With `adding`, each row that may take a subtask has
  * its compact `TodoQuickAdd` (not a context row: it's there only to place
  * its branch). `ancestors` is the chain above the trees' top level (for a
- * `rootId` tree: the root and its own ancestors), so depth holds.
+ * `rootId` tree: the root and its own ancestors), so depth holds. The
+ * `card` look (the Planner) is the top level's only: the steps under a card
+ * are the `list` look, indented to its text.
  */
 export function TodoTree({
   trees,
@@ -33,30 +35,37 @@ export function TodoTree({
   /** Classes for the top level's list. */
   className?: string;
 } & RowProps) {
-  const level = (nodes: readonly TodoTreeNode<LocalTodo>[], above: readonly QuickAddParent[]) =>
-    nodes.map((node) => (
-      <TodoRow
-        key={node.todo.id}
-        todo={node.todo}
-        look={node.context ? "context" : look}
-        addSubtask={
-          adding && !node.context ? (
-            <TodoQuickAdd parent={node.todo} ancestors={above} form="compact" className="mt-1" />
-          ) : undefined
-        }
-        {...row}
-      >
-        {node.children.length > 0 && (
-          <ul className="pl-9" data-todo-level={above.length + 2}>
-            {level(node.children, [node.todo, ...above])}
-          </ul>
-        )}
-      </TodoRow>
-    ));
+  const level = (nodes: readonly TodoTreeNode<LocalTodo>[], above: readonly QuickAddParent[], top: boolean) =>
+    nodes.map((node) => {
+      const nodeLook = node.context ? "context" : look === "card" && !top ? "list" : look;
+      return (
+        <TodoRow
+          key={node.todo.id}
+          todo={node.todo}
+          look={nodeLook}
+          addSubtask={
+            adding && !node.context ? (
+              <TodoQuickAdd parent={node.todo} ancestors={above} form="compact" className="mt-1" />
+            ) : undefined
+          }
+          {...row}
+        >
+          {node.children.length > 0 && (
+            // Under a card, to its text (px-3, the size-6 tick, gap-x-2.5).
+            <ul
+              className={nodeLook === "card" ? "pr-3 pl-[2.875rem]" : "pl-9"}
+              data-todo-level={above.length + 2}
+            >
+              {level(node.children, [node.todo, ...above], false)}
+            </ul>
+          )}
+        </TodoRow>
+      );
+    });
 
   return (
     <ul className={className} data-todo-tree="" data-todo-level={ancestors.length + 1}>
-      {level(trees, ancestors)}
+      {level(trees, ancestors, true)}
     </ul>
   );
 }
