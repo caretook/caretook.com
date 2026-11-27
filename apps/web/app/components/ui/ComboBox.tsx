@@ -1,9 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 import type { FieldControl } from "./fieldIds";
 
-import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   ComboBox as AriaComboBox,
+  ComboBoxStateContext,
   Header,
   Input,
   ListBox,
@@ -46,6 +49,10 @@ const ICON_ITEM = "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3";
  * closes the list); a pick closes it until the text changes again. The
  * default, `"focus"`, opens it on focus to browse.
  *
+ * `reopenOn` is for a filter beside the field (the Link to box's type
+ * chips): when it changes, the cursor goes back in the field and its list
+ * opens again (when there's text to list for), showing what the filter left.
+ *
  * `control` puts it inside a `Field`: the field's control props (its id,
  * `aria-invalid`, `aria-describedby` and classes) go on the text input, with
  * the input's own `name` (it then posts the text) and `maxLength`.
@@ -64,6 +71,7 @@ export function ComboBox({
   onClose,
   focusOnMount,
   opensOn = "focus",
+  reopenOn,
   control,
 }: {
   /** The field's accessible name. */
@@ -85,6 +93,8 @@ export function ComboBox({
   focusOnMount?: boolean;
   /** When the list opens: on `focus` (browse every choice), or on `typing` (nothing for an empty field). */
   opensOn?: "focus" | "typing";
+  /** A value that, when it changes, puts the cursor back in the field and opens its list (a filter beside it). */
+  reopenOn?: unknown;
   /** From a `Field`'s render prop, plus the input's `name` and `maxLength`. */
   control?: FieldControl & { name?: string; maxLength?: number };
 }) {
@@ -141,6 +151,7 @@ export function ComboBox({
         className="input input-sm w-full"
         {...control}
       />
+      <Reopen on={reopenOn} input={input} listed={listed} />
       <AriaPopover
         placement="bottom start"
         className={`${SURFACE} max-h-72 w-[var(--trigger-width)] min-w-56 overflow-y-auto p-1`}
@@ -166,6 +177,27 @@ export function ComboBox({
       </AriaPopover>
     </AriaComboBox>
   );
+}
+
+/** Inside the combo box, so it can reach its state: focus the field and open the list when `on` changes. */
+function Reopen({
+  on,
+  input,
+  listed,
+}: {
+  on: unknown;
+  input: RefObject<HTMLInputElement | null>;
+  listed: boolean;
+}) {
+  const state = useContext(ComboBoxStateContext);
+  const last = useRef(on);
+  useEffect(() => {
+    if (Object.is(last.current, on)) return;
+    last.current = on;
+    input.current?.focus();
+    if (listed) state?.open(null, "manual");
+  }, [on, input, listed, state]);
+  return null;
 }
 
 function Option({ item }: { item: ComboBoxOption }) {
