@@ -335,11 +335,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-956 | change | ready | fixes-perf | prd/fixes-perf | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
 | B-957 | change | triaged | fixes-ui |  | First load: a friendlier loading screen with progress |
 | B-958 | change | ready | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
-| B-959 | change | in-progress | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
+| B-959 | change | ready | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | in-progress | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
 | B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
-| B-963 | change | in-progress | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
+| B-963 | change | ready | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 
 ## Items
 
@@ -2368,12 +2368,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-959 · change · On slow links the sync client and SQLite WASM queue behind the preloaded route chunks
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: 847722a6
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): with the landing preload (lib/app-shell/preloadRoutes.ts), on a 1.6 Mbps / 150 ms profile the database opens ~1 s later (2.5 s to 3.5 s after the click) because ~200 route chunks share the bandwidth; the total still drops (4.9 s to 4.4 s). Higher priority for the sync client and its worker/WASM (fetchpriority, or preloading the timeline's chunks only once the database is open) could win that second back.
+- 2026-11-27 (slice/fixes-perf/10): Slice 10 (fixes-perf): measured over HTTP/2 with a TCP link shaper (1.6 Mbps / 150 ms, shared by every connection, so the SharedWorker's WASM fetch is throttled too; CDP's throttle misses it, which made slice 7's 2.5 s/3.5 s look better than real). Throttled before: db open 7.72 s, first row 8.67 s; the WASM came three requests deep (client -> worker -> glue -> wasm). Fix: openSync starts the WASM download (lib/sync/index.ts), the worker joins it from the HTTP cache: 7.33 s / 8.19 s; unthrottled 0.56/0.90 -> 0.39/0.66 s. fetchpriority low on the route preloads: no change (bufferbloat: the link is FIFO); preloading routes only after the db code: worse (8.37, the /app loader's chunks waited, session check at 5.3 s); WASM at the click: the session check queued behind it and hit its 3 s timeout.
 
 ### B-960 · change · First /app load fetches about 205 JS files, many of them tiny
 
@@ -2404,9 +2405,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-963 · change · Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: 847722a6
 
 - 2026-11-27 (prd/fixes-perf): From the fixes-perf wave 1 hand-over: apps/web/app/routes/app/groups/timeline/useEasyUpcoming.ts (37-39) builds upcomingQuery from now rounded to the minute, so the query changes once a minute; fixes-perf slice 5 (B-910) made Upcoming/Past compute the split from the rows instead. Do the same here.
