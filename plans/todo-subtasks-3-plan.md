@@ -14,21 +14,21 @@
 
 **Wave 3 landed 2026-11-27** in dev as `6ab74942c` through PR #259 (slices 5 `ebdfb25e5`, 6 `fb2420fd9`; Codex clean on ebf8bd7; CI green at components on 62cb1d9a, run 46044540245; dev up to date, no sync; browser `--changed` named none). Worktrees 5, 6 removed. Docs folded (todos, under dev's size; components unchanged, over budget: trim before adding). Report a317 filed.
 
-**Wave 4 started 2026-11-27** (fresh session after rotation): dev sync was a no-op; backlog ingest found nothing new for this topic. Slice 7 handed off (quick check green on 2e2cc4292) and merged as `605a0450b`; slice 8 worktree made, agent spawned (opus). Slice 7 notes: other Planner component tests (`planner`, `plannerSearch`, `plannerTags`, `plannerSeries`) not run by the slice: the wave run covers them; a tree due today with an overdue step shows twice under Today (overdue branch, then whole tree), as the plan says. Carried notes (passed to slice 7): `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level; `todoTreesQuery` (slice 5) and `todoDescendantsQuery` (slice 6) exist; `parentsById` still used by `useUpcomingData` and `useEasyTodos`; the todo page's tree rows show progress as "n of m done" in the row line. Docs at wave 4: appointments (Planner), timeline (Easy view), todos.
+**Wave 4 started 2026-11-27** (fresh session after rotation): dev sync was a no-op; backlog ingest found nothing new for this topic. Slice 7 handed off (quick check green on 2e2cc4292) and merged as `605a0450b`; slice 8 handed off (quick check green on 4cf90fd5b) and merged as `d533ece9d` (14 files, over the hook's 12: note for the next plan). Wave 4 CI run at components requested on the merged tip. Slice 8 notes: easy trees use the easy look at every level (context ancestors in the context look); `TodoRow`'s `onTick` is optional now; `parentsById` removed; `useDueTodos`, `plannerTodos`, `isPlannerTodo` now unused outside tests (slice 9 removes them); Easy rows select by `[data-todo-look=easy]`, no `data-easy-todo`. Slice 7 notes: other Planner component tests (`planner`, `plannerSearch`, `plannerTags`, `plannerSeries`) not run by the slice: the wave run covers them; a tree due today with an overdue step shows twice under Today (overdue branch, then whole tree), as the plan says. Carried notes (passed to slice 7): `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level; `todoTreesQuery` (slice 5) and `todoDescendantsQuery` (slice 6) exist; `parentsById` still used by `useUpcomingData` and `useEasyTodos`; the todo page's tree rows show progress as "n of m done" in the row line. Docs at wave 4: appointments (Planner), timeline (Easy view), todos.
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
-| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
-| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
-| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
-| 4     | 2    | merged (opus)  | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
-| 5     | 3    | merged (opus)  | ebdfb25e5 (90e2bbe57)                            |
-| 6     | 3    | merged (opus)  | fb2420fd9 (2bb0cc1c0)                            |
-| 7     | 4    | merged (opus)  | 605a0450b (0f09c13ab, 2e2cc4292)                 |
-| 8     | 4    | working (opus) |                                                  |
-| 9     | 5    | —              |                                                  |
+| Slice | Wave | State         | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | merged (opus) | ebdfb25e5 (90e2bbe57)                            |
+| 6     | 3    | merged (opus) | fb2420fd9 (2bb0cc1c0)                            |
+| 7     | 4    | merged (opus) | 605a0450b (0f09c13ab, 2e2cc4292)                 |
+| 8     | 4    | merged (opus) | d533ece9d (c68a5e0cc, 4cf90fd5b)                 |
+| 9     | 5    | —             |                                                  |
 
 ## Architectural decisions
 
