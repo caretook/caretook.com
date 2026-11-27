@@ -10,14 +10,14 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                   | Merge     |
-| ----- | ----- | --------------------------------------- | --------- |
-| 83    | B-982 | merged                                  | 2f63948f8 |
-| 84    | B-984 | merged                                  | 52fc5653d |
-| 85    | B-985 | started (opus)                          | —         |
-| 86    | B-986 | handed off (2a0c7feb2; merges after 85) | —         |
+| Slice | Item  | State  | Merge     |
+| ----- | ----- | ------ | --------- |
+| 83    | B-982 | merged | 2f63948f8 |
+| 84    | B-984 | merged | 52fc5653d |
+| 85    | B-985 | merged | ec6c64dc6 |
+| 86    | B-986 | merged | 05735fc88 |
 
-**Wave 22 (2026-11-27, in flight; agents spawned on opus in worktrees .loops/fixes-bug-83..86; watch running):** New item B-987 (log_dose pass read capped at 100, from slice 86) triaged for a later wave. dev synced in (72 commits, connectors-3's dose tools). Slices 83 to 86 (B-982, B-984, B-985, B-986: connectors-3's Codex follow-ups on past_doses / log_past_doses / log_dose), all opus, run at once; 84 to 86 share `assistantActionService.ts` (different functions), so expect merge conflicts there. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Wave 21 (slice 82, B-979, merge 336733f55) landed through PR #275.
+**Wave 22 (2026-11-27, in flight; agents spawned on opus in worktrees .loops/fixes-bug-83..86; watch running):** All four merged; wave gate next. New item B-987 (log_dose pass read capped at 100, from slice 86) triaged for a later wave. dev synced in (72 commits, connectors-3's dose tools). Slices 83 to 86 (B-982, B-984, B-985, B-986: connectors-3's Codex follow-ups on past_doses / log_past_doses / log_dose), all opus, run at once; 84 to 86 share `assistantActionService.ts` (different functions), so expect merge conflicts there. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Wave 21 (slice 82, B-979, merge 336733f55) landed through PR #275.
 
 ## Wave 1
 
