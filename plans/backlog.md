@@ -309,6 +309,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
 | B-929 | chore | in-progress | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-932 | bug | triaged | fixes-tooling |  | rm.sh session tests in stack.test.mjs fail when run from an orchestrator session (they inherit RISA_SESSION_*) |
+| B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
 
 ## Items
 
@@ -2119,3 +2120,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/fixes-nit): Found by fixes-nit's orchestrator 2026-11-26 running pnpm test:tooling inside its session: 'rm.sh from inside the worktree it removes (B-812)' > 'ends its own orchestrator's session…' (expected null to be 'SIGTERM') and '…refuses another caller inside it…' fail 2/2 runs; with RISA_SESSIONS_DIR, RISA_SESSION_PID, RISA_SESSION_NAME, RISA_CONTEXT_HOOK unset they pass (3/3). Fix: the test clears or sets those vars for its child processes.
+
+### B-933 · chore · test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-26 (prd/orchestration-split-4): Found in orchestration-split-4 slice 2: run project-check before tooling-lint in package.json's test:tooling, or have the lint catch TierDataError
