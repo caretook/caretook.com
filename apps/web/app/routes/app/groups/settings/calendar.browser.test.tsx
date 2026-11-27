@@ -132,7 +132,8 @@ describe("Calendar & reminders", () => {
     await open({ role: "viewer", api: calendarServer("viewer").api, width: 1024 });
     await expect.element(page.getByRole("heading", { name: "Calendar & reminders", level: 1 })).toBeVisible();
     const links = [...document.querySelectorAll("nav[data-settings-nav] a")].map((a) => a.textContent.trim());
-    expect(links.at(-1)).toMatch(/^Calendar & reminders/);
+    // After Assistants; later subpages (Tags) follow it.
+    expect(links[links.findIndex((l) => l.startsWith("Assistants")) + 1]).toMatch(/^Calendar & reminders/);
     await found(() => section("details-outside")?.querySelector("input"));
     expect(cardHeadings()).toEqual([
       "Reminders",
