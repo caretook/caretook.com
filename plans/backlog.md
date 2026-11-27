@@ -123,7 +123,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `sync-safety-3` | hold | `sync-safety-2` | — | to write (B-294): atomic device writes, cut from sync-safety-2 2026-11-25; start from plans/sync-safety-3-notes.md (thread the context's transaction through the services first) |
 | `onboarding-3` | hold | `onboarding-2` | — | — |
 | `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
-| `med-intervals` | — | — | — | Every-N-hours schedules for medications and Med times (B-938). |
+| `med-intervals` | hold | — | — | Every-N-hours schedules for medications and Med times (B-938). |
 | `tags-4` | hold | `tags-3` | — | — |
 | `shared-displays` | hold | `todo-subtasks-3`, `tags-3` | — | — |
 | `todo-links-2` | — | `todo-links` | — | — |
@@ -215,8 +215,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-752 | bug | triaged | fixes-bug | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
-| B-760 | feature | in-progress | connectors-3 | prd/connectors-3 | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
-| B-761 | feature | triaged | connectors-3 |  | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
+| B-760 | feature | ready | connectors-3 | prd/connectors-3 | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
+| B-761 | feature | in-progress | connectors-3 | prd/connectors-3 | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
 | B-772 | chore | triaged | test-time-gates-2 |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
@@ -1161,18 +1161,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-760 · feature · Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address)
 
-- status: in-progress
+- status: ready
 - prd: connectors-3
 - owner: prd/connectors-3
-- commit:
+- commit: b73368af5
 
 - 2026-11-24 (Robert Bo Davis): From the user (2026-11-24). Today the connector only lists providers (list_providers). Same fields and checks as the Add provider sheet; writer roles only; preview wording shared with quick entry like the other write tools. Small: provider fields are simple.
 
 ### B-761 · feature · Connector: add_medication, so a member's own AI can add a medication with its type and schedule
 
-- status: triaged
+- status: in-progress
 - prd: connectors-3
-- owner:
+- owner: prd/connectors-3
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): From the user (2026-11-24). Today the connector only lists medications (list_medications). Heavier than add_provider: type is required, a scheduled one needs times and a round (pass); the AI can ask the member for them, but the server validates through the same medication schemas and service as the Add medication sheet (medicationCreateZSchema). Writer roles only (no Easy helper). Consider prescriber/pharmacy by existing provider.
@@ -1511,9 +1511,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: in-progress
 - prd: connectors-3
 - owner: prd/connectors-3
-- commit:
+- commit: 701a96e62
 
 - 2026-11-26 (Robert Bo Davis): The client AI does the vision; we need tools for it: read a past range's dose slots with their states (doseSlotsBetween; cf. B-252), and log doses for past slots in one batch (log_dose takes today's slot ids today), reporting per slot: added, already logged, or conflicts (paper says refused, app says given) to ask the member about. Needs the printed sheet's skip/refuse marks; the sheet could carry the week start and pass names so slots map cleanly.
+- 2026-11-27 (prd/connectors-3): Slice 4 (past_doses) merged as 701a96e62; slice 6 (log_past_doses) still to come
 
 ### B-918 · feature · Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed
 
