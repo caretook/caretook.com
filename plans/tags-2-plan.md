@@ -8,14 +8,14 @@
 | ----- | ---- | ------- | --------------------------------------- |
 | 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
 | 2     | 2    | landed  | 7b892610 (d362bd70)                     |
-| 3     | 3    | merged  | 8cc6a9c5 (ca9829f5)                     |
+| 3     | 3    | landing | 8cc6a9c5 (ca9829f5)                     |
 | 4     | 4    | planned |                                         |
 | 5     | 5    | planned |                                         |
 | 6     | 5    | planned |                                         |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** waves 1+2 landed in dev as aa146b2 (PR #246, `--no-review`, Codex out of credits, tier full). **Wave 3:** slice 3 (opus) handed off and merged as 8cc6a9c5; B-893, B-894 done. Wave gate: `pnpm prd ci run full` (tier full: seeds) requested. Worktree tags-2-3 stays until green. Slice 3 notes for slice 4: `Badge` takes a `fill` prop (`tagColorClass`) for palette chips. After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
+**Now:** wave 3 (slice 3, opus) merged as 8cc6a9c5; B-893, B-894 done. CI full run 45941751708 on 12907d62: flake (search.sync timing test, brake list, outside the branch). PR #247; Codex out of credits (exit 4), so landing `--no-review --tier full`. Tags doc folded (colored chips, seeds). **Next session:** wave 4, slice 4 (QuickTags on entry and todo pages; opus; claim B-892; touches `routes/app/groups/todos/`, a todo-subtasks-2 hot file: sync dev first if that topic runs). `Badge` takes `fill` (`tagColorClass`). After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
 
 ## Architectural decisions
 
