@@ -44,7 +44,7 @@ describe("actionPreview", () => {
   ])("a quick entry line with labels after the numbers shows each vital once: %s (B-976)", (line, title) => {
     const [reading] = parseQuickEntry(line, {
       now: NOW,
-      timeZone: context.timeZone,
+      timeZone: "America/Los_Angeles",
       units: context.units,
       medications: [],
       providers: [],
