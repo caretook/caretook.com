@@ -73,6 +73,33 @@ export const listsOnItsOwn = (todo: {
   assigneeName: string | null;
 }) => !todo.parentId || !!todo.dueOn || assigneeOf(todo).type !== "none";
 
+/** What `siblingOrder` reads of a todo. */
+export type SiblingFields = {
+  id: string;
+  dueOn: string | null;
+  dueTime: string | null;
+  createdAt: string;
+};
+
+/**
+ * Two siblings' order (a `sort` comparator): dated before undated; dated by
+ * day, and on one day timed ones by time before day-only ones; then by when
+ * they were made, then the id. In SQL: `due_on IS NULL, due_on, due_time IS
+ * NULL, due_time, created_at, id`. Done or open doesn't move a sibling.
+ */
+export const compareSiblings = (a: SiblingFields, b: SiblingFields) => {
+  if (!a.dueOn !== !b.dueOn) return a.dueOn ? -1 : 1;
+  if (a.dueOn && b.dueOn && a.dueOn !== b.dueOn) return a.dueOn < b.dueOn ? -1 : 1;
+  if (!a.dueTime !== !b.dueTime) return a.dueTime ? -1 : 1;
+  if (a.dueTime && b.dueTime && a.dueTime !== b.dueTime) return a.dueTime < b.dueTime ? -1 : 1;
+  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+};
+
+/** A todo's subtasks (or any siblings) in tree order (`compareSiblings`), as a new array. */
+export const siblingOrder = <T extends SiblingFields>(siblings: readonly T[]): T[] =>
+  [...siblings].sort(compareSiblings);
+
 /**
  * The upload's flag on a device's rollup write to a parent (its `_metadata`,
  * as `UNDO_NEXT_METADATA`): the device's tick, reopen, remove or new subtask

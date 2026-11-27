@@ -5,6 +5,7 @@ import {
   listsOnItsOwn,
   MAX_TODO_DEPTH,
   rollupOf,
+  siblingOrder,
   subtaskProgress,
 } from "./todoTree";
 
@@ -88,5 +89,54 @@ describe("listsOnItsOwn", () => {
     ["a subtask with a blank typed name", { ...plain, parentId: PARENT, assigneeName: "  " }, false],
   ])("%s: %s", (_, todo, expected) => {
     expect(listsOnItsOwn(todo)).toBe(expected);
+  });
+});
+
+describe("siblingOrder", () => {
+  const sib = (id: string, dueOn: string | null, dueTime: string | null, createdAt: string) => ({
+    id,
+    dueOn,
+    dueTime,
+    createdAt,
+  });
+  const ids = (list: { id: string }[]) => siblingOrder(list).map((s) => s.id);
+
+  it("puts dated before undated, by day", () => {
+    expect(
+      ids([
+        sib("undated", null, null, "2026-11-01T00:00:00.000Z"),
+        sib("friday", "2026-11-27", null, "2026-11-02T00:00:00.000Z"),
+        sib("tuesday", "2026-11-24", null, "2026-11-03T00:00:00.000Z"),
+      ]),
+    ).toEqual(["tuesday", "friday", "undated"]);
+  });
+
+  it("puts timed before day-only on one day, by time", () => {
+    expect(
+      ids([
+        sib("day-only", "2026-11-24", null, "2026-11-01T00:00:00.000Z"),
+        sib("at 15:00", "2026-11-24", "15:00", "2026-11-02T00:00:00.000Z"),
+        sib("at 09:30", "2026-11-24", "09:30", "2026-11-03T00:00:00.000Z"),
+      ]),
+    ).toEqual(["at 09:30", "at 15:00", "day-only"]);
+  });
+
+  it("then by when they were made, then the id", () => {
+    expect(
+      ids([
+        sib("b-later", null, null, "2026-11-02T00:00:00.000Z"),
+        sib("b-first", null, null, "2026-11-01T00:00:00.000Z"),
+        sib("a-first", null, null, "2026-11-01T00:00:00.000Z"),
+      ]),
+    ).toEqual(["a-first", "b-first", "b-later"]);
+  });
+
+  it("leaves its input as it was", () => {
+    const list = [
+      sib("2", null, null, "2026-11-02T00:00:00.000Z"),
+      sib("1", "2026-11-24", null, "2026-11-01"),
+    ];
+    siblingOrder(list);
+    expect(list.map((s) => s.id)).toEqual(["2", "1"]);
   });
 });
