@@ -95,7 +95,7 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
   return (
     <SettingsPage title="Timeline layout" headingId={LAYOUT_HEADING}>
       <SettingsCard>
-        <p className="text-base-content/70 text-sm">
+        <p className="text-muted text-sm">
           How entries show on your timelines. You can also switch it on the timeline itself.
         </p>
         <ChoiceGroup
@@ -108,7 +108,7 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
         <SaveStatusLine status={layout.status} />
       </SettingsCard>
       <SettingsCard id="easy-mode" title="Easy mode">
-        <p className="text-base-content/70 text-sm">
+        <p className="text-muted text-sm">
           A simpler timeline in large type. You can also switch it on the timeline itself.
         </p>
         <ChoiceGroup

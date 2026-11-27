@@ -5,7 +5,7 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 import { canTagRecord } from "@caretook/data/schema";
 import { useState } from "react";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { TagChips, useRecordTags, useTagPicker } from "~/components/tags";
+import { QuickTags, useRecordTags } from "~/components/tags";
 import { LinkedTodos } from "~/components/todos";
 import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -66,9 +66,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toProvider(rows[0]) : null;
   const provider = live ?? loaderData.provider;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
-  // Tags (tags PRD): every chip for every role; Tags for whoever may tag it.
+  // Tags (tags-2): every chip for every role; × and Add tag for whoever may tag it (`QuickTags`).
   const tags = useRecordTags("provider", providerId);
-  const tagPicker = useTagPicker();
   const mayTag =
     !deleted && canTagRecord(role, { target: "provider", createdBy: provider.createdBy }, userId);
 
@@ -83,29 +82,32 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
 
         <ProviderHeader
           provider={provider}
-          tags={!deleted && <TagChips tags={tags} max={null} className="mt-1" />}
+          tags={
+            !deleted &&
+            (mayTag || tags.length > 0) && (
+              <QuickTags
+                target="provider"
+                recordId={providerId}
+                label={provider.name}
+                createdBy={provider.createdBy}
+                max={null}
+                tags={tags}
+                className="mt-1"
+              />
+            )
+          }
           editors={
             !deleted && <EditorAvatars documentId={providerId} groupId={groupId} viewerId={db.userId} />
           }
           actions={
             canWrite &&
             !deleted && (
-              <ProviderActions
-                provider={provider}
-                groupName={displayName}
-                onCopied={setCopyStatus}
-                onTags={
-                  mayTag
-                    ? () => tagPicker.ask({ target: "provider", recordId: providerId, label: provider.name })
-                    : undefined
-                }
-              />
+              <ProviderActions provider={provider} groupName={displayName} onCopied={setCopyStatus} />
             )
           }
         />
 
         <Message data-copy-status="">{copyStatus}</Message>
-        {tagPicker.sheet}
       </Section>
 
       {deleted ? (

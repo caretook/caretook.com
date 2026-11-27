@@ -1,7 +1,8 @@
 // For tests that run the tooling from a throwaway repo: import this file, and
-// copy config.mjs in beside lib.sh. The scripts they start then read this repo's
-// risa.json through RISA_CONFIG (they pass process.env on), since the throwaway
-// repo has none of its own.
+// copy config.mjs in beside lib.sh. The scripts they start then read the fixture
+// project's config (fixture-project/risa.json: today's names, its own data files)
+// through RISA_CONFIG, which the core's test setup (test-setup.mjs) defaults to it
+// and they pass on in process.env, since the throwaway repo has none of its own.
 //
 //   stubHookConfig(dir, { copy })   writes DIR/risa.json: that config with its
 //                         stack hooks (stackUp … stackLeftovers, serve, testDb) on
@@ -16,17 +17,17 @@
 //   sampleFoldersConfig(dir)  writes DIR/risa.json: that config with its check plan's
 //                         rules on the sample project's folders (web/, db/), and returns
 //                         its path, for a test whose made-up files sit there.
+//
+//   fixtureTierData(dir?) the tier data the config in RISA_CONFIG names (paths.tierData,
+//                         from that config's folder): { path, text }; with DIR, also
+//                         written there at that path, for a throwaway repo.
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONFIG_NAME } from "./config.mjs";
 
-/** The config the throwaway repos use. */
-export const FIXTURE_CONFIG = fileURLToPath(new URL(`../../${CONFIG_NAME}`, import.meta.url));
-
-process.env.RISA_CONFIG ??= FIXTURE_CONFIG;
-// No machine config (machine.mjs) unless a test names one: never the machine's own ~/.risa.
-process.env.RISA_MACHINE_CONFIG ??= "";
+/** The config the throwaway repos use: the fixture project's, never the checkout's. */
+export const FIXTURE_CONFIG = fileURLToPath(new URL(`./fixture-project/${CONFIG_NAME}`, import.meta.url));
 
 /** The sample project's stub for every stack hook. */
 export const STUB_HOOK = fileURLToPath(new URL("./sample-project/tools/stack-hook.sh", import.meta.url));
@@ -53,7 +54,7 @@ export const STUB_HOOK_COPY = "tools/stack-hook.sh";
 /**
  * @param {string} dir where the config goes
  * @param {{ base?: string, copy?: boolean }} [opts] the config it starts from
- *   (this repo's); copy the stub into DIR and name it relatively
+ *   (the fixture project's); copy the stub into DIR and name it relatively
  * @returns {string} its path
  */
 export function stubHookConfig(dir, { base = FIXTURE_CONFIG, copy = false } = {}) {
@@ -115,4 +116,21 @@ export function sampleFoldersConfig(dir) {
   put(raw.paths.checkPlanRules, `${JSON.stringify(RULES, null, 2)}\n`);
   put("risa.json", `${JSON.stringify(raw, null, 2)}\n`);
   return join(dir, "risa.json");
+}
+
+/**
+ * The tier data the config in RISA_CONFIG names: its path from that config's
+ * folder and its text. Given a throwaway repo, it is written there at that path.
+ * @param {string} [dir] the throwaway repo
+ * @returns {{ path: string, text: string }}
+ */
+export function fixtureTierData(dir) {
+  const config = process.env.RISA_CONFIG || FIXTURE_CONFIG;
+  const path = JSON.parse(readFileSync(config, "utf8")).paths.tierData;
+  const text = readFileSync(join(dirname(config), path), "utf8");
+  if (dir) {
+    mkdirSync(dirname(join(dir, path)), { recursive: true });
+    writeFileSync(join(dir, path), text);
+  }
+  return { path, text };
 }

@@ -4,15 +4,17 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, recordTag, tag } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
-import { openTimeline, rows, rowWith, SAM } from "./timelineWorld";
+import { openTimeline, rows, rowWith, SAM, TIMELINE_URL } from "./timelineWorld";
 
 // Renaming and deleting a tag from the picker sheet (tags slice 3), opened
-// from a timeline row's ⋯ menu: owners, admins and caretakers rename any
+// from a timeline row's "Add tag" (tags-2 slice 6): owners, admins and caretakers rename any
 // tag, an Easy helper only one they created; a taken name is refused
 // inline; every row's chips follow. Only an owner gets Delete, after a
 // native <dialog> naming how many records carry the tag; the tag comes off
 // every record and the records stay. The rules are tagRules.test.ts's; the
-// server's refusals tags.int.test.ts's and syncTags.int.test.ts's.
+// server's refusals tags.int.test.ts's and syncTags.int.test.ts's. And the
+// symptom edit sheet's quick tags (tags-2 slice 6): each tap is its own
+// local write, never part of Save.
 
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
 const NOTE = fx.note({ occurredAt: minutesAgo(5), text: "Walked to the mailbox" });
@@ -37,9 +39,8 @@ const fixtures = [
   recordTag(KNEE.id, SAMS_NOTE.id),
 ];
 
-const actionsOf = (text: string) =>
-  rowWith(text)?.querySelector<HTMLElement>('button[aria-label^="Actions for"]') ?? null;
-const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
+const addOf = (text: string) =>
+  rowWith(text)?.querySelector<HTMLButtonElement>("[data-quick-tag-add]") ?? null;
 const chipsOf = (text: string) =>
   [...(rowWith(text)?.querySelectorAll("[data-tag-chip]") ?? [])].map((c) => c.textContent?.trim()).join(",");
 const PICKER = () => document.querySelector<HTMLFormElement>("[data-tag-picker]");
@@ -59,9 +60,7 @@ const DIALOG = () => document.querySelector<HTMLDialogElement>("dialog[open]");
 const open = (role: GroupRole) => openTimeline({ role, fixtures });
 const ready = () => waitUntil(() => rows().length >= 3, "the rows");
 const openPicker = async (text: string) => {
-  await userEvent.click(await found(() => actionsOf(text)));
-  await waitUntil(() => menuItems().length > 0, "the menu");
-  await userEvent.click(page.getByRole("menuitem", { name: "Tags" }));
+  await userEvent.click(await found(() => addOf(text)));
   await found(PICKER);
 };
 const startRename = async (name: string) => {
@@ -173,5 +172,57 @@ describe("deleting a tag", () => {
     const deletes = (await device.queued()).filter((w) => w.op === "DELETE");
     expect(deletes.filter((w) => w.type === "record_tag")).toHaveLength(3);
     expect(deletes.filter((w) => w.type === "tag").map((w) => w.id)).toEqual([URGENT.id]);
+  });
+});
+
+describe("the symptom edit sheet", () => {
+  const SHEET_TAGS = () => document.querySelector<HTMLElement>("[data-entry-edit-tags]");
+  const sheetChips = () =>
+    [...(SHEET_TAGS()?.querySelectorAll("[data-tag-chip]") ?? [])]
+      .map((c) => c.textContent?.trim())
+      .join(",");
+  const NAME = () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="symptomName"]');
+
+  test("tags and untags at once, never through Save", async () => {
+    const device = await openTimeline({
+      role: "caretaker",
+      fixtures,
+      url: `${TIMELINE_URL}/${SYMPTOM.id}/edit`,
+    });
+    await found(SHEET_TAGS);
+    await expect.poll(sheetChips).toBe("Urgent");
+    await found(NAME);
+
+    // A typed name stays unsaved while the tags change.
+    await userEvent.fill(await found(NAME), "Sore knee, edited");
+    // The sheet's own buttons (the rows behind it have theirs).
+    await userEvent.click(
+      await found(() => SHEET_TAGS()?.querySelector<HTMLElement>("[data-quick-tag-add]")),
+    );
+    await found(PICKER);
+    await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
+    await device.settle();
+    await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
+    await expect.poll(PICKER).toBeNull();
+    await expect.poll(sheetChips).toBe("Knee,Urgent");
+    await expect.poll(() => chipsOf("Sore knee")).toBe("Knee,Urgent");
+
+    await userEvent.click(
+      await found(() => SHEET_TAGS()?.querySelector<HTMLElement>('button[aria-label="Remove tag Urgent"]')),
+    );
+    await device.settle();
+    await expect.poll(sheetChips).toBe("Knee");
+    const links = await device.query<{ tag_id: string }>("SELECT tag_id FROM record_tag WHERE entry_id = ?", [
+      SYMPTOM.id,
+    ]);
+    expect(links.map((l) => l.tag_id)).toEqual([KNEE.id]);
+    // The entry itself is unchanged: the name waits for Save, and nothing of it is queued.
+    const [row] = await device.query<{ name: string }>(
+      "SELECT json_extract(details, '$.name') AS name FROM timeline_entry WHERE id = ?",
+      [SYMPTOM.id],
+    );
+    expect(row?.name).toBe("Sore knee");
+    expect((await device.queued()).some((w) => w.type === "timeline_entry")).toBe(false);
+    expect(NAME()?.value).toBe("Sore knee, edited");
   });
 });

@@ -33,7 +33,7 @@ export function YourSharing({
         What this group sees
       </button>
       {!open && (
-        <p data-sharing-summary="" className="text-base-content/70 text-sm">
+        <p data-sharing-summary="" className="text-muted text-sm">
           {sharedSummary(visibleSharedFields(memberShare(member)))}
         </p>
       )}

@@ -6,10 +6,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
-- Frontpage hero CTA buttons wrap on mobile; they should fit side by side (B-885)
-- Easy entry: medication autocomplete suggestion covers the event entry suggestion box (B-897)
-  Autocomplete suggestions should probably appear above the box, with the event entry suggestion box below.
-
 ## Change requests
 
 - App first load is way too long. (B-764)
@@ -24,8 +20,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Move this section so it's the first item after the timeline on the features page.
 - Features page should highlight easy mode (B-888)
 - Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm (B-898)
-- Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu (B-899)
-- Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when there are several (B-900)
 
 ## Feature requests
 

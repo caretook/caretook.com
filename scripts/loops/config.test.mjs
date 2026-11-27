@@ -31,11 +31,14 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../..");
-const FILE = join(ROOT, CONFIG_NAME);
+/** The fixture project: today's names, every path it names its own. */
+const FIXTURE_PROJECT = join(HERE, "fixture-project", CONFIG_NAME);
+/** The config these tests read: the fixture project's, never this checkout's. */
+const FILE = FIXTURE_PROJECT;
 const tmp = mkdtempSync(join(tmpdir(), "config-test-"));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-/** This repo's config with one change made to a copy. */
+/** The fixture's config with one change made to a copy. */
 const changed = (change) => {
   const raw = JSON.parse(readFileSync(FILE, "utf8"));
   change(raw);
@@ -52,9 +55,10 @@ const bash = (script, extra) =>
   });
 
 describe("the loader", () => {
-  it("accepts this repo's config, and every path in it exists", () => {
-    const { config, root, path } = loadConfig({ path: FILE });
-    expect(path).toBe(FILE);
+  it("accepts the fixture project's config, and every path in it exists", () => {
+    // The configured project's own paths are the project-data check's.
+    const { config, root, path } = loadConfig({ path: FIXTURE_PROJECT });
+    expect(path).toBe(FIXTURE_PROJECT);
     expect(config.name).toMatch(/^[a-z]/);
     expect(config.branches.trunk).toBe("dev");
     const paths = [...Object.values(config.paths).flat(), ...(config.boundary?.appPaths ?? [])];
@@ -62,7 +66,7 @@ describe("the loader", () => {
   });
 
   it("keeps the file where RISA_CONFIG says, else at the root of this checkout", () => {
-    expect(configPath({})).toBe(FILE);
+    expect(configPath({})).toBe(join(ROOT, CONFIG_NAME));
     expect(configPath({ RISA_CONFIG: "/x/sample.json" })).toBe("/x/sample.json");
   });
 
@@ -159,7 +163,11 @@ describe("the loader", () => {
     ],
     ["hooks.check", (c) => (c.hooks = { check: 1 }), "hooks.check: must be a command"],
     ["hooks", (c) => (c.hooks = { stakUp: "x" }), "hooks.stakUp: unknown key"],
-    ["boundary.appPaths", (c) => (c.boundary.appPaths = ["web/"]), "boundary.appPaths.0: must be a path"],
+    [
+      "boundary.appPaths",
+      (c) => (c.boundary = { ...c.boundary, appPaths: ["web/"] }),
+      "boundary.appPaths.0: must be a path",
+    ],
   ])("rejects a wrong %s", (_key, change, problem) => {
     const problems = configProblems(changed(change));
     expect(problems.join("\n")).toContain(problem);
@@ -223,7 +231,7 @@ describe("the loader", () => {
 });
 
 describe("backlogIds", () => {
-  it("builds the ids from the config's prefix: this repo's, and another's", () => {
+  it("builds the ids from the config's prefix: the fixture's, and another's", () => {
     const here = backlogIds();
     expect(here.prefix).toBe(`${loadConfig({ path: FILE }).config.backlog.idPrefix}-`);
     const risa = backlogIds(changed((c) => (c.backlog.idPrefix = "RISA")));
@@ -299,7 +307,7 @@ describe("backlogIds", () => {
 });
 
 describe("branchKinds", () => {
-  it("reads this repo's branches, and another's prefixes", () => {
+  it("reads the fixture's branches, and another's prefixes", () => {
     const here = branchKinds();
     expect(here.prefixes).toEqual(loadConfig({ path: FILE }).config.branches.prefixes);
     const other = branchKinds(

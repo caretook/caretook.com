@@ -262,9 +262,7 @@ function MonthCalendar({ inline = false, onPick }: { inline?: boolean; onPick?: 
       <CalendarGrid className="w-full table-fixed border-collapse">
         <CalendarGridHeader>
           {(day) => (
-            <CalendarHeaderCell className="text-base-content/60 pb-1 text-xs font-medium">
-              {day}
-            </CalendarHeaderCell>
+            <CalendarHeaderCell className="text-faint pb-1 text-xs font-medium">{day}</CalendarHeaderCell>
           )}
         </CalendarGridHeader>
         <CalendarGridBody>
@@ -279,7 +277,7 @@ function MonthCalendar({ inline = false, onPick }: { inline?: boolean; onPick?: 
                   inline ? "mx-auto flex aspect-square h-auto max-w-11" : "",
                   // Today, when not picked: outlined in the text colour.
                   isToday && !isSelected ? "border-current" : "",
-                  isOutsideMonth && !isSelected ? "text-base-content/40" : "",
+                  isOutsideMonth && !isSelected ? "text-faint" : "",
                 ].join(" ")
               }
             />

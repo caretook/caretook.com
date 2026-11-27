@@ -549,6 +549,8 @@ export const tags = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // A palette id (tags-2, `TAG_COLORS`); null or unknown is the neutral chip.
+    color: text("color"),
   },
   (t) => [index("tag_group").on(t.groupId)],
 );

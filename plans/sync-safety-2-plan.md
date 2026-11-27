@@ -26,7 +26,7 @@
   - Slice 4 owns `lib/auth/` (the session module, the pending sign-out), the sign-in route's guard, and `lib/sync/index.ts`'s `openSync`.
 - **Wave 2: slice 3**, after wave 1 lands. It owns the registry's todo PUT hook, `upsertOccurrence`, the device tick's twin and the todo rules' metadata constants.
 - **Gates:** `pnpm prd check` per slice as [loop](../docs/agents/loop.md) says. Browser checks run once per wave on the integration branch, the ones `check-areas` maps for the changed files (expect `roundtrip`, `session-end`, `sign-in`). This topic adds no browser step: the lean set is at its ceiling.
-- **Start conditions:** `tags` and `todo-subtasks` (planned) share the upload registry, `todoService` and the device's todo module; `calendars-3` (planned) holds `lib/auth/session`. `pnpm prd sync` before each wave; whichever lands second syncs first.
+- **Start conditions:** `tags` and `todo-subtasks` (planned) share the upload registry, `todoService` and the device's todo module; `push-notifications` (held) holds `lib/auth/session`. `pnpm prd sync` before each wave; whichever lands second syncs first.
 
 **Backlog:** claim each slice's items when it starts; `done` them when it merges. Slice 1: B-295. Slice 2: B-383, B-384. Slice 3: B-387. Slice 4: B-296, B-730. B-805 (a question) is answered in the sync doc by this plan's landing, and marked done then.
 

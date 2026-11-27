@@ -1,4 +1,5 @@
 import { getDb, recordTagId, tagId, timelineEntryService } from "@caretook/data";
+import { TAG_COLORS } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createWorld, ok } from "../../data/test/fixtures";
 import { clientFor, deleteOp, outcomes, patchOp, putOp, sqliteTime } from "./testing";
@@ -8,8 +9,10 @@ import { clientFor, deleteOp, outcomes, patchOp, putOp, sqliteTime } from "./tes
 // server derives `name_key`), an owner's DELETE removes it and its links; a
 // `record_tag` PUT links and DELETE unlinks, null targets pass as null so
 // none or two are refused; a taken name, a refused rename and a link to a
-// deleted tag are rejected (recorded as not saved on the device). Each test
-// makes its own users and group.
+// deleted tag are rejected (recorded as not saved on the device). A tag's
+// color (tags-2) rides its PUT (none: the server picks an unused one) and a
+// color PATCH recolors it, under rename's rule. Each test makes its own
+// users and group.
 
 const setup = async () => {
   const { u, group } = await createWorld({
@@ -26,12 +29,13 @@ const setup = async () => {
   )!;
   const now = sqliteTime();
   const audits = { created_at: now, updated_at: now };
-  const tagPut = (name: string, counter = 0) =>
+  const tagPut = (name: string, counter = 0, extra: Record<string, unknown> = {}) =>
     putOp("tag", tagId(group.id, name, counter), {
       group_id: group.id,
       name,
       name_key: name.toLowerCase(),
       ...audits,
+      ...extra,
     });
   const linkPut = (tag: string, targets: Record<string, string | null> = { entry_id: entry.id }) =>
     putOp("record_tag", recordTagId(tag, entry.id), {
@@ -49,13 +53,16 @@ const setup = async () => {
       .rows;
   const tagOf = async (id: string) =>
     (
-      await getDb().$client.query<{ name: string; name_key: string; created_by: string }>(
-        `SELECT name, name_key, created_by FROM tag WHERE id = $1`,
-        [id],
-      )
+      await getDb().$client.query<{
+        name: string;
+        name_key: string;
+        created_by: string;
+        color: string | null;
+      }>(`SELECT name, name_key, created_by, color FROM tag WHERE id = $1`, [id])
     ).rows[0] ?? null;
   const rename = (id: string, name: string, extra: Record<string, unknown> = {}) =>
     patchOp("tag", id, { name, name_key: name.toLowerCase(), updated_at: sqliteTime(), ...extra });
+  const recolor = (id: string, color: unknown) => patchOp("tag", id, { color, updated_at: sqliteTime() });
   return {
     u,
     group,
@@ -65,6 +72,7 @@ const setup = async () => {
     links,
     tagOf,
     rename,
+    recolor,
     owner: clientFor(u.owner.ctx.authUser),
     admin: clientFor(u.admin.ctx.authUser),
     easyHelper: clientFor(u.easy_helper.ctx.authUser),
@@ -183,6 +191,55 @@ describe("sync.upload: tag and record_tag", () => {
     const mine = tagPut("Knee");
     expect(await outcomes(easyHelper, [mine, rename(mine.id, "Sore knee")])).toEqual(["applied", "applied"]);
     expect(await tagOf(mine.id)).toMatchObject({ name: "Sore knee", created_by: u.easy_helper.user.id });
+  });
+
+  it("a PUT keeps its color, one without gets a color no group tag has, and a color PATCH recolors", async () => {
+    const { tagPut, tagOf, rename, recolor, caretaker, admin } = await setup();
+    const sky = tagPut("Urgent", 0, { color: "sky" });
+    const bare = tagPut("Knee");
+    expect(await outcomes(caretaker, [sky, bare])).toEqual(["applied", "applied"]);
+    expect(await tagOf(sky.id)).toMatchObject({ color: "sky" });
+    const picked = (await tagOf(bare.id))?.color;
+    expect(TAG_COLORS).toContain(picked);
+    expect(picked).not.toBe("sky");
+
+    // A null color is no color: the server picks one.
+    const nulled = tagPut("Care home move", 0, { color: null });
+    expect(await outcomes(caretaker, [nulled])).toEqual(["applied"]);
+    expect(TAG_COLORS).toContain((await tagOf(nulled.id))?.color);
+
+    expect(
+      await outcomes(admin, [
+        recolor(sky.id, "rose"),
+        patchOp("tag", bare.id, { name: "Sore knee", color: "sky" }),
+      ]),
+    ).toEqual(["applied", "applied"]);
+    expect(await tagOf(sky.id)).toMatchObject({ name: "Urgent", color: "rose" });
+    expect(await tagOf(bare.id)).toMatchObject({ name: "Sore knee", color: "sky" });
+
+    // Off the palette: a PUT and a PATCH are refused, and a PATCH of both
+    // rolls the rename back with it.
+    expect(
+      await outcomes(caretaker, [
+        tagPut("Lab", 0, { color: "chartreuse" }),
+        recolor(sky.id, "chartreuse"),
+        rename(bare.id, "Knee pain", { color: "chartreuse" }),
+      ]),
+    ).toEqual(["tagService:invalid", "tagService:invalid", "tagService:invalid"]);
+    expect(await tagOf(bare.id)).toMatchObject({ name: "Sore knee", color: "sky" });
+  });
+
+  it("refuses an Easy helper's recolor of someone else's tag, and a viewer's; their own is theirs", async () => {
+    const { u, tagPut, tagOf, recolor, caretaker, easyHelper, viewer } = await setup();
+    const theirs = tagPut("Urgent", 0, { color: "sky" });
+    expect(await outcomes(caretaker, [theirs])).toEqual(["applied"]);
+    expect(await outcomes(easyHelper, [recolor(theirs.id, "rose")])).toEqual(["permissions:unauthorized"]);
+    expect(await outcomes(viewer, [recolor(theirs.id, "rose")])).toEqual(["permissions:unauthorized"]);
+    expect(await tagOf(theirs.id)).toMatchObject({ color: "sky" });
+
+    const mine = tagPut("Knee", 0, { color: "sky" });
+    expect(await outcomes(easyHelper, [mine, recolor(mine.id, "rose")])).toEqual(["applied", "applied"]);
+    expect(await tagOf(mine.id)).toMatchObject({ color: "rose", created_by: u.easy_helper.user.id });
   });
 
   it("only an owner's DELETE removes a tag and its links; a replay is fine, and a later link is not saved", async () => {

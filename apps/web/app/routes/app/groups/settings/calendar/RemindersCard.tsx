@@ -20,7 +20,7 @@ export function RemindersCard({ groupId, userId, settings }: CalendarCardProps) 
 
   return (
     <SettingsCard id="reminders" title="Reminders">
-      <p className="text-base-content/70 text-sm">{REMINDERS_EXPLAINED}</p>
+      <p className="text-muted text-sm">{REMINDERS_EXPLAINED}</p>
       {!settings ? (
         <p className="text-sm" data-reminders-unknown="">
           Needs a connection to show your reminders.
@@ -47,12 +47,12 @@ export function RemindersCard({ groupId, userId, settings }: CalendarCardProps) 
                   }
                 />
               ))}
-              <p id={capId} className="text-base-content/70 text-sm">
+              <p id={capId} className="text-muted text-sm">
                 {LEADS_CAP_NOTE}
               </p>
             </fieldset>
           )}
-          <p className="text-base-content/70 text-sm" data-reminders-todos="">
+          <p className="text-muted text-sm" data-reminders-todos="">
             {TODOS_NOTE}
           </p>
         </>

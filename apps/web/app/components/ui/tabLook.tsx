@@ -35,7 +35,7 @@ export const TAB_BAR =
 export function tabClass(current: boolean, accent?: Accent) {
   const fill = accent ? accentClass(accent, "soft") : CURRENT_FILL;
   return `flex min-h-11 flex-1 items-center justify-center gap-1.5 px-4 text-sm font-medium whitespace-nowrap transition-colors focus-visible:-outline-offset-2! first:rounded-s-full last:rounded-e-full sm:flex-none ${
-    current ? fill : "text-base-content/80 hover:bg-base-200"
+    current ? fill : "text-muted hover:bg-base-200"
   }`;
 }
 

@@ -4,17 +4,17 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 ## Status
 
-Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-nit-history.md`](fixes-nit-history.md) (`pnpm prd status-trim`).
 
-Wave 1: slices 1–3, all done 2026-11-21. Synced with dev (profiles.md docs conflict resolved: dev's text, our check name). Full check passed on 2cdca857; no browser checks (no app code changed). Next: PR, Codex review, land.
+Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"; the dispatcher's run-through start again 2026-11-26). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-| Slice | Item  | State  | Merge               |
-| ----- | ----- | ------ | ------------------- |
-| 1     | B-326 | merged | 72298bc8            |
-| 2     | B-379 | done   | none (empty branch) |
-| 3     | B-380 | done   | none (empty branch) |
+Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7: B-544, B-630, B-637, B-930) landed 2026-11-26 as a1d501f7 through PR #239: CI `components` green on db5aedae (below the proposed `full`, `--why`: `vitest.config.ts` changed one comment), Codex out of credits (`--no-review`), browser `--changed` 3/3; report filed; no area doc named what changed. Slice worktrees removed.
 
-Models: all three slices on sonnet (no coding). Slice 2 filed B-455–B-457 (topic contract-migrations; no PRD row yet: for the backlog session). Slice 3 verified every claim; the items are archived and refuse edits, so the edits moved to B-458 and B-459 (fixes-tooling).
+| Slice | Item  | State                                                                                                                | Merge    |
+| ----- | ----- | -------------------------------------------------------------------------------------------------------------------- | -------- |
+| 8     | B-931 | merged, CI `components` green on 87f36114, browser `--changed` 2/2, PR #240 (Codex out of credits), landing (sonnet) | 5e384aab |
+
+Wave 3 (slice 8, B-931): /80 → `text-muted`, /40 → `text-faint` picked by the orchestrator (in the slice). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in the State cell or below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
@@ -76,5 +76,85 @@ Stack: no · Reads: plans/fixes-rules.md, docs/agents/backlog.md · Tests: none 
 
 - [ ] Each claim is fixed, or noted as stale or out of reach in the hand-off.
 - [ ] No hand edits to backlog files; `pnpm backlog doctor` reports nothing new.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 2 (written 2026-11-26 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 4: The vitest worker-database comment names today's names (B-544)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: none (a comment)
+
+**Problem.** `vitest.config.ts` (about line 346) says each worker's database is `<name>_w<VITEST_POOL_ID>`; since B-405 they're `caretook_tw_<stem>_<hash>_w<n>`.
+
+**Build.** Find where the name is really built (search for `caretook_tw_`) and make the comment say what it builds, in one line, naming that file. Change nothing else in `vitest.config.ts`.
+
+**Acceptance criteria.**
+
+- [ ] The comment matches the code that names the databases; no other line changes.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes (`vitest.config.ts` may make it full: let it).
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 5: One helper builds the legal page links (B-630)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/layout.md · Tests: unit
+
+**Problem.** `apps/web/app/lib/auth/legalLinks.ts` (`legalHref`, used by `routes/account/LegalAgreement.tsx`) and `apps/web/app/routes/app/settings/account/legalLinks.ts` (`legalLinks`, used by the account settings route and `settings.browser.test.tsx`) both build links to the legal pages, each handling `VITE_API_ORIGIN` on native.
+
+**Build.** Fold them into one module in `lib/auth/legalLinks.ts`: keep the list of pages and the href rule in one place, and have both callers use it. Delete the settings copy and move its test cases into `lib/auth/legalLinks.test.ts` (no case lost). Behaviour doesn't change: same labels, same hrefs on web and native.
+
+**Acceptance criteria.**
+
+- [ ] One legal-links module; `settings/account/legalLinks.ts` and its test are gone; both callers and the settings browser test import from `~/lib/auth/legalLinks`.
+- [ ] Unit test: `lib/auth/legalLinks.test.ts` covers both the web (relative) and native (`VITE_API_ORIGIN`) hrefs and the page list.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** slice 7. **Blocked by:** none.
+
+## Slice 6: Settings calendar, assistants, details and providers use the UI kit's text tones (B-637)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** These files still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `routes/app/groups/settings/calendar/{FeedCard,RemindersCard,DetailsCard,GoogleCard}.tsx`, `settings/assistants/route.tsx`, `settings/details/{DetailsOutsideCard,EasyTilesCard}.tsx`, `routes/app/groups/providers/providerWorld.tsx`.
+
+**Build.** In those eight files only: `text-base-content/70` becomes `text-muted`; `/60` and `/50` become `text-faint` (ui-kit, _Tokens_). Keep any variant prefix (`hover:`, `group-hover:` …). Don't touch other classes or files. If a component test asserts the old class, update it.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the eight files; nothing else changed.
+- [ ] The existing component tests for those screens pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 7: Members settings and account settings use the UI kit's text tones (B-930)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** As slice 6, in `routes/app/groups/settings/members/{MemberItem,InviteLinks,YourSharing,SharingForm,PendingInvites,JoinRequests,InviteSheet}.tsx` and `routes/app/settings/{account,contact,units,devices,timeline}/route.tsx`.
+
+**Build.** The same mapping as slice 6 in those twelve files only.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the twelve files; nothing else changed.
+- [ ] The existing component tests for those screens pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** slice 5.
+
+## Wave 3 (written 2026-11-26 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 8: The UI kit's own primitives use its text tones (B-931)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** Three `ui/` primitives still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `components/ui/ChipList.tsx:42` (`/50`, muted chips), `components/ui/tabLook.tsx:38` (`/80`, a tab that isn't current), `components/ui/date/DateTimeField.tsx:265` (`/60`, the weekday header cells) and `:282` (`/40`, days outside the month).
+
+**Build.** In those three files only, per ui-kit _Tokens_ (`text-muted` 70%, `text-faint` 62%): `/50` and `/60` become `text-faint`; `/80` becomes `text-muted` (the orchestrator's pick: the nearest token; a tab that isn't current is secondary); `/40` becomes `text-faint` (the orchestrator's pick: outside-month days lift to 4.5:1 and stay quieter than the month's days). Keep any variant prefix. Don't touch other classes or files. If a component test asserts the old class, update it.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the three files; nothing else changed.
+- [ ] The existing component tests for `ChipList`, `TabNav`/`FormTabs` and `DateTimeField` pass; `pnpm prd check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** none.
