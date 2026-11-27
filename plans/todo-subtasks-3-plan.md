@@ -10,7 +10,9 @@
 
 **Wave 1 landed 2026-11-27** in dev as `6d975d86a` through PR #256 (Codex clean on 69a8c1f; CI green at components, run 46039151595; dev was up to date, no sync). Browser: `risa browser --changed` named none; the lean `--suite` was not run (the user's rule: ask before any suite; the permission check refused it). Docs folded (todos, components, calendars, connectors, timeline; each at or under dev's size). Worktrees 1-3 removed. B-941, B-942, B-943 stay in progress (later slices carry them).
 
-**Next (for the fresh session):** wave 2 is slice 4, already merged (`c7e7f6035`; its check green at a47523112). Its worktree `todo-subtasks-3-4` stays until wave 2 is green. Run wave 2's gate: `risa tier`, `risa ci run <tier> --wait`, `risa sync`, `risa pr`, `risa review`, land, docs (components: `TodoTree`, `TodoRow`'s `addSubtask`/`children`, dimming on an inner div; todos: `siblingOrder`, `todoTreeView.ts`). Wave 2's gate runs in the old session (rotate refuses while worktree 4 exists); slices 5 and 6 (wave 3, ready) start in the fresh one, 5 merged before 6. Slices: opus for all.
+**Wave 2 landed 2026-11-27** in dev as `9480f19` through PR #257 (slice 4, merged `c7e7f6035`; Codex clean on c719e42; CI green at components on the pre-sync tip, run 46041028561, and on the synced tip, run 46042026452). Worktree 4 removed. Docs folded (components: `TodoTree`; todos: `siblingOrder`, `todoTreeView.ts`); each at dev's size or under (todos is exactly at it: trim before adding).
+
+**Next (for the fresh session):** wave 3, slices 5 and 6, both ready (blocked only by 4). Start both on opus; merge 5 before 6 (both add a query to `lib/todos/todos.sync.ts`). No slice in flight, no CI run or review out. Slice 1 noted `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` even on `context` rows; slice 4: quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level.
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
