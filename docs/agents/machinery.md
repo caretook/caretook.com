@@ -51,7 +51,7 @@
 
 ## The check runner
 
-- **Scripts:** `prompts/<kind>.sh` (two goldens: `vitest -u`), `slice-brief.mjs`, `ci-*.mjs`; `pnpm prd tier`.
+- **Scripts:** `prompts/<kind>.sh` (goldens: Caretook's `node scripts/loops/project-check.mjs --write-golden`, the sample's `vitest -u`), `slice-brief.mjs`, `ci-*.mjs`; `pnpm prd tier`.
 - **The log:** `.check-times.log`, 18 fields, last: failed step, files, flaky ones, stopping limit, time verdict, step times.
 - **Time gate** (`time-gate.mjs`): a passed quick or slice check, quiet (load ≤ cores) at both ends, else `unjudged`; armed `fail` exits 125. `--times` and `metrics` count tests, budget, silence, time apart.
 - **The limits** (`check-budget.mjs`): budget max(2× median, slowest + 20%) of the last 20 passes (mode, branch kind), load-scaled ×1–3, from 10 minutes to the limit (20, full 40, `RISA_CHECK_LIMIT`; alone under 5 runs). Silence: `RISA_CHECK_SILENCE` (480 s), scaled alike. A clock gap over `RISA_CHECK_SLEEP_GAP` (30 s) is sleep. A breach: TERM, KILL after 10 s, the step and last 30 lines, exit 124.
