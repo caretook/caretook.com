@@ -243,8 +243,9 @@ describe("tags on the todo page and its edit sheet", () => {
         [SAMS.id],
       )
     ).map((r) => r.name);
-  const pick = async (name: string) => {
-    await userEvent.click(page.getByRole("button", { name: "Add tag" }));
+  /** Add tag in `scope` (the edit sheet's, over the page's subtask rows), then the picker's toggle for `name`. */
+  const pick = async (name: string, scope = "main header") => {
+    await userEvent.click(page.getByCss(scope).getByRole("button", { name: "Add tag" }));
     await found(() => document.querySelector("[data-tag-picker]"));
     await userEvent.click(page.getByRole("checkbox", { name }));
   };
@@ -277,11 +278,11 @@ describe("tags on the todo page and its edit sheet", () => {
     await found(() => document.querySelector(sheet));
     await expect.poll(() => chips(sheet)).toBe("Urgent");
 
-    await pick("Pharmacy");
+    await pick("Pharmacy", "[role=dialog]");
     await device.settle();
     await expect.poll(() => chips(sheet)).toBe("Pharmacy,Urgent");
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
-    await userEvent.click(page.getByRole("button", { name: "Remove tag Urgent" }));
+    await userEvent.click(page.getByCss("[role=dialog]").getByRole("button", { name: "Remove tag Urgent" }));
     await device.settle();
     await expect.poll(() => chips(sheet)).toBe("Pharmacy");
     expect(await linksOf(device)).toEqual(["Pharmacy"]);
