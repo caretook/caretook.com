@@ -14,7 +14,7 @@
 | ----- | ---- | -------------- | ------------------------------------------------ |
 | 1     | 1    | running (opus) |                                                  |
 | 2     | 1    | running (opus) |                                                  |
-| 3     | 1    | running (opus) |                                                  |
+| 3     | 1    | handed off (opus), check green at 6fcc18325; merges after 1, 2 |                                                  |
 | 4     | 2    | —              |                                                  |
 | 5     | 3    | —              |                                                  |
 | 6     | 3    | —              |                                                  |
