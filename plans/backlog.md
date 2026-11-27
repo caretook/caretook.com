@@ -26,7 +26,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `todo-links` | — | `todo-subtasks-3` | — | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
-| `fixes-perf` | standing | — | `apps/web/app/lib/sync/`, `apps/web/app/lib/app-shell/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/vite.config.ts`, `scripts/build/budget.json` | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
+| `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
 | `data-rights` | hold | — | `packages/data/src/db/schema/core/scrub`, `packages/data/src/db/migrations/`, `packages/data/src/services/careGroupService`, `packages/data/src/services/careGroupInviteService`, `packages/data/src/services/joinRequestService`, `packages/data/src/services/todoService.ts`, `packages/data/src/db/schema/care-groups/careGroupConsent`, `packages/data/src/db/schema/auth/legalAcceptance`, `packages/data/src/db/schema/admin/adminAudit`, `packages/api/src/care-groups/`, `apps/web/app/lib/providers/`, `apps/web/app/lib/medications/`, `apps/web/app/lib/profiles/`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/entryDisplay`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/components/entry/`, `apps/web/app/components/providers/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/pass/`, `apps/web/app/routes/app/groups/settings/details/`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/app-shell.spec.mjs` | plans/data-rights-prd.md; held after two plan send-backs (s49, s51), user chose the carve-out (a243) |
 | `data-rights-2` | hold | `data-rights` | — | Follow-on of data-rights: ownership hand-over and account deletion (B-565, B-53's account half; the user answered a239: block a last owner until hand-over or group delete), export, staff tooling, legal text and change notice, inactive-group scrub, retention sweep, Google calendar removal on delete |
@@ -327,14 +327,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-953 | bug | triaged | fixes-tooling |  | Tooling test loops/stack.test.mjs 'rm.sh from inside the worktree it removes (B-812)' fails 2 of 3 on dev: the orchestrator session isn't ended (expected SIGTERM, got null) |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-955 | change | triaged | tags-3 |  | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
-| B-956 | change | ready | fixes-perf | prd/fixes-perf | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
+| B-956 | change | landed | fixes-perf | prd/fixes-perf | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
 | B-957 | change | triaged | fixes-ui |  | First load: a friendlier loading screen with progress |
-| B-958 | change | ready | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
-| B-959 | change | ready | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
-| B-960 | change | ready | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
+| B-958 | change | landed | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
+| B-959 | change | landed | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
+| B-960 | change | landed | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
 | B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
-| B-963 | change | ready | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
+| B-963 | change | landed | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 | B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
@@ -2300,7 +2300,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-956 · change · Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: b2d5967b
@@ -2318,7 +2318,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-958 · change · After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 6abd6279
@@ -2327,7 +2327,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-959 · change · On slow links the sync client and SQLite WASM queue behind the preloaded route chunks
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 847722a6
@@ -2337,7 +2337,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-960 · change · First /app load fetches about 205 JS files, many of them tiny
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: c81f220e
@@ -2365,7 +2365,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-963 · change · Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 847722a6
