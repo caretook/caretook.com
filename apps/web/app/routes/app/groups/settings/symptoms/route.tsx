@@ -24,6 +24,9 @@ import { SymptomCatalogRow } from "./SymptomCatalogRow";
 // many live entries use it, then the archived ones. A merged symptom (a
 // tombstone) isn't listed. Archive and Unarchive are server-set, so they go
 // through the API: online only, for writers (`symptomCatalogAccess`).
+// Delete (symptom-catalog-3 slice 4, `DeleteSymptomDialog`) is `replace`,
+// for owners, online: the symptom's entries move to another active one and
+// it becomes a tombstone, which leaves the list once it syncs back.
 
 export const meta = () => [{ title: "Symptoms · Group settings · Caretook" }];
 
@@ -55,7 +58,8 @@ export default function GroupSymptoms({ loaderData }: Route.ComponentProps) {
   const group = useGroup();
   const rows = useSymptomCatalogPage(group.id, loaderData.rows);
   const { active, archived } = splitByArchived(rows);
-  const { archive } = symptomCatalogAccess(group.id, group.role);
+  const { archive, replace } = symptomCatalogAccess(group.id, group.role);
+  const othersThan = (row: Row) => active.filter((r) => r.id !== row.id);
 
   return (
     <SettingsPage title="Symptoms">
@@ -67,7 +71,13 @@ export default function GroupSymptoms({ loaderData }: Route.ComponentProps) {
         {active.length ? (
           <List label="The group's symptoms" data-symptom-list="active">
             {active.map((row) => (
-              <SymptomCatalogRow key={row.id} row={row} canArchive={archive} />
+              <SymptomCatalogRow
+                key={row.id}
+                row={row}
+                canArchive={archive}
+                canDelete={replace}
+                others={othersThan(row)}
+              />
             ))}
           </List>
         ) : (
@@ -80,7 +90,13 @@ export default function GroupSymptoms({ loaderData }: Route.ComponentProps) {
         <SettingsCard id="symptoms-archived" title="Archived">
           <List label="Archived symptoms" data-symptom-list="archived">
             {archived.map((row) => (
-              <SymptomCatalogRow key={row.id} row={row} canArchive={archive} />
+              <SymptomCatalogRow
+                key={row.id}
+                row={row}
+                canArchive={archive}
+                canDelete={replace}
+                others={othersThan(row)}
+              />
             ))}
           </List>
         </SettingsCard>
