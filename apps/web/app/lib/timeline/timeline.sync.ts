@@ -452,12 +452,23 @@ export const toMember = (row: MemberRow): GroupMember => ({
 
 export type ReadingRow = { entry_id: string; occurred_at: string; reading: string };
 
-/** Every vital reading in the group, newest first; `toLatestVitals` keeps the newest per type. */
+/**
+ * The group's newest vital reading of each type, newest first (`toLatestVitals`
+ * reads them): one row per type, never every reading in the group (B-313).
+ * A reading's type is the same in every row it ranks against, so which types
+ * `toLatestVitals` keeps doesn't change.
+ */
 export const readingsQuery = (groupId: string): LocalQuery => ({
-  sql: `SELECT e.id AS entry_id, e.occurred_at, r.value AS reading
-        FROM timeline_entry e, json_each(e.details, '$.readings') r
-        WHERE e.group_id = ? AND e.kind = 'vital' AND e.deleted_at IS NULL
-        ORDER BY e.occurred_at DESC, e.id DESC`,
+  sql: `SELECT entry_id, occurred_at, reading FROM (
+          SELECT e.id AS entry_id, e.occurred_at, r.value AS reading,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY json_extract(r.value, '$.type') ORDER BY e.occurred_at DESC, e.id DESC
+                 ) AS newest
+          FROM timeline_entry e, json_each(e.details, '$.readings') r
+          WHERE e.group_id = ? AND e.kind = 'vital' AND e.deleted_at IS NULL
+        )
+        WHERE newest = 1
+        ORDER BY occurred_at DESC, entry_id DESC`,
   params: [groupId],
 });
 
