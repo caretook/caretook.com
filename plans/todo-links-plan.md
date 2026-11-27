@@ -10,14 +10,18 @@
 
 **Wave 1 started 2026-11-27** (orchestrator session 1): slices 1, 4, 6 worktrees made, agents spawned on opus. B-944, B-947, B-948 claimed. `risa anchors` misses are all files or symbols earlier slices create (no plan fix needed).
 
-| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ----- | ------- | ------------------------------------------- |
-| 1     | 1    | opus  | working |                                             |
-| 2     | 2    |       | planned |                                             |
-| 3     | 2    |       | planned |                                             |
-| 4     | 1    | opus  | working |                                             |
-| 5     | 3    |       | planned |                                             |
-| 6     | 1    | opus  | working |                                             |
+**Docs at wave 1 landing (slice 6):** todos.md Screens (LinkedTodos, entry Todos) and components.md still say "Add todo" opens the sheet: now the full `TodoQuickAdd` (link, no parent) plus a compact one per open row; a writer's provider/medication Todos band is always titled (keeps focus on the first add); the `todos/new?providerId=` prefill stays but has no button there.
+
+**For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
+
+| Slice | Wave | Model | State                                 | Merge into `prd/todo-links` (slice commits) |
+| ----- | ---- | ----- | ------------------------------------- | ------------------------------------------- |
+| 1     | 1    | opus  | working                               |                                             |
+| 2     | 2    |       | planned                               |                                             |
+| 3     | 2    |       | planned                               |                                             |
+| 4     | 1    | opus  | handed off (db2656198), merge after 1 |                                             |
+| 5     | 3    |       | planned                               |                                             |
+| 6     | 1    | opus  | working                               |                                             |
 
 ## Architectural decisions
 
