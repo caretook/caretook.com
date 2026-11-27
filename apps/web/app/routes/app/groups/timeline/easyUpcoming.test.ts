@@ -1,6 +1,7 @@
 import type { TreeTodo } from "../../../../lib/todos/todoTreeView";
 
 import { describe, expect, it } from "vitest";
+import { isPlannerTree } from "../../../../lib/todos/plannerTodos";
 import { upcomingQueries } from "../planner/upcomingQueries";
 import { EASY_UPCOMING_CAP, easyUpcomingItems, easyUpcomingQuery } from "./easyUpcoming";
 
@@ -78,12 +79,12 @@ describe("easyUpcomingItems' todos (todo-subtasks-3)", () => {
       node("tickets", "2026-11-19", "trip"),
       node("later", "2026-12-30"),
     ];
-    const items = easyUpcomingItems([], todos, NOW, LA, LA, "2026-11-25");
-    expect(items.map((item) => ("key" in item ? item.key : item.id))).toEqual([
-      "tree:trip:2026-11-19",
-      "tree:trip:2026-11-20",
-    ]);
-    const [step, whole] = items as Extract<(typeof items)[number], { type: "dueTree" }>[];
+    // No entries: every item is a day tree.
+    const items = easyUpcomingItems([], todos, NOW, LA, LA, "2026-11-25").filter((item) =>
+      isPlannerTree(item),
+    );
+    expect(items.map((item) => item.key)).toEqual(["tree:trip:2026-11-19", "tree:trip:2026-11-20"]);
+    const [step, whole] = items;
     expect(step?.tree.context).toBe(true);
     expect(step?.tree.children.map((c) => c.todo.id)).toEqual(["tickets"]);
     expect(whole?.tree.children.map((c) => c.todo.id).sort()).toEqual(["pack", "tickets"]);
