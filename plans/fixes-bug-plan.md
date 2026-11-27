@@ -10,9 +10,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                            | Merge     |
-| ----- | ----- | -------------------------------- | --------- |
-| 87    | B-987 | merged; CI integration requested | 061b55605 |
+| Slice | Item  | State                                                                                                       | Merge     |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------- | --------- |
+| 87    | B-987 | merged; CI integration green run 46078822158 on e818eb6b; sync skipped (no shared files); PR + Codex review | 061b55605 |
 
 **Idle after wave 22** (idle hand-over; landed through PR #284, 2026-11-27, Codex clean on d6cf223, CI integration green run 46073149576; report a343; to-test `to-test/2026-11-27-1724-fixes-bug.md`; landed unsynced, dev had 2 unrelated commits). Slices 83 to 86, all opus: 83 (B-982, 2f63948f8) past_doses reads only its window, refuses one too busy (`TOO_BUSY_REFUSAL`); 84 (B-984, 52fc5653d) log_past_doses takes a status-free slot lock (`lockDoseSlot`), log_dose left by design; 85 (B-985, ec6c64dc6) `ScheduleHistory.doseAt`: a slot's fallback amount is the usual dose at its moment; 86 (B-986, 05735fc88) log_past_doses and give_pass read every medication unpaged. Docs folded into medications.md and connectors.md. **Next session:** ingest, `risa backlog list`; write wave 23 (slices from 87): B-987 (log_dose's pass read capped at 100) is triaged and ready. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
 
