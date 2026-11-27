@@ -670,6 +670,59 @@ describe("appointmentSeriesService.topUp", { timeout: VISITS_TIMEOUT }, () => {
     });
   });
 
+  it("reads and writes no series already 90 days ahead or ended, and still tops up one behind (B-311)", async () => {
+    await topUpAll(); // drain other files' series first
+    const { u, input } = world();
+    const ahead = ok(await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: TARGET })));
+    const until = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ rule: `${MONDAYS};UNTIL=20261207`, startsOn: "2026-11-16", toppedUpThrough: "2026-12-07" }),
+      ),
+    );
+    const counted = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({
+          rule: "FREQ=DAILY;INTERVAL=1;COUNT=3",
+          startsOn: "2026-11-18",
+          toppedUpThrough: "2026-11-20",
+        }),
+      ),
+    );
+    const behind = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ rule: WEDNESDAYS, toppedUpThrough: "2026-11-17" }),
+      ),
+    );
+    const rowOf = async (id: string) => ok(await appointmentSeriesModel.getById(id, system))!;
+    const before = await Promise.all([ahead, until, counted].map((s) => rowOf(s.id)));
+
+    // Only the series behind is looked at: the others aren't read for writing.
+    expect(ok(await appointmentSeriesService.topUp(NOW, { limit: 100 }))).toMatchObject({
+      checked: 1,
+      toppedUp: 1,
+      failed: 0,
+    });
+    expect(await rowOf(behind.id)).toMatchObject({ toppedUpThrough: TARGET });
+    expect((await days(behind.id)).length).toBeGreaterThan(0);
+    expect(await Promise.all([ahead, until, counted].map((s) => rowOf(s.id)))).toEqual(before);
+
+    // Days later the ended series still aren't rewritten (they'd re-sync to every device).
+    await topUpAll(new Date("2026-11-21T18:00:00.000Z"));
+    const after = await Promise.all([ahead, until, counted].map((s) => rowOf(s.id)));
+    expect(after[0]).toMatchObject({ toppedUpThrough: "2027-02-19" });
+    for (const i of [1, 2]) {
+      expect(after[i]).toMatchObject({
+        toppedUpThrough: before[i]!.toppedUpThrough,
+        updatedAt: before[i]!.updatedAt,
+      });
+    }
+    expect(await visitsOf(until.id)).toEqual([]);
+    expect(await visitsOf(counted.id)).toEqual([]);
+  });
+
   it("starts no earlier than today after a gap, so no past visits are invented", async () => {
     const { u, input } = world();
     const series = ok(

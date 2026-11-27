@@ -226,6 +226,12 @@ export const MODEL_ERRORS = {
   "appointmentSeriesModel:remove": {
     message: "Failed to delete the repeating series",
   },
+  "appointmentSeriesModel:topUpZones": {
+    message: "Failed to read the repeating series' time zones",
+  },
+  "appointmentSeriesModel:listDueForTopUp": {
+    message: "Failed to read the repeating series due a top-up",
+  },
   "todoModel:remove": {
     message: "Failed to delete the todo",
   },
