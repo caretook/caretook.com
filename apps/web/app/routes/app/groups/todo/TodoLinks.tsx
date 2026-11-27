@@ -8,6 +8,7 @@ import { Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
+import { LinkToBox } from "~/components/todos";
 import { Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
@@ -18,7 +19,7 @@ import { useLiveQuery } from "~/lib/sync";
 import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 import { linkLabel } from "~/lib/todos/todoDisplay";
-import { EntryLinkRow, IconDot, LINK_ROW, LinkEntryPicker, STRETCHED } from "./TodoEntryLinks";
+import { EntryLinkRow, IconDot, LINK_ROW, RemoveLink, STRETCHED } from "./TodoEntryLinks";
 import { useEntryLinking, useTodoEntries } from "./useTodoEntryLinks";
 
 type Loaded = Awaited<ReturnType<typeof loadTodo>>["linkRows"];
@@ -35,11 +36,14 @@ function ProviderLink({
   id,
   loaded,
   linked,
+  onRemove,
 }: {
   groupId: string;
   id: string;
   loaded: ProviderRow[];
   linked: boolean;
+  /** Writers: clear the slot. */
+  onRemove?: () => void;
 }) {
   const q = providerQuery(id);
   const rows = useLiveQuery<ProviderRow>(q.sql, q.params, loaded);
@@ -66,6 +70,7 @@ function ProviderLink({
         )}
       </div>
       {!removed && <ContactActions actions={quickActions(provider)} />}
+      {onRemove && <RemoveLink name={provider.name} onRemove={onRemove} />}
     </li>
   );
 }
@@ -76,11 +81,14 @@ function MedicationLink({
   id,
   loaded,
   linked,
+  onRemove,
 }: {
   groupId: string;
   id: string;
   loaded: MedicationRow[];
   linked: boolean;
+  /** Writers: clear the slot. */
+  onRemove?: () => void;
 }) {
   const q = medicationQuery(id);
   const rows = useLiveQuery<MedicationRow>(q.sql, q.params, loaded);
@@ -118,6 +126,7 @@ function MedicationLink({
           <p className="text-muted text-sm">Stopped {formatDate(medication.stoppedOn)}</p>
         )}
       </div>
+      {onRemove && <RemoveLink name={title} onRemove={onRemove} />}
     </li>
   );
 }
@@ -127,8 +136,9 @@ function MedicationLink({
  * note and event that links it (planner-3), newest first, and its
  * medication, each opening its page (the provider and medication as plain
  * names without `linkPages`: the easy roles can't open their pages).
- * Writers link more notes and events here and remove links (neither side
- * is deleted). Nothing for a reader when it has no links. Live: a provider
+ * Writers link more here through the shared "Link to" box (a note or
+ * event adds a link row; a provider or medication fills its slot, replacing
+ * the one there) and remove links (neither side is deleted). Nothing for a reader when it has no links. Live: a provider
  * deleted, an entry deleted or an appointment cancelled on another device
  * shows at once.
  */
@@ -159,6 +169,10 @@ export function TodoLinks({
   const { entries, textOf } = useTodoEntries(groupId, todo.id, loaded);
   const linking = useEntryLinking(todo.id);
   const any = !!providerId || entries.length > 0 || !!medicationId;
+  const linkedIds = useMemo(
+    () => [providerId, medicationId, ...entries.map((e) => e.id)].filter((id): id is string => !!id),
+    [providerId, medicationId, entries],
+  );
   if (!any && !writer) return null;
   return (
     <Section title="Linked to" id="links" data-todo-links="">
@@ -171,6 +185,7 @@ export function TodoLinks({
               id={providerId}
               loaded={initial.provider}
               linked={linkPages}
+              onRemove={writer ? () => void linking.setSlot("providerId", null) : undefined}
             />
           )}
           {entries.map((entry) => (
@@ -189,12 +204,23 @@ export function TodoLinks({
               id={medicationId}
               loaded={initial.medication}
               linked={linkPages}
+              onRemove={writer ? () => void linking.setSlot("medicationId", null) : undefined}
             />
           )}
         </ul>
       )}
       {linking.error && <Message tone="error">{linking.error}</Message>}
-      {writer && <LinkEntryPicker groupId={groupId} todoId={todo.id} onLink={linking.link} />}
+      {writer && (
+        <LinkToBox
+          groupId={groupId}
+          linked={linkedIds}
+          onPick={({ type, id }) => {
+            if (type === "provider") void linking.setSlot("providerId", id);
+            else if (type === "medication") void linking.setSlot("medicationId", id);
+            else void linking.link(id);
+          }}
+        />
+      )}
     </Section>
   );
 }
