@@ -16,7 +16,7 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 | Slice | Item  | State                              | Merge    |
 | ----- | ----- | ---------------------------------- | -------- |
 | 1     | B-311 | merged                             | 37c40171 |
-| 2     | B-755 | working (Opus)                     | —        |
+| 2     | B-755 | merged                             | 4adf10d3 |
 | 3     | B-313 | merged                             | 51d6df4b |
 | 4     | B-884 | merged                             | 4c969a9d |
 | 5     | B-910 | working (Opus)                     | —        |
