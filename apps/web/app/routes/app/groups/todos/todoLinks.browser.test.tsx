@@ -1,12 +1,13 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
+import { encodeNoteDoc, noteDocFromText } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as todosRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, entryTodo, fx, todo, TEST_GROUP } from "../../../../../test/fixtures";
+import { at, entryTodo, fx, newId, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 
 // The todo sheets' links (todo-links slice 2): the shared "Link to" box
 // (what it finds and in what order is linkToBox.browser.test.tsx's) and
@@ -281,6 +282,52 @@ describe("the edit sheet's links", () => {
       entries: ids(CANCELLED, SOON),
     });
     expect(await uploads(device)).toEqual([]);
+  });
+
+  test("a link another member makes while it's open shows, and a title-only Save keeps it (B-990)", async () => {
+    const device = await edit();
+    const dialog = page.getByRole("dialog", { name: "Edit todo" });
+    await expect.element(chips(dialog).getByText(/^Cardiology · Tomorrow/)).toBeInTheDocument();
+    // Another member links the note and unlinks the cardiology visit.
+    await device.sync([entryTodo(NIGHT.id, linked.id)]);
+    await device.unsync([entryTodo(SOON.id, linked.id)]);
+    await device.settle();
+    await expect.element(chips(dialog).getByText("Rough night", { exact: true })).toBeInTheDocument();
+    await expect.element(chips(dialog).getByText(/^Cardiology/)).not.toBeInTheDocument();
+    await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Rebook the cleaning");
+    await userEvent.click(dialog.getByRole("button", { name: "Save" }));
+    await expect
+      .poll(() => linksOf(device, "Rebook the cleaning"))
+      .toMatchObject({ entries: ids(CANCELLED, NIGHT) });
+    expect((await uploads(device)).map((o) => o.op)).toEqual(["PATCH todo"]);
+  });
+
+  test("names an untitled note by this device's unsent edits (B-991)", async () => {
+    // Written offline: no server copy yet, only its pending update.
+    const draft = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f8e02", title: null });
+    const update = newId();
+    await open(`${LIST}/${linked.id}/edit`, [
+      ...world(),
+      linked,
+      draft,
+      entryTodo(draft.id, linked.id),
+      {
+        table: "note_update",
+        id: update,
+        row: {
+          id: update,
+          group_id: TEST_GROUP.id,
+          document_id: draft.id,
+          data: encodeNoteDoc(noteDocFromText("Pharmacy called back\nRefill Friday")),
+          created_at: at(),
+          created_by: TEST_USER.id,
+        },
+      },
+    ]);
+    const dialog = page.getByRole("dialog", { name: "Edit todo" });
+    await expect
+      .element(chips(dialog).getByText("Pharmacy called back", { exact: true }))
+      .toBeInTheDocument();
   });
 });
 

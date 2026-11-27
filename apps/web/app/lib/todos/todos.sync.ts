@@ -395,11 +395,17 @@ export type TodoInput = {
    */
   entryId?: string | null;
   /**
-   * The notes and events the todo links (the sheets, todo-links): `createTodo`
-   * links each live one in the group (others are ignored); `updateTodo`,
-   * only when given, makes the links these.
+   * `createTodo` only: the notes and events the todo links (the add sheet,
+   * todo-links); each live one in the group is linked (others are ignored).
    */
   entryIds?: readonly string[];
+  /**
+   * `updateTodo` only (the edit sheet's own changes, B-990): notes and
+   * events to link (each live one in the group) and to unlink. Other link
+   * rows are left as they are, whoever made them.
+   */
+  addEntryIds?: readonly string[];
+  removeEntryIds?: readonly string[];
   /** RRULE text (`ruleText`) to repeat; it needs a due day. */
   repeatRule?: string | null;
   /** `createTodo` only: the todo this is a subtask of (`canHaveSubtask`; it never repeats). */
@@ -421,7 +427,13 @@ export const plannedTodo = async (
   const recipientId = await recipientOf(db, groupId);
   if (!recipientId) return refuse("This care group has no care recipient yet");
 
-  const { entryId: _entryId, entryIds: _entryIds, ...fields } = input;
+  const {
+    entryId: _entryId,
+    entryIds: _entryIds,
+    addEntryIds: _addEntryIds,
+    removeEntryIds: _removeEntryIds,
+    ...fields
+  } = input;
   const parsed = todoCreateZSchema.safeParse({ groupId, ...fields });
   if (!parsed.success) return invalid(parsed.error);
   const { groupId: _g, recipientId: _r, id: _id, ...content } = parsed.data;
@@ -578,12 +590,13 @@ export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput):
 /**
  * Edit a todo's title, assignee, due, repeat or provider and medication
  * links (writers). The merged todo must be valid; a changed assignee must be
- * a member and a changed link live. Its notes and events are link rows:
- * with `entryIds` (the sheet's), they become these in the same transaction
- * (new live ones in the group linked, shown ones left out unlinked; a
- * deleted entry's row, which nothing shows, stays); without it they're left
- * alone. A patch's `eventId` (and `entryId`) is ignored, and `event_id`
- * isn't written.
+ * a member and a changed link live. Its notes and events are link rows,
+ * changed only as the edit sheet changed them (B-990), in the same
+ * transaction: each live note or event in `addEntryIds` it doesn't link yet
+ * is linked, each it links in `removeEntryIds` unlinked; the rest stay, so
+ * a link another member made or removed meanwhile is kept as they made it.
+ * A patch's `eventId`, `entryId` and `entryIds` are ignored, and
+ * `event_id` isn't written.
  */
 export const updateTodo = async (
   db: SyncDb,
@@ -591,9 +604,11 @@ export const updateTodo = async (
   {
     eventId: _eventId,
     entryId: _entryId,
-    entryIds,
+    entryIds: _entryIds,
+    addEntryIds = [],
+    removeEntryIds = [],
     ...patch
-  }: TodoUpdateInput & { entryId?: string | null; entryIds?: readonly string[] },
+  }: TodoUpdateInput & Pick<TodoInput, "entryId" | "entryIds" | "addEntryIds" | "removeEntryIds">,
 ): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
@@ -632,7 +647,10 @@ export const updateTodo = async (
   // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
   const clamps =
     content.dueOn && content.dueOn !== existing.dueOn ? await descendantClamps(db, id, content) : [];
-  const entryLinks = entryIds ? await linkChanges(db, existing.groupId, id, entryIds) : null;
+  const entryLinks =
+    addEntryIds.length || removeEntryIds.length
+      ? await linkChanges(db, existing.groupId, id, addEntryIds, removeEntryIds)
+      : null;
   const now = nowTimestamp();
   // A new rule or due day moves the anchor; no rule clears all three (as todoService).
   await db.drizzle.transaction(async (tx) => {
@@ -662,18 +680,27 @@ export const updateTodo = async (
 };
 
 /**
- * What making a todo's links `entryIds` takes: the live notes and events in
- * the group it doesn't link yet, and the live ones it links that aren't
- * there (a deleted entry's link row stays: nothing shows it).
+ * What adding `add` and removing `remove` takes: the live notes and events
+ * in `add` (in the group) the todo doesn't link yet, and the live ones it
+ * links that are in `remove` (one in both is removed).
  */
-const linkChanges = async (db: SyncDb, groupId: string, todoId: string, entryIds: readonly string[]) => {
+const linkChanges = async (
+  db: SyncDb,
+  groupId: string,
+  todoId: string,
+  add: readonly string[],
+  remove: readonly string[],
+) => {
   const [wanted, linked] = await Promise.all([
-    linkableEntries(db, groupId, entryIds),
+    linkableEntries(db, groupId, add),
     linkedLiveEntries(db, todoId),
   ]);
-  const keep = new Set(entryIds);
+  const drop = new Set(remove);
   const has = new Set(linked);
-  return { link: wanted.filter((e) => !has.has(e)), unlink: linked.filter((e) => !keep.has(e)) };
+  return {
+    link: wanted.filter((e) => !has.has(e) && !drop.has(e)),
+    unlink: linked.filter((e) => drop.has(e)),
+  };
 };
 
 /**
@@ -1094,16 +1121,26 @@ export const todoEventChoicesQuery = (
   params: [groupId, toLocalTimestamp(from), chosenId ?? ""],
 });
 
-/** A chosen entry's row with its document's text (`document_text`; an untitled note's first line names it). */
-export type ChosenEntryRow = EntryRow & { document_text: string | null };
+/**
+ * A chosen entry's row with its document (an untitled note's first line
+ * names it): the server's text and snapshot, and this device's pending
+ * updates as a JSON array of base64 (`previewText` reads all three, B-991).
+ */
+export type ChosenEntryRow = EntryRow & {
+  document_text: string | null;
+  document_snapshot: string | null;
+  document_updates: string;
+};
 
 /**
  * The todo sheet's chosen notes and events (todo-links), for their chips:
  * those of `ids` that are live notes or events in the group, with their
- * documents' text.
+ * documents and pending updates.
  */
 export const chosenEntriesQuery = (groupId: string, ids: readonly string[]): LocalQuery => ({
-  sql: `SELECT e.*, d.text AS document_text FROM timeline_entry e
+  sql: `SELECT e.*, d.text AS document_text, d.snapshot AS document_snapshot,
+               (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = e.id) AS document_updates
+        FROM timeline_entry e
         LEFT JOIN note_document d ON d.id = e.id
         WHERE e.id IN (SELECT value FROM json_each(?)) AND e.group_id = ? AND e.deleted_at IS NULL
           AND e.kind IN (${KIND_LIST})`,

@@ -56,6 +56,17 @@ describe("todoFromForm", () => {
     expect(todoFromForm(form({ title: "Call" }))).not.toHaveProperty("entryIds");
   });
 
+  it("reads an edit's own added and removed notes and events, once each; none sent is no change (B-990)", () => {
+    const f = form({ title: "Call" });
+    for (const id of ["n1", " n1 ", "", "e1"]) f.append("addEntryIds", id);
+    f.append("removeEntryIds", "e2");
+    expect(todoFromForm(f)).toMatchObject({ addEntryIds: ["n1", "e1"], removeEntryIds: ["e2"] });
+    expect(todoFromForm(f)).not.toHaveProperty("entryIds");
+    const none = todoFromForm(form({ title: "Call", addEntryIds: "" }));
+    expect(none).not.toHaveProperty("addEntryIds");
+    expect(none).not.toHaveProperty("removeEntryIds");
+  });
+
   it("knows which issues the fields show", () => {
     expect(isFieldIssue("dueTime")).toBe(true);
     expect(isFieldIssue("providerId")).toBe(true);

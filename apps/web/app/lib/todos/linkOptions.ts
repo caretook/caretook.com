@@ -162,3 +162,49 @@ export const linkOptions = (
   const skip = new Set(linked);
   return candidates.filter((c) => !skip.has(c.id)).map((c) => optionOf(c, now, where));
 };
+
+// --- Suggestions (B-947) -----------------------------------------------------
+
+/** How many upcoming events the empty box suggests. */
+export const SUGGESTED_UPCOMING = 3;
+/** How many recently viewed records the empty box suggests. */
+export const SUGGESTED_RECENT = 5;
+
+/**
+ * What the empty box suggests, in order: the record it was opened from
+ * (`cameFrom`: the page the sheet came from), then the next
+ * `SUGGESTED_UPCOMING` of the `upcoming` events (soonest first), then the
+ * last `SUGGESTED_RECENT` of the `recent`ly viewed (newest first). Each
+ * once (where it first comes), what's `linked` already left out, and only
+ * the chip's `type` when one is on; the counts are of what's left.
+ */
+export const linkSuggestions = ({
+  cameFrom = null,
+  upcoming = [],
+  recent = [],
+  linked = [],
+  type = null,
+}: {
+  cameFrom?: LinkPick | null;
+  upcoming?: readonly LinkPick[];
+  recent?: readonly LinkPick[];
+  linked?: readonly string[];
+  type?: LinkType | null;
+}): LinkPick[] => {
+  const seen = new Set(linked);
+  const take = (picks: readonly LinkPick[], limit: number) => {
+    const kept: LinkPick[] = [];
+    for (const pick of picks) {
+      if (kept.length >= limit) break;
+      if (seen.has(pick.id) || (type !== null && pick.type !== type)) continue;
+      seen.add(pick.id);
+      kept.push({ type: pick.type, id: pick.id });
+    }
+    return kept;
+  };
+  return [
+    ...take(cameFrom ? [cameFrom] : [], 1),
+    ...take(upcoming, SUGGESTED_UPCOMING),
+    ...take(recent, SUGGESTED_RECENT),
+  ];
+};

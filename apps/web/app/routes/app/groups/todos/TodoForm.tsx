@@ -2,6 +2,7 @@ import type { AssigneeChoice } from "./AssigneeField";
 import type { AssigneeMember } from "./assigneeOptions";
 import type { LinkChoices } from "./todoSheet";
 import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { LinkPick } from "~/lib/todos/linkOptions";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { TODO_LIMITS } from "@caretook/data/schema";
@@ -38,6 +39,19 @@ export type TodoFormPrefill = {
   /** A live note or event to link (`todos/new?entryId=`): one of the starting `entryIds`. */
   entryId?: string | null;
   repeatRule?: string | null;
+};
+
+/**
+ * The record a new todo's sheet was opened from (B-947: the box suggests it
+ * first): its link prefill, a provider's, a medication's or an event's or
+ * note's page. An `entryId` is a note or an event; the box reads which.
+ */
+const cameFromOf = (prefill: TodoFormPrefill | undefined): LinkPick | null => {
+  if (prefill?.providerId) return { type: "provider", id: prefill.providerId };
+  if (prefill?.medicationId) return { type: "medication", id: prefill.medicationId };
+  if (prefill?.eventId) return { type: "event", id: prefill.eventId };
+  if (prefill?.entryId) return { type: "note", id: prefill.entryId };
+  return null;
 };
 
 /**
@@ -183,6 +197,7 @@ export function TodoForm({
       <TodoLinkFields
         choices={links}
         todoId={todo?.id ?? null}
+        cameFrom={todo ? null : cameFromOf(prefill)}
         initial={{
           providerId: todo ? todo.providerId : (prefill?.providerId ?? null),
           medicationId: todo ? todo.medicationId : (prefill?.medicationId ?? null),

@@ -22,6 +22,10 @@ export const FIELD = {
    * present means "these and no others".
    */
   entryIds: "entryIds",
+  /** An edited todo's notes and events this sheet linked (B-990), repeated; none sent, none. */
+  addEntryIds: "addEntryIds",
+  /** An edited todo's notes and events this sheet unlinked (B-990), repeated. */
+  removeEntryIds: "removeEntryIds",
 } as const;
 
 /** The fields the form shows issues on; anything else is the form's general message. */
@@ -32,16 +36,16 @@ const value = (form: FormData, name: string) => {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 };
 
-/** The posted note and event ids, once each, empty ones left out. */
-const entryIdsOf = (form: FormData) => [
-  ...new Set(
-    form.getAll(FIELD.entryIds).flatMap((v) => (typeof v === "string" && v.trim() ? [v.trim()] : [])),
-  ),
+/** The posted ids in the repeated field `name`, once each, empty ones left out. */
+const idsOf = (form: FormData, name: string) => [
+  ...new Set(form.getAll(name).flatMap((v) => (typeof v === "string" && v.trim() ? [v.trim()] : []))),
 ];
 
 /**
  * The form as a create or update. A time without a day is kept, so the
- * schema can say so. `entryIds` only when the form sent the list.
+ * schema can say so. `entryIds` (a new todo's) only when the form sent the
+ * list; `addEntryIds` and `removeEntryIds` (an edit's own changes) only
+ * when there are some.
  */
 export const todoFromForm = (form: FormData): TodoInput => ({
   title: typeof form.get(FIELD.title) === "string" ? (form.get(FIELD.title) as string) : "",
@@ -53,7 +57,9 @@ export const todoFromForm = (form: FormData): TodoInput => ({
   medicationId: value(form, FIELD.medicationId),
   repeatRule: value(form, FIELD.repeatRule),
   // No field at all: none given, so an edit leaves the links alone.
-  ...(form.has(FIELD.entryIds) ? { entryIds: entryIdsOf(form) } : {}),
+  ...(form.has(FIELD.entryIds) ? { entryIds: idsOf(form, FIELD.entryIds) } : {}),
+  ...(idsOf(form, FIELD.addEntryIds).length ? { addEntryIds: idsOf(form, FIELD.addEntryIds) } : {}),
+  ...(idsOf(form, FIELD.removeEntryIds).length ? { removeEntryIds: idsOf(form, FIELD.removeEntryIds) } : {}),
 });
 
 // --- The repeat (planner-2) --------------------------------------------------
