@@ -6,14 +6,14 @@
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**2026-11-27, orchestrator start:** slice 1 rewritten for B-955 (the one tag control; filed by the user's word as tags-3's first slice); the copy-link slice it replaces (B-899) went to `fixes-ui` and is in `dev`. Slices 2 and 3 run beside it (no shared files; reason under _How to run_). Wave 1 starting: slices 1, 2, 3 on opus.
+**2026-11-27, orchestrator start:** slice 1 rewritten for B-955 (the one tag control; filed by the user's word as tags-3's first slice); the copy-link slice it replaces (B-899) went to `fixes-ui` and is in `dev`. Slices 2 and 3 run beside it (no shared files; reason under _How to run_). Wave 1 started: slices 1, 2, 3 on opus, worktrees `.loops/tags-3-<n>`, watch running. Backlog session updated the registry's hot files and sees no reason to hold slice 1; if `todo-subtasks-3` (its slice 9, B-974 near `planner/`) lands first, `risa sync` before merging slice 1.
 
-| Slice | Wave | State          | Merge into `prd/tags-3` (slice commits) |
-| ----- | ---- | -------------- | --------------------------------------- |
-| 1     | 1    | started (opus) |                                         |
-| 2     | 1    | started (opus) |                                         |
-| 3     | 1    | started (opus) |                                         |
-| 4     | 2    | planned        |                                         |
+| Slice | Wave | State                                                          | Merge into `prd/tags-3` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------- | --------------------------------------- |
+| 1     | 1    | started (opus)                                                 |                                         |
+| 2     | 1    | handed off (opus), c93f944f7, waits for slice 1 to merge first |                                         |
+| 3     | 1    | handed off (opus), 9d6e835f8, waits for slices 1, 2            |                                         |
+| 4     | 2    | planned                                                        |                                         |
 
 ## Architectural decisions
 
