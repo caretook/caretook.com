@@ -7,14 +7,17 @@ import { Badge, ListRow, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
+import { ProviderRowContact } from "./ProviderRowContact";
 
 /**
  * A provider in the directory. The name is a link stretched over the row, so
  * the whole row is one target that opens their page. Full (the fuller item):
- * what they are and the badges, with no contact links (B-422). Condensed (the
- * default, B-909): one dense line, the name and specialty, then the main
- * contact action (`quickActions`' first: call, else email, else maps) above
- * the stretched link. Its tags show as chips (two, then "+N"; tags PRD) for
+ * what they are and the badges, then the first number and the address as
+ * readable links and an email button, above the stretched link (B-940; this
+ * reverses B-422's no-contact-links rule). Condensed (the default, B-909): one
+ * dense line, the type icon, the name and specialty, then the main contact
+ * action (`quickActions`' first: call, else email, else maps) above the
+ * stretched link. Its tags show as chips (two, then "+N"; tags PRD) for
  * every role, in both.
  */
 export function ProviderListItem({
@@ -49,6 +52,7 @@ export function ProviderListItem({
           <Badges provider={provider} past={past} />
         </p>
         <p className="text-muted truncate text-sm">{details.join(" · ")}</p>
+        <ProviderRowContact provider={provider} past={past} />
         <TagChips tags={tags} className="mt-0.5" />
       </div>
     </ListRow>
@@ -71,6 +75,7 @@ function CondensedRow({
       data-provider-id={provider.id}
       data-condensed=""
     >
+      <ProviderTypeIcon type={provider.type} past={past} className="size-8" />
       <p className="flex min-w-0 flex-1 items-baseline gap-1.5">
         <Link
           to={appUrls.provider(provider.groupId, provider.id)}
