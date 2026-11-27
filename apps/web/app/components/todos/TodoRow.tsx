@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { TodoTickProgress } from "./TodoTick";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
@@ -21,8 +22,13 @@ import { todoPageState } from "~/lib/todos/todoSheets";
  * chips (`tagsOf`; tags PRD). A parent shows "n of m done" (its tick waits
  * on open subtasks); a listed subtask "Part of <parent>" (todo-subtasks-2).
  * The `context` look (todo-subtasks-3) is an ancestor shown only to place a
- * branch: dimmed, no tick, still a link to its page.
+ * branch: dimmed, no tick, still a link to its page. A tree (`TodoTree`)
+ * passes `addSubtask` (its quick add, under the row's text) and `children`
+ * (the nested list, below the row and not dimmed with it).
  */
+/** How a row looks per place: `list` (the Todos and todo pages), `context` (a dimmed ancestor). */
+export type TodoRowLook = "list" | "context";
+
 export function TodoRow({
   todo,
   nameOf,
@@ -34,6 +40,8 @@ export function TodoRow({
   progressOf,
   parentOf,
   look = "list",
+  addSubtask,
+  children,
 }: {
   todo: LocalTodo;
   nameOf: (userId: string) => string;
@@ -48,7 +56,11 @@ export function TodoRow({
   /** A subtask's parent, for "Part of". */
   parentOf?: (parentId: string) => { id: string; title: string } | undefined;
   /** `list` (the default), or `context`: a dimmed ancestor placing a branch, with no tick. */
-  look?: "list" | "context";
+  look?: TodoRowLook;
+  /** The row's quick add (a tree's, with `adding`), under its text. */
+  addSubtask?: ReactNode;
+  /** What goes under the row in its list item: a tree's next level. */
+  children?: ReactNode;
 }) {
   const group = useGroup();
   const { search } = useLocation();
@@ -61,54 +73,58 @@ export function TodoRow({
   const parent = todo.parentId ? parentOf?.(todo.parentId) : undefined;
 
   return (
-    <li
-      className={`flex items-start gap-3 py-2.5 ${context ? "opacity-60" : ""}`}
-      data-todo={todo.id}
-      data-todo-state={state}
-      data-todo-look={look}
-    >
-      {mayTick ? (
-        <TodoTick
-          title={todo.title}
-          done={!!todo.doneAt}
-          disabled={busy}
-          progress={progress}
-          showCount={false}
-          onChange={(done) => onTick(todo, done)}
-        />
-      ) : (
-        <span className="w-6 shrink-0" aria-hidden="true" />
-      )}
-      <div className="min-w-0 flex-1">
-        <Link
-          to={appUrls.todo(group.id, todo.id)}
-          // The page's way back keeps the list's chip.
-          state={todoPageState(search)}
-          className={`link-hover block font-medium break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
-          data-todo-title
-        >
-          {todo.title}
-        </Link>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          {line && (
-            <span className={state === "overdue" ? "text-error-ink" : "text-muted"} data-todo-due>
-              {line}
-            </span>
-          )}
-          <TodoRepeatMark todo={todo} className="text-muted" />
-          <TodoProgressMark progress={progress} className="text-muted" />
-          <Badge
-            icon={assignee.type === "name" ? UserRound : undefined}
-            className="whitespace-nowrap"
-            data-todo-assignee={assignee.type}
+    <li>
+      <div
+        className={`flex items-start gap-3 py-2.5 ${context ? "opacity-60" : ""}`}
+        data-todo={todo.id}
+        data-todo-state={state}
+        data-todo-look={look}
+      >
+        {mayTick ? (
+          <TodoTick
+            title={todo.title}
+            done={!!todo.doneAt}
+            disabled={busy}
+            progress={progress}
+            showCount={false}
+            onChange={(done) => onTick(todo, done)}
+          />
+        ) : (
+          <span className="w-6 shrink-0" aria-hidden="true" />
+        )}
+        <div className="min-w-0 flex-1">
+          <Link
+            to={appUrls.todo(group.id, todo.id)}
+            // The page's way back keeps the list's chip.
+            state={todoPageState(search)}
+            className={`link-hover block font-medium break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
+            data-todo-title
           >
-            {assignee.label}
-          </Badge>
-          <ViaTag via={todo.via} />
-        </p>
-        <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
-        <TagChips tags={tagsOf?.(todo.id)} className="mt-1" />
+            {todo.title}
+          </Link>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            {line && (
+              <span className={state === "overdue" ? "text-error-ink" : "text-muted"} data-todo-due>
+                {line}
+              </span>
+            )}
+            <TodoRepeatMark todo={todo} className="text-muted" />
+            <TodoProgressMark progress={progress} className="text-muted" />
+            <Badge
+              icon={assignee.type === "name" ? UserRound : undefined}
+              className="whitespace-nowrap"
+              data-todo-assignee={assignee.type}
+            >
+              {assignee.label}
+            </Badge>
+            <ViaTag via={todo.via} />
+          </p>
+          <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
+          <TagChips tags={tagsOf?.(todo.id)} className="mt-1" />
+          {addSubtask}
+        </div>
       </div>
+      {children}
     </li>
   );
 }
