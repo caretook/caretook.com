@@ -154,6 +154,18 @@ describe("handleMcp", () => {
     }
   });
 
+  it("lists the connector's add_provider at the end of the writes, for write grants only", async () => {
+    const namesFor = async (scope: "read" | "readWrite") => {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      return (result?.tools ?? []).map((t) => t.name);
+    };
+    expect(await namesFor("read")).not.toContain("add_provider");
+    const names = await namesFor("readWrite");
+    expect(names[names.indexOf("resolve_condition") + 1]).toBe("add_provider");
+  });
+
   it("calls a tool: its text as content, its data as structuredContent", async () => {
     const body = await bodyOf(request(3, "tools/call", { name: "echo", arguments: { words: "hello" } }));
     expect(body.result).toEqual({
