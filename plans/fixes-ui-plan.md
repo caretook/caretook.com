@@ -28,11 +28,11 @@ Notes for every wave:
 
 **Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus. Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
 
-| Slice | Item                                              | State                       | Merge |
-| ----- | ------------------------------------------------- | --------------------------- | ----- |
-| 103   | B-937 linked entries use the timeline row (opus)  | working, spawned 2026-11-27 |       |
-| 104   | B-939 medication brand names (opus)               | working, spawned 2026-11-27 |       |
-| 105   | B-940 provider rows show phone and address (opus) | working, spawned 2026-11-27 |       |
+| Slice | Item                                              | State                                           | Merge |
+| ----- | ------------------------------------------------- | ----------------------------------------------- | ----- |
+| 103   | B-937 linked entries use the timeline row (opus)  | working, spawned 2026-11-27                     |       |
+| 104   | B-939 medication brand names (opus)               | handed off dfddba9b, reviewed; merges after 103 |       |
+| 105   | B-940 provider rows show phone and address (opus) | working, spawned 2026-11-27                     |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
