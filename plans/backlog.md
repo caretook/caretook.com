@@ -331,6 +331,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-948 | feature | triaged | todo-links |  | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
+| B-951 | bug | triaged | fixes-bug |  | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
 
 ## Items
 
@@ -2312,3 +2313,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/fixes-ui): From fixes-ui slice 103 (B-937): LinkedEntries now imports ../timeline/TimelineEntryRow and ../timeline/useOpenTodoCounts, against components.md's rule that a route never imports another route's folder; QuickEntryCard already did. Nothing enforces it.
+
+### B-951 · bug · Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61)
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-27 (prd/fixes-ui): Seen by fixes-ui wave 19 on prd/fixes-ui (synced with dev 6bc79124), twice alone at low load, 2026-11-27: 'server 0:0 (tags:links); A [{name:RT-… same tag, links:1}]; B [{name:RT-… SAME TAG, links:1}]'. Wave 19 touches no tag or upload code (only a provider read query). Suspect tags-2's sync change d362bd70 (tag colors through sync). Log: .git/worktrees/fixes-ui/caretook-browser/roundtrip-20261127-015144.log in the main repo.
