@@ -10,11 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                                           | Merge |
-| ----- | ----- | --------------------------------------------------------------- | ----- |
-| 82    | B-979 | handed off (opus), 9e308b27d; check rerun after plan format fix | —     |
+| Slice | Item  | State         | Merge     |
+| ----- | ----- | ------------- | --------- |
+| 82    | B-979 | merged (opus) | 336733f55 |
 
-**Wave 21 under way** (session fixes-bug-d7): tags-3 landed in dev as ba42f193c; synced with `--force` for its search code. Slice 82 (B-979, opus): search result tag chips follow a rename or recolor. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
+**Wave 21 under way** (session fixes-bug-d7): tags-3 landed in dev as ba42f193c; synced with `--force` for its search code. Slice 82 (B-979, opus, merge 336733f55): search reruns on a key of the group tags' ids, names and colors, so result chips follow a rename, recolor, delete or merge. Wave 21 gate requested. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
