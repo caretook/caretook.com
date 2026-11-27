@@ -37,9 +37,9 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: a title, an assigne
 - ✅ **Service:** a bad parent (missing, deleted, other group, repeating, too deep) is `todoService:badParent`; a rule on a subtask or a parent is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
 - ✅ **Rollup** (`todoService.rollUp(tx, parentId, actorId, at?)`): after a child's create, complete, reopen or remove, up to the top, as the system with the actor as `done_by` (a viewer's last subtask can do it). A hand reopen reopens only that todo. `complete` with an open subtask: `todoService:openSubtasks`. `remove` cascades to live descendants, then rolls up; returns `{ ids }`.
 - ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat; `removeTodo` takes live descendants in its transaction. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. Rollup: `planRollup` writes the chain in the change's transaction, flagged `ROLLUP_METADATA`; `todoOp` sends it to `rollUpUploaded` (any member; server rows decide).
-- ✅ **The page:** a Subtasks band under Details (`TodoSubtasks`): "n of m done"; writers' `TodoQuickAdd` (full). "Part of <parent>" links up. `TodoUndoStatus`'s `todoIds`: each band's Undo is its own.
+- ✅ **The page:** a Subtasks band (`TodoSubtasks`): "n of m done" (direct children), the descendants' `TodoTree` (`todoDescendantsQuery`, `rootId`), `TodoQuickAdd` (full); "Part of" links up.
 - ✅ **The parent's tick:** `TodoTick`'s `progress` (`waitsOnSubtasks`): with open subtasks it's disabled, "n of m" (server-enforced); Mark done too. Delete counts descendants; `TodoForm`'s `repeatable` hides Repeat on a tree.
-- ✅ **Lists** (todo-subtasks-2): `todoSections`, `plannerTodos`, `TodosFilter.listed` keep what `listsOnItsOwn`; the Today strip names any due step too. Rows: `TodoProgressMark`, `TodoPartOf` (`parentsById`, with the title), `showCount` off.
+- ✅ **Lists:** the Todos page sections trees (`todoTreesQuery`: open todos, done steps of open trees; filters match, ancestors as context). Done stays flat (`doneListed`). `plannerTodos`, `listed` keep `listsOnItsOwn` until slices 7-9.
 
 ## On the device (`lib/todos/todos.sync.ts`)
 
