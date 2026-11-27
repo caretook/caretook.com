@@ -288,11 +288,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-979 | bug | landed | fixes-bug | prd/fixes-bug | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
 | B-980 | bug | triaged | fixes-ui |  | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
-| B-982 | bug | triaged | connectors-3 |  | past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed |
+| B-982 | bug | triaged | fixes-bug |  | past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
-| B-984 | bug | triaged | connectors-3 |  | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
-| B-985 | bug | triaged | connectors-3 |  | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
-| B-986 | bug | triaged | connectors-3 |  | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
+| B-984 | bug | triaged | fixes-bug |  | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
+| B-985 | bug | triaged | fixes-bug |  | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
+| B-986 | bug | triaged | fixes-bug |  | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
 
 ## Items
 
@@ -1869,7 +1869,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-982 · bug · past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed
 
 - status: triaged
-- prd: connectors-3
+- prd: fixes-bug
 - owner:
 - commit:
 
@@ -1887,7 +1887,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-984 · bug · Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id)
 
 - status: triaged
-- prd: connectors-3
+- prd: fixes-bug
 - owner:
 - commit:
 
@@ -1896,7 +1896,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-985 · bug · log_past_doses writes today's usual dose on past days when the medication's dose changed in the range
 
 - status: triaged
-- prd: connectors-3
+- prd: fixes-bug
 - owner:
 - commit:
 
@@ -1905,7 +1905,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-986 · bug · log_past_doses sees only the first 100 medications, so marks for others come back noSlot
 
 - status: triaged
-- prd: connectors-3
+- prd: fixes-bug
 - owner:
 - commit:
 
