@@ -204,15 +204,17 @@ describe("adding", () => {
 
     // Look-alikes are listed in full; leaving a partial name keeps it as typed.
     await userEvent.fill(await found(name), "hydr");
-    await expect.poll(suggestions).toEqual(expect.arrayContaining(["Hydralazine", "Hydroxyzine"]));
+    await expect
+      .poll(suggestions)
+      .toEqual(expect.arrayContaining(["Hydralazine", "Hydroxyzine (Vistaril, Atarax)"]));
     await userEvent.keyboard("{Tab}");
     await expect.poll(() => document.querySelector('[role="listbox"]')).toBeNull();
     expect(name()?.value).toBe("hydr");
 
     await userEvent.click(await found(name));
     await userEvent.keyboard("ox");
-    await userEvent.click(await found(() => suggestion("Hydroxyzine")));
-    await expect.poll(() => name()?.value).toBe("Hydroxyzine");
+    await userEvent.click(await found(() => suggestion("Hydroxyzine (Vistaril, Atarax)")));
+    await expect.poll(() => name()?.value).toBe("Hydroxyzine (Vistaril, Atarax)");
     expect(["strength", "dose", "directions"].map((n) => field<HTMLInputElement>(n)?.value ?? "")).toEqual([
       "",
       "",

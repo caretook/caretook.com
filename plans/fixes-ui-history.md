@@ -4,6 +4,17 @@ Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `p
 
 ## Trimmed 2026-11-26
 
+**Wave 18 (this session, 2026-11-26):** slices 99–102 written, all opus: 99 B-899 (copy link into ⋯, lands first for tags-2), 100 B-923 (specialty suggestions), 101 B-924 (provider header on a phone), 102 B-925 (care period arrows gap; after 99). The backlog session asked for a recheck after the 95021acb sync: the wave's CI run is the gate. Still held: B-325 (Capacitor). All four merged; sync skipped (dev docs only). Wave CI run 45903344661 on 9ccd9e8d: file. Dev's: doc.test.mjs (B-928). Ours, sent back: slice 99 (inScreens menus and Delete confirm, groupSettings viewer ⋯), slice 102 (timelineHeader no-overlap bound). Docs folded (197999f6). Fixes merged (99: 4d604b62, 102: 0df8ef02); rerun 45905436254 on abec828a: file, only dev's doc.test.mjs (B-928); ours green. Sync: no merge needed. Browser `--suite` was classifier-blocked; ran `--changed --base dev` (roundtrip, ui). PR #237 open, Codex review waiting. Next: land `--tier components`; then rotate (past the soft context limit).
+
+| Slice | Item  | State                                                                      | Merge        |
+| ----- | ----- | -------------------------------------------------------------------------- | ------------ |
+| 102   | B-925 | merged (opus)                                                              | (this merge) |
+| 101   | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0     |
+| 100   | B-923 | merged (opus)                                                              | 33df29e0     |
+| 99    | B-899 | merged (opus); docs: timeline.md copy-link line                            | 63bebd6c     |
+
+## Trimmed 2026-11-26
+
 **Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.
 
 **Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.

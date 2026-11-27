@@ -15,7 +15,6 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 Notes for every wave:
 
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
-- Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
 **Previous hand-over:** wave 16 landed 2026-11-26 as dev d6e934e9 through PR #231, `--no-review` (Codex out of credits), CI components green (run 45879574428, 200c4c14); report a283; to-test/2026-11-26-1413-fixes-ui.md. Slices 86–94 (B-885 sonnet; B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916 opus); rows in the history file. Parked mid-wave for orchestration-split-3 wave 1 (dev 00c60f0c, new browser.sh via hooks.browser) at the backlog session's request, then synced. Browser `--changed --base dev`: layout-offline, first-sync, marketing pass; ui failed once under load (0×0 sheet), passed alone twice: filed B-922 (fixes-tooling). Lesson: slice 93 ran to 13 files; split an item with a schema key, an API and two screens. Docs folded (5ef43e2c) into assistant, app-shell, ui-kit, providers, medications. Slice worktrees removed.
 
@@ -25,14 +24,15 @@ Notes for every wave:
 
 **Released 2026-11-26** by the backlog session (caretook-com-3c; ListAgents if it rotates again): orchestration-split-3 wave 5 is on dev (6265872b; that PRD is done). Synced: prd/fixes-ui merged dev as 95021acb (tooling and scripts only for us). Rotated right after so the next session runs on the new scripts. Reports go to caretook-com-3c.
 
-**Wave 18 (this session, 2026-11-26):** slices 99–102 written, all opus: 99 B-899 (copy link into ⋯, lands first for tags-2), 100 B-923 (specialty suggestions), 101 B-924 (provider header on a phone), 102 B-925 (care period arrows gap; after 99). The backlog session asked for a recheck after the 95021acb sync: the wave's CI run is the gate. Still held: B-325 (Capacitor). All four merged; sync skipped (dev docs only). Wave CI run 45903344661 on 9ccd9e8d: file. Dev's: doc.test.mjs (B-928). Ours, sent back: slice 99 (inScreens menus and Delete confirm, groupSettings viewer ⋯), slice 102 (timelineHeader no-overlap bound). Docs folded (197999f6). Fixes merged (99: 4d604b62, 102: 0df8ef02); rerun 45905436254 on abec828a: file, only dev's doc.test.mjs (B-928); ours green. Sync: no merge needed. Browser `--suite` was classifier-blocked; ran `--changed --base dev` (roundtrip, ui). PR #237 open, Codex review waiting. Next: land `--tier components`; then rotate (past the soft context limit).
+**Wave 18 landed 2026-11-26** as dev dc9bffb through PR #237, `--no-review` (Codex out of credits); CI components failed only dev's doc.test.mjs (B-928; run 45906838038, 765d0282); landed unsynced (dev's 1 commit in other files); report a290; to-test/2026-11-26-1755-fixes-ui.md. Slices 99–102 all opus (B-899 copy link into the entry ⋯; B-923 specialty datalist; B-924 provider header Edit + ⋯; B-925 arrows `-me-2`); rows in the history file. Two CI fix rounds for tests asserting the old menus and roundtrip's viewer step. Lesson: changing who sees a ⋯ breaks tests outside its folder and `scripts/browser-checks/`; grep `aria-label^="Actions"` there when writing such a slice. `browser --suite` is classifier-blocked (ask before it); ran `--changed --base dev`. Docs folded (197999f6). Slice worktrees removed. Rotated after (past the soft context limit).
 
-| Slice | Item  | State                                                                      | Merge        |
-| ----- | ----- | -------------------------------------------------------------------------- | ------------ |
-| 99    | B-899 | merged (opus); docs: timeline.md copy-link line                            | 63bebd6c     |
-| 100   | B-923 | merged (opus)                                                              | 33df29e0     |
-| 101   | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0     |
-| 102   | B-925 | merged (opus)                                                              | (this merge) |
+**Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus; all merged, items done. Wave gate: CI components (proposed). For the landing docs: providers.md's "Full rows carry no contact details" (B-422) is reversed by 105; 103 added `elsewhere` to `TimelineEntryRow` and `rowDayLabel` (timeline.md), and `LinkedEntries` imports the timeline route folder (follow-up filed). CI components on 1f79a41f (run 45951811176): `file`, 4 failures, all the branch's (blame 45952661845): timelineDoses, medicationForm, allergies (the brand list) sent to slice 104; providerTags to slice 105. Fixes merged (104 fix 7f9e9fd5, test-only; 105 fix test-only: linked entries' rows now carry their own Add tag, so the test scoped its pick). CI components rerun on d58283fb (run 45953425948): `flake` only (search.sync perf, brake list, not our files): green. Sync: up to date. Browser `--changed --base dev`: roundtrip fails at its tags step twice alone (not our code): filed B-951 (fixes-bug), told the backlog session (caretook-com-ea). PR #250 open; Codex review waiting. Follow-up B-950 (fixes-nit): move TimelineEntryRow into components/entry. Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
+
+| Slice | Item                                              | State                   | Merge    |
+| ----- | ------------------------------------------------- | ----------------------- | -------- |
+| 103   | B-937 linked entries use the timeline row (opus)  | merged (slice 683a0e4b) | 88660c00 |
+| 104   | B-939 medication brand names (opus)               | merged (slice dfddba9b) | 13111221 |
+| 105   | B-940 provider rows show phone and address (opus) | merged (slice 4f49f76d) | 0ebc73a6 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1486,3 +1486,50 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 **Acceptance criteria.**
 
 - [ ] Component test (`timelineCarePeriods.browser.test.tsx`): the gap from the arrows' icon to the period icon equals the period icon to text gap, within 1px, in the full and the easy view; the button's box is still 32px.
+
+## Wave 19 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 103–105 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 103: Provider page's linked entries use the timeline's entry row (B-937)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/providers.md · Tests: component
+
+**Problem.** `routes/app/groups/provider/LinkedEntries.tsx` builds its own rows (kind icon, title, day and time), so a linked note or event looks different from the same entry on the timeline: no live dot, no cancelled badge, no open-todos mark.
+
+**Build.** Render each linked entry with the timeline's row (`routes/app/groups/timeline/TimelineEntryRow.tsx`, or the smallest shared piece of it), so it looks the same as on the timeline and opens its entry. Check which of the row's parts need timeline context (the ⋯ menu's actions, filter links, search marks, author, `useCopyLink`): pass what fits on the provider page, leave out what doesn't (no filter links: they'd point at the timeline's filters from another screen; a viewer still gets no Delete). Rows here are not grouped by day, so the row must show the day as well as the time. If reuse needs a prop or a small split in the timeline folder, make it there and keep the timeline's own rows unchanged. Keep the empty state and the live query.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a linked note and a linked event render with the timeline row's markup (the same data attributes or roles the timeline's row tests use), with their day and time, and each opens its entry.
+- [ ] Component test: a cancelled linked event shows the cancelled badge.
+- [ ] The timeline's own row tests still pass unchanged; grep `scripts/browser-checks/` and other tests for `data-linked-entries` and `data-entry-id` and update any that assert the old markup.
+
+## Slice 104: Medication names list brand names in parentheses (B-939)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/assistant.md · Tests: unit
+
+**Problem.** `apps/web/app/lib/medications/medicationNameList.ts` lists about 200 generic names only, so typing "Tylenol" suggests nothing and a family who knows a medication by its brand can't find it.
+
+**Build.** Add the common US brand name(s) in parentheses to each entry that has one, e.g. `Acetaminophen (Tylenol)`, `Atorvastatin (Lipitor)`; at most two brands per name, the best known first; entries without a well-known brand stay as they are. Keep the list alphabetical by generic, one entry per medication, names only, and keep the look-alike rule (each shown in full; a pick is the only way one fills the field). Update the file's header comment. The shared matcher (`lib/core/nameSuggestions.ts`) already matches any word of a name, so "Tylenol" should suggest `Acetaminophen (Tylenol)`; confirm with tests rather than changing it. Then confirm the text matchers find a brand word in a saved name: quick entry's `matchMedication` (`packages/data/src/db/schema/assistant/quickEntry.ts`, which splits names into words) for "gave Tylenol" against a medication saved as `Acetaminophen (Tylenol)`; fix only if a test shows it fails. The connector's dose tools take ids, so no change there. Don't touch medications already saved under a generic name (no data change).
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`medicationNames.test.ts`): typing "tylenol" suggests "Acetaminophen (Tylenol)"; typing "acetamin" suggests it too; a group's own saved "Acetaminophen" still comes first and isn't duplicated by the curated entry only when their folded text is the same (document what happens when it differs).
+- [ ] Unit test (quick entry's tests): "gave Tylenol" matches a group medication named "Acetaminophen (Tylenol)", and "gave acetaminophen" still does.
+- [ ] The list stays alphabetical and free of duplicates (a test checks both).
+
+## Slice 105: Provider rows show the primary phone and address (B-940)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md · Tests: component
+
+**Problem.** `routes/app/groups/providers/ProviderListItem.tsx`'s full row shows no contact details (B-422), so reading a number aloud to a front desk means opening the provider. The condensed row has no provider type icon.
+
+**Build.** Full row: under the details line, print the primary phone number and the address in full as readable text, each a link (`tel:`; the maps link `contactActions.ts` already builds), and an email icon button when there is an email. Use the provider's existing contact helpers in `lib/providers/contactActions.ts` (and tidy the stale comments about directory rows there and in `components/providers/ContactActions.tsx`). The links sit above the row's stretched name link (`relative z-10` or as condensed's `ContactActions` does), each at least 44px tall to tap, and wrap rather than truncate the number; a past provider's stay muted. Condensed row: the same `ProviderTypeIcon` as the full row, before the name. This reverses B-422's no-contact-links rule for the full view: say so in the hand-off (the orchestrator folds it into `docs/domain/providers.md`; loops don't edit docs).
+
+**Acceptance criteria.**
+
+- [ ] Component test: a full row with a phone, address and email shows the number and address as text, with `tel:` and maps links, and an email link with an accessible name; the name link still opens the provider.
+- [ ] Component test: a full row with none of them shows no contact line and no gap.
+- [ ] Component test: a condensed row shows the provider type icon.
+- [ ] Grep tests and `scripts/browser-checks/` for assertions that full rows have no contact links (B-422) and update them.

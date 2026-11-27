@@ -6,7 +6,7 @@ import { fx, TEST_USER } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
   ADD_PROVIDER,
-  ALVAREZ,
+  CORNERSTONE,
   filterChips,
   chooseFilter,
   CURRENT_NAMES,
@@ -24,13 +24,15 @@ import {
   secondGroup,
   SHEET,
   WESTSIDE,
+  WHITFORD,
 } from "./providerWorld";
 
 // The provider directory on the test device (providers.mjs's list steps):
 // display order with past providers under their label, search and the type
 // chips in the URL (so a reload keeps them), Condensed rows by default and
 // Full (the fuller items) from View options, saved as `providersView`
-// (B-909), each row as one target (Full rows with no contact links), nothing
+// (B-909), each row as one target (Full rows with their first number, address
+// and an email button above it, B-940), nothing
 // wider than a phone, a viewer's view-only list and
 // sheet URLs, and a non-member's 404. The device is offline throughout, so
 // all of it is the offline directory too. The order, matching and contact
@@ -204,22 +206,90 @@ describe("Condensed and Full (B-909)", () => {
   });
 });
 
-describe("a row is one target (B-422)", () => {
-  test("in Full, no row shows contact details or links: its only link is the provider's page", async () => {
+describe("a row is one target, with Full's contact line above it (B-422, B-940)", () => {
+  const OKAFOR = fx.provider({
+    name: "Dr. Nadia Okafor",
+    specialty: "Endocrinology",
+    phones: [
+      { label: "Front desk", number: "(555) 010-9100" },
+      { label: "Fax", number: "(555) 010-9101" },
+    ],
+    address: "77 Lakeview Blvd, Floor 4\nSpringfield, CA 90000",
+    email: "front.desk@lakeviewendo.example",
+  });
+  const RUIZ = fx.provider({ name: "Sam Ruiz", specialty: "Driver", phones: [], email: null, address: null });
+  const contactLinks = (row: HTMLElement) =>
+    [...row.querySelectorAll<HTMLAnchorElement>("[data-row-contact] a")].map((a) => ({
+      action: a.dataset.action,
+      href: a.getAttribute("href"),
+      name: a.getAttribute("aria-label") ?? a.querySelector(".sr-only")?.textContent?.trim(),
+      text: a.textContent.trim(),
+      height: a.getBoundingClientRect().height,
+    }));
+
+  test("in Full, a row shows its first number and the address as text links and an email button; the name still opens the provider", async () => {
+    const device = await openFull({ fixtures: [...directory(), OKAFOR] });
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${OKAFOR.id}"]`),
+    );
+    const links = contactLinks(row);
+    expect(links.map(({ action, href, name }) => [action, href, name])).toEqual([
+      ["call", "tel:5550109100", "Call Dr. Nadia Okafor, front desk:"],
+      [
+        "map",
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("77 Lakeview Blvd, Floor 4, Springfield, CA 90000")}`,
+        "Open Dr. Nadia Okafor's address in maps:",
+      ],
+      ["email", "mailto:front.desk@lakeviewendo.example", "Email Dr. Nadia Okafor"],
+    ]);
+    expect(links[0]?.text).toContain("(555) 010-9100");
+    expect(links[1]?.text).toContain("77 Lakeview Blvd, Floor 4, Springfield, CA 90000");
+    // Only the first number shows; the rest are on the provider's page.
+    expect(row.textContent).not.toContain("010-9101");
+    // Each is a 44px tap target.
+    for (const link of links) expect(link.height).toBeGreaterThanOrEqual(44);
+    await expect
+      .element(page.getByRole("link", { name: "Email Dr. Nadia Okafor" }))
+      .toHaveAttribute("href", "mailto:front.desk@lakeviewendo.example");
+
+    await userEvent.click(await found(() => row.querySelector<HTMLElement>("a[data-provider-name]")));
+    await expect.poll(() => device.location()).toBe(`${PROVIDERS_URL}/${OKAFOR.id}`);
+  });
+
+  test("in Full, a row with no number, address or email has no contact line and no gap", async () => {
+    await openFull({ fixtures: [...directory(), RUIZ] });
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${RUIZ.id}"]`),
+    );
+    expect(row.querySelector("[data-row-contact]")).toBeNull();
+    expect([...row.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
+      `${PROVIDERS_URL}/${RUIZ.id}`,
+    ]);
+    // The body is just the name line and the details line.
+    const body = row.querySelector("[data-provider-name]")?.closest("p")?.parentElement;
+    expect([...(body?.children ?? [])].map((c) => c.tagName)).toEqual(["P", "P"]);
+  });
+
+  test("a past provider's contact line is muted", async () => {
     await openFull();
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${WHITFORD.id}"]`),
+    );
+    expect(row.querySelector("[data-row-contact]")?.classList.contains("text-faint")).toBe(true);
+    expect(contactLinks(row).map((l) => l.href)).toEqual(["tel:5550106600"]);
+  });
+
+  test("Condensed rows show the provider type icon before the name", async () => {
+    await open();
     await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
-    const rows = [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")];
-    expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) {
-      expect([...row.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
-        `${PROVIDERS_URL}/${row.dataset.providerId}`,
-      ]);
+    for (const row of providerRows()) {
+      const icon = row.firstElementChild;
+      expect(icon?.getAttribute("aria-hidden")).toBe("true");
+      expect(icon?.querySelector("svg")).not.toBeNull();
     }
-    const alvarez = rows.find((row) => row.dataset.providerId === ALVAREZ.id)!;
-    expect(alvarez.textContent).not.toContain("010-2200");
-    expect(alvarez.textContent).not.toContain("e.alvarez@westsidefamily.example");
-    const westside = rows.find((row) => row.dataset.providerId === WESTSIDE.id)!;
-    expect(westside.textContent).not.toContain("1200 Westside Ave");
+    expect(rowOf(CORNERSTONE.id).firstElementChild?.querySelector("svg")?.getAttribute("class")).toContain(
+      "lucide-pill",
+    );
   });
 
   test.each([
