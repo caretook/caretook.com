@@ -13,7 +13,7 @@ dist/
 *.log
 .postgres/
 
-# Parallel loop worktrees (scripts/loops/)
+# Parallel loop worktrees (Risa's)
 .loops/
 .claude/worktrees/
 # pnpm prd serve: which server a worktree runs, and when it was last built

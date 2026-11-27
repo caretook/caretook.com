@@ -93,7 +93,7 @@ describe("the deploy workflows", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     for (const name of ["unit-1", "unit-2"]) {
       const unit = jobs[name].steps.find((s) => s.id === "test").run;
-      expect(unit).toContain("--project tooling:unit");
+      expect(unit).toContain("--project project:tooling");
       expect(unit).not.toContain("tooling:browser");
     }
     // The real project split: a pattern Vitest ignores fails here.
@@ -102,15 +102,13 @@ describe("the deploy workflows", () => {
         cwd: root,
         encoding: "utf8",
       });
-    expect(list("tooling:unit")).not.toContain("loops/browser.test.mjs");
     expect(list("project:tooling")).not.toContain("project/browser-run.test.mjs");
-    expect(list("tooling:unit")).toContain("loops/lease.test.mjs");
     expect(
       list("tooling:browser")
         .trim()
         .split("\n")
         .filter((l) => l.includes(".test.")),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(list("tooling:browser")).toContain("project/browser-run.test.mjs");
     const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
     expect(step.run).toContain("--project tooling:browser");
@@ -160,7 +158,7 @@ describe("the deploy workflows", () => {
     const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`unit-${n}`];
     const run = (id) => job.steps.find((s) => s.id === id).run;
     expect(run("test")).toMatch(/^node scripts\/ci\/test-job\.mjs --time-gate /);
-    expect(run("test")).toContain(`--project tooling:unit --shard=${n}/2`);
+    expect(run("test")).toContain(`--project project:tooling --shard=${n}/2`);
     expect(run("test")).toContain(`--outputFile.json=ci-results/unit-${n}.json`);
     expect(run("report")).toContain(`ci-results/unit-${n}.json`);
   });

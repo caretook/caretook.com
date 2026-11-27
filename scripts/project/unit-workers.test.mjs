@@ -9,8 +9,8 @@ import config, { unitWorkers } from "../../vitest.config.ts";
 const projects = /** @type {any} */ (config).test.projects;
 const byName = new Map(projects.map((p) => [p.test.name, p.test]));
 
-const UNIT = ["data:unit", "web:unit", "notifications:unit", "server:unit", "core:unit", "project:unit"];
-const TOOLING = ["project:tooling", "tooling:unit", "tooling:browser"];
+const UNIT = ["data:unit", "web:unit", "notifications:unit", "server:unit", "project:unit"];
+const TOOLING = ["project:tooling", "tooling:browser"];
 
 describe("unitWorkers", () => {
   it("defaults to half the cores, at most 4 and at least 1", () => {

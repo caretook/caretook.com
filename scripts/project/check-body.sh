@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # check-body.sh MODE BASE [OWN_TEST_FILE…]: Caretook's check, in the current
 # directory (the repo's root). The tool runs it through risa.json's `check` hook,
-# inside its lease, load gate, log and limits (scripts/loops/check-run.sh), and
+# inside its lease, load gate, log and limits (Risa's check-run.sh), and
 # runs its own tooling tests after it; without the tool it runs alone. The
 # tool's check plan has decided MODE and the diff's own test files; this runs them.
 #   slice: typecheck, lint, format, every unit test, and the integration and
@@ -29,7 +29,7 @@
 set -euo pipefail
 here=$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mode=$1 base=$2; shift 2
-unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit)
+unit=(--project data:unit --project web:unit --project notifications:unit --project server:unit --project project:unit)
 state=${RISA_CHECK_STATE:-}
 work=$(mktemp -d)
 # The step being timed and its start; the last one's seconds are written at exit.
@@ -117,7 +117,7 @@ tests() {
 selection=() targets=()
 static
 if [[ $mode == full ]]; then
-  projects=(--project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling')
+  projects=(--project '!tooling:browser' --project '!project:tooling')
   tests tests
   begin docs; pnpm docs:budget
   begin build; pnpm build:budget
@@ -129,7 +129,7 @@ else
   done
   clock count
   files() { pnpm exec vitest list --filesOnly "$@" | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u; }
-  all=$(files --project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling' | grep -c . || true)
+  all=$(files --project '!tooling:browser' --project '!project:tooling' | grep -c . || true)
   run=$( { files "${unit[@]}"
            if [[ $mode == quick ]]; then files --project integration --changed "$base"; fi
            printf '%s\n' ${own_int[@]+"${own_int[@]}"} ${own_browser[@]+"${own_browser[@]}"}; } | sort -u | grep -c . || true)
