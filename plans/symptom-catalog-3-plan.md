@@ -13,7 +13,7 @@
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
 - **Wave 2 running** (session 2): synced with dev (up to date, no merge); worktrees `.loops/symptom-catalog-3-2` and `-3`, both agents spawned on opus. Slice 3 got slice 1's note (map `replaced_by_id` to `replacedById`; a tombstone whose replacement isn't local resolves to itself). B-920 stays claimed until slice 4; mark it done at wave 3.
-- Wave 2: both slices handed off and merged (slice models: 2 opus, 3 opus). CI gate `risa ci run components` requested on the merged tip; next: on green `risa sync`, PR, Codex review, land. Slice 3's note for slice 4/follow-up: the sheet and quick entry still show the deleted name as typed before saving (suggestions leave tombstones out); only the stored entry changes.
+- Wave 2: both slices handed off and merged (slice models: 2 opus, 3 opus). CI green at components (run 46082505274, 27470995f); `risa sync`: no merge needed; timeline doc folded. Next: PR, Codex review, land. Slice 3's note for slice 4/follow-up: the sheet and quick entry still show the deleted name as typed before saving (suggestions leave tombstones out); only the stored entry changes.
 - 2026-11-27: synced with dev (up to date); B-920 claimed. Wave 1: slice 1 worktree `.loops/symptom-catalog-3-1`, agent spawned on opus.
 - Slice 1 handed off (quick check green on b74850034), merged as a84e4d658. Wave 1 CI green at integration (run 46080707119); worktree removed; no dev sync needed; timeline doc folded. Codex clean on PR #287. **Wave 1 landed** in dev as bcd8ea8b1; to-test/2026-11-27-1816-symptom-catalog-3.md. Slice models: 1 opus.
 

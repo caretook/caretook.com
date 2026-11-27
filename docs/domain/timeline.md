@@ -2,21 +2,21 @@
 
 - **Table:** one `timeline_entry` table with a `kind` column.
   - `group_id` and `recipient_id` are on the row (streams filter on them); the composite FK to `care_recipient` is `NO ACTION` (deleting a recipient with entries fails; deleting the group cascades).
-  - `occurred_at` plus the device's IANA `time_zone`; optional `title`, `body`, and `details` jsonb (a Zod union per kind).
+  - `occurred_at`, the device's IANA `time_zone`; optional `title`, `body`, `details` jsonb (a Zod union per kind).
 - **Rules:**
   - **Soft delete** (`deleted_at`), checked against the delete permission. Reads hide deleted rows unless `includeDeleted`, and `update` refuses them. A hard delete cascades to the entry's document.
-  - **Keyset pagination** on `(occurred_at, id)`, because offline devices insert older entries.
+  - **Keyset pagination** on `(occurred_at, id)` (offline devices insert older entries).
   - `create` defaults `recipientId` and checks the group first (a non-member learns nothing). `update` validates the **merged** row.
   - `occurredAt` reads back as text: normalise at the API.
-- **Kinds.** Place a new thing to log with these first:
+- **Kinds** (place a new one among these):
   - **Note:** free text about the day. **Its text is its live document** (`body` always null, title optional), at `/entries/:id`.
   - **Symptom:** something the recipient **feels or reports**: free-text `name` plus `severity` 0-10. **Pain is a symptom.**
   - **Vital:** something **measured, counted or observed**, with a fixed unit or scale (without one, like mood, it's a symptom). Bowel movement, urine output and sleep are vitals.
   - **Dose:** a medication **given, skipped or refused** (`details`: `medicationId`, `status`; no title or body). The medication is in the entry's group; deleting it leaves its doses.
-  - **Medication change:** **written automatically** (`SYSTEM_WRITTEN_KINDS`, like Condition change), never by hand; writers may delete one.
+  - **Medication change:** **written automatically** (`SYSTEM_WRITTEN_KINDS`), never by hand; writers may delete one.
   - **Condition change:** written like a medication change ([profiles](profiles.md)).
   - **Event:** something that happened. Like a note, **its text is its live document**, at `/entries/:id`. A title is required: the device saves `"Event"` (`DEFAULT_EVENT_TITLE`) when none is given; the field shows "Add a title" (`isUnnamedEvent`). A future event is an appointment (_Appointments_).
-- **Symptom catalog** (`symptom_type`; `symptomCatalog.ts`, the only fold): `symptomKey` folds case and spaces; id `symptomTypeId(group, key)`. New groups get 23 defaults; `backfill` (migrate, seed) adds them, live names, null pointers. Any role reads; `LOGGERS` add (idempotent PUT). **Archived** (`archived_at`) or a **tombstone** (`replaced_by_id`, a deleted name, kept): server-set, not uploaded; `WRITERS` archive online (`timeline.symptomTypes`, Symptoms settings). **`symptom_type_id`** (same-group FK): server-derived on each write (`serverSet`); devices write it with a new name's row. A deleted name stores its replacement's id and name (`resolveSymptom`, the only rule). **A new name** (sheet, Easy form, quick entry): an exact `similarSymptoms` match (archived too) is reused; a similar active one (reordered, a typo, a 2+-word name inside) asks "Use <name>" or "Add new" (quick entry: the closest); an empty Easy form saves "Feeling". Pickers: active rows. Summaries, visit prep, predictions group by `symptomKey`; the filter by pointer.
+- **Symptom catalog** (`symptom_type`; `symptomCatalog.ts`, the only fold): `symptomKey` folds case and spaces; id `symptomTypeId(group, key)`. New groups get 23 defaults (`backfill`: migrate, seed). Any role reads; `LOGGERS` add (idempotent PUT). **Archived** (`archived_at`) or a **tombstone** (`replaced_by_id`, a deleted name, kept): server-set, not uploaded; `WRITERS` archive online (`timeline.symptomTypes`, Symptoms settings). **`symptom_type_id`** (same-group FK): server-derived on each write (`serverSet`); devices write it with a new name's row. A deleted name saves as its replacement (`resolveSymptom`, the only rule), on the server and on devices (an unsynced replacement: itself). **Delete**: `symptomTypes.replace` (owners, online, one transaction) moves every entry, deleted too, and older tombstones (no chains). **A new name** (sheet, Easy form, quick entry): an exact `similarSymptoms` match (archived too) is reused; a similar active one (reordered, a typo, a 2+-word name inside) asks "Use <name>" or "Add new" (quick entry: the closest); an empty Easy form saves "Feeling". Pickers: active rows. Summaries, visit prep, predictions group by `symptomKey`; the filter by pointer.
 - **Vitals** (`db/schema/timeline/vitals.ts`, the single spec):
   - `details = { readings: [...] }`, at most one per type (types in `VITAL_TYPES`; blood pressure needs diastolic < systolic).
   - **A new type is spec-only:** `VITAL_TYPES`, `VITALS`, one `reading(...)` (keys in `VitalFieldSpec["key"]`).
@@ -41,9 +41,9 @@
   - **The route only composes** (`route.tsx`): `useTimelineData`, `useTimelineView`, `useEntryRemoval`.
 - **Seeds** (`seeds/timelineEntries.ts`):
   - **Ids follow position** (a change needs `datastore:reset`); `timelineEntries.test.ts` checks them.
-  - A note's or event's seed `body` becomes its document (`seedContentOf`); the entry's `body` stays null.
-- **Tests:** beside the route (`timelineWorld.tsx`); browser checks only for the server.
-- **The easy view** (`EasyTimeline.tsx`, chosen by `useEasyMode`), in order: the header, the setup card, Upcoming, My todos, the tiles with Remove last, `QuickEntryBox size="md" passChips={false}` (loggers), the full view's `FilterChips`, then `TimelineEntryList easy`: rows only, full type scale, ⋯ menus by owner, sheets for loggers; `EasyModeToggle` in the header; no filter links, markers, adding, strips.
+  - A note's or event's seed `body` becomes its document (`seedContentOf`).
+- **Tests:** beside the route (`timelineWorld.tsx`).
+- **The easy view** (`EasyTimeline.tsx`, chosen by `useEasyMode`), in order: the header, the setup card, Upcoming, My todos, the tiles with Remove last, `QuickEntryBox size="md" passChips={false}` (loggers), the full view's `FilterChips`, then `TimelineEntryList easy`: rows only, full type scale, ⋯ menus by owner, sheets for loggers; no filter links, markers, adding, strips.
   - **Upcoming** (`EasyNow.tsx`): loggers get each due pass as a big Given all, Undo; the next item opens the Planner's next 5 (`EasyNext`; no doses), See all.
   - **My todos** (`EasyTodos.tsx`, `easyTodoTrees.ts`): trees matching mine, `TodoTree` `easy` look, Undo; `EASY_TODOS_CAP` counts mine, never cuts a tree. `EasyNext`: day trees, no ticks.
   - **Tiles** (loggers, `EasyTiles.tsx`; pure `lib/assistant/easyTiles.ts`): four links: fixed, learned (most-logged in 30 days) or the group's picks (`care_group.easy_tiles`, via `useEasySetup`). Each opens its sheet's **easy variant** (`TimelineOutlet.easy`). Until it's set, owners and admins get "Choose the tiles" (to Details).
