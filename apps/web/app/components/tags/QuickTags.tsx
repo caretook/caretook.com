@@ -1,12 +1,12 @@
 import type { TagTarget } from "@caretook/data/schema";
 
 import { canTagRecord } from "@caretook/data/schema";
-import { Plus } from "lucide-react";
+import { TagPlus } from "lucide-react";
 import { useState } from "react";
-import { Button, Message } from "~/components/ui";
+import { Button, Message, toast } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
-import { untagRecord } from "~/lib/tags/tags.sync";
+import { tagRecord, untagRecord } from "~/lib/tags/tags.sync";
 import { TagChips } from "./TagChips";
 import { useRecordTags } from "./useTags";
 import { useTagPicker } from "./useTagPicker";
@@ -29,18 +29,18 @@ type QuickTagsProps = {
   tags?: readonly QuickTag[];
   /** Chips only, whoever's looking (a deleted or unsaved record). */
   readOnly?: boolean;
-  /** A row's: "Add tag" as an icon alone (its name and tooltip stay "Add tag"). */
-  compact?: boolean;
   className?: string;
 };
 
 /**
  * The one tag control on rows, pages and edit sheets (tags-2): the record's
  * chips in color, and, for whoever may tag it (`canTagRecord`), an × on
- * each chip that untags it at once and "Add tag" opening the picker
- * (`useTagPicker`; its Add-new only for `canCreateTag`). Every tap is its
- * own local write, never part of a form's Save. Anyone else sees the chips
- * alone (nothing when there are none). It sits above a row's stretched
+ * each chip that untags it at once ("Removed <name>" with Undo, which
+ * re-tags it with the same derived link id) and an icon-only "Add tag"
+ * (lucide `TagPlus`; tags-3) opening the picker (`useTagPicker`; its
+ * Add-new only for `canCreateTag`). Every tap is its own local write, never
+ * part of a form's Save. Anyone else sees the chips alone (nothing when
+ * there are none). It sits above a row's stretched
  * open target (`relative z-10`), so its taps never open the record; it's
  * only as wide as its chips (`w-fit`), so a tap beside them still does.
  */
@@ -62,7 +62,6 @@ function QuickTagsView({
   max,
   tags,
   readOnly,
-  compact,
   className = "",
 }: QuickTagsProps & { tags: readonly QuickTag[] }) {
   const group = useGroup();
@@ -72,37 +71,35 @@ function QuickTagsView({
   if (!editable) return <TagChips tags={tags} max={max} className={className} />;
 
   const pick = () => picker.ask({ target, recordId, label });
-  const remove = async (tagId: string) => {
+  const remove = async (tag: QuickTag) => {
     setError(null);
-    const res = await untagRecord(getSync(), tagId, target, recordId);
-    if (!res.ok) setError(res.error);
+    const db = getSync();
+    const res = await untagRecord(db, tag.id, target, recordId);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    toast({
+      message: `Removed ${tag.name}`,
+      undo: () =>
+        void tagRecord(db, tag.id, target, recordId).then((back) => setError(back.ok ? null : back.error)),
+      data: { "data-tag-removed": tag.id },
+    });
   };
   return (
     <div className={`relative z-10 w-fit space-y-1 ${className}`} data-quick-tags="">
-      <div className="flex flex-wrap items-center gap-1">
-        <TagChips tags={tags} max={max} onRemove={(t) => void remove(t.id)} onMore={pick} />
-        {compact ? (
-          <Button
-            variant="ghost"
-            size="xs"
-            icon={Plus}
-            label="Add tag"
-            onClick={pick}
-            aria-haspopup="dialog"
-            data-quick-tag-add=""
-          />
-        ) : (
-          <Button
-            variant="ghost"
-            size="xs"
-            icon={Plus}
-            onClick={pick}
-            aria-haspopup="dialog"
-            data-quick-tag-add=""
-          >
-            Add tag
-          </Button>
-        )}
+      {/* A wider gap before Add tag than between chips, so a tap meant for one doesn't hit the other. */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <TagChips tags={tags} max={max} onRemove={(t) => void remove(t)} onMore={pick} />
+        <Button
+          variant="ghost"
+          size="xs"
+          icon={TagPlus}
+          label="Add tag"
+          onClick={pick}
+          aria-haspopup="dialog"
+          data-quick-tag-add=""
+        />
       </div>
       {error && <Message tone="error">{error}</Message>}
       {picker.sheet}
