@@ -16,14 +16,14 @@
 
 **Wave 2 planned** (2026-11-27, `plan/connectors-3`, the dispatcher's planner): slices 3 to 6 below, in two waves (2a: 3 and 4; 2b: 5 and 6). B-917 stays open until slice 6 merges.
 
-| Slice | Wave | State       | Merge into `prd/connectors-3` (slice commits) |
-| ----- | ---- | ----------- | --------------------------------------------- |
-| 1     | 1    | merged      | a2383ef8b (ad3342564, c6147c2f9)              |
-| 2     | 1    | merged      | 6e026ab18 (f0f00891c, f2edd4a62)              |
-| 3     | 2a   | running     |                                               |
-| 4     | 2a   | running     |                                               |
-| 5     | 2b   | blocked (3) |                                               |
-| 6     | 2b   | blocked (4) |                                               |
+| Slice | Wave | State                                                     | Merge into `prd/connectors-3` (slice commits) |
+| ----- | ---- | --------------------------------------------------------- | --------------------------------------------- |
+| 1     | 1    | merged                                                    | a2383ef8b (ad3342564, c6147c2f9)              |
+| 2     | 1    | merged                                                    | 6e026ab18 (f0f00891c, f2edd4a62)              |
+| 3     | 2a   | running                                                   |                                               |
+| 4     | 2a   | handed off (f169395d6, quick check green); merges after 3 |                                               |
+| 5     | 2b   | blocked (3)                                               |                                               |
+| 6     | 2b   | blocked (4)                                               |                                               |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on it when the slice merges.
 
