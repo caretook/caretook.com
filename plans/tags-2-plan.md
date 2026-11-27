@@ -6,7 +6,7 @@
 
 | Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
 | ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | started |                                         |
+| 1     | 1    | merged  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
 | 2     | 2    | planned |                                         |
 | 3     | 3    | planned |                                         |
 | 4     | 4    | planned |                                         |
@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 1: slice 1 started 2026-11-26 (agent on opus). Plan anchors reworded for symbols slices add (anchors ok).
+**Now:** wave 1: slice 1 (opus) merged 5cb59418; wave gate CI run `full` (a migration) requested. Slice 1 also appended `color` to the `tag` select in `powersync/sync-config.yaml` (rolesSql.test needs it): slice 2 must not add it again. B-893 stays open until slice 3.
 
 ## Architectural decisions
 
