@@ -9,13 +9,13 @@
 | 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
 | 2     | 2    | landed  | 7b892610 (d362bd70)                     |
 | 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                     |
-| 4     | 4    | running |                                         |
+| 4     | 4    | merged  | 09a762ee (0cd98a93)                     |
 | 5     | 5    | planned |                                         |
 | 6     | 5    | planned |                                         |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4 started 2026-11-26: dev sync was a no-op; B-892 claimed; worktree tags-2-4 made, slice 4 agent spawned on **opus**; watch running. todo-subtasks-2 isn't running (no worktree), so no hot-file sync needed. Waves 1–3 landed (wave 3 via PR #247, `--no-review`, Codex out of credits). `Badge` takes `fill` (`tagColorClass`) for palette chips. After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
+**Now:** wave 4: slice 4 (opus) handed off (slice check passed on 0cd98a93) and merged as 09a762ee; wave gate CI tier `components` requested. Worktree tags-2-4 kept until green. B-892 stays claimed (done after slices 5 and 6). Slice 4 notes for 5/6: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be wide on rows (a compact variant is a small change in `QuickTags`); timeline, Planner and provider ⋯ `onTags` paths still to remove. `Badge` takes `fill` (`tagColorClass`). After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
 
 ## Architectural decisions
 
