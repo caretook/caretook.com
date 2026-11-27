@@ -14,7 +14,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | ----- | ----- | ------------- | --------- |
 | 80    | B-976 | merged (opus) | d268a0ca5 |
 
-**Wave 19** (started 2026-11-27): slice 80 (B-976, quick entry vitals label after the number), opus. Wave 18 landed through PR #258 (to-test `to-test/2026-11-27-1329-fixes-bug.md`). Skipped: B-750 (notes name no files), B-752 (no recurrence from B-753's watchdog). `risa status-trim` may fail on Risa v0.1.3 ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches.
+**Wave 19** (2026-11-27): slice 80 (B-976, opus) merged d268a0ca5; integration CI green on 587de6c6 (run 46055609322); slice worktree removed; `risa sync` needed no merge; PR #268 open, Codex reviewing; no browser checks needed (parser only). Next: land on a clean verdict (`risa land fixes-bug --tier integration`). Skipped: B-750 (notes name no files), B-752 (no recurrence from B-753's watchdog). `risa status-trim` may fail on Risa v0.1.3 ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches.
 
 ## Wave 1
 
