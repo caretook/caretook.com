@@ -10,10 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State         | Merge     |
+| ----- | ----- | ------------- | --------- |
+| 80    | B-976 | merged (opus) | d268a0ca5 |
 
-**Idle after wave 18** (landed through PR #258, 2026-11-27, Codex clean on 96ff344; components CI flake on 96ff3441, run 46048908769: `search.sync.browser.test.tsx` timing, not this branch's, filed by land). Slices 76 (B-968), 77 (B-969), 79 (B-971) were test-only (Los Angeles assumed); 78 (B-970) was an app bug: quick tags' line covered a row's open link (`w-fit` in `QuickTags.tsx`, folded into tags.md). To-test: `to-test/2026-11-27-1329-fixes-bug.md`. Slice worktrees removed. Lesson for zone slices: a test file not in `vitest.config.ts`'s `NY_INCLUDE` can't import `test/zone.ts`; compute the expectation with the screen's formatter or `Intl`. Browser checks at landing were roundtrip and layout-offline only (no `--suite`: the user asks first). `risa status-trim` (Risa v0.1.3) fails: "Cannot find package 'prettier'" from `~/.risa/releases/v0.1.3/loops/status-trim.mjs`; wave 18 rows moved to history by hand. Land twice refused on components.md's budget while dev moved: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 19 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
+**Wave 19** (2026-11-27): slice 80 (B-976, opus) merged d268a0ca5; integration CI green on 587de6c6 (run 46055609322); slice worktree removed; `risa sync` needed no merge; PR #268 open, Codex reviewing; no browser checks needed (parser only). Next: land on a clean verdict (`risa land fixes-bug --tier integration`). Skipped: B-750 (notes name no files), B-752 (no recurrence from B-753's watchdog). `risa status-trim` may fail on Risa v0.1.3 ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches.
 
 ## Wave 1
 
@@ -828,3 +829,17 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain
 Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: e2e:roundtrip
 
 `scripts/browser-checks/roundtrip.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 failed this check on a stack missing one), and name the failing step in the hand-off.
+
+## Wave 19
+
+One slice: quick entry vitals with the label after the number.
+
+### Slice 80: a vital's label after its number still counts (B-976)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/timeline.md · Tests: unit
+
+Quick entry reads a vital only when its label comes first: `140/78 74bpm 97 o2` keeps the blood pressure and heart rate but drops the O2 (`o2 97` works), and heart rate as `74 hr` is dropped the same way. These are very common lines. The parsing lives in `packages/data/src/db/schema/assistant/quickEntry.ts` and `timeline/vitals.ts`.
+
+- Each vital quick entry knows (O2/SpO2, heart rate/HR/pulse/bpm, and the others with a short label) reads with its label before or after its number, with or without a space (`97o2`, `97 o2`, `o2 97`, `74 hr`, `hr 74`, `74bpm`). A number between two labels goes to the nearer one; when that's unclear, keep today's label-first reading.
+- Nothing that reads today changes: label-first lines, units (`98.6 °F`, `97%`), blood pressure, and the measurement-word rules of slices 20–40 (a number after a label is still no date, an amount or a time).
+- Unit tests: `140/78 74bpm 97 o2` gives all three; `97 o2 hr 74`, `74 hr 97 o2` and `bp 140/78 pulse 74 o2 97` each give each vital once with the right value; the preview (`quickEntryPreview.ts`) shows the same.
