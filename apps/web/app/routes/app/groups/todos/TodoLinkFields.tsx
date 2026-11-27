@@ -1,5 +1,6 @@
 import type { LinkChoices } from "./todoSheet";
 import type { ListChip } from "~/components/ui";
+import type { LinkPick } from "~/lib/todos/linkOptions";
 import type { ChosenEntryRow } from "~/lib/todos/todos.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
@@ -9,6 +10,7 @@ import { LinkToBox } from "~/components/todos";
 import { ChipList, Message } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { previewText } from "~/lib/live-notes/notes.sync";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
 import { linkedEntryName } from "~/lib/todos/entryTodoDisplay";
@@ -20,17 +22,14 @@ import { chosenLinkChip, eventWhen } from "./todoLinks";
 
 export type TodoLinkIds = { providerId: string | null; medicationId: string | null; entryIds: string[] };
 
-const NOT_YET: EntryRow[] = [];
+const NO_ENTRIES: EntryRow[] = [];
 const NO_ROWS: ChosenEntryRow[] = [];
 
-/** An edited todo's linked notes and events, live; null until the device has answered (none for a new one). */
+/** An edited todo's linked notes and events, live (none for a new one). */
 function useLinkedEntryIds(todoId: string | null) {
   const q = todoEntriesQuery(todoId ?? "");
-  const rows = useLiveQuery<EntryRow>(q.sql, q.params, NOT_YET);
-  return useMemo(
-    () => (rows === NOT_YET ? null : rows.filter((r) => canHaveNoteDocument(r.kind ?? "")).map((r) => r.id)),
-    [rows],
-  );
+  const rows = useLiveQuery<EntryRow>(q.sql, q.params, NO_ENTRIES);
+  return useMemo(() => rows.filter((r) => canHaveNoteDocument(r.kind ?? "")).map((r) => r.id), [rows]);
 }
 
 /** The chosen notes' and events' chips, live: those of `ids` that are live notes or events in the group. */
@@ -38,7 +37,18 @@ function useEntryChips(groupId: string, ids: readonly string[]) {
   const q = chosenEntriesQuery(groupId, ids);
   const rows = useLiveQuery<ChosenEntryRow>(q.sql, q.params, NO_ROWS);
   return useMemo(() => {
-    const texts = new Map(rows.map((r) => [r.id, r.document_text]));
+    // The text with this device's pending edits (B-991): an untitled note's first line names it.
+    const texts = new Map(
+      rows.map((r) => [
+        r.id,
+        previewText({
+          id: r.id,
+          snapshot: r.document_snapshot,
+          text: r.document_text,
+          updates: r.document_updates,
+        }),
+      ]),
+    );
     const now = new Date();
     return new Map(
       toTimelineEntries(rows).map((e) => [
@@ -59,29 +69,48 @@ function useEntryChips(groupId: string, ids: readonly string[]) {
  * chosen as chips with × (one provider and one medication, a new pick
  * replacing it; any number of notes and events), in the todo page's order.
  * A provider or medication removed since stays on its chip, greyed, until
- * it's cleared; so does a cancelled event. Posts `providerId`,
- * `medicationId` and the `entryIds` list; an edited todo's starts as its
- * link rows, and isn't sent until the device has read them.
+ * it's cleared; so does a cancelled event. The empty box suggests the
+ * record the sheet was opened from first (`cameFrom`, while it isn't
+ * linked). Posts `providerId` and `medicationId`; a new todo's notes and
+ * events as the `entryIds` list, an edited one's only as what this sheet
+ * added and removed (`addEntryIds`, `removeEntryIds`; B-990): its chips are
+ * its live link rows with those applied, so links another member makes or
+ * removes meanwhile are kept as they made them.
  */
 export function TodoLinkFields({
   choices,
   todoId,
   initial,
+  cameFrom = null,
   errors,
 }: {
   choices: LinkChoices;
   /** Editing this todo: its notes and events are read here. */
   todoId: string | null;
   initial: TodoLinkIds;
+  /** The record the sheet was opened from (its page). */
+  cameFrom?: LinkPick | null;
   errors: Partial<Record<"providerId" | "medicationId", string>>;
 }) {
   const { id: groupId } = useGroup();
   const [providerId, setProviderId] = useState(initial.providerId);
   const [medicationId, setMedicationId] = useState(initial.medicationId);
   const linked = useLinkedEntryIds(todoId);
-  const [entryIds, setEntryIds] = useState<string[] | null>(todoId ? null : [...new Set(initial.entryIds)]);
-  if (entryIds === null && linked) setEntryIds(linked);
-  const entryChips = useEntryChips(groupId, entryIds ?? []);
+  const [added, setAdded] = useState<string[]>(() => (todoId ? [] : [...new Set(initial.entryIds)]));
+  const [removed, setRemoved] = useState<string[]>([]);
+  const entryIds = useMemo(
+    () => [...linked.filter((id) => !removed.includes(id)), ...added.filter((id) => !linked.includes(id))],
+    [linked, added, removed],
+  );
+  const addEntry = (id: string) => {
+    setRemoved((ids) => ids.filter((x) => x !== id));
+    if (!linked.includes(id)) setAdded((ids) => (ids.includes(id) ? ids : [...ids, id]));
+  };
+  const removeEntry = (id: string) => {
+    setAdded((ids) => ids.filter((x) => x !== id));
+    if (linked.includes(id)) setRemoved((ids) => (ids.includes(id) ? ids : [...ids, id]));
+  };
+  const entryChips = useEntryChips(groupId, entryIds);
 
   const chip = (id: string, shown: { label: string; muted: boolean }, onRemove: () => void): ListChip => ({
     id,
@@ -107,9 +136,9 @@ export function TodoLinkFields({
           ),
         ]
       : []),
-    ...(entryIds ?? []).flatMap((id) => {
+    ...entryIds.flatMap((id) => {
       const shown = entryChips.get(id);
-      return shown ? [chip(id, shown, () => setEntryIds((ids) => ids?.filter((x) => x !== id) ?? ids))] : [];
+      return shown ? [chip(id, shown, () => removeEntry(id))] : [];
     }),
     ...(medicationId
       ? [
@@ -124,7 +153,7 @@ export function TodoLinkFields({
         ]
       : []),
   ];
-  const linkedIds = [providerId, medicationId, ...(entryIds ?? [])].filter((id): id is string => !!id);
+  const linkedIds = [providerId, medicationId, ...entryIds].filter((id): id is string => !!id);
   const error = errors.providerId ?? errors.medicationId;
 
   return (
@@ -133,15 +162,26 @@ export function TodoLinkFields({
       <LinkToBox
         groupId={groupId}
         linked={linkedIds}
+        cameFrom={cameFrom}
         onPick={({ type, id }) => {
           if (type === "provider") setProviderId(id);
           else if (type === "medication") setMedicationId(id);
-          else setEntryIds((ids) => (ids && !ids.includes(id) ? [...ids, id] : ids));
+          else addEntry(id);
         }}
       />
       <input type="hidden" name={FIELD.providerId} value={providerId ?? ""} />
       <input type="hidden" name={FIELD.medicationId} value={medicationId ?? ""} />
-      {entryIds && (
+      {todoId ? (
+        <>
+          {/* Only this sheet's own changes (B-990): none sent, the link rows stay as they are. */}
+          {added.map((id) => (
+            <input key={id} type="hidden" name={FIELD.addEntryIds} value={id} />
+          ))}
+          {removed.map((id) => (
+            <input key={id} type="hidden" name={FIELD.removeEntryIds} value={id} />
+          ))}
+        </>
+      ) : (
         <>
           {/* The list's own empty field: sent, it means "these and no others". */}
           <input type="hidden" name={FIELD.entryIds} value="" />

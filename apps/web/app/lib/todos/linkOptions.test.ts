@@ -1,7 +1,7 @@
-import type { LinkCandidate } from "./linkOptions";
+import type { LinkCandidate, LinkPick } from "./linkOptions";
 
 import { describe, expect, it } from "vitest";
-import { linkOptions, linkTypeWord } from "./linkOptions";
+import { linkOptions, linkSuggestions, linkTypeWord } from "./linkOptions";
 
 const ZONE = "America/Los_Angeles";
 const WHERE = { locale: "en-US", timeZone: ZONE };
@@ -126,5 +126,68 @@ describe("a typed type word", () => {
     expect(linkTypeWord("medford clinic")).toEqual({ type: null, rest: "medford clinic" });
     expect(linkTypeWord("lark")).toEqual({ type: null, rest: "lark" });
     expect(linkTypeWord("")).toEqual({ type: null, rest: "" });
+  });
+});
+
+describe("the empty box's suggestions (B-947)", () => {
+  const provider = (id: string): LinkPick => ({ type: "provider", id });
+  const event = (id: string): LinkPick => ({ type: "event", id });
+  const med = (id: string): LinkPick => ({ type: "medication", id });
+  const noteOf = (id: string): LinkPick => ({ type: "note", id });
+  const ids = (picks: LinkPick[]) => picks.map((p) => p.id);
+
+  it("goes came-from, then the next 3 upcoming events, then the last 5 recently viewed", () => {
+    expect(
+      ids(
+        linkSuggestions({
+          cameFrom: provider("p1"),
+          upcoming: [event("e1"), event("e2"), event("e3"), event("e4")],
+          recent: [med("m1"), noteOf("n1"), provider("p2"), med("m2"), noteOf("n2"), provider("p3")],
+        }),
+      ),
+    ).toEqual(["p1", "e1", "e2", "e3", "m1", "n1", "p2", "m2", "n2"]);
+  });
+
+  it("lists each once, where it first comes, and the counts are of what's left", () => {
+    expect(
+      ids(
+        linkSuggestions({
+          cameFrom: event("e1"),
+          upcoming: [event("e1"), event("e2"), event("e3"), event("e4")],
+          recent: [event("e2"), med("m1"), med("m1"), provider("p1")],
+        }),
+      ),
+    ).toEqual(["e1", "e2", "e3", "e4", "m1", "p1"]);
+  });
+
+  it("leaves out what's linked, the came-from record too", () => {
+    expect(
+      ids(
+        linkSuggestions({
+          cameFrom: provider("p1"),
+          upcoming: [event("e1"), event("e2")],
+          recent: [med("m1"), provider("p1")],
+          linked: ["p1", "e1", "m1"],
+        }),
+      ),
+    ).toEqual(["e2"]);
+  });
+
+  it("keeps only the chip's type when one is on", () => {
+    const all = {
+      cameFrom: provider("p1"),
+      upcoming: [event("e1"), event("e2")],
+      recent: [med("m1"), provider("p2"), noteOf("n1"), event("e3")],
+    };
+    expect(ids(linkSuggestions({ ...all, type: "provider" }))).toEqual(["p1", "p2"]);
+    expect(ids(linkSuggestions({ ...all, type: "event" }))).toEqual(["e1", "e2", "e3"]);
+    expect(ids(linkSuggestions({ ...all, type: "medication" }))).toEqual(["m1"]);
+    expect(ids(linkSuggestions({ ...all, type: "note" }))).toEqual(["n1"]);
+  });
+
+  it("is none with nothing to suggest", () => {
+    expect(linkSuggestions({})).toEqual([]);
+    expect(linkSuggestions({ cameFrom: null, upcoming: [], recent: [], linked: [], type: null })).toEqual([]);
+    expect(linkSuggestions({ cameFrom: provider("p1"), type: "note" })).toEqual([]);
   });
 });

@@ -34,7 +34,8 @@ import {
 // edited one and stops the reopened todo repeating; skip deletes this one
 // and writes the next; edits move the anchor as todoService does. What the
 // server makes of these uploads is syncTodos.int.test.ts's. The sheets'
-// note and event links (todo-links): `entryIds` on create and update.
+// note and event links (todo-links): `entryIds` on create; on update only
+// the edit sheet's own `addEntryIds` and `removeEntryIds` (B-990).
 
 const DAILY = "FREQ=DAILY;INTERVAL=1";
 const today = localDate(new Date(), TEST_TIME_ZONE);
@@ -312,25 +313,44 @@ describe("entry links (todo-links)", () => {
       })
     ).map((r) => r.entry_id);
 
-  test("updateTodo with entryIds links the new ones and unlinks the left-out ones, with the edit", async () => {
+  test("updateTodo links the added ones and unlinks the removed ones, with the edit, leaving the rest (B-990)", async () => {
     const { db } = await device(linkedWorld());
     ok(
       await updateTodo(db, PLAIN_ID, {
         title: "Ask about the drops",
-        entryIds: [VISIT.id, NEW_NOTE.id, SYMPTOM.id, "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb5ff"],
+        addEntryIds: [NEW_NOTE.id, VISIT.id, SYMPTOM.id, "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb5ff"],
+        removeEntryIds: [NOTE.id],
       }),
     );
-    // The note left out is unlinked; a symptom and an unknown id are ignored; the deleted note's link stays.
+    // A symptom, an unknown id and one linked already add nothing; the event and the deleted note's link stay.
     expect(await linksOf(db, PLAIN_ID)).toEqual([VISIT.id, NEW_NOTE.id, GONE_NOTE.id].sort());
     const ops = await queued(db);
     expect(ops.map((o) => o.op)).toEqual(["PATCH", "PUT", "DELETE"]);
     expect(oneTransaction(ops)).toBe(true);
 
-    ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops", entryIds: [] }));
+    ok(
+      await updateTodo(db, PLAIN_ID, {
+        title: "Ask about the drops",
+        removeEntryIds: [VISIT.id, NEW_NOTE.id],
+      }),
+    );
     expect(await linksOf(db, PLAIN_ID)).toEqual([GONE_NOTE.id]);
   });
 
-  test("without entryIds (a title or provider change) the note and event links stay", async () => {
+  test("a link another member made after the sheet opened survives a title-only save, and one they removed isn't remade (B-990)", async () => {
+    const shown = await device(linkedWorld());
+    const { db } = shown;
+    // While the sheet is open: someone links the new note and unlinks the event.
+    await shown.sync([entryTodo(NEW_NOTE.id, PLAIN_ID)]);
+    await shown.unsync([entryTodo(VISIT.id, PLAIN_ID)]);
+    await shown.settle();
+    // The sheet saves its title only (it changed no links), and an old caller's full list is ignored.
+    ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops", entryIds: [NOTE.id, VISIT.id] }));
+    expect(await linksOf(db, PLAIN_ID)).toEqual([NOTE.id, NEW_NOTE.id, GONE_NOTE.id].sort());
+    expect((await queued(db)).map((o) => o.op)).toEqual(["PATCH"]);
+  });
+
+  test("without added or removed ones (a title or provider change) the note and event links stay", async () => {
     const { db } = await device(linkedWorld());
     ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops" }));
     ok(await updateTodo(db, PLAIN_ID, { providerId: LARK.id }));

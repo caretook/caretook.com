@@ -1,6 +1,6 @@
 import type { LinkPick } from "~/lib/todos/linkOptions";
 
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../test/device";
 import type { Fixture } from "../../../test/fixtures";
@@ -14,7 +14,9 @@ import {
   tag,
   todo,
   TEST_GROUP,
+  TEST_USER,
 } from "../../../test/fixtures";
+import { forgetRecentlyViewed, recordView } from "../../lib/core/recentlyViewed";
 import { LinkToBox } from "./LinkToBox";
 
 // The shared "Link to" box (todo-links slice 1) on the real device index:
@@ -23,7 +25,8 @@ import { LinkToBox } from "./LinkToBox";
 // event; each choice with its type's icon and a second line; what's linked
 // left out. The options' words are `linkOptions.test.ts`'s. Slice 3: the
 // type chips and typed type words, and what the box finds by (B-946's
-// phones and linked conditions, B-988, B-989).
+// phones and linked conditions, B-988, B-989). Slice 5: what the empty box
+// suggests (B-947); their order is `linkOptions.test.ts`'s.
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -69,9 +72,10 @@ const show = (
   linked: string[] = [],
   onPick: (pick: LinkPick) => void = () => {},
   fixtures: readonly Fixture[] = WORLD,
+  cameFrom: LinkPick | null = null,
 ) =>
   renderWithDevice({
-    element: <LinkToBox groupId={TEST_GROUP.id} linked={linked} onPick={onPick} />,
+    element: <LinkToBox groupId={TEST_GROUP.id} linked={linked} onPick={onPick} cameFrom={cameFrom} />,
     url: `/app/groups/${TEST_GROUP.id}/todos`,
     fixtures,
     search: true,
@@ -95,6 +99,8 @@ const search = async (text: string) => {
   await userEvent.keyboard(text);
 };
 const names = () => optionText().flatMap((t) => (t && t !== "Nothing to link matches" ? [t] : []));
+
+afterEach(() => forgetRecentlyViewed());
 
 describe("the Link to box", () => {
   test("finds a provider, a medication, a note and an event in one list, title matches first", async () => {
@@ -285,6 +291,8 @@ describe("what the Link to box finds by", () => {
     // A type word that finds nothing of its type is searched as typed: an event named "Eye doctor".
     await search("eye doctor");
     await expect.poll(() => names().map((t) => t.slice(0, 10))).toEqual(["Eye doctor"]);
+    // Its type word didn't narrow it, so its chip isn't on.
+    await expect.poll(pressed).toEqual(["All"]);
   });
 
   test("renaming a tag, or tagging and untagging, refreshes an open tag-name search (B-989)", async () => {
@@ -318,5 +326,84 @@ describe("what the Link to box finds by", () => {
     await expect.poll(() => names().length).toBe(2);
     expect(names()[0]).toMatch(/^Lisinopril/);
     expect(names()[1]).toMatch(/^Ask whether the lisinopril/);
+  });
+});
+
+describe("the empty Link to box's suggestions (B-947)", () => {
+  const SECOND = fx.event({
+    id: "5b2d8e61-3c7a-4f19-9e04-1d6a2c8b0c01",
+    title: "Physio session",
+    occurredAt: when(3 * DAY + HOUR),
+  });
+  const THIRD = fx.event({
+    id: "5b2d8e61-3c7a-4f19-9e04-1d6a2c8b0c02",
+    title: "Dentist",
+    occurredAt: when(4 * DAY),
+  });
+  const FOURTH = fx.event({
+    id: "5b2d8e61-3c7a-4f19-9e04-1d6a2c8b0c03",
+    title: "Hearing test",
+    occurredAt: when(6 * DAY),
+  });
+  const PAST = fx.event({
+    id: "5b2d8e61-3c7a-4f19-9e04-1d6a2c8b0c04",
+    title: "Flu shot",
+    occurredAt: when(-2 * DAY),
+  });
+  const SUGGESTING = [...WORLD, SECOND, THIRD, FOURTH, PAST];
+  const fromLark = (linked: string[] = [], onPick: (pick: LinkPick) => void = () => {}) => {
+    // This user opened the medication's page, then the provider's.
+    recordView(TEST_USER.id, { type: "medication", id: METFORMIN.id });
+    recordView(TEST_USER.id, { type: "provider", id: LARK.id });
+    return show(linked, onPick, SUGGESTING, { type: "provider", id: LARK.id });
+  };
+  /** The options' names (each option's first line). */
+  const firstWords = () =>
+    [...document.querySelectorAll<HTMLElement>('[role="option"]')].map(
+      (o) => o.firstElementChild?.textContent,
+    );
+
+  test("from a provider's sheet: that provider, the next three events, then a recently viewed medication", async () => {
+    await fromLark();
+    await userEvent.click(BOX());
+    await expect
+      .poll(firstWords)
+      .toEqual(["Dr. Mira Lark", "Lark follow-up", "Physio session", "Dentist", "Metformin"]);
+    // Never a cancelled or past event, or a fourth.
+    for (const gone of ["Lark checkup", "Flu shot", "Hearing test"])
+      expect(names().join(" ")).not.toContain(gone);
+  });
+
+  test("a chip, or a type word alone, narrows them; typing replaces them with results", async () => {
+    await fromLark();
+    await userEvent.click(BOX());
+    await expect.poll(() => names().length).toBe(5);
+    await userEvent.click(chip("Meds"));
+    await expect.poll(firstWords).toEqual(["Metformin"]);
+    await userEvent.click(chip("Events"));
+    await expect.poll(firstWords).toEqual(["Lark follow-up", "Physio session", "Dentist"]);
+    await userEvent.click(chip("All"));
+    await search("providers");
+    await expect.poll(pressed).toEqual(["Providers"]);
+    await expect.poll(firstWords).toEqual(["Dr. Mira Lark"]);
+    await search("diet");
+    await expect.poll(() => names().map((t) => t.slice(0, 14))).toEqual(["Asked Dr. Lark"]);
+    expect(pressed()).toEqual(["All"]);
+  });
+
+  test("what's linked is left out, and a pick closes the list until an arrow key or typing opens it", async () => {
+    const onPick = vi.fn<(pick: LinkPick) => void>();
+    await fromLark([LARK.id, VISIT.id], onPick);
+    await userEvent.click(BOX());
+    await expect.poll(firstWords).toEqual(["Physio session", "Dentist", "Hearing test", "Metformin"]);
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await expect.poll(() => onPick.mock.calls).toEqual([[{ type: "event", id: SECOND.id }]]);
+    await expect.element(BOX()).toHaveValue("");
+    await expect.poll(() => optionText().length).toBe(0);
+    // An arrow key opens it again.
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => firstWords().length).toBe(4);
+    await userEvent.keyboard("dentist");
+    await expect.poll(firstWords).toEqual(["Dentist"]);
   });
 });

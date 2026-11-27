@@ -6,17 +6,18 @@ import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 import type { TagRow } from "~/lib/tags/tags.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
-import type { LinkCandidate, LinkType } from "./linkOptions";
+import type { LinkCandidate, LinkPick, LinkType } from "./linkOptions";
 
 import { isEmptySearch } from "@caretook/data/schema";
+import { upcomingItems } from "~/lib/appointments/upcoming";
 import { previewText } from "~/lib/live-notes/notes.sync";
 import { toMedication } from "~/lib/medications/medications.sync";
 import { toProvider } from "~/lib/providers/providers.sync";
 import { matchingTagIds, parseSearch, searchGroup } from "~/lib/search/search.sync";
 import { compareHits } from "~/lib/search/searchResults";
 import { tagsQuery } from "~/lib/tags/tags.sync";
-import { readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
-import { linkTypeWord } from "./linkOptions";
+import { readRows, toLocalTimestamp, toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { linkSuggestions, linkTypeWord, SUGGESTED_UPCOMING } from "./linkOptions";
 
 // The "Link to…" box's search (todo-links): what a todo can link to (its
 // provider and medication slots, live notes and events) that matches the
@@ -136,7 +137,9 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
  * keeps only its type, as `type` does (the box's chip); the word wins.
  * When that finds nothing, the whole text is searched as typed (an event
  * named "Eye doctor" is still found by "eye doctor"). An empty or
- * exclusion-only text (or a type word alone) finds nothing.
+ * exclusion-only text (or a type word alone) finds nothing. `wordType`
+ * is the type word the list was narrowed by: null with none, or when the
+ * whole text was searched instead (its chip isn't on then).
  * Throws while the index is being created; the caller says "Preparing search…".
  */
 export const searchLinkables = async (
@@ -148,11 +151,11 @@ export const searchLinkables = async (
     limit = LINK_SEARCH_LIMIT,
     type: chosen = null,
   }: { exclude?: readonly string[]; limit?: number; type?: LinkType | null } = {},
-): Promise<LinkCandidate[]> => {
+): Promise<{ candidates: LinkCandidate[]; wordType: LinkType | null }> => {
   const word = linkTypeWord(text);
   const found = await searchOne(db, groupId, word.rest, word.type ?? chosen, exclude, limit);
-  if (found.length || !word.type || !word.rest) return found;
-  return searchOne(db, groupId, text, chosen, exclude, limit);
+  if (found.length || !word.type || !word.rest) return { candidates: found, wordType: word.type };
+  return { candidates: await searchOne(db, groupId, text, chosen, exclude, limit), wordType: null };
 };
 
 /** `searchLinkables` for one reading of the text: `text` to search, of `type` only (null: all). */
@@ -202,4 +205,83 @@ const searchOne = async (
     .sort(compareHits)
     .slice(0, limit)
     .flatMap((hit) => found[hit.type]?.get(hit.id) ?? []);
+};
+
+// --- Suggestions (B-947) -----------------------------------------------------
+
+/** The rows `picks` name, by id: those that are live in the group (a note or event as its own kind). */
+const readPicks = async (db: SyncDb, groupId: string, picks: readonly LinkPick[]) => {
+  const of = (...types: LinkType[]) =>
+    JSON.stringify(picks.filter((p) => types.includes(p.type)).map((p) => p.id));
+  const [providers, medications, entries] = await Promise.all([
+    readProviders(db, groupId, of("provider")),
+    readMedications(db, groupId, of("medication")),
+    readEntries(db, groupId, of("note", "event")),
+  ]);
+  return new Map([...providers, ...medications, ...entries]);
+};
+
+const DAY_MS = 86_400_000;
+
+/**
+ * The group's next `limit` live, not cancelled events at `now`: upcoming or
+ * in progress (an all-day one through its day), in Upcoming's order.
+ */
+const upcomingEvents = async (db: SyncDb, groupId: string, now: Date, limit: number): Promise<LinkPick[]> => {
+  const at = toLocalTimestamp(now);
+  // An all-day event started up to a day and a bit ago may still be today, in its own zone.
+  const allDayFrom = toLocalTimestamp(new Date(now.getTime() - 2 * DAY_MS));
+  const rows = await db.powersync.getAll<EntryRow>(
+    `SELECT * FROM timeline_entry
+     WHERE group_id = ? AND kind = 'event' AND deleted_at IS NULL AND cancelled_at IS NULL
+       AND (occurred_at > ? OR ends_at > ? OR (all_day = 1 AND occurred_at > ?))
+     ORDER BY occurred_at, id LIMIT ?`,
+    [groupId, at, at, allDayFrom, limit + 10],
+  );
+  const events = rows.flatMap((row) => toTimelineEntry(row) ?? []);
+  return upcomingItems(events, now)
+    .slice(0, limit)
+    .map((e) => ({ type: "event", id: e.id }));
+};
+
+/**
+ * What the empty box suggests (`linkSuggestions`'s order): the record it
+ * was opened from, the group's next events, then what this user viewed
+ * recently (`recent`, newest first), each only while it's live in the group
+ * (a cancelled event left out), with what's `linked` left out and only
+ * `type` when one is chosen. Needs no search index: it works while that's
+ * prepared.
+ */
+export const suggestLinkables = async (
+  db: SyncDb,
+  groupId: string,
+  {
+    cameFrom = null,
+    recent = [],
+    linked = [],
+    type = null,
+    now = new Date(),
+  }: {
+    cameFrom?: LinkPick | null;
+    recent?: readonly LinkPick[];
+    linked?: readonly string[];
+    type?: LinkType | null;
+    now?: Date;
+  } = {},
+): Promise<LinkCandidate[]> => {
+  // Enough upcoming ones for three after the linked and the came-from one are left out.
+  const upcoming = await upcomingEvents(db, groupId, now, SUGGESTED_UPCOMING + linked.length + 1);
+  const found = await readPicks(db, groupId, [...(cameFrom ? [cameFrom] : []), ...upcoming, ...recent]);
+  const live = (picks: readonly LinkPick[]) =>
+    picks.flatMap((p): LinkPick[] => {
+      const row = found.get(p.id);
+      return row ? [{ type: row.type, id: row.id }] : [];
+    });
+  return linkSuggestions({
+    cameFrom: cameFrom ? (live([cameFrom])[0] ?? null) : null,
+    upcoming: live(upcoming),
+    recent: live(recent),
+    linked,
+    type,
+  }).flatMap((p) => found.get(p.id) ?? []);
 };
