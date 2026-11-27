@@ -512,8 +512,13 @@ const noteUpdate: UploadEntry = {
 // id and key from the group and the name, so a replay, or another device's
 // PUT of the same name in any case or spacing, lands on the one row. Rows are
 // never changed or removed from a device. Loggers only (viewers refused).
+// Archiving (`archived_at`) and a merge's tombstone (`replaced_by_id`) are
+// the server's (oRPC, symptom-catalog-2): a PUT's values are ignored.
 const symptomType: UploadEntry = {
-  columns: columnsOf({ fixed: ["group_id", "name"], serverSet: ["name_key"] }),
+  columns: columnsOf({
+    fixed: ["group_id", "name"],
+    serverSet: ["name_key", "archived_at", "replaced_by_id"],
+  }),
   handle: async (ctx, op) => {
     if (op.op !== "PUT") return readOnly("symptom_type", op.op);
     const of = (column: string) => text(op.data?.[column]) ?? "";
