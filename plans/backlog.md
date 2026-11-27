@@ -24,7 +24,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `todo-subtasks-3` | hold | `todo-subtasks-2` | — | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | — | `todo-subtasks-3` | — | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
-| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/entry/useLiveEntry.ts`, `apps/web/app/routes/app/groups/provider/LinkedEntries.tsx`, `apps/web/app/routes/app/groups/todo/TodoEntryLinks.tsx`, `apps/web/app/components/visitPrep/`, `apps/web/app/lib/tags/tags.sync.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/syncTags` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
@@ -312,7 +312,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
 | B-934 | chore | triaged | fixes-tooling |  | Archive finished rows out of the PRD registry table (75 done rows clutter it) |
 | B-935 | bug | triaged | fixes-tooling |  | prd tidy lists lease .waiting files as safe to remove, then refuses them as not a lease |
-| B-936 | bug | ready | fixes-bug | prd/fixes-bug | Back from an entry opened on a provider's page goes to the timeline, not back to the provider |
+| B-936 | bug | landed | fixes-bug | prd/fixes-bug | Back from an entry opened on a provider's page goes to the timeline, not back to the provider |
 | B-937 | change | landed | fixes-ui | prd/fixes-ui | Provider page's linked entries use the timeline's entry row instead of their own list |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
 | B-939 | change | landed | fixes-ui | prd/fixes-ui | Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand |
@@ -327,7 +327,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-948 | feature | triaged | todo-links |  | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
-| B-951 | bug | ready | fixes-bug | prd/fixes-bug | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
+| B-951 | bug | landed | fixes-bug | prd/fixes-bug | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
 | B-952 | chore | triaged | fixes-tooling |  | Standing PRD with only blocked items (held, waiting on another topic) holds a lane idle: after a landing with nothing runnable it should close itself (prd rm) so the dispatcher starts the next topic |
 | B-953 | bug | triaged | fixes-tooling |  | Tooling test loops/stack.test.mjs 'rm.sh from inside the worktree it removes (B-812)' fails 2 of 3 on dev: the orchestrator session isn't ended (expected SIGTERM, got null) |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
@@ -2136,7 +2136,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-936 · bug · Back from an entry opened on a provider's page goes to the timeline, not back to the provider
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 6bed3d06
@@ -2276,7 +2276,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-951 · bug · Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61)
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 3618ca7a
@@ -2301,6 +2301,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): Backlog session 2026-11-27 ~06:05, dev 48de4b6f+: failed 4 of 4 runs of that file alone at low load, the same with the session's prompt edit stashed, so not caused by it. Run from inside a Claude Code session; may depend on that environment. Both tests: 'ends its own orchestrator's session once the worktree is gone', 'refuses another caller inside it'
+- 2026-11-27 (prd/fixes-bug): Seen again 2026-11-27 in fixes-bug's test:tooling run from its orchestrator session (2 of 3, same assertions); wave 17 touched no scripts/loops file.
 
 ### B-954 · bug · Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause
 
