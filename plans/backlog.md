@@ -147,8 +147,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-196 | feature | triaged | connectors-4 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-252 | feature | landed | connectors-3 | prd/connectors-3 | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
-| B-253 | feature | landed | connectors-3 | prd/connectors-3 | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
+| B-252 | feature | staging | connectors-3 | prd/connectors-3 | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
+| B-253 | feature | staging | connectors-3 | prd/connectors-3 | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-294 | bug | triaged | sync-safety-3 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
@@ -216,8 +216,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-752 | bug | triaged | fixes-bug | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
-| B-760 | feature | landed | connectors-3 | prd/connectors-3 | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
-| B-761 | feature | landed | connectors-3 | prd/connectors-3 | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
+| B-760 | feature | staging | connectors-3 | prd/connectors-3 | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
+| B-761 | feature | staging | connectors-3 | prd/connectors-3 | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
 | B-772 | chore | triaged | test-time-gates-2 |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
@@ -244,23 +244,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-887 | change | triaged | marketing |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
-| B-890 | feature | landed | symptom-catalog-2 | prd/symptom-catalog-2 | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
-| B-891 | feature | landed | tags-3 | prd/tags-3 | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
-| B-895 | feature | landed | tags-3 | prd/tags-3 | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
+| B-890 | feature | staging | symptom-catalog-2 | prd/symptom-catalog-2 | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
+| B-891 | feature | staging | tags-3 | prd/tags-3 | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
+| B-895 | feature | staging | tags-3 | prd/tags-3 | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
-| B-898 | change | landed | symptom-catalog-2 | prd/symptom-catalog-2 | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
+| B-898 | change | staging | symptom-catalog-2 | prd/symptom-catalog-2 | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
-| B-917 | feature | landed | connectors-3 | prd/connectors-3 | Connector: a member's AI reads a photo of a hand-filled weekly medication sheet and logs its doses, adding only what isn't already logged |
+| B-917 | feature | staging | connectors-3 | prd/connectors-3 | Connector: a member's AI reads a photo of a hand-filled weekly medication sheet and logs its doses, adding only what isn't already logged |
 | B-918 | feature | triaged | care-booklet |  | Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed |
 | B-919 | feature | triaged | care-booklet |  | Printed medication guide page for each medication, as booklet pages |
 | B-920 | feature | triaged | symptom-catalog-3 |  | Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half) |
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
-| B-941 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Todos page shows each parent with all its nested todos under it, at every level |
-| B-942 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
-| B-943 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
+| B-941 | feature | staging | todo-subtasks-3 | prd/todo-subtasks-3 | Todos page shows each parent with all its nested todos under it, at every level |
+| B-942 | feature | staging | todo-subtasks-3 | prd/todo-subtasks-3 | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
+| B-943 | feature | staging | todo-subtasks-3 | prd/todo-subtasks-3 | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
 | B-944 | feature | in-progress | todo-links | prd/todo-links | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
 | B-945 | feature | in-progress | todo-links | prd/todo-links | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
 | B-946 | feature | in-progress | todo-links | prd/todo-links | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
@@ -269,7 +269,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
-| B-955 | change | landed | tags-3 | prd/tags-3 | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
+| B-955 | change | staging | tags-3 | prd/tags-3 | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-964 | feature | triaged | todo-links-2 |  | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
@@ -280,12 +280,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-970 | bug | staging | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
 | B-971 | bug | staging | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
-| B-974 | bug | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row) |
+| B-974 | bug | staging | todo-subtasks-3 | prd/todo-subtasks-3 | Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row) |
 | B-975 | change | triaged | fixes-ui |  | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
-| B-976 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry vitals in any order: '140/78 74bpm 97 o2' drops the O2 (only 'o2 97' works); HR/bpm the same, label before the number works, after doesn't. Very common entries: accept label before or after each number |
+| B-976 | bug | staging | fixes-bug | prd/fixes-bug | Quick entry vitals in any order: '140/78 74bpm 97 o2' drops the O2 (only 'o2 97' works); HR/bpm the same, label before the number works, after doesn't. Very common entries: accept label before or after each number |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
-| B-978 | bug | landed | fixes-bug | prd/fixes-bug | Installed PWA shows no update notice until it's closed and reopened |
-| B-979 | bug | landed | fixes-bug | prd/fixes-bug | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
+| B-978 | bug | staging | fixes-bug | prd/fixes-bug | Installed PWA shows no update notice until it's closed and reopened |
+| B-979 | bug | staging | fixes-bug | prd/fixes-bug | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
 | B-980 | bug | triaged | fixes-ui |  | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
 | B-982 | bug | landed | fixes-bug | prd/fixes-bug | past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed |
@@ -293,7 +293,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-984 | bug | landed | fixes-bug | prd/fixes-bug | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
 | B-985 | bug | landed | fixes-bug | prd/fixes-bug | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
 | B-986 | bug | landed | fixes-bug | prd/fixes-bug | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
-| B-987 | bug | in-progress | fixes-bug | prd/fixes-bug | log_dose's pass read (slotDose, assistantActionService.ts ~405) pages at 100 with includeDeleted, so a group with over 100 passes ever made can miss a pass |
+| B-987 | bug | ready | fixes-bug | prd/fixes-bug | log_dose's pass read (slotDose, assistantActionService.ts ~405) pages at 100 with includeDeleted, so a group with over 100 passes ever made can miss a pass |
 | B-988 | bug | in-progress | todo-links | prd/todo-links | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
 | B-989 | bug | in-progress | todo-links | prd/todo-links | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
 
@@ -438,7 +438,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-252 · feature · Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming
 
-- status: landed
+- status: staging
 - prd: connectors-3
 - owner: prd/connectors-3
 - commit: 6e026ab18
@@ -448,7 +448,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-253 · feature · Connector: add_todo can make a repeating todo (daily, weekly on days, monthly)
 
-- status: landed
+- status: staging
 - prd: connectors-3
 - owner: prd/connectors-3
 - commit: 6e026ab18
@@ -1171,7 +1171,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-760 · feature · Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address)
 
-- status: landed
+- status: staging
 - prd: connectors-3
 - owner: prd/connectors-3
 - commit: b73368af5
@@ -1180,7 +1180,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-761 · feature · Connector: add_medication, so a member's own AI can add a medication with its type and schedule
 
-- status: landed
+- status: staging
 - prd: connectors-3
 - owner: prd/connectors-3
 - commit: 350cbf8a5
@@ -1447,7 +1447,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-890 · feature · Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom
 
-- status: landed
+- status: staging
 - prd: symptom-catalog-2
 - owner: prd/symptom-catalog-2
 - commit: 1b74a52ea
@@ -1458,7 +1458,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-891 · feature · Tags management page under group settings: list, rename, delete (and merge?) the group's tags
 
-- status: landed
+- status: staging
 - prd: tags-3
 - owner: prd/tags-3
 - commit: 964cfbcf2
@@ -1468,7 +1468,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-895 · feature · Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it
 
-- status: landed
+- status: staging
 - prd: tags-3
 - owner: prd/tags-3
 - commit: 4138c986e
@@ -1487,7 +1487,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-898 · change · Quick entry should use the similar symptom by default on Enter, with an option to add new instead,…
 
-- status: landed
+- status: staging
 - prd: symptom-catalog-2
 - owner: prd/symptom-catalog-2
 - commit: 284076ebd
@@ -1518,7 +1518,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-917 · feature · Connector: a member's AI reads a photo of a hand-filled weekly medication sheet and logs its doses, adding only what isn't already logged
 
-- status: landed
+- status: staging
 - prd: connectors-3
 - owner: prd/connectors-3
 - commit: 350cbf8a5
@@ -1585,7 +1585,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-941 · feature · Todos page shows each parent with all its nested todos under it, at every level
 
-- status: landed
+- status: staging
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1598,7 +1598,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-942 · feature · Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter
 
-- status: landed
+- status: staging
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1612,7 +1612,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-943 · feature · Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made
 
-- status: landed
+- status: staging
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1703,7 +1703,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-955 · change · One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too
 
-- status: landed
+- status: staging
 - prd: tags-3
 - owner: prd/tags-3
 - commit: 4138c986e
@@ -1805,7 +1805,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-974 · bug · Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row)
 
-- status: landed
+- status: staging
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1822,7 +1822,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-976 · bug · Quick entry vitals in any order: '140/78 74bpm 97 o2' drops the O2 (only 'o2 97' works); HR/bpm the same, label before the number works, after doesn't. Very common entries: accept label before or after each number
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: d268a0ca5
@@ -1836,7 +1836,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-978 · bug · Installed PWA shows no update notice until it's closed and reopened
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: e524785a8
@@ -1845,7 +1845,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-979 · bug · Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata)
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 336733f55
@@ -1919,10 +1919,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-987 · bug · log_dose's pass read (slotDose, assistantActionService.ts ~405) pages at 100 with includeDeleted, so a group with over 100 passes ever made can miss a pass
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 061b55605
 
 - 2026-11-27 (prd/fixes-bug): From slice 86 (B-986) hand-off: medicationPassModel.list with includeDeleted and paginate limit 100 in slotDose; deleted passes are unbounded. Fix as B-986 did: drop paginate.
 
