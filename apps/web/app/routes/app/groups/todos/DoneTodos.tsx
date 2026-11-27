@@ -1,7 +1,7 @@
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { Button, TITLE_SUB } from "~/components/ui";
-import { TodoRow } from "./TodoRow";
+import { TodoRow } from "~/components/todos";
 
 type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo">;
 

@@ -682,6 +682,8 @@ describe("read tools", { timeout: 60_000 }, () => {
     for (const hidden of ["Too far", "No day", "Done already", "Old reminder"])
       expect(JSON.stringify(res)).not.toContain(hidden);
 
+    expect(items.every((i) => i.kind !== "todo" || ("partOf" in i && i.partOf === null))).toBe(true);
+
     const listed = await callTool(handler, token, "list_todos");
     const byTitle = new Map(
       (listed.structuredContent.todos as { title: string; repeats: string | null }[]).map((t) => [
@@ -691,6 +693,44 @@ describe("read tools", { timeout: 60_000 }, () => {
     );
     expect(byTitle.get("Weekly bins")?.repeats).toMatch(/^Every Mon/);
     expect(byTitle.get("Late call")?.repeats).toBeNull();
+  });
+
+  it("upcoming: a subtask only when assigned or due before its parent, with its parent's title (todo-subtasks-3)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const day = (offset: number) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(
+        new Date(Date.now() + offset * 24 * 60 * 60 * 1000),
+      );
+    const todo = async (title: string, extra: Record<string, unknown> = {}) =>
+      ok(await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
+    const move = await todo("Get ready for the move", { dueOn: day(6) });
+    await todo("Label the boxes", { parentId: move.id, dueOn: day(6) });
+    await todo("Book the van", { parentId: move.id, dueOn: day(6), assigneeId: w.viewer.user.id });
+    await todo("Pack the kitchen", { parentId: move.id, dueOn: day(3) });
+    const someday = await todo("Sort the attic");
+    await todo("Call the charity shop", { parentId: someday.id, dueOn: day(4) });
+    const token = await w.connect(w.viewer);
+
+    const res = await callTool(handler, token, "upcoming");
+    const items = res.structuredContent.items as {
+      title: string;
+      partOf: { id: string; title: string } | null;
+    }[];
+    const listed = items.map((i) => [i.title, i.partOf?.title ?? null]);
+    expect(listed.slice(0, 2)).toEqual([
+      ["Pack the kitchen", "Get ready for the move"],
+      ["Call the charity shop", "Sort the attic"],
+    ]);
+    // The same day, untimed: their order is by id.
+    expect(listed.slice(2).sort()).toEqual([
+      ["Book the van", "Get ready for the move"],
+      ["Get ready for the move", null],
+    ]);
+    expect(items[0]?.partOf?.id).toBe(move.id);
+    const text = res.content.map((c) => c.text).join("\n");
+    expect(text).toMatch(/ todo: Book the van \(part of Get ready for the move\) \(/);
+    expect(JSON.stringify(res)).not.toContain("Label the boxes");
   });
 
   it("list_todos: open by default in the app's order, done on request, paged, mine, never another group's", async () => {

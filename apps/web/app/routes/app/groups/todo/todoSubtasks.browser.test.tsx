@@ -74,6 +74,8 @@ describe("the Subtasks band", () => {
     const device = await open(TOP_FIELDS.id);
     await expect.element(heading("Get ready for the move")).toBeInTheDocument();
     await expect.element(PROGRESS()).toHaveTextContent("0 of 2 done");
+    // The shared quick add, in its full form.
+    await expect.element(band().getByCss('[data-todo-quick-add="full"]')).toBeInTheDocument();
 
     await userEvent.fill(page.getByRole("textbox", { name: "New subtask" }), "Book the van");
     await userEvent.click(ADD());

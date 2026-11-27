@@ -6,6 +6,7 @@ import {
   MAX_TODO_DEPTH,
   rollupOf,
   subtaskProgress,
+  upcomingListsSubtask,
 } from "./todoTree";
 
 const DONE = "2026-11-20T10:00:00.000Z";
@@ -88,5 +89,26 @@ describe("listsOnItsOwn", () => {
     ["a subtask with a blank typed name", { ...plain, parentId: PARENT, assigneeName: "  " }, false],
   ])("%s: %s", (_, todo, expected) => {
     expect(listsOnItsOwn(todo)).toBe(expected);
+  });
+});
+
+describe("upcomingListsSubtask", () => {
+  const step = { parentId: PARENT, dueOn: "2026-11-30", assigneeId: null, assigneeName: null };
+
+  it.each([
+    ["a top-level todo", { ...step, parentId: null }, "2026-11-30", true],
+    ["a subtask on its parent's day", step, "2026-11-30", false],
+    ["a subtask a day before its parent", { ...step, dueOn: "2026-11-29" }, "2026-11-30", true],
+    [
+      "a subtask assigned to a member, on its parent's day",
+      { ...step, assigneeId: USER },
+      "2026-11-30",
+      true,
+    ],
+    ["a subtask assigned to a typed name", { ...step, assigneeName: "Aunt May" }, "2026-11-30", true],
+    ["a dated subtask under an undated parent", step, null, true],
+    ["an undated, unassigned subtask under an undated parent", { ...step, dueOn: null }, null, false],
+  ])("%s", (_, todo, parentDueOn, expected) => {
+    expect(upcomingListsSubtask(todo, parentDueOn)).toBe(expected);
   });
 });

@@ -1,45 +1,39 @@
-import type { FormEvent } from "react";
 import type { TodoTickProgress } from "~/components/todos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
-import { canCompleteTodo, isTodoWriter } from "@caretook/data/schema";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { canCompleteTodo } from "@caretook/data/schema";
 import { Link } from "react-router";
-import { TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
-import { Button, Field, LINK, Message, Section } from "~/components/ui";
+import { mayAddSubtask, TodoQuickAdd, TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
+import { LINK, Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { getSync } from "~/lib/sync";
-import { createTodo } from "~/lib/todos/todos.sync";
 
 /**
  * The Subtasks band (todo-subtasks): each live subtask with its tick (for
  * whoever may complete it, with Undo as everywhere), its title opening its
- * page, "n of m done", and writers' inline "Add subtask" while the todo may
- * take one. A subtask with open subtasks of its own has a disabled tick
+ * page, "n of m done", and writers' inline "Add subtask" (the shared
+ * `TodoQuickAdd`, full) while the todo may take one. A subtask with open subtasks of its own has a disabled tick
  * reading "n of m" (`progressOf`). No subtasks and no add: no band. The parent follows its
  * children on the device (the rollup), so the page shows it live.
  */
 export function TodoSubtasks({
-  todoId,
-  title,
+  todo,
+  ancestors,
   subtasks,
   progress,
   progressOf,
-  canAdd,
 }: {
-  todoId: string;
-  title: string;
+  todo: LocalTodo;
+  /** The todo's ancestor chain, for whether it may take a subtask. */
+  ancestors: readonly unknown[];
   subtasks: LocalTodo[];
   progress: { done: number; total: number };
   /** Each subtask's own progress, from the group's one query. */
   progressOf: ReadonlyMap<string, TodoTickProgress>;
-  canAdd: boolean;
 }) {
   const group = useGroup();
   const tick = useTodoTick(group.id);
-  const adding = canAdd && isTodoWriter(group.role);
+  const adding = mayAddSubtask(group.role, ancestors, todo);
   if (!subtasks.length && !adding) return null;
 
   return (
@@ -51,7 +45,7 @@ export function TodoSubtasks({
           </p>
           <ul
             className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border px-3"
-            aria-label={`Subtasks of ${title}`}
+            aria-label={`Subtasks of ${todo.title}`}
           >
             {subtasks.map((sub) => (
               <li key={sub.id} className="flex items-start gap-3 py-2.5" data-subtask={sub.id}>
@@ -80,52 +74,8 @@ export function TodoSubtasks({
           {tick.error && <Message tone="error">{tick.error}</Message>}
         </>
       )}
-      {adding && <AddSubtask groupId={group.id} parentId={todoId} />}
+      {adding && <TodoQuickAdd parent={todo} ancestors={ancestors} form="full" />}
     </Section>
-  );
-}
-
-/** A title field writing `createTodo` with this todo as the parent; it stays open for the next. */
-function AddSubtask({ groupId, parentId }: { groupId: string; parentId: string }) {
-  const [value, setValue] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const title = value.trim();
-    if (!title || busy) return;
-    setBusy(true);
-    setError(null);
-    void createTodo(getSync(), groupId, { title, parentId })
-      .then((result) => (result.ok ? setValue("") : setError(result.error)))
-      .catch((err: unknown) => {
-        console.error("Couldn't add the subtask", err);
-        setError("Couldn't save that. Try again.");
-      })
-      .finally(() => setBusy(false));
-  };
-
-  return (
-    <form className="space-y-2" onSubmit={submit} data-subtask-add="">
-      <div className="flex items-end gap-2">
-        <Field label="New subtask" labelHidden kind="input" className="min-w-0 flex-1">
-          {(control) => (
-            <input
-              {...control}
-              type="text"
-              placeholder="Add a subtask"
-              value={value}
-              onChange={(e) => setValue(e.currentTarget.value)}
-            />
-          )}
-        </Field>
-        <Button type="submit" icon={Plus} disabled={!value.trim()} busy={busy} busyLabel="Adding…">
-          Add subtask
-        </Button>
-      </div>
-      {error && <Message tone="error">{error}</Message>}
-    </form>
   );
 }
 
