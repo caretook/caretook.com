@@ -26,13 +26,13 @@ Notes for every wave:
 
 **Wave 18 landed 2026-11-26** as dev dc9bffb through PR #237, `--no-review` (Codex out of credits); CI components failed only dev's doc.test.mjs (B-928; run 45906838038, 765d0282); landed unsynced (dev's 1 commit in other files); report a290; to-test/2026-11-26-1755-fixes-ui.md. Slices 99–102 all opus (B-899 copy link into the entry ⋯; B-923 specialty datalist; B-924 provider header Edit + ⋯; B-925 arrows `-me-2`); rows in the history file. Two CI fix rounds for tests asserting the old menus and roundtrip's viewer step. Lesson: changing who sees a ⋯ breaks tests outside its folder and `scripts/browser-checks/`; grep `aria-label^="Actions"` there when writing such a slice. `browser --suite` is classifier-blocked (ask before it); ran `--changed --base dev`. Docs folded (197999f6). Slice worktrees removed. Rotated after (past the soft context limit).
 
-**Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus. Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
+**Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus; all merged, items done. Wave gate: CI components (proposed). For the landing docs: providers.md's "Full rows carry no contact details" (B-422) is reversed by 105; 103 added `elsewhere` to `TimelineEntryRow` and `rowDayLabel` (timeline.md), and `LinkedEntries` imports the timeline route folder (follow-up filed). Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
 
-| Slice | Item                                              | State                                           | Merge |
-| ----- | ------------------------------------------------- | ----------------------------------------------- | ----- |
-| 103   | B-937 linked entries use the timeline row (opus)  | working, spawned 2026-11-27                     |       |
-| 104   | B-939 medication brand names (opus)               | handed off dfddba9b, reviewed; merges after 103 |       |
-| 105   | B-940 provider rows show phone and address (opus) | handed off 4f49f76d, reviewed; merges after 103 |       |
+| Slice | Item                                              | State                   | Merge    |
+| ----- | ------------------------------------------------- | ----------------------- | -------- |
+| 103   | B-937 linked entries use the timeline row (opus)  | merged (slice 683a0e4b) | 88660c00 |
+| 104   | B-939 medication brand names (opus)               | merged (slice dfddba9b) | 13111221 |
+| 105   | B-940 provider rows show phone and address (opus) | merged (slice 4f49f76d) | 0ebc73a6 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
