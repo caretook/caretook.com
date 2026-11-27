@@ -12,8 +12,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
+| 82 | B-979 | started (opus) | — |
 
-**Idle after wave 20** (landed through PR #273, 2026-11-27, Codex clean on 9fdb0b9, CI components green run 46060732992; to-test `to-test/2026-11-27-1513-fixes-bug.md`; landed unsynced, dev had 1 unrelated commit). Slice 81 (B-978, opus, merge e524785a8): the page asks its registration for a new worker on resume and hourly while visible, at most once per 5 min (folded into app-shell.md). Browser checks: app-shell and layout-offline by name (no `--suite` without asking: the user's rule). **Next session:** ingest, `risa backlog list`; write wave 21 (slices from 82) from new triaged items. 2026-11-27 recheck: nothing runnable; B-979 (search result tag chips stale after rename/recolor) waits on tags-3, whose hot files include `apps/web/app/routes/app/groups/search/` (`useSearchPage.ts`); write it once tags-3 lands. Second 2026-11-27 recheck: unchanged (tags-3 still running). Third 2026-11-27 recheck (session fixes-bug-d7): unchanged; asked tags-3-7a to message on landing, background watch on its PRD state. Worktree removed to free the lane. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
+**Wave 21 under way** (session fixes-bug-d7): tags-3 landed in dev as ba42f193c; synced with `--force` for its search code. Slice 82 (B-979, opus): search result tag chips follow a rename or recolor. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
@@ -857,3 +858,18 @@ An installed PWA resumed from the background shows no update notice until it's c
 - A worker found this way shows the existing notice through the existing `updatefound` path; no new notice, control or copy. Nothing changes for a first install or for a page no worker controls.
 - The timer and listener are owned in one place (the registration code or its caller), so a second registration or a test doesn't stack them; tests pass the document/clock as parameters the way the container already is.
 - Unit tests: becoming visible calls `update()`; two visibility changes inside the throttle call it once; the interval calls it; a rejected `update()` doesn't throw or stop later checks; an update found after resume sets the waiting worker.
+
+## Wave 21
+
+One slice: search results' tag chips follow a rename or recolor from another device.
+
+### Slice 82: search result tag chips stay current after a tag rename or recolor (B-979)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/search.md, docs/domain/tags.md · Tests: component
+
+On the search page, a result's tag chips (`data.namedTags`, from `loadSearch`) keep a tag's old name or color after another device renames or recolors it, while the filter chips update. `useSearchPage` (`apps/web/app/routes/app/groups/search/useSearchPage.ts`) reruns `loadSearch` on the watched tag ids, `linkKey`, index changes and status, but not on tag metadata: tags aren't an index change source. **First confirm with a failing test** (the existing `searchTags.browser.test.tsx` setup).
+
+- A rename or recolor of a tag shown on a result updates that result's chips without a navigation or reload, whichever device made it. Pick the smaller sound fix: rerun the search when the names or colors of the group's tags change (a key built from the live `tags` list), or have the result chips read name and color from the live group tags by id. Note the choice in a comment.
+- Typing doesn't flicker the list (the previous results stay up, as today); no extra query per keystroke beyond what the fix needs.
+- A deleted or merged tag drops off the chips the same way (if the chosen fix covers it for free; otherwise leave it as today and say so in the hand-off).
+- Component test: a result shows tag "Alpha" (fictional data); renaming it in the local database to "Beta" and recoloring it updates the result's chip; the filter chip still updates as before.
