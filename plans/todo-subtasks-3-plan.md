@@ -16,21 +16,21 @@
 
 **Wave 4 landed 2026-11-27** in dev as `651479d9c` through PR #263 (slices 7 `605a0450b`, 8 `d533ece9d`; Codex clean on 59b9ec6 after one finding, B-974; CI green at components on 59b9ec6c, run 46052113275, and on the synced tip e0575fc8, run 46053571066; the docs-only commits and a dev merge (components.md conflict, took dev's trims) landed `--no-review --by-user`, the user's standing word for docs). Browser `--changed` named none. Worktrees 7, 8 removed. Docs folded (appointments, timeline, todos, components; each at or under dev's size). Report filed. `apps/web/app/routes/app/groups/timeline/` dropped from the hot files; the backlog session told (fixes-nit's B-950 waited on it).
 
-**Wave 5 started 2026-11-27** (this session): `risa sync` found no merge needed (fixes-perf, fixes-ui, fixes-bug landings share no file). Slice 9 worktree made, agent spawned on opus, with **B-974** as an extra (claimed with B-943; noted on the item). Carried notes passed to the agent: `useDueTodos` stays; `plannerTodos`, `isPlannerTodo`, `listsOnItsOwn` and the open `listed: true` rule go. Slice 8 changed 14 files (the hook's limit is 12): note for later plans. Docs at wave 5: todos (sync, data-layer if the clamp needs it). This is the last wave: after landing, `risa rm todo-subtasks-3`.
+**Wave 5 started 2026-11-27** (this session): `risa sync` found no merge needed (fixes-perf, fixes-ui, fixes-bug landings share no file). Slice 9 worktree made, agent spawned on opus, with **B-974** as an extra (claimed with B-943; noted on the item). Carried notes passed to the agent: `useDueTodos` stays; `plannerTodos`, `isPlannerTodo`, `listsOnItsOwn` and the open `listed: true` rule go. Slice 8 changed 14 files (the hook's limit is 12): note for later plans. Docs at wave 5: todos (sync, data-layer if the clamp needs it). **Slice 9 merged** as `f0257bbd2` (B-943 and B-974 in one commit; items done). Its agent didn't run `syncTodos`, `readTools`, `feed`, `googleCalendar`, `reminders` int tests: the wave's CI run covers them. Docs fold: `todos.md` still names `listsOnItsOwn` and the `listed` rule (both gone); note the clamp reads the immediate parent only, and a new subtask under a dated parent inherits (no undated create). Wave CI: components (`risa tier`). This is the last wave: after landing, `risa rm todo-subtasks-3`.
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
-| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
-| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
-| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
-| 4     | 2    | merged (opus)  | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
-| 5     | 3    | merged (opus)  | ebdfb25e5 (90e2bbe57)                            |
-| 6     | 3    | merged (opus)  | fb2420fd9 (2bb0cc1c0)                            |
-| 7     | 4    | merged (opus)  | 605a0450b (0f09c13ab, 2e2cc4292)                 |
-| 8     | 4    | merged (opus)  | d533ece9d (c68a5e0cc, 4cf90fd5b)                 |
-| 9     | 5    | started (opus) |                                                  |
+| Slice | Wave | State         | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | merged (opus) | ebdfb25e5 (90e2bbe57)                            |
+| 6     | 3    | merged (opus) | fb2420fd9 (2bb0cc1c0)                            |
+| 7     | 4    | merged (opus) | 605a0450b (0f09c13ab, 2e2cc4292)                 |
+| 8     | 4    | merged (opus) | d533ece9d (c68a5e0cc, 4cf90fd5b)                 |
+| 9     | 5    | merged (opus) | f0257bbd2 (9454b73f0)                            |
 
 ## Architectural decisions
 
