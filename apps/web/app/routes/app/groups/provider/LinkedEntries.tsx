@@ -1,57 +1,90 @@
-import type { EntryRow } from "~/lib/timeline/timeline.sync";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { Link } from "react-router";
-import { KindIcon } from "~/components/entry";
+import { DEFAULT_UNITS } from "@caretook/data/schema";
+import { useMemo } from "react";
+import { useGroupRecordTags } from "~/components/tags";
 import { EmptyState, List, Section } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
-import { KIND_META } from "~/lib/timeline/entryDisplay";
-import { formatDay, formatTime } from "~/lib/core/format";
+import { useGroup } from "~/lib/app-shell/group";
+import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
+import { liveDotLabel } from "~/lib/live-notes/liveNow";
+import { toPreviews } from "~/lib/live-notes/notes.sync";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
-import { providerEntriesQuery } from "~/lib/providers/providers.sync";
-import { toTimelineEntries } from "~/lib/timeline/timeline.sync";
+import { providerEntriesQuery, providerEntryDocumentsQuery } from "~/lib/providers/providers.sync";
+import { entryOpen } from "~/lib/timeline/entryOpen";
+import { membersQuery, toMember, toTimelineEntries } from "~/lib/timeline/timeline.sync";
+// The timeline's own row, so a linked entry looks the same here (B-937).
+import { TimelineEntryRow } from "../timeline/TimelineEntryRow";
+import { useOpenTodoCounts } from "../timeline/useOpenTodoCounts";
 
 const NO_ROWS: EntryRow[] = [];
+const NO_MEMBERS: MemberRow[] = [];
+const NO_DOCUMENTS: NoteDocRow[] = [];
+/** The live dot needs only who's writing; the banner's title isn't shown here. */
+const NO_TITLE = () => "";
 
 /**
  * Every note and event linked to the provider, newest first, live (links
- * made on another device show without a reload). Each opens its entry. The
- * empty line waits for the query's first answer (`fresh`).
+ * made on another device show without a reload), as the timeline's rows:
+ * the text, live dot, cancelled badge, open todos, tags and author, with the
+ * day over the time (they aren't grouped by day) and no filter links
+ * (`elsewhere`). Each opens its entry. The ⋯ menu keeps Print and Copy link;
+ * Edit, Cancel, Remind and Delete stay on the timeline and the entry's page.
+ * The empty line waits for the query's first answer (`fresh`), and the rows
+ * for the members' too, so no author shows as a former member in between.
  */
 export function LinkedEntries({ groupId, providerId }: { groupId: string; providerId: string }) {
+  const { canWrite, userId } = useGroup();
   const query = providerEntriesQuery(providerId);
   const { rows, fresh } = useLiveRows<EntryRow>(query.sql, query.params, NO_ROWS);
-  const entries = toTimelineEntries(rows);
+  const membersSql = membersQuery(groupId);
+  const members = useLiveRows<MemberRow>(membersSql.sql, membersSql.params, NO_MEMBERS);
+  // A note's or event's text is its live document: its preview is the body, as on the timeline.
+  const documentsSql = providerEntryDocumentsQuery(providerId);
+  const documents = useLiveRows<NoteDocRow>(documentsSql.sql, documentsSql.params, NO_DOCUMENTS);
+  const previews = useMemo(() => toPreviews(documents.rows), [documents.rows]);
+  const liveDocuments = useLiveDocuments(groupId, userId, NO_TITLE);
+  const openTodos = useOpenTodoCounts(groupId);
+  const entryTags = useGroupRecordTags(groupId, "entry");
+
+  const people = members.rows.map(toMember);
+  const nameOf = (id: string) => people.find((m) => m.userId === id)?.name ?? "Former member";
+  const imageOf = (id: string) => people.find((m) => m.userId === id)?.image ?? null;
+  const liveLabels = new Map(
+    liveDocuments.map((d) => [d.id, liveDotLabel(d.editors.map((e) => nameOf(e.userId)))]),
+  );
+  const entries = toTimelineEntries(rows).map((entry) => ({
+    ...entry,
+    body: previews.get(entry.id) || null,
+  }));
 
   return (
     <Section title="Linked entries" id="linked-entries" data-linked-entries="">
-      {entries.length === 0 ? (
-        fresh && (
-          <EmptyState>No notes or events yet. Link this provider from a note or event's With row.</EmptyState>
-        )
-      ) : (
-        <List>
-          {entries.map((entry) => (
-            <li key={entry.id}>
-              <Link
-                to={appUrls.entry(groupId, entry.id)}
-                className="hover:bg-base-200/50 flex items-center gap-3 px-3 py-2.5"
-                data-entry-id={entry.id}
-              >
-                <KindIcon kind={entry.kind} size="sm" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{entry.title || KIND_META[entry.kind].label}</span>
-                  <span className="text-muted block text-sm">
-                    <span className="sr-only">{KIND_META[entry.kind].label}, </span>
-                    <time dateTime={entry.occurredAt}>
-                      {formatDay(entry.occurredAt)}, {formatTime(entry.occurredAt)}
-                    </time>
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </List>
-      )}
+      {entries.length === 0
+        ? fresh && (
+            <EmptyState>
+              No notes or events yet. Link this provider from a note or event's With row.
+            </EmptyState>
+          )
+        : members.fresh && (
+            <List>
+              {entries.map((entry) => (
+                <TimelineEntryRow
+                  key={entry.id}
+                  entry={entry}
+                  authorName={nameOf(entry.createdBy)}
+                  authorImage={imageOf(entry.createdBy)}
+                  // Notes and events only: no readings to show in anyone's units.
+                  units={DEFAULT_UNITS}
+                  open={entryOpen({ groupId, entry, canWrite, search: "" })}
+                  liveLabel={liveLabels.get(entry.id)}
+                  openTodos={openTodos.get(entry.id)}
+                  tags={entryTags.get(entry.id)}
+                  elsewhere
+                />
+              ))}
+            </List>
+          )}
     </Section>
   );
 }

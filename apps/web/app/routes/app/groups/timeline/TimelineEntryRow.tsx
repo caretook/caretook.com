@@ -21,7 +21,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { useCopyLink } from "./CopyLinkButton";
-import { actionsLabel, entryLabel } from "./entryLabels";
+import { actionsLabel, entryLabel, rowDayLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
@@ -57,6 +57,12 @@ export type EntryViewProps = {
   search?: ParsedSearch;
   /** Easy mode: the kind icon and the author aren't filters (rows only). */
   easy?: boolean;
+  /**
+   * Away from the timeline (a provider's linked entries; rows only): the kind
+   * icon and the author aren't filters (they'd point at the timeline's), and
+   * the day shows over the time, since the rows aren't grouped by day.
+   */
+  elsewhere?: boolean;
   /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
   openTodos?: number;
   /**
@@ -113,10 +119,13 @@ export function TimelineEntryRow({
   providers,
   search,
   easy,
+  elsewhere,
   openTodos,
   tags,
 }: EntryViewProps) {
-  const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
+  const otherZone = formatTimeInZone(entry.occurredAt, entry.timeZone);
+  // Plain icon and author: easy mode, and away from the timeline.
+  const plain = easy || elsewhere;
   const cancelled = cancelledLabel(entry);
   return (
     <li
@@ -125,11 +134,16 @@ export function TimelineEntryRow({
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      {easy ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
+      {plain ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <time
         dateTime={entry.occurredAt}
-        className="text-muted w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
+        className={`text-muted ${elsewhere ? "w-[5.5rem]" : "w-[4.1rem]"} shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums`}
       >
+        {elsewhere && (
+          <span className="block" data-row-day="">
+            {rowDayLabel(entry.occurredAt, localTimeZone(), new Date())}
+          </span>
+        )}
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
         {/* A series visit: the mark under its time, so the text column stays aligned. */}
         {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
@@ -143,7 +157,7 @@ export function TimelineEntryRow({
         className={`pt-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         footer={
           <>
-            {elsewhere && <p className="text-faint text-xs">{elsewhere}</p>}
+            {otherZone && <p className="text-faint text-xs">{otherZone}</p>}
             {cancelled && <CancelledBadge label={cancelled} />}
             {entry.via && (
               <p className="inline-block">
@@ -159,7 +173,7 @@ export function TimelineEntryRow({
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
         <EntryMenu entry={entry} onEdit={onEdit} cancel={cancel} onRemind={onRemind} onDelete={onDelete} />
-        {easy ? (
+        {plain ? (
           <AuthorCircle
             userId={entry.createdBy}
             name={authorName}

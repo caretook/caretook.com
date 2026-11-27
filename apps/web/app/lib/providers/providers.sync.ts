@@ -159,6 +159,18 @@ export const providerEntriesQuery = (providerId: string): LocalQuery => ({
   params: [providerId],
 });
 
+/**
+ * The documents of a provider's linked notes and events, with their pending
+ * updates, like `groupDocumentsQuery`'s rows (their previews are the rows' text).
+ */
+export const providerEntryDocumentsQuery = (providerId: string): LocalQuery => ({
+  sql: `SELECT d.id, d.snapshot, d.text,
+               (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = d.id) AS updates
+        FROM timeline_entry_provider l JOIN note_document d ON d.id = l.entry_id
+        WHERE l.provider_id = ?`,
+  params: [providerId],
+});
+
 export type LinkHistoryRow = {
   provider_id: string;
   entry_id: string;
