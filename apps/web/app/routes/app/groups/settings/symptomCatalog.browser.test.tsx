@@ -19,7 +19,10 @@ import { NEEDS_CONNECTION } from "./groupSettings";
 // handlers), and the row moves once the change syncs back; a viewer sees the
 // lists only; offline, a tap says it needs a connection. Who may is
 // groupSettings.test.ts's `symptomCatalogAccess`; what the server decides is
-// syncSymptomTypes.int.test.ts's.
+// syncSymptomTypes.int.test.ts's. Owners delete a symptom into another
+// active one (symptom-catalog-3 slice 4): the dialog names both and how many
+// entries move, `replace` runs online, and the row leaves once its tombstone
+// syncs back.
 
 const BASE = "/app/groups/:groupId/settings";
 const ROUTES: DeviceRoute[] = [
@@ -68,6 +71,39 @@ const listed = (which: "active" | "archived") =>
     ].join(" · "),
   );
 const buttonsIn = (el: Element | null) => el?.querySelectorAll("button").length ?? 0;
+const DIALOG = () => document.querySelector<HTMLDialogElement>("dialog[open]");
+
+// A second spelling to delete into "Nausea", with two live entries.
+const NAUSEOUS = symptomType("Nauseous");
+const NAUSEOUS_ENTRIES = [
+  { id: crypto.randomUUID(), occurredAt: minutesAgo(15), severity: 3 },
+  { id: crypto.randomUUID(), occurredAt: minutesAgo(25), severity: 1 },
+];
+const nauseousEntries = (name: string) => NAUSEOUS_ENTRIES.map((v) => fx.symptom({ ...v, name }));
+const openWithNauseous = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>) =>
+  renderWithDevice({
+    route: ROUTES,
+    url: SYMPTOMS,
+    role,
+    fixtures: [...fixtures, NAUSEOUS, ...nauseousEntries("Nauseous")],
+    api,
+  });
+
+/** Opens Delete on "Nauseous" and picks "Nausea" to take its place. */
+const deleteNauseousIntoNausea = async () => {
+  await found(() => LIST("active"));
+  await userEvent.click(page.getByRole("button", { name: "Delete Nauseous" }));
+  await found(DIALOG);
+  const confirm = page.getByRole("button", { name: "Delete symptom" });
+  await expect.element(confirm).toBeDisabled();
+  expect([...(DIALOG()?.querySelectorAll("option") ?? [])].map((o) => o.textContent)).toEqual([
+    "Choose a symptom",
+    "Nausea",
+    "Sore knee",
+  ]);
+  await userEvent.selectOptions(page.getByRole("combobox", { name: "Replace with" }), "Nausea");
+  return confirm;
+};
 
 describe("the Symptoms page", () => {
   test('the settings list shows "Symptoms", and it opens the page', async () => {
@@ -137,5 +173,45 @@ describe("the Symptoms page", () => {
     const row = LIST("active")!.querySelector(`[data-symptom-row="${NAUSEA.id}"]`)!;
     await expect.poll(() => row.textContent).toContain(NEEDS_CONNECTION);
     expect(listed("active")).toEqual(["Nausea · 2 entries", "Sore knee · 0 entries"]);
+  });
+});
+
+describe("deleting a symptom", () => {
+  test('an owner deletes "Nauseous" into "Nausea": the count moves, and the row leaves after sync', async () => {
+    const calls = apiCalls();
+    const device = await openWithNauseous(
+      "owner",
+      calls.record({ "timeline.symptomTypes.replace": () => ({ moved: 2 }) }),
+    );
+    expect(listed("active")).toEqual(["Nausea · 2 entries", "Nauseous · 2 entries", "Sore knee · 0 entries"]);
+
+    const confirm = await deleteNauseousIntoNausea();
+    expect(DIALOG()?.textContent).toContain("Delete “Nauseous”?");
+    expect(DIALOG()?.textContent).toContain("The 2 entries logged as “Nauseous” move to “Nausea”");
+    await userEvent.click(confirm);
+    await expect
+      .poll(() => calls.of("timeline.symptomTypes.replace"))
+      .toEqual([{ groupId: TEST_GROUP.id, id: NAUSEOUS.id, replacementId: NAUSEA.id }]);
+    await expect.poll(DIALOG).toBeNull();
+
+    // The server's change syncs back: a tombstone, and its entries on "Nausea".
+    await device.sync([symptomType("Nauseous", { replacedById: NAUSEA.id }), ...nauseousEntries("Nausea")]);
+    await device.settle();
+    await expect.poll(() => listed("active")).toEqual(["Nausea · 4 entries", "Sore knee · 0 entries"]);
+  });
+
+  test("a caretaker sees no Delete", async () => {
+    await openWithNauseous("caretaker");
+    await found(() => LIST("active"));
+    expect(page.getByRole("button", { name: "Archive Nauseous" }).query()).not.toBeNull();
+    expect(document.querySelector("[data-symptom-delete]")).toBeNull();
+  });
+
+  test("offline, the dialog says it needs a connection and nothing moves", async () => {
+    await openWithNauseous("owner");
+    const confirm = await deleteNauseousIntoNausea();
+    await userEvent.click(confirm);
+    await expect.poll(() => DIALOG()?.textContent).toContain(NEEDS_CONNECTION);
+    expect(listed("active")).toEqual(["Nausea · 2 entries", "Nauseous · 2 entries", "Sore knee · 0 entries"]);
   });
 });
