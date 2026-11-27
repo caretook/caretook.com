@@ -327,9 +327,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-948 | feature | triaged | todo-links |  | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
-| B-951 | bug | in-progress | fixes-bug | prd/fixes-bug | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
+| B-951 | bug | ready | fixes-bug | prd/fixes-bug | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
 | B-952 | chore | triaged | fixes-tooling |  | Standing PRD with only blocked items (held, waiting on another topic) holds a lane idle: after a landing with nothing runnable it should close itself (prd rm) so the dispatcher starts the next topic |
 | B-953 | bug | triaged | fixes-tooling |  | Tooling test loops/stack.test.mjs 'rm.sh from inside the worktree it removes (B-812)' fails 2 of 3 on dev: the orchestrator session isn't ended (expected SIGTERM, got null) |
+| B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 
 ## Items
 
@@ -1505,6 +1506,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 6f358488771f] Flaked (passed on its rerun); found by prd/fixes-ui.
 - 2026-11-24 (prd/fixes-ui): Flaked (passed on its rerun); found by prd/fixes-ui.
+- 2026-11-27 (prd/fixes-bug): Seen again 2026-11-27, fixes-bug wave 17 components run 45989155987 (afeee38c), quarantined (failed). The wave changed entry Back (B-936) but not the timeline opener this test uses.
 
 ### B-789 · change · A landing journal (even one whose pid is dead) holds a session's resume after a usage limit with only a waits line each tick; file one report so the user runs pnpm prd land --resume
 
@@ -2274,12 +2276,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-951 · bug · Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61)
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3618ca7a
 
 - 2026-11-27 (prd/fixes-ui): Seen by fixes-ui wave 19 on prd/fixes-ui (synced with dev 6bc79124), twice alone at low load, 2026-11-27: 'server 0:0 (tags:links); A [{name:RT-… same tag, links:1}]; B [{name:RT-… SAME TAG, links:1}]'. Wave 19 touches no tag or upload code (only a provider read query). Suspect tags-2's sync change d362bd70 (tag colors through sync). Log: .git/worktrees/fixes-ui/caretook-browser/roundtrip-20261127-015144.log in the main repo.
+- 2026-11-27 (slice/fixes-bug/75): slice 75: not a code bug. Reproduced exactly by dropping tag.color (migration 0048) on a stack: every tag PUT fails (sync:failed, logged), the queue retries, server 0:0. Fresh stack: roundtrip passes. The fixes-ui stack likely missed datastore:reset/migrate after syncing tags-2. Server path pinned by 2 int tests; roundtrip's tags step now prints each device's queue and unsaved rows on a miss. Follow-up idea: a preflight refusing a stack behind on migrations.
 
 ### B-952 · chore · Standing PRD with only blocked items (held, waiting on another topic) holds a lane idle: after a landing with nothing runnable it should close itself (prd rm) so the dispatcher starts the next topic
 
@@ -2298,3 +2301,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): Backlog session 2026-11-27 ~06:05, dev 48de4b6f+: failed 4 of 4 runs of that file alone at low load, the same with the session's prompt edit stashed, so not caused by it. Run from inside a Claude Code session; may depend on that environment. Both tests: 'ends its own orchestrator's session once the worktree is gone', 'refuses another caller inside it'
+
+### B-954 · bug · Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-27 (prd/fixes-bug): From fixes-bug slice 75 (B-951), 2026-11-27: the roundtrip tags failure was a stack without migration 0048 (tag.color) after a dev sync with no datastore:reset; every tag upload failed sync:failed and the server held 0:0. Wanted: pnpm prd browser (and prd serve) refuse, or warn, when the stack's applied migrations are behind packages/data's, naming pnpm datastore:reset.
