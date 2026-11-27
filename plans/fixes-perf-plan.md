@@ -10,18 +10,19 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 - Follow-ups filed: B-956 (live queries skip identical answers; slice 3); B-957 (fixes-ui loading screen), B-958, B-959, B-960 (first-load costs; slice 7), next wave.
 - Slice 7: first timeline row on 4G 2.53 s → 1.91 s via modulepreload of the landing routes after sign-in (gain needs HTTP/2).
 - CI watch list (slice 3): timelineBack, timelineScroll, timelineJumpPaging, timelineRichText, planner paging/Back.
-- Docs at landing: appointments.md's top-up: only due series are read; an ended series is never rewritten (slice 1).
+- Docs at landing: appointments.md: the top-up reads only due series, never rewrites an ended one (slice 1), visits written in batches via the services' createMany/createForEntries/linkMany (slice 2); sync.md: identical live-query watches are shared (slice 5); timeline/live-notes: previews read only the window's documents (slice 3).
+- Follow-up idea from slice 5: Easy mode's Upcoming (useEasyUpcoming.ts) still rounds its window to the minute.
 - **Wave 1** (2026-11-27): slices 1-7, all Opus. Ready now: 1, 3, 4, 6, 7; 2 waits on 1, 5 on 3.
 
-| Slice | Item  | State                              | Merge    |
-| ----- | ----- | ---------------------------------- | -------- |
-| 1     | B-311 | merged                             | 37c40171 |
-| 2     | B-755 | merged                             | 4adf10d3 |
-| 3     | B-313 | merged                             | 51d6df4b |
-| 4     | B-884 | merged                             | 4c969a9d |
-| 5     | B-910 | working (Opus)                     | —        |
-| 6     | B-798 | handed off 13501fbf, merge after 5 | —        |
-| 7     | B-764 | handed off 900f2f3f, merge after 6 | —        |
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 1     | B-311 | merged | 37c40171 |
+| 2     | B-755 | merged | 4adf10d3 |
+| 3     | B-313 | merged | 51d6df4b |
+| 4     | B-884 | merged | 4c969a9d |
+| 5     | B-910 | merged | 69b26356 |
+| 6     | B-798 | merged | fb6c8b7b |
+| 7     | B-764 | merged | 68a26101 |
 
 ## Wave 1
 
