@@ -4,8 +4,9 @@ import type { ContactAction } from "~/lib/providers/contactActions";
 import { Globe, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
 import { Button } from "~/components/ui";
 
-// A provider's contact actions (`lib/providers/contactActions.ts`) as links: the
-// directory's icon buttons and the provider page's labelled list.
+// A provider's contact actions (`lib/providers/contactActions.ts`) as icon-button
+// links: the directory's rows, a medication's or todo's providers, an entry's
+// or period's place. (The provider page's labelled list is its ContactList.)
 
 export const ACTION_ICONS: Record<ContactAction["kind"], LucideIcon> = {
   call: Phone,
