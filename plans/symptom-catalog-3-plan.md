@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | landed  | a84e4d658 (b74850034); wave 1 landed via PR #287   |
-| 2     | 2    | running |                                                    |
-| 3     | 2    | running |                                                    |
-| 4     | 3    | planned |                                                    |
+| Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits)  |
+| ----- | ---- | ------- | --------------------------------------------------- |
+| 1     | 1    | landed  | a84e4d658 (b74850034); wave 1 landed via PR #287    |
+| 2     | 2    | merged  | 3ca82c624 (7a584c4cd, aa5ef7fcc); slice check green |
+| 3     | 2    | running |                                                     |
+| 4     | 3    | planned |                                                     |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
 - **Wave 2 running** (session 2): synced with dev (up to date, no merge); worktrees `.loops/symptom-catalog-3-2` and `-3`, both agents spawned on opus. Slice 3 got slice 1's note (map `replaced_by_id` to `replacedById`; a tombstone whose replacement isn't local resolves to itself). B-920 stays claimed until slice 4; mark it done at wave 3.
