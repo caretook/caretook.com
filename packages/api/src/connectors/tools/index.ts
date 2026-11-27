@@ -8,6 +8,7 @@ import { listMedications } from "./listMedications";
 import { listProviders } from "./listProviders";
 import { listTodos } from "./listTodos";
 import { listTimeline } from "./listTimeline";
+import { logPastDoses } from "./logPastDoses";
 import { recipientProfile } from "./recipientProfile";
 import { search } from "./search";
 import { doseSchedule } from "./doseSchedule";
@@ -50,6 +51,7 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   logSymptom,
   logDose,
   givePass,
+  logPastDoses,
   addNote,
   addEvent,
   addTodo,

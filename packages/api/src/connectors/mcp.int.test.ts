@@ -183,6 +183,9 @@ describe("/mcp", () => {
     // add_medication right after it, for a writer only.
     expect(written[written.indexOf("add_provider") + 1]).toBe("add_medication");
     expect(await names(reader.tokens.access_token)).not.toContain("add_medication");
+    // log_past_doses right after give_pass, for a writer only.
+    expect(written[written.indexOf("give_pass") + 1]).toBe("log_past_doses");
+    expect(await names(reader.tokens.access_token)).not.toContain("log_past_doses");
 
     const refused = await mcpPost(handler, reader.tokens.access_token, toolRequest("add_thing"));
     expect(refused.status).toBe(403);
