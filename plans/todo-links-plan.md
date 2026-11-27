@@ -10,7 +10,7 @@
 
 **Wave 1 landed 2026-11-27** in dev through PR #280 (dev 2b82fa9; components run 46072898158 green on the synced tip c105ba7d1; Codex clean). The user said to land without waiting for Codex; its two P2s came in first and were filed as B-988 (entry hits capped before the kind filter) and B-989 (tag changes don't refresh the box), both `prd=todo-links` triaged: fold them into slice 3 if they fit its files (linkSearch.sync.ts, useLinkSearch.ts), else a later slice. Report a342; to-test/2026-11-27-1658-todo-links.md. B-948 done; B-944, B-947 continue.
 
-**Next (fresh session): wave 2, slices 2 and 3** (both ready: slice 1 merged). Then wave 3 (slice 5).
+**Wave 2 (session 2, 2026-11-27):** dev sync clean (up to date). B-988 and B-989 folded into slice 3 (noted, claimed with B-945, B-946). `risa slice` refused at 16:59: usage draining (5h 96%) until 17:40; start slices 2 and 3 (opus) then. Then wave 3 (slice 5).
 
 **From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
 
