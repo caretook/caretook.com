@@ -9,13 +9,13 @@
 | 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
 | 2     | 2    | landed  | 7b892610 (d362bd70)                     |
 | 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                     |
-| 4     | 4    | merged  | 09a762ee (0cd98a93)                     |
+| 4     | 4    | merged  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
 | 5     | 5    | planned |                                         |
 | 6     | 5    | planned |                                         |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4: slice 4 (opus) handed off (slice check passed on 0cd98a93) and merged as 09a762ee. Wave gate `components` run 45943640151 on e534b6fb **failed**: plannerEvents, inScreens (entry/event page ⋯ lists) and plannerTags (tags a todo via ⋯) still expect ⋯ Tags; sent back to the slice 4 agent as a fix request (then re-merge, rerun components). Worktree tags-2-4 kept until green. B-892 stays claimed (done after slices 5 and 6). Slice 4 notes for 5/6: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be wide on rows (a compact variant is a small change in `QuickTags`); timeline, Planner and provider ⋯ `onTags` paths still to remove. `Badge` takes `fill` (`tagColorClass`). After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
+**Now:** wave 4: slice 4 (opus) merged as 09a762ee; gate run 45943640151 red (page ⋯ Tags expectations in plannerEvents, inScreens, plannerTags); fix e4ddb041 merged as ee65bf90; `components` gate rerun requested. Worktree tags-2-4 kept until green. B-892 stays claimed (done after slices 5 and 6). Slice 4 notes for 5/6: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be wide on rows (a compact variant is a small change in `QuickTags`); timeline, Planner and provider ⋯ `onTags` paths still to remove. `Badge` takes `fill` (`tagColorClass`). After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
 
 ## Architectural decisions
 
