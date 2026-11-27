@@ -183,6 +183,29 @@ const checkRescheduledTo = async (
   return target?.groupId === groupId && target.kind === "event" ? null : refused;
 };
 
+const seriesNotInGroup = () =>
+  newError({
+    code: "timelineEntryService:seriesNotInGroup",
+    meta: { issues: [{ path: "seriesId", message: "Choose a series in this care group" }] },
+  });
+
+const seriesDayTaken = () =>
+  newError({
+    code: "timelineEntryService:seriesDayTaken",
+    meta: { issues: [{ path: "seriesDay", message: "This series already has a visit that day" }] },
+  });
+
+/** A visit's series: one of the entry's kind in the same group, as the actor sees it (a deleted one still counts). */
+const checkSeriesOf = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { groupId, kind, seriesId }: { groupId: string; kind: string; seriesId: string },
+) => {
+  const series = await appointmentSeriesModel.getById(seriesId, { ...ctx, tx, includeDeleted: true });
+  if (isError(series)) return series;
+  return series?.groupId !== groupId || series.kind !== kind ? seriesNotInGroup() : null;
+};
+
 /**
  * A visit's series: one of the entry's kind in the same group, as the actor
  * sees it (a deleted one still counts, so a replayed upload lands), with no
@@ -200,13 +223,8 @@ const checkSeries = async (
   }: { id?: string; groupId: string; kind: string; seriesId?: string | null; seriesDay?: string | null },
 ) => {
   if (!seriesId) return null;
-  const series = await appointmentSeriesModel.getById(seriesId, { ...ctx, tx, includeDeleted: true });
-  if (isError(series)) return series;
-  if (series?.groupId !== groupId || series.kind !== kind)
-    return newError({
-      code: "timelineEntryService:seriesNotInGroup",
-      meta: { issues: [{ path: "seriesId", message: "Choose a series in this care group" }] },
-    });
+  const series = await checkSeriesOf(ctx, tx, { groupId, kind, seriesId });
+  if (series) return series;
   if (!seriesDay) return null;
   const taken = await timelineEntryModel.get({
     authUser: SYSTEM_USER,
@@ -218,12 +236,7 @@ const checkSeries = async (
     },
   });
   if (isError(taken)) return taken;
-  return taken
-    ? newError({
-        code: "timelineEntryService:seriesDayTaken",
-        meta: { issues: [{ path: "seriesDay", message: "This series already has a visit that day" }] },
-      })
-    : null;
+  return taken ? seriesDayTaken() : null;
 };
 
 /**
@@ -482,6 +495,119 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
     // Appointments and reminders reach members' Google calendars (appointments-2).
     const queued = await enqueueCalendarPush(tx, { entryId: created.id }, "entry");
     return queued ?? created;
+  }, ctx);
+
+/** One promise per key: a read shared by many entries runs once. */
+const once = <T>(read: (key: string) => Promise<T>) => {
+  const seen = new Map<string, Promise<T>>();
+  return (key: string) => {
+    let value = seen.get(key);
+    if (!value) seen.set(key, (value = read(key)));
+    return value;
+  };
+};
+
+/**
+ * `create` for many entries in one INSERT (a series' visits: B-755). Each
+ * entry gets create's checks, in create's order, with the reads they share
+ * done once: the actor's role and the recipient per group, each series
+ * once, and the series days taken in one read. Then one calendar push per
+ * group with an event. All or nothing. Returns the entries in `inputs`' order.
+ */
+export const createMany = (
+  ctx: ServiceContext,
+  inputs: readonly TimelineEntryCreateInput[],
+  opts: EntryWriteOptions = {},
+) =>
+  withTransaction(async (tx) => {
+    const roleIn = once((groupId) => careGroupMemberModel.getRole(groupId, ctx.authUser?.id ?? "", { tx }));
+    const recipientOf = once((key) => {
+      const [groupId = "", recipientId] = key.split("|");
+      return resolveRecipient(ctx, tx, groupId, recipientId || undefined);
+    });
+    const seriesOf = once((key) => {
+      const [seriesId = "", groupId = "", kind = ""] = key.split("|");
+      return checkSeriesOf(ctx, tx, { seriesId, groupId, kind });
+    });
+
+    const entries = [];
+    for (const input of inputs) {
+      const parsed = timelineEntryCreateZSchema.safeParse(input);
+      if (!parsed.success) return invalid(parsed.error);
+      const { recipientId, details, ...data } = parsed.data;
+
+      const refused = refuseSystemWritten(ctx, data.kind);
+      if (refused) return refused;
+
+      if (ctx.authUser && !isSystemUser(ctx.authUser)) {
+        const role = await roleIn(data.groupId);
+        if (isError(role)) return role;
+        if (isOwnRowLogger(role) && !canLogEntry(role, data.kind, data))
+          return newError({ code: "timelineEntryService:loggerOnly" });
+      }
+
+      const resolved = await recipientOf(`${data.groupId}|${recipientId ?? ""}`);
+      if (isError(resolved)) return resolved;
+
+      const future = refuseFuture(data.kind, data.occurredAt);
+      if (future) return future;
+
+      const medication = await checkDoseMedication(ctx, tx, data.groupId, details);
+      if (medication) return medication;
+
+      const moved = await checkRescheduledTo(ctx, tx, data);
+      if (moved) return moved;
+
+      if (data.seriesId) {
+        const series = await seriesOf(`${data.seriesId}|${data.groupId}|${data.kind}`);
+        if (series) return series;
+      }
+
+      const symptomType = await symptomTypeFor(ctx, tx, data.groupId, data.kind, details);
+      if (isError(symptomType)) return symptomType;
+
+      entries.push({
+        ...data,
+        ...schedulingColumns(data),
+        cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
+        recipientId: resolved,
+        details: details ?? null,
+        symptomTypeId: symptomType,
+        ...(opts.via ? { via: opts.via } : {}),
+      });
+    }
+
+    // No other live visit on a series' day: one read for every visit, and
+    // none twice in the batch.
+    const visits = entries.filter((e) => e.seriesId && e.seriesDay);
+    if (visits.length) {
+      const live = await timelineEntryModel.list({
+        authUser: SYSTEM_USER,
+        tx,
+        filter: {
+          seriesId: { type: "inArray", value: [...new Set(visits.map((e) => e.seriesId!))] },
+          seriesDay: { type: "inArray", value: [...new Set(visits.map((e) => e.seriesDay!))] },
+        },
+      });
+      if (isError(live)) return live;
+      const held = new Map(live.data.map((row) => [`${row.seriesId}|${row.seriesDay}`, row.id]));
+      for (const entry of visits) {
+        const key = `${entry.seriesId}|${entry.seriesDay}`;
+        const holder = held.get(key);
+        if (holder !== undefined && holder !== entry.id) return seriesDayTaken();
+        held.set(key, entry.id ?? "");
+      }
+    }
+
+    const created = await timelineEntryModel.createMany({ ...ctx, tx, data: entries });
+    if (isError(created)) return created;
+    // Appointments and reminders reach members' Google calendars (appointments-2):
+    // the same job create queues, once per group.
+    for (const groupId of new Set(created.filter((e) => e.kind === "event").map((e) => e.groupId))) {
+      const queued = await enqueueCalendarPush(tx, { groupId }, "entry");
+      if (queued) return queued;
+    }
+    return created;
   }, ctx);
 
 /**

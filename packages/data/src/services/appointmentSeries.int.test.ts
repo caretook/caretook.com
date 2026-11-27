@@ -2,9 +2,10 @@ import type { AppointmentSeriesCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import pg from "pg";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGroup, createWorld, ok, system } from "../../test/fixtures";
-import { appointmentSeriesSchema, getDb } from "../db";
+import { appointmentSeriesSchema, getDb, noteDocumentSchema, timelineEntryProviderSchema } from "../db";
 import { entryProviderId, seriesVisitFallbackId, seriesVisitId } from "../db/schema";
 import { isError } from "../errors";
 import { appointmentSeriesModel, timelineEntryModel } from "../models";
@@ -169,9 +170,10 @@ describe("appointmentSeriesService: roles", () => {
 });
 
 // Several visits and top-up tests write 37-39 visits through the services
-// (each an entry, its document and its links, with their checks). That
-// work, not the world, takes 1.2-1.7 s at load ~15 and up to 6-7 s at load
-// 65-100 (B-500): hence 15 s instead of the default 5 s.
+// (entries, documents and links, with their checks). One by one that took
+// 1.2-1.7 s at load ~15 and up to 6-7 s at load 65-100 (B-500); written in
+// batches (B-755) it is ~0.1 s. 15 s instead of the default 5 s still
+// covers a loaded machine.
 const VISITS_TIMEOUT = 15_000;
 
 describe("appointmentSeriesService: visits", { timeout: VISITS_TIMEOUT }, () => {
@@ -231,6 +233,177 @@ describe("appointmentSeriesService: visits", { timeout: VISITS_TIMEOUT }, () => 
       ),
     );
     expect(await visitsOf(series.id)).toHaveLength(39);
+  });
+
+  it("writes every visit's entry, document and links in a bounded number of statements (B-755)", async () => {
+    const { u, group, recipient, input } = world();
+    const providerIds = await Promise.all(
+      ["Mercy dialysis", "Dr. Example"].map(
+        async (name) =>
+          ok(await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name }))!.id,
+      ),
+    );
+    // Statements sent to Postgres while the series is created (transaction control included).
+    const create = async (rule: string) => {
+      const spy = vi.spyOn(pg.Client.prototype, "query");
+      try {
+        const series = ok(
+          await appointmentSeriesService.create(
+            u.caretaker.ctx,
+            input({ rule, toppedUpThrough: null, providerIds, place: "2nd floor" }),
+            { now: NOW },
+          ),
+        );
+        return { series, statements: spy.mock.calls.length };
+      } finally {
+        spy.mockRestore();
+      }
+    };
+    const few = await create("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR;COUNT=3");
+    const many = await create("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR");
+    expect(await visitsOf(few.series.id)).toHaveLength(3);
+
+    // Not one round per visit: 39 visits cost what 3 do.
+    expect(many.statements).toBe(few.statements);
+    expect(many.statements).toBeLessThan(60);
+
+    const { series } = many;
+    const visits = await visitsOf(series.id);
+    expect(visits).toHaveLength(39);
+    for (const visit of visits) {
+      const day = visit.seriesDay!;
+      expect(visit).toMatchObject({
+        id: seriesVisitId(series.id, day),
+        groupId: group.id,
+        recipientId: recipient.id,
+        kind: "event",
+        title: "Dialysis",
+        place: "2nd floor",
+        timeZone: "America/Los_Angeles",
+        allDay: false,
+        details: null,
+        body: null,
+        seriesId: series.id,
+        seriesDetached: false,
+        cancelledAt: null,
+        rescheduledTo: null,
+        deletedAt: null,
+        via: null,
+        createdBy: u.caretaker.user.id,
+        updatedBy: u.caretaker.user.id,
+      });
+      expect(new Date(visit.occurredAt).toISOString()).toBe(`${day}T14:00:00.000Z`);
+      expect(new Date(visit.endsAt!).toISOString()).toBe(`${day}T18:00:00.000Z`);
+    }
+
+    const ids = visits.map((v) => v.id);
+    const documents = await getDb()
+      .select()
+      .from(noteDocumentSchema)
+      .where(inArray(noteDocumentSchema.id, ids));
+    expect(documents.map((d) => d.id).sort()).toEqual([...ids].sort());
+    for (const document of documents)
+      expect(document).toMatchObject({
+        groupId: group.id,
+        subject: "entry",
+        entryId: document.id,
+        providerId: null,
+        createdBy: u.caretaker.user.id,
+      });
+
+    const links = await getDb()
+      .select()
+      .from(timelineEntryProviderSchema)
+      .where(inArray(timelineEntryProviderSchema.entryId, ids));
+    const pairs = ids.flatMap((entryId) => providerIds.map((providerId) => ({ entryId, providerId })));
+    expect(links).toHaveLength(pairs.length);
+    expect(links.map((l) => l.id).sort()).toEqual(
+      pairs.map(({ entryId, providerId }) => entryProviderId(entryId, providerId)).sort(),
+    );
+    for (const link of links)
+      expect(link).toMatchObject({
+        id: entryProviderId(link.entryId, link.providerId),
+        groupId: group.id,
+        createdBy: u.caretaker.user.id,
+      });
+  });
+
+  it("keeps the single writes' refusals in the batch writes (B-755)", async () => {
+    const { u, group, recipient, input } = world();
+    const series = ok(await appointmentSeriesService.create(u.owner.ctx, input()));
+    const visit = (day: string) => ({
+      id: seriesVisitId(series.id, day),
+      groupId: group.id,
+      recipientId: recipient.id,
+      kind: "event" as const,
+      title: "Dialysis",
+      occurredAt: `${day}T14:00:00.000Z`,
+      timeZone: "America/Los_Angeles",
+      seriesId: series.id,
+      seriesDay: day,
+    });
+
+    // A viewer is refused as create refuses them; nothing is written.
+    expect(
+      codeOf(await timelineEntryService.createMany(u.viewer.ctx, [visit("2026-11-18"), visit("2026-11-20")])),
+    ).toBe(codeOf(await timelineEntryService.create(u.viewer.ctx, visit("2026-11-18"))));
+    expect(await visitsOf(series.id)).toEqual([]);
+
+    // Two visits on one day, in the batch or against a stored one.
+    expect(
+      codeOf(
+        await timelineEntryService.createMany(u.owner.ctx, [
+          visit("2026-11-18"),
+          { ...visit("2026-11-18"), id: randomUUID() },
+        ]),
+      ),
+    ).toBe("timelineEntryService:seriesDayTaken");
+    const [monday] = ok(await timelineEntryService.createMany(u.owner.ctx, [visit("2026-11-23")]));
+    expect(
+      codeOf(
+        await timelineEntryService.createMany(u.owner.ctx, [{ ...visit("2026-11-23"), id: randomUUID() }]),
+      ),
+    ).toBe("timelineEntryService:seriesDayTaken");
+
+    // Documents: a viewer may not add them; a second call returns the same one.
+    expect(
+      codeOf(
+        await noteDocumentService.createForEntries(u.viewer.ctx, { groupId: group.id, ids: [monday!.id] }),
+      ),
+    ).toBe(codeOf(await noteDocumentService.create(u.viewer.ctx, { id: monday!.id, groupId: group.id })));
+    const [document] = ok(
+      await noteDocumentService.createForEntries(u.owner.ctx, { groupId: group.id, ids: [monday!.id] }),
+    );
+    expect(
+      ok(await noteDocumentService.createForEntries(u.owner.ctx, { groupId: group.id, ids: [monday!.id] })),
+    ).toEqual([document]);
+
+    // Links: another group's provider is refused, a replay keeps the link.
+    const other = await otherGroup(u.owner);
+    const elsewhere = ok(
+      await providerService.create(u.owner.ctx, {
+        groupId: other.group.id,
+        type: "practice",
+        name: "Elsewhere",
+      }),
+    )!;
+    const link = { groupId: group.id, entryIds: [monday!.id], providerIds: [elsewhere.id] };
+    expect(codeOf(await entryProviderService.linkMany(u.owner.ctx, link))).toBe(
+      codeOf(
+        await entryProviderService.link(u.owner.ctx, {
+          groupId: group.id,
+          entryId: monday!.id,
+          providerId: elsewhere.id,
+        }),
+      ),
+    );
+    const clinic = ok(
+      await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
+    )!;
+    const mine = { ...link, providerIds: [clinic.id] };
+    const [linked] = ok(await entryProviderService.linkMany(u.owner.ctx, mine));
+    expect(linked).toMatchObject({ id: entryProviderId(monday!.id, clinic.id) });
+    expect(ok(await entryProviderService.linkMany(u.owner.ctx, mine))).toEqual([linked]);
   });
 
   it("writes no visits for a device's series, and accepts the device's own visits, replayed without duplicates", async () => {
