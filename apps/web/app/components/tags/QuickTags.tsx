@@ -41,7 +41,8 @@ type QuickTagsProps = {
  * (`useTagPicker`; its Add-new only for `canCreateTag`). Every tap is its
  * own local write, never part of a form's Save. Anyone else sees the chips
  * alone (nothing when there are none). It sits above a row's stretched
- * open target (`relative z-10`), so its taps never open the record.
+ * open target (`relative z-10`), so its taps never open the record; it's
+ * only as wide as its chips (`w-fit`), so a tap beside them still does.
  */
 export function QuickTags(props: QuickTagsProps) {
   return props.tags ? <QuickTagsView {...props} tags={props.tags} /> : <OwnQuickTags {...props} />;
@@ -77,7 +78,7 @@ function QuickTagsView({
     if (!res.ok) setError(res.error);
   };
   return (
-    <div className={`relative z-10 space-y-1 ${className}`} data-quick-tags="">
+    <div className={`relative z-10 w-fit space-y-1 ${className}`} data-quick-tags="">
       <div className="flex flex-wrap items-center gap-1">
         <TagChips tags={tags} max={max} onRemove={(t) => void remove(t.id)} onMore={pick} />
         {compact ? (
