@@ -7,17 +7,18 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge; agent shells need nvm's Node 24 bin first on `PATH`.
+- Docs at landing: appointments.md's top-up: only due series are read; an ended series is never rewritten (slice 1).
 - **Wave 1** (2026-11-27): slices 1-7, all Opus. Ready now: 1, 3, 4, 6, 7; 2 waits on 1, 5 on 3.
 
-| Slice | Item  | State                              | Merge |
-| ----- | ----- | ---------------------------------- | ----- |
-| 1     | B-311 | working (Opus)                     | —     |
-| 2     | B-755 | waits on 1                         | —     |
-| 3     | B-313 | working (Opus)                     | —     |
-| 4     | B-884 | handed off a35eb49f, merge after 3 | —     |
-| 5     | B-910 | waits on 3                         | —     |
-| 6     | B-798 | handed off 13501fbf, merge after 5 | —     |
-| 7     | B-764 | working (Opus)                     | —     |
+| Slice | Item  | State                              | Merge    |
+| ----- | ----- | ---------------------------------- | -------- |
+| 1     | B-311 | merged                             | 37c40171 |
+| 2     | B-755 | working (Opus)                     | —        |
+| 3     | B-313 | working (Opus)                     | —        |
+| 4     | B-884 | handed off a35eb49f, merge after 3 | —        |
+| 5     | B-910 | waits on 3                         | —        |
+| 6     | B-798 | handed off 13501fbf, merge after 5 | —        |
+| 7     | B-764 | working (Opus)                     | —        |
 
 ## Wave 1
 
