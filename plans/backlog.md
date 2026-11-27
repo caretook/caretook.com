@@ -2107,7 +2107,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: in-progress
 - prd: orchestration-split-4
 - owner: prd/orchestration-split-4
-- commit:
+- commit: de68c1c2
 
 - 2026-11-26 (Robert Bo Davis): Found 2026-11-26 by a dry run in a scratch copy of only the 257 core files: on the sample config 565 of 1,988 tests failed in 65 files; with Caretook's config copied in 210 failed in 25 (land*, doc, skeptics, ci/gate); with no root config the run hung in lease.sh (file_mtime: command not found). Proof when done: that dry run passes. The move (B-543 step 2) waits for it.
 - 2026-11-26 (plan/orchestration-split-4): Planned 2026-11-26: plans/orchestration-split-4-prd.md and -plan.md (seven slices; the proof is node scripts/loops/standalone.mjs passing with --root sample, project and none)
