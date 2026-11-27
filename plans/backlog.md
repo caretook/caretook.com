@@ -22,7 +22,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags` | done | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `todo-subtasks` | done | `planner-3`, `tags` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/app-shell/unsavedChanges.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
-| `todo-subtasks-3` | — | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
+| `todo-subtasks-3` | done | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | — | `todo-subtasks-3` | — | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
 | `fixes-bug` | standing | — | `packages/data/src/db/schema/assistant/`, `packages/data/src/db/schema/timeline/vitals` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
@@ -256,9 +256,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
-| B-941 | feature | ready | todo-subtasks-3 | prd/todo-subtasks-3 | Todos page shows each parent with all its nested todos under it, at every level |
-| B-942 | feature | ready | todo-subtasks-3 | prd/todo-subtasks-3 | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
-| B-943 | feature | ready | todo-subtasks-3 | prd/todo-subtasks-3 | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
+| B-941 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Todos page shows each parent with all its nested todos under it, at every level |
+| B-942 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
+| B-943 | feature | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
 | B-944 | feature | triaged | todo-links |  | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
 | B-945 | feature | triaged | todo-links |  | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
 | B-946 | feature | triaged | todo-links |  | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
@@ -278,7 +278,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-970 | bug | staging | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
 | B-971 | bug | staging | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
-| B-974 | bug | ready | todo-subtasks-3 | prd/todo-subtasks-3 | Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row) |
+| B-974 | bug | landed | todo-subtasks-3 | prd/todo-subtasks-3 | Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row) |
 | B-975 | change | triaged | fixes-ui |  | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
 | B-976 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry vitals in any order: '140/78 74bpm 97 o2' drops the O2 (only 'o2 97' works); HR/bpm the same, label before the number works, after doesn't. Very common entries: accept label before or after each number |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
@@ -1038,6 +1038,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/tags-2. First failure: AssertionError: {"knee":11.20000000006985,"short of breath":14.5,"\"short of breath\"":7.5,"walk -cane":4.5,"pres":3.800000000046566,"the":51.39999999990687}: expected 51.39999999990687 to be less than 50 at http://127.0.0.1:42235/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:42235/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq-…
 - 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-ui. First failure: AssertionError: {"knee":19.100000000034925,"short of breath":22.900000000023283,"\"short of breath\"":19.899999999965075,"walk -cane":6.2000000000116415,"pres":5.600000000034925,"the":51.90000000002328}: expected 51.90000000002328 to be less than 50 at http://127.0.0.1:34249/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:34249/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bf…
 - 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-bug. First failure: AssertionError: {"knee":26,"short of breath":18.099999999976717,"\"short of breath\"":20.79999999998836,"walk -cane":7.400000000023283,"pres":4.7999999999883585,"the":63.5}: expected 63.5 to be less than 50 at http://127.0.0.1:44531/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:44531/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8V…
+- 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/todo-subtasks-3. First failure: AssertionError: {"knee":17.399999999965075,"short of breath":18.70000000001164,"\"short of breath\"":11.899999999965075,"walk -cane":5,"pres":5.2000000000116415,"the":56.20000000001164}: expected 56.20000000001164 to be less than 50 at http://127.0.0.1:34089/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:34089/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/…
 
 ### B-625 · chore · Drop todo.event_id and its old-client mirror once no device writes it
 
@@ -1567,7 +1568,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-941 · feature · Todos page shows each parent with all its nested todos under it, at every level
 
-- status: ready
+- status: landed
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1580,7 +1581,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-942 · feature · Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter
 
-- status: ready
+- status: landed
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1594,7 +1595,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-943 · feature · Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made
 
-- status: ready
+- status: landed
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
@@ -1781,7 +1782,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-974 · bug · Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row)
 
-- status: ready
+- status: landed
 - prd: todo-subtasks-3
 - owner: prd/todo-subtasks-3
 - commit: f0257bbd2
