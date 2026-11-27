@@ -25,7 +25,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `todo-subtasks-3` | done | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | — | `todo-subtasks-3` | `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/entry/EntryTodos.tsx`, `apps/web/app/routes/app/groups/entry/route.tsx`, `apps/web/app/routes/app/groups/provider/route.tsx`, `apps/web/app/routes/app/groups/medication/route.tsx`, `apps/web/app/lib/core/recentlyViewed.ts`, `apps/web/app/lib/auth/forgetUserData.ts`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/lib/search/searchTables.sync.ts`, `packages/data/src/db/schema/search/searchDocument.ts` | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
-| `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `packages/api/src/connectors/tools/pastDoses.ts`, `packages/api/src/connectors/tools/logPastDoses.ts`, `packages/api/src/connectors/`, `packages/data/src/services/assistantActionService.ts`, `packages/data/src/db/schema/medications/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
@@ -288,11 +288,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-979 | bug | landed | fixes-bug | prd/fixes-bug | Search results' tag chips keep a matching tag's old name or color after another device renames or recolors it (useSearchPage's refresh keys miss tag metadata) |
 | B-980 | bug | triaged | fixes-ui |  | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
-| B-982 | bug | triaged | fixes-bug |  | past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed |
+| B-982 | bug | in-progress | fixes-bug | prd/fixes-bug | past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
-| B-984 | bug | triaged | fixes-bug |  | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
-| B-985 | bug | triaged | fixes-bug |  | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
-| B-986 | bug | triaged | fixes-bug |  | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
+| B-984 | bug | in-progress | fixes-bug | prd/fixes-bug | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
+| B-985 | bug | in-progress | fixes-bug | prd/fixes-bug | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
+| B-986 | bug | in-progress | fixes-bug | prd/fixes-bug | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
 
 ## Items
 
@@ -1869,9 +1869,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-982 · bug · past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #276 (pastDoses.ts:126): entriesBetween is called with only from (from-1 day), newest first, capped at 40 pages of 50; a group logging ~24 doses a day asking for a day 90 days back can exhaust it before reaching the window, and the missing doses read as missed. Fix: pass to = the start of the day after the range plus one (entriesBetween already takes to), and treat a full last page as incomplete (an isError or a note) rather than a complete record.
@@ -1887,27 +1887,27 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-984 · bug · Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id)
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #278 (assistantActionService.ts:974): logPastDoses locks doseSlotIdFor's id, which includes the status, so a concurrent given and refused for the same slot both insert. The plan accepted this (log_dose has the same exposure). Fix: lock a status-free medication/day/slot key before reading doses, in both paths.
 
 ### B-985 · bug · log_past_doses writes today's usual dose on past days when the medication's dose changed in the range
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #278 (assistantActionService.ts:1031): slot.amount comes from slotAmount, which falls back to the current medication's dose; scheduleHistory rebuilds the schedule but not the usual dose. Changing 1 tablet to 2 today and logging yesterday's box records 2. Fix: resolve the usual dose at the slot's time (from the medication-change entries) before writing; past_doses shows the same amount.
 
 ### B-986 · bug · log_past_doses sees only the first 100 medications, so marks for others come back noSlot
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #278 (assistantActionService.ts:936): medicationModel.list's paginate is clamped to MAX_PAGE_SIZE 100 (asked 500), and passes to 100, while past_doses (medicationService.list) reads all. Fix: load every page, or the medications the marks name.
