@@ -290,10 +290,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
 | B-982 | bug | ready | fixes-bug | prd/fixes-bug | past_doses reads doses with no upper bound, so a busy group's old days can show given doses as missed |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
-| B-984 | bug | in-progress | fixes-bug | prd/fixes-bug | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
-| B-985 | bug | in-progress | fixes-bug | prd/fixes-bug | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
-| B-986 | bug | in-progress | fixes-bug | prd/fixes-bug | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
+| B-984 | bug | ready | fixes-bug | prd/fixes-bug | Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id) |
+| B-985 | bug | ready | fixes-bug | prd/fixes-bug | log_past_doses writes today's usual dose on past days when the medication's dose changed in the range |
+| B-986 | bug | ready | fixes-bug | prd/fixes-bug | log_past_doses sees only the first 100 medications, so marks for others come back noSlot |
 | B-987 | bug | triaged | fixes-bug |  | log_dose's pass read (slotDose, assistantActionService.ts ~405) pages at 100 with includeDeleted, so a group with over 100 passes ever made can miss a pass |
+| B-988 | bug | triaged | todo-links |  | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
+| B-989 | bug | triaged | todo-links |  | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
 
 ## Items
 
@@ -1888,28 +1890,30 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-984 · bug · Two dose writes with different statuses for one slot at once can both be added (log_past_doses and log_dose lock a status-dependent id)
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 52fc5653d
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #278 (assistantActionService.ts:974): logPastDoses locks doseSlotIdFor's id, which includes the status, so a concurrent given and refused for the same slot both insert. The plan accepted this (log_dose has the same exposure). Fix: lock a status-free medication/day/slot key before reading doses, in both paths.
+- 2026-11-27 (prd/fixes-bug): Slice 84: fixed in log_past_doses (status-free advisory lock lockDoseSlot). log_dose left as is: a different answer for an answered slot is its own row by design (mcpWrites test), so concurrent log_dose given+refused giving two rows matches sequential. give_pass still locks only the given id, unsorted; same as sequential.
 
 ### B-985 · bug · log_past_doses writes today's usual dose on past days when the medication's dose changed in the range
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 05735fc88
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #278 (assistantActionService.ts:1031): slot.amount comes from slotAmount, which falls back to the current medication's dose; scheduleHistory rebuilds the schedule but not the usual dose. Changing 1 tablet to 2 today and logging yesterday's box records 2. Fix: resolve the usual dose at the slot's time (from the medication-change entries) before writing; past_doses shows the same amount.
+- 2026-11-27 (prd/fixes-bug): Slice 85: ScheduleHistory.doseAt; the fallback amount follows the slot's own moment, so Today shows an earlier same-day slot with the old dose too. weeklySheet.ts still uses today's dose (out of scope).
 
 ### B-986 · bug · log_past_doses sees only the first 100 medications, so marks for others come back noSlot
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 05735fc88
 
 - 2026-11-27 (prd/connectors-3): Codex on PR #278 (assistantActionService.ts:936): medicationModel.list's paginate is clamped to MAX_PAGE_SIZE 100 (asked 500), and passes to 100, while past_doses (medicationService.list) reads all. Fix: load every page, or the medications the marks name.
 
@@ -1921,3 +1925,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/fixes-bug): From slice 86 (B-986) hand-off: medicationPassModel.list with includeDeleted and paginate limit 100 in slotDose; deleted passes are unbounded. Fix as B-986 did: drop paginate.
+
+### B-988 · bug · Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter)
+
+- status: triaged
+- prd: todo-links
+- owner:
+- commit:
+
+- 2026-11-27 (prd/todo-links): Codex P2 on PR #280 (linkSearch.sync.ts:127): searchGroup truncates the entry section before searchLinkables drops non-linkable kinds; the 5x overfetch can't guarantee results. Filter by kind before truncation or fetch until enough. Fits slice 3 (it extends searchLinkables) or a later slice.
+
+### B-989 · bug · Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged
+
+- status: triaged
+- prd: todo-links
+- owner:
+- commit:
+
+- 2026-11-27 (prd/todo-links): Codex P2 on PR #280 (useLinkSearch.ts:33): the hook reruns only on search index changes; tag and record_tag aren't index sources. Observe the group's tags and tag assignments as useSearchPage does. Fits slice 3 or a later slice.
