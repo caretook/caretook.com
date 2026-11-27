@@ -174,8 +174,8 @@ describe("the name field's warning", () => {
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.fill(await found(() => field("name")), "ibu");
     await expect.poll(warning).toBe(null);
-    await userEvent.click(page.getByRole("option", { name: "Ibuprofen", exact: true }));
-    await expect.poll(() => field("name")?.value).toBe("Ibuprofen");
+    await userEvent.click(page.getByRole("option", { name: "Ibuprofen (Advil, Motrin)", exact: true }));
+    await expect.poll(() => field("name")?.value).toBe("Ibuprofen (Advil, Motrin)");
     await expect.poll(warning).toBe("Matches an allergy on file: Ibuprofen (severe)");
   });
 
