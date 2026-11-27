@@ -293,7 +293,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-970 | bug | landed | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
 | B-971 | bug | landed | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
-| B-973 | chore | ready | fixes-nit | prd/fixes-nit | Trim docs/domain/components.md under its 10 KB docs budget (10550 B vs 10240): dev grew it and it blocked fixes-ui's land |
+| B-973 | chore | landed | fixes-nit | prd/fixes-nit | Trim docs/domain/components.md under its 10 KB docs budget (10550 B vs 10240): dev grew it and it blocked fixes-ui's land |
 | B-974 | bug | triaged | todo-subtasks-3 |  | Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row) |
 
 ## Items
@@ -1948,7 +1948,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-973 · chore · Trim docs/domain/components.md under its 10 KB docs budget (10550 B vs 10240): dev grew it and it blocked fixes-ui's land
 
-- status: ready
+- status: landed
 - prd: fixes-nit
 - owner: prd/fixes-nit
 - commit: 4fc193345
