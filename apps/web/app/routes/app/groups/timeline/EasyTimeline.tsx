@@ -88,10 +88,14 @@ export function EasyTimeline({
       <EasyNow
         groupId={group.id}
         canWrite={mode.inputs}
-        next={hasNext(data.next, data.now) ? <EasyNext next={data.next} now={data.now} /> : null}
+        next={
+          hasNext(data.next, data.now) ? (
+            <EasyNext next={data.next} now={data.now} nameOf={data.nameOf} />
+          ) : null
+        }
         className={COLUMN_CAP}
       />
-      <EasyTodos className={COLUMN_CAP} />
+      <EasyTodos nameOf={data.nameOf} className={COLUMN_CAP} />
       {mode.inputs && (
         <div className={`space-y-3 ${EASY_BLOCK} ${COLUMN_CAP}`}>
           <LoggerTiles canChoose={isManagerRole(group.role)} />

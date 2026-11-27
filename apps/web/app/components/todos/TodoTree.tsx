@@ -17,7 +17,8 @@ type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo" | "look" | "addSubtas
  * its branch). `ancestors` is the chain above the trees' top level (for a
  * `rootId` tree: the root and its own ancestors), so depth holds. The
  * `card` look (the Planner) is the top level's only: the steps under a card
- * are the `list` look, indented to its text.
+ * are the `list` look, indented to its text. The `easy` look (easy mode)
+ * is every level's, but a context row's.
  */
 export function TodoTree({
   trees,
@@ -51,9 +52,18 @@ export function TodoTree({
           {...row}
         >
           {node.children.length > 0 && (
-            // Under a card, to its text (px-3, the size-6 tick, gap-x-2.5).
+            // To the row's text: under a card px-3, the size-6 tick and gap-x-2.5; an
+            // easy row's size-8 tick and gap-4 (none without ticks); a list row's w-6 and gap-3.
             <ul
-              className={nodeLook === "card" ? "pr-3 pl-[2.875rem]" : "pl-9"}
+              className={
+                nodeLook === "card"
+                  ? "pr-3 pl-[2.875rem]"
+                  : nodeLook === "easy"
+                    ? row.onTick
+                      ? "pl-12"
+                      : "pl-6"
+                    : "pl-9"
+              }
               data-todo-level={above.length + 2}
             >
               {level(node.children, [node.todo, ...above], false)}

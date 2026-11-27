@@ -12,9 +12,11 @@ import { chooseEasyMode } from "./timelineWorld";
 import { waitUntil } from "../../../../../test/found";
 
 // Easy mode's "My todos" card (todos slice 6), on the test device
-// (offline): my open todos, overdue and today first, at most five with "See
-// all", big ticks with Undo, for writers and viewers; nothing when I have
-// none; the easy view's other regions as they were.
+// (offline): my open todos as trees in the shared row's easy look
+// (todo-subtasks-3), overdue and today first, at most five with "See all",
+// big ticks with Undo, for writers and viewers; a step of mine under its
+// dimmed parent; nothing when I have none; the easy view's other regions as
+// they were.
 
 const ROUTES: DeviceRoute[] = [{ path: "/app/groups/:groupId/timeline", module: timeline }];
 const URL = `/app/groups/${TEST_GROUP.id}/timeline`;
@@ -57,7 +59,7 @@ const open = (role: GroupRole, fixtures: Fixture[]) => {
 
 const card = () => document.querySelector<HTMLElement>("[data-easy-todos]");
 const titles = () =>
-  [...(card()?.querySelectorAll("[data-easy-todo] [data-todo-title]") ?? [])].map((el) =>
+  [...(card()?.querySelectorAll("[data-todo-look=easy] [data-todo-title]") ?? [])].map((el) =>
     el.textContent?.trim(),
   );
 const seeAll = () => card()?.querySelector<HTMLAnchorElement>("[data-easy-todos-all]") ?? null;
@@ -78,7 +80,7 @@ describe("My todos in easy mode", () => {
       "Drive to physio",
       "Fax the form",
     ]);
-    const states = [...card()!.querySelectorAll<HTMLElement>("[data-easy-todo]")].map(
+    const states = [...card()!.querySelectorAll<HTMLElement>("[data-todo-look=easy]")].map(
       (li) => li.dataset.todoState,
     );
     expect(states).toEqual(["overdue", "overdue", "today", "upcoming", "upcoming"]);
@@ -197,7 +199,7 @@ describe("My todos in easy mode", () => {
     },
   );
 
-  test("an Easy helper: their assigned subtask with “Part of”, and they tick it; their parent waits on its subtasks (todo-subtasks-2)", async () => {
+  test("an Easy helper: their assigned step under its dimmed parent with the big tick, and they tick it with Undo; their parent waits on its subtasks (todo-subtasks-3)", async () => {
     const BIRTHDAY = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2e0001";
     const READY = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2e0002";
     const device = await open("easy_helper", [
@@ -208,38 +210,76 @@ describe("My todos in easy mode", () => {
       mine("Get ready for the hospital stay", { id: READY, dueOn: day(5) }),
       todo({ title: "Pack the bag", parentId: READY, assigneeId: SAM_ID }),
     ]);
-    await waitUntil(() => titles().length === 2, "the helper's card");
-    expect(titles()).toEqual(["Get ready for the hospital stay", "Order the cake"]);
-    const rowOf = (title: string) =>
-      [...card()!.querySelectorAll("[data-easy-todo]")].find(
-        (li) => li.querySelector("[data-todo-title]")?.textContent?.trim() === title,
-      );
-    const partOf = rowOf("Order the cake")?.querySelector("[data-todo-part-of]");
-    expect(partOf?.textContent).toBe("Part of Plan the birthday");
-    expect(partOf?.querySelector("a")?.getAttribute("href")).toBe(
+    // Mine whole (its step that isn't mine too), then my step's branch; not my step's sibling.
+    await waitUntil(() => titles().length === 3, "the helper's card");
+    expect(titles()).toEqual(["Get ready for the hospital stay", "Pack the bag", "Order the cake"]);
+    expect(card()?.textContent).not.toContain("Send the invites");
+
+    const parent = card()!.querySelector<HTMLElement>(`[data-todo="${BIRTHDAY}"]`)!;
+    expect(parent.dataset.todoLook).toBe("context");
+    expect(parent.className).toContain("opacity-60");
+    expect(parent.querySelector("input")).toBeNull();
+    expect(parent.querySelector("a")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/todos/${BIRTHDAY}`,
     );
-    await expect
-      .poll(
-        () => rowOf("Get ready for the hospital stay")?.querySelector("[data-todo-progress]")?.textContent,
-      )
-      .toBe("0 of 1 done");
+    // The step sits under it, in its list item, with the big tick.
+    const cakeTick = page.getByRole("checkbox", { name: "Mark “Order the cake” done" });
+    await expect.element(cakeTick).toBeInTheDocument();
+    expect(parent.closest("li")?.contains(cakeTick.element())).toBe(true);
+    expect(cakeTick.element().getBoundingClientRect().width).toBeGreaterThanOrEqual(32);
+
+    const readyRow = card()!.querySelector(`[data-todo="${READY}"]`);
+    await expect.poll(() => readyRow?.querySelector("[data-todo-progress]")?.textContent).toBe("0 of 1 done");
     await expect
       .element(
         page.getByRole("checkbox", { name: "“Get ready for the hospital stay”: 0 of 1 subtasks done" }),
       )
       .toBeDisabled();
 
-    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Order the cake” done" }));
+    await userEvent.click(cakeTick);
     await expect
       .element(page.getByRole("status").filter({ hasText: "Done: Order the cake" }))
       .toBeInTheDocument();
-    await expect.poll(() => titles()).toEqual(["Get ready for the hospital stay"]);
+    await expect.poll(() => titles()).toEqual(["Get ready for the hospital stay", "Pack the bag"]);
+    expect(card()?.querySelector(`[data-todo="${BIRTHDAY}"]`)).toBeNull();
     const [cake] = await device.query<{ done_by: string | null }>(
       "SELECT done_by FROM todo WHERE title = 'Order the cake'",
     );
     expect(cake?.done_by).toBe(TEST_USER.id);
+
+    await userEvent.click(page.getByRole("button", { name: "Undo Order the cake" }));
+    await expect
+      .poll(() => titles())
+      .toEqual(["Get ready for the hospital stay", "Pack the bag", "Order the cake"]);
+    await expect
+      .poll(async () => {
+        const [row] = await device.query<{ done_at: string | null }>(
+          "SELECT done_at FROM todo WHERE title = 'Order the cake'",
+        );
+        return row?.done_at;
+      })
+      .toBeNull();
     await device.settle();
+  });
+
+  test("the cap counts my todos, not rows, and never cuts a tree", async () => {
+    const TRIP = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2e0003";
+    await open("caretaker", [
+      mine("Plan the trip", { id: TRIP, dueOn: day(-1) }),
+      mine("Book the van", { parentId: TRIP }),
+      mine("Pack the meds", { parentId: TRIP }),
+      mine("Call the pharmacy", { dueOn: today }),
+      mine("Fax the form", { dueOn: day(1) }),
+      mine("Drive to physio", { dueOn: day(2) }),
+    ]);
+    // The trip's three, then two more: five of mine; the last waits for See all.
+    await waitUntil(() => titles().length === 5, "the card's todos");
+    // (The steps' own order is siblingOrder's, not this test's.)
+    const shown = titles();
+    expect(shown[0]).toBe("Plan the trip");
+    expect(shown.slice(1, 3).sort()).toEqual(["Book the van", "Pack the meds"]);
+    expect(shown.slice(3)).toEqual(["Call the pharmacy", "Fax the form"]);
+    expect(seeAll()?.textContent).toBe("See all 6 todos");
   });
 
   test("none of mine open: no card, and the rest of the view as before", async () => {
