@@ -1,6 +1,6 @@
 # Tags
 
-One shared tag list per care group; tags go on timeline entries (events included), todos, providers and medications. PRD: [`tags-prd`](../../plans/tags-prd.md). ✅ data and sync (wave 1); ✅ tagging timeline entries and events (wave 2); ✅ rename and delete, todos and the Planner, providers and medications (wave 3); ✅ the timeline and search filters (wave 4). [`tags-2`](../../plans/tags-2-prd.md): ✅ colors in data and sync; 🟡 colored chips, seeds, quick tags.
+One shared tag list per care group; tags go on timeline entries (events included), todos, providers and medications. PRD: [`tags-prd`](../../plans/tags-prd.md). ✅ data and sync (wave 1); ✅ tagging timeline entries and events (wave 2); ✅ rename and delete, todos and the Planner, providers and medications (wave 3); ✅ the timeline and search filters (wave 4). [`tags-2`](../../plans/tags-2-prd.md): ✅ colors in data and sync, colored chips and seeds; 🟡 quick tags.
 
 ## Data
 
@@ -12,7 +12,7 @@ One shared tag list per care group; tags go on timeline entries (events included
 
 ## Sync
 
-- Both tables are in the `care_groups` stream for every role and the device schema (`tags`, `recordTags`). Upload: `tag` PUT → `create`, PUT `color` → `create`'s (none: the server picks), PATCH `name` → `rename`, PATCH `color` → `recolor` (both: one transaction) (a sent `name_key` is ignored; `group_id` is `tagService:immutable`), DELETE → `remove` (`notFound` is a replay); `record_tag` has its own small handler: PUT → link with null targets as null, DELETE → unlink, PATCH `sync:readOnlyTable`.
+- Both tables are in the `care_groups` stream for every role and the device schema (`tags`, `recordTags`). Upload: `tag` PUT → `create`, PUT `color` → `create`'s (none: the server picks), PATCH `name` → `rename`, PATCH `color` → `recolor` (both: one transaction) (a sent `name_key` is ignored), DELETE → `remove` (`notFound` is a replay); `record_tag` has its own small handler: PUT → link with null targets as null, DELETE → unlink, PATCH `sync:readOnlyTable`.
 - Device module `lib/tags/tags.sync.ts` (`caretookModules.tags`): `tagsQuery`, `recordTagsQuery`, `groupRecordTagsQuery` (live records only); `createTag` reuses a local tag with the same key, else takes `nextTagId` and writes a `pickTagColor` color, so device and server agree; `recolorTag` (`canRenameTag`); `tagRecord`/`untagRecord` check `canTagRecord` first; `renameTag`, `deleteTag` (links and tag in one transaction) and `tagUsesQuery`. A todo's twin copies its tags with the same link ids (a tick isn't tagging).
 - `roundtrip` covers two offline devices adding the same tag to one entry; the sync matrix has device rows for both tables.
 
@@ -22,7 +22,7 @@ One shared tag list per care group; tags go on timeline entries (events included
 - **Tags in ⋯:** after Edit, on every entry kind (change entries included) and Planner event rows, and in a todo page's ⋯, offered by `canTagRecord`. A provider's page has a Tags header button; a medication tags from its edit sheet (each toggle its own write, not part of Save).
 - **Rename and delete** in the picker: a pencil per tag the person may rename opens `TagEditor` (inline errors; Enter never submits the picker); owners get Delete, a `ConfirmDialog` naming how many records carry the tag.
 - **Tag filters:** a Tag section (none when the group has no tags) on the Todos tab, Planner Upcoming (carried to Past as a chip), Providers and the Medications list; `?tag=` through `activeTag`, so a deleted tag is no filter. `lib/tags/tagFilter.ts` builds the Todos and Planner sections; providers and medications have their own copies (fold them in when one changes).
-- **Chips** (`TagChips`): on timeline, Planner, todo, provider and medication rows and cards, two then "+N" (`ROW_CHIPS`), for every role and in the easy view; the entry page shows them all, since a viewer has no other way to see the rest.
+- **Chips** (`TagChips`), colored through `ui/tagLook.ts`'s `tagColorClass` (whole classes over the `--color-avatar-*` tokens; `Badge`'s `fill` takes them in place of the tone; null or unknown is the neutral chip), and the picker's toggles show a color dot: on timeline, Planner, todo, provider and medication rows and cards, two then "+N" (`ROW_CHIPS`), for every role and in the easy view; the entry page shows them all, since a viewer has no other way to see the rest.
 - **`EntryFilters.tag`** (`timeline.sync.ts`): a `record_tag` subquery ANDed before `match`, in every window, link and medication query.
 - **Timeline filter:** `?tag=` lives in `timelineFilters` (`setTag`, `clearTag`, part of `clearFilters`; a tag change clears `?day=`), a Tag section in the filter sheet and a removable chip. It narrows the history only: the Next strip, Today card and Latest vitals ignore it, and `summariesOff` counts it as a filter.
 - **Search** (`search.sync.ts`): `?tag=` (`SEARCH_TAG_PARAM`) is a `record_tag` subquery per taggable type, so conditions drop out and the index never stores tags; a tag with no text lists each type's live records (`taggedItems`) without the index. The page reruns on `record_tag` changes, since they don't touch the index; recent searches hide while a tag is on.
@@ -33,4 +33,4 @@ One shared tag list per care group; tags go on timeline entries (events included
 - Tags stay in the app: no connector tool, calendar feed, email, print view or search index reads them.
 - Not tagged: conditions, allergies, care periods, a repeating series as a whole. One tag per filter; no merge or nesting; colors aren't chosen by hand yet (the Tags page, `tags-3`).
 - Known limit: a device that never saw a rename can add the old name and land on the renamed tag.
-- Seeds: `seeds/tags.ts`, three fictional tags on Dev Family's records with derived ids.
+- Seeds: `seeds/tags.ts`, fictional tags with a color each on every seed group, on every taggable kind, written by the group's owner (derived ids).

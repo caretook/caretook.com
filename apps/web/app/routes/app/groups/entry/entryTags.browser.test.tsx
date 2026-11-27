@@ -74,6 +74,26 @@ describe("tags on the entry page", () => {
     expect(added?.color).toBe(free);
   });
 
+  test("a chip carries its tag's color; a tag with no color is the neutral chip", async () => {
+    const [color] = TAG_COLORS;
+    const painted = tag("Knee", { color });
+    await openEntry("viewer", [
+      VISIT,
+      URGENT,
+      painted,
+      recordTag(URGENT.id, VISIT.id),
+      recordTag(KNEE.id, VISIT.id),
+    ]);
+    await expect.poll(chips).toBe("Knee,Urgent");
+    const chip = (id: string) =>
+      document.querySelector<HTMLElement>(`[data-region="tags"] [data-tag-chip="${id}"]`)!;
+    expect(chip(KNEE.id).classList).toContain(`bg-avatar-${color}`);
+    expect(chip(KNEE.id).dataset.tagColor).toBe(color);
+    expect(chip(URGENT.id).className).not.toMatch(/bg-avatar-/);
+    expect(chip(URGENT.id).classList).toContain("badge-neutral");
+    expect(chip(URGENT.id).dataset.tagColor).toBeUndefined();
+  });
+
   test("a viewer sees the chips and no Tags", async () => {
     await openEntry("viewer");
     await expect.poll(chips).toBe("Knee,Urgent");
