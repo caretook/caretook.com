@@ -1,7 +1,8 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "../core/columns";
 
-import { pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, foreignKey, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { careGroupSchema } from "../care-groups/careGroup";
 import { audits, timestamps } from "../core/columns";
@@ -12,8 +13,14 @@ import { SYMPTOM_NAME_MAX, symptomKey, symptomName, symptomTypeId } from "./symp
 // is made. `name` is the first spelling; `name_key` folds case and spaces
 // (`symptomKey`), one row per key. The id is derived from the group and the
 // key (`symptomTypeId`), so devices adding the same name offline write one
-// row. Rows are never renamed or removed in this topic, so there's no soft
-// delete; deleting the group removes them.
+// row. Rows are never renamed or removed, so there's no soft delete;
+// deleting the group removes them.
+//
+// Three states (symptom-catalog-2): active; archived (`archived_at`: hidden
+// from suggestions and pickers, its entries kept, a writer can bring it
+// back); a tombstone (`replaced_by_id`: merged into another of the group's
+// rows, written only by the merge, symptom-catalog-3). Both are set by the
+// server (`symptomTypeService.archive`/`unarchive`), never uploaded.
 
 export const symptomTypeSchema = pgTable(
   "symptom_type",
@@ -25,6 +32,10 @@ export const symptomTypeSchema = pgTable(
       .references(() => careGroupSchema.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     nameKey: text("name_key").notNull(),
+    // When a writer archived it; null while active.
+    archivedAt: timestamp("archived_at", { precision: 3, mode: "string", withTimezone: true }),
+    // The row this one was merged into (a tombstone); null otherwise.
+    replacedById: uuid("replaced_by_id"),
     ...timestamps,
     ...audits,
   },
@@ -32,6 +43,16 @@ export const symptomTypeSchema = pgTable(
     unique("symptom_type_group_id_name_key_unique").on(t.groupId, t.nameKey),
     // For entries' composite foreign key (group, type): never another group's type.
     unique("symptom_type_group_id_id_unique").on(t.groupId, t.id),
+    // A tombstone's replacement is another row of the same group.
+    foreignKey({
+      name: "symptom_type_replaced_by_fk",
+      columns: [t.groupId, t.replacedById],
+      foreignColumns: [t.groupId, t.id],
+    }),
+    check(
+      "symptom_type_replaced_by_not_self",
+      sql`${t.replacedById} IS NULL OR ${t.replacedById} <> ${t.id}`,
+    ),
   ],
 );
 

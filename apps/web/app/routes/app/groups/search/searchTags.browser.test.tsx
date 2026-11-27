@@ -7,7 +7,7 @@ import * as searchRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { condition, fx, hoursAgo, recordTag, tag, TEST_GROUP, todo } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
-import { tagRecord } from "~/lib/tags/tags.sync";
+import { deleteTag, recolorTag, renameTag, tagRecord } from "~/lib/tags/tags.sync";
 
 // The search page's tag filter (tags slice 6): `?tag=` narrows every
 // section to the items carrying the tag; with no text it lists each type's
@@ -94,6 +94,8 @@ const tagChip = (name: string) =>
   );
 const currentTag = () =>
   document.querySelector("[data-search-tags] nav a[aria-current='true']")?.textContent ?? null;
+const resultChip = (id: string) =>
+  document.querySelector<HTMLElement>(`[data-result-id="${id}"] [data-tag-chip]`);
 const resultChips = (id: string) =>
   [...document.querySelectorAll<HTMLElement>(`[data-result-id="${id}"] [data-tag-chip]`)].map(
     (c) => c.dataset.tagChip,
@@ -239,5 +241,52 @@ describe("search: the tag filter", () => {
     expect(await tagRecord(device.db, KNEE.id, "entry", UNTAGGED_NOTE.id)).toEqual({ ok: true });
     await device.settle();
     await expect.poll(results).toEqual([`medication:${METFORMIN.id}`, `entry:${UNTAGGED_NOTE.id}`]);
+  });
+
+  test("a result's tag chip follows a rename or recolor of its tag (B-979)", async () => {
+    const alpha = tag("Alpha");
+    const alpine = tag("Alpine");
+    const walk = fx.note({ occurredAt: hoursAgo(8), text: "Walked round the pond" });
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: `${BASE}?q=alp`,
+      fixtures: [
+        ...world(),
+        alpha,
+        alpine,
+        walk,
+        recordTag(alpha.id, walk.id),
+        recordTag(alpine.id, walk.id),
+      ],
+      search: true,
+    });
+    await expect.poll(results).toEqual([`entry:${walk.id}`]);
+    expect(resultChips(walk.id)).toEqual([alpha.id, alpine.id]);
+    expect(resultChip(walk.id)?.textContent).toBe("Alpha");
+    expect(resultChip(walk.id)?.dataset.tagColor).toBeUndefined();
+
+    // Recolored and renamed (any device's change lands in the local database):
+    // the text still names it, so the result stays and its chip follows.
+    expect(await recolorTag(device.db, alpha.id, TAG_COLORS[3])).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(() => resultChip(walk.id)?.dataset.tagColor).toBe(TAG_COLORS[3]);
+    expect(await renameTag(device.db, alpha.id, "Alphabet")).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(() => resultChip(walk.id)?.textContent).toBe("Alphabet");
+    // The filter chip updates as before.
+    expect(tagChip("Alphabet")?.querySelector("[data-tag-swatch]")?.getAttribute("data-tag-swatch")).toBe(
+      TAG_COLORS[3],
+    );
+
+    // A deleted tag drops off the chips; the result stays for the other.
+    expect(await deleteTag(device.db, alpine.id)).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(() => resultChips(walk.id)).toEqual([alpha.id]);
+
+    // Renamed so the text no longer names it: the result goes; the filter chip shows the new name.
+    expect(await renameTag(device.db, alpha.id, "Beta")).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(results).toEqual([]);
+    await found(() => tagChip("Beta"));
   });
 });

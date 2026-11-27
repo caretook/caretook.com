@@ -1,0 +1,4 @@
+ALTER TABLE "symptom_type" ADD COLUMN "archived_at" timestamp(3) with time zone;--> statement-breakpoint
+ALTER TABLE "symptom_type" ADD COLUMN "replaced_by_id" uuid;--> statement-breakpoint
+ALTER TABLE "symptom_type" ADD CONSTRAINT "symptom_type_replaced_by_fk" FOREIGN KEY ("group_id","replaced_by_id") REFERENCES "public"."symptom_type"("group_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "symptom_type" ADD CONSTRAINT "symptom_type_replaced_by_not_self" CHECK ("symptom_type"."replaced_by_id" IS NULL OR "symptom_type"."replaced_by_id" <> "symptom_type"."id");
