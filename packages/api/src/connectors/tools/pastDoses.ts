@@ -18,7 +18,7 @@ import {
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso } from "../time";
-import { DAY_MS, entriesBetween } from "./readSupport";
+import { DAY_MS, entriesBetween, LIST_PAGE_MAX } from "./readSupport";
 import { asMember, loadGroup, loadMembers } from "./shared";
 
 /** `past_doses` reads this many days by default (ending today), and at most MAX. */
@@ -30,6 +30,10 @@ export const PAST_DOSES_MAX_DAYS_BACK = 90;
 /** What a `from` after today is answered with: the days ahead are the plan's. */
 export const FUTURE_RECORD_REFUSAL = "Past doses end today. Use dose_schedule for the days ahead.";
 export const TOO_FAR_BACK_REFUSAL = `At most ${PAST_DOSES_MAX_DAYS_BACK} days back.`;
+/** `past_doses` reads at most this many pages of doses (of LIST_PAGE_MAX). */
+export const PAST_DOSES_MAX_PAGES = 40;
+/** What a window with more doses than those pages hold is answered with. */
+export const TOO_BUSY_REFUSAL = "Too many doses in that range to read them all. Ask for fewer days.";
 
 const input = z.object({
   from: z.iso
@@ -119,13 +123,24 @@ export const pastDoses = defineTool({
       includeDeleted: true,
     });
     if (isError(passes)) return passes;
-    // Doses from the day before `from`, so one near its midnight keeps its own slot.
+    // Doses from the day before `from` to the day after `to`, so one near
+    // either midnight keeps its own slot, and only the window is read.
     const entries = await entriesBetween(
       ctx,
-      { kinds: ["dose"], from: startOfDay(addDays(from, -1), timeZone).toISOString() },
-      40,
+      {
+        kinds: ["dose"],
+        from: startOfDay(addDays(from, -1), timeZone).toISOString(),
+        to: startOfDay(addDays(to, 2), timeZone).toISOString(),
+      },
+      PAST_DOSES_MAX_PAGES,
     );
     if (isError(entries)) return entries;
+    // A full last page may have more behind it: doses never read would show as missed.
+    if (entries.length >= PAST_DOSES_MAX_PAGES * LIST_PAGE_MAX)
+      return newError({
+        code: "connectorTool:invalid",
+        meta: { issues: [{ path: "days", message: TOO_BUSY_REFUSAL }] },
+      });
     // The schedule each day had, from the first day the matching reaches.
     const changes = await timelineEntryService.scheduleChanges(asMember(ctx), {
       groupId: ctx.groupId,
