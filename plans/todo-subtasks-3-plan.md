@@ -10,17 +10,17 @@
 
 **Wave 1 started 2026-11-27:** anchors fixed (five future-state anchors reworded); slices 1, 2, 3 started, all on opus. fixes-perf has landed (timeline hot files free).
 
-| Slice | Wave | State | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------------ |
+| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------------ |
 | 1     | 1    | running (opus) |                                                  |
 | 2     | 1    | running (opus) |                                                  |
 | 3     | 1    | running (opus) |                                                  |
-| 4     | 2    | —     |                                                  |
-| 5     | 3    | —     |                                                  |
-| 6     | 3    | —     |                                                  |
-| 7     | 4    | —     |                                                  |
-| 8     | 4    | —     |                                                  |
-| 9     | 5    | —     |                                                  |
+| 4     | 2    | —              |                                                  |
+| 5     | 3    | —              |                                                  |
+| 6     | 3    | —              |                                                  |
+| 7     | 4    | —              |                                                  |
+| 8     | 4    | —              |                                                  |
+| 9     | 5    | —              |                                                  |
 
 ## Architectural decisions
 
