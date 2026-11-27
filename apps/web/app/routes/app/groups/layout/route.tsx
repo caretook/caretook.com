@@ -15,7 +15,7 @@ import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
 // loader runs, and puts it in the router context. Children's loaders read it
 // with `getGroup(context)`, and their components with `useGroup()` (live). A
 // group that isn't on the device is `notOnDevice` (the /app error boundary's
-// 404, or "Getting your care groups…" on a new device), thrown by
+// 404, or "Syncing your care groups…" on a new device), thrown by
 // `getGroup` from the loaders (see lib/app-shell/group.tsx for why not the middleware).
 //
 // A member with an easy role (Easy helper, Easy viewer) is sent to the

@@ -1,31 +1,30 @@
 import type { ReactNode } from "react";
 
 import { useEffect, useRef, useState } from "react";
-import { TITLE_SECTION } from "~/components/ui";
 
-/** What the editor shows above the note when it's full screen. */
+/** What the editor's bar shows when it's full screen (B-962). */
 export type NoteFullScreenOptions = {
-  /** The dialog's name and heading (the entry's heading). */
+  /** The dialog's name, and the title in the bar (what the note is attached to: the entry's heading). */
   title: string;
-  /** Shown beside the heading (the entry page's editor avatars). */
+  /** Shown in the bar beside the title (the entry page's editor avatars). */
   aside?: ReactNode;
 };
 
 /**
  * The live note full screen (B-765): a native modal <dialog> over the page,
- * filling the screen (above a phone's keyboard: the visual viewport's
- * height). `children` is the editor's frame, moved in while `open`: the
+ * filling the screen edge to edge (above a phone's keyboard: the visual
+ * viewport's height). `children` is the editor's frame, moved in while
+ * `open`, which shows the title and `aside` in its own bar (B-962): the
  * editor instance, its Yjs document and its selection stay with the parent,
  * so only the frame remounts. Escape calls `onClose`.
  */
 export function NoteFullScreen({
   open,
   title,
-  aside,
   children,
   onOpen,
   onClose,
-}: NoteFullScreenOptions & {
+}: Pick<NoteFullScreenOptions, "title"> & {
   open: boolean;
   children: ReactNode;
   /** Called once the dialog is shown (to put the cursor back in the note). */
@@ -68,15 +67,7 @@ export function NoteFullScreen({
         style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
         className="bg-base-200 text-base-content fixed inset-x-0 top-0 m-0 h-dvh max-h-none w-full max-w-none border-0 p-0"
       >
-        {open && (
-          <div className="mx-auto flex h-full max-w-3xl flex-col gap-2 p-2 sm:p-4">
-            <div className="flex min-h-8 items-center gap-2 px-2">
-              <h2 className={`${TITLE_SECTION} min-w-0 flex-1 truncate`}>{title}</h2>
-              {aside}
-            </div>
-            {children}
-          </div>
-        )}
+        {open && <div className="flex h-full flex-col">{children}</div>}
       </dialog>
     </>
   );

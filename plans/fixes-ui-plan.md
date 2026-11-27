@@ -26,13 +26,14 @@ Notes for every wave:
 
 **Wave 18 landed 2026-11-26** as dev dc9bffb through PR #237, `--no-review` (Codex out of credits); CI components failed only dev's doc.test.mjs (B-928; run 45906838038, 765d0282); landed unsynced (dev's 1 commit in other files); report a290; to-test/2026-11-26-1755-fixes-ui.md. Slices 99–102 all opus (B-899 copy link into the entry ⋯; B-923 specialty datalist; B-924 provider header Edit + ⋯; B-925 arrows `-me-2`); rows in the history file. Two CI fix rounds for tests asserting the old menus and roundtrip's viewer step. Lesson: changing who sees a ⋯ breaks tests outside its folder and `scripts/browser-checks/`; grep `aria-label^="Actions"` there when writing such a slice. `browser --suite` is classifier-blocked (ask before it); ran `--changed --base dev`. Docs folded (197999f6). Slice worktrees removed. Rotated after (past the soft context limit).
 
-**Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus; all merged, items done. Wave gate: CI components (proposed). For the landing docs: providers.md's "Full rows carry no contact details" (B-422) is reversed by 105; 103 added `elsewhere` to `TimelineEntryRow` and `rowDayLabel` (timeline.md), and `LinkedEntries` imports the timeline route folder (follow-up filed). CI components on 1f79a41f (run 45951811176): `file`, 4 failures, all the branch's (blame 45952661845): timelineDoses, medicationForm, allergies (the brand list) sent to slice 104; providerTags to slice 105. Fixes merged (104 fix 7f9e9fd5, test-only; 105 fix test-only: linked entries' rows now carry their own Add tag, so the test scoped its pick). CI components rerun on d58283fb (run 45953425948): `flake` only (search.sync perf, brake list, not our files): green. Sync: up to date. Browser `--changed --base dev`: roundtrip fails at its tags step twice alone (not our code): filed B-951 (fixes-bug), told the backlog session (caretook-com-ea). PR #250 open; Codex review waiting. Follow-up B-950 (fixes-nit): move TimelineEntryRow into components/entry. Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
+**Wave 19 landed 2026-11-27** as dev 36b84a4a through PR #250, `--no-review` (Codex out of credits), CI components flake only (search.sync perf, not ours; run 45953425948); to-test/2026-11-27-0155-fixes-ui.md; report filed. Slices 103–105 all opus (B-937, B-939, B-940); details in the history file. Browser roundtrip fails at its tags step from dev's tags-2 (B-951; the backlog session is raising it). Follow-up B-950 (fixes-nit). Docs folded (68cec34a, 3faeaeb1). Slice worktrees removed. Rotated after (past the soft context limit).
 
-| Slice | Item                                              | State                   | Merge    |
-| ----- | ------------------------------------------------- | ----------------------- | -------- |
-| 103   | B-937 linked entries use the timeline row (opus)  | merged (slice 683a0e4b) | 88660c00 |
-| 104   | B-939 medication brand names (opus)               | merged (slice dfddba9b) | 13111221 |
-| 105   | B-940 provider rows show phone and address (opus) | merged (slice 4f49f76d) | 0ebc73a6 |
+**Wave 20 (2026-11-27), landing:** slices 106 (B-957 first-load steps and progress bar) and 107 (B-962 note full screen edge to edge), both opus, merged 40d5df4c6 and e32df1434. CI components green (run 46036495830, 91686c31); dev sync up to date; browser `--changed --base dev` 7/7 pass; Codex clean on 7932e7a (PR #255). Docs folded (7932e7a8a) into app-shell and live-notes. Slice worktrees removed. Lesson: slice 106 ran to 19 files (shared wording); the plan table must be prettier-formatted before slices start. B-972 (planner Tags tab, a feature) left to the backlog session. Still held: B-325.
+
+| Slice | Item  | State         | Merge     |
+| ----- | ----- | ------------- | --------- |
+| 106   | B-957 | merged (opus) | 40d5df4c6 |
+| 107   | B-962 | merged (opus) | e32df1434 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1533,3 +1534,37 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test: a full row with none of them shows no contact line and no gap.
 - [ ] Component test: a condensed row shows the provider type icon.
 - [ ] Grep tests and `scripts/browser-checks/` for assertions that full rows have no contact links (B-422) and update them.
+
+## Wave 20 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 106 and 107 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 106: First load shows a friendlier loading screen with progress (B-957)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component, unit
+
+**Problem.** From sign-in to the first timeline row takes about 2 s on a 4G phone and 4 s on 3G (B-764). Meanwhile the user sees the mark and "Loading…" (`components/brand/AppLoading.tsx`, root's `HydrateFallback`) and then "Getting your care groups…" (`components/shell/FirstSyncPending.tsx`), with no sense that anything is moving.
+
+**Build.** One shared loading display with a short, friendly step line and a progress bar, used by both screens (extend `LoadingMark`, which `ui/PageLoading` shares, rather than making a second look). The steps, in order: opening the app (route chunks loading), opening your device copy (the local database, `lib/sync/client`), syncing your care groups (PowerSync's first sync: connecting, then `downloadProgress` when it has one, so the bar moves on a big download), and opening the screen. Keep the step state in one small client-only store under `lib/sync/` (or `lib/app-shell/`, whichever owns the startup), that the startup code advances and the display reads (`useSyncExternalStore`); never a server loader. Before scripts run (the server's page and the native SPA's file) the display shows its first step with no bar movement, as today; app.css's 300 ms invisible start and the reduced-motion rule stay (reduced motion: no animated bar, just the step line). The bar never moves backwards; a step that is skipped (a returning device with the copy already synced) is passed over, so a fast start still looks like today. Words: warm and short ("Opening Caretook…", "Getting your notes ready…", "Syncing your care groups… 40%"); no technical words (no "WASM", "database", "sync stream"). It still says nothing about being offline (the frame's banner does). Accessible: the bar is a `<progress>` with a label, the step line a polite live region that announces a step change, not every percent.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the startup store moves forward through the steps, never back, skips steps, and maps download progress to a percentage.
+- [ ] Component test: the loading display shows the current step's words and a labelled progress bar; with no progress it shows the step only.
+- [ ] Component test (`FirstSyncPending.browser.test.tsx`): first sync in progress shows the syncing step with its percentage; done still reruns the loaders.
+- [ ] Grep tests and `scripts/browser-checks/` for "Loading…" and "Getting your care groups…" and update any that assert the old words.
+
+## Slice 107: Live note full screen fills the screen, its title in the note's bar (B-962)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/live-notes.md · Tests: component
+
+**Problem.** The live note full screen (`components/notes/NoteFullScreen.tsx`, B-765) keeps a centred `max-w-3xl` column with padding and its own title row (the entry's heading and the editor avatars) above the editor frame, which keeps its rounded border, so on a phone it wastes width and reads as a card on a page, not full screen.
+
+**Build.** In full screen, the editor frame fills the dialog edge to edge: no max width, padding, border or radius, and safe-area aware (`env(safe-area-inset-*)` padding inside the bar and the text, so nothing sits under a notch). Drop the separate title row. The title (short, truncated, what the note is attached to: the `title` the caller passes today) and the avatars (`aside`) move into the frame's bar (`LiveNotesEditor.tsx`, the `BAR` row with the full screen toggle), left of Exit full screen; the dialog keeps its accessible name. Layout: on a wide screen one row (title, avatars, the writer's toolbar, Exit); on a phone, title + avatars + Exit on the first row and the toolbar on its own row below, so the toolbar never squeezes the title. On the page (not full screen) the bar looks as today: no title in it (the page has its heading). A viewer (no toolbar) still gets the title, avatars and Exit. The text area scrolls inside the frame; the keyboard handling (visual viewport height) and Escape behaviour stay.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in full screen the bar holds the title, the avatars and Exit full screen, and there is no separate heading row; the dialog's accessible name is the title.
+- [ ] Component test: a viewer in full screen sees the title and Exit, and no toolbar.
+- [ ] Component test: not in full screen, the bar has no title.
+- [ ] Existing NoteFullScreen and live notes tests still pass; grep tests and `scripts/browser-checks/` for `data-note-full-screen` and the old heading and update any that assert it.
