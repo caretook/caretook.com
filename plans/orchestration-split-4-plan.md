@@ -8,7 +8,9 @@ Planned 2026-11-26 (dev 153d6b95). Started 2026-11-26 on prd/orchestration-split
 
 **Landing mode: run everything through** (dispatcher start): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 started: slices 1, 2, 3 worktrees made, agents spawned on opus. All three merged; wave 1 CI run requested next.
+Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 started: slices 1, 2, 3 worktrees made, agents spawned on opus. All three merged. **Wave 1 landed** in dev as 7b536192 (PR #241, tier full, CI run 45921349915 green at bf92a125; Codex out of credits, `--no-review`; report a294). Slice worktrees removed. Follow-ups: B-932, B-933 (fixes-tooling: test:tooling lint order).
+
+**Next (fresh session): wave 2, slice 4** (the fixture project's data; blocked only by slice 2, merged). Run it on opus. Its acceptance measures `RISA_CONFIG=<fixture risa.json> pnpm test:tooling`. Mind B-932: slice agents inherit this session's `RISA_SESSION_*`/`CLAUDE_PID`, failing 2 `stack.test.mjs` cases locally; CI is the gate.
 
 - Slice 1 handed off (3d1a6b44): `standalone.mjs` (300 s default per-file limit), `lib.sh` exits on no config, lease case. Baseline: sample 576 failed of 2046 in 66 files; project 221 of 2033 in 26 files; none 464 of 1191 in 77 files, 0 hung. Its check failed only `stack.test.mjs` (B-932).
 
