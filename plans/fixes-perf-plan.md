@@ -14,13 +14,13 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 2 running** (2026-11-27): slices 8-12 (B-956, B-958, B-959, B-960, B-963), all on Opus; dev needed no sync. Slice 11 waits for slice 10 (both measure the first load). B-963 filed this session from the wave 1 hand-over.
 
-| Slice | Item  | State                                   | Merge    |
-| ----- | ----- | --------------------------------------- | -------- |
-| 8     | B-956 | merged                                  | b2d5967b |
-| 9     | B-958 | merged                                  | 6abd6279 |
-| 10    | B-959 | agent working (Opus)                    |          |
-| 11    | B-960 | waits for 10                            |          |
-| 12    | B-963 | handed off d87ee0f5 (merge after 9, 10) |          |
+| Slice | Item  | State                | Merge    |
+| ----- | ----- | -------------------- | -------- |
+| 8     | B-956 | merged               | b2d5967b |
+| 9     | B-958 | merged               | 6abd6279 |
+| 10    | B-959 | merged               | 5fe00bdf |
+| 11    | B-960 | agent working (Opus) |          |
+| 12    | B-963 | merged               | 847722a6 |
 
 ## Wave 1
 
