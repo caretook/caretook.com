@@ -6,12 +6,16 @@
 
 | Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
 | ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | planned |                                         |
-| 2     | 2    | planned |                                         |
+| 1     | 1    | merged  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
+| 2     | 2    | merged  | 7b892610 (d362bd70)                     |
 | 3     | 3    | planned |                                         |
 | 4     | 4    | planned |                                         |
 | 5     | 5    | planned |                                         |
 | 6     | 5    | planned |                                         |
+
+**Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
+
+**Now:** waves 1+2 land together. Slice 1 (opus) merged 5cb59418; slice 2 (opus) merged 7b892610; both worktrees removed. CI full green on b5b61d31 (run 45939841526); synced (nothing new); browser --changed 11/11 after `datastore:reset`; tags doc folded (9dcb13e8). PR #246 open, Codex review waiting. Then land (`--tier full`), slice 3. B-893 stays open until slice 3.
 
 ## Architectural decisions
 
@@ -57,7 +61,7 @@ Stack: no · Reads: docs/domain/tags.md, docs/domain/sync.md · Tests: integrati
 
 **Backlog:** B-893. **User stories:** 2, 3.
 
-**What to build:** the `tag` upload in `packages/api/src/syncRegistry.ts`: `color` a content column, a PUT passes it to `create`, a PATCH of `color` is `recolor` (with or beside `name`). `color` appended to the `tag` select in `powersync/sync-config.yaml` and to `tags` in `apps/web/app/lib/sync/schema.ts`. In `apps/web/app/lib/tags/tags.sync.ts`: `createTag` picks with `pickTagColor` over the group's local tags; new `recolorTag(db, tagId, color)` (`canRenameTag`); `TagRow`, `GroupTagRow` and their three queries carry `color`.
+**What to build:** the `tag` upload in `packages/api/src/syncRegistry.ts`, where the new color column is a content column: a PUT passes it to `create`, a PATCH of `color` is `recolor` (with or beside `name`). `color` appended to the `tag` select in `powersync/sync-config.yaml` and to `tags` in `apps/web/app/lib/sync/schema.ts`. In `apps/web/app/lib/tags/tags.sync.ts`: `createTag` picks with `pickTagColor` over the group's local tags; new `recolorTag(db, tagId, color)` (`canRenameTag`); `TagRow`, `GroupTagRow` and their three queries carry `color`.
 
 **Acceptance criteria:**
 
@@ -126,7 +130,7 @@ Stack: no · Reads: docs/domain/tags.md, docs/domain/timeline.md, docs/domain/co
 
 **Backlog:** B-892. **User stories:** 9, 10, 12.
 
-**What to build:** `routes/app/groups/timeline/TimelineEntryRow.tsx` and `TimelineEntryCard.tsx` render `QuickTags` (`max` 2, the tags from the list's one query) in place of `TagChips`, for the condensed, full and easy views; `TimelineEntryList.tsx` stops passing `onTags`, so rows' ⋯ loses Tags. The symptom and vital edit sheet `routes/app/groups/timeline/edit/route.tsx` gets `QuickTags`.
+**What to build:** slice 4's quick tags control (`max` 2, the tags from the list's one query) in place of `TagChips` in `routes/app/groups/timeline/TimelineEntryRow.tsx` and `TimelineEntryCard.tsx`, for the condensed, full and easy views; `TimelineEntryList.tsx` stops passing `onTags`, so rows' ⋯ loses Tags. The symptom and vital edit sheet `routes/app/groups/timeline/edit/route.tsx` gets the control too.
 
 **Acceptance criteria:**
 

@@ -5,7 +5,16 @@ import type { ServiceContext } from "./types";
 import { sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../constants";
 import { dbMayFail, withTransaction } from "../db";
-import { canCreateTag, nextTagId, tagCreateZSchema, tagKey, tagNameZSchema, tagRow } from "../db/schema";
+import {
+  canCreateTag,
+  nextTagId,
+  pickTagColor,
+  tagColorZSchema,
+  tagCreateZSchema,
+  tagKey,
+  tagNameZSchema,
+  tagRow,
+} from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupMemberModel, tagModel } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
@@ -14,8 +23,9 @@ import { isSystemUser, rejectError } from "../permissions";
 // derived from the name (`tagKey`) and the id from the group, the key and a
 // counter (`tagId`), so a device's offline create, its replay and another
 // device's create of the same name land on one tag. A rename keeps the id
-// (links stay put) and derives the new key; a delete is hard, and the
-// links cascade while the records stay.
+// (links stay put) and derives the new key; a recolor is rename's update
+// of the same row; a delete is hard, and the links cascade while the
+// records stay.
 
 export const serviceName = "tag";
 export const schemaName = tagModel.schemaName;
@@ -74,8 +84,10 @@ export const getByName = (ctx: ServiceContext, groupId: string, name: string) =>
  * it's been renamed since (a replay, or a device that didn't see the
  * rename). A create whose name another tag holds is `tagService:nameTaken`.
  * The id, when given, must be one derived from the group and the name;
- * without one, the next free counter. Creates in one group wait for each
- * other (an advisory lock on the group), so two at once never collide.
+ * without one, the next free counter. The color, when given, is kept;
+ * without one, a color no group tag has (`pickTagColor`, any once all ten
+ * are used). Creates in one group wait for each other (an advisory lock on
+ * the group), so two at once never collide or pick one color.
  */
 export const create = (ctx: ServiceContext, input: TagCreateInput) =>
   withTransaction(async (tx) => {
@@ -94,13 +106,15 @@ export const create = (ctx: ServiceContext, input: TagCreateInput) =>
     if (isError(lock)) return lock;
 
     let id = parsed.data.id?.toLowerCase();
-    if (!id) {
+    let color = parsed.data.color ?? null;
+    if (!id || !color) {
       const tags = await tagModel.list({
         ...system(tx),
         filter: { groupId: { type: "eq", value: groupId } },
       });
       if (isError(tags)) return tags;
-      id = nextTagId(groupId, name, new Set(tags.data.map((t) => t.id))) ?? undefined;
+      color ??= pickTagColor(tags.data.map((t) => t.color));
+      id ??= nextTagId(groupId, name, new Set(tags.data.map((t) => t.id))) ?? undefined;
       if (!id) return newError({ code: "tagService:nameTaken" });
     }
 
@@ -112,7 +126,7 @@ export const create = (ctx: ServiceContext, input: TagCreateInput) =>
     if (isError(holder)) return holder;
     if (holder) return newError({ code: "tagService:nameTaken", meta: { tagId: holder.id } });
 
-    return tagModel.create({ ...ctx, tx, data: tagRow(id, groupId, name) });
+    return tagModel.create({ ...ctx, tx, data: tagRow(id, groupId, name, color) });
   }, ctx);
 
 /**
@@ -150,6 +164,26 @@ export const rename = (ctx: ServiceContext, id: string, name: string) =>
     if (isError(renamed))
       return renamed.code === "baseModel:update:nothingUpdated" ? refusedOrGone(ctx, tx, tag.id) : renamed;
     return renamed[0] ?? notFound();
+  }, ctx);
+
+/**
+ * Recolor a tag: a palette id (`TAG_COLORS`), anything else is
+ * `tagService:invalid`. Rename's rule, from the same update scope in SQL:
+ * owners, admins and caretakers recolor any tag, an Easy helper only one
+ * they created; anyone else who can see it is `permissions:unauthorized`,
+ * and a missing tag `tagService:notFound`.
+ */
+export const recolor = (ctx: ServiceContext, id: string, color: string) =>
+  withTransaction(async (tx) => {
+    const parsed = tagColorZSchema.safeParse(color);
+    if (!parsed.success) return invalid(parsed.error);
+    if (!ctx.authUser) return rejectError(null);
+
+    const filter = { id: { type: "eq" as const, value: id.toLowerCase() } };
+    const recolored = await tagModel.update({ ...ctx, tx, filter, data: { color: parsed.data } });
+    if (isError(recolored))
+      return recolored.code === "baseModel:update:nothingUpdated" ? refusedOrGone(ctx, tx, id) : recolored;
+    return recolored[0] ?? notFound();
   }, ctx);
 
 /**
