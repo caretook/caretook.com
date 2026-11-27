@@ -308,7 +308,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
-| B-929 | chore | in-progress | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
+| B-929 | chore | ready | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-932 | bug | triaged | fixes-tooling |  | rm.sh session tests in stack.test.mjs fail when run from an orchestrator session (they inherit RISA_SESSION_*) |
 | B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
 | B-934 | chore | triaged | fixes-tooling |  | Archive finished rows out of the PRD registry table (75 done rows clutter it) |
@@ -2108,10 +2108,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-929 · chore · Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config
 
-- status: in-progress
+- status: ready
 - prd: orchestration-split-4
 - owner: prd/orchestration-split-4
-- commit: de68c1c2
+- commit: 191e9afb
 
 - 2026-11-26 (Robert Bo Davis): Found 2026-11-26 by a dry run in a scratch copy of only the 257 core files: on the sample config 565 of 1,988 tests failed in 65 files; with Caretook's config copied in 210 failed in 25 (land*, doc, skeptics, ci/gate); with no root config the run hung in lease.sh (file_mtime: command not found). Proof when done: that dry run passes. The move (B-543 step 2) waits for it.
 - 2026-11-26 (plan/orchestration-split-4): Planned 2026-11-26: plans/orchestration-split-4-prd.md and -plan.md (seven slices; the proof is node scripts/loops/standalone.mjs passing with --root sample, project and none)
