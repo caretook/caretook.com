@@ -32,8 +32,8 @@ Notes for every wave:
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
-| 106 | B-957 | starting (opus) | |
-| 107 | B-962 | starting (opus) | |
+| 106 | B-957 | working (opus) | |
+| 107 | B-962 | working (opus) | |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
