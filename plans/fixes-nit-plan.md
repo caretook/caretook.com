@@ -10,10 +10,11 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State    | Merge |
+| ----- | ----- | -------- | ----- |
+| 9     | B-973 | starting | —     |
 
-Idle hand-over, no slice in flight: no fixes-nit item is waiting; the next session writes wave 4 from `pnpm backlog list` (prd=fixes-nit, triaged), numbered from `pnpm prd status-trim fixes-nit --next`. Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in a line below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`; push the Status commit (`pnpm prd pr`) before `land`, which wants the PR head at the local tip.
+Wave 4 (slice 9, B-973, docs only: no CI tier, `pnpm test:tooling`; sonnet, no logic) started 2026-11-27 after a dev sync. B-950 held for a later wave (todo-subtasks-3 holds `routes/app/groups/timeline/`).
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
@@ -155,5 +156,27 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 
 - [ ] No `text-base-content/` left in the three files; nothing else changed.
 - [ ] The existing component tests for `ChipList`, `TabNav`/`FormTabs` and `DateTimeField` pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 4 (written 2026-11-27 by the orchestrator, from the triaged fixes-nit items)
+
+B-950 (move TimelineEntryRow out of the timeline route) waits for a later wave: it touches `routes/app/groups/timeline/`, a hot path of the running todo-subtasks-3.
+
+## Slice 9: The components doc fits its budget again (B-973)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: none (Markdown)
+
+**Problem.** `docs/domain/components.md` is 10513 B on `dev`, over its 10240 B budget (`pnpm docs:budget`); it made fixes-ui's land need `risa sync --force`.
+
+**Build.** This slice is the exception to "loops never edit `docs/`": the fix is the doc.
+
+- Trim `docs/domain/components.md` to at most about 10 000 B (some room for the next fold-in) by tightening wording: drop repetition, stale lines (check a claim against the code before dropping it as stale) and examples the rule already makes plain. Keep every rule and every link; move nothing to other docs.
+- Change no other file.
+
+**Acceptance criteria.**
+
+- [ ] `pnpm docs:budget` shows `docs/domain/components.md` under budget; no rule or link lost (say in the hand-off what was cut).
+- [ ] `pnpm exec prettier --check docs/domain/components.md` and `pnpm test:tooling` pass.
 
 **Blocks:** none. **Blocked by:** none.
