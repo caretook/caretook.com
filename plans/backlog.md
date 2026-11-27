@@ -329,6 +329,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-946 | feature | triaged | todo-links |  | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
 | B-947 | feature | triaged | todo-links |  | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
 | B-948 | feature | triaged | todo-links |  | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
+| B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 
 ## Items
 
@@ -2291,3 +2292,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
+
+### B-949 · bug · CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): [ci-key fd7fd0937a02] Flaked (passed on its rerun); found by prd/tags-2. First failure: AssertionError: expected '/sheet' to be '/' // Object.is equality at http://127.0.0.1:41401/home/runner/work/caretook.com/caretook.com/apps/web/app/components/ui/sheetExit.browser.test.tsx?import&browserv=1812567600000:336:22 at async http://127.0.0.1:41401/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq--D.js?v=affb89f5:5247:20
