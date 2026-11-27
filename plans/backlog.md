@@ -244,7 +244,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
 | B-890 | feature | triaged | symptom-catalog-2 |  | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
 | B-891 | feature | in-progress | tags-3 | prd/tags-3 | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
-| B-895 | feature | in-progress | tags-3 | prd/tags-3 | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
+| B-895 | feature | ready | tags-3 | prd/tags-3 | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
@@ -267,16 +267,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
-| B-955 | change | in-progress | tags-3 | prd/tags-3 | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
+| B-955 | change | ready | tags-3 | prd/tags-3 | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-964 | feature | triaged | todo-links |  | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
-| B-968 | bug | landed | fixes-bug | prd/fixes-bug | …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York |
-| B-969 | bug | landed | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
-| B-970 | bug | landed | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
-| B-971 | bug | landed | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
+| B-968 | bug | staging | fixes-bug | prd/fixes-bug | …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York |
+| B-969 | bug | staging | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
+| B-970 | bug | staging | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
+| B-971 | bug | staging | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 | B-974 | bug | ready | todo-subtasks-3 | prd/todo-subtasks-3 | Planner day trees: under a tag or text filter, a matching step and its unmatched parent due the same day rank at the parent's time (todoDayTrees' same-day lead can be a context row) |
 | B-975 | change | triaged | fixes-ui |  | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
@@ -1453,10 +1453,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-895 · feature · Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it
 
-- status: in-progress
+- status: ready
 - prd: tags-3
 - owner: prd/tags-3
-- commit:
+- commit: 4138c986e
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: the search page's tag filter (TagField.tsx, a native select, 'Any tag') isn't great. Ideas: list the group's tags as tappable chips (filter box when many), with colors from B-893. And plain search text matching a tag name (tagKey fold, maybe prefix) returns that tag's items with no tag picked; today tags never reach the index (search.sync.ts, a record_tag subquery only under ?tag=). Planner: rank tag matches with text matches, show the matched tag on results.
 - 2026-11-26 (plan/tags-2): Planned in plans/tags-3-plan.md, the follow-on of tags-2 (cut to keep each topic about six slices): copy link into ⋯, the Tags page, merge, search by tag
@@ -1680,10 +1680,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-955 · change · One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too
 
-- status: in-progress
+- status: ready
 - prd: tags-3
 - owner: prd/tags-3
-- commit:
+- commit: 4138c986e
 
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27: unified display everywhere tags are seen or added. Today: QuickTags compact (icon Plus, timeline rows only) is closest; pages and edit sheets show '+ Add tag' text; TodoRow, Planner UpcomingList, ProviderListItem, MedicationListItem render read-only TagChips (no add/remove even for writers; Planner keeps ⋯ Tags). Wanted: QuickTags with lucide TagPlus (already a dependency) as an icon-only button everywhere (name and tooltip stay 'Add tag'), rows max 2 + '+N', pages all; editing controls only for canTagRecord, chips alone otherwise (as now). × sits closer to the name in the pill (TagChips' pr-1/size-4 button); wider gap between the chip list and Add (gap-1 today) to avoid misclicks. Remove guard: untag at once, then the existing toast with undo ('Removed <name>' · Undo re-tags with the same derived link id); user chose undo over a confirm dialog or a two-tap. Drop Planner rows' ⋯ Tags once rows carry it. Filed as a new first slice of tags-3 (before its Tags page and search chips, which reuse it).
 
@@ -1735,7 +1735,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-968 · bug · …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: d8ce4a4eb
@@ -1744,7 +1744,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-969 · bug · CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 641ecbb54
@@ -1753,7 +1753,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-970 · bug · CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 2375e2995
@@ -1763,7 +1763,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-971 · bug · CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 2375e2995
