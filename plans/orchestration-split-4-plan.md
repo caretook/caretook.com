@@ -12,7 +12,11 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 
 **Wave 2 started** (session 2, 2026-11-26): `pnpm prd sync` up to date; slice 4 worktree made, agent spawned on opus. Slice 4 handed off (d1e98b1b), merged b8484072: `scripts/loops/fixture-project/` (12 files; project name `fixture`, folders `app/` `api/` so the boundary lint passes), `boundary.mjs` `isTest` matches `/fixture-project/`. Under `RISA_CONFIG=<fixture>`: land, land-gate, land-unsynced, land-force-resume, ci/gate, ci/outstanding pass; still failing for slices 5/6: doc (16), prompt (1, hotfix doc), shared-names (1), check-plan (1), ci/release (1, boundary.manifest from config root); Caretook-only project:unit check-plan-rules (44) and ci/tiers (1) fail only because RISA_CONFIG is forced; rotate (1) and recover (1) clear when slice 7 points FIXTURE_CONFIG at the fixture. Slice check failed only B-932. Wave 2 tier `none` (tooling only): the gate is slice 4's tooling step (2,927 passed, 2 B-932 failures, which wave 1's CI passed), not rerun. PR #242; Codex out of credits (exit 4): **Wave 2 landed** in dev as 066b28b4 (PR #242, tier none, `--no-review`: Codex out of credits; report filed). Fixture folded into `docs/agents/project-config.md`. Slice 4 worktree removed.
 
-**Wave 3 started** (session 3, 2026-11-26): ingest nothing new; `pnpm prd sync` up to date; slices 5 and 6 worktrees made, agents spawned on opus (briefs note slice 4's fixture failures and B-932). Acceptance measures `RISA_CONFIG=<fixture risa.json> pnpm test:tooling`; B-932 fails 2 `stack.test.mjs` cases locally, CI is the gate. Slice 5 handed off (fdb01d3f): `prompt-render.mjs` (core), project-check gains the golden line, allowlist rules and `--write-golden` (regenerates Caretook's golden; the sample's still `vitest -u`); Caretook role-doc section rows moved to `project-data.test.mjs`; `skeptic.mjs` brief reads rules via `loadConfig()` (same file for Caretook); standalone `--root project` 178 failed in 23 files. Slice 6 handed off (cc44718c): six test files on the fixture. Merged in order: 5 ddaa10cd, 6 77b3ee07. Wave 3 gate: CI tier full (scripts/ci), running.
+**Wave 3 started** (session 3, 2026-11-26): ingest nothing new; `pnpm prd sync` up to date; slices 5 and 6 worktrees made, agents spawned on opus (briefs note slice 4's fixture failures and B-932). Acceptance measures `RISA_CONFIG=<fixture risa.json> pnpm test:tooling`; B-932 fails 2 `stack.test.mjs` cases locally, CI is the gate. Slice 5 handed off (fdb01d3f): `prompt-render.mjs` (core), project-check gains the golden line, allowlist rules and `--write-golden` (regenerates Caretook's golden; the sample's still `vitest -u`); Caretook role-doc section rows moved to `project-data.test.mjs`; `skeptic.mjs` brief reads rules via `loadConfig()` (same file for Caretook); standalone `--root project` 178 failed in 23 files. Slice 6 handed off (cc44718c): six test files on the fixture. Merged in order: 5 ddaa10cd, 6 77b3ee07. Wave 3 gate: CI run 45927397831 green at full on c7b1806d. Slice worktrees removed. Sync up to date. **Wave 3 landed** in dev as 523702f6 (PR #243, tier full, `--no-review`: Codex out of credits; report filed). Docs: `--write-golden` in `docs/agents/machinery.md`, the project-data check's share in `docs/agents/project-config.md`.
+
+**Wave 4 started** (session 4, 2026-11-26): no cut-off landing; ingest nothing new; `pnpm prd sync` up to date; slice 7 worktree made, agent spawned on opus. Slice 7 stopped under its stop rule (138b1a40: test-setup.mjs, FIXTURE_CONFIG flipped, vitest setupFiles, allowlist vitest 9→10): checkout `test:tooling` 9 failed in 6 files (release, disk, land 3, prompt, shared-names 2, stack B-932); standalone sample 163/14 files, project 150/10, none 167/14, none hung (land files fail in bulk only in the copy). Decided a297 (skeptic s66): slice 7 fixes the checkout failures, new slice 8 (wave 5) the standalone proof; slice 7 agent sent back to it. Slice 7 handed off (531ea163): release/disk/land/prompt fixed on the fixture, shared-names' generic cases on the fixture plus a project-check shared-names line, Caretook's `caretook-*` pinned in `scripts/project/project-data.test.mjs`; allowlist shared-names line gone, vitest 10. `test:tooling` only B-932 fails; `test:project` 671 passed. Merged ef2d4d05. Standalone for slice 8: sample 158/10 files, project 145/6, none 162/10, none hung; every mode land-force-resume 34, land-gate 29, land-unsynced 43, land 36, sessions 1, stack 2 (B-932); sample/none config, context, usage, watchdog. Lead: `land-fixture.mjs` cpSyncs `scripts/project` (absent in the copy). Doc fold: `docs/agents/project-config.md` line 7 (test-setup.mjs sets RISA_MACHINE_CONFIG now), project-check's shared-names line. Wave 4 gate: CI tier full requested.
+
+**Then: wave 4, slice 7** (the flip and the proof; blocked by 1, 3, 5, 6, all merged), on opus. After it: standalone run in all three modes for B-929's proof, then the last-landing docs (plan _How to run_), `pnpm backlog done B-929`, `pnpm prd rm orchestration-split-4`. Standalone `--root project` after wave 3 (each slice measured alone): what remains is the land/gate/ci/tiers copies, reclaim/rotate/stack/tidy-cli/check-run/ci-ids (fixed by the flip), sessions, `stack` (B-932). Mind B-932 locally.
 
 - Slice 1 handed off (3d1a6b44): `standalone.mjs` (300 s default per-file limit), `lib.sh` exits on no config, lease case. Baseline: sample 576 failed of 2046 in 66 files; project 221 of 2033 in 26 files; none 464 of 1191 in 77 files, 0 hung. Its check failed only `stack.test.mjs` (B-932).
 
@@ -26,7 +30,8 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 | 4     | 2    | merged  | opus  | b8484072                               |
 | 5     | 3    | merged  | opus  | ddaa10cd                               |
 | 6     | 3    | merged  | opus  | 77b3ee07                               |
-| 7     | 4    | planned |       |                                        |
+| 7     | 4    | merged  | opus  | ef2d4d05                               |
+| 8     | 5    | planned |       |                                        |
 
 ## Architectural decisions
 
@@ -38,7 +43,7 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 
 ## How to run this plan
 
-- **Wave 1:** slices 1, 2 and 3 at once (1 owns `standalone.mjs`, `lib.sh`, `lease.test.mjs`; 2 owns `project-check.mjs`, `prd.sh`, `tooling-tests.mjs`, `check-tooling.mjs` and the Caretook test; 3 owns the four throwaway-repo tests plus `check-run.test.mjs` and `ci-ids.test.mjs`). All three add manifest lines: a sorted-line merge, resolved by keeping both. **Wave 2:** slice 4 (the fixture project's data). **Wave 3:** slices 5 and 6 at once (5: doc, skeptics, boundary, prompt golden; 6: the CI-data and config cases). **Wave 4:** slice 7 (the flip) and the proof.
+- **Wave 1:** slices 1, 2 and 3 at once (1 owns `standalone.mjs`, `lib.sh`, `lease.test.mjs`; 2 owns `project-check.mjs`, `prd.sh`, `tooling-tests.mjs`, `check-tooling.mjs` and the Caretook test; 3 owns the four throwaway-repo tests plus `check-run.test.mjs` and `ci-ids.test.mjs`). All three add manifest lines: a sorted-line merge, resolved by keeping both. **Wave 2:** slice 4 (the fixture project's data). **Wave 3:** slices 5 and 6 at once (5: doc, skeptics, boundary, prompt golden; 6: the CI-data and config cases). **Wave 4:** slice 7 (the flip). **Wave 5:** slice 8 (the proof).
 - **Gates:** each slice runs `pnpm test:tooling` and the standalone run for its files. **The last landing** runs the standalone run in all three modes (`sample`, `project`, `none`): each passes, nothing failed or hung; that is B-929's proof, recorded in _Status_.
 - **Tiers:** waves 3 and 4 touch `scripts/ci/` tests or `vitest.config.ts`: whatever the check plan proposes; waves 1 and 2 are tooling only, but wave 1 adds a `scripts/project/` test and touches `scripts/ci/ci-ids.test.mjs`: take the plan's proposal.
 - **Docs at the last landing:** the generic `scripts/loops/docs/project-config.md` (the sample project paragraph: the fixture project, the setup file, the standalone run, the project-data check and its subcommand) and Caretook's `docs/agents/project-config.md` (the Caretook test that runs the check in CI); `pnpm prd help` names `project-check`. The move runbook's _Before_ list already names the standalone run (this plan's branch).
@@ -173,7 +178,26 @@ Stack: no · Reads: scripts/loops/docs/project-config.md, docs/agents/project-co
 
 **Acceptance criteria**
 
-- `pnpm test:tooling` and `pnpm test:project` pass in the checkout.
-- **B-929's proof:** `node scripts/loops/standalone.mjs` passes with `--root sample`, `--root project` and `--root none`, nothing failed or hung (the three totals in the slice's report and _Status_).
+- `pnpm test:tooling` and `pnpm test:project` pass in the checkout (B-932's two `stack.test.mjs` cases excepted locally).
+- The standalone totals in all three modes recorded in the slice's report (the proof is slice 8's).
+- Rescoped 2026-11-26 (a297, decided by skeptic s66): the stop rule fired (10 files still failed standalone). Slice 7 fixes the checkout failures (`ci/release` reads the manifest from the checkout's root, `disk` and `land` set their own config keys or hook stubs, `prompt` on the fixture's role files, `shared-names`' Caretook-name cases become a project-check line) and keeps the `vitest.config.ts project-to-core` allowlist raise 9→10 (the plan names the setup file there; temporary until the move).
 
-**Blocked by:** 1, 3, 5, 6. **Blocks:** none.
+**Blocked by:** 1, 3, 5, 6. **Blocks:** 8.
+
+## Slice 8: The standalone run passes, the proof
+
+Stack: no · Reads: scripts/loops/docs/project-config.md · Tests: unit
+
+**User stories:** 1, 4.
+
+**What to build**
+
+- Whatever `node scripts/loops/standalone.mjs` still lists after slice 7, fixed in its test on the fixture or the sample project (never by deleting coverage). Expected from slice 7's run: the land tests (`land`, `land-gate`, `land-unsynced`, `land-force-resume`) fail in bulk only in the copy (look with `--keep`: likely a project file they reach, such as a hook script), `sessions`, and on `--root sample`/`none` only `config`, `context`, `usage`, `watchdog`.
+- `scripts/loops/boundary.manifest` for any new file; the allowlist only shrinks.
+
+**Acceptance criteria**
+
+- `pnpm test:tooling` passes.
+- **B-929's proof:** `node scripts/loops/standalone.mjs` passes with `--root sample`, `--root project` and `--root none`, nothing failed or hung (B-932's `stack` cases excepted if still open; the three totals in the slice's report and _Status_).
+
+**Blocked by:** 7. **Blocks:** none.
