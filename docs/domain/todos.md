@@ -1,6 +1,6 @@
 # Todos
 
-PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, due day and time, done or open, notes, provider, medication, linked notes and events. **Not entries:** completing one writes no timeline entry.
+PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, due day and time, done or open, notes, provider, medication, linked notes and events. **Not entries:** completing one writes none.
 
 ## The table and its rules
 
@@ -9,18 +9,18 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
   - **Two hand edits in the SQL:** `event_id`'s FK `ON DELETE SET NULL ("event_id")`; the `ALTER PUBLICATION`.
   - `note_document.todo_id` (the `todo` subject; see [live-notes](live-notes.md)).
 - **Due time is wall-clock in the recipient's zone.** `db/schema/todos/todoRules.ts` (pure, both sides) has `todoState`, `todoOrder` (overdue first, undated last), `doneOrder`, `assigneeOf`, `TODO_WRITER_ROLES`/`isTodoWriter`, `canCompleteTodo` and `completionOnly`.
-- **Permissions** (`PERMISSIONS.todo`): read any member; create, delete (soft) writers; update writers, viewers. **The service limits viewers and easy roles** to completing their own todos (`todoService:completionOnly`, 403). A free-text assignee's todo: writers only.
+- **Permissions** (`PERMISSIONS.todo`): read any member; create, delete (soft) writers; update writers, viewers. **The service limits viewers and easy roles** to completing their own todos (`completionOnly`, 403). Free-text assignee: writers only.
 - **`todoService`** (`todoModel`): checks assignee and links are in the group (`todoService:badLink`). `via` is server-only ([connectors](connectors.md)).
-  - **The leaver:** `releaseAssignee` (`careGroupMemberService.remove`) sets a leaver's open todos' `assignee_name` to their name ("Former member" if none).
+  - **The leaver:** `releaseAssignee` (`careGroupMemberService.remove`) sets their open todos' `assignee_name` to their name ("Former member" if none).
   - **A deleted event:** `releaseEvent` (in `timelineEntryService.remove`) clears only `event_id` on its todos (link rows stay).
 - **Sync:** [sync](sync.md) (`care_groups`, soft-deleted too; `todoOp`).
 
 ## Entry links
 
-- ✅ **`timeline_entry_todo`** links entries and todos many-to-many: id `entryTodoId` (UUID v5 of the pair), cascading composite FKs, unique pair, hard-delete unlink; PUT/DELETE via `linkTable`. Links show on `NOTE_DOCUMENT_KINDS` (notes, events) only. Soft deletes keep link rows. Who links: `WRITERS`.
+- ✅ **`timeline_entry_todo`** links entries and todos many-to-many: id `entryTodoId` (UUID v5 of the pair), cascading composite FKs, unique pair, hard-delete unlink; PUT/DELETE via `linkTable`. Only notes and events (`NOTE_DOCUMENT_KINDS`). Soft deletes keep link rows. Who links: `WRITERS`.
 - ✅ **`todo.event_id` is legacy**, until a contract migration drops it; new clients never write it. Only these touch it: `todoService` create/update mirrors an old client's `eventId` into link rows; `releaseEvent`; `entryTodoService.unlink` clears it when it names that entry.
 - ✅ **Touched:** a next with any link row is touched (`isTouched`, `reopenTodo`).
-- ✅ **Device** (`lib/todos/entryTodos.sync.ts`): `linkTodo`, `unlinkTodo`, `entryTodoRow` (in your transaction); `entryTodosQuery`, `todoEntriesQuery`, `openTodoCountsQuery` (one group query). `createTodo` and `updateTodo` (given `entryIds`, the difference) write link rows in their transaction; never `eventId`.
+- ✅ **Device** (`lib/todos/entryTodos.sync.ts`): `linkTodo`, `unlinkTodo`, `entryTodoRow` (in your transaction); `entryTodosQuery`, `todoEntriesQuery`, `openTodoCountsQuery` (one group query). `createTodo`, `updateTodo` write link rows in their transaction; never `eventId`.
 
 ## Repeating todos
 
@@ -51,10 +51,10 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
 ## Screens
 
 - **The Todos tab** (`routes/app/groups/todos/`, `appUrls.todos`; the Planner's): no Add button. "Assigned to" (Everyone, Mine, Unassigned; `?who=`); sections Overdue, Today, by day, No date; Done newest first, 20 a page.
-- **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; `TodoLinkFields`: a `LinkToBox`, chips; posts `providerId`, `medicationId`, repeated `entryIds`: an empty marker unlinks all, none leaves links). They close to their opener via link state (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS`: link ids (`eventId`/`entryId` become `entryIds`), `dueOn`, quick entry's fields.
+- **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; `TodoLinkFields`: a `LinkToBox`, chips; posts `providerId`, `medicationId`, new `entryIds`; edit only its own `addEntryIds`, `removeEntryIds`). They close to their opener via link state (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS`: link ids (`eventId`/`entryId` become `entryIds`), `dueOn`, quick entry's fields.
 - **The todo page** (`routes/app/groups/todo/`, `appUrls.todo`), banded ([ui-kit](ui-kit.md#bands)): `TodoHeader` (writers edit and delete), Details, Linked to (provider, medication, notes and events; writers' `LinkToBox`, Remove), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted: 404.
 - **The tick** (`TodoTick`, `useTodoTick`) everywhere. **Easy roles:** the Planner (read-only), a todo's page (no edit or delete); they tick their own only.
-- **Links and backlinks:** **Link to box** (`LinkToBox`; `searchLinkables` in `lib/todos/linkSearch.sync.ts`; pure `linkOptions.ts`): site search's device index; providers, medications, live notes and events, `compareHits` order, linked ones out; type chips and a first or last type word (`linkTypeWord`; finding nothing, the whole text). `LinkedTodos` (provider, medication pages): open linked todos; writers' full `TodoQuickAdd` with the link (band titled even empty) and a compact one per open row.
+- **Links and backlinks:** **Link to box** (`LinkToBox`; `searchLinkables` in `lib/todos/linkSearch.sync.ts`; pure `linkOptions.ts`): site search's device index; providers, medications, live notes and events, `compareHits` order, linked ones out; type chips and a first or last type word (`linkTypeWord`; finding nothing, the whole text, chip off). Empty or a type word: `linkSuggestions` (came-from, next 3 events, last 5 viewed). `LinkedTodos` (provider, medication pages): open linked todos; writers' full `TodoQuickAdd` with the link (band titled even empty) and a compact one per open row.
 - **An entry's Todos** (`entry/EntryTodos.tsx`): open (tick, Undo), done (newest 20); writers' `TodoQuickAdd` (as `LinkedTodos`), Link a todo (ComboBox: open, unlinked, at most 20), Remove.
 
 ## Seeds and checks
