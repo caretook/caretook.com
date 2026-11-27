@@ -405,11 +405,9 @@ describe("replace (symptom-catalog-3 slice 2)", () => {
     }
     expect(await entryOf(other.id)).toEqual(other);
     expect(await typeOf(queasy.id)).toMatchObject({ replacedById: nausea, updatedBy: u.owner.user.id });
-    expect(await typeOf(nauseous.id)).toMatchObject({
-      replacedById: nausea,
-      archivedAt: expect.any(String),
-      updatedBy: u.owner.user.id,
-    });
+    const tombstone = await typeOf(nauseous.id);
+    expect(tombstone).toMatchObject({ replacedById: nausea, updatedBy: u.owner.user.id });
+    expect(tombstone.archivedAt).toEqual(expect.any(String));
     expect((await typeOf(nausea)).replacedById).toBeNull();
   });
 
