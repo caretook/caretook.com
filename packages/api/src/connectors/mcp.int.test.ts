@@ -171,8 +171,11 @@ describe("/mcp", () => {
       expect.arrayContaining(["group_overview", "list_timeline"]),
     );
     // The plan ahead right after today's doses, for both grants.
-    for (const listed of [await names(writer.tokens.access_token), await names(reader.tokens.access_token)])
+    // The past days right after the plan ahead.
+    for (const listed of [await names(writer.tokens.access_token), await names(reader.tokens.access_token)]) {
       expect(listed[listed.indexOf("todays_doses") + 1]).toBe("dose_schedule");
+      expect(listed[listed.indexOf("dose_schedule") + 1]).toBe("past_doses");
+    }
 
     const refused = await mcpPost(handler, reader.tokens.access_token, toolRequest("add_thing"));
     expect(refused.status).toBe(403);
