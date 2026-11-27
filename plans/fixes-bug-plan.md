@@ -10,10 +10,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State          | Merge |
+| ----- | ----- | -------------- | ----- |
+| 74    | B-936 | started (opus) | —     |
+| 75    | B-951 | started (opus) | —     |
 
-**Idle after wave 16** (landed 3dd61650, 2026-11-26; history has it). No triaged fixes-bug items are ready. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 17 (numbered from `status-trim --next`) from new triaged items (B-750 only once its notes name files; B-752 once B-753 lands). 2026-11-26: re-checked (synced, inbox empty, nothing ready); lane freed with `pnpm prd rm fixes-bug` (standing, so the row stays and the dispatcher restarts it once items wait), at the backlog session's request.
+**Wave 17 (2026-11-27):** synced dev (c990d787), inbox empty; slices 74 (Back returns to the opener) and 75 (same-case tags kept on the server) run at once on Opus. B-750 still waits for files in its notes; B-752 stays open until B-753's watchdog (in dev) names a recurrence.
 
 ## Wave 1
 
@@ -776,3 +778,27 @@ The offline banner (`routes/app/layout/OfflineBanner.tsx`) flashes while the con
 - Find what drives it (`navigator.onLine`, PowerSync's connected status from `lib/sync/`, or both) and say in the hand-off which flips while online, and why.
 - Show the banner only after the offline state has held for a short grace period (a few seconds, one named constant); hide it as soon as the connection is back. Don't change what counts as offline elsewhere (uploads, page cache).
 - Component tests with fake timers: a drop shorter than the grace never shows the banner; one longer shows it; reconnecting hides it at once.
+
+## Wave 17
+
+Two fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays standing until its notes name files; B-752 (the timeline jump hang) stays open until B-753's watchdog (now in dev) names it on a recurrence.
+
+### Slice 74: Back from an entry returns to the page that opened it (B-936)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/providers.md, docs/domain/todos.md · Tests: component
+
+`routes/app/groups/entry/useLiveEntry.ts` (`backTo`, ~line 390) knows only the Planner (`plannerReturnFrom(location.state)`) and otherwise goes to the Timeline, so an entry opened from a provider's page (`provider/LinkedEntries.tsx`), a todo (`todo/TodoEntryLinks.tsx`) or the visit prep sheet (`components/visitPrep/VisitPrepSheet.tsx`) goes back to the timeline.
+
+- First a failing component test: open an entry from a provider's linked entries, press Back, land on the provider.
+- Carry where the entry was opened from in navigation state (as the Planner's `returnTo` does), with the opener's label and URL; Back returns there (a history step when it is the previous entry, as the Planner does). Keep the Planner's behaviour and the Timeline default unchanged; an unknown or missing state still goes to the Timeline.
+- Wire the provider, todo and visit prep openers. Tests for each opener's Back, plus the Planner and default cases still passing.
+
+### Slice 75: two devices naming the same tag in different case keep it on the server (B-951)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/sync.md · Tests: integration, browser
+
+The browser check `scripts/browser-checks/roundtrip.spec.mjs:61` fails at its tags step: two devices create the same tag name in different case, both agree on one id with one link each, but the server holds 0 tags and 0 links. Suspect tags-2's d362bd70 (tag colors through sync: `apps/web/app/lib/tags/tags.sync.ts`, `packages/api/src/syncRegistry.ts`).
+
+- Reproduce first: an integration test beside `packages/api/src/syncTags.int.test.ts` that uploads the two devices' creates (same name, different case, as the devices write them since d362bd70) and their links, and expects one tag and both links on the server. Then run the roundtrip check once (`pnpm prd browser` for that spec) to confirm.
+- Find why the server drops them (a rejected upload, a conflict path that discards, a color field the server refuses) and say so in the hand-off; fix it in the upload handler or the device write, keeping one tag per case-insensitive name per group.
+- Uploads must not silently drop: if the server refuses a write, the test shows the error path, not a missing row.
