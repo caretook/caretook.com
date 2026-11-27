@@ -423,7 +423,7 @@ export const addTodo = defineTool({
   name: "add_todo",
   title: "Add a todo",
   description:
-    "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. To repeat it, pass repeat: every day, week (optionally on weekdays) or month, optionally every N; without a due day it starts on the first matching day from today; a member stops a repeat in the app. Ask the member before calling.",
+    "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. To repeat it, set repeat: every day, week (optionally on weekdays) or month, optionally every N; without a due day it starts on the first matching day from today; a member stops a repeat in the app. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     // RRULE text is never an input (B-253): `repeat` is built into the rule, and a raw `repeatRule` sent is dropped with the other unknown keys.
