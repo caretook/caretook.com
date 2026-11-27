@@ -8,14 +8,14 @@
 | ----- | ---- | ------- | --------------------------------------- |
 | 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
 | 2     | 2    | landed  | 7b892610 (d362bd70)                     |
-| 3     | 3    | started |                                         |
+| 3     | 3    | merged  | 8cc6a9c5 (ca9829f5)                     |
 | 4     | 4    | planned |                                         |
 | 5     | 5    | planned |                                         |
 | 6     | 5    | planned |                                         |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** waves 1+2 landed in dev as aa146b2 (PR #246, `--no-review`, Codex out of credits, tier full). **Wave 3 started** 2026-11-26: prd/tags-2 synced (up to date with dev); B-894 claimed; worktree tags-2-3 on slice/tags-2/3; slice 3 agent spawned on opus; watch running. Its merge runs `pnpm backlog done B-893 B-894`. After a migration or seed change, the stack needs `pnpm datastore:reset` before browser checks. Backlog at this boundary: nothing new for tags-2.
+**Now:** waves 1+2 landed in dev as aa146b2 (PR #246, `--no-review`, Codex out of credits, tier full). **Wave 3:** slice 3 (opus) handed off and merged as 8cc6a9c5; B-893, B-894 done. Wave gate: `pnpm prd ci run full` (tier full: seeds) requested. Worktree tags-2-3 stays until green. Slice 3 notes for slice 4: `Badge` takes a `fill` prop (`tagColorClass`) for palette chips. After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
 
 ## Architectural decisions
 
