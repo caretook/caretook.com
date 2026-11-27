@@ -13,7 +13,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
-**Idle after wave 21** (idle hand-over; landed through PR #275, 2026-11-27, Codex clean on c363359, CI components green run 46064721783; to-test `to-test/2026-11-27-1546-fixes-bug.md`; landed unsynced, dev had 2 unrelated commits). Slice 82 (B-979, opus, merge 336733f55): search reruns on a key of the group tags' ids, names and colors (folded into search.md). Lesson: prettier the plan after editing the slice table, or the slice check fails on format. **Next session:** ingest, `risa backlog list`; write wave 22 (slices from 83) from new triaged items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
+**Idle after wave 21** (idle hand-over; landed through PR #275, 2026-11-27, Codex clean on c363359, CI components green run 46064721783; to-test `to-test/2026-11-27-1546-fixes-bug.md`; landed unsynced, dev had 2 unrelated commits). Slice 82 (B-979, opus, merge 336733f55): search reruns on a key of the group tags' ids, names and colors (folded into search.md). Lesson: prettier the plan after editing the slice table, or the slice check fails on format. **2026-11-27 resume:** ingest found nothing new; only B-750 and B-752 wait, both still held, so no wave 22; worktree removed (`risa rm fixes-bug`). **Next session:** ingest, `risa backlog list`; write wave 22 (slices from 83) from new triaged items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
