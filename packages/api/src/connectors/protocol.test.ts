@@ -5,6 +5,7 @@ import { z } from "zod";
 import { newError } from "@caretook/data";
 import { handleMcp, JSON_RPC, MCP_PROTOCOL_VERSIONS } from "./protocol";
 import { defineTool, READ_ANNOTATIONS, WRITE_ANNOTATIONS } from "./registry";
+import { CONNECTOR_TOOLS } from "./tools";
 
 // The MCP module at its edge: a JSON-RPC message in, a reply out. The tools
 // here are stand-ins; the real ones run against the database in
@@ -141,6 +142,16 @@ describe("handleMcp", () => {
       "refuse",
       "broken",
     ]);
+  });
+
+  it("lists the connector's dose_schedule after todays_doses, for read and write grants", async () => {
+    for (const scope of ["read", "readWrite"] as const) {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      const names = (result?.tools ?? []).map((t) => t.name);
+      expect(names[names.indexOf("todays_doses") + 1], scope).toBe("dose_schedule");
+    }
   });
 
   it("calls a tool: its text as content, its data as structuredContent", async () => {

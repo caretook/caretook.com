@@ -3,6 +3,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { useMemo } from "react";
 import { Link } from "react-router";
+import { useGroupRecordTags } from "~/components/tags";
 import { mayAddSubtask, TodoQuickAdd, TodoTree, TodoUndoStatus, useTodoTick } from "~/components/todos";
 import { LINK, Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -54,6 +55,8 @@ export function TodoSubtasks({
     () => todoTrees(descendants, { now, timeZone, rootId: todo.id }),
     [descendants, now, timeZone, todo.id],
   );
+  // The rows' tags: one query for the whole tree, never one per row (tags-3).
+  const tags = useGroupRecordTags(group.id, "todo");
   const adding = mayAddSubtask(group.role, ancestors, todo);
   if (!subtasks.length && !adding) return null;
 
@@ -75,6 +78,7 @@ export function TodoSubtasks({
             busy={tick.busy}
             onTick={(t, done) => void (done ? tick.complete(t) : tick.reopen(t))}
             progressOf={(id) => progressOf.get(id)}
+            tagsOf={(id) => tags.get(id)}
           />
           <TodoUndoStatus groupId={group.id} todoIds={descendants.map((t) => t.id)} />
           {tick.error && <Message tone="error">{tick.error}</Message>}

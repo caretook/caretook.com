@@ -28,7 +28,6 @@ export function EntryActions({
   kind,
   label,
   onEdit,
-  onTags,
   cancel,
   onPrepare,
   onRemind,
@@ -45,8 +44,6 @@ export function EntryActions({
    * series visit's: Edit asks Only this visit or This and later visits.
    */
   onEdit?: () => void;
-  /** Opens the tag picker (tags PRD); left out (viewers, someone else's entry for an Easy helper), there's no Tags. */
-  onTags?: () => void;
   /** An event's Reschedule, and Cancel or Undo cancel (ignored for other kinds). */
   cancel?: EntryCancelActions;
   /** Opens visit prep for an upcoming event (Prepare). */
@@ -68,8 +65,6 @@ export function EntryActions({
         return { id: "edit", label: "Edit", onAction: onEdit };
       case "editSeries":
         return { id: "edit", label: "Edit", onAction: onEdit };
-      case "tags":
-        return { id: "tags", label: "Tags", onAction: onTags };
       case "reschedule":
         return { id: "reschedule", label: "Reschedule", onAction: cancel?.onReschedule };
       case "cancel":
@@ -93,7 +88,6 @@ export function EntryActions({
   const items = entryActionItems(kind, {
     canEdit: !!onEdit,
     canEditSeries: !!onEdit,
-    canTag: !!onTags,
     canCancel: !!cancel,
     cancelled: cancel?.cancelled,
     canReschedule: !!cancel?.onReschedule,

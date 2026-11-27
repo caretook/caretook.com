@@ -55,7 +55,7 @@ export const todaysDoses = defineTool({
   name: "todays_doses",
   title: "Today's doses",
   description:
-    "Today's medication doses in the care recipient's day, as the app's Today shows them: each med time (such as Morning, with its id for give_pass) or medication's own time with its medications and their state (upcoming, due, overdue, given, skipped, refused), who logged the answered ones, yesterday's missed doses, and as-needed medications with today's count against their maximum.",
+    "Today's medication doses in the care recipient's day, as the app's Today shows them: each med time (such as Morning, with its id for give_pass) or medication's own time with its medications and their state (upcoming, due, overdue, given, skipped, refused), who logged the answered ones, yesterday's missed doses, and as-needed medications with today's count against their maximum. For the days ahead, use dose_schedule.",
   scope: "read",
   input: z.object({}),
   annotations: READ_ANNOTATIONS,

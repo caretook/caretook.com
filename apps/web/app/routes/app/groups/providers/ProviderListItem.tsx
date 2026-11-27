@@ -2,7 +2,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { TagChips } from "~/components/tags";
+import { QuickTags } from "~/components/tags";
 import { Badge, ListRow, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
@@ -17,8 +17,8 @@ import { ProviderRowContact } from "./ProviderRowContact";
  * reverses B-422's no-contact-links rule). Condensed (the default, B-909): one
  * dense line, the type icon, the name and specialty, then the main contact
  * action (`quickActions`' first: call, else email, else maps) above the
- * stretched link. Its tags show as chips (two, then "+N"; tags PRD) for
- * every role, in both.
+ * stretched link. Its tags show as `QuickTags` (two chips, then "+N"; × and
+ * Add tag for whoever may tag it; tags-3), in both, above the stretched link.
  */
 export function ProviderListItem({
   provider,
@@ -53,7 +53,7 @@ export function ProviderListItem({
         </p>
         <p className="text-muted truncate text-sm">{details.join(" · ")}</p>
         <ProviderRowContact provider={provider} past={past} />
-        <TagChips tags={tags} className="mt-0.5" />
+        <RowTags provider={provider} tags={tags} className="mt-0.5" />
       </div>
     </ListRow>
   );
@@ -89,9 +89,33 @@ function CondensedRow({
         )}
       </p>
       <Badges provider={provider} past={past} />
-      <TagChips tags={tags} className="shrink-0 flex-nowrap" />
+      <RowTags provider={provider} tags={tags} className="shrink-0" />
       {main && <ContactActions actions={[main]} />}
     </ListRow>
+  );
+}
+
+const NO_TAGS: readonly { id: string; name: string }[] = [];
+
+function RowTags({
+  provider,
+  tags,
+  className,
+}: {
+  provider: LocalProvider;
+  tags?: readonly { id: string; name: string }[];
+  className: string;
+}) {
+  return (
+    <QuickTags
+      target="provider"
+      recordId={provider.id}
+      label={provider.name}
+      createdBy={provider.createdBy}
+      max={2}
+      tags={tags ?? NO_TAGS}
+      className={className}
+    />
   );
 }
 

@@ -265,7 +265,17 @@ describe("a row is one target, with Full's contact line above it (B-422, B-940)"
     expect([...row.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
       `${PROVIDERS_URL}/${RUIZ.id}`,
     ]);
-    // The body is just the name line and the details line.
+    // The body is just the name line, the details line and, for a writer, Add tag (`QuickTags`; tags-3).
+    const body = row.querySelector("[data-provider-name]")?.closest("p")?.parentElement;
+    expect([...(body?.children ?? [])].map((c) => c.tagName)).toEqual(["P", "P", "DIV"]);
+    expect(body?.lastElementChild?.matches("[data-quick-tags]")).toBe(true);
+  });
+
+  test("in Full, a reader's row with no tags has no tag line", async () => {
+    await openFull({ fixtures: [...directory(), RUIZ], role: "viewer" });
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${RUIZ.id}"]`),
+    );
     const body = row.querySelector("[data-provider-name]")?.closest("p")?.parentElement;
     expect([...(body?.children ?? [])].map((c) => c.tagName)).toEqual(["P", "P"]);
   });
