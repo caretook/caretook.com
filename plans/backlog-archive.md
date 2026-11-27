@@ -746,6 +746,9 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-878 | change | staging | fixes-tooling | prd/fixes-tooling | Dispatcher plans at most lane cap + 1 topics ahead and never auto-plans held topics; early drafts only on the user's request |
 | B-879 | change | dropped | fixes-tooling | prd/fixes-tooling | Loops hand long exploration (past ~10 reads) to a haiku/sonnet Explore helper and run checks in the background instead of polling |
 | B-885 | bug | staging | fixes-ui | prd/fixes-ui | Frontpage hero CTA buttons wrap on mobile; they should fit side by side |
+| B-892 | feature | landed | tags-2 | prd/tags-2 | Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu |
+| B-893 | feature | landed | tags-2 | prd/tags-2 | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
+| B-894 | chore | landed | tags-2 | prd/tags-2 | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
 | B-897 | bug | staging | fixes-ui | prd/fixes-ui | Easy entry: medication autocomplete suggestion covers the event entry suggestion box |
 | B-899 | change | staging | fixes-ui | prd/fixes-ui | Timeline entries in both views: move the "get link" icon on each entry into the hamburger menu |
 | B-900 | change | staging | fixes-ui | prd/fixes-ui | Easy entry autocomplete: Tab completes when there's one suggestion, and moves to the selector when… |
@@ -761,6 +764,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-924 | bug | staging | fixes-ui | prd/fixes-ui | Provider page header on mobile: the Copy to another group, Tags and Edit buttons overlap the provider's name and run off the right edge |
 | B-925 | bug | staging | fixes-ui | prd/fixes-ui | Timeline Today header: the Change care period arrows sit about 2px further from the period's icon than the icon sits from the text |
 | B-928 | bug | landed | fixes-tooling |  | CI: scripts/loops/doc.test.mjs: this repo's roles project-config prints the core's generic doc, then the project's addi… |
+| B-929 | chore | landed | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-930 | chore | landed | fixes-nit | prd/fixes-nit | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
 | B-931 | chore | landed | fixes-nit | prd/fixes-nit | The UI kit's own primitives (ChipList, tabLook, DateTimeField) still use text-base-content opacity classes |
 
@@ -8693,6 +8697,38 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-26 (Robert Bo Davis): Triage: layout fix on the public front page; small.
 
+### B-892 · feature · Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu
+
+- status: landed
+- prd: tags-2
+- owner: prd/tags-2
+- commit: 84dbac1c
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: chips already show on timeline rows in both views (TagChips, two then +N), but adding a tag needs ⋯ > Tags. Wants a quick add right on the item in the full and easy timeline views. Planner: the tap target (a + chip?), Easy helpers only on their own entries (canTagRecord), row tap already opens edit/entry page.
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: the same quick-manage-tags component also goes on the edit and view pages of everything taggable (timeline entries and events, todos, providers, medications), replacing ⋯ > Tags, the provider's Tags header button and the medication edit sheet's toggles. Goal: adding and removing a tag as quick and easy as possible (a tap on a chip to remove, one to add).
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: read-only (chips only, no add or remove) for anyone who can't tag that record (canTagRecord) or create tags (canCreateTag); add-new only for those who may create. The caller sets how many tags show before '+N' (a prop, like ROW_CHIPS today), so each place fits its display size.
+- 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
+
+### B-893 · feature · Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it
+
+- status: landed
+- prd: tags-2
+- owner: prd/tags-2
+- commit: 8cc6a9c5
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: like user avatars (AvatarColor, components/ui/avatarLook.ts the one class map). New tag: a random palette color not yet used by the group's tags (any when all are taken); pick it on the tags page (B-891). A synced column on tag (additive migration); offline devices pick independently, so two may land on one color (fine). Chips (TagChips) and the picker show it; contrast in light and dark.
+- 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
+
+### B-894 · chore · Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind
+
+- status: landed
+- prd: tags-2
+- owner: prd/tags-2
+- commit: 8cc6a9c5
+
+- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: seeds/tags.ts has only three tags on Dev Family. Add more (all fictional) on entries of each kind, events, todos, providers and medications, in the other seed groups too, with colors once B-893 lands.
+- 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
+
 ### B-897 · bug · Easy entry: medication autocomplete suggestion covers the event entry suggestion box
 
 - status: staging
@@ -8839,6 +8875,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-26 (prd/fixes-ui): Fails on dev too; found by 9ccd9e8d in https://github.com/caretook/caretook.com/actions/runs/45903344661. First failure: AssertionError: expected '# The project config and the core\'s …' to be '# The project config and the core\'s …' // Object.is equality at /home/runner/work/caretook.com/caretook.com/scripts/loops/doc.test.mjs:194:45 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2885:79 at file:///home/runne…
 - 2026-11-26 (Robert Bo Davis): Fails on dev too; found by prd/fixes-ui in https://github.com/caretook/caretook.com/actions/runs/45906838038. First failure: AssertionError: expected '# The project config and the core\'s …' to be '# The project config and the core\'s …' // Object.is equality at /home/runner/work/caretook.com/caretook.com/scripts/loops/doc.test.mjs:194:45 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2885:79 at file:///home/runne…
 - 2026-11-26 (Robert Bo Davis): Risa tooling: held with fixes-tooling for the work account (the user, 2026-11-26)
+
+### B-929 · chore · Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config
+
+- status: landed
+- prd: orchestration-split-4
+- owner: prd/orchestration-split-4
+- commit: 191e9afb
+
+- 2026-11-26 (Robert Bo Davis): Found 2026-11-26 by a dry run in a scratch copy of only the 257 core files: on the sample config 565 of 1,988 tests failed in 65 files; with Caretook's config copied in 210 failed in 25 (land*, doc, skeptics, ci/gate); with no root config the run hung in lease.sh (file_mtime: command not found). Proof when done: that dry run passes. The move (B-543 step 2) waits for it.
+- 2026-11-26 (plan/orchestration-split-4): Planned 2026-11-26: plans/orchestration-split-4-prd.md and -plan.md (seven slices; the proof is node scripts/loops/standalone.mjs passing with --root sample, project and none)
 
 ### B-930 · chore · Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit
 

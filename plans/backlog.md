@@ -289,9 +289,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-889 | feature | triaged | fixes-tooling |  | Backlog agent can hand off with instructions the next agent actually follows, continuing the work… |
 | B-890 | feature | triaged | symptom-catalog-2 |  | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
 | B-891 | feature | triaged | tags-3 |  | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
-| B-892 | feature | landed | tags-2 | prd/tags-2 | Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu |
-| B-893 | feature | landed | tags-2 | prd/tags-2 | Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it |
-| B-894 | chore | landed | tags-2 | prd/tags-2 | Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind |
 | B-895 | feature | triaged | tags-3 |  | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
@@ -311,7 +308,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-926 | bug | triaged | fixes-tooling |  | The dispatcher's keep-alive and session requests ignore the machine config's work switch: a repo with work off still gets its backlog and inbox sessions opened |
 | B-927 | bug | triaged | fixes-tooling |  | The drain reads usage only from its own environment's Claude account, so sessions on another CLAUDE_CONFIG_DIR are drained on the wrong account's numbers |
-| B-929 | chore | landed | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-932 | bug | triaged | fixes-tooling |  | rm.sh session tests in stack.test.mjs fail when run from an orchestrator session (they inherit RISA_SESSION_*) |
 | B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
 | B-934 | chore | triaged | fixes-tooling |  | Archive finished rows out of the PRD registry table (75 done rows clutter it) |
@@ -1921,38 +1917,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: a tags page in group settings. Today rename and delete live only inside the tag picker (TagEditor, owners delete with a count); no page lists the group's tags. Planner: who sees the page (rename per canRenameTag, delete owners), uses per tag, whether to add merge (tags.md Limits: no merge today).
 - 2026-11-26 (plan/tags-2): Planned in plans/tags-3-plan.md, the follow-on of tags-2 (cut to keep each topic about six slices): copy link into ⋯, the Tags page, merge, search by tag
 
-### B-892 · feature · Quick tag add and remove: one shared component on timeline items (full and easy views) and on the view and edit pages of every taggable item, no ⋯ menu
-
-- status: landed
-- prd: tags-2
-- owner: prd/tags-2
-- commit: 84dbac1c
-
-- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: chips already show on timeline rows in both views (TagChips, two then +N), but adding a tag needs ⋯ > Tags. Wants a quick add right on the item in the full and easy timeline views. Planner: the tap target (a + chip?), Easy helpers only on their own entries (canTagRecord), row tap already opens edit/entry page.
-- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: the same quick-manage-tags component also goes on the edit and view pages of everything taggable (timeline entries and events, todos, providers, medications), replacing ⋯ > Tags, the provider's Tags header button and the medication edit sheet's toggles. Goal: adding and removing a tag as quick and easy as possible (a tap on a chip to remove, one to add).
-- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: read-only (chips only, no add or remove) for anyone who can't tag that record (canTagRecord) or create tags (canCreateTag); add-new only for those who may create. The caller sets how many tags show before '+N' (a prop, like ROW_CHIPS today), so each place fits its display size.
-- 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
-
-### B-893 · feature · Tag colors: each tag gets a color, a random one not yet used in the group when created, changeable on the tags management page like avatar colors; chips show it
-
-- status: landed
-- prd: tags-2
-- owner: prd/tags-2
-- commit: 8cc6a9c5
-
-- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: like user avatars (AvatarColor, components/ui/avatarLook.ts the one class map). New tag: a random palette color not yet used by the group's tags (any when all are taken); pick it on the tags page (B-891). A synced column on tag (additive migration); offline devices pick independently, so two may land on one color (fine). Chips (TagChips) and the picker show it; contrast in light and dark.
-- 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
-
-### B-894 · chore · Richer tag seed data: more fictional tags across the seed groups and on more records of each taggable kind
-
-- status: landed
-- prd: tags-2
-- owner: prd/tags-2
-- commit: 8cc6a9c5
-
-- 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: seeds/tags.ts has only three tags on Dev Family. Add more (all fictional) on entries of each kind, events, todos, providers and medications, in the other seed groups too, with colors once B-893 lands.
-- 2026-11-26 (plan/tags-2): Planned in plans/tags-2-plan.md (colors, seeds, quick tags on rows, pages and every edit sheet); B-893's hand-picked color comes with the Tags page in tags-3
-
 ### B-895 · feature · Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it
 
 - status: triaged
@@ -2128,16 +2092,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (prd/orchestration-split-3): Carried from orchestration-split-3 wave 3 (slice 7): usage and context follow each session's folder, the drain doesn't yet
-
-### B-929 · chore · Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config
-
-- status: landed
-- prd: orchestration-split-4
-- owner: prd/orchestration-split-4
-- commit: 191e9afb
-
-- 2026-11-26 (Robert Bo Davis): Found 2026-11-26 by a dry run in a scratch copy of only the 257 core files: on the sample config 565 of 1,988 tests failed in 65 files; with Caretook's config copied in 210 failed in 25 (land*, doc, skeptics, ci/gate); with no root config the run hung in lease.sh (file_mtime: command not found). Proof when done: that dry run passes. The move (B-543 step 2) waits for it.
-- 2026-11-26 (plan/orchestration-split-4): Planned 2026-11-26: plans/orchestration-split-4-prd.md and -plan.md (seven slices; the proof is node scripts/loops/standalone.mjs passing with --root sample, project and none)
 
 ### B-932 · bug · rm.sh session tests in stack.test.mjs fail when run from an orchestrator session (they inherit RISA_SESSION_*)
 
