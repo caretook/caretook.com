@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import type { SyncDb } from "~/lib/sync";
+import { recentlyViewed } from "~/lib/core/recentlyViewed";
 import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { found, waitUntil } from "../../../../../test/found";
@@ -425,6 +426,31 @@ describe("Copy to another group", () => {
     await waitUntil(() => !!NOTES(), "the page");
     await device.settle();
     expect(ACTIONS()).toBeNull();
+  });
+});
+
+describe("recently viewed (B-947)", () => {
+  test("opening a provider records it for this user, newest first; opening it again moves it up", async () => {
+    let device = await open(providerUrl(WESTSIDE.id));
+    await expect
+      .element(page.getByRole("heading", { level: 1, name: "Westside Family Medicine" }))
+      .toBeVisible();
+    await expect.poll(() => recentlyViewed(TEST_USER.id)).toEqual([{ type: "provider", id: WESTSIDE.id }]);
+    await device.screen.unmount();
+
+    device = await open(providerUrl(ALVAREZ.id));
+    await expect.poll(() => recentlyViewed(TEST_USER.id).map((r) => r.id)).toEqual([ALVAREZ.id, WESTSIDE.id]);
+    await device.screen.unmount();
+
+    await open(providerUrl(WESTSIDE.id));
+    await expect.poll(() => recentlyViewed(TEST_USER.id).map((r) => r.id)).toEqual([WESTSIDE.id, ALVAREZ.id]);
+  });
+
+  test("a deleted provider isn't recorded", async () => {
+    const GONE = fx.provider({ name: "Dr. Gone Away", deletedAt: at() });
+    await open(providerUrl(GONE.id), { fixtures: [directory(), GONE] });
+    await expect.element(notFound()).toBeVisible();
+    expect(recentlyViewed(TEST_USER.id)).toEqual([]);
   });
 });
 

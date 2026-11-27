@@ -1,22 +1,25 @@
 import type { GroupRole } from "../../../test/fixtures";
+import type { ReactElement } from "react";
 import type { QuickAddParent } from "./TodoQuickAdd";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../test/device";
-import { TEST_GROUP, todo } from "../../../test/fixtures";
+import { fx, TEST_GROUP, todo } from "../../../test/fixtures";
 import { getSync } from "~/lib/sync";
 import { TodoQuickAdd } from "./TodoQuickAdd";
 
 // The shared quick add (todo-subtasks-3 slice 1): the compact button opens
 // the field in place, Enter adds a child and keeps the field, Escape closes;
 // nothing for a viewer, at the depth limit or on a repeating todo; a failed
-// write says so. The full form on the todo page: todo/todoSubtasks.
+// write says so. The full form on the todo page: todo/todoSubtasks. With a
+// link (todo-links-6): a top-level todo linked there, or a linked subtask.
 
 const id = (n: number) => `4c2e7a18-9d3b-4f61-8e05-2a7b9c1d${String(n).padStart(4, "0")}`;
 const TOP: QuickAddParent = { id: id(1), title: "Get ready for the move", deletedAt: null, repeatRule: null };
 const WEEKLY: QuickAddParent = { ...TOP, id: id(2), title: "Put the bins out", repeatRule: "FREQ=WEEKLY" };
-const fixtures = () => [todo({ id: TOP.id, title: TOP.title })];
+const LARK = fx.provider({ id: id(20), name: "Dr. Mira Lark" });
+const fixtures = () => [todo({ id: TOP.id, title: TOP.title }), LARK];
 
 type Options = { parent?: QuickAddParent; ancestors?: readonly unknown[]; role?: GroupRole };
 
@@ -101,5 +104,49 @@ describe("the compact quick add", () => {
     await userEvent.keyboard("Book the van{Enter}");
     await expect.element(page.getByRole("alert")).toHaveTextContent("Couldn't save that. Try again.");
     expect(await childrenOf(device)).toEqual([]);
+  });
+});
+
+describe("the quick add with a link", () => {
+  type Row = { title: string; parent_id: string | null; provider_id: string | null };
+  const rows = async (device: Awaited<ReturnType<typeof renderWithDevice>>) =>
+    device.query<Row>("SELECT title, parent_id, provider_id FROM todo WHERE title != ? ORDER BY title", [
+      TOP.title,
+    ]);
+  const showLinked = (element: ReactElement, role: GroupRole = "caretaker") =>
+    renderWithDevice({ element, url: `/app/groups/${TEST_GROUP.id}/todos`, role, fixtures: fixtures() });
+
+  test("with a link and no parent, adds a top-level todo with the link and keeps the field", async () => {
+    const device = await showLinked(<TodoQuickAdd link={{ providerId: LARK.id }} form="full" />);
+    const field = page.getByRole("textbox", { name: "New todo" });
+    await expect.element(field).toHaveAttribute("placeholder", "Add a todo");
+    await userEvent.click(field);
+    await userEvent.keyboard("Call to confirm{Enter}");
+    await expect
+      .poll(() => rows(device))
+      .toEqual([{ title: "Call to confirm", parent_id: null, provider_id: LARK.id }]);
+    await expect.element(field).toHaveValue("");
+    await expect.element(field).toHaveFocus();
+    await userEvent.fill(field, "Ask for the lab results");
+    await userEvent.click(page.getByRole("button", { name: "Add todo" }));
+    await expect
+      .poll(async () => (await rows(device)).map((r) => r.title))
+      .toEqual(["Ask for the lab results", "Call to confirm"]);
+  });
+
+  test("with a parent and a link, adds a linked subtask", async () => {
+    const device = await showLinked(
+      <TodoQuickAdd parent={TOP} link={{ providerId: LARK.id }} form="compact" />,
+    );
+    await userEvent.click(OPENER());
+    await userEvent.keyboard("Book the van{Enter}");
+    await expect
+      .poll(() => rows(device))
+      .toEqual([{ title: "Book the van", parent_id: TOP.id, provider_id: LARK.id }]);
+  });
+
+  test("shows nothing for a reader", async () => {
+    await showLinked(<TodoQuickAdd link={{ providerId: LARK.id }} form="full" />, "viewer");
+    expect(document.querySelector("[data-todo-quick-add]")).toBeNull();
   });
 });

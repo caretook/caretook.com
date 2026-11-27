@@ -13,6 +13,7 @@ import { LinkedTodos } from "~/components/todos";
 import { BackLink, Button, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { useRecordView } from "~/lib/core/recentlyViewed";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
 import { medicationOriginFromState } from "~/lib/medications/medicationOrigin";
 import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
@@ -85,7 +86,7 @@ export default function Medication(props: Route.ComponentProps) {
 function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const { groupId, medicationId } = params;
   // Live: a role changed on another device shows without a reload.
-  const { canWrite } = useGroup();
+  const { canWrite, userId } = useGroup();
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const listUrl = appUrls.medicationList(groupId);
@@ -100,6 +101,8 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toMedication(rows[0]) : null;
   const medication = live ?? loaderData.medication;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
+  // Recently viewed (B-947): the todo link box suggests it.
+  useRecordView(userId, "medication", deleted ? null : medicationId);
   const passes = useSchedulePasses(groupId, loaderData.passRows);
 
   const { state: allergies } = useAllergies(groupId, loaderData.allergies);

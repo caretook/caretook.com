@@ -6,14 +6,26 @@
 
 **Planned 2026-11-27** by the dispatcher's planner. Six slices, three waves; each small (B-947's suggestions are split from the recently viewed store so neither passes about eight files; B-964, unrelated to links, went to `todo-links-2`). Skeptic s74's go added `searchTables.sync.ts` to slice 3 and `updateTodo`'s no-`entryIds` rule to slice 2. Reworked after skeptic s71's send-back: med conditions indexed (B-946), slice 5 blocked by 2, `chosenLinkChip` stays put, B-964 cut.
 
-| Slice | Wave | State   | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------- |
-| 1     | 1    | planned |                                             |
-| 2     | 2    | planned |                                             |
-| 3     | 2    | planned |                                             |
-| 4     | 1    | planned |                                             |
-| 5     | 3    | planned |                                             |
-| 6     | 1    | planned |                                             |
+**Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Wave 1 started 2026-11-27** (orchestrator session 1): slices 1, 4, 6 worktrees made, agents spawned on opus. B-944, B-947, B-948 claimed. `risa anchors` misses are all files or symbols earlier slices create (no plan fix needed).
+
+**Docs at wave 1 landing (slice 6):** todos.md Screens (LinkedTodos, entry Todos) and components.md still say "Add todo" opens the sheet: now the full `TodoQuickAdd` (link, no parent) plus a compact one per open row; a writer's provider/medication Todos band is always titled (keeps focus on the first add); the `todos/new?providerId=` prefill stays but has no button there.
+
+**Wave 1 merged; CI run (components) 46068430312 on 424c5081: brake**, all 13 failures the branch's: slice 1's `ComboBox` `Option` markup change (option text reads label+description; pickers in entryWithRow, conditions, medicationConditions, conditionProviders, entryTodos), plus search.sync's 50 ms query timing (58.5 ms, likely load). A fresh opus fix agent works in todo-links-1 (slice 1's agent was near its context limit). Then merge slice 1 again and rerun components. B-948 done. Worktrees 1, 4, 6 kept until green.
+
+**From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
+
+**For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
+
+| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits) |
+| ----- | ---- | ----- | ------- | ------------------------------------------- |
+| 1     | 1    | opus  | working |                                             |
+| 2     | 2    |       | planned |                                             |
+| 3     | 2    |       | planned |                                             |
+| 4     | 1    | opus  | merged  | 755f9b1e4 (db2656198)                       |
+| 5     | 3    |       | planned |                                             |
+| 6     | 1    | opus  | working |                                             |
 
 ## Architectural decisions
 

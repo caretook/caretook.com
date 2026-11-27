@@ -1,5 +1,5 @@
 import type { FormEvent, KeyboardEvent } from "react";
-import type { LocalTodo } from "~/lib/todos/todos.sync";
+import type { LocalTodo, TodoLink } from "~/lib/todos/todos.sync";
 
 import { canHaveSubtask, isTodoWriter } from "@caretook/data/schema";
 import { ListPlus, Plus } from "lucide-react";
@@ -11,6 +11,12 @@ import { createTodo } from "~/lib/todos/todos.sync";
 
 /** What the quick add needs of the todo it adds under. */
 export type QuickAddParent = Pick<LocalTodo, "id" | "title" | "deletedAt" | "repeatRule">;
+
+/** What a quick-added todo links to: a provider, a medication, or a note or event (`entryId`). */
+export type QuickAddLink = TodoLink | { entryId: string };
+
+/** Whether this person may add a todo here: a writer (`isTodoWriter`). */
+export const mayAddTodo = (role: string | null | undefined) => isTodoWriter(role);
 
 /**
  * Whether this person may add a subtask to `parent` here: a writer, and the
@@ -24,23 +30,30 @@ export const mayAddSubtask = (
 ) => isTodoWriter(role) && canHaveSubtask(ancestors, parent);
 
 /**
- * The one way to add a subtask (todo-subtasks-3): a title field over
- * `createTodo` with `parent` as the parent. Enter adds and keeps the field
- * focused and open for the next; a failed write says so inline. `compact`
- * (a list row, a tree) is an icon-only "Add subtask to <title>" button that
- * opens the field in place, and Escape closes it; `full` (the todo page's
- * band) shows the field with its Add button. Nothing for a non-writer or a
- * todo that can't take a subtask.
+ * The one way to add a todo inline (todo-subtasks-3, todo-links-6): a title
+ * field over `createTodo`, under `parent` (a subtask), with `link` (a
+ * provider's, medication's, note's or event's page), or both (a linked
+ * subtask, so it shows on the page). Enter adds and keeps the field focused
+ * and open for the next; a failed write says so inline. `compact` (a list
+ * row, a tree; it needs a parent) is an icon-only "Add subtask to <title>"
+ * button that opens the field in place, and Escape closes it; `full` (a
+ * page's band) shows the field with its Add button. Nothing for a
+ * non-writer or a parent that can't take a subtask.
  */
 export function TodoQuickAdd({
   parent,
-  ancestors,
+  ancestors = [],
+  link,
   form,
   className = "",
-}: {
-  parent: QuickAddParent;
-  ancestors: readonly unknown[];
-  form: "compact" | "full";
+}: (
+  | { form: "compact"; parent: QuickAddParent }
+  | { form: "full"; /** Without one, a top-level todo. */ parent?: QuickAddParent }
+) & {
+  /** The parent's own chain (its parent, …, up to the top). */
+  ancestors?: readonly unknown[];
+  /** What the new todo links to. */
+  link?: QuickAddLink;
   /** Classes for the outer element. */
   className?: string;
 }) {
@@ -51,7 +64,7 @@ export function TodoQuickAdd({
   const [error, setError] = useState<string | null>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const formId = useId();
-  if (!mayAddSubtask(group.role, ancestors, parent)) return null;
+  if (parent ? !mayAddSubtask(group.role, ancestors, parent) : !mayAddTodo(group.role)) return null;
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,10 +72,10 @@ export function TodoQuickAdd({
     if (!title || busy) return;
     setBusy(true);
     setError(null);
-    void createTodo(getSync(), group.id, { title, parentId: parent.id })
+    void createTodo(getSync(), group.id, { title, parentId: parent?.id, ...link })
       .then((result) => (result.ok ? setValue("") : setError(result.error)))
       .catch((err: unknown) => {
-        console.error("Couldn't add the subtask", err);
+        console.error(parent ? "Couldn't add the subtask" : "Couldn't add the todo", err);
         setError("Couldn't save that. Try again.");
       })
       .finally(() => setBusy(false));
@@ -83,6 +96,7 @@ export function TodoQuickAdd({
   };
 
   const compact = form === "compact";
+  const noun = parent ? "subtask" : "todo";
   return (
     <div className={`space-y-2 ${className}`} data-todo-quick-add={form}>
       {compact && (
@@ -90,7 +104,7 @@ export function TodoQuickAdd({
         <IconButton
           ref={opener}
           icon={ListPlus}
-          label={`Add subtask to ${parent.title}`}
+          label={`Add subtask to ${parent?.title ?? ""}`}
           expanded={open}
           controls={formId}
           className="ml-1"
@@ -100,12 +114,12 @@ export function TodoQuickAdd({
       {open && (
         <form id={formId} className="space-y-2" onSubmit={submit} data-subtask-add="">
           <div className="flex items-end gap-2">
-            <Field label="New subtask" labelHidden kind="input" className="min-w-0 flex-1">
+            <Field label={`New ${noun}`} labelHidden kind="input" className="min-w-0 flex-1">
               {(control) => (
                 <input
                   {...control}
                   type="text"
-                  placeholder="Add a subtask"
+                  placeholder={`Add a ${noun}`}
                   // Opened from its button: straight to typing.
                   // eslint-disable-next-line jsx-a11y/no-autofocus -- the person just asked for the field
                   autoFocus={compact}
@@ -117,7 +131,7 @@ export function TodoQuickAdd({
             </Field>
             {!compact && (
               <Button type="submit" icon={Plus} disabled={!value.trim()} busy={busy} busyLabel="Adding…">
-                Add subtask
+                Add {noun}
               </Button>
             )}
           </div>
