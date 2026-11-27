@@ -10,9 +10,9 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7: B-544, B-630, B-637, B-930) landed 2026-11-26 as a1d501f7 through PR #239: CI `components` green on db5aedae (below the proposed `full`, `--why`: `vitest.config.ts` changed one comment), Codex out of credits (`--no-review`), browser `--changed` 3/3; report filed; no area doc named what changed. Slice worktrees removed.
 
-| Slice | Item  | State                                                         | Merge |
-| ----- | ----- | ------------------------------------------------------------- | ----- |
-| 8     | B-931 | started 2026-11-26 (sonnet: a class swap the plan spells out) |       |
+| Slice | Item  | State                                      | Merge    |
+| ----- | ----- | ------------------------------------------ | -------- |
+| 8     | B-931 | merged, CI `components` requested (sonnet) | 5e384aab |
 
 Wave 3 (slice 8, B-931): /80 → `text-muted`, /40 → `text-faint` picked by the orchestrator (in the slice). Lessons: the _Status_ table takes exactly Slice | Item | State | Merge (fixes-plans test), models go in the State cell or below; `prd browser --suite` is classifier-refused (the user's ask-before-suite rule), so use `--changed --base dev`.
 
