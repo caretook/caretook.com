@@ -22,7 +22,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags` | done | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `todo-subtasks` | done | `planner-3`, `tags` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/app-shell/unsavedChanges.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
-| `todo-subtasks-3` | hold | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/UpcomingList.tsx` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
+| `todo-subtasks-3` | hold | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | — | `todo-subtasks-3` | — | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
@@ -331,11 +331,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-957 | change | triaged | fixes-ui |  | First load: a friendlier loading screen with progress |
 | B-958 | change | ready | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | ready | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
-| B-960 | change | in-progress | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
+| B-960 | change | ready | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
 | B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | ready | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 | B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
+| B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
+| B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 
 ## Items
 
@@ -2164,6 +2166,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27: the same nested view goes on the todo's own page too, starting one level down (its children, their children), with the same + quick add at each level; it replaces the Subtasks band (TodoSubtasks) as the way to add subtasks.
 - 2026-11-27 (Robert Bo Davis): The user 2026-11-27: the current nested todo management is almost unusable; treat this as a replacement of the subtask flow (todo page and list), not a polish.
 - 2026-11-27 (plan/todo-subtasks-3): Planned 2026-11-27 in plans/todo-subtasks-3-plan.md (7 slices, 4 waves); no subtasks on calendars or the feed (user's word); reminders unchanged.
+- 2026-11-27 (plan/todo-subtasks-3): Revised at the user's approval: trees everywhere (Todos page, todo page, Planner, Easy view), the Today card names the due step; 9 slices, 5 waves; split view later (B-964).
 
 ### B-942 · feature · Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter
 
@@ -2177,6 +2180,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-27 (Robert Bo Davis): The user 2026-11-27: the current nested todo management is almost unusable; treat this as a replacement of the subtask flow (todo page and list), not a polish.
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27 (shared UX rule, as for tags in B-955): quick add for todos and subtasks is ONE shared component everywhere it appears (the Todos list rows at any depth, the todo's own page, and B-948's entries and other linkable pages), same look and behavior, slightly tweaked per place (e.g. a row's compact form); an exception needs a good reason, written in the plan. Same idea as tags: an icon-only add button whose icon says what it adds, enough room from neighbors to avoid misclicks, controls only for whoever may add.
 - 2026-11-27 (plan/todo-subtasks-3): Planned 2026-11-27 in plans/todo-subtasks-3-plan.md (7 slices, 4 waves); no subtasks on calendars or the feed (user's word); reminders unchanged.
+- 2026-11-27 (plan/todo-subtasks-3): Revised at the user's approval: trees everywhere (Todos page, todo page, Planner, Easy view), the Today card names the due step; 9 slices, 5 waves; split view later (B-964).
 
 ### B-943 · feature · Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made
 
@@ -2188,6 +2192,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27 ('it is rough': subtasks must be MUCH easier to add and see on the main Todos page). Today (docs/domain/todos.md, Subtasks): subtasks are added and seen only in the todo page's Subtasks band; lists show a parent with a progress mark and dated or assigned children on their own with 'Part of'; depth max 3; no repeat on a tree. This item: a new child takes the parent's due date; a child's due date must not be after the parent's (enforce in the service and on the device; decide on-the-day vs strictly before, and what happens to children when the parent's date moves earlier); siblings sort by due date ascending, undated ones by created ascending (planner: dated first or undated first).
 - 2026-11-27 (Robert Bo Davis): The user 2026-11-27: the current nested todo management is almost unusable; treat this as a replacement of the subtask flow (todo page and list), not a polish.
 - 2026-11-27 (plan/todo-subtasks-3): Planned 2026-11-27 in plans/todo-subtasks-3-plan.md (7 slices, 4 waves); no subtasks on calendars or the feed (user's word); reminders unchanged.
+- 2026-11-27 (plan/todo-subtasks-3): Revised at the user's approval: trees everywhere (Todos page, todo page, Planner, Easy view), the Today card names the due step; 9 slices, 5 waves; split view later (B-964).
 
 ### B-944 · feature · One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose)
 
@@ -2331,12 +2336,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-960 · change · First /app load fetches about 205 JS files, many of them tiny
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: c81f220e
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): sign-in to the first timeline row requests ~205 JS chunks (~560 KB encoded); dozens are 0.7 to 1.5 KB (lucide icons such as map-pin, clock, pill; small helpers). Over HTTP/2 the cost is modest, over HTTP/1.1 (6 connections) the queue dominated (6.4 s on a 3G profile). Grouping tiny shared chunks (Rolldown advancedChunks / manualChunks for icons) would cut requests; check the budget (scripts/build/budget.json) after.
+- 2026-11-27 (slice/fixes-perf/11): Slice 11: icons + react codeSplitting groups (vite.config.ts), budget rules together/noRoutesIn. First /app load JS files 206 -> 169; shaped HTTP/1.1 first row 11.5 s -> 10.4 s, shaped HTTP/2 8.41 -> 8.25 s. Sign-in and marketing pages now load the whole icons chunk (13 KB gz, ~+10 KB gz). Small helpers filed as a follow-up.
 
 ### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
 
@@ -2373,3 +2379,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): From the todo-subtasks-3 approval (2026-11-27): the user wants trees everywhere for now; this toggle comes later, after todo-subtasks-3.
+
+### B-965 · change · Group the tiny shared app helper chunks on the first /app load
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-27 (slice/fixes-perf/11): From fixes-perf slice 11 (B-960): after the icons group, the first /app load still fetches ~74 shared app chunks under 2 KB (lib/, components/, packages/data schema helpers) plus ~22 tiny React Router route-chunk stubs. A plain codeSplitting group over app code doesn't work: a group takes its modules' dependencies (includeDependenciesRecursively), so an entriesAware group with a merge threshold dragged rrule and yjs into the /app shell and blew the entry to 209 KB gz. includeDependenciesRecursively: false needs preserveEntrySignatures 'allow-extension' or false, which React Router's client build overrides to 'exports-only' (INVALID_OPTION). Options: a Vite plugin hook setting preserveEntrySignatures for the client build (check React Router's route exports still hold) with strictExecutionOrder, or Rolldown's experimentalInlineCommonChunks (experimental). Measure with the slice-11 bench (HTTP/1.1 is where it pays).
+
+### B-966 · change · Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-27 (prd/fixes-perf): From fixes-perf slice 11 (B-960, merge c81f220e): the client build's codeSplitting 'icons' group (apps/web/vite.config.ts) puts every lucide-react icon in one chunk (40 KB raw, 13.2 KB gz). Sign-in and marketing pages that use one or two icons now fetch it: ~10.5 KB gz more on sign-in and marketing, ~5 KB on home/faq/about/features. The user: every KB there counts for Lighthouse and SEO. Fix: keep the icons group to /app routes only (e.g. a group test scoped to modules reached from app/routes/app/, or inline icons on public pages), then check Lighthouse on / and /sign-in and the budget (scripts/build/budget.json); budget's together: [lucide-react] rule may need scoping to the app group.
