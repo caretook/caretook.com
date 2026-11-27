@@ -127,29 +127,56 @@ describe("todoStripText and todoStripWho", () => {
   });
 });
 
-describe("todoStrip and the tree (todo-subtasks-2)", () => {
+describe("todoStrip and the tree (todo-subtasks-3)", () => {
   const step = (title: string, dueOn: string | null, extra: Partial<TodoRuleFields> = {}) => ({
     ...todo(title, dueOn, extra),
     parentId: "Parent",
   });
 
-  it("drops an undated, unassigned subtask and keeps a dated or assigned one", () => {
-    expect(todoStrip([step("Plain step", null)], NOW, LA, ME)).toBeNull();
+  it("names and counts a step due today like any todo", () => {
     const s = todoStrip(
-      [
-        step("Late step", "2026-11-17"),
-        step("My step", "2026-11-17", { assigneeId: ME }),
-        step("Plain step", null),
-      ],
+      todoOrder([todo("Parent", "2026-11-20"), step("Book the ride", "2026-11-18")], NOW, LA),
       NOW,
       LA,
       ME,
     );
-    expect(s && { title: s.todo.title, mine: s.mine, more: s.more, overdue: s.overdue }).toEqual({
+    expect(s && { state: s.state, title: s.todo.title, more: s.more, ...todoStripText(s) }).toMatchObject({
+      state: "today",
+      title: "Book the ride",
+      more: 0,
+      text: "Today: Book the ride",
+    });
+  });
+
+  it("puts my step first today, counting the others", () => {
+    const s = todoStrip(
+      todoOrder(
+        [
+          todo("Pick up walker", "2026-11-18"),
+          step("Plain step", "2026-11-18"),
+          step("My step", "2026-11-18", { dueTime: "17:00", assigneeId: ME }),
+        ],
+        NOW,
+        LA,
+      ),
+      NOW,
+      LA,
+      ME,
+    );
+    expect(s && { state: s.state, title: s.todo.title, mine: s.mine, more: s.more }).toEqual({
+      state: "today",
       title: "My step",
       mine: true,
-      more: 1,
-      overdue: 2,
+      more: 2,
+    });
+  });
+
+  it("names an overdue step before today's", () => {
+    const s = todoStrip([todo("Pick up walker", "2026-11-18"), step("Late step", "2026-11-17")], NOW, LA, ME);
+    expect(s && { state: s.state, title: s.todo.title, overdue: s.overdue }).toEqual({
+      state: "overdue",
+      title: "Late step",
+      overdue: 1,
     });
   });
 });
