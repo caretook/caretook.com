@@ -566,7 +566,7 @@ describe("the color migration's backfill", () => {
       expect(await colorsIn(b.group.id)).toEqual(otherGroup.map((id, i) => ({ id, color: TAG_COLORS[i] })));
 
       // Run again, nothing is colorless: it touches no tag of these groups.
-      const again = await client.query(`${backfill()} RETURNING t.group_id`);
+      const again = await client.query(`${backfill().trim().replace(/;$/, "")} RETURNING t.group_id`);
       expect(
         again.rows.filter((r: { group_id: string }) => [a.group.id, b.group.id].includes(r.group_id)),
       ).toEqual([]);
