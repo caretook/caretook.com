@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   asNeededCountText,
   changeText,
@@ -133,6 +133,21 @@ describe("medication wording", () => {
     expect(formatDate("2026-11-10", "en-US")).toBe("Nov 10, 2026");
     expect(formatDate("2026-01-01", "en-US")).toBe("Jan 1, 2026");
     expect(formatDate("not a day", "en-US")).toBe("not a day");
+  });
+  it("builds the date formatter once per locale and reuses it (B-798)", () => {
+    const spy = vi.spyOn(Intl, "DateTimeFormat");
+    try {
+      // A locale no other case uses, so the first call builds its formatter here.
+      expect(formatDate("2026-11-10", "en-GB")).toBe("10 Nov 2026");
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(formatDate("2026-01-01", "en-GB")).toBe("1 Jan 2026");
+      expect(stoppedText({ status: "completed", stoppedOn: "2026-11-10", stopReason: null }, "en-GB")).toBe(
+        "Completed 10 Nov 2026",
+      );
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
   it("says when and why a medication stopped", () => {
     expect(stoppedText({ status: "current", stoppedOn: null, stopReason: null })).toBeNull();

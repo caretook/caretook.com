@@ -72,6 +72,15 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
 };
 
 /**
+ * Start fetching the database's code (PowerSync and its worker) before
+ * `openSync` needs it: a sign-in calls this as it redirects, so the download
+ * runs beside the session check instead of after it (B-764). It opens nothing.
+ */
+export const preloadSync = (): void => {
+  void import("./client").catch(() => undefined);
+};
+
+/**
  * The test seam (component tests only: Vitest's mode is "test"): put a
  * database in place of `openSync`'s, so `getSync`, `useLiveQuery` and the
  * local writes use it. `apps/web/test/device.tsx` opens a local-only
@@ -90,6 +99,7 @@ export const installTestDatabase = async (
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
   // A new device remembers nothing (as after a sign-out).
   clearRemembered();
+  closeWatches();
   current = db ? Promise.resolve(db) : null;
   ready = db;
   testFirstSyncDone = db ? (options.firstSyncDone ?? true) : null;
@@ -121,6 +131,7 @@ export const closeSync = async ({ keep = false }: { keep?: boolean } = {}) => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
+  closeWatches();
   owedFirst.clear();
   // The tile cache goes with the local copy.
   clearRemembered();
@@ -221,29 +232,45 @@ const nextFrameResult = (hand: () => void) => {
 };
 
 /**
- * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
- * result to `onRows`, at the next frame with every other watch's result that
- * came in meanwhile (above); returns the cleanup, after which nothing more is
- * passed. With no database open it watches nothing: a component can still
- * mount while sign-out is closing the database (a watch result arriving
- * mid-sign-out renders a new child), and there's nothing left to show it then.
+ * One open watch, shared by every subscriber to the same query (B-910): a
+ * screen often asks the same thing more than once (the timeline back from an
+ * entry ran 38 watches, 11 of them repeats), and each repeat was a query of
+ * its own on every change. Closed when its last subscriber leaves.
  */
-export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
-  if (!ready) return () => undefined;
-  const controller = new AbortController();
+type SharedWatch = {
+  controller: AbortController;
+  subscribers: Set<(rows: unknown[]) => void>;
+  /** The latest result, handed at once to a subscriber that joins later. */
+  rows: unknown[] | null;
+};
+
+/** The open watches, by `key` (closed and cleared at sign-out). */
+const watches = new Map<string, SharedWatch>();
+
+const closeWatches = () => {
+  for (const shared of watches.values()) shared.controller.abort();
+  watches.clear();
+};
+
+const openWatch = (db: SyncDb, key: string): SharedWatch => {
+  const shared: SharedWatch = { controller: new AbortController(), subscribers: new Set(), rows: null };
+  const { signal } = shared.controller;
   const [watchSql, watchParams] = JSON.parse(key) as [string, unknown[]];
   const first = {};
   owedFirst.add(first);
-  controller.signal.addEventListener("abort", () => owedFirst.delete(first));
-  ready.powersync.watch(
+  signal.addEventListener("abort", () => owedFirst.delete(first));
+  db.powersync.watch(
     watchSql,
     watchParams,
     {
       onResult: (result) => {
         owedFirst.delete(first);
-        const rows = (result.rows?._array ?? []) as T[];
+        const rows = result.rows?._array ?? [];
+        shared.rows = rows;
+        // The subscribers this result is for: one joining before the frame got it at once.
+        const handed = [...shared.subscribers];
         nextFrameResult(() => {
-          if (!controller.signal.aborted) onRows(rows);
+          for (const onRows of handed) if (!signal.aborted && shared.subscribers.has(onRows)) onRows(rows);
         });
       },
       onError: (error) => {
@@ -251,9 +278,38 @@ export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (()
         console.error("Local query failed", error);
       },
     },
-    { signal: controller.signal, throttleMs: 30 },
+    { signal, throttleMs: 30 },
   );
-  return () => controller.abort();
+  return shared;
+};
+
+/**
+ * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
+ * result to `onRows`, at the next frame with every other watch's result that
+ * came in meanwhile (above); returns the cleanup, after which nothing more is
+ * passed. Subscribers to the same `key` share one watch (`SharedWatch`); one
+ * joining a watch that has answered gets its latest rows at once. With no
+ * database open it watches nothing: a component can still mount while
+ * sign-out is closing the database (a watch result arriving mid-sign-out
+ * renders a new child), and there's nothing left to show it then.
+ */
+export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
+  if (!ready) return () => undefined;
+  let shared = watches.get(key);
+  if (!shared) {
+    shared = openWatch(ready, key);
+    watches.set(key, shared);
+  }
+  const mine = shared;
+  // Its own function, so the same callback subscribed twice counts twice.
+  const subscriber = (rows: unknown[]) => onRows(rows as T[]);
+  mine.subscribers.add(subscriber);
+  if (mine.rows) onRows(mine.rows as T[]);
+  return () => {
+    if (!mine.subscribers.delete(subscriber) || mine.subscribers.size > 0) return;
+    mine.controller.abort();
+    if (watches.get(key) === mine) watches.delete(key);
+  };
 };
 
 /**

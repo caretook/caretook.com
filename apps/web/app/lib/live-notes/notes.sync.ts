@@ -1,4 +1,5 @@
 import type { SyncDb } from "../sync/index";
+import type { LocalQuery } from "../timeline/timeline.sync";
 import type { NoteBlock } from "./noteRichText";
 
 import { buildNoteDoc, fromBase64, noteText, toBase64 } from "@caretook/data/schema";
@@ -21,15 +22,21 @@ import { noteRichText } from "./noteRichText";
 
 export type NoteDocRow = { id: string; snapshot: string | null; text: string | null; updates: string };
 
-/** A group's live documents with their pending updates (as a JSON array of base64), for previews. */
-export const groupDocumentsQuery = (groupId: string) => ({
+/**
+ * The live documents of the entries a list shows, with their pending updates
+ * (as a JSON array of base64), for their previews. `window` is the list's
+ * `FROM timeline_entry …` clause (`historyWindow`, `upcomingWindow`,
+ * `pastEventsFrom`): a document's id is its entry's, so only the documents of
+ * the entries in it are read, never the whole group's (B-313).
+ */
+export const windowDocumentsQuery = (groupId: string, window: LocalQuery): LocalQuery => ({
   sql: `SELECT d.id, d.snapshot, d.text,
                (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = d.id) AS updates
-        FROM note_document d WHERE d.group_id = ?`,
-  params: [groupId],
+        FROM note_document d WHERE d.group_id = ? AND d.id IN (SELECT id ${window.sql})`,
+  params: [groupId, ...window.params],
 });
 
-/** One document with its pending updates, like `groupDocumentsQuery`'s rows (for its preview text). */
+/** One document with its pending updates, like `windowDocumentsQuery`'s rows (for its preview text). */
 export const documentPreviewQuery = (id: string) => ({
   sql: `SELECT d.id, d.snapshot, d.text,
                (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = d.id) AS updates
@@ -94,8 +101,28 @@ export const cachedRichText = (row: NoteDocRow) => {
   return blocks;
 };
 
+// The last preview text read per document, like the blocks above: a list's
+// rows arrive again on every change to the tables they read (another
+// member's typing in any document), and only a changed document is rebuilt.
+const textCache = new Map<
+  string,
+  { snapshot: string | null; text: string | null; updates: string; preview: string }
+>();
+
+/** `previewText`, remembered per document until its snapshot, text or pending updates change. */
+export const cachedPreviewText = (row: NoteDocRow) => {
+  const hit = textCache.get(row.id);
+  if (hit && hit.snapshot === row.snapshot && hit.text === row.text && hit.updates === row.updates)
+    return hit.preview;
+  if (textCache.size >= RICH_CACHE_CAP) textCache.clear();
+  const preview = previewText(row);
+  textCache.set(row.id, { snapshot: row.snapshot, text: row.text, updates: row.updates, preview });
+  return preview;
+};
+
 /** Document id → preview text, for the timeline. */
-export const toPreviews = (rows: NoteDocRow[]) => new Map(rows.map((row) => [row.id, previewText(row)]));
+export const toPreviews = (rows: NoteDocRow[]) =>
+  new Map(rows.map((row) => [row.id, cachedPreviewText(row)]));
 
 // ---------------------------------------------------------------------------
 // The editor's Y.Doc, bound to local SQLite

@@ -34,6 +34,10 @@ export const get = (args: QuerySelectArgs<K> & IncludeDeleted) =>
 export const getById = (id: string, args: Omit<QuerySelectArgs<K>, "filter"> & IncludeDeleted) =>
   get({ ...args, filter: { id: { type: "eq", value: id } } });
 
+/** Every matching row, unpaged unless asked (a series' visits by id or day: B-755). */
+export const list = (args: QuerySelectArgs<K> & IncludeDeleted) =>
+  base.list({ ...args, filter: live(args.filter, args) });
+
 export type TimelineCursor = { occurredAt: string; id: string };
 
 // Postgres timestamptz text ("2026-11-17 10:00:00.123+00") or ISO 8601.
@@ -159,6 +163,9 @@ export const mayChange = async (
 // ---------------------------------------------------------------------------
 
 export const { create } = base;
+
+/** Many entries in one INSERT (a series' visits: B-755). */
+export const createMany = baseModel.createMany({ schemaName, dbToModel });
 
 /** Deleted entries can't be edited. */
 export const update = (args: Parameters<typeof base.update>[0]) =>

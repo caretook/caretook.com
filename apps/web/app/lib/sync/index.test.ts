@@ -11,6 +11,7 @@ vi.mock("./client", () => ({
 
 const KEY = JSON.stringify(["SELECT * FROM provider WHERE group_id = ?", ["g1"]]);
 const OTHER = JSON.stringify(["SELECT * FROM medication WHERE group_id = ?", ["g1"]]);
+const THIRD = JSON.stringify(["SELECT * FROM todo WHERE group_id = ?", ["g1"]]);
 
 /** The handlers and options `watch` got on its `n`th call. */
 const watchCall = (n = 0) =>
@@ -55,15 +56,15 @@ describe("watchLiveQuery", () => {
     const first = vi.fn();
     const second = vi.fn();
     watchLiveQuery(KEY, first);
-    watchLiveQuery(KEY, second);
+    watchLiveQuery(OTHER, second);
     watchCall(0)[2].onResult(result("p1"));
-    watchCall(1)[2].onResult(result("p2"));
+    watchCall(1)[2].onResult(result("m1"));
     expect(first).not.toHaveBeenCalled();
     expect(second).not.toHaveBeenCalled();
     expect(frames).toHaveLength(1);
     runFrame();
     expect(first).toHaveBeenCalledWith([{ id: "p1" }]);
-    expect(second).toHaveBeenCalledWith([{ id: "p2" }]);
+    expect(second).toHaveBeenCalledWith([{ id: "m1" }]);
   });
 
   it("holds the frame while another watch's first result is owed, then hands them over together (B-870)", async () => {
@@ -90,7 +91,7 @@ describe("watchLiveQuery", () => {
     const onRows = vi.fn();
     watchLiveQuery(KEY, onRows);
     watchLiveQuery(OTHER, vi.fn());
-    const stop = watchLiveQuery(OTHER, vi.fn());
+    const stop = watchLiveQuery(THIRD, vi.fn());
     watchCall(0)[2].onResult(result("p1"));
     runFrame();
     expect(onRows).not.toHaveBeenCalled();
@@ -140,6 +141,104 @@ describe("watchLiveQuery", () => {
     expect(watch).not.toHaveBeenCalled();
     expect(stop).not.toThrow();
     expect(onRows).not.toHaveBeenCalled();
+  });
+});
+
+describe("shared watches (B-910)", () => {
+  let frames: FrameRequestCallback[];
+  const runFrame = () => frames.splice(0).forEach((f) => f(0));
+  beforeEach(() => {
+    vi.stubGlobal("window", {});
+    frames = [];
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.stubGlobal("requestAnimationFrame", (f: FrameRequestCallback) => frames.push(f));
+    watch.mockReset();
+  });
+  afterEach(async () => {
+    runFrame();
+    vi.useRealTimers();
+    await closeSync();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens one watch for the same SQL and params, updates both, and closes it after both leave", async () => {
+    await openSync("u1");
+    const first = vi.fn();
+    const second = vi.fn();
+    const stopFirst = watchLiveQuery(KEY, first);
+    const stopSecond = watchLiveQuery(KEY, second);
+    expect(watch).toHaveBeenCalledOnce();
+    const [, , handlers, options] = watchCall();
+    handlers.onResult(result("p1"));
+    runFrame();
+    expect(first).toHaveBeenCalledWith([{ id: "p1" }]);
+    expect(second).toHaveBeenCalledWith([{ id: "p1" }]);
+    handlers.onResult(result("p2"));
+    runFrame();
+    expect(first).toHaveBeenLastCalledWith([{ id: "p2" }]);
+    expect(second).toHaveBeenLastCalledWith([{ id: "p2" }]);
+
+    stopFirst();
+    expect(options.signal.aborted).toBe(false);
+    handlers.onResult(result("p3"));
+    runFrame();
+    expect(first).toHaveBeenCalledTimes(2);
+    expect(second).toHaveBeenLastCalledWith([{ id: "p3" }]);
+    stopSecond();
+    expect(options.signal.aborted).toBe(true);
+
+    // The next subscriber opens a new one.
+    watchLiveQuery(KEY, vi.fn());
+    expect(watch).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens two for different params", async () => {
+    await openSync("u1");
+    watchLiveQuery(JSON.stringify(["SELECT * FROM provider WHERE group_id = ?", ["g1"]]), vi.fn());
+    watchLiveQuery(JSON.stringify(["SELECT * FROM provider WHERE group_id = ?", ["g2"]]), vi.fn());
+    expect(watch).toHaveBeenCalledTimes(2);
+  });
+
+  it("hands a late subscriber the current rows at once, and the same result no second time", async () => {
+    await openSync("u1");
+    watchLiveQuery(KEY, vi.fn());
+    watchCall()[2].onResult(result("p1"));
+    const late = vi.fn();
+    watchLiveQuery(KEY, late);
+    expect(late).toHaveBeenCalledWith([{ id: "p1" }]);
+    runFrame();
+    expect(late).toHaveBeenCalledOnce();
+    watchCall()[2].onResult(result("p2"));
+    runFrame();
+    expect(late).toHaveBeenLastCalledWith([{ id: "p2" }]);
+    expect(watch).toHaveBeenCalledOnce();
+  });
+
+  it("passes nothing to a subscriber that left before the frame", async () => {
+    await openSync("u1");
+    const stays = vi.fn();
+    const leaves = vi.fn();
+    watchLiveQuery(KEY, stays);
+    const stop = watchLiveQuery(KEY, leaves);
+    watchCall()[2].onResult(result("p1"));
+    stop();
+    runFrame();
+    expect(stays).toHaveBeenCalledOnce();
+    expect(leaves).not.toHaveBeenCalled();
+  });
+
+  it("closes every watch at sign-out, so the next user's database opens its own", async () => {
+    await openSync("u1");
+    const stop = watchLiveQuery(KEY, vi.fn());
+    const options = watchCall()[3];
+    await closeSync();
+    expect(options.signal.aborted).toBe(true);
+    await openSync("u2");
+    watchLiveQuery(KEY, vi.fn());
+    expect(watch).toHaveBeenCalledTimes(2);
+    // The first user's screen cleaning up later closes nothing of the second's.
+    stop();
+    expect(watchCall(1)[3].signal.aborted).toBe(false);
   });
 });
 
