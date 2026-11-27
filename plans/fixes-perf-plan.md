@@ -12,17 +12,10 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 1** landed acc69573 (PR #253, 2026-11-27, `--no-review`: Codex out of credits; report a309).
 
-**Wave 2: all merged; full CI green** (run 46005700354, 39535baa; tier full for scripts/build/budget.json); dev sync needed no merge; PR #254 open, Codex out of credits (land `--no-review`); docs folded (e4477848). **Landing now:** browser `layout-offline` fails at the offline edit-link step on the wave 1 tip too (slice 9 reverted), so it predates wave 2: filed as B-967 (fixes-tooling); the other 10 changed checks pass. **Then stop (the user, via the backlog session, 2026-11-27):** land wave 2, no new slices, message the backlog session (caretook-com-bb), then `pnpm prd rm fixes-perf`; B-965 and B-966 stay triaged for a later run (2026-11-27): slices 8-12 (B-956, B-958, B-959, B-960, B-963), all on Opus; dev needed no sync. Slice 11 waits for slice 10 (both measure the first load). B-963 filed this session from the wave 1 hand-over.
-
 - At landing: browser checks `first-sync`, `roundtrip`, `live-notes` (slice 8's sync change); sync.md gets identical answers skipped (B-956), `startSettings` on the _Settings cache_ line (B-958), the WASM prefetch in `openSync` (B-959); slice 10 notes CDP throttling skips SharedWorker requests (measure behind a link shaper: scratchpad m10/ scripts).
 
-| Slice | Item  | State  | Merge    |
-| ----- | ----- | ------ | -------- |
-| 8     | B-956 | merged | b2d5967b |
-| 9     | B-958 | merged | 6abd6279 |
-| 10    | B-959 | merged | 5fe00bdf |
-| 11    | B-960 | merged | c81f220e |
-| 12    | B-963 | merged | 847722a6 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1
 
