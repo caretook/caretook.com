@@ -2,12 +2,13 @@ import type { SymptomTypeAddInput, Tx } from "../db";
 import type { AppError } from "../errors";
 import type { ServiceContext } from "./types";
 
-import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { isLoggerRole, isWriterRole, SYSTEM_USER } from "../constants";
 import { dbMayFail, getDb, txOrDb, withTransaction } from "../db";
 import {
   careGroupSchema,
   DEFAULT_SYMPTOMS,
+  resolveSymptom,
   SYMPTOM_NAME_MAX,
   symptomKey,
   symptomName,
@@ -56,6 +57,19 @@ export const getByName = (ctx: ServiceContext, groupId: string, name: string) =>
     filter: { groupId: { type: "eq", value: groupId }, nameKey: { type: "eq", value: symptomKey(name) } },
   });
 
+/**
+ * The row `name` logs under (symptom-catalog-3): the group's row for it, or
+ * a deleted name's replacement (`resolveSymptom`); null when the group has
+ * no row for it. Adds nothing.
+ */
+export const getResolved = async (ctx: ServiceContext, groupId: string, name: string) => {
+  const row = await getByName(ctx, groupId, name);
+  if (isError(row) || !row?.replacedById) return row;
+  const replacement = await getById(ctx, row.replacedById);
+  if (isError(replacement)) return replacement;
+  return resolveSymptom(name, replacement ? [row, replacement] : [row]);
+};
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
@@ -65,7 +79,8 @@ export const getByName = (ctx: ServiceContext, groupId: string, name: string) =>
  * be able to log: `LOGGERS`), inside the caller's transaction when there is
  * one. Idempotent: any case or spacing of a name returns its one row, and two
  * transactions adding the same name at once wait for each other (an
- * advisory lock on the derived id) instead of colliding.
+ * advisory lock on the derived id) instead of colliding. A deleted name (a
+ * tombstone) returns its replacement (`resolveSymptom`), and adds nothing.
  */
 export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
   withTransaction(async (tx) => {
@@ -81,7 +96,7 @@ export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
     );
     if (isError(lock)) return lock;
 
-    const existing = await getByName({ ...ctx, tx }, groupId, row.name);
+    const existing = await getResolved({ ...ctx, tx }, groupId, row.name);
     if (isError(existing) || existing) return existing;
     return symptomTypeModel.create({ ...ctx, tx, data: row });
   }, ctx);
@@ -178,15 +193,18 @@ export const addDefaults = async (tx: Tx, groupId: string) => {
 };
 
 /**
- * Point entries at their types, only where the pointer is still null. Raw
+ * Point entries at their types, only where the pointer is still null: at a
+ * deleted name's replacement (`resolveSymptom`) when its row is a tombstone. Raw
  * SQL, so Drizzle's `$onUpdate` doesn't bump `updated_at`, and `updated_by`
  * is never named: an edit made on a device since still wins, and
  * `details.name` is left as written. Returns how many were filled.
  */
 const fillPointers = async (pointers: { entryId: string; typeId: string }[]) => {
   if (!pointers.length) return 0;
+  const resolved = await resolvedIds([...new Set(pointers.map((p) => p.typeId))]);
+  if (isError(resolved)) return resolved;
   const values = sql.join(
-    pointers.map((p) => sql`(${p.entryId}::uuid, ${p.typeId}::uuid)`),
+    pointers.map((p) => sql`(${p.entryId}::uuid, ${resolved.get(p.typeId) ?? p.typeId}::uuid)`),
     sql`, `,
   );
   const filled = await dbMayFail(
@@ -198,6 +216,39 @@ const fillPointers = async (pointers: { entryId: string; typeId: string }[]) => 
     "symptomTypeService:backfill",
   );
   return isError(filled) ? filled : (filled.rowCount ?? 0);
+};
+
+/**
+ * Each of `ids` (catalog rows, all present) to the id its name logs under:
+ * itself, or a tombstone's replacement. Reads the rows and their
+ * replacements, then lets `resolveSymptom` decide.
+ */
+const resolvedIds = async (ids: string[]) => {
+  const t = symptomTypeSchema;
+  const cols = { id: t.id, groupId: t.groupId, name: t.name, replacedById: t.replacedById };
+  const rows = await dbMayFail(
+    () => getDb().select(cols).from(t).where(inArray(t.id, ids)),
+    "symptomTypeService:backfill",
+  );
+  if (isError(rows)) return rows;
+  const targets = [...new Set(rows.flatMap((r) => (r.replacedById ? [r.replacedById] : [])))];
+  const replacements = targets.length
+    ? await dbMayFail(
+        () => getDb().select(cols).from(t).where(inArray(t.id, targets)),
+        "symptomTypeService:backfill",
+      )
+    : [];
+  if (isError(replacements)) return replacements;
+  const resolved = new Map<string, string>();
+  for (const row of rows) {
+    if (!row.replacedById) continue;
+    const to = resolveSymptom(
+      row.name,
+      [row, ...replacements].filter((r) => r.groupId === row.groupId),
+    );
+    if (to) resolved.set(row.id, to.id);
+  }
+  return resolved;
 };
 
 /** Rows per batch: groups for the defaults, entries for their names. */
