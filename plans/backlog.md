@@ -244,11 +244,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-887 | change | triaged | marketing |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
-| B-890 | feature | ready | symptom-catalog-2 | prd/symptom-catalog-2 | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
+| B-890 | feature | landed | symptom-catalog-2 | prd/symptom-catalog-2 | Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom |
 | B-891 | feature | landed | tags-3 | prd/tags-3 | Tags management page under group settings: list, rename, delete (and merge?) the group's tags |
 | B-895 | feature | landed | tags-3 | prd/tags-3 | Search: tags as a filter you can see and tap (not a dropdown), and typed text that matches a tag's name finds the items carrying it |
 | B-896 | feature | triaged | onboarding-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
-| B-898 | change | ready | symptom-catalog-2 | prd/symptom-catalog-2 | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
+| B-898 | change | landed | symptom-catalog-2 | prd/symptom-catalog-2 | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
 | B-917 | feature | landed | connectors-3 | prd/connectors-3 | Connector: a member's AI reads a photo of a hand-filled weekly medication sheet and logs its doses, adding only what isn't already logged |
@@ -1444,7 +1444,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-890 · feature · Manage the group's symptom catalog under group settings: archive or delete; delete makes you pick a replacement symptom
 
-- status: ready
+- status: landed
 - prd: symptom-catalog-2
 - owner: prd/symptom-catalog-2
 - commit: 1b74a52ea
@@ -1484,7 +1484,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-898 · change · Quick entry should use the similar symptom by default on Enter, with an option to add new instead,…
 
-- status: ready
+- status: landed
 - prd: symptom-catalog-2
 - owner: prd/symptom-catalog-2
 - commit: 284076ebd
@@ -1578,6 +1578,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): From the user 2026-11-26: on hospice, Med time groups and their frequency change quickly and often (PRN -> every 6 h -> every 4 h -> every 3 h), while some single meds stay every 12 h. Like a repeating todo, each next one is made when the last is due or given (the user picks which when setting the timing), not laid out ahead. Today (docs/domain/medications.md): a schedule is fixed daily clock slots (1-8, or a Med time) or as needed; Med times are named clock times; dueDoses computes due slots from scheduleHistory (nothing is pre-created), and schedule edits already write change entries. Gap: no every-N-hours rule, no anchor to the last given dose, no interval on a Med time; changing frequency must be a quick one-step edit with history kept. Planner questions: interval on the Med time vs on each med, the first dose's anchor, overdue and the weekly print sheet for interval meds, the Today card and Given all, the connector's add_medication (B-761). New topic med-intervals.
 - 2026-11-27 (plan/med-intervals): Planned in plans/med-intervals-prd.md and -plan.md (7 slices: per-medication interval schedules). Interval Med times and as-needed Med times split to med-intervals-2 (B-981). Topic held after two plan send-backs (s78, s79), pending the user (ask a335).
+- 2026-11-27 (plan/med-intervals): User (ask a335): keep the plan out until they have read it. Unlanded on branch plan/med-intervals (worktree .loops/plan-med-intervals), topic flagged hold.
 
 ### B-941 · feature · Todos page shows each parent with all its nested todos under it, at every level
 
