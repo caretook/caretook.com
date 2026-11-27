@@ -1,7 +1,7 @@
 import type { GroupSettingsPage } from "~/lib/care-groups/urls";
 import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 
-import { Bot, CalendarDays, Info, Users } from "lucide-react";
+import { Bot, CalendarDays, Info, Tag, Users } from "lucide-react";
 import { appUrls } from "~/lib/app-shell/appUrls";
 
 /**
@@ -38,5 +38,12 @@ export const groupSettingsPages = (groupId: string): (SettingsItem & { id: Group
     description: "Your reminder emails, calendar feed and what they say",
     icon: CalendarDays,
     path: appUrls.calendarSettings(groupId),
+  },
+  {
+    id: "tags",
+    label: "Tags",
+    description: "The group's tags: their names, colors and how many items carry each",
+    icon: Tag,
+    path: appUrls.groupSettings(groupId, "tags"),
   },
 ];

@@ -18,7 +18,8 @@ import {
 import { PLANNER_ROUTES } from "./plannerWorld";
 
 // Tags on todos and the Planner (tags slice 4): a writer tags a todo from
-// its page's Add tag (`QuickTags`); a viewer who may tick it sees its chips and no tag control;
+// its page's Add tag (`QuickTags`), and from the Todos and Planner rows
+// without opening them (tags-3: the Planner's ⋯ has no Tags); a viewer who may tick it sees its chips and no tag control;
 // `?tag=` narrows the Todos tab and Upcoming's events and todos (and is
 // carried to Past as a chip), survives a reload, and a deleted tag reads as
 // no filter. The filter options are unit tests (`todoFilters`,
@@ -179,25 +180,77 @@ describe("?tag= on the Planner", () => {
     await expect.poll(filterChips).toEqual([]);
   });
 
-  test("a writer's row ⋯ has Tags; a viewer's doesn't", async () => {
+  test("a writer tags and untags an event's row without opening it; a tap beside the chips opens it; ⋯ has no Tags", async () => {
     const device = await open(PLANNER);
-    await userEvent.click(
-      await found(() =>
-        document.querySelector<HTMLButtonElement>(
-          `main [data-upcoming-item="${DENTIST.id}"] button[aria-label^="Actions for"]`,
-        ),
-      ),
-    );
-    await userEvent.click(page.getByRole("menuitem", { name: "Tags" }));
+    const row = `main [data-upcoming-item="${DENTIST.id}"]`;
+    await found(() => document.querySelector(row));
+    await userEvent.click(page.getByCss(row).getByRole("button", { name: "Add tag" }));
     await found(() => document.querySelector("[data-tag-picker]"));
     await userEvent.click(page.getByRole("checkbox", { name: "Urgent" }));
     await device.settle();
-    await expect
-      .poll(() => chipsIn(document.querySelector(`main [data-upcoming-item="${DENTIST.id}"]`)))
-      .toBe("Urgent");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    await expect.poll(() => chipsIn(document.querySelector(row))).toBe("Urgent");
+    expect(device.location()).toBe(PLANNER);
+
+    await userEvent.click(page.getByCss(row).getByRole("button", { name: "Remove tag Urgent" }));
+    await device.settle();
+    await expect.poll(() => chipsIn(document.querySelector(row))).toBe("");
+    expect(await device.query("SELECT id FROM record_tag WHERE entry_id = ?", [DENTIST.id])).toEqual([]);
+    expect(device.location()).toBe(PLANNER);
+
+    // Beside a row's chips is still the row's open target.
+    const visit = document.querySelector<HTMLElement>(`main [data-upcoming-item="${VISIT.id}"]`)!;
+    const line = visit.querySelector<HTMLElement>("[data-quick-tags]")!.getBoundingClientRect();
+    const opener = visit.querySelector('a[aria-label^="Open "]');
+    expect(document.elementFromPoint(line.right + 12, line.top + line.height / 2)).toBe(opener);
+
+    await userEvent.click(
+      await found(() =>
+        document.querySelector<HTMLButtonElement>(`${row} button[aria-label^="Actions for"]`),
+      ),
+    );
+    await waitUntil(() => document.querySelectorAll("[role=menuitem]").length > 0, "the menu");
+    expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).not.toContain(
+      "Tags",
+    );
+  });
+
+  test("a writer untags a todo's card with one tap and Undo puts it back; the Todos row tags too", async () => {
+    const device = await open(PLANNER);
+    const card = `main [data-planner-todo="${FORMS.id}"]`;
+    await expect.poll(() => chipsIn(document.querySelector(card))).toBe("Care home move");
+    await userEvent.click(page.getByCss(card).getByRole("button", { name: "Remove tag Care home move" }));
+    await device.settle();
+    await expect.poll(() => chipsIn(document.querySelector(card))).toBe("");
+    const toast = page.getByRole("alertdialog", { name: "Removed Care home move" });
+    await userEvent.click(toast.getByRole("button", { name: "Undo" }));
+    await device.settle();
+    await expect.poll(() => chipsIn(document.querySelector(card))).toBe("Care home move");
+    expect(await device.query("SELECT tag_id FROM record_tag WHERE todo_id = ?", [FORMS.id])).toEqual([
+      { tag_id: MOVE.id },
+    ]);
+    expect(device.location()).toBe(PLANNER);
     await device.screen.unmount();
 
+    const todos = await open(TODOS);
+    const row = `main [data-todo="${PHARMACY.id}"]`;
+    await found(() => document.querySelector(row));
+    await userEvent.click(page.getByCss(row).getByRole("button", { name: "Add tag" }));
+    await found(() => document.querySelector("[data-tag-picker]"));
+    await userEvent.click(page.getByRole("checkbox", { name: "Care home move" }));
+    await todos.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => chipsIn(document.querySelector(row))).toBe("Care home move,Urgent");
+    expect(todos.location()).toBe(TODOS);
+  });
+
+  test("a viewer sees the rows' chips with no × or Add tag, and no Tags in ⋯", async () => {
     await open(PLANNER, "viewer");
+    const visit = `main [data-upcoming-item="${VISIT.id}"]`;
+    await expect.poll(() => chipsIn(document.querySelector(visit))).toBe("Care home move");
+    expect(chipsIn(document.querySelector(`main [data-planner-todo="${FORMS.id}"]`))).toBe("Care home move");
+    expect(document.querySelector("main [data-tag-remove], main [data-quick-tag-add]")).toBeNull();
     await userEvent.click(
       await found(() =>
         document.querySelector<HTMLButtonElement>(

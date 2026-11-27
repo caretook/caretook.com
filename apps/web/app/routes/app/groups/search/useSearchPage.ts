@@ -5,6 +5,8 @@ import { useLocation } from "react-router";
 import { parseSearchPage } from "~/lib/search/searchResults";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import {
+  matchingTagIds,
+  parseSearch,
   searchIndexStatus,
   subscribeSearchIndexChanges,
   subscribeSearchIndexStatus,
@@ -18,15 +20,21 @@ const NO_LINKS: { id: string }[] = [];
  * The search page's results, live: the loader's first (so Back shows the
  * same results at once), then searched again on the device whenever the
  * URL's text, full section, period or tag changes, the index takes in a change (a
- * synced or local edit), the tag's links change (they aren't in the index), or the index becomes ready. The previous results
+ * synced or local edit), the links of the tag or of a tag the text names
+ * (`tags`, the group's) change (they aren't in the index), or the index becomes ready. The previous results
  * stay up until the next arrive, so typing never flickers the list.
  */
-export function useSearchPage(groupId: string, initial: SearchPageData) {
+export function useSearchPage(
+  groupId: string,
+  initial: SearchPageData,
+  tags: readonly { id: string; name: string }[],
+) {
   const { search } = useLocation();
   const { q, all, period, tag } = parseSearchPage(search);
+  const watched = JSON.stringify([...(tag ? [tag] : []), ...matchingTagIds(tags, parseSearch(q))]);
   const links = useLiveQuery<{ id: string }>(
-    "SELECT id FROM record_tag WHERE group_id = ? AND tag_id = ? ORDER BY id",
-    [groupId, tag ?? ""],
+    "SELECT id FROM record_tag WHERE group_id = ? AND tag_id IN (SELECT value FROM json_each(?)) ORDER BY id",
+    [groupId, watched],
     NO_LINKS,
   );
   const linkKey = links.map((l) => l.id).join(",");
@@ -54,7 +62,7 @@ export function useSearchPage(groupId: string, initial: SearchPageData) {
     return () => {
       current = false;
     };
-  }, [groupId, q, all, period, tag, linkKey, changes, status]);
+  }, [groupId, q, all, period, tag, watched, linkKey, changes, status]);
 
   const data = state.initial === initial ? state.data : initial;
   return {

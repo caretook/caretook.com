@@ -115,7 +115,7 @@ const FRAMES = [
     routes: GROUP_ROUTES,
     index: SETTINGS,
     heading: "Group settings",
-    items: ["Details", "Members", "Assistants", "Calendar & reminders"],
+    items: ["Details", "Members", "Assistants", "Calendar & reminders", "Tags"],
     first: ["details", "Details"],
     second: ["members", "Members"],
   },
