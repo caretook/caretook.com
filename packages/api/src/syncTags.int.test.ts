@@ -101,6 +101,77 @@ describe("sync.upload: tag and record_tag", () => {
     expect(await links()).toEqual([]);
   });
 
+  it("two devices adding one name in different case, each with its own color, keep one tag and its link (B-951)", async () => {
+    const { u, group, entry, tagOf, links, caretaker, owner } = await setup();
+    // As createTag writes them since tags-2: the folded key's id, a color
+    // each device picked alone, and the audit columns of its user.
+    const id = tagId(group.id, "same tag");
+    const devicePut = (name: string, color: string, by: string) =>
+      putOp("tag", id, {
+        group_id: group.id,
+        name,
+        name_key: name.toLowerCase(),
+        color,
+        created_at: sqliteTime(),
+        updated_at: sqliteTime(),
+        created_by: by,
+        updated_by: by,
+      });
+    const deviceLink = (by: string) =>
+      putOp("record_tag", recordTagId(id, entry.id), {
+        group_id: group.id,
+        tag_id: id,
+        entry_id: entry.id,
+        todo_id: null,
+        provider_id: null,
+        medication_id: null,
+        created_at: sqliteTime(),
+        updated_at: sqliteTime(),
+        created_by: by,
+        updated_by: by,
+      });
+    expect(
+      await outcomes(caretaker, [
+        devicePut("Same tag", "sky", u.caretaker.user.id),
+        deviceLink(u.caretaker.user.id),
+      ]),
+    ).toEqual(["applied", "applied"]);
+    expect(
+      await outcomes(owner, [devicePut("SAME TAG", "rose", u.owner.user.id), deviceLink(u.owner.user.id)]),
+    ).toEqual(["applied", "applied"]);
+    expect(await tagOf(id)).toMatchObject({ name: "Same tag", name_key: "same tag", color: "sky" });
+    expect(await links()).toEqual([{ id: recordTagId(id, entry.id) }]);
+  });
+
+  it("a tag the database can't store fails its upload, holding its link, never a silent drop (B-951)", async () => {
+    // B-951's roundtrip failure: a stack whose Postgres missed migration 0048
+    // (`tag.color`) failed every device's tag insert. A trigger stands in for
+    // that fault here, on this test's tag only.
+    const { tagPut, linkPut, links, tagOf, caretaker } = await setup();
+    const tag = tagPut(`Fault ${crypto.randomUUID().slice(0, 8)}`, 0, { color: "sky" });
+    const fn = `b951_${crypto.randomUUID().replaceAll("-", "")}`;
+    const db = getDb().$client;
+    await db.query(`CREATE FUNCTION ${fn}() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN IF NEW.id = '${tag.id}' THEN RAISE EXCEPTION 'column "color" of relation "tag" does not exist'; END IF;
+      RETURN NEW; END $$`);
+    await db.query(`CREATE TRIGGER ${fn} BEFORE INSERT ON tag FOR EACH ROW EXECUTE FUNCTION ${fn}()`);
+    try {
+      // The tag op is `failed` (logged; the device retries it, then sets it
+      // aside as not saved), and the server stops there: its link isn't tried.
+      expect((await caretaker.sync.upload({ ops: [tag, linkPut(tag.id)] })).results).toEqual([
+        { id: tag.id, status: "failed", code: "sync:failed" },
+      ]);
+      expect(await tagOf(tag.id)).toBeNull();
+    } finally {
+      await db.query(`DROP TRIGGER ${fn} ON tag`);
+      await db.query(`DROP FUNCTION ${fn}()`);
+    }
+    // The device's retry, once the server can store it, saves both.
+    expect(await outcomes(caretaker, [tag, linkPut(tag.id)])).toEqual(["applied", "applied"]);
+    expect(await tagOf(tag.id)).toMatchObject({ color: "sky" });
+    expect(await links()).toHaveLength(1);
+  });
+
   it("refuses a link with no target or two", async () => {
     const { entry, tagPut, linkPut, caretaker } = await setup();
     const tag = tagPut("Urgent");

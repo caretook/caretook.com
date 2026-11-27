@@ -381,10 +381,24 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         b[0].links === 1
       );
     }, 30_000);
+    // On a miss, where each device's tag upload stands (B-951: a stack missing
+    // a migration fails every tag insert, so it waits in the queue, retried).
+    const uploadsOf = async (page) =>
+      JSON.stringify({
+        waiting: (await localRows(page, "SELECT count(*) AS n FROM ps_crud"))[0]?.n,
+        notSaved: await localRows(
+          page,
+          "SELECT table_name, op, code, outcome FROM unsaved_change WHERE table_name IN ('tag', 'record_tag')",
+        ),
+      });
+    const tagsOk =
+      !!tagA?.ok && !!tagB?.ok && tagA.id === tagB.id && tagsOnServer === "1:1" && !!tagsConverged;
     await check(
       "tags: two members adding the same new tag to one record offline converge on one tag and one link",
-      !!tagA?.ok && !!tagB?.ok && tagA.id === tagB.id && tagsOnServer === "1:1" && !!tagsConverged,
-      `A ${JSON.stringify(tagA)}, B ${JSON.stringify(tagB)}; server ${tagsOnServer} (tags:links); A ${JSON.stringify(await tagsOn(A))}; B ${JSON.stringify(await tagsOn(B))}`,
+      tagsOk,
+      tagsOk
+        ? ""
+        : `A ${JSON.stringify(tagA)}, B ${JSON.stringify(tagB)}; server ${tagsOnServer} (tags:links); A ${JSON.stringify(await tagsOn(A))} uploads ${await uploadsOf(A)}; B ${JSON.stringify(await tagsOn(B))} uploads ${await uploadsOf(B)}`,
     );
 
     // 3b. A connector's write through /mcp reaches this device with its "via" tag.
