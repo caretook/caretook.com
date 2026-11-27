@@ -4,8 +4,12 @@ import { recall, remember } from "./remembered";
 
 // The database is faked: watchLiveQuery only needs `powersync.watch`.
 const watch = vi.fn();
+const opened = vi.fn();
 vi.mock("./client", () => ({
-  open: (userId: string) => Promise.resolve({ userId, powersync: { watch } }),
+  open: (userId: string) => {
+    opened(userId);
+    return Promise.resolve({ userId, powersync: { watch } });
+  },
   clear: () => Promise.resolve(),
 }));
 
@@ -261,5 +265,44 @@ describe("sign-out", () => {
     await openSync("u2");
     expect(recall("u1", { groupId: "g1", name: "dueTodos" })).toBeUndefined();
     await closeSync();
+  });
+});
+
+describe("the SQLite download (B-959)", () => {
+  const fetches = vi.fn(() => Promise.resolve(new Response("wasm")));
+  beforeEach(() => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", fetches);
+    fetches.mockClear();
+    opened.mockClear();
+  });
+  afterEach(async () => {
+    await closeSync();
+    vi.unstubAllGlobals();
+  });
+
+  it("starts as the database starts opening, before PowerSync's worker asks for it", async () => {
+    const opening = openSync("u1");
+    expect(fetches).toHaveBeenCalledOnce();
+    expect(opened).not.toHaveBeenCalled();
+    const [url, init] = fetches.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/wa-sqlite-async\.wasm/);
+    expect(init.priority).toBe("high");
+    await opening;
+    expect(opened).toHaveBeenCalledWith("u1");
+  });
+
+  it("starts once per database, not for each caller of the open one", async () => {
+    await Promise.all([openSync("u1"), openSync("u1")]);
+    await openSync("u1");
+    expect(fetches).toHaveBeenCalledOnce();
+    await closeSync();
+    await openSync("u2");
+    expect(fetches).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves the opening alone when the download fails", async () => {
+    fetches.mockImplementationOnce(() => Promise.reject(new TypeError("offline")));
+    await expect(openSync("u1")).resolves.toMatchObject({ userId: "u1" });
   });
 });
