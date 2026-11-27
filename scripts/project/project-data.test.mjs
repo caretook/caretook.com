@@ -27,6 +27,16 @@ describe.skipIf(!process.env.CI)("this checkout's project data", () => {
   }, 60_000);
 });
 
+// The names other worktrees, the watchdog and GitHub share are built from the
+// config's name (the lock, the markers, the launchd label com.caretook.prd-watchdog,
+// the CI status context caretook-ci): an unsynced worktree, the loaded launchd job
+// and the commit statuses already posted must still match, so the name stays.
+describe("this checkout's shared names", () => {
+  it("come from the name caretook", () => {
+    expect(readRisa(REPO_ROOT).name).toBe("caretook");
+  });
+});
+
 describe("this checkout's role docs", () => {
   const risa = readRisa(REPO_ROOT);
   const [cmd = "", ...prd] = String(risa.tool.prd).split(" ");
