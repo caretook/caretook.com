@@ -9,11 +9,12 @@ import { useSymptomTypes } from "~/lib/timeline/symptomTypes.sync";
 /**
  * A symptom's own fields: what it is (required) and how bad, 0 to 10. The
  * name suggests the group's catalog as you type (a native `datalist`, from
- * the local copy); any other name can still be typed.
+ * the local copy), its active names only (an archived one still saves by
+ * its exact name); any other name can still be typed.
  */
 export function SymptomFields({ stored, nameError }: { stored?: SymptomDetails; nameError?: string }) {
   const { id: groupId } = useGroup();
-  const catalog = useSymptomTypes(groupId);
+  const catalog = useSymptomTypes(groupId).filter((type) => !type.archived);
   const listId = useId();
   return (
     <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
