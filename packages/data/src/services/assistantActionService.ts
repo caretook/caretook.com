@@ -398,12 +398,12 @@ const scheduledDose = async (
   if (medication.schedule.type !== "scheduled") return null;
   const when = new Date(action.occurredAt);
   const filter = { groupId: { type: "eq" as const, value: groupId } };
+  // Every row: a page stops at 100, deleted passes counted (B-987).
   const passes = await medicationPassModel.list({
     ...ctx,
     tx,
     filter,
     includeDeleted: true,
-    paginate: { page: 1, limit: 100 },
   });
   if (isError(passes)) return passes;
   const today = dayInZone(when, timeZone);
