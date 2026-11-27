@@ -99,7 +99,7 @@ describe("siblingOrder", () => {
     dueTime,
     createdAt,
   });
-  const ids = (list: { id: string }[]) => siblingOrder(list).map((s) => s.id);
+  const ids = (list: ReturnType<typeof sib>[]) => siblingOrder(list).map((s) => s.id);
 
   it("puts dated before undated, by day", () => {
     expect(
