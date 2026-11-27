@@ -17,7 +17,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 78    | B-970 | merged (Opus; app: quick tags line covered the row link, `w-fit`) | 8028c782 |
 | 79    | B-971 | merged (Opus; test-only: split label assumed LA)                  | 2375e299 |
 
-**Wave 18 all merged; CI run next** (2026-11-27): four America/New_York failures from dev's release run on 39b4beaf. Hot: `apps/web/app/routes/app/groups/settings/`, `scripts/browser-checks/`. B-750 (umbrella) and B-752 (waits on B-753's watchdog) stay triaged.
+**Wave 18 all merged; `components` CI run requested on 054c14e7** (2026-11-27; tier from `risa tier`: QuickTags.tsx): four America/New_York failures from dev's release run on 39b4beaf. Hot: `apps/web/app/routes/app/groups/settings/`, `scripts/browser-checks/`. B-750 (umbrella) and B-752 (waits on B-753's watchdog) stay triaged.
 
 ## Wave 1
 
