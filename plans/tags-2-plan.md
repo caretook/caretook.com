@@ -9,13 +9,13 @@
 | 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
 | 2     | 2    | landed  | 7b892610 (d362bd70)                         |
 | 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
-| 4     | 4    | merged  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
+| 4     | 4    | landed  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
 | 5     | 5    | planned |                                             |
 | 6     | 5    | planned |                                             |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4: slice 4 (opus) merged as 09a762ee; gate run 45943640151 red (page ⋯ Tags expectations in plannerEvents, inScreens, plannerTags); fix e4ddb041 merged as ee65bf90; `components` gate rerun requested. Worktree tags-2-4 kept until green. B-892 stays claimed (done after slices 5 and 6). Slice 4 notes for 5/6: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be wide on rows (a compact variant is a small change in `QuickTags`); timeline, Planner and provider ⋯ `onTags` paths still to remove. `Badge` takes `fill` (`tagColorClass`). After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
+**Now:** wave 4 green (flake verdict, run 45945943940 on d5e4b103: sheetExit flake outside the branch); dev sync a no-op; worktree tags-2-4 removed; PR #248 opened; Codex out of credits → landing `--no-review`, tier components; tags doc folded. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
 
 ## Architectural decisions
 
