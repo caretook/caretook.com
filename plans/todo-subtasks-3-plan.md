@@ -10,7 +10,9 @@
 
 **Wave 1 landed 2026-11-27** in dev as `6d975d86a` through PR #256 (Codex clean on 69a8c1f; CI green at components, run 46039151595; dev was up to date, no sync). Browser: `risa browser --changed` named none; the lean `--suite` was not run (the user's rule: ask before any suite; the permission check refused it). Docs folded (todos, components, calendars, connectors, timeline; each at or under dev's size). Worktrees 1-3 removed. B-941, B-942, B-943 stay in progress (later slices carry them).
 
-**Next (for the fresh session):** wave 2 is slice 4, already merged (`c7e7f6035`; its check green at a47523112). Its worktree `todo-subtasks-3-4` stays until wave 2 is green. Run wave 2's gate: `risa tier`, `risa ci run <tier> --wait`, `risa sync`, `risa pr`, `risa review`, land, docs (components: `TodoTree`, `TodoRow`'s `addSubtask`/`children`, dimming on an inner div; todos: `siblingOrder`, `todoTreeView.ts`). Wave 2's gate runs in the old session (rotate refuses while worktree 4 exists); slices 5 and 6 (wave 3, ready) start in the fresh one, 5 merged before 6. Slices: opus for all.
+**Wave 2 landed 2026-11-27** in dev as `9480f19` through PR #257 (slice 4, merged `c7e7f6035`; Codex clean on c719e42; CI green at components on the pre-sync tip, run 46041028561, and on the synced tip, run 46042026452). Worktree 4 removed. Docs folded (components: `TodoTree`; todos: `siblingOrder`, `todoTreeView.ts`); each at dev's size or under (todos is exactly at it: trim before adding).
+
+**Wave 3 (2026-11-27):** slices 5 and 6 merged (5 first, clean); worktrees kept until green. B-941, B-942 stay in progress (slices 7-9 carry them). CI green at components on 62cb1d9a (run 46044540245); dev up to date (no sync); browser `--changed` named none; PR #259 open, Codex review out. Docs folded (todos; components unchanged, over budget). Next: Codex clean, then land, `risa rm` 5 and 6, rotate. Slice 5 adds `todoTreesQuery`, `doneListed`, `SIBLING_ORDER_SQL`; slice 6 `todoDescendantsQuery` (could reuse slice 5's later). Watch `todos/todos.browser.test.tsx` in the run. Carried notes: `TodoRow` still requires `onTick`, `busy`, `nameOf`, `now`, `timeZone` even on `context` rows; quick add never shows on a `context` row; a todo whose parent isn't in the list stands at the top level.
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
@@ -20,8 +22,8 @@
 | 2     | 1    | merged (opus) | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
 | 3     | 1    | merged (opus) | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
 | 4     | 2    | merged (opus) | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
-| 5     | 3    | —             |                                                  |
-| 6     | 3    | —             |                                                  |
+| 5     | 3    | merged (opus) | ebdfb25e5 (90e2bbe57)                            |
+| 6     | 3    | merged (opus) | fb2420fd9 (2bb0cc1c0)                            |
 | 7     | 4    | —             |                                                  |
 | 8     | 4    | —             |                                                  |
 | 9     | 5    | —             |                                                  |
