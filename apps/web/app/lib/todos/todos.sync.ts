@@ -987,3 +987,24 @@ export const parentsById = (rows: readonly SubtaskProgressRow[]) =>
 /** The query's rows by parent id; a todo with no live subtask isn't there. */
 export const progressByParent = (rows: readonly SubtaskProgressRow[]) =>
   new Map(rows.map((r) => [r.parent_id, { done: Number(r.done), total: Number(r.total) }]));
+
+// ---------------------------------------------------------------------------
+// One todo's tree (todo-subtasks-3 slice 6)
+// ---------------------------------------------------------------------------
+
+/**
+ * The group's live todos under `todoId` (its subtasks, theirs, …), done ones
+ * too, not `todoId` itself: the todo page's tree (`todoTrees` with
+ * `rootId`), in one live query. Deleted ones and what's under them are left
+ * out, as the delete takes them.
+ */
+export const todoDescendantsQuery = (groupId: string, todoId: string): LocalQuery => ({
+  sql: `WITH RECURSIVE below(id, depth) AS (
+          SELECT id, 1 FROM todo WHERE parent_id = ? AND group_id = ? AND deleted_at IS NULL
+          UNION ALL
+          SELECT t.id, below.depth + 1 FROM todo t JOIN below ON t.parent_id = below.id
+            WHERE t.group_id = ? AND t.deleted_at IS NULL AND below.depth < ?
+        )
+        SELECT todo.* FROM todo JOIN below ON below.id = todo.id ORDER BY todo.created_at, todo.id`,
+  params: [todoId, groupId, groupId, MAX_TODO_DEPTH],
+});
