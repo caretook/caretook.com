@@ -4,8 +4,12 @@ import {
   applyUpdate,
   registerServiceWorker,
   reloadToLatest,
+  UPDATE_CHECK_EVERY_MS,
+  UPDATE_CHECK_THROTTLE_MS,
   waitingWorker,
   type UpdatableContainer,
+  type UpdateClock,
+  type UpdatePage,
   type WorkerContainer,
 } from "./serviceWorkerRegister";
 
@@ -52,6 +56,140 @@ describe("registerServiceWorker", () => {
       installing.dispatchEvent(new Event("statechange"));
       expect(waitingWorker.get() === installing).toBe(expected);
     }
+  });
+});
+
+describe("registerServiceWorker's update checks", () => {
+  /** A page whose visibility the test flips, firing `visibilitychange`. */
+  function fakePage(visibilityState: DocumentVisibilityState = "visible") {
+    const page = Object.assign(new EventTarget(), { visibilityState });
+    return Object.assign(page, {
+      show: () => {
+        page.visibilityState = "visible";
+        page.dispatchEvent(new Event("visibilitychange"));
+      },
+      hide: () => {
+        page.visibilityState = "hidden";
+        page.dispatchEvent(new Event("visibilitychange"));
+      },
+    }) as unknown as UpdatePage & { show(): void; hide(): void };
+  }
+
+  /** A clock the test moves by hand; `advance` runs the interval each time it's due. */
+  function fakeClock() {
+    let time = 1_000_000;
+    let tick: { run: () => void; every: number; next: number } | null = null;
+    const clock: UpdateClock & { advance(ms: number): void; ticking(): boolean } = {
+      now: () => time,
+      setInterval: (run, every) => {
+        tick = { run, every, next: time + every };
+        return 1;
+      },
+      clearInterval: () => {
+        tick = null;
+      },
+      advance(ms) {
+        const end = time + ms;
+        while (tick && tick.next <= end) {
+          time = tick.next;
+          tick.next += tick.every;
+          tick.run();
+        }
+        time = end;
+      },
+      ticking: () => tick !== null,
+    };
+    return clock;
+  }
+
+  const registrationWith = (update = vi.fn(() => Promise.resolve())) =>
+    Object.assign(new EventTarget(), { waiting: null, installing: null as unknown, update });
+
+  it("asks for an update when the page becomes visible again", async () => {
+    const registration = registrationWith();
+    const page = fakePage();
+    const clock = fakeClock();
+    await registerServiceWorker(fakeContainer(registration), page, clock);
+    page.hide();
+    clock.advance(UPDATE_CHECK_THROTTLE_MS);
+    page.show();
+    expect(registration.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks once for a burst of visibility changes inside the throttle", async () => {
+    const registration = registrationWith();
+    const page = fakePage();
+    const clock = fakeClock();
+    await registerServiceWorker(fakeContainer(registration), page, clock);
+    clock.advance(UPDATE_CHECK_THROTTLE_MS);
+    page.hide();
+    page.show();
+    clock.advance(UPDATE_CHECK_THROTTLE_MS - 1);
+    page.hide();
+    page.show();
+    expect(registration.update).toHaveBeenCalledTimes(1);
+    clock.advance(1);
+    page.hide();
+    page.show();
+    expect(registration.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks on the interval while visible, not while hidden", async () => {
+    const registration = registrationWith();
+    const page = fakePage();
+    const clock = fakeClock();
+    await registerServiceWorker(fakeContainer(registration), page, clock);
+    clock.advance(UPDATE_CHECK_EVERY_MS);
+    expect(registration.update).toHaveBeenCalledTimes(1);
+    page.hide();
+    clock.advance(UPDATE_CHECK_EVERY_MS);
+    expect(registration.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("swallows a failed check and asks again next time", async () => {
+    const update = vi.fn(() => Promise.resolve());
+    update.mockRejectedValueOnce(new TypeError("offline"));
+    const registration = registrationWith(update);
+    const clock = fakeClock();
+    await registerServiceWorker(fakeContainer(registration), fakePage(), clock);
+    clock.advance(UPDATE_CHECK_EVERY_MS);
+    await new Promise((resolve) => setTimeout(resolve));
+    clock.advance(UPDATE_CHECK_EVERY_MS);
+    expect(update).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the notice for a version found after resuming", async () => {
+    waitingWorker.set(null);
+    const installing = fakeWorker("installing");
+    const registration = registrationWith();
+    registration.update.mockImplementation(() => {
+      registration.installing = installing;
+      registration.dispatchEvent(new Event("updatefound"));
+      return Promise.resolve();
+    });
+    const page = fakePage("hidden");
+    const clock = fakeClock();
+    await registerServiceWorker(fakeContainer(registration), page, clock);
+    clock.advance(UPDATE_CHECK_THROTTLE_MS);
+    page.show();
+    installing.state = "installed";
+    installing.dispatchEvent(new Event("statechange"));
+    expect(waitingWorker.get()).toBe(installing);
+  });
+
+  it("keeps one set of checks when registered again", async () => {
+    const first = registrationWith();
+    const second = registrationWith();
+    const page = fakePage();
+    const clock = fakeClock();
+    await registerServiceWorker(fakeContainer(first), page, clock);
+    await registerServiceWorker(fakeContainer(second), page, clock);
+    clock.advance(UPDATE_CHECK_EVERY_MS);
+    page.hide();
+    clock.advance(UPDATE_CHECK_THROTTLE_MS);
+    page.show();
+    expect(first.update).not.toHaveBeenCalled();
+    expect(second.update).toHaveBeenCalledTimes(2);
   });
 });
 
