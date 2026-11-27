@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AVATAR_COLORS } from "../../../../../packages/data/src/db/schema/app-shell/avatar";
+import { TAG_COLORS } from "../../../../../packages/data/src/db/schema/tags/tagRules";
+import { tagColorClass } from "./tagLook";
 
 // The avatar color tokens, read from the stylesheet: readable in both themes,
 // and never close to a status or section color.
@@ -66,5 +68,20 @@ describe.each(AVATAR_COLORS)("the avatar color %s", (color) => {
     expect(dark.h).toBe(light.h);
     for (const hue of [...STATUS_HUES, ...SECTION_HUES])
       expect(hueDistance(light.h, hue)).toBeGreaterThanOrEqual(MIN_HUE_DISTANCE);
+  });
+});
+
+// Tag chips (tags-2) take the same tokens: one palette, one contrast.
+describe("tagColorClass", () => {
+  it.each(TAG_COLORS)("fills %s with its avatar token and the avatar content color", (color) => {
+    expect(tagColorClass(color)?.split(" ")).toEqual(
+      expect.arrayContaining([`bg-avatar-${color}`, "text-avatar-content"]),
+    );
+    expect(css).toContain(`--color-avatar-${color}:`);
+  });
+
+  it("gives nothing for no color or an unknown one (the neutral chip)", () => {
+    for (const color of [null, undefined, "", "teal", "Coral", "constructor"])
+      expect(tagColorClass(color)).toBeUndefined();
   });
 });
