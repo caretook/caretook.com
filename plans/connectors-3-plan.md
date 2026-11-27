@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 green (2026-11-27); CI `integration` run 46059491494 braked on my plan file's format (fixed); run 46060325211 green on e7bcfb58a. Slice worktrees removed; sync skipped (no shared files). Docs folded (5d389ed91). PR and Codex review next. Slice worktrees kept until green. `planner-3` landed in `dev` (start condition met).
+**Where it stands:** wave 1 landed in dev as 300a65913 through PR #272 (2026-11-27; Codex clean on 4f906ba; CI integration green, run 46060325211; landed on an unsynced tip, dev's 2 commits shared no file; report a326; to-test `to-test/2026-11-27-1511-connectors-3.md`). Slice worktrees removed. Docs folded (connectors, medications). **Next (for the fresh session):** wave 2 has no slices yet. The backlog session (`caretook-com-3b`) was asked to plan it (B-760, B-761, B-917) on `plan/connectors-3` and to message this session when it lands. Wait for that (a background check on `pnpm log dev` for `plan(connectors-3)`/`docs(connectors-3)` plan commits, or the message), then `risa sync`, `risa anchors`, and run wave 2 as usual. Don't `risa rm` until wave 2 lands. **2026-11-27, session connectors-3-22:** reconciled (no landing journal, no slice worktrees, tip = dev + this Status); backlog ingest clean (nothing new for connectors-3); no wave 2 plan in dev yet; the backlog session replied: the user left wave 2 to the dispatcher's planner, and connectors-3 is first in the registry; this session lands this Status and runs `risa rm connectors-3` (it doesn't mark the topic done while B-760, B-761, B-917 are open).
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
@@ -14,7 +14,7 @@
 
 **Notes for the landing fold:** slice 1 added error code `connectorTool:invalid` (400) for a read tool's zone-dependent input check; the frozen export list no longer exists (test-health removed it), so nothing to add. Slice 2: connectors doc's "drops a `repeatRule` (B-253)" becomes the structured `repeat`; planner-3's `firstDayOf` could be exported to drop the tool's copy (a nit).
 
-**Wave 2 (the user's pick, via the backlog session, 2026-11-27):** keep connectors-3 open and plan a wave 2 for B-760 (`add_provider`), B-761 (`add_medication`) and B-917 (log doses from a photo of the weekly sheet). Don't re-home them; no `risa rm` after wave 1 lands. Land PR #272, then plan wave 2.
+**Wave 2 (the user's pick, via the backlog session, 2026-11-27):** keep connectors-3 open and plan a wave 2 for B-760 (`add_provider`), B-761 (`add_medication`) and B-917 (log doses from a photo of the weekly sheet). Don't re-home them; no `risa rm` after wave 1 lands. PR #272 landed; wave 2 planning handed to the backlog session.
 
 | Slice | Wave | State  | Merge into `prd/connectors-3` (slice commits) |
 | ----- | ---- | ------ | --------------------------------------------- |
