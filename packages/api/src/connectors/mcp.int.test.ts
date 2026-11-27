@@ -173,6 +173,10 @@ describe("/mcp", () => {
     // The plan ahead right after today's doses, for both grants.
     for (const listed of [await names(writer.tokens.access_token), await names(reader.tokens.access_token)])
       expect(listed[listed.indexOf("todays_doses") + 1]).toBe("dose_schedule");
+    // add_provider at the end of the writes, for a writer only.
+    const written = await names(writer.tokens.access_token);
+    expect(written[written.indexOf("resolve_condition") + 1]).toBe("add_provider");
+    expect(await names(reader.tokens.access_token)).not.toContain("add_provider");
 
     const refused = await mcpPost(handler, reader.tokens.access_token, toolRequest("add_thing"));
     expect(refused.status).toBe(403);

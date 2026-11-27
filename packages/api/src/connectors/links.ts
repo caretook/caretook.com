@@ -1,6 +1,7 @@
 // Links in tool answers to what a write made, on our own origin. The paths
 // are the app's (apps/web `appUrls`: `entry`, `editSheet`, `passSheet`,
-// `todo`), which this package can't import; links.test.ts keeps them equal.
+// `todo`, `profile`, `provider`, `medication`), which this package can't
+// import; links.test.ts keeps them equal.
 
 const groupPath = (groupId: string) => `/app/groups/${encodeURIComponent(groupId)}`;
 
@@ -20,6 +21,14 @@ export const todoPath = (groupId: string, todoId: string) =>
 
 /** The care recipient's profile page (where a condition's conditions card is). */
 export const profilePath = (groupId: string) => `${groupPath(groupId)}/profile`;
+
+/** A provider's page. */
+export const providerPath = (groupId: string, providerId: string) =>
+  `${groupPath(groupId)}/providers/${encodeURIComponent(providerId)}`;
+
+/** A medication's page. */
+export const medicationPath = (groupId: string, medicationId: string) =>
+  `${groupPath(groupId)}/medications/${encodeURIComponent(medicationId)}`;
 
 /** `path` on `origin` (a bare path when there's none). */
 export const linkTo = (origin: string | undefined, path: string) => `${origin ?? ""}${path}`;
