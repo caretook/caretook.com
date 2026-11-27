@@ -8,7 +8,7 @@
 | ----- | ---- | ------- | --------------------------------------------------- |
 | 1     | 1    | landed  | a84e4d658 (b74850034); wave 1 landed via PR #287    |
 | 2     | 2    | merged  | 3ca82c624 (7a584c4cd, aa5ef7fcc); slice check green |
-| 3     | 2    | running |                                                     |
+| 3     | 2    | merged  | 82766a2a1 (075716d6c); slice check green            |
 | 4     | 3    | planned |                                                     |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
