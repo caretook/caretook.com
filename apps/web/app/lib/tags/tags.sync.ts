@@ -11,7 +11,9 @@ import {
   canRenameTag,
   canTagRecord,
   nextTagId,
+  pickTagColor,
   recordTagId,
+  tagColorZSchema,
   tagKey,
   tagNameZSchema,
 } from "@caretook/data/schema";
@@ -36,7 +38,15 @@ const TARGET_TABLES = {
   medication: "medication",
 } as const satisfies Record<TagTarget, string>;
 
-export type TagRow = { id: string; group_id: string; name: string; name_key: string; created_by: string };
+/** `color` is a palette id (`TAG_COLORS`), or null or unknown for the neutral chip. */
+export type TagRow = {
+  id: string;
+  group_id: string;
+  name: string;
+  name_key: string;
+  created_by: string;
+  color: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // Queries
@@ -44,7 +54,7 @@ export type TagRow = { id: string; group_id: string; name: string; name_key: str
 
 /** The group's tags, A to Z. */
 export const tagsQuery = (groupId: string): LocalQuery => ({
-  sql: `SELECT id, group_id, name, name_key, created_by FROM tag WHERE group_id = ? ORDER BY name_key, id`,
+  sql: `SELECT id, group_id, name, name_key, created_by, color FROM tag WHERE group_id = ? ORDER BY name_key, id`,
   params: [groupId],
 });
 
@@ -52,7 +62,7 @@ export const tagsQuery = (groupId: string): LocalQuery => ({
 export const recordTagsQuery = (target: TagTarget, recordId: string): LocalQuery => {
   const column = TAG_TARGET_COLUMNS[target];
   return {
-    sql: `SELECT t.id, t.group_id, t.name, t.name_key, t.created_by FROM record_tag l
+    sql: `SELECT t.id, t.group_id, t.name, t.name_key, t.created_by, t.color FROM record_tag l
           JOIN tag t ON t.id = l.tag_id AND t.group_id = l.group_id
           JOIN ${TARGET_TABLES[target]} r ON r.id = l.${column} AND r.group_id = l.group_id
           WHERE l.${column} = ? AND r.deleted_at IS NULL
@@ -61,13 +71,19 @@ export const recordTagsQuery = (target: TagTarget, recordId: string): LocalQuery
   };
 };
 
-export type GroupTagRow = { record_id: string; id: string; name: string; name_key: string };
+export type GroupTagRow = {
+  record_id: string;
+  id: string;
+  name: string;
+  name_key: string;
+  color: string | null;
+};
 
 /** Every live record's tags of one type in the group, for a list (sort or group by `record_id`). */
 export const groupRecordTagsQuery = (groupId: string, target: TagTarget): LocalQuery => {
   const column = TAG_TARGET_COLUMNS[target];
   return {
-    sql: `SELECT l.${column} AS record_id, t.id, t.name, t.name_key FROM record_tag l
+    sql: `SELECT l.${column} AS record_id, t.id, t.name, t.name_key, t.color FROM record_tag l
           JOIN tag t ON t.id = l.tag_id AND t.group_id = l.group_id
           JOIN ${TARGET_TABLES[target]} r ON r.id = l.${column} AND r.group_id = l.group_id
           WHERE l.group_id = ? AND r.deleted_at IS NULL
@@ -102,7 +118,8 @@ const mayTag = async (db: SyncDb, groupId: string, target: TagTarget, createdBy:
  * Add a tag to the group's list (anyone who may log). A name the group
  * already has, in any case or spacing, returns that tag; a new one takes the
  * next free counter among every tag on the device (`nextTagId`), so a name
- * freed by a rename is used again under a new id.
+ * freed by a rename is used again under a new id, and a color no group tag on
+ * the device has (`pickTagColor`), written locally so the server keeps it.
  */
 export const createTag = async (db: SyncDb, groupId: string, name: string): Promise<CreateResult> => {
   const parsed = tagNameZSchema.safeParse(name);
@@ -114,8 +131,8 @@ export const createTag = async (db: SyncDb, groupId: string, name: string): Prom
     };
   if (!canCreateTag((await groupFor(db, groupId))?.role)) return notAllowed;
 
-  const known = await readRows<{ id: string; name_key: string | null }>(db, {
-    sql: "SELECT id, name_key FROM tag WHERE group_id = ?",
+  const known = await readRows<{ id: string; name_key: string | null; color: string | null }>(db, {
+    sql: "SELECT id, name_key, color FROM tag WHERE group_id = ?",
     params: [groupId],
   });
   const key = tagKey(parsed.data);
@@ -130,6 +147,7 @@ export const createTag = async (db: SyncDb, groupId: string, name: string): Prom
     groupId,
     name: parsed.data,
     nameKey: key,
+    color: pickTagColor(known.map((t) => t.color)),
     createdAt: now,
     updatedAt: now,
     createdBy: db.userId,
@@ -263,6 +281,23 @@ export const renameTag = async (db: SyncDb, tagId: string, name: string): Promis
   await db.drizzle
     .update(tags)
     .set({ name: parsed.data, nameKey: key, updatedAt: nowTimestamp(), updatedBy: db.userId })
+    .where(and(eq(tags.id, tagId), eq(tags.groupId, tag.groupId)));
+  return { ok: true };
+};
+
+/**
+ * Recolor a tag (rename's rule, `canRenameTag`): a palette id
+ * (`TAG_COLORS`); every record carrying it shows the new color.
+ */
+export const recolorTag = async (db: SyncDb, tagId: string, color: string): Promise<ActionResult> => {
+  const parsed = tagColorZSchema.safeParse(color);
+  if (!parsed.success) return refuse("Choose one of the tag colors.");
+  const tag = await tagRow(db, tagId);
+  if (!tag) return tagMissing;
+  if (!canRenameTag((await groupFor(db, tag.groupId))?.role, tag, db.userId)) return notAllowed;
+  await db.drizzle
+    .update(tags)
+    .set({ color: parsed.data, updatedAt: nowTimestamp(), updatedBy: db.userId })
     .where(and(eq(tags.id, tagId), eq(tags.groupId, tag.groupId)));
   return { ok: true };
 };
