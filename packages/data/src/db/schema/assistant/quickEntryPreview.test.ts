@@ -1,6 +1,7 @@
 import type { PreviewContext } from "./quickEntryPreview";
 
 import { describe, expect, test } from "vitest";
+import { parseQuickEntry } from "./quickEntry";
 import { actionPreview, whenText } from "./quickEntryPreview";
 
 const NOW = new Date("2026-11-19T16:00:00Z"); // Thu 8:00 in Los Angeles
@@ -33,6 +34,22 @@ describe("actionPreview", () => {
         context,
       ),
     ).toEqual({ title: "BP 130/85 mmHg, HR 72 bpm, Temp 99.1 °F", detail: null, when: "Now" });
+  });
+
+  test.each([
+    ["140/78 74bpm 97 o2", "SpO₂ 97%, BP 140/78 mmHg, HR 74 bpm"],
+    ["97 o2 hr 74", "SpO₂ 97%, HR 74 bpm"],
+    ["74 hr 97 o2", "HR 74 bpm, SpO₂ 97%"],
+    ["bp 140/78 pulse 74 o2 97", "BP 140/78 mmHg, HR 74 bpm, SpO₂ 97%"],
+  ])("a quick entry line with labels after the numbers shows each vital once: %s (B-976)", (line, title) => {
+    const [reading] = parseQuickEntry(line, {
+      now: NOW,
+      timeZone: context.timeZone,
+      units: context.units,
+      medications: [],
+      providers: [],
+    }).parts[0]!.readings;
+    expect(actionPreview(reading!.actions[0]!, context)).toEqual({ title, detail: null, when: "Now" });
   });
 
   test("a symptom with its severity and note", () => {
