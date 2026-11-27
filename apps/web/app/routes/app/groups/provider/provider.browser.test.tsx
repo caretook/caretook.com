@@ -174,13 +174,16 @@ describe("the page", () => {
 
   test("the linked entries, newest first; a tap opens the entry", async () => {
     const device = await open(providerUrl(CORNERSTONE.id));
+    // The timeline's rows (B-937): each opens by its stretched open link.
     const links = () =>
-      [...document.querySelectorAll<HTMLAnchorElement>("main [data-linked-entries] a[data-entry-id]")].map(
-        (a) => a.dataset.entryId,
-      );
+      [
+        ...document.querySelectorAll<HTMLAnchorElement>(
+          'main [data-linked-entries] li a[aria-label^="Open "]',
+        ),
+      ].map((a) => a.getAttribute("href"));
     await waitUntil(() => links().length === 2, "the linked entries");
-    expect(links()).toEqual([PICKUP.id, PICKUP_2.id]);
-    await userEvent.click(getByCss(`main [data-linked-entries] a[data-entry-id="${PICKUP.id}"]`));
+    expect(links()).toEqual([entryUrl(PICKUP.id), entryUrl(PICKUP_2.id)]);
+    await userEvent.click(getByCss(`main [data-linked-entries] li a[href="${entryUrl(PICKUP.id)}"]`));
     await expect.poll(() => device.location()).toBe(entryUrl(PICKUP.id));
   });
 

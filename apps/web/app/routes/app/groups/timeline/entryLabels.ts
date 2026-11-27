@@ -1,6 +1,6 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
-import { VITALS } from "@caretook/data/schema";
+import { dayLabel, VITALS } from "@caretook/data/schema";
 
 import { KIND_META } from "../../../../lib/timeline/entryDisplay";
 import { formatTime } from "../../../../lib/core/format";
@@ -13,6 +13,24 @@ type Labelled = { kind: TimelineEntryKind; title: string | null; occurredAt: str
 /** A short name for the entry: its title, else its kind, and its time ("PT visit at 9:30 AM"). */
 export const entryLabel = (entry: Labelled) =>
   `${entry.title || KIND_META[entry.kind].label.toLowerCase()} at ${formatTime(entry.occurredAt)}`;
+
+/**
+ * A row's day where rows aren't grouped by day (a provider's linked entries):
+ * "Today", "Yesterday" or "Tomorrow", else "Jun 9", with the year when it's
+ * not this year ("Jun 9, 2025"), in `timeZone`.
+ */
+export const rowDayLabel = (iso: string, timeZone: string, now: Date) => {
+  const near = dayLabel(iso, timeZone, now);
+  if (near === "Today" || near === "Yesterday" || near === "Tomorrow") return near;
+  const date = new Date(iso);
+  const yearOf = (d: Date) => new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric" }).format(d);
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone,
+    month: "short",
+    day: "numeric",
+    year: yearOf(date) === yearOf(now) ? undefined : "numeric",
+  }).format(date);
+};
 
 /** The name of a row's open link: "Open note at 9:30 AM", or "Edit …" for an edit sheet. */
 export const openLabel = (entry: Labelled, sheet: boolean) =>
