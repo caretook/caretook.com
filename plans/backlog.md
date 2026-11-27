@@ -26,7 +26,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `todo-links` | — | `todo-subtasks-3` | — | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** |
-| `fixes-perf` | standing | — | `packages/data/src/services/appointmentSeriesService.ts`, `packages/data/src/db/schema/core/`, `apps/web/app/lib/live-notes/`, `apps/web/app/lib/sync/`, `apps/web/app/lib/timeline/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/root.tsx`, `apps/web/app/routes/app/layout/` | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
+| `fixes-perf` | standing | — | `apps/web/app/lib/sync/`, `apps/web/app/lib/app-shell/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/vite.config.ts`, `scripts/build/budget.json` | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
 | `data-rights` | hold | — | `packages/data/src/db/schema/core/scrub`, `packages/data/src/db/migrations/`, `packages/data/src/services/careGroupService`, `packages/data/src/services/careGroupInviteService`, `packages/data/src/services/joinRequestService`, `packages/data/src/services/todoService.ts`, `packages/data/src/db/schema/care-groups/careGroupConsent`, `packages/data/src/db/schema/auth/legalAcceptance`, `packages/data/src/db/schema/admin/adminAudit`, `packages/api/src/care-groups/`, `apps/web/app/lib/providers/`, `apps/web/app/lib/medications/`, `apps/web/app/lib/profiles/`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/entryDisplay`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/components/entry/`, `apps/web/app/components/providers/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/pass/`, `apps/web/app/routes/app/groups/settings/details/`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/app-shell.spec.mjs` | plans/data-rights-prd.md; held after two plan send-backs (s49, s51), user chose the carve-out (a243) |
 | `data-rights-2` | hold | `data-rights` | — | Follow-on of data-rights: ownership hand-over and account deletion (B-565, B-53's account half; the user answered a239: block a last owner until hand-over or group delete), export, staff tooling, legal text and change notice, inactive-group scrub, retention sweep, Google calendar removal on delete |
@@ -154,8 +154,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-294 | bug | triaged | sync-safety-3 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
-| B-311 | bug | ready | fixes-perf | prd/fixes-perf | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
-| B-313 | bug | ready | fixes-perf | prd/fixes-perf | Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke |
+| B-311 | bug | landed | fixes-perf | prd/fixes-perf | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
+| B-313 | bug | landed | fixes-perf | prd/fixes-perf | Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke |
 | B-325 | change | triaged | fixes-ui |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
 | B-327 | bug | triaged | account-security |  | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | triaged | account-security |  | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
@@ -234,12 +234,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-749 | chore | triaged | fixes-tooling |  | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-bug |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-752 | bug | triaged | fixes-bug | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
-| B-755 | change | ready | fixes-perf | prd/fixes-perf | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
+| B-755 | change | landed | fixes-perf | prd/fixes-perf | Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-760 | feature | triaged | connectors-3 |  | Connector: add_provider, so a member's own AI can add a provider (name, specialty or practice, phone, address) |
 | B-761 | feature | triaged | connectors-3 |  | Connector: add_medication, so a member's own AI can add a medication with its type and schedule |
-| B-764 | change | ready | fixes-perf | prd/fixes-perf | App first load is way too long. |
+| B-764 | change | landed | fixes-perf | prd/fixes-perf | App first load is way too long. |
 | B-772 | chore | triaged | test-time-gates-2 |  | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
@@ -253,7 +253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-795 | chore | triaged | risa-next |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-796 | chore | triaged | risa-next |  | Risa: split the project config into a folder and tidy the test rules and gates |
 | B-797 | plan | triaged | risa-next |  | Risa: prove it on a second repo with tests, then make it usable by others |
-| B-798 | change | ready | fixes-perf | prd/fixes-perf | Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline |
+| B-798 | change | landed | fixes-perf | prd/fixes-perf | Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline |
 | B-799 | change | triaged | risa-next |  | Include captain name and backlog agent name so other agents can find it. |
 | B-802 | bug | triaged | fixes-tooling |  | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
 | B-808 | bug | triaged | fixes-tooling |  | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
@@ -282,7 +282,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-881 | chore | triaged | fixes-tooling |  | Split a slice that looks like 200k+ context at planning or start: a rule in the planner and orchestrator docs, weighed against restart cost (orchestration-split-2 and tags slices ran 200-260k, 15-24M each) |
 | B-882 | chore | triaged | fixes-tooling |  | Model per role: Sonnet for slices whose plan spells out each edit, Haiku for reading check output (every slice runs on Opus now) |
 | B-883 | chore | triaged | fixes-tooling |  | Token use measured by price: a price-weighted before/after (cache writes ~3% of tokens but ~30% of cost) to judge B-873, B-875, B-876 |
-| B-884 | chore | ready | fixes-perf | prd/fixes-perf | Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set |
+| B-884 | chore | landed | fixes-perf | prd/fixes-perf | Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set |
 | B-886 | change | triaged | fixes-tooling |  | Backlog agent shouldn't ask the handoff question; sending a summary or not is the agent's call |
 | B-887 | change | triaged | marketing |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing |  | Features page should highlight easy mode |
@@ -294,7 +294,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-898 | change | triaged | symptom-catalog-2 |  | Quick entry should use the similar symptom by default on Enter, with an option to add new instead,… |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
-| B-910 | chore | ready | fixes-perf | prd/fixes-perf | Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3) |
+| B-910 | chore | landed | fixes-perf | prd/fixes-perf | Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3) |
 | B-911 | chore | triaged | fixes-tooling |  | pnpm prd wait check's default timeout outlasts the harness's ~170 s foreground limit, so a foreground wait is itself moved to the background; default it under 170 s (or say so in the loop doc) |
 | B-912 | plan | triaged | self-recovery-2 |  | Slices as their own headless sessions: started by a prd command, hand-offs to a file the orchestrator watches, so a slice survives an orchestrator rotation and can rotate or resume mid-slice itself |
 | B-913 | plan | triaged | self-recovery-2 |  | Any role's long work runs as a job the machinery owns, so a hand-off never interrupts it: commands (check, land, CI waits, deploys, dev servers), watchers with a follow-up action (durable triggers the dispatcher fires), side-work subagents (headless sessions); each writes a result file, the hand-off records job ids, and the next session re-attaches instead of rerunning or re-arming |
@@ -332,13 +332,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-953 | bug | triaged | fixes-tooling |  | Tooling test loops/stack.test.mjs 'rm.sh from inside the worktree it removes (B-812)' fails 2 of 3 on dev: the orchestrator session isn't ended (expected SIGTERM, got null) |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-955 | change | triaged | tags-3 |  | One tag control everywhere tags show: icon-only tag-plus Add button, × right beside the name, more room before Add, Undo toast on remove; list rows (Todos, Planner, providers, medications) get it too |
-| B-956 | change | triaged | fixes-perf |  | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
+| B-956 | change | ready | fixes-perf | prd/fixes-perf | Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner |
 | B-957 | change | triaged | fixes-ui |  | First load: a friendlier loading screen with progress |
-| B-958 | change | triaged | fixes-perf |  | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
-| B-959 | change | triaged | fixes-perf |  | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
-| B-960 | change | triaged | fixes-perf |  | First /app load fetches about 205 JS files, many of them tiny |
+| B-958 | change | ready | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
+| B-959 | change | in-progress | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
+| B-960 | change | in-progress | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
 | B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
+| B-963 | change | in-progress | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 
 ## Items
 
@@ -551,7 +552,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-311 · bug · The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device)
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 37c40171
@@ -561,7 +562,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-313 · bug · Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 4c969a9d
@@ -1402,7 +1403,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-755 · change · Series visits are written one at a time (writeVisits), ~1.7 s for 39 visits under load
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 4adf10d3
@@ -1449,7 +1450,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-764 · change · App first load is way too long.
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 68a26101
@@ -1586,7 +1587,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-798 · change · Build Intl date formatters once per zone in dayLabel (@caretook/data/schema) and medicationDisplay.ts:144, as B-793 did for the timeline
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: fb6c8b7b
@@ -1867,7 +1868,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-884 · chore · Timeline loader reads tags in a sequential first round on every navigation (~37 ms, added by tags slice 6 a5b63301); read them with the second round when ?tag= isn't set
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 4c969a9d
@@ -1985,7 +1986,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-910 · chore · Share identical live-query watches: after Back the timeline runs 38 watches, 11 exact duplicates (same SQL and params, e.g. medication_pass x3, members x3)
 
-- status: ready
+- status: landed
 - prd: fixes-perf
 - owner: prd/fixes-perf
 - commit: 69b26356
@@ -2340,10 +2341,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-956 · change · Live queries set state on every answer even when the rows are unchanged, so an off-screen note keystroke still re-renders Timeline/Planner
 
-- status: triaged
+- status: ready
 - prd: fixes-perf
-- owner:
-- commit:
+- owner: prd/fixes-perf
+- commit: b2d5967b
 
 - 2026-11-27 (prd/fixes-perf): From fixes-perf slice 3 (B-313, 2026-11-27): PowerSync watches by table, so the window's previews query reruns on any note_update; rows are identical but watchLiveQuery/useLiveQuery (lib/sync/index.ts) setState each answer. Skip identical answers in the live-query layer (after slice 5, B-910, which shares watches there).
 
@@ -2358,27 +2359,27 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-958 · change · After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline
 
-- status: triaged
+- status: ready
 - prd: fixes-perf
-- owner:
-- commit:
+- owner: prd/fixes-perf
+- commit: 6abd6279
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): the timeline route's clientLoader calls loadSettings (lib/app-shell/me.ts), which with no cache waits for rpc.me.get (up to 3 s). On a new device it starts only once the group and timeline routes have loaded, one round trip (~100 ms on 4G, ~170 ms on 3G) on the critical path just before the timeline URL commits. Could start at sign-in (or in the /app middleware) and be awaited later.
 
 ### B-959 · change · On slow links the sync client and SQLite WASM queue behind the preloaded route chunks
 
-- status: triaged
+- status: in-progress
 - prd: fixes-perf
-- owner:
+- owner: prd/fixes-perf
 - commit:
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): with the landing preload (lib/app-shell/preloadRoutes.ts), on a 1.6 Mbps / 150 ms profile the database opens ~1 s later (2.5 s to 3.5 s after the click) because ~200 route chunks share the bandwidth; the total still drops (4.9 s to 4.4 s). Higher priority for the sync client and its worker/WASM (fetchpriority, or preloading the timeline's chunks only once the database is open) could win that second back.
 
 ### B-960 · change · First /app load fetches about 205 JS files, many of them tiny
 
-- status: triaged
+- status: in-progress
 - prd: fixes-perf
-- owner:
+- owner: prd/fixes-perf
 - commit:
 
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): sign-in to the first timeline row requests ~205 JS chunks (~560 KB encoded); dozens are 0.7 to 1.5 KB (lucide icons such as map-pin, clock, pill; small helpers). Over HTTP/2 the cost is modest, over HTTP/1.1 (6 connections) the queue dominated (6.4 s on a 3G profile). Grouping tiny shared chunks (Rolldown advancedChunks / manualChunks for icons) would cut requests; check the budget (scripts/build/budget.json) after.
@@ -2400,3 +2401,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27. Today (components/notes/NoteFullScreen.tsx, B-765): the dialog is full screen but its content is 'mx-auto max-w-3xl p-2 sm:p-4' with its own title row (h2 = the entry page's heading, plus EditorAvatars as aside) above the editor frame, which keeps its rounded border. Wanted: the frame edge to edge (no max width, padding, border radius; safe-area aware); drop the separate title row; the title (short, truncated: what the note is attached to, e.g. the entry's heading) and the avatars go into the frame's BAR (LiveNotesEditor.tsx ~191) left of the Exit full screen IconButton. On a phone the bar also holds the writer's toolbar: the planner decides the layout (e.g. title + avatars + Exit on one row, toolbar on the next) without losing the one-row toolbar on wide screens. Shared-UX rule (components.md): a note's header bar keeps one shape on the page and in full screen. Reads: live-notes.md (Full screen), components.md.
+
+### B-963 · change · Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick
+
+- status: in-progress
+- prd: fixes-perf
+- owner: prd/fixes-perf
+- commit:
+
+- 2026-11-27 (prd/fixes-perf): From the fixes-perf wave 1 hand-over: apps/web/app/routes/app/groups/timeline/useEasyUpcoming.ts (37-39) builds upcomingQuery from now rounded to the minute, so the query changes once a minute; fixes-perf slice 5 (B-910) made Upcoming/Past compute the split from the rows instead. Do the same here.
