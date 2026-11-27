@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** waves 1+2 land together. Slice 1 (opus) merged 5cb59418 (CI full green on e5327e07, worktree removed); slice 2 (opus) merged 7b892610, its roundtrip browser check passes. Next: CI full on the tip, sync, browser checks, PR, Codex, land; then slice 3. After a migration the stack needs `pnpm datastore:reset` before browser checks. B-893 stays open until slice 3.
+**Now:** waves 1+2 land together. Slice 1 (opus) merged 5cb59418; slice 2 (opus) merged 7b892610; both worktrees removed. CI full green on b5b61d31 (run 45939841526); synced (nothing new); browser --changed 11/11 after `datastore:reset`; tags doc folded (9dcb13e8). PR #246 open, Codex review waiting. Then land (`--tier full`), slice 3. B-893 stays open until slice 3.
 
 ## Architectural decisions
 
