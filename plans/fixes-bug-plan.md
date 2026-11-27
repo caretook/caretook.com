@@ -10,9 +10,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
-| 81 | B-978 | started (opus) | — |
+| Slice | Item  | State                                                   | Merge |
+| ----- | ----- | ------------------------------------------------------- | ----- |
+| 81    | B-978 | handed off (opus), check stopped on Status table format | —     |
 
 **Wave 20 running** (2026-11-27): slice 81 (B-978, installed PWA update notice), agent on opus. Wave 19 landed through PR #268 (to-test `to-test/2026-11-27-1446-fixes-bug.md`; rows in history). `risa status-trim` fails ("Cannot find package 'prettier'"): trim by hand. Land refusing on a doc budget while dev moves: `risa sync --force` until dev's copy matches. Held: B-750 (no files named yet), B-752 (only if B-753's watchdog names a recurrence).
 
