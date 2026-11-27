@@ -9,7 +9,7 @@
 // one time budget inside the job's limit; a check they never reach is `not-run`,
 // which the verdict reads as infra.
 //
-// A proof run's throwaway commit carries .github/ci-force-flake.json (`pnpm prd ci run
+// A proof run's throwaway commit carries .github/ci-force-flake.json (`risa ci run
 // candidate --force-flake <check>`): that check's spec throws for the first pass
 // and is restored for the rerun. Without the file nothing here changes a spec.
 import { spawnSync } from "node:child_process";

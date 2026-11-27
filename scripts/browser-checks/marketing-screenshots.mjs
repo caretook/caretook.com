@@ -11,9 +11,9 @@
 //     node scripts/browser-checks/marketing-screenshots.mjs
 //
 // It is a Playwright script, not a spec: it is not in the manifest and
-// `pnpm prd browser` doesn't run it, and nothing runs it (B-40 is parked). Needs
+// `risa browser` doesn't run it, and nothing runs it (B-40 is parked). Needs
 // a freshly reset stack (`pnpm datastore:reset`) so only seed data shows, and a
-// running check build (`pnpm prd serve --built`). Fictional seed data only.
+// running check build (`risa serve --built`). Fictional seed data only.
 //
 // Each screen is written twice: <name>-<theme>-840.webp (the 2x render) and
 // <name>-<theme>-420.webp (the same render scaled down), for `srcset`. The

@@ -8,7 +8,7 @@ export const SECOND_ZONE = "America/New_York";
 
 /**
  * What second-zone failures do to a verdict. `report`: they can't fail it and are
- * filed (`pnpm prd ci zone-file`). `block`: they count like any other failure.
+ * filed (`risa ci zone-file`). `block`: they count like any other failure.
  * @type {"report" | "block"}
  */
 export const SECOND_ZONE_MODE = "report";

@@ -47,7 +47,7 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
-      // Dev and check builds only (`pnpm prd serve --built` sets
+      // Dev and check builds only (`risa serve --built` sets
       // VITE_CHECK_BUILD): lets browser checks and the console query the local
       // copy, and load the device modules without Vite's source imports. A
       // production build drops this block.

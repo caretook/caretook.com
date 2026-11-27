@@ -1,7 +1,7 @@
 # The shared test Postgres: one server for every .loops worktree's integration
 # tests, each worktree with its own database (caretook_test_<worktree>). It's
 # started on first use (packages/data/test/globalSetup.ts, or
-# `pnpm prd test-db up`) and left running; `pnpm prd test-db down` stops it.
+# `risa test-db up`) and left running; `risa test-db down` stops it.
 #
 # - Data is in a tmpfs: tests clear and migrate their database on every run, so
 #   nothing here needs to survive a restart, and it never touches a disk.

@@ -1,4 +1,4 @@
-# CI (test-gates): runs only when asked. `pnpm prd ci run <tier>` pushes a commit
+# CI (test-gates): runs only when asked. `risa ci run <tier>` pushes a commit
 # to a `ci/<tier>/<name>` ref, and this workflow runs that commit's checks. No
 # pull request, no push to dev, staging or main, no schedule.
 #
