@@ -1,12 +1,13 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
+import type { TodoTree, TreeTodo } from "./todoTreeView";
 
-import { assigneeOf, listsOnItsOwn, localDate, todoOrder, todoState } from "@caretook/data/schema";
+import { assigneeOf, localDate, todoState } from "@caretook/data/schema";
 import { matchingText } from "../core/textFilter";
 import { dayHeading } from "./todoDisplay";
 
 // The todo list's shape (pure; web:unit tests it): which todos the
 // Everyone / Mine / Unassigned filter shows, its default, and the sections
-// (Overdue, Today, a day per later day, No due date) in list order.
+// of trees (Overdue, Today, a day per later day, No due date) in list order.
 
 /** The "Assigned to" filter's choices, in menu order (Everyone first: the default). */
 export const TODO_WHO = ["everyone", "mine", "unassigned"] as const;
@@ -91,28 +92,26 @@ export type TodoSection<T> = {
   /** "overdue", "today", "YYYY-MM-DD" (a later day) or "undated". */
   key: string;
   label: string;
-  todos: T[];
+  trees: TodoTree<T>[];
 };
 
 /**
- * Open todos in sections, in list order (`todoOrder`); empty sections are
- * left out. A subtask is there only if it lists on its own (`listsOnItsOwn`:
- * a due day or an assignee); the rest show on their parent's page.
+ * Open trees (`todoTrees`, in list order) in sections, each under its lead's
+ * (its most urgent open shown todo's) Overdue, Today, day or No due date;
+ * empty sections are left out, and so is a tree with nothing open shown. A
+ * subtask never sections alone: it's in its tree (todo-subtasks-3).
  */
-export const todoSections = <T extends TodoRuleFields & { parentId?: string | null }>(
-  todos: readonly T[],
+export const todoSections = <T extends TreeTodo>(
+  trees: readonly TodoTree<T>[],
   now: Date | number,
   timeZone: string,
 ): TodoSection<T>[] => {
   const today = localDate(now, timeZone);
   const sections: TodoSection<T>[] = [];
-  for (const todo of todoOrder(
-    todos.filter((t) => !t.doneAt && listsOnItsOwn(t)),
-    now,
-    timeZone,
-  )) {
-    const state = todoState(todo, now, timeZone);
-    const key = state === "upcoming" ? todo.dueOn! : state;
+  for (const tree of trees) {
+    if (!tree.lead) continue;
+    const state = todoState(tree.lead, now, timeZone);
+    const key = state === "upcoming" ? tree.lead.dueOn! : state;
     let section = sections.at(-1);
     if (section?.key !== key) {
       const label =
@@ -123,10 +122,10 @@ export const todoSections = <T extends TodoRuleFields & { parentId?: string | nu
             : state === "undated"
               ? "No due date"
               : dayHeading(key, today);
-      section = { key, label, todos: [] };
+      section = { key, label, trees: [] };
       sections.push(section);
     }
-    section.todos.push(todo);
+    section.trees.push(tree);
   }
   return sections;
 };
