@@ -175,8 +175,8 @@ fieldset:disabled :is(.input, .select, .textarea) {
    loader (`ui/PageLoading`, B-908), which shares its look: invisible for its
    first 300 ms, so a quick start doesn't flicker. Plain CSS, since the
    server's page shows it before any script runs. Under reduce motion it
-   appears at once at 300 ms (a 0 s step, nothing moves) and without its
-   spinner. */
+   appears at once at 300 ms (a 0 s step, nothing moves) without its
+   spinner or startup bar (B-957): just the step line. */
 [data-app-loading],
 [data-page-loading] {
   animation: fade-in 0s linear 300ms both;
@@ -185,7 +185,8 @@ fieldset:disabled :is(.input, .select, .textarea) {
     animation-timing-function: var(--motion-ease);
   }
   @media (prefers-reduced-motion: reduce) {
-    .loading {
+    .loading,
+    progress {
       display: none;
     }
   }

@@ -9,7 +9,7 @@ export function PageLoadingSection() {
     <>
       <Example label="PageLoading: the mark, spinner and message, centred under the header">
         <div className="bg-base-200 w-full rounded-box">
-          <PageLoading message="Getting your care groups…" slowAfter={null} />
+          <PageLoading message="Syncing your care groups…" slowAfter={null} />
         </div>
       </Example>
       <Example label="With Go back from the start">

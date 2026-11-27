@@ -8,8 +8,12 @@ import { Button } from "./Button";
 export const PAGE_LOADING_SLOW_AFTER = 10_000;
 
 export type PageLoadingProps = {
-  /** What's loading ("Getting your care groups…"): the status's name and its text. */
+  /** What's loading ("Syncing your care groups…"): the status's name and its text. */
   message: string;
+  /** Shown after the message, not announced (`LoadingMark`'s: a startup's "40%"). */
+  detail?: string;
+  /** A progress bar under the message (`LoadingMark`'s); none without it. */
+  progress?: { value: number; label: string };
   /** Show Go back from the start, to cancel the load (it always shows once the load is slow). */
   back?: boolean;
   /** Go back's text ("Go back"). */
@@ -34,6 +38,8 @@ export type PageLoadingProps = {
  */
 export function PageLoading({
   message,
+  detail,
+  progress,
   back = false,
   backLabel = "Go back",
   onBack,
@@ -46,7 +52,7 @@ export function PageLoading({
   return (
     <main {...data} data-page-loading="" className="grid min-h-[70dvh] place-items-center px-4 py-10">
       <div className="flex flex-col items-center gap-4 text-center">
-        <LoadingMark message={message} />
+        <LoadingMark message={message} detail={detail} progress={progress} />
         {slow && (
           <p role="status" className="text-muted text-sm" data-page-loading-slow="">
             {slowMessage}
