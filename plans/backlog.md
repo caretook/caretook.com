@@ -312,11 +312,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-933 | chore | triaged | fixes-tooling |  | test:tooling runs tooling-lint.mjs before the project-data check, so broken tier data prints an uncaught TierDataError stack trace before the check's one line |
 | B-934 | chore | triaged | fixes-tooling |  | Archive finished rows out of the PRD registry table (75 done rows clutter it) |
 | B-935 | bug | triaged | fixes-tooling |  | prd tidy lists lease .waiting files as safe to remove, then refuses them as not a lease |
-| B-936 | bug | landed | fixes-bug | prd/fixes-bug | Back from an entry opened on a provider's page goes to the timeline, not back to the provider |
-| B-937 | change | landed | fixes-ui | prd/fixes-ui | Provider page's linked entries use the timeline's entry row instead of their own list |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
-| B-939 | change | landed | fixes-ui | prd/fixes-ui | Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand |
-| B-940 | change | landed | fixes-ui | prd/fixes-ui | Provider rows: full view shows the primary phone and address as readable text, tap to call or open in maps, plus an email icon; condensed rows get the provider type icon too |
 | B-941 | feature | triaged | todo-subtasks-3 |  | Todos page shows each parent with all its nested todos under it, at every level |
 | B-942 | feature | triaged | todo-subtasks-3 |  | Quick add a subtask at any level from the Todos list: a + on the row, type a title, Enter |
 | B-943 | feature | triaged | todo-subtasks-3 |  | Subtask due dates: a child inherits its parent's due date by default and can't be due after it; children list by due date, then by when they were made |
@@ -327,7 +323,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-948 | feature | triaged | todo-links |  | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
-| B-951 | bug | landed | fixes-bug | prd/fixes-bug | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
 | B-952 | chore | triaged | fixes-tooling |  | Standing PRD with only blocked items (held, waiting on another topic) holds a lane idle: after a landing with nothing runnable it should close itself (prd rm) so the dispatcher starts the next topic |
 | B-953 | bug | triaged | fixes-tooling |  | Tooling test loops/stack.test.mjs 'rm.sh from inside the worktree it removes (B-812)' fails 2 of 3 on dev: the orchestrator session isn't ended (expected SIGTERM, got null) |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
@@ -340,6 +335,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | triaged | fixes-ui |  | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | ready | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
+| B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
 
 ## Items
 
@@ -2148,24 +2144,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): Seen 2026-11-26: tidy listed .loops/.lease/browser/.waiting and check/.waiting (pid ? is gone); --yes failed with 'isn't a lease (<root>/<kind>/<N>)' and exit 1. The preview and the remover disagree.
 
-### B-936 · bug · Back from an entry opened on a provider's page goes to the timeline, not back to the provider
-
-- status: landed
-- prd: fixes-bug
-- owner: prd/fixes-bug
-- commit: 6bed3d06
-
-- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. useLiveEntry.ts:390 backTo knows only the Planner (returnTo) and else the Timeline, so every other opener lands on the timeline too: provider LinkedEntries, todo TodoEntryLinks, VisitPrepSheet. Fix: carry where it was opened from (like the Planner's returnTo) and return there. Triaged fixes-bug: wrong behaviour.
-
-### B-937 · change · Provider page's linked entries use the timeline's entry row instead of their own list
-
-- status: landed
-- prd: fixes-ui
-- owner: prd/fixes-ui
-- commit: 0ebc73a6
-
-- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. provider/LinkedEntries.tsx builds its own rows (KindIcon, day and time); the timeline has TimelineEntryRow and TimelineEntryCard (live dot, cancelled badge, open todos mark). Reuse the timeline row so entries look the same everywhere; check whether the row's menu and timeline-only bits fit outside the timeline. Triaged fixes-ui: look and consistency.
-
 ### B-938 · feature · Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given
 
 - status: triaged
@@ -2174,24 +2152,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): From the user 2026-11-26: on hospice, Med time groups and their frequency change quickly and often (PRN -> every 6 h -> every 4 h -> every 3 h), while some single meds stay every 12 h. Like a repeating todo, each next one is made when the last is due or given (the user picks which when setting the timing), not laid out ahead. Today (docs/domain/medications.md): a schedule is fixed daily clock slots (1-8, or a Med time) or as needed; Med times are named clock times; dueDoses computes due slots from scheduleHistory (nothing is pre-created), and schedule edits already write change entries. Gap: no every-N-hours rule, no anchor to the last given dose, no interval on a Med time; changing frequency must be a quick one-step edit with history kept. Planner questions: interval on the Med time vs on each med, the first dose's anchor, overdue and the weekly print sheet for interval meds, the Today card and Given all, the connector's add_medication (B-761). New topic med-intervals.
-
-### B-939 · change · Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand
-
-- status: landed
-- prd: fixes-ui
-- owner: prd/fixes-ui
-- commit: 0ebc73a6
-
-- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. Today apps/web/app/lib/medications/medicationNameList.ts is about 200 generic names only (MEDICATION_NAMES), suggested through suggestNames in medicationNames.ts (NameField, the Dose sheet, medicationSheet). Add the common US brand(s) in parens; typing 'Tylenol' suggests 'Acetaminophen (Tylenol)'. Matchers that look up a group's medication by text (quick entry's runner and parser, the connector's log_dose, search) should match a word in the parens too, so 'gave Tylenol' finds a med saved as 'Acetaminophen (Tylenol)'. Keep the list's look-alike rule (pick only, shown in full). Triaged fixes-ui (wording and flow); move to a topic if the matcher changes prove broad.
-
-### B-940 · change · Provider rows: full view shows the primary phone and address as readable text, tap to call or open in maps, plus an email icon; condensed rows get the provider type icon too
-
-- status: landed
-- prd: fixes-ui
-- owner: prd/fixes-ui
-- commit: 0ebc73a6
-
-- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. routes/app/groups/providers/ProviderListItem.tsx: the full row shows no contact links on purpose (B-422); condensed (B-909) shows only quickActions' first action and no ProviderTypeIcon. Wanted: full row prints the primary phone number and the address in full, readable aloud to someone (a phone call, front desk), each a link (tel:, maps); email as an icon only. Condensed: the same ProviderTypeIcon as the full row. Keep the links above the row's stretched name link (as condensed's ContactActions does) and big enough to tap; past providers stay muted. This reverses B-422's no-contact-links rule for the full view: update docs/domain/providers.md.
 
 ### B-941 · feature · Todos page shows each parent with all its nested todos under it, at every level
 
@@ -2292,16 +2252,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/fixes-ui): From fixes-ui slice 103 (B-937): LinkedEntries now imports ../timeline/TimelineEntryRow and ../timeline/useOpenTodoCounts, against components.md's rule that a route never imports another route's folder; QuickEntryCard already did. Nothing enforces it.
-
-### B-951 · bug · Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61)
-
-- status: landed
-- prd: fixes-bug
-- owner: prd/fixes-bug
-- commit: 3618ca7a
-
-- 2026-11-27 (prd/fixes-ui): Seen by fixes-ui wave 19 on prd/fixes-ui (synced with dev 6bc79124), twice alone at low load, 2026-11-27: 'server 0:0 (tags:links); A [{name:RT-… same tag, links:1}]; B [{name:RT-… SAME TAG, links:1}]'. Wave 19 touches no tag or upload code (only a provider read query). Suspect tags-2's sync change d362bd70 (tag colors through sync). Log: .git/worktrees/fixes-ui/caretook-browser/roundtrip-20261127-015144.log in the main repo.
-- 2026-11-27 (slice/fixes-bug/75): slice 75: not a code bug. Reproduced exactly by dropping tag.color (migration 0048) on a stack: every tag PUT fails (sync:failed, logged), the queue retries, server 0:0. Fresh stack: roundtrip passes. The fixes-ui stack likely missed datastore:reset/migrate after syncing tags-2. Server path pinned by 2 int tests; roundtrip's tags step now prints each device's queue and unsaved rows on a miss. Follow-up idea: a preflight refusing a stack behind on migrations.
 
 ### B-952 · chore · Standing PRD with only blocked items (held, waiting on another topic) holds a lane idle: after a landing with nothing runnable it should close itself (prd rm) so the dispatcher starts the next topic
 
@@ -2414,3 +2364,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: 847722a6
 
 - 2026-11-27 (prd/fixes-perf): From the fixes-perf wave 1 hand-over: apps/web/app/routes/app/groups/timeline/useEasyUpcoming.ts (37-39) builds upcomingQuery from now rounded to the minute, so the query changes once a minute; fixes-perf slice 5 (B-910) made Upcoming/Past compute the split from the rows instead. Do the same here.
+
+### B-964 · feature · View option to split todo trees into individual due todos (trees stay the default)
+
+- status: triaged
+- prd:
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): From the todo-subtasks-3 approval (2026-11-27): the user wants trees everywhere for now; this toggle comes later, after todo-subtasks-3.

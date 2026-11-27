@@ -767,6 +767,11 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-929 | chore | landed | orchestration-split-4 | prd/orchestration-split-4 | Core tooling tests stand alone: every core test uses the sample project or its own fixture config, never the checkout's risa.json or Caretook files (scripts/ci/tiers.json, docs/agents/, check-plan-rules.json, quarantine.txt); lease.sh stops looping when lib.sh has no config |
 | B-930 | chore | landed | fixes-nit | prd/fixes-nit | Group members settings and the account settings pages still use text-base-content opacity classes instead of the UI kit |
 | B-931 | chore | landed | fixes-nit | prd/fixes-nit | The UI kit's own primitives (ChipList, tabLook, DateTimeField) still use text-base-content opacity classes |
+| B-936 | bug | landed | fixes-bug | prd/fixes-bug | Back from an entry opened on a provider's page goes to the timeline, not back to the provider |
+| B-937 | change | landed | fixes-ui | prd/fixes-ui | Provider page's linked entries use the timeline's entry row instead of their own list |
+| B-939 | change | landed | fixes-ui | prd/fixes-ui | Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand |
+| B-940 | change | landed | fixes-ui | prd/fixes-ui | Provider rows: full view shows the primary phone and address as readable text, tap to call or open in maps, plus an email icon; condensed rows get the provider type icon too |
+| B-951 | bug | landed | fixes-bug | prd/fixes-bug | Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61) |
 
 ## Items
 
@@ -8903,3 +8908,49 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 5e384aab
 
 - 2026-11-26 (prd/fixes-nit): Found by fixes-nit slice 6 (2026-11-26): components/ui/ChipList.tsx:42 (/50, muted chips; providerWorld.tsx's test helper accepts text-faint already), tabLook.tsx:38 (/80), date/DateTimeField.tsx:265 (/60), :282 (/40). Map per ui-kit Tokens; /80 and /40 need a choice.
+
+### B-936 · bug · Back from an entry opened on a provider's page goes to the timeline, not back to the provider
+
+- status: landed
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 6bed3d06
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. useLiveEntry.ts:390 backTo knows only the Planner (returnTo) and else the Timeline, so every other opener lands on the timeline too: provider LinkedEntries, todo TodoEntryLinks, VisitPrepSheet. Fix: carry where it was opened from (like the Planner's returnTo) and return there. Triaged fixes-bug: wrong behaviour.
+
+### B-937 · change · Provider page's linked entries use the timeline's entry row instead of their own list
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 0ebc73a6
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. provider/LinkedEntries.tsx builds its own rows (KindIcon, day and time); the timeline has TimelineEntryRow and TimelineEntryCard (live dot, cancelled badge, open todos mark). Reuse the timeline row so entries look the same everywhere; check whether the row's menu and timeline-only bits fit outside the timeline. Triaged fixes-ui: look and consistency.
+
+### B-939 · change · Medication name list adds brand names in parentheses, e.g. Acetaminophen (Tylenol), and every name match (quick entry, Dose sheet, name field, connector) matches the generic or the brand
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 0ebc73a6
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. Today apps/web/app/lib/medications/medicationNameList.ts is about 200 generic names only (MEDICATION_NAMES), suggested through suggestNames in medicationNames.ts (NameField, the Dose sheet, medicationSheet). Add the common US brand(s) in parens; typing 'Tylenol' suggests 'Acetaminophen (Tylenol)'. Matchers that look up a group's medication by text (quick entry's runner and parser, the connector's log_dose, search) should match a word in the parens too, so 'gave Tylenol' finds a med saved as 'Acetaminophen (Tylenol)'. Keep the list's look-alike rule (pick only, shown in full). Triaged fixes-ui (wording and flow); move to a topic if the matcher changes prove broad.
+
+### B-940 · change · Provider rows: full view shows the primary phone and address as readable text, tap to call or open in maps, plus an email icon; condensed rows get the provider type icon too
+
+- status: landed
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 0ebc73a6
+
+- 2026-11-26 (Robert Bo Davis): From the user 2026-11-26. routes/app/groups/providers/ProviderListItem.tsx: the full row shows no contact links on purpose (B-422); condensed (B-909) shows only quickActions' first action and no ProviderTypeIcon. Wanted: full row prints the primary phone number and the address in full, readable aloud to someone (a phone call, front desk), each a link (tel:, maps); email as an icon only. Condensed: the same ProviderTypeIcon as the full row. Keep the links above the row's stretched name link (as condensed's ContactActions does) and big enough to tap; past providers stay muted. This reverses B-422's no-contact-links rule for the full view: update docs/domain/providers.md.
+
+### B-951 · bug · Browser check roundtrip fails at its tags step: two devices naming the same tag (different case) agree on one id but the server holds 0 tags and 0 links (roundtrip.spec.mjs:61)
+
+- status: landed
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: 3618ca7a
+
+- 2026-11-27 (prd/fixes-ui): Seen by fixes-ui wave 19 on prd/fixes-ui (synced with dev 6bc79124), twice alone at low load, 2026-11-27: 'server 0:0 (tags:links); A [{name:RT-… same tag, links:1}]; B [{name:RT-… SAME TAG, links:1}]'. Wave 19 touches no tag or upload code (only a provider read query). Suspect tags-2's sync change d362bd70 (tag colors through sync). Log: .git/worktrees/fixes-ui/caretook-browser/roundtrip-20261127-015144.log in the main repo.
+- 2026-11-27 (slice/fixes-bug/75): slice 75: not a code bug. Reproduced exactly by dropping tag.color (migration 0048) on a stack: every tag PUT fails (sync:failed, logged), the queue retries, server 0:0. Fresh stack: roundtrip passes. The fixes-ui stack likely missed datastore:reset/migrate after syncing tags-2. Server path pinned by 2 int tests; roundtrip's tags step now prints each device's queue and unsaved rows on a miss. Follow-up idea: a preflight refusing a stack behind on migrations.
