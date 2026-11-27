@@ -71,9 +71,15 @@ const linksOf = async (device: Awaited<ReturnType<typeof open>>, providerId: str
       [providerId],
     )
   ).map((r) => r.name);
-/** Add tag, then the picker's toggle for `name` (the picker stays open). */
-const pick = async (name: string) => {
-  await userEvent.click(page.getByRole("button", { name: "Add tag" }));
+/** The page header's tags. */
+const PAGE_TAGS = 'main header [data-region="details"]';
+/**
+ * Add tag in `scope` (the page header's tags, or the edit sheet; the linked
+ * entries' rows have their own), then the picker's toggle for `name` (the
+ * picker stays open).
+ */
+const pick = async (name: string, scope: typeof PAGE_TAGS | "[role=dialog]") => {
+  await userEvent.click(page.getByCss(scope).getByRole("button", { name: "Add tag" }));
   await found(() => document.querySelector("[data-tag-picker]"));
   await userEvent.click(page.getByRole("checkbox", { name }));
 };
@@ -93,7 +99,7 @@ describe("tags on a provider", () => {
     await expect.poll(pageChips).toBe("Care home move,Heart");
     expect(await linksOf(device, PATEL.id)).toEqual(["Care home move", "Heart"]);
 
-    await pick("Knee");
+    await pick("Knee", PAGE_TAGS);
     await device.settle();
     await expect.poll(pageChips).toBe("Care home move,Heart,Knee");
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
@@ -107,7 +113,7 @@ describe("tags on a provider", () => {
     await found(() => document.querySelector(sheet));
     expect(sheetChips()).toBe("");
 
-    await pick("Knee");
+    await pick("Knee", "[role=dialog]");
     await device.settle();
     await expect.poll(sheetChips).toBe("Knee");
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
