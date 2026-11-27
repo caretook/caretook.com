@@ -2,6 +2,7 @@ import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
 import type * as SearchModuleNs from "../search/search.sync";
 
+import sqliteWasm from "@journeyapps/wa-sqlite/dist/wa-sqlite-async.wasm?url";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { clearRemembered } from "./remembered";
 
@@ -22,10 +23,27 @@ let searchIndex: Promise<SearchModule> | null = null;
 /** Set by `installTestDatabase` only: whether a test device counts as synced. */
 let testFirstSyncDone: boolean | null = null;
 
+/**
+ * Start the download of SQLite's WASM build (~0.8 MB, the database's biggest
+ * file) as the database starts opening (B-959). PowerSync's worker asks for it
+ * only once its own script and then SQLite's glue code have arrived, two
+ * round trips later; by then it is in the HTTP cache, or still coming and
+ * joined (`/assets/` files are immutable). On a 1.6 Mbps link the database
+ * opened ~0.4 s sooner. Earlier, at the sign-in click, it queued ahead of the
+ * session check and pushed it past its timeout.
+ */
+const prefetchSqlite = () => {
+  if (typeof fetch !== "function") return;
+  void fetch(sqliteWasm, { priority: "high" })
+    .then((response) => response.body?.pipeTo(new WritableStream()))
+    .catch(() => undefined);
+};
+
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
   // Someone else signed in on this tab: their predecessor's data goes first.
   if (ready && ready.userId !== userId) await closeSync();
+  if (!current) prefetchSqlite();
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
@@ -252,6 +270,23 @@ const closeWatches = () => {
   watches.clear();
 };
 
+/**
+ * Whether two answers hold the same rows: the same count, and each row the
+ * same columns with the same values (SQLite's are plain values, so `Object.is`).
+ */
+export const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] as Record<string, unknown>;
+    const y = b[i] as Record<string, unknown>;
+    if (x === y) continue;
+    const columns = Object.keys(x);
+    if (columns.length !== Object.keys(y).length) return false;
+    for (const column of columns) if (!(column in y) || !Object.is(x[column], y[column])) return false;
+  }
+  return true;
+};
+
 const openWatch = (db: SyncDb, key: string): SharedWatch => {
   const shared: SharedWatch = { controller: new AbortController(), subscribers: new Set(), rows: null };
   const { signal } = shared.controller;
@@ -266,6 +301,10 @@ const openWatch = (db: SyncDb, key: string): SharedWatch => {
       onResult: (result) => {
         owedFirst.delete(first);
         const rows = result.rows?._array ?? [];
+        // PowerSync reruns a watch on any change to its tables, so most answers
+        // repeat the last one (a note preview's query on a keystroke off screen):
+        // passing those on re-rendered the whole screen for nothing (B-956).
+        if (shared.rows && sameRows(shared.rows, rows)) return;
         shared.rows = rows;
         // The subscribers this result is for: one joining before the frame got it at once.
         const handed = [...shared.subscribers];
@@ -288,7 +327,8 @@ const openWatch = (db: SyncDb, key: string): SharedWatch => {
  * result to `onRows`, at the next frame with every other watch's result that
  * came in meanwhile (above); returns the cleanup, after which nothing more is
  * passed. Subscribers to the same `key` share one watch (`SharedWatch`); one
- * joining a watch that has answered gets its latest rows at once. With no
+ * joining a watch that has answered gets its latest rows at once. An answer
+ * with the same rows as the last (`sameRows`) is passed to no one. With no
  * database open it watches nothing: a component can still mount while
  * sign-out is closing the database (a watch result arriving mid-sign-out
  * renders a new child), and there's nothing left to show it then.

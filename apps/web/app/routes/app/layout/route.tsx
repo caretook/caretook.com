@@ -6,6 +6,7 @@ import { FullLogo } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
 import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { startSettings } from "~/lib/app-shell/me";
 import { isFirstSyncPending } from "~/lib/sync/firstSync";
 import { requireSession, sessionContext } from "~/lib/auth/session";
 import { Announcement } from "./Announcement";
@@ -26,7 +27,10 @@ import { UserMenu } from "./UserMenu";
  */
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async ({ request, context }) => {
-    context.set(sessionContext, await requireSession(request));
+    const session = await requireSession(request);
+    context.set(sessionContext, session);
+    // On a new device, the settings fetch runs while the screen's routes load (B-958).
+    startSettings(request, session.user.id);
   },
 ];
 

@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeSync, openSync, syncUserId, watchLiveQuery } from "./index";
+import { closeSync, openSync, sameRows, syncUserId, watchLiveQuery } from "./index";
 import { recall, remember } from "./remembered";
 
 // The database is faked: watchLiveQuery only needs `powersync.watch`.
 const watch = vi.fn();
+const opened = vi.fn();
 vi.mock("./client", () => ({
-  open: (userId: string) => Promise.resolve({ userId, powersync: { watch } }),
+  open: (userId: string) => {
+    opened(userId);
+    return Promise.resolve({ userId, powersync: { watch } });
+  },
   clear: () => Promise.resolve(),
 }));
 
@@ -242,6 +246,92 @@ describe("shared watches (B-910)", () => {
   });
 });
 
+describe("identical answers (B-956)", () => {
+  let frames: FrameRequestCallback[];
+  const runFrame = () => frames.splice(0).forEach((f) => f(0));
+  const rows = (...r: Record<string, unknown>[]) => ({ rows: { _array: r } });
+  beforeEach(() => {
+    vi.stubGlobal("window", {});
+    frames = [];
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.stubGlobal("requestAnimationFrame", (f: FrameRequestCallback) => frames.push(f));
+    watch.mockReset();
+  });
+  afterEach(async () => {
+    runFrame();
+    vi.useRealTimers();
+    await closeSync();
+    vi.unstubAllGlobals();
+  });
+
+  it("delivers the first answer, then nothing for one with the same rows, so no state is set", async () => {
+    await openSync("u1");
+    const onRows = vi.fn();
+    watchLiveQuery(KEY, onRows);
+    const { onResult } = watchCall()[2];
+    onResult(rows({ id: "p1", name: "Dr. Example" }));
+    runFrame();
+    expect(onRows).toHaveBeenCalledOnce();
+    // A fresh array of fresh row objects, as PowerSync hands back on a rerun.
+    onResult(rows({ id: "p1", name: "Dr. Example" }));
+    runFrame();
+    vi.advanceTimersByTime(100);
+    expect(onRows).toHaveBeenCalledOnce();
+    expect(frames).toHaveLength(0);
+  });
+
+  it("delivers a changed row, an added row and a removed row", async () => {
+    await openSync("u1");
+    const onRows = vi.fn();
+    watchLiveQuery(KEY, onRows);
+    const { onResult } = watchCall()[2];
+    onResult(rows({ id: "p1", name: "A" }));
+    runFrame();
+    onResult(rows({ id: "p1", name: "B" }));
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([{ id: "p1", name: "B" }]);
+    onResult(rows({ id: "p1", name: "B" }, { id: "p2", name: "C" }));
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([
+      { id: "p1", name: "B" },
+      { id: "p2", name: "C" },
+    ]);
+    onResult(rows({ id: "p2", name: "C" }));
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([{ id: "p2", name: "C" }]);
+    expect(onRows).toHaveBeenCalledTimes(4);
+  });
+
+  it("delivers an empty first answer, and a late subscriber still gets the current rows at once", async () => {
+    await openSync("u1");
+    const first = vi.fn();
+    watchLiveQuery(KEY, first);
+    const { onResult } = watchCall()[2];
+    onResult(rows());
+    runFrame();
+    expect(first).toHaveBeenCalledWith([]);
+    onResult(rows());
+    const late = vi.fn();
+    watchLiveQuery(KEY, late);
+    expect(late).toHaveBeenCalledWith([]);
+    runFrame();
+    expect(first).toHaveBeenCalledOnce();
+    expect(late).toHaveBeenCalledOnce();
+  });
+});
+
+describe("sameRows", () => {
+  it("compares the count, then each row's columns", () => {
+    expect(sameRows([], [])).toBe(true);
+    expect(sameRows([{ a: 1, b: null }], [{ a: 1, b: null }])).toBe(true);
+    expect(sameRows([{ a: 1 }], [{ a: 1 }, { a: 2 }])).toBe(false);
+    expect(sameRows([{ a: 1 }], [{ a: "1" }])).toBe(false);
+    expect(sameRows([{ a: 1 }], [{ a: 1, b: 2 }])).toBe(false);
+    expect(sameRows([{ a: 1, b: undefined }], [{ a: 1, c: undefined }])).toBe(false);
+    expect(sameRows([{ a: 1 }, { a: 2 }], [{ a: 2 }, { a: 1 }])).toBe(false);
+  });
+});
+
 describe("sign-out", () => {
   beforeEach(() => vi.stubGlobal("window", {}));
   afterEach(() => vi.unstubAllGlobals());
@@ -261,5 +351,44 @@ describe("sign-out", () => {
     await openSync("u2");
     expect(recall("u1", { groupId: "g1", name: "dueTodos" })).toBeUndefined();
     await closeSync();
+  });
+});
+
+describe("the SQLite download (B-959)", () => {
+  const fetches = vi.fn(() => Promise.resolve(new Response("wasm")));
+  beforeEach(() => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", fetches);
+    fetches.mockClear();
+    opened.mockClear();
+  });
+  afterEach(async () => {
+    await closeSync();
+    vi.unstubAllGlobals();
+  });
+
+  it("starts as the database starts opening, before PowerSync's worker asks for it", async () => {
+    const opening = openSync("u1");
+    expect(fetches).toHaveBeenCalledOnce();
+    expect(opened).not.toHaveBeenCalled();
+    const [url, init] = fetches.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/wa-sqlite-async\.wasm/);
+    expect(init.priority).toBe("high");
+    await opening;
+    expect(opened).toHaveBeenCalledWith("u1");
+  });
+
+  it("starts once per database, not for each caller of the open one", async () => {
+    await Promise.all([openSync("u1"), openSync("u1")]);
+    await openSync("u1");
+    expect(fetches).toHaveBeenCalledOnce();
+    await closeSync();
+    await openSync("u2");
+    expect(fetches).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves the opening alone when the download fails", async () => {
+    fetches.mockImplementationOnce(() => Promise.reject(new TypeError("offline")));
+    await expect(openSync("u1")).resolves.toMatchObject({ userId: "u1" });
   });
 });

@@ -6,23 +6,23 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-- Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge; agent shells need nvm's Node 24 bin first on `PATH`.
-- Follow-ups filed: B-956 (live queries skip identical answers; slice 3); B-957 (fixes-ui loading screen), B-958, B-959, B-960 (first-load costs; slice 7), next wave.
-- Slice 7: first timeline row on 4G 2.53 s → 1.91 s via modulepreload of the landing routes after sign-in (gain needs HTTP/2).
-- CI watch list (slice 3): timelineBack, timelineScroll, timelineJumpPaging, timelineRichText, planner paging/Back.
-- Docs at landing: appointments.md: the top-up reads only due series, never rewrites an ended one (slice 1), visits written in batches via the services' createMany/createForEntries/linkMany (slice 2); sync.md: identical live-query watches are shared (slice 5); timeline/live-notes: previews read only the window's documents (slice 3).
-- Follow-up idea from slice 5: Easy mode's Upcoming (useEasyUpcoming.ts) still rounds its window to the minute.
-- **Wave 1** (2026-11-27): slices 1-7, all Opus. Ready now: 1, 3, 4, 6, 7; 2 waits on 1, 5 on 3.
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-perf-history.md`](fixes-perf-history.md) (`pnpm prd status-trim`).
+
+- Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge; agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; `browser --suite` is the user's call (ask first), so landings ran `browser --changed --base dev`; doc budgets: appointments.md and sync.md sit at ~10.24 KB, trim what you add.
+
+**Wave 1** landed acc69573 (PR #253, 2026-11-27, `--no-review`: Codex out of credits; report a309).
+
+**Wave 2: all merged; full CI green** (run 46005700354, 39535baa; tier full for scripts/build/budget.json); dev sync needed no merge; PR #254 open, Codex out of credits (land `--no-review`); docs folded (e4477848). **Landing now:** browser `layout-offline` fails at the offline edit-link step on the wave 1 tip too (slice 9 reverted), so it predates wave 2: filed as B-967 (fixes-tooling); the other 10 changed checks pass. **Then stop (the user, via the backlog session, 2026-11-27):** land wave 2, no new slices, message the backlog session (caretook-com-bb), then `pnpm prd rm fixes-perf`; B-965 and B-966 stay triaged for a later run (2026-11-27): slices 8-12 (B-956, B-958, B-959, B-960, B-963), all on Opus; dev needed no sync. Slice 11 waits for slice 10 (both measure the first load). B-963 filed this session from the wave 1 hand-over.
+
+- At landing: browser checks `first-sync`, `roundtrip`, `live-notes` (slice 8's sync change); sync.md gets identical answers skipped (B-956), `startSettings` on the _Settings cache_ line (B-958), the WASM prefetch in `openSync` (B-959); slice 10 notes CDP throttling skips SharedWorker requests (measure behind a link shaper: scratchpad m10/ scripts).
 
 | Slice | Item  | State  | Merge    |
 | ----- | ----- | ------ | -------- |
-| 1     | B-311 | merged | 37c40171 |
-| 2     | B-755 | merged | 4adf10d3 |
-| 3     | B-313 | merged | 51d6df4b |
-| 4     | B-884 | merged | 4c969a9d |
-| 5     | B-910 | merged | 69b26356 |
-| 6     | B-798 | merged | fb6c8b7b |
-| 7     | B-764 | merged | 68a26101 |
+| 8     | B-956 | merged | b2d5967b |
+| 9     | B-958 | merged | 6abd6279 |
+| 10    | B-959 | merged | 5fe00bdf |
+| 11    | B-960 | merged | c81f220e |
+| 12    | B-963 | merged | 847722a6 |
 
 ## Wave 1
 
@@ -133,6 +133,87 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/app-
 
 - [ ] The hand-off has the before (and, with a fix, after) timings table.
 - [ ] A fix carries a unit or component test of what it changes (a lazy import, the order of waits).
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 2
+
+As in wave 1: each item's notes (`pnpm backlog show B-<n>`) carry the file references; **first measure or reproduce**, and if it doesn't reproduce, say so in the hand-off and change no app code. Behaviour never changes: only the work done to produce it.
+
+### Slice 8: live queries skip identical answers (B-956)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md · Tests: unit
+
+**Problem.** PowerSync watches by table, so the window's note previews rerun on any `note_update` (a co-member typing in a note off screen); the rows come back identical, but `watchLiveQuery`/`useLiveQuery` (`lib/sync/index.ts`, shared per SQL and params since slice 5) set state on each answer, so Timeline and Planner re-render.
+
+**Build.** In the live-query layer, compare each answer with the last one delivered (row count, then a shallow compare of each row's columns) and deliver only a changed one. The first answer is always delivered; a late subscriber of a shared watch still gets the current rows at once.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: an answer identical to the last delivers nothing (no subscriber call, no state set); a changed row, an added or removed row each deliver; the first answer delivers.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+### Slice 9: the settings fetch starts at sign-in, not after the routes load (B-958)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: unit
+
+**Problem.** The timeline route's `clientLoader` calls `loadSettings` (`lib/app-shell/me.ts`); with no cache it waits for `rpc.me.get` (up to 3 s), and on a new device it starts only once the group and timeline routes have loaded: one round trip (~100-170 ms) on the critical path.
+
+**Build.** Start the settings fetch earlier (at sign-in, beside the landing preload, or in the `/app` middleware) and have `loadSettings` await that same in-flight request instead of starting a second one. A cached answer still wins; a failed early fetch falls back as today; the native target works (no server loader).
+
+**Acceptance criteria.**
+
+- [ ] Unit test: after the early start, `loadSettings` reuses the in-flight request (one `me.get` call) and resolves with its answer; with no early start it fetches as before; a failure falls back as before.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+### Slice 10: the sync client and SQLite WASM come before the preloaded route chunks (B-959)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/app-shell.md · Tests: unit
+
+**Problem.** With the landing preload (`lib/app-shell/preloadRoutes.ts`), on a 1.6 Mbps / 150 ms profile the database opens ~1 s later (2.5 s to 3.5 s after the click) because ~200 route chunks share the bandwidth.
+
+**Build.** Measure on the slice's stack with the same throttled profile as slice 7 (B-764's hand-off). Then give the sync client, its worker and WASM the bandwidth first (`fetchpriority="high"` on their preloads and `low` on the route chunks, or preloading the route chunks only once the database's code has arrived), whichever the timings show wins, without slowing the unthrottled case. No new dependency. If neither wins, change no app code and say so with the timings.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has a before and after timings table (database open and first timeline row, throttled and unthrottled).
+- [ ] Unit test of what changes (the priority or the order of the preloads).
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** slice 11. **Blocked by:** none.
+
+### Slice 11: tiny shared chunks are grouped on the first /app load (B-960)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+**Problem.** Sign-in to the first timeline row requests ~205 JS chunks (~560 KB encoded); dozens are 0.7-1.5 KB (lucide icons such as map-pin, clock, pill; small helpers). Over HTTP/1.1 the queue dominated (6.4 s on a 3G profile).
+
+**Build.** Measure first (chunk count and sizes before first paint, `pnpm build:budget`). Then group the tiny shared chunks in `apps/web/vite.config.ts` (Rolldown `advancedChunks` groups, e.g. one for `lucide-react` icons and one for small shared helpers under a size floor), for both build targets, keeping route chunks lazy. Check the budget (`scripts/build/budget.json`) after and update it only to record the new, smaller shape. If the change is bigger than a config group and a test, stop and file the rest with `pnpm backlog add change … --prd fixes-perf --status triaged --note …`.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has before and after chunk counts and bytes to the first timeline row, and `pnpm build:budget` output.
+- [ ] Unit test (beside the build config or the budget script): the icons land in one shared chunk and no route's own chunk is merged into the entry.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** slice 10.
+
+### Slice 12: Easy mode's Upcoming doesn't rerun its query every minute (B-963)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/appointments.md, docs/domain/timeline.md · Tests: unit or component
+
+**Problem.** `routes/app/groups/timeline/useEasyUpcoming.ts` (37-39) builds `upcomingQuery` from now rounded down to the minute, so its local query changes and reruns once a minute. Slice 5 (B-910) made Upcoming/Past compute the split from the rows instead.
+
+**Build.** Do the same here, reusing slice 5's approach: a query that doesn't depend on the tick, with the tick only filtering the rows. What Easy mode shows doesn't change.
+
+**Acceptance criteria.**
+
+- [ ] Unit or component test: a `useNow` tick doesn't rerun the query, and an event that passes still leaves Upcoming.
 - [ ] `pnpm prd check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** none.
