@@ -1,23 +1,35 @@
+import { X } from "lucide-react";
 import { Badge, tagColorClass } from "~/components/ui";
 import { chipSplit } from "~/lib/tags/tagPicker";
+
+type ChipTag = { id: string; name: string; color?: string | null };
 
 /**
  * A record's tags as small chips: on rows the first two, then "+N"
  * (`chipSplit`); `max` null shows them all (a record's own page). Nothing
  * when it has none. Every role sees them. Each chip takes its tag's color
  * (`tagColorClass`); a null or unknown color is the neutral chip.
+ *
+ * `onRemove` gives each chip an × button ("Remove tag <name>"), and
+ * `onMore` makes "+N" a button (it opens the picker); both are
+ * `QuickTags`'s, for whoever may tag the record.
  */
 export function TagChips({
   tags,
   max,
   className = "",
+  onRemove,
+  onMore,
 }: {
-  tags: readonly { id: string; name: string; color?: string | null }[] | undefined;
+  tags: readonly ChipTag[] | undefined;
   max?: number | null;
   className?: string;
+  onRemove?: (tag: ChipTag) => void;
+  onMore?: () => void;
 }) {
   if (!tags?.length) return null;
   const { shown, more } = max === null ? { shown: tags, more: 0 } : chipSplit(tags, max);
+  const moreLabel = more === 1 ? "1 more tag" : `${more} more tags`;
   return (
     <ul className={`flex flex-wrap items-center gap-1 ${className}`} aria-label="Tags" data-tag-chips="">
       {shown.map((t) => {
@@ -25,22 +37,50 @@ export function TagChips({
         return (
           <li key={t.id} className="max-w-full">
             <Badge
-              className="max-w-full"
+              className={`max-w-full ${onRemove ? "pr-1" : ""}`}
               fill={fill}
               data-tag-chip={t.id}
               data-tag-color={fill ? (t.color ?? undefined) : undefined}
             >
               <span className="truncate">{t.name}</span>
+              {onRemove && (
+                <button
+                  type="button"
+                  aria-label={`Remove tag ${t.name}`}
+                  title={`Remove tag ${t.name}`}
+                  onClick={() => onRemove(t)}
+                  // A small mark with a larger hit area around it, for one tap.
+                  className="hover:bg-base-content/15 focus-visible:outline-base-content relative grid size-4 shrink-0 cursor-pointer place-items-center rounded-full focus-visible:outline-2 after:absolute after:-inset-2 after:content-['']"
+                  data-tag-remove={t.id}
+                >
+                  <X aria-hidden="true" className="size-3" />
+                </button>
+              )}
             </Badge>
           </li>
         );
       })}
       {more > 0 && (
         <li>
-          <Badge data-tag-more="">
-            <span aria-hidden="true">+{more}</span>
-            <span className="sr-only">{more === 1 ? "1 more tag" : `${more} more tags`}</span>
-          </Badge>
+          {onMore ? (
+            <button
+              type="button"
+              onClick={onMore}
+              aria-haspopup="dialog"
+              className="focus-visible:outline-base-content cursor-pointer rounded-full focus-visible:outline-2"
+              data-tag-more-open=""
+            >
+              <Badge data-tag-more="">
+                <span aria-hidden="true">+{more}</span>
+                <span className="sr-only">{moreLabel}</span>
+              </Badge>
+            </button>
+          ) : (
+            <Badge data-tag-more="">
+              <span aria-hidden="true">+{more}</span>
+              <span className="sr-only">{moreLabel}</span>
+            </Badge>
+          )}
         </li>
       )}
     </ul>

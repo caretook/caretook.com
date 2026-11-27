@@ -9,12 +9,23 @@ import * as todoRoute from "./route";
 import * as editSheet from "../todos/edit/route";
 import * as todosRoute from "../todos/route";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { found, waitUntil } from "../../../../../test/found";
+import {
+  at,
+  fx,
+  recordTag,
+  tag,
+  todo,
+  TEST_GROUP,
+  TEST_TIME_ZONE,
+  TEST_USER,
+} from "../../../../../test/fixtures";
 
 // The todo page (todos slice 2): what a writer, an assignee viewer and
 // another viewer see and can press, the complete and reopen paths, the live
 // notes (made on the first real change; read-only for viewers), Delete, and
-// the 404s. The service's document rules are integration tests.
+// the 404s, and its tags (`QuickTags`, tags-2 slice 4) on the page and the
+// edit sheet. The service's document rules are integration tests.
 
 const BASE = "/app/groups/:groupId/todos";
 const ROUTES: DeviceRoute[] = [
@@ -216,5 +227,73 @@ describe("Delete and the 404s", () => {
     await open(pageOf(id), "owner", [...world(), GONE, THEIRS]);
     await expect.element(page.getByRole("heading", { name: "Not found" })).toBeVisible();
     expect(document.body.textContent).not.toMatch(/Gone todo|Their todo/);
+  });
+});
+
+describe("tags on the todo page and its edit sheet", () => {
+  const URGENT = tag("Urgent");
+  const PHARMACY = tag("Pharmacy");
+  const tagged = () => [...world(), URGENT, PHARMACY, recordTag(URGENT.id, SAMS.id, "todoId")];
+  const chips = (within: string) =>
+    [...document.querySelectorAll(`${within} [data-tag-chip]`)].map((c) => c.textContent?.trim()).join(",");
+  const linksOf = async (device: Awaited<ReturnType<typeof open>>) =>
+    (
+      await device.query<{ name: string }>(
+        "SELECT t.name FROM record_tag r JOIN tag t ON t.id = r.tag_id WHERE r.todo_id = ? ORDER BY t.name_key",
+        [SAMS.id],
+      )
+    ).map((r) => r.name);
+  const pick = async (name: string) => {
+    await userEvent.click(page.getByRole("button", { name: "Add tag" }));
+    await found(() => document.querySelector("[data-tag-picker]"));
+    await userEvent.click(page.getByRole("checkbox", { name }));
+  };
+
+  test("a writer untags with one tap and tags through Add tag on the page; ⋯ has no Tags", async () => {
+    const device = await open(pageOf(SAMS.id), "caretaker", tagged());
+    await expect.poll(() => chips("[data-todo-tags]")).toBe("Urgent");
+
+    await userEvent.click(page.getByRole("button", { name: "Remove tag Urgent" }));
+    await device.settle();
+    await expect.poll(() => chips("[data-todo-tags]")).toBe("");
+    expect(await linksOf(device)).toEqual([]);
+
+    await pick("Pharmacy");
+    await device.settle();
+    await expect.poll(() => chips("[data-todo-tags]")).toBe("Pharmacy");
+    expect(await linksOf(device)).toEqual(["Pharmacy"]);
+    await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
+
+    await userEvent.click(page.getByRole("button", { name: "Actions for Fax the form" }));
+    await waitUntil(() => document.querySelectorAll("[role=menuitem]").length > 0, "the menu");
+    expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
+      "Delete",
+    ]);
+  });
+
+  test("the edit sheet tags and untags at once, never through Save", async () => {
+    const device = await open(`${pageOf(SAMS.id)}/edit`, "caretaker", tagged());
+    const sheet = "[data-todo-edit-tags]";
+    await found(() => document.querySelector(sheet));
+    await expect.poll(() => chips(sheet)).toBe("Urgent");
+
+    await pick("Pharmacy");
+    await device.settle();
+    await expect.poll(() => chips(sheet)).toBe("Pharmacy,Urgent");
+    await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
+    await userEvent.click(page.getByRole("button", { name: "Remove tag Urgent" }));
+    await device.settle();
+    await expect.poll(() => chips(sheet)).toBe("Pharmacy");
+    expect(await linksOf(device)).toEqual(["Pharmacy"]);
+    // Each tap its own write: nothing touched the todo, and the sheet is still open.
+    expect((await device.queued()).filter((w) => w.type === "todo")).toEqual([]);
+    await expect.element(page.getByRole("dialog", { name: "Edit todo" })).toBeInTheDocument();
+  });
+
+  test("a viewer sees the chips and nothing to press", async () => {
+    await open(pageOf(SAMS.id), "viewer", tagged());
+    await expect.poll(() => chips("[data-todo-tags]")).toBe("Urgent");
+    expect(document.querySelectorAll("[data-todo-tags] button")).toHaveLength(0);
+    await expect.element(ACTIONS()).not.toBeInTheDocument();
   });
 });
