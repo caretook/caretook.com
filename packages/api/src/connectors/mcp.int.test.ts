@@ -398,13 +398,18 @@ describe("/mcp", () => {
     const w = await world();
     await addNote(w.caretaker.ctx, w.group.id, "Called the pharmacy", hoursAgo(3));
     const { tokens } = await connectAssistant({ email: w.caretaker.user.email, groupId: w.group.id });
-    const outputs = [
+    const answers = [
       await (await mcpPost(handler, tokens.access_token, toolRequest("group_overview"))).text(),
       await (await mcpPost(handler, tokens.access_token, toolRequest("list_timeline"))).text(),
+    ].join("\n");
+    // tools/list names add_provider's phones and address inputs: no fields of data, but no emails either.
+    const outputs = [
+      answers,
       await (await mcpPost(handler, tokens.access_token, rpc("tools/list"))).text(),
     ].join("\n");
     for (const who of [w.owner, w.caretaker, w.viewer]) expect(outputs).not.toContain(who.user.email);
-    expect(outputs).not.toMatch(/"(email|phones?|address)"\s*:/i);
+    expect(answers).not.toMatch(/"(email|phones?|address)"\s*:/i);
+    expect(outputs).not.toMatch(/"email"\s*:/i);
     expect(outputs).not.toContain("@example.com");
   });
 
