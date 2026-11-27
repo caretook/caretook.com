@@ -3,8 +3,10 @@ import type { TodoCreateInput } from "../db";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createWorld, ok } from "../../test/fixtures";
+import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import { isError } from "../errors";
+import { todoModel } from "../models";
 import { todoService } from ".";
 
 // Subtasks on the server (todo-subtasks slice 1): the parent on create and
@@ -307,5 +309,143 @@ describe("todoService: the rollup and the cascading delete", () => {
     expect(await withTransaction((tx) => todoService.rollUp(tx, top.id, u.owner.user.id))).toBeNull();
     const after = ok(await todoService.getById(u.owner.ctx, top.id))!;
     expect(after).toMatchObject({ doneAt: before.doneAt, doneBy: u.caretaker.user.id });
+  });
+});
+
+// Slice 9 (todo-subtasks-3): a subtask's due inherits its parent's and is
+// never after the parent's day. The server clamps, never refuses; only a
+// writer's edit is clamped.
+describe("todoService: subtask due dates", () => {
+  const FRIDAY = "2026-11-27";
+  const TUESDAY = "2026-11-24";
+  const MONDAY = "2026-11-23";
+  const dueOf = async (ctx: Parameters<typeof todoService.getById>[0], id: string) => {
+    const todo = ok(await todoService.getById(ctx, id));
+    if (!todo) throw new Error("todo not readable");
+    return { dueOn: todo.dueOn, dueTime: todo.dueTime };
+  };
+  /** A due written past the rules, as the system: an old row from before them. */
+  const forceDue = (id: string, dueOn: string | null, dueTime: string | null = null) =>
+    withTransaction((tx) =>
+      todoModel.update({
+        authUser: SYSTEM_USER,
+        tx,
+        filter: { id: { type: "eq", value: id } },
+        data: { dueOn, dueTime },
+      }),
+    );
+
+  it("a new subtask with no due takes its parent's day and time; under an undated parent, none", async () => {
+    const { u, group, addTodo } = await setup();
+    const top = await addTodo({ dueOn: FRIDAY, dueTime: "09:00" });
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id });
+    expect(sub).toMatchObject({ dueOn: FRIDAY, dueTime: "09:00" });
+    const subSub = await addTodo({ title: "Find the charger", parentId: sub.id });
+    expect(subSub).toMatchObject({ dueOn: FRIDAY, dueTime: "09:00" });
+    const own = await addTodo({ title: "Book the sitter", parentId: top.id, dueOn: TUESDAY });
+    expect(own).toMatchObject({ dueOn: TUESDAY, dueTime: null });
+
+    const undated = await addTodo({ title: "Move house" });
+    expect(await addTodo({ title: "Boxes", parentId: undated.id })).toMatchObject({ dueOn: null });
+    // Through upsert's first write too.
+    const upserted = ok(
+      await todoService.upsert(u.caretaker.ctx, {
+        id: randomUUID(),
+        groupId: group.id,
+        title: "Print the forms",
+        parentId: top.id,
+      }),
+    );
+    expect(upserted.row).toMatchObject({ dueOn: FRIDAY, dueTime: "09:00" });
+  });
+
+  it("a create, an upsert's first write and an update past the parent's day are clamped, not refused", async () => {
+    const { u, group, addTodo } = await setup();
+    const top = await addTodo({ dueOn: FRIDAY, dueTime: "09:00" });
+    const late = await addTodo({
+      title: "Pack a bag",
+      parentId: top.id,
+      dueOn: "2026-11-30",
+      dueTime: "15:00",
+    });
+    expect(late).toMatchObject({ dueOn: FRIDAY, dueTime: "09:00" });
+    const upserted = ok(
+      await todoService.upsert(u.caretaker.ctx, {
+        id: randomUUID(),
+        groupId: group.id,
+        title: "Print the forms",
+        parentId: top.id,
+        dueOn: "2026-12-02",
+      }),
+    );
+    expect(upserted.row).toMatchObject({ dueOn: FRIDAY, dueTime: "09:00" });
+
+    const sub = await addTodo({
+      title: "Book the sitter",
+      parentId: top.id,
+      dueOn: TUESDAY,
+      dueTime: "10:00",
+    });
+    ok(await todoService.update(u.caretaker.ctx, sub.id, { dueOn: "2026-12-01", dueTime: "11:00" }));
+    expect(await dueOf(u.owner.ctx, sub.id)).toEqual({ dueOn: FRIDAY, dueTime: "09:00" });
+    // The same day, any time, is kept.
+    ok(await todoService.update(u.caretaker.ctx, sub.id, { dueOn: FRIDAY, dueTime: "18:00" }));
+    expect(await dueOf(u.owner.ctx, sub.id)).toEqual({ dueOn: FRIDAY, dueTime: "18:00" });
+  });
+
+  it("a parent moved earlier, or an undated one given a day, clamps open descendants two levels down and leaves done ones", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo({ dueOn: FRIDAY });
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id, dueOn: FRIDAY, dueTime: "15:00" });
+    const subSub = await addTodo({ title: "Find the charger", parentId: sub.id, dueOn: FRIDAY });
+    const early = await addTodo({ title: "Book the sitter", parentId: top.id, dueOn: MONDAY });
+    const done = await addTodo({ title: "Print the forms", parentId: top.id, dueOn: FRIDAY });
+    ok(await todoService.complete(u.caretaker.ctx, done.id));
+
+    ok(await todoService.update(u.caretaker.ctx, top.id, { dueOn: TUESDAY, dueTime: "08:00" }));
+    expect(await dueOf(u.owner.ctx, sub.id)).toEqual({ dueOn: TUESDAY, dueTime: "08:00" });
+    expect(await dueOf(u.owner.ctx, subSub.id)).toEqual({ dueOn: TUESDAY, dueTime: "08:00" });
+    expect(await dueOf(u.owner.ctx, early.id)).toEqual({ dueOn: MONDAY, dueTime: null });
+    expect(await dueOf(u.owner.ctx, done.id)).toEqual({ dueOn: FRIDAY, dueTime: null });
+
+    const undated = await addTodo({ title: "Move house" });
+    const boxes = await addTodo({ title: "Boxes", parentId: undated.id, dueOn: "2026-12-04" });
+    const tape = await addTodo({ title: "Tape", parentId: boxes.id, dueOn: "2026-12-03" });
+    const plain = await addTodo({ title: "Movers", parentId: undated.id });
+    ok(await todoService.update(u.caretaker.ctx, undated.id, { dueOn: "2026-12-01" }));
+    expect(await dueOf(u.owner.ctx, boxes.id)).toEqual({ dueOn: "2026-12-01", dueTime: null });
+    expect(await dueOf(u.owner.ctx, tape.id)).toEqual({ dueOn: "2026-12-01", dueTime: null });
+    expect(await dueOf(u.owner.ctx, plain.id)).toEqual({ dueOn: null, dueTime: null });
+  });
+
+  it("clearing a parent's day changes none of its subtasks", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo({ dueOn: FRIDAY, dueTime: "09:00" });
+    const sub = await addTodo({ title: "Pack a bag", parentId: top.id, dueOn: TUESDAY });
+    const inherited = await addTodo({ title: "Print the forms", parentId: top.id });
+    ok(await todoService.update(u.caretaker.ctx, top.id, { dueOn: null, dueTime: null }));
+    expect(await dueOf(u.owner.ctx, top.id)).toEqual({ dueOn: null, dueTime: null });
+    expect(await dueOf(u.owner.ctx, sub.id)).toEqual({ dueOn: TUESDAY, dueTime: null });
+    expect(await dueOf(u.owner.ctx, inherited.id)).toEqual({ dueOn: FRIDAY, dueTime: "09:00" });
+  });
+
+  it("a completer's edit of a late subtask is neither clamped nor refused", async () => {
+    const { u, addTodo } = await setup();
+    const top = await addTodo({ dueOn: TUESDAY });
+    const sub = await addTodo({ title: "Walk the dog", parentId: top.id, assigneeId: u.viewer.user.id });
+    ok(await forceDue(sub.id, FRIDAY, "15:00"));
+
+    // The viewer's upload repeats what it has (a completer's PATCH changes no content).
+    ok(
+      await todoService.update(u.viewer.ctx, sub.id, {
+        title: "Walk the dog",
+        dueOn: FRIDAY,
+        dueTime: "15:00",
+      }),
+    );
+    expect(await dueOf(u.owner.ctx, sub.id)).toEqual({ dueOn: FRIDAY, dueTime: "15:00" });
+    // A writer's edit of it, even a title-only one, is clamped.
+    ok(await todoService.update(u.caretaker.ctx, sub.id, { title: "Walk the dog early" }));
+    expect(await dueOf(u.owner.ctx, sub.id)).toEqual({ dueOn: TUESDAY, dueTime: null });
   });
 });
