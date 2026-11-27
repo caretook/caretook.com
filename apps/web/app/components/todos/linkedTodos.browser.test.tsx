@@ -8,21 +8,18 @@ import { renderWithDevice } from "../../../test/device";
 import { at, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
 import * as medicationRoute from "../../routes/app/groups/medication/route";
 import * as providerRoute from "../../routes/app/groups/provider/route";
-import * as newTodoSheet from "../../routes/app/groups/todos/new/route";
-import * as todosRoute from "../../routes/app/groups/todos/route";
 
 // `LinkedTodos` (todos slice 3) on the pages that have it: a provider's page
 // and a medication's page (an entry's page has its own Todos since
 // planner-3: entry/entryTodos.browser.test.tsx). Open linked todos
-// in list order with ticks (for whoever may complete them) and Undo; hidden
-// when there are none, apart from writers' "Add todo", which opens the add
-// sheet with the link filled in and comes back when it closes.
+// in list order with ticks (for whoever may complete them) and Undo; writers'
+// quick add (todo-links-6: a linked todo, and each row's linked subtask);
+// hidden from readers when there are none.
 
 const G = "/app/groups/:groupId";
 const ROUTES: DeviceRoute[] = [
   { path: `${G}/providers/:providerId`, module: providerRoute },
   { path: `${G}/medications/:medicationId`, module: medicationRoute },
-  { path: `${G}/todos`, module: todosRoute, children: [{ path: `${G}/todos/new`, module: newTodoSheet }] },
 ];
 const url = (path: string) => `/app/groups/${TEST_GROUP.id}/${path}`;
 
@@ -97,24 +94,37 @@ describe("LinkedTodos", () => {
     expect(row?.done_at).toBeNull();
   });
 
-  test("a writer's Add todo opens the sheet with the provider filled in, and closing comes back", async () => {
-    const device = await open(`providers/${LARK.id}`);
-    await userEvent.click(region().getByRole("link", { name: "Add todo" }));
-    const dialog = page.getByRole("dialog", { name: "Add a todo" });
-    await expect.element(dialog.getByText("Dr. Mira Lark", { exact: true })).toBeInTheDocument();
-    expect(device.location()).toContain(`providerId=${LARK.id}`);
-    await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Ask for the lab results");
-    await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
-    await expect.poll(() => device.location()).toBe(url(`providers/${LARK.id}`));
-    await expect.poll(titles).toContain("Ask for the lab results");
+  test("a writer's quick add adds a todo linked here, and a row's adds a linked subtask; both list here", async () => {
+    const device = await open(`providers/${OTHER.id}`);
+    const field = region().getByRole("textbox", { name: "New todo" });
+    await userEvent.click(field);
+    await userEvent.keyboard("Call to confirm{Enter}");
+    await expect.poll(titles).toEqual(["Call to confirm"]);
+    await expect.element(field).toHaveValue("");
+    await expect.element(field).toHaveFocus();
+    const [made] = await device.query<{ id: string; provider_id: string; parent_id: string | null }>(
+      "SELECT id, provider_id, parent_id FROM todo WHERE title = ?",
+      ["Call to confirm"],
+    );
+    expect(made).toMatchObject({ provider_id: OTHER.id, parent_id: null });
+    expect(device.location()).toBe(url(`providers/${OTHER.id}`));
+
+    await userEvent.click(region().getByRole("button", { name: "Add subtask to Call to confirm" }));
+    await userEvent.keyboard("Ask about the hours{Enter}");
+    await expect.poll(titles).toContain("Ask about the hours");
+    const [sub] = await device.query<{ provider_id: string; parent_id: string }>(
+      "SELECT provider_id, parent_id FROM todo WHERE title = ?",
+      ["Ask about the hours"],
+    );
+    expect(sub).toEqual({ provider_id: OTHER.id, parent_id: made!.id });
   });
 
-  test("a viewer sees the list with ticks only on their own todos, and no Add todo", async () => {
+  test("a viewer sees the list with ticks only on their own todos, and no quick add", async () => {
     await open(`providers/${LARK.id}`, "viewer");
     await expect.element(region()).toBeInTheDocument();
     expect(titles()).toEqual(["Call Dr. Lark's office", "Ask about the stress test"]);
     expect(ticks().map((t) => t.getAttribute("aria-label"))).toEqual(["Mark “Call Dr. Lark's office” done"]);
-    expect(document.querySelector("[data-linked-todos-add]")).toBeNull();
+    expect(document.querySelector("[data-todo-quick-add]")).toBeNull();
   });
 
   test("a medication's page lists its todos; a viewer assigned one can tick it", async () => {
@@ -131,20 +141,19 @@ describe("LinkedTodos", () => {
     expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
   });
 
-  test("hidden when there are none: nothing for a viewer, only Add todo for a writer", async () => {
+  test("hidden from a viewer when there are none", async () => {
     await open(`providers/${OTHER.id}`, "viewer");
     await expect
       .element(page.getByRole("heading", { name: "Corner Pharmacy", level: 1 }))
       .toBeInTheDocument();
     expect(document.querySelector("[data-linked-todos]")).toBeNull();
-    expect(document.querySelector("[data-linked-todos-add]")).toBeNull();
+    expect(document.querySelector("[data-todo-quick-add]")).toBeNull();
   });
 
-  test("hidden when there are none for a writer too, apart from Add todo", async () => {
+  test("a writer sees the section with only the quick add when there are none", async () => {
     await open(`providers/${OTHER.id}`);
-    await expect
-      .element(page.getByRole("link", { name: "Add todo" }))
-      .toHaveAttribute("href", url(`todos/new?providerId=${OTHER.id}`));
-    expect(document.querySelector("[data-linked-todos]")).toBeNull();
+    await expect.element(region().getByRole("textbox", { name: "New todo" })).toBeInTheDocument();
+    expect(titles()).toEqual([]);
+    expect(document.querySelector('[aria-label="Open todos"]')).toBeNull();
   });
 });
