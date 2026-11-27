@@ -8,24 +8,22 @@
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 started 2026-11-27** (orchestrator session 1): slices 1, 4, 6 worktrees made, agents spawned on opus. B-944, B-947, B-948 claimed. `risa anchors` misses are all files or symbols earlier slices create (no plan fix needed).
+**Wave 1 landed 2026-11-27** in dev through PR #280 (dev 2b82fa9; components run 46072898158 green on the synced tip c105ba7d1; Codex clean). The user said to land without waiting for Codex; its two P2s came in first and were filed as B-988 (entry hits capped before the kind filter) and B-989 (tag changes don't refresh the box), both `prd=todo-links` triaged: fold them into slice 3 if they fit its files (linkSearch.sync.ts, useLinkSearch.ts), else a later slice. Report a342; to-test/2026-11-27-1658-todo-links.md. B-948 done; B-944, B-947 continue.
 
-**Docs at wave 1 landing (slice 6):** todos.md Screens (LinkedTodos, entry Todos) and components.md still say "Add todo" opens the sheet: now the full `TodoQuickAdd` (link, no parent) plus a compact one per open row; a writer's provider/medication Todos band is always titled (keeps focus on the first add); the `todos/new?providerId=` prefill stays but has no button there.
-
-**Wave 1 green:** fix ac83828e8 (slice 1's ComboBox `Option` markup restored for icon-less options) merged; `risa sync` skipped (no shared files); components run 46070440273 green on ac83828e. Docs folded (d09143303: todos, components, search; recently viewed in search.md). Slice worktrees 1, 4, 6 removed. PR #280 open; Codex review and `risa browser --changed` running. Next: land wave 1, then rotate; wave 2 (slices 2, 3) starts in the fresh session.
+**Next (fresh session): wave 2, slices 2 and 3** (both ready: slice 1 merged). Then wave 3 (slice 5).
 
 **From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
 
 **For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
 
-| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ----- | ------- | ------------------------------------------- |
-| 1     | 1    | opus  | working |                                             |
-| 2     | 2    |       | planned |                                             |
-| 3     | 2    |       | planned |                                             |
-| 4     | 1    | opus  | merged  | 755f9b1e4 (db2656198)                       |
-| 5     | 3    |       | planned |                                             |
-| 6     | 1    | opus  | working |                                             |
+| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits)      |
+| ----- | ---- | ----- | ------- | ------------------------------------------------ |
+| 1     | 1    | opus  | landed  | c3c95a1aa (d7e688c6a), fix ac83828e8 (92a6baa3b) |
+| 2     | 2    |       | planned |                                                  |
+| 3     | 2    |       | planned |                                                  |
+| 4     | 1    | opus  | landed  | 755f9b1e4 (db2656198)                            |
+| 5     | 3    |       | planned |                                                  |
+| 6     | 1    | opus  | landed  | b7fb8d218 (14dfb3f7f)                            |
 
 ## Architectural decisions
 
