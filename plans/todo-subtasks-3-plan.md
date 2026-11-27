@@ -8,14 +8,14 @@
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 started 2026-11-27:** anchors fixed (five future-state anchors reworded); slices 1, 2, 3 started, all on opus. fixes-perf has landed (timeline hot files free).
+**Wave 1 started 2026-11-27:** anchors fixed (five future-state anchors reworded); slices 1, 2, 3 started, all on opus; all merged. Wave 1's CI run (components) requested on the merged tip. Slice 4 started early (its only blocker, slice 1, merged), opus. fixes-perf has landed (timeline hot files free).
 
 | Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
 | ----- | ---- | -------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus) | 2ecc23241 (5ee22a7ad) |
-| 2     | 1    | running (opus) |                                                  |
-| 3     | 1    | handed off (opus), check green at 6fcc18325; merges after 1, 2 |                                                  |
-| 4     | 2    | —              |                                                  |
+| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | running (opus) |                                                  |
 | 5     | 3    | —              |                                                  |
 | 6     | 3    | —              |                                                  |
 | 7     | 4    | —              |                                                  |

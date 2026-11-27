@@ -101,6 +101,26 @@ export const siblingOrder = <T extends SiblingFields>(siblings: readonly T[]): T
   [...siblings].sort(compareSiblings);
 
 /**
+ * Whether the connectors' `upcoming` lists a subtask (todo-subtasks-3; text
+ * for a member's AI, not a screen, so no tree): when it's assigned, or due
+ * before its parent's day (`parentDueOn`; under an undated parent any date
+ * counts). One on its parent's day is the parent's step and goes with it. A
+ * top-level todo always lists.
+ */
+export const upcomingListsSubtask = (
+  todo: {
+    parentId?: string | null;
+    dueOn: string | null;
+    assigneeId: string | null;
+    assigneeName: string | null;
+  },
+  parentDueOn: string | null,
+) =>
+  !todo.parentId ||
+  assigneeOf(todo).type !== "none" ||
+  (!!todo.dueOn && (!parentDueOn || todo.dueOn < parentDueOn));
+
+/**
  * The upload's flag on a device's rollup write to a parent (its `_metadata`,
  * as `UNDO_NEXT_METADATA`): the device's tick, reopen, remove or new subtask
  * wrote the parent chain locally, and the server recomputes the parent from

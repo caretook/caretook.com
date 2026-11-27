@@ -5,7 +5,8 @@ import { todoStrip } from "~/lib/todos/todoStrip";
 
 /**
  * The Today card's todos row: the todo it names (`todoStrip` over the group's
- * open todos overdue or due today), live and re-evaluated once a minute, in
+ * open todos overdue or due today, steps of a tree included: `useDueTodos`
+ * reads every open dated todo, never only the listed ones), live and re-evaluated once a minute, in
  * the recipient's zone. `ready` is false until the device's rows are known
  * (remembered from earlier this session or read; the row shows a
  * skeleton), and `fresh` once they're read live (until then the row is dimmed).

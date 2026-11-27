@@ -282,6 +282,15 @@ describe("GET /api/calendar/<token>.ics", () => {
       }),
     )!;
     ok(await todoService.complete(s.ctx("caretaker"), done.id));
+    // A dated subtask shows in its tree in the app, never on a calendar; its parent does.
+    const step = ok(
+      await todoService.create(s.ctx("caretaker"), {
+        groupId: s.group.id,
+        parentId: due.id,
+        title: "Measure the doorway",
+        dueOn: "2026-11-24",
+      }),
+    )!;
 
     const { file } = await makeFeed(s, "viewer");
     const ics = (await (await fetchFeed(s.handler(), file)).text()).replaceAll("\r\n", "\n");
@@ -291,7 +300,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(has(`entry:${cancelled.id}`)).toBe(true);
     expect(has(`todo:${due.id}`)).toBe(true);
     for (const left of [early, far, logged, planned, deleted]) expect(has(`entry:${left.id}`)).toBe(false);
-    for (const left of [undated, done]) expect(has(`todo:${left.id}`)).toBe(false);
+    for (const left of [undated, done, step]) expect(has(`todo:${left.id}`)).toBe(false);
     // Only the cancelled appointment is marked cancelled.
     expect(ics.match(/STATUS:CANCELLED/g)).toHaveLength(1);
     expect(ics).toContain(`UID:entry:${cancelled.id}@app.caretook.test\n`);
