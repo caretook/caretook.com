@@ -3,21 +3,13 @@ import type { TagTarget } from "@caretook/data/schema";
 import { canCreateTag, canRenameTag } from "@caretook/data/schema";
 import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
-import {
-  Button,
-  CheckField,
-  EmptyState,
-  Field,
-  IconButton,
-  Message,
-  Sheet,
-  tagColorClass,
-} from "~/components/ui";
+import { Button, CheckField, EmptyState, Field, IconButton, Message, Sheet } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { exactTag, matchingTags, newTagName } from "~/lib/tags/tagPicker";
 import { createTag, tagRecord, untagRecord } from "~/lib/tags/tags.sync";
 import { TagEditor } from "./TagEditor";
+import { TagSwatch } from "./TagSwatch";
 import { useGroupTags, useRecordTags } from "./useTags";
 
 /** What the picker tags: a record, and its name for the sheet's title. */
@@ -115,11 +107,7 @@ export function TagPickerSheet({
                     <CheckField
                       label={
                         <span className="inline-flex min-w-0 items-center gap-2">
-                          <span
-                            aria-hidden="true"
-                            data-tag-swatch={t.color ?? ""}
-                            className={`size-3 shrink-0 rounded-full border ${tagColorClass(t.color) ?? "border-base-content/40"}`}
-                          />
+                          <TagSwatch color={t.color} />
                           <span className="min-w-0 break-words">{t.name}</span>
                         </span>
                       }
