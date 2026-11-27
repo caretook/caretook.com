@@ -17,10 +17,10 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
 
 ## Entry links
 
-- ✅ **`timeline_entry_todo`** links entries and todos many-to-many: id `entryTodoId` (UUID v5 of the pair), cascading composite FKs, unique pair, hard-delete unlink; PUT/DELETE via `linkTable`. Links show on `NOTE_DOCUMENT_KINDS` (notes, events) only. Soft deletes keep link rows. Who links: `WRITERS` ([care-groups](care-groups.md)).
-- ✅ **`todo.event_id` is legacy**, until a contract migration drops it; new clients never write it (0045 backfilled links from it). Only these touch it: `todoService` create/update mirrors an old client's `eventId` into link rows; `releaseEvent`; `entryTodoService.unlink` clears it when it names that entry.
+- ✅ **`timeline_entry_todo`** links entries and todos many-to-many: id `entryTodoId` (UUID v5 of the pair), cascading composite FKs, unique pair, hard-delete unlink; PUT/DELETE via `linkTable`. Links show on `NOTE_DOCUMENT_KINDS` (notes, events) only. Soft deletes keep link rows. Who links: `WRITERS`.
+- ✅ **`todo.event_id` is legacy**, until a contract migration drops it; new clients never write it. Only these touch it: `todoService` create/update mirrors an old client's `eventId` into link rows; `releaseEvent`; `entryTodoService.unlink` clears it when it names that entry.
 - ✅ **Touched:** a next with any link row is touched (`isTouched`, `reopenTodo`).
-- ✅ **Device** (`lib/todos/entryTodos.sync.ts`): `linkTodo`, `unlinkTodo`, `entryTodoRow` (in your transaction); `entryTodosQuery`, `todoEntriesQuery`, `openTodoCountsQuery` (one group query). `createTodo` writes the todo and its link rows in one transaction; `updateTodo` never carries `eventId`.
+- ✅ **Device** (`lib/todos/entryTodos.sync.ts`): `linkTodo`, `unlinkTodo`, `entryTodoRow` (in your transaction); `entryTodosQuery`, `todoEntriesQuery`, `openTodoCountsQuery` (one group query). `createTodo` and `updateTodo` (given `entryIds`, the difference) write link rows in their transaction; never `eventId`.
 
 ## Repeating todos
 
@@ -46,18 +46,18 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
 
 - `todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo`, `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. An unflagged done PATCH maps to `complete` or `reopen`.
 - `dueTodosQuery`, `dueTodosThrough` feed the Today card; `linkedTodosQuery`, `linkOf` and `TodoLink` serve provider and medication links.
-- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; the tick's Undo: `todoUndo.ts`; `TodoUndoStatus` ("Undo <title>"; stays mounted, not a `Notice`).
+- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; the tick's Undo: `todoUndo.ts`; `TodoUndoStatus` (stays mounted, not a `Notice`).
 
 ## Screens
 
 - **The Todos tab** (`routes/app/groups/todos/`, `appUrls.todos`; the Planner's): no Add button. "Assigned to" (Everyone, Mine, Unassigned; `?who=`); sections Overdue, Today, by day, No date; Done newest first, 20 a page.
-- **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; event picker on create). They close to their opener via link state (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS`: link ids (old `eventId` too), `dueOn`, quick entry's fields.
+- **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; `TodoLinkFields`: a `LinkToBox`, chips; posts `providerId`, `medicationId`, repeated `entryIds`: an empty marker unlinks all, none leaves links). They close to their opener via link state (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS`: link ids (`eventId`/`entryId` become `entryIds`), `dueOn`, quick entry's fields.
 - **The todo page** (`routes/app/groups/todo/`, `appUrls.todo`), banded ([ui-kit](ui-kit.md#bands)): `TodoHeader` (writers edit and delete), Details, Linked to (provider, medication, notes and events; writers' `LinkToBox`, Remove), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted: 404.
-- **The tick** (`TodoTick`, `useTodoTick`) everywhere. **Easy roles:** the Planner (read-only), a todo's page (no edit or delete; [app-shell](app-shell.md)); they tick their own only.
-- **Links and backlinks:** sheet pickers (`todos/todoLinks.ts`). **Link to box** (`LinkToBox`; `searchLinkables` in `lib/todos/linkSearch.sync.ts`; pure `linkOptions.ts`): site search's device index via `lib/search`'s exports; providers, medications, live notes and events, `compareHits` order, linked ones out. `LinkedTodos` (provider, medication pages): open linked todos; writers' full `TodoQuickAdd` with the link (band titled even empty: focus survives) and a compact one per open row.
+- **The tick** (`TodoTick`, `useTodoTick`) everywhere. **Easy roles:** the Planner (read-only), a todo's page (no edit or delete); they tick their own only.
+- **Links and backlinks:** **Link to box** (`LinkToBox`; `searchLinkables` in `lib/todos/linkSearch.sync.ts`; pure `linkOptions.ts`): site search's device index; providers, medications, live notes and events, `compareHits` order, linked ones out; type chips and a first or last type word (`linkTypeWord`; finding nothing, the whole text). `LinkedTodos` (provider, medication pages): open linked todos; writers' full `TodoQuickAdd` with the link (band titled even empty) and a compact one per open row.
 - **An entry's Todos** (`entry/EntryTodos.tsx`): open (tick, Undo), done (newest 20); writers' `TodoQuickAdd` (as `LinkedTodos`), Link a todo (ComboBox: open, unlinked, at most 20), Remove.
 
 ## Seeds and checks
 
-- **Seeds** (`seeds/todos.ts`): open, overdue, done, unassigned; viewer@'s "Pick up groceries"; one linked to Cornerstone; weekly "Put the bins out" (the open one has id `nextTodoId`); "Get ready for the hospital stay" (subtasks; viewer@'s is the only open child).
-- **Tests:** unit, integration, component; `roundtrip` (`todo`, `timeline_entry_todo`): viewer@ ticks offline (a forced title change refused) and a weekly one (one next, the device's id).
+- **Seeds** (`seeds/todos.ts`): open, overdue, done, unassigned; viewer@'s "Pick up groceries"; one linked to Cornerstone; weekly "Put the bins out"; "Get ready for the hospital stay" (subtasks; viewer@'s is the only open child).
+- **Tests:** unit, integration, component; `roundtrip` (`todo`, `timeline_entry_todo`): viewer@ ticks offline (a forced title change refused) and a weekly one.
