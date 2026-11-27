@@ -18,15 +18,15 @@ Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 sta
 
 - Slice 2 handed off (98241866): `project-check` built; its slice check passed every unit test but timed out in the tooling step at load ~49 (600 s budget); `stack.test.mjs` "rm.sh from inside the worktree it removes (B-812)" fails 2 cases on the base too (maybe agent-session env): the wave's CI run decides. Also `makeRepo` stops copying `boundary.manifest`/`.allowlist`, adds `sampleData()`. Slice 3 handed off (3d79c811): `fixtureTierData()` in `config-fixture.mjs`; its slice check passed (unit 5454, tooling 2913). The `stack.test.mjs` B-812 failures are the orchestrator session's `RISA_SESSION_*`/`CLAUDE_PID` env leaking into subagent shells (pass with them unset): already B-932. Follow-up idea: `test:tooling` runs `tooling-lint.mjs` before the check, so broken tier data throws a stack trace first.
 
-| Slice | Wave | State   | Model | Merge into `prd/orchestration-split-4` |
-| ----- | ---- | ------- | ----- | -------------------------------------- |
-| 1     | 1    | merged  | opus  | 8d6fdd82                               |
-| 2     | 1    | merged  | opus  | 78153d01                               |
-| 3     | 1    | merged  | opus  | 3f8e5900                               |
-| 4     | 2    | merged  | opus  | b8484072                               |
-| 5     | 3    | running | opus  |                                        |
-| 6     | 3    | running | opus  |                                        |
-| 7     | 4    | planned |       |                                        |
+| Slice | Wave | State                 | Model | Merge into `prd/orchestration-split-4` |
+| ----- | ---- | --------------------- | ----- | -------------------------------------- |
+| 1     | 1    | merged                | opus  | 8d6fdd82                               |
+| 2     | 1    | merged                | opus  | 78153d01                               |
+| 3     | 1    | merged                | opus  | 3f8e5900                               |
+| 4     | 2    | merged                | opus  | b8484072                               |
+| 5     | 3    | running               | opus  |                                        |
+| 6     | 3    | handed off (cc44718c) | opus  |                                        |
+| 7     | 4    | planned               |       |                                        |
 
 ## Architectural decisions
 
