@@ -437,7 +437,7 @@ describe.each([
         document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for this"]'),
       )
       .not.toBeNull();
-    await menu(pageActions, { name: "Actions for this note", items: "Tags,Print,Delete" });
+    await menu(pageActions, { name: "Actions for this note", items: "Print,Delete" });
     await overlay(TIME_CHIP, { name: "When it happened" });
     await userEvent.click(TIME_CHIP());
     await expect
@@ -456,7 +456,7 @@ describe.each([
     await userEvent.keyboard("{Escape}");
   });
 
-  test("an event's page ⋯: Tags, Reschedule, Cancel event, Delete", async () => {
+  test("an event's page ⋯: Reschedule, Cancel event, Print, Delete", async () => {
     await open(`/app/groups/${TEST_GROUP.id}/entries/${EVENT.id}`, layout);
     await expect
       .poll(() =>
@@ -465,7 +465,7 @@ describe.each([
       .not.toBeNull();
     await menu(() => must('main header [data-region="actions"] button[aria-label^="Actions for this"]'), {
       name: "Actions for this event",
-      items: "Tags,Reschedule,Cancel event,Print,Delete",
+      items: "Reschedule,Cancel event,Print,Delete",
     });
   });
 
