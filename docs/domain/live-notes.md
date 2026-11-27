@@ -22,7 +22,7 @@ PRD: [`plans/live-notes-ux-prd.md`](../../plans/live-notes-ux-prd.md).
   - `createNoteDoc` and `bindNoteDoc` are split so StrictMode's double effects can't destroy a live doc.
   - Typing bursts flush as one `note_update` 250 ms after the last keystroke, and at least every 1 s.
   - A viewer's changes are never written; an Easy helper writes only the documents of entries they created (`noteDocumentService.mayWriteOwner`, in SQL via `groupOwn`; never a provider's, medication's, care period's or todo's).
-  - Previews rebuild locally (unsynced edits too); Full view cards show formatting (`noteRichText`, `entry/NoteRichText`, no Tiptap).
+  - Previews rebuild locally (unsynced edits too), reading only the list window's documents (B-313); Full view cards show formatting (`noteRichText`, `entry/NoteRichText`, no Tiptap).
 - **Entry page** (`routes/app/groups/entry/route.tsx`, `/entries/:id`; `/entries/new?kind=note|event` is a draft, the same route so the editor stays mounted):
   - Nothing is written until the first real change (`shouldMaterialize` in `lib/live-notes/liveEntry.ts`: text in the document, or a title). Then `materializeLiveEntry` (`lib/live-notes/liveEntry.sync.ts`) writes the entry and its document in one local transaction (idempotent on the id; for an older event it adds only the document), and the URL is **replaced** with `/entries/:id`.
   - `bindNoteDoc`'s `ensureSaved` holds a draft's Yjs changes in memory until then; leaving drops them.
