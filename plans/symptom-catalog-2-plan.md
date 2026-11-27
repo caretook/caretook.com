@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/symptom-catalog-2` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | running |                                                    |
-| 2     | 1    | merged  | 284076ebd (e5905ecec)                              |
-| 3     | 2    | planned |                                                    |
-| 4     | 3    | planned |                                                    |
-| 5     | 3    | planned |                                                    |
+| Slice | Wave | State          | Merge into `prd/symptom-catalog-2` (slice commits) |
+| ----- | ---- | -------------- | -------------------------------------------------- |
+| 1     | 1    | running        |                                                    |
+| 2     | 1    | merged         | 284076ebd (e5905ecec)                              |
+| 3     | 2    | running (opus) |                                                    |
+| 4     | 3    | planned        |                                                    |
+| 5     | 3    | planned        |                                                    |
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Now (2026-11-27):** wave 1 merged (slices 1, 2 on opus); full CI run out (migration 0049). B-898 done; B-890 spans slices 1, 3-5.
+**Now (2026-11-27):** wave 1 merged (slices 1, 2 on opus), full CI green on 51acfc09 (run 46065323091); `risa sync`: no merge needed. Landing held on a question: the lean browser suite is needed (migration + sync rules); recommended to hold landing until all slices merge and run the suite once (memory no-repeat-full-suite). Slice 3 running (opus) in `.loops/symptom-catalog-2-3`. B-898 done; B-890 spans slices 1, 3-5. Wave 1 worktrees kept until landing.
 
 **For later slices:** slice 1 already appended `archived_at, replaced_by_id` to `sync-config.yaml` (rolesSql test needs whole-table streams), so slice 3 adds them only to the device schema (and the roundtrip matrix may need them as server-set). `ensure`/backfill keep an archived row archived. Quick entry no longer uses `SymptomGate` (its `takeFocus={false}` has no caller). At landing: `docs/domain/assistant.md` (symptom cards save the closest name, no wait), timeline.md catalog line.
 
