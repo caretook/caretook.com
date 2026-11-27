@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
-| 2     | 2    | landed  | 7b892610 (d362bd70)                     |
-| 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                     |
+| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits)     |
+| ----- | ---- | ------- | ------------------------------------------- |
+| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
+| 2     | 2    | landed  | 7b892610 (d362bd70)                         |
+| 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
 | 4     | 4    | merged  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
-| 5     | 5    | planned |                                         |
-| 6     | 5    | planned |                                         |
+| 5     | 5    | planned |                                             |
+| 6     | 5    | planned |                                             |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
