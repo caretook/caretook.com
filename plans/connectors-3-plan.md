@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged (2026-11-27); CI `integration` run 46059491494 braked only on my plan file's format (fixed); rerun out. Slice worktrees kept until green. `planner-3` landed in `dev` (start condition met).
+**Where it stands:** wave 1 green (2026-11-27); CI `integration` run 46059491494 braked on my plan file's format (fixed); run 46060325211 green on e7bcfb58a. Slice worktrees removed; sync skipped (no shared files). Docs folded (5d389ed91). PR and Codex review next. Slice worktrees kept until green. `planner-3` landed in `dev` (start condition met).
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
