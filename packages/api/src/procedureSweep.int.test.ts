@@ -64,6 +64,7 @@ describe("every procedure, signed out", () => {
         "search.query",
         "timeline.symptomTypes.archive",
         "timeline.symptomTypes.unarchive",
+        "timeline.symptomTypes.replace",
       ]),
     );
   });
