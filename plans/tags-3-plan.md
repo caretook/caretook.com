@@ -8,14 +8,14 @@
 
 **2026-11-27, orchestrator start:** slice 1 rewritten for B-955 (the one tag control; filed by the user's word as tags-3's first slice); the copy-link slice it replaces (B-899) went to `fixes-ui` and is in `dev`. Slices 2 and 3 run beside it (no shared files; reason under _How to run_). Wave 1 started: slices 1, 2, 3 on opus, worktrees `.loops/tags-3-<n>`, watch running. Backlog session updated the registry's hot files and sees no reason to hold slice 1; if `todo-subtasks-3` (its slice 9, B-974 near `planner/`) lands first, `risa sync` before merging slice 1.
 
-| Slice | Wave | State                                      | Merge into `prd/tags-3` (slice commits) |
-| ----- | ---- | ------------------------------------------ | --------------------------------------- |
-| 1     | 1    | merged (opus)                              | f4d6d931c (53bebe24b, daf58de41)        |
-| 2     | 1    | merged (opus)                              | 6b4e1a82c (c93f944f7)                   |
-| 3     | 1    | merged (opus)                              | 4138c986e (9d6e835f8)                   |
-| 4     | 2    | started (opus), worktree `.loops/tags-3-4` |                                         |
+| Slice | Wave | State         | Merge into `prd/tags-3` (slice commits) |
+| ----- | ---- | ------------- | --------------------------------------- |
+| 1     | 1    | merged (opus) | f4d6d931c (53bebe24b, daf58de41)        |
+| 2     | 1    | merged (opus) | 6b4e1a82c (c93f944f7)                   |
+| 3     | 1    | merged (opus) | 4138c986e (9d6e835f8)                   |
+| 4     | 2    | merged (opus) | 964cfbcf2 (47b5b39f7)                   |
 
-**Wave 1 merged** at 4138c986e; B-955 and B-895 done (B-891 waits for slice 4). Wave 1's CI run requested at components (`risa tier`: app code). Slice 4 started beside it (ready: slice 2 merged). Docs to fold at wave 1's landing: tags (QuickTags always icon-only `TagPlus`, Undo toast on remove, list rows carry it, no ⋯ Tags anywhere; the Tags page, `groupTagUsesQuery`, `DeleteTagDialog`; search chips, `matchingTagIds`, `TagSwatch`, `searchGroup`'s `namedTags`; drop "Only Planner rows keep ⋯ Tags"), search, app-shell (Tags subpage), ui-kit (`Swatch`), components. Slices 1-3 changed 17, 19, 14 files (the hook's limit is 12): note for later plans. Context past the soft limit: rotate at the wave boundary after landing wave 1 and merging slice 4.
+**Wave 1 merged** at 4138c986e; B-955 and B-895 done (B-891 waits for slice 4). Wave 1's CI run requested at components (`risa tier`: app code). Slice 4 merged too; every slice is in, so the whole PRD lands as one: a components CI run on the tip with slice 4 follows the wave 1 run. Docs to fold at wave 1's landing: tags (QuickTags always icon-only `TagPlus`, Undo toast on remove, list rows carry it, no ⋯ Tags anywhere; the Tags page, `groupTagUsesQuery`, `DeleteTagDialog`; search chips, `matchingTagIds`, `TagSwatch`, `searchGroup`'s `namedTags`; drop "Only Planner rows keep ⋯ Tags"), search, app-shell (Tags subpage), ui-kit (`Swatch`), components. Slices 1-3 changed 17, 19, 14 files (the hook's limit is 12): note for later plans. Context past the soft limit: rotate at the wave boundary after landing wave 1 and merging slice 4.
 
 ## Architectural decisions
 
