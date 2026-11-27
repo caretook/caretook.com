@@ -32,7 +32,7 @@ Notes for every wave:
 | ----- | ------------------------------------------------- | ----------------------------------------------- | ----- |
 | 103   | B-937 linked entries use the timeline row (opus)  | working, spawned 2026-11-27                     |       |
 | 104   | B-939 medication brand names (opus)               | handed off dfddba9b, reviewed; merges after 103 |       |
-| 105   | B-940 provider rows show phone and address (opus) | working, spawned 2026-11-27                     |       |
+| 105   | B-940 provider rows show phone and address (opus) | handed off 4f49f76d, reviewed; merges after 103 |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
