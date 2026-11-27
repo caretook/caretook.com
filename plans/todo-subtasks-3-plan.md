@@ -16,17 +16,17 @@
 
 **Lessons:** my sed edits to the status table break its prettier alignment and every slice's check stops at format; run `pnpm exec prettier --write` on the plan before each commit.
 
-| Slice | Wave | State          | Merge into `prd/todo-subtasks-3` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)  | 2ecc23241 (5ee22a7ad)                            |
-| 2     | 1    | merged (opus)  | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
-| 3     | 1    | merged (opus)  | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
-| 4     | 2    | merged (opus)  | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
-| 5     | 3    | working (opus) |                                                  |
-| 6     | 3    | working (opus) |                                                  |
-| 7     | 4    | —              |                                                  |
-| 8     | 4    | —              |                                                  |
-| 9     | 5    | —              |                                                  |
+| Slice | Wave | State                                        | Merge into `prd/todo-subtasks-3` (slice commits) |
+| ----- | ---- | -------------------------------------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)                                | 2ecc23241 (5ee22a7ad)                            |
+| 2     | 1    | merged (opus)                                | 4d3ca3e7c (45a2ae69c, f24e0ea11)                 |
+| 3     | 1    | merged (opus)                                | 09d9e0dd6 (fa0dd51db, bab5e4988)                 |
+| 4     | 2    | merged (opus)                                | c7e7f6035 (b54b3ded0, c3ebbf8b0)                 |
+| 5     | 3    | working (opus)                               |                                                  |
+| 6     | 3    | handed off (opus), 2bb0cc1c0; merges after 5 |                                                  |
+| 7     | 4    | —                                            |                                                  |
+| 8     | 4    | —                                            |                                                  |
+| 9     | 5    | —                                            |                                                  |
 
 ## Architectural decisions
 
