@@ -174,8 +174,8 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   /** A symptom card's answer: the catalog's name to use, or null to add the name as typed. */
   const chooseSymptom = (card: QuickEntryCard, use: string | null) => {
-    if (!card.symptomGate) return;
-    const answer = { key: symptomKey(card.symptomGate.name), use };
+    if (!card.symptomDefault) return;
+    const answer = { key: symptomKey(card.symptomDefault.typed), use };
     setSymptomChoices((m) => new Map(m).set(card.key, answer));
   };
 

@@ -42,8 +42,9 @@ export const TIMELINE_PERMISSIONS = {
 
   // The group's symptom catalog (symptom-catalog): every member reads it;
   // anyone who may log a symptom may add one (an Easy helper too: a refused
-  // log would lose a care observation). Rows are never changed or removed
-  // but by the system (and with their group).
+  // log would lose a care observation). Updates are system-only here:
+  // symptomTypeService.archive/unarchive check for a writer (`WRITERS`) and
+  // write past this map. Rows are removed only with their group.
   symptomTypeSchema: {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),

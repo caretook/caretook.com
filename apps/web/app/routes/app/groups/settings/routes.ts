@@ -12,5 +12,7 @@ export const groupSettingsRoutes: RouteConfigEntry[] = [
     route("calendar", "routes/app/groups/settings/calendar/route.tsx"),
     // The group's tags (tags-3): rename, recolor, delete.
     route("tags", "routes/app/groups/settings/tags/route.tsx"),
+    // The group's symptom catalog (symptom-catalog-2): entry counts, archive and unarchive.
+    route("symptoms", "routes/app/groups/settings/symptoms/route.tsx"),
   ]),
 ];

@@ -147,9 +147,11 @@ streams:
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM appointment_series WHERE group_id IN my_groups
       # The group's symptom catalog (symptom-catalog): every member, every role.
-      # Rows are added, never changed or removed (but with the group).
+      # Rows are added, never removed (but with the group); a writer archives one
+      # (`archived_at`) and a merge leaves a tombstone (`replaced_by_id`): both server-set.
       - >-
-        SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by
+        SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by,
+        archived_at, replaced_by_id
         FROM symptom_type WHERE group_id IN my_groups
       # Which todos a note or event links (planner-3): entry ↔ todo links (hard deletes).
       - >-

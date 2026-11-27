@@ -35,14 +35,17 @@ export type QuickEntryCard = {
   opensDraft: boolean;
   /**
    * A symptom whose name is new to the group but like some it has
-   * (`withSymptomGates`): the card asks "Use <name>" or "Add new", and
-   * Save waits for the answer.
+   * (`withSymptomGates`): the card saves the closest one unasked and offers
+   * the others and "Add new" (the name as typed). Save doesn't wait.
    */
-  symptomGate?: SymptomGate;
+  symptomDefault?: SymptomDefault;
 };
 
-/** A symptom card's question: the name as typed, and the catalog's similar names. */
-export type SymptomGate = { name: string; similar: { id: string; name: string }[] };
+/**
+ * A symptom card's default: the name as typed, the catalog's closest name
+ * it saves as (`using`), and the catalog's other similar names.
+ */
+export type SymptomDefault = { typed: string; using: string; others: { id: string; name: string }[] };
 
 /**
  * A symptom card's answer, by card key: `use` is the catalog name chosen,
@@ -114,11 +117,13 @@ export const buildCards = (
   });
 
 /**
- * The catalog check on symptom cards (symptom-catalog), as the symptom sheet
- * does it, on the device's catalog: the parser already took an exact
- * match's spelling, so a name with similar ones (`similarSymptoms`) asks
- * on its card, until answered. An answer to "Use <name>" saves that name;
- * "Add new" saves the name as typed. Pure.
+ * The catalog check on symptom cards (symptom-catalog), on the device's
+ * catalog: the parser already took an exact match's spelling, so a name
+ * with similar ones (`similarSymptoms`) saves as the closest one by
+ * default (symptom-catalog-2), its card offering the others and "Add new".
+ * An answer to "Use <name>" saves that name; "Add new" saves the name as
+ * typed. Unlike the symptom sheet, which asks (`SymptomGate`), quick entry
+ * doesn't stop the line. Pure.
  */
 export const withSymptomGates = (
   cards: readonly QuickEntryCard[],
@@ -134,8 +139,13 @@ export const withSymptomGates = (
       return { ...card, reading: { ...card.reading, actions: [{ ...action, name: choice.use }] } };
     }
     const { exact, similar } = similarSymptoms(action.name, catalog);
-    if (exact || !similar.length) return card;
-    return { ...card, symptomGate: { name: symptomName(action.name), similar } };
+    const [closest, ...others] = similar;
+    if (exact || !closest) return card;
+    return {
+      ...card,
+      reading: { ...card.reading, actions: [{ ...action, name: closest.name }] },
+      symptomDefault: { typed: symptomName(action.name), using: closest.name, others },
+    };
   });
 
 /** What the box remembers per card: the reading chosen, the cards removed, a refusal's message, a symptom's answer. */
@@ -173,8 +183,8 @@ export const pruneCardState = (
 export const cardActions = (cards: readonly QuickEntryCard[]) =>
   cards.flatMap((card) => card.reading.actions.map((action) => ({ action, key: card.key })));
 
-/** Whether a card waits on something: a blocking message, or a symptom's unanswered question. */
-const waits = (card: QuickEntryCard) => card.blocking.length > 0 || !!card.symptomGate;
+/** Whether a card waits on something: a blocking message (a symptom's default doesn't wait). */
+const waits = (card: QuickEntryCard) => card.blocking.length > 0;
 
 /** Whether the cards can be saved: at least one, and none blocked. */
 export const canSaveCards = (cards: readonly QuickEntryCard[]) =>

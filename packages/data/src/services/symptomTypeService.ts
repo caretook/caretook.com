@@ -3,7 +3,7 @@ import type { AppError } from "../errors";
 import type { ServiceContext } from "./types";
 
 import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
-import { isLoggerRole, SYSTEM_USER } from "../constants";
+import { isLoggerRole, isWriterRole, SYSTEM_USER } from "../constants";
 import { dbMayFail, getDb, txOrDb, withTransaction } from "../db";
 import {
   careGroupSchema,
@@ -24,7 +24,8 @@ import { isSystemUser, rejectError } from "../permissions";
 // A care group's symptom catalog (symptom-catalog PRD). Write through here:
 // the id and the key are derived from the group and the name
 // (`symptomTypeRow`), so adding a name the group already has, in any case
-// or spacing, returns that row. Rows are added, never changed or removed.
+// or spacing, returns that row. Rows are never renamed or removed; a writer
+// archives one and brings it back (`archive`, `unarchive`: symptom-catalog-2).
 //
 // Three ways in: `addDefaults` when a group is made, `ensure` when someone
 // logs a name, and `backfill` (the migrate command and the seed's last step)
@@ -106,6 +107,47 @@ export const add = (ctx: ServiceContext, input: SymptomTypeAddInput) =>
     }
     return ensure({ ...ctx, tx }, groupId, name);
   }, ctx);
+
+/**
+ * Archive one of the group's rows (`archived: true`) or bring it back, as a
+ * writer (`WRITERS`): online only (oRPC), never uploaded. Idempotent: a
+ * repeat returns the row unchanged. Refuses another group's row or a missing
+ * one (`notFound`) and a tombstone (`merged`). Records the actor in
+ * `updated_by`.
+ */
+const setArchived = (
+  ctx: ServiceContext,
+  { groupId, id }: { groupId: string; id: string },
+  archived: boolean,
+) =>
+  withTransaction(async (tx) => {
+    if (!ctx.authUser) return rejectError(null);
+    if (!isSystemUser(ctx.authUser)) {
+      const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+      if (isError(role)) return role;
+      if (!isWriterRole(role)) return rejectError(ctx.authUser);
+    }
+    const row = await getById({ ...ctx, tx }, id);
+    if (isError(row)) return row;
+    if (!row || row.groupId !== groupId) return newError({ code: "symptomTypeService:notFound" });
+    if (row.replacedById) return newError({ code: "symptomTypeService:merged" });
+    if (!!row.archivedAt === archived) return row;
+
+    const changed = await symptomTypeModel.setArchived(
+      { groupId, id, archived },
+      { actorId: ctx.authUser.id, tx },
+    );
+    if (isError(changed)) return changed;
+    return getById({ ...ctx, tx }, id);
+  }, ctx);
+
+/** Archive a symptom: it leaves suggestions and pickers; its entries stay. See `setArchived`. */
+export const archive = (ctx: ServiceContext, input: { groupId: string; id: string }) =>
+  setArchived(ctx, input, true);
+
+/** Bring an archived symptom back. See `setArchived`. */
+export const unarchive = (ctx: ServiceContext, input: { groupId: string; id: string }) =>
+  setArchived(ctx, input, false);
 
 /** Insert catalog rows as the system, leaving any the group already has. Returns how many were added. */
 const insertRows = async (tx: Tx | undefined, rows: ReturnType<typeof symptomTypeRow>[]) => {

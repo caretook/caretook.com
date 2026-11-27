@@ -6,11 +6,17 @@
 
 | Slice | Wave | State   | Merge into `prd/symptom-catalog-2` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | planned |                                                    |
-| 2     | 1    | planned |                                                    |
-| 3     | 2    | planned |                                                    |
-| 4     | 3    | planned |                                                    |
-| 5     | 3    | planned |                                                    |
+| 1     | 1    | running |                                                    |
+| 2     | 1    | merged  | 284076ebd (e5905ecec)                              |
+| 3     | 2    | merged  | 2dbdae37a (c97cfb1c9)                              |
+| 4     | 3    | merged  | 0608d53fa (87e2f8979, 98585ea26)                   |
+| 5     | 3    | merged  | 1b74a52ea (1e65c2cb5)                              |
+
+**Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`. **Amended (ask a333, decided by skeptic s76):** hold landing until every slice is merged; one lean browser suite and one landing at the end (the user can veto under "decided for you").
+
+**Now (2026-11-27):** all five slices merged (opus). Full CI green on ad431461 (run 46068182688); lean browser suite 10/11, `ui.spec` failed under load (load 15-19) and passed alone: filed B-983 (fixes-tooling). Synced dev (63a74d267, a merge: needs a components recheck, running). PR #277 open, Codex review running. Docs folded (timeline, care-groups, assistant; budgets kept). Next: land `--tier full`, report, `risa rm`. Slice worktrees 1-5 kept until landing.
+
+**For later slices:** slice 1 already appended `archived_at, replaced_by_id` to `sync-config.yaml` (rolesSql test needs whole-table streams), so slice 3 adds them only to the device schema (and the roundtrip matrix may need them as server-set). `ensure`/backfill keep an archived row archived. Quick entry no longer uses `SymptomGate` (its `takeFocus={false}` has no caller). At landing: `docs/domain/assistant.md` (symptom cards save the closest name, no wait), timeline.md catalog line.
 
 ## Architectural decisions
 
@@ -45,7 +51,7 @@ Stack: no · Reads: docs/domain/timeline.md, docs/domain/data-layer.md · Tests:
   - Both are idempotent, and both refuse a tombstone and another group's row.
   - The write sets `updated_by` to the actor.
 - Add the new error codes to `packages/data/src/errors/timeline.ts`.
-- `packages/data/src/models/symptomType/symptomTypeModel.ts` exposes `update` for the service, and its "never changed" comment goes.
+- `packages/data/src/models/symptomType/symptomTypeModel.ts` exposes an update function for the service, and its "never changed" comment goes.
 
 **Acceptance criteria:**
 
@@ -100,7 +106,8 @@ Stack: no · Reads: docs/domain/timeline.md, docs/domain/sync.md, docs/domain/ap
 **What to build:**
 
 - Add a new `packages/api/src/timeline/symptomTypes.ts` with `archive` and `unarchive` procedures (`groupId`, `id`). Register them under `timeline.symptomTypes` in `packages/api/src/timeline/timeline.ts`, and add them to `packages/api/src/procedureSweep.int.test.ts`.
-- Append `archived_at` and `replaced_by_id` to the `symptom_type` select in `powersync/sync-config.yaml` and to `symptomTypes` in `apps/web/app/lib/sync/schema.ts`.
+- Append `archived_at` and `replaced_by_id` to the `symptom_type` select in `powersync/sync-config.yaml`.
+- Append them to `symptomTypes` in `apps/web/app/lib/sync/schema.ts`.
 - The `symptom_type` upload (`packages/api/src/syncRegistry.ts`) doesn't change: PUT-only, taking neither column.
 
 **Acceptance criteria:**
@@ -149,7 +156,7 @@ Stack: no · Reads: docs/domain/care-groups.md, docs/domain/app-shell.md, docs/d
 
 - Append a `"symptoms"` page to `GROUP_SETTINGS_PAGES` (`apps/web/app/lib/care-groups/urls.ts`), to `groupSettingsPages` (`routes/app/groups/settings/layout/settingsPages.ts`) and to `routes/app/groups/settings/routes.ts`.
 - Add a new `apps/web/app/lib/timeline/symptomCatalogPage.sync.ts`: the group's active and archived rows, A to Z, each with its live-entry count, as a live query. No tombstones.
-- Add a new `symptomCatalogAccess(groupId, role)` to `routes/app/groups/settings/groupSettings.ts`: `archive` for writers, and `replace` for owners (which the follow-on uses).
+- Add a new `symptomCatalogAccess(groupId, role)` to `routes/app/groups/settings/groupSettings.ts`: archive for writers, and replace for owners (which the follow-on uses).
 - Add a new `routes/app/groups/settings/symptoms/route.tsx`:
   - The active list with counts, then an "Archived" section.
   - Archive and Unarchive (writers) call slice 3's procedures, and say `NEEDS_CONNECTION` when offline, through the existing `failedSave` in `routes/app/groups/settings/api.ts` (imported, not changed).
