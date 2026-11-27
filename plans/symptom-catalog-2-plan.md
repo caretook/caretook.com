@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/symptom-catalog-2` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------------- |
-| 1     | 1    | running |                                                    |
-| 2     | 1    | merged  | 284076ebd (e5905ecec)                              |
-| 3     | 2    | merged  | 2dbdae37a (c97cfb1c9)                              |
-| 4     | 3    | planned |                                                    |
-| 5     | 3    | planned |                                                    |
+| Slice | Wave | State                                            | Merge into `prd/symptom-catalog-2` (slice commits) |
+| ----- | ---- | ------------------------------------------------ | -------------------------------------------------- |
+| 1     | 1    | running                                          |                                                    |
+| 2     | 1    | merged                                           | 284076ebd (e5905ecec)                              |
+| 3     | 2    | merged                                           | 2dbdae37a (c97cfb1c9)                              |
+| 4     | 3    | running (opus)                                   |                                                    |
+| 5     | 3    | handed off (1e65c2cb5), reviewed; merges after 4 |                                                    |
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`. **Amended (ask a333, decided by skeptic s76):** hold landing until every slice is merged; one lean browser suite and one landing at the end (the user can veto under "decided for you").
 
