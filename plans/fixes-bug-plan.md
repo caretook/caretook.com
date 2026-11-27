@@ -10,12 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State         | Merge    |
-| ----- | ----- | ------------- | -------- |
-| 74    | B-936 | merged (opus) | 6bed3d06 |
-| 75    | B-951 | merged (opus) | 3618ca7a |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 17 (2026-11-27):** synced dev (c990d787); slices 74 (Back returns to the opener, B-936) and 75 (B-951: no app bug, a stack missing migration 0048; tests and roundtrip diagnostics only) merged on Opus. Follow-up filed: B-954 (fixes-tooling: browser checks refuse a stack behind on migrations). Next: the wave CI run, then PR and Codex review; worktrees 74/75 stay until green.
+**Idle after wave 17** (landed 44561c0e through PR #251, 2026-11-27, `--no-review`: Codex out of credits; components green, run 45989155987). Slices 74 (B-936, Opus) and 75 (B-951, Opus: no app bug, a stack missing migration 0048) merged; follow-up B-954 (fixes-tooling: browser checks refuse a stack behind on migrations). This stack needed `pnpm datastore:reset` after the sync for roundtrip to pass. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 18 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence). Lane freed with `pnpm prd rm fixes-bug` (standing).
 
 ## Wave 1
 

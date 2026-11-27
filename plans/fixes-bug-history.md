@@ -2,6 +2,13 @@
 
 Finished-wave history moved out of [the plan](fixes-bug-plan.md)'s _Status_ by `pnpm prd status-trim fixes-bug`, the newest trim first.
 
+## Trimmed 2026-11-27
+
+| Slice | Item  | State         | Merge    |
+| ----- | ----- | ------------- | -------- |
+| 75    | B-951 | merged (opus) | 3618ca7a |
+| 74    | B-936 | merged (opus) | 6bed3d06 |
+
 ## Trimmed 2026-11-26
 
 **Wave 16 landed** as 3dd61650 (PR #208, full, run 45764032795; Codex out of credits, --no-review; report a256). Idle: no triaged fixes-bug items ready. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 17 from new triaged items (B-750 only once its notes name files; B-752 once B-753 lands). Standing topic: never `pnpm prd rm fixes-bug`.
