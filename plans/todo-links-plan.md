@@ -12,16 +12,20 @@
 
 **Docs at wave 1 landing (slice 6):** todos.md Screens (LinkedTodos, entry Todos) and components.md still say "Add todo" opens the sheet: now the full `TodoQuickAdd` (link, no parent) plus a compact one per open row; a writer's provider/medication Todos band is always titled (keeps focus on the first add); the `todos/new?providerId=` prefill stays but has no button there.
 
+**Wave 1 merged; CI run (components) requested.** B-948 done. Worktrees 1, 4, 6 kept until green.
+
+**From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
+
 **For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
 
-| Slice | Wave | Model | State                                 | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------- | ------------------------------------------- |
-| 1     | 1    | opus  | working                               |                                             |
-| 2     | 2    |       | planned                               |                                             |
-| 3     | 2    |       | planned                               |                                             |
-| 4     | 1    | opus  | handed off (db2656198), merge after 1 |                                             |
-| 5     | 3    |       | planned                               |                                             |
-| 6     | 1    | opus  | working                               |                                             |
+| Slice | Wave | Model | State   | Merge into `prd/todo-links` (slice commits) |
+| ----- | ---- | ----- | ------- | ------------------------------------------- |
+| 1     | 1    | opus  | working |                                             |
+| 2     | 2    |       | planned |                                             |
+| 3     | 2    |       | planned |                                             |
+| 4     | 1    | opus  | merged  | 755f9b1e4 (db2656198)                       |
+| 5     | 3    |       | planned |                                             |
+| 6     | 1    | opus  | working |                                             |
 
 ## Architectural decisions
 
