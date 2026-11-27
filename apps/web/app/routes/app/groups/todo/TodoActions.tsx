@@ -1,6 +1,6 @@
 import type { MenuEntry } from "~/components/ui";
 
-import { Ellipsis, Pencil, RotateCcw, Tag, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { Button, ConfirmDialog, Menu, Message } from "~/components/ui";
@@ -21,8 +21,7 @@ const deleteMessage = (title: string, subtasks: number) =>
 
 /**
  * A writer's actions on a todo: Edit (the edit sheet, which comes back
- * here) and ⋯ with Tags (the picker sheet, when `onTags` is given; tags
- * PRD), Reopen (once it's done) and Delete, behind a confirm:
+ * here) and ⋯ with Reopen (once it's done) and Delete, behind a confirm:
  * for an open repeating todo, the choice of skipping this one or stopping
  * the repeat. The confirm names how many subtasks go with it
  * (todo-subtasks: `subtasks`, every level). `onDelete` hears the delete or skip as it's sent; the page
@@ -38,7 +37,6 @@ export function TodoActions({
   busy,
   onReopen,
   onDelete,
-  onTags,
 }: {
   groupId: string;
   todoId: string;
@@ -51,8 +49,6 @@ export function TodoActions({
   busy: boolean;
   onReopen: () => void;
   onDelete: () => void;
-  /** Opens the tag picker; left out, there's no Tags. */
-  onTags?: () => void;
 }) {
   const fetcher = useFetcher<{ ok: true } | { ok: false; error: string }>();
   const [confirming, setConfirming] = useState(false);
@@ -64,7 +60,6 @@ export function TodoActions({
     void fetcher.submit({ intent }, { method: "post" });
   };
   const items: MenuEntry[] = [
-    ...(onTags ? [{ id: "tags", label: "Tags", icon: Tag, onAction: onTags }] : []),
     ...(done
       ? [{ id: "reopen", label: "Reopen", icon: RotateCcw, isDisabled: busy, onAction: onReopen }]
       : []),

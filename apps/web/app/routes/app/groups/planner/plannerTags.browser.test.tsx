@@ -18,7 +18,7 @@ import {
 import { PLANNER_ROUTES } from "./plannerWorld";
 
 // Tags on todos and the Planner (tags slice 4): a writer tags a todo from
-// its page's ⋯; a viewer who may tick it sees its chips and no tag control;
+// its page's Add tag (`QuickTags`); a viewer who may tick it sees its chips and no tag control;
 // `?tag=` narrows the Todos tab and Upcoming's events and todos (and is
 // carried to Past as a chip), survives a reload, and a deleted tag reads as
 // no filter. The filter options are unit tests (`todoFilters`,
@@ -87,17 +87,10 @@ const filterChips = () =>
   );
 
 describe("tags on a todo", () => {
-  test("a writer tags a todo from its page's ⋯; its chips follow, and the Todos row shows them", async () => {
+  test("a writer tags a todo from its page's Add tag; its chips follow, and the Todos row shows them", async () => {
     const device = await open(`${TODOS}/${PHARMACY.id}`);
     await expect.poll(headerChips).toBe("Urgent");
-    await userEvent.click(
-      await found(() =>
-        document.querySelector<HTMLButtonElement>(
-          'main header [data-region="actions"] button[aria-label^="Actions for"]',
-        ),
-      ),
-    );
-    await userEvent.click(page.getByRole("menuitem", { name: "Tags" }));
+    await userEvent.click(page.getByRole("button", { name: "Add tag" }));
     await found(() => document.querySelector("[data-tag-picker]"));
     await userEvent.click(page.getByRole("checkbox", { name: "Care home move" }));
     await device.settle();
@@ -128,8 +121,9 @@ describe("tags on a todo", () => {
         ),
       )
       .toContain("Mark “Call the pharmacy” done");
-    // …but there's no ⋯ (no Tags) for them.
+    // …but there's no ⋯ and no tag control for them.
     expect(document.querySelector('main header button[aria-label^="Actions for"]')).toBeNull();
+    expect(document.querySelectorAll("main header [data-todo-tags] button")).toHaveLength(0);
     expect(document.querySelector("[data-tag-picker]")).toBeNull();
   });
 });

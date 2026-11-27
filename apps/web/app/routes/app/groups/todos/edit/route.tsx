@@ -5,6 +5,7 @@ import type { TodoRow } from "~/lib/todos/todos.sync";
 
 import { useEffect } from "react";
 import { redirect } from "react-router";
+import { QuickTags } from "~/components/tags";
 import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
@@ -27,7 +28,8 @@ const NO_ROWS: TodoRow[] = [];
 
 // Shared by web + native. `todos/:todoId/edit`: the edit sheet, over the
 // list. A viewer, and a todo that's missing, deleted or in another group,
-// land on the list.
+// land on the list. Its tags (`QuickTags`, tags-2) sit under the form: each
+// tap is its own local write, never part of Save.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -102,6 +104,17 @@ export default function EditTodoSheet({ loaderData, params }: Route.ComponentPro
         onDone={close}
         onCancel={close}
       />
+      {!gone && (
+        <div className="border-base-300 mt-4 border-t pt-4" data-todo-edit-tags="">
+          <QuickTags
+            target="todo"
+            recordId={params.todoId}
+            label={live?.title ?? loaderData.todo.title}
+            createdBy={loaderData.todo.createdBy}
+            max={null}
+          />
+        </div>
+      )}
     </Sheet>
   );
 }

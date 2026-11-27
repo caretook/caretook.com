@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------- |
-| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245) |
-| 2     | 2    | landed  | 7b892610 (d362bd70)                     |
-| 3     | 3    | landing | 8cc6a9c5 (ca9829f5)                     |
-| 4     | 4    | planned |                                         |
-| 5     | 5    | planned |                                         |
-| 6     | 5    | planned |                                         |
+| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits)     |
+| ----- | ---- | ------- | ------------------------------------------- |
+| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
+| 2     | 2    | landed  | 7b892610 (d362bd70)                         |
+| 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
+| 4     | 4    | landed  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
+| 5     | 5    | planned |                                             |
+| 6     | 5    | planned |                                             |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 3 (slice 3, opus) merged as 8cc6a9c5; B-893, B-894 done. CI full run 45941751708 on 12907d62: flake (search.sync timing test, brake list, outside the branch). PR #247; Codex out of credits (exit 4), so landing `--no-review --tier full`. Tags doc folded (colored chips, seeds). **Next session:** wave 4, slice 4 (QuickTags on entry and todo pages; opus; claim B-892; touches `routes/app/groups/todos/`, a todo-subtasks-2 hot file: sync dev first if that topic runs). `Badge` takes `fill` (`tagColorClass`). After a seed change, the stack needs `pnpm datastore:reset` before browser checks.
+**Now:** wave 4 green (flake verdict, run 45945943940 on d5e4b103: sheetExit flake outside the branch); dev sync a no-op; worktree tags-2-4 removed; PR #248 opened; Codex out of credits → landing `--no-review`, tier components; tags doc folded. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
 
 ## Architectural decisions
 
