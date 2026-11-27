@@ -8,12 +8,14 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 written 2026-11-26: slices 4–7. B-637 (20 files) split: slice 6 keeps 8 files, slice 7 is the new B-930. Slice 7 waited for slice 5 (both touch `settings/account/route.tsx`). All four merged; wave gate: CI `components` (tier proposes `full` only for `vitest.config.ts`, whose change is one comment line). B-931 filed for the next wave (`ui/` primitives with the old classes, found by slice 6).
 
-| Slice | Item  | State  | Model  | Merge    |
-| ----- | ----- | ------ | ------ | -------- |
-| 4     | B-544 | merged | sonnet | 87b37a46 |
-| 5     | B-630 | merged | opus   | 477b78c1 |
-| 6     | B-637 | merged | sonnet | fec66e7e |
-| 7     | B-930 | merged | sonnet | 93466070 |
+| Slice | Item  | State  | Merge    |
+| ----- | ----- | ------ | -------- |
+| 4     | B-544 | merged | 87b37a46 |
+| 5     | B-630 | merged | 477b78c1 |
+| 6     | B-637 | merged | fec66e7e |
+| 7     | B-930 | merged | 93466070 |
+
+Models: slices 4, 6 and 7 on sonnet (no logic), slice 5 on opus. First CI run (aeb6d9bc, run 45913590395): `file`; the plan's table had a Model column the fixes-plans test refuses (fixed), and doc.test.mjs's project-config case (dev's, fixed in c75dc65a, B-928: synced in).
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
