@@ -1,7 +1,7 @@
 import type { DueDose, DueMedication } from "./dueDoses";
 
 import { describe, expect, it } from "vitest";
-import { doseRecord } from "./doseRecord";
+import { doseRecord, sheetDoseMarkZSchema, SHEET_DOSE_MARKS_MAX, sheetDoseOutcomes } from "./doseRecord";
 import { dueDoses } from "./dueDoses";
 import { duePasses } from "./duePasses";
 
@@ -205,5 +205,126 @@ describe("doseRecord", () => {
       ["2026-11-01", "08:00", "2026-11-01T16:00:00.000Z", "missed"],
       ["2026-11-02", "08:00", "2026-11-02T16:00:00.000Z", "missed"],
     ]);
+  });
+});
+
+describe("sheetDoseOutcomes", () => {
+  // A week of the sheet read on Friday 2026-11-20 at 12:00: aspirin in both
+  // passes, a night medication at 00:00. Sam gave Tuesday's morning dose.
+  const aspirin = med("aspirin", slots({ passId: MORNING }, { passId: EVENING }));
+  const night = med("night", slots({ time: "00:00" }));
+  const given = dose("aspirin", "2026-11-17T16:05:00.000Z", "given", {
+    passId: MORNING,
+    scheduledFor: "08:00",
+  });
+  const EARLIEST = "2026-11-07";
+
+  const outcomesOf = (
+    marks: { medicationId: string; day: string; time: string; status: "given" | "skipped" | "refused" }[],
+    { now = NOW, from = "2026-11-16", days = 5 }: { now?: Date; from?: string; days?: number } = {},
+  ) =>
+    sheetDoseOutcomes({
+      record: record([aspirin, night], [given], from, days, now),
+      marks,
+      now,
+      earliestDay: EARLIEST,
+    }).map((o) => o.outcome);
+  const mark = (
+    medicationId: string,
+    day: string,
+    time: string,
+    status: "given" | "skipped" | "refused" = "given",
+  ) => ({
+    medicationId,
+    day,
+    time,
+    status,
+  });
+
+  it.each([
+    ["an open past slot", [mark("aspirin", "2026-11-18", "20:00")], ["add"]],
+    ["a slot given in the app, marked given", [mark("aspirin", "2026-11-17", "08:00")], ["alreadyLogged"]],
+    [
+      "a slot given in the app, marked refused",
+      [mark("aspirin", "2026-11-17", "08:00", "refused")],
+      ["conflict"],
+    ],
+    ["a time the medication isn't taken", [mark("aspirin", "2026-11-18", "13:00")], ["noSlot"]],
+    ["a medication not on the record", [mark("elsewhere", "2026-11-18", "08:00")], ["noSlot"]],
+    ["a day before the reach", [mark("aspirin", "2026-11-06", "08:00")], ["tooOld"]],
+    // The reach is the day's alone: no slot is looked up.
+    ["a day before the reach, for no slot", [mark("elsewhere", "2026-11-06", "13:00")], ["tooOld"]],
+    ["the reach's first day", [mark("aspirin", "2026-11-07", "08:00")], ["noSlot"]],
+    [
+      "a repeat after an add",
+      [mark("aspirin", "2026-11-19", "08:00"), mark("aspirin", "2026-11-19", "08:00", "skipped")],
+      ["add", "repeated"],
+    ],
+    [
+      "a repeat after an already logged one",
+      [mark("aspirin", "2026-11-17", "08:00"), mark("aspirin", "2026-11-17", "08:00")],
+      ["alreadyLogged", "repeated"],
+    ],
+    ["a 00:00 slot, on its own day", [mark("night", "2026-11-18", "00:00")], ["add"]],
+    ["today's morning slot, due earlier today", [mark("aspirin", "2026-11-20", "08:00")], ["add"]],
+    ["today's evening slot, later today", [mark("aspirin", "2026-11-20", "20:00")], ["notYet"]],
+  ])("%s", (_name, marks, expected) => {
+    expect(outcomesOf(marks)).toEqual(expected);
+  });
+
+  it("reads a record that doesn't reach a day as no slot, and keeps the reach's first day when it does", () => {
+    // The record from 2026-11-16 has no 2026-11-07; one from it does.
+    expect(outcomesOf([mark("aspirin", "2026-11-07", "08:00")], { from: EARLIEST, days: 14 })).toEqual([
+      "add",
+    ]);
+  });
+
+  it("gives an add its slot, at its time and amount, and a conflict the dose", () => {
+    const [add, conflict] = sheetDoseOutcomes({
+      record: record([aspirin], [given], "2026-11-17", 2),
+      marks: [mark("aspirin", "2026-11-18", "08:00"), mark("aspirin", "2026-11-17", "08:00", "skipped")],
+      now: NOW,
+      earliestDay: EARLIEST,
+    });
+    expect(add).toMatchObject({
+      outcome: "add",
+      slot: {
+        day: "2026-11-18",
+        time: "08:00",
+        passId: MORNING,
+        amount: "1 tablet",
+        at: "2026-11-18T16:00:00.000Z",
+      },
+    });
+    expect(conflict).toMatchObject({
+      outcome: "conflict",
+      dose: { id: given.id, details: { status: "given" } },
+    });
+  });
+
+  it("finds a slot on a DST day at its wall-clock time", () => {
+    const now = new Date("2026-11-03T20:00:00.000Z");
+    const [out] = sheetDoseOutcomes({
+      record: record([aspirin], [], "2026-10-31", 3, now),
+      marks: [mark("aspirin", "2026-11-01", "08:00")],
+      now,
+      earliestDay: "2026-10-21",
+    });
+    expect(out).toMatchObject({ outcome: "add", slot: { at: "2026-11-01T16:00:00.000Z" } });
+  });
+
+  it("takes marks of given, skipped or refused, at most SHEET_DOSE_MARKS_MAX a batch", () => {
+    const ok = {
+      medicationId: MORNING,
+      day: "2026-11-18",
+      time: "08:00",
+      status: "refused",
+      note: "Spat it out",
+    };
+    expect(sheetDoseMarkZSchema.safeParse(ok).success).toBe(true);
+    expect(sheetDoseMarkZSchema.safeParse({ ...ok, status: "missed" }).success).toBe(false);
+    expect(sheetDoseMarkZSchema.safeParse({ ...ok, time: "8am" }).success).toBe(false);
+    expect(sheetDoseMarkZSchema.safeParse({ ...ok, note: "x".repeat(501) }).success).toBe(false);
+    expect(SHEET_DOSE_MARKS_MAX).toBe(200);
   });
 });
