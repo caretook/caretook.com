@@ -10,14 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                                             | Merge    |
-| ----- | ----- | ----------------------------------------------------------------- | -------- |
-| 76    | B-968 | merged (Opus; test-only: LA time hard-coded)                      | d8ce4a4e |
-| 77    | B-969 | merged (Opus; test-only: LA device zone hard-coded)               | 641ecbb5 |
-| 78    | B-970 | merged (Opus; app: quick tags line covered the row link, `w-fit`) | 8028c782 |
-| 79    | B-971 | merged (Opus; test-only: split label assumed LA)                  | 2375e299 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Idle after wave 18** (landed through PR #258, 2026-11-27, Codex clean on 96ff344; components CI flake on 96ff3441, run 46048908769: `search.sync.browser.test.tsx` timing, not this branch's, filed by land). Slices 76 (B-968), 77 (B-969), 79 (B-971) were test-only (Los Angeles assumed); 78 (B-970) was an app bug: quick tags' line covered a row's open link (`w-fit` in `QuickTags.tsx`, folded into tags.md). To-test: `to-test/2026-11-27-1329-fixes-bug.md`. Slice worktrees removed. Lesson for zone slices: a test file not in `vitest.config.ts`'s `NY_INCLUDE` can't import `test/zone.ts`; compute the expectation with the screen's formatter or `Intl`. Browser checks at landing were roundtrip and layout-offline only (no `--suite`: the user asks first). Land twice refused on components.md's budget while dev moved: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 19 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
+**Idle after wave 18** (landed through PR #258, 2026-11-27, Codex clean on 96ff344; components CI flake on 96ff3441, run 46048908769: `search.sync.browser.test.tsx` timing, not this branch's, filed by land). Slices 76 (B-968), 77 (B-969), 79 (B-971) were test-only (Los Angeles assumed); 78 (B-970) was an app bug: quick tags' line covered a row's open link (`w-fit` in `QuickTags.tsx`, folded into tags.md). To-test: `to-test/2026-11-27-1329-fixes-bug.md`. Slice worktrees removed. Lesson for zone slices: a test file not in `vitest.config.ts`'s `NY_INCLUDE` can't import `test/zone.ts`; compute the expectation with the screen's formatter or `Intl`. Browser checks at landing were roundtrip and layout-offline only (no `--suite`: the user asks first). `risa status-trim` (Risa v0.1.3) fails: "Cannot find package 'prettier'" from `~/.risa/releases/v0.1.3/loops/status-trim.mjs`; wave 18 rows moved to history by hand. Land twice refused on components.md's budget while dev moved: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 19 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
