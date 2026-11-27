@@ -1,6 +1,7 @@
 import type { EntryCondition, EntryFilters, LocalQuery } from "../../../../lib/timeline/timeline.sync";
 
 import { matchesText, textTokens } from "../../../../lib/core/textFilter";
+import { windowDocumentsQuery } from "../../../../lib/live-notes/notes.sync";
 import { pastEventsFrom, pastEventsWindow, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 import { contactsQuery } from "./upcomingContact";
 
@@ -20,16 +21,17 @@ const MINUTE_MS = 60_000;
 export const windowStart = (now: Date | number) =>
   new Date(Math.floor(new Date(now).getTime() / MINUTE_MS) * MINUTE_MS);
 
-/** The Planner tab's entries and their linked providers, for one window. */
+/** The Planner tab's entries, their linked providers and their documents (the previews), for one window. */
 export const upcomingQueries = (
   groupId: string,
   filters: EntryFilters,
   now: Date | number,
-): { entries: LocalQuery; contacts: LocalQuery } => {
+): { entries: LocalQuery; contacts: LocalQuery; documents: LocalQuery } => {
   const window = upcomingWindow(groupId, filters, windowStart(now));
   return {
     entries: { sql: `SELECT * ${window.sql}`, params: window.params },
     contacts: contactsQuery(window),
+    documents: windowDocumentsQuery(groupId, window),
   };
 };
 
@@ -58,6 +60,14 @@ export const pastTextQuery = (groupId: string, filters: EntryFilters, cutoff: st
   const from = pastEventsFrom(groupId, { ...filters, match: null }, cutoff);
   return { sql: `SELECT id, title, place ${from.sql}`, params: from.params };
 };
+
+/**
+ * The documents of every past event `pastTextQuery` reads (the search box
+ * matches their text, and the page's previews are among them): events only,
+ * never the group's notes or what's ahead.
+ */
+export const pastDocumentsQuery = (groupId: string, filters: EntryFilters, cutoff: string): LocalQuery =>
+  windowDocumentsQuery(groupId, pastEventsFrom(groupId, { ...filters, match: null }, cutoff));
 
 /**
  * The Past window's condition for the search box's text `q`: the events

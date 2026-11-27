@@ -84,18 +84,23 @@ export type DoseChoice = { id: string; name: string; strength: string | null; do
 
 /**
  * The group's current medications (not deleted) for the Dose sheet: the
- * most recently given first, then the ones never given, each by name.
+ * most recently given first, then the ones never given, each by name. Each
+ * medication's last given dose comes from one pass over the group's given
+ * doses, never a pass per medication (B-313).
  */
 export const doseChoicesQuery = (groupId: string): LocalQuery => ({
-  sql: `SELECT m.id, m.name, m.strength, m.dose,
-               (SELECT MAX(e.occurred_at) FROM timeline_entry e
-                 WHERE e.group_id = m.group_id AND e.kind = 'dose' AND e.deleted_at IS NULL
-                   AND json_extract(e.details, '$.status') = 'given'
-                   AND json_extract(e.details, '$.medicationId') = m.id) AS last_given
+  sql: `SELECT m.id, m.name, m.strength, m.dose, g.last_given
         FROM medication m
+        LEFT JOIN (
+          SELECT json_extract(e.details, '$.medicationId') AS medication_id, MAX(e.occurred_at) AS last_given
+          FROM timeline_entry e
+          WHERE e.group_id = ? AND e.kind = 'dose' AND e.deleted_at IS NULL
+            AND json_extract(e.details, '$.status') = 'given'
+          GROUP BY medication_id
+        ) g ON g.medication_id = m.id
         WHERE m.group_id = ? AND m.deleted_at IS NULL AND m.status = 'current' AND m.name IS NOT NULL
-        ORDER BY last_given IS NULL, last_given DESC, m.name COLLATE NOCASE, m.id`,
-  params: [groupId],
+        ORDER BY g.last_given IS NULL, g.last_given DESC, m.name COLLATE NOCASE, m.id`,
+  params: [groupId, groupId],
 });
 
 export const toDoseChoices = (rows: DoseChoiceRow[]): DoseChoice[] =>
