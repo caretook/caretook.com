@@ -10,10 +10,12 @@ Planned 2026-11-26 (dev 153d6b95). Started 2026-11-26 on prd/orchestration-split
 
 Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 started: slices 1, 2, 3 worktrees made, agents spawned on opus.
 
+- Slice 2 handed off (98241866): `project-check` built; its slice check passed every unit test but timed out in the tooling step at load ~49 (600 s budget); `stack.test.mjs` "rm.sh from inside the worktree it removes (B-812)" fails 2 cases on the base too (maybe agent-session env): the wave's CI run decides. Also `makeRepo` stops copying `boundary.manifest`/`.allowlist`, adds `sampleData()`. Follow-up idea: `test:tooling` runs `tooling-lint.mjs` before the check, so broken tier data throws a stack trace first.
+
 | Slice | Wave | State   | Model | Merge into `prd/orchestration-split-4` |
 | ----- | ---- | ------- | ----- | -------------------------------------- |
 | 1     | 1    | working | opus  |                                        |
-| 2     | 1    | working | opus  |                                        |
+| 2     | 1    | handed off 98241866 | opus  |                                        |
 | 3     | 1    | working | opus  |                                        |
 | 4     | 2    | planned |       |                                        |
 | 5     | 3    | planned |       |                                        |
