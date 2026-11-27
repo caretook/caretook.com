@@ -12,7 +12,7 @@
 
 **Docs at wave 1 landing (slice 6):** todos.md Screens (LinkedTodos, entry Todos) and components.md still say "Add todo" opens the sheet: now the full `TodoQuickAdd` (link, no parent) plus a compact one per open row; a writer's provider/medication Todos band is always titled (keeps focus on the first add); the `todos/new?providerId=` prefill stays but has no button there.
 
-**Wave 1 merged; CI run (components) requested.** B-948 done. Worktrees 1, 4, 6 kept until green.
+**Wave 1 merged; CI run (components) 46068430312 on 424c5081: brake**, all 13 failures the branch's: slice 1's `ComboBox` `Option` markup change (option text reads label+description; pickers in entryWithRow, conditions, medicationConditions, conditionProviders, entryTodos), plus search.sync's 50 ms query timing (58.5 ms, likely load). A fresh opus fix agent works in todo-links-1 (slice 1's agent was near its context limit). Then merge slice 1 again and rerun components. B-948 done. Worktrees 1, 4, 6 kept until green.
 
 **From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
 
