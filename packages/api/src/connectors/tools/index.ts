@@ -1,5 +1,6 @@
 import type { Tool } from "../registry";
 
+import { addProvider } from "./addProvider";
 import { groupOverview } from "./groupOverview";
 import { latestVitals } from "./latestVitals";
 import { listMedications } from "./listMedications";
@@ -9,6 +10,7 @@ import { listTimeline } from "./listTimeline";
 import { recipientProfile } from "./recipientProfile";
 import { search } from "./search";
 import { doseSchedule } from "./doseSchedule";
+import { pastDoses } from "./pastDoses";
 import { todaysDoses } from "./todaysDoses";
 import { upcoming } from "./upcoming";
 import {
@@ -37,6 +39,7 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   listMedications,
   todaysDoses,
   doseSchedule,
+  pastDoses,
   upcoming,
   listTodos,
   listProviders,
@@ -54,4 +57,5 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   addCondition,
   updateCondition,
   resolveCondition,
+  addProvider,
 ];
