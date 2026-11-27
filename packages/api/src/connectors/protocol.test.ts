@@ -166,6 +166,16 @@ describe("handleMcp", () => {
     expect(names[names.indexOf("resolve_condition") + 1]).toBe("add_provider");
   });
 
+  it("lists the connector's past_doses right after dose_schedule, for read and write grants", async () => {
+    for (const scope of ["read", "readWrite"] as const) {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      const names = (result?.tools ?? []).map((t) => t.name);
+      expect(names[names.indexOf("dose_schedule") + 1], scope).toBe("past_doses");
+    }
+  });
+
   it("calls a tool: its text as content, its data as structuredContent", async () => {
     const body = await bodyOf(request(3, "tools/call", { name: "echo", arguments: { words: "hello" } }));
     expect(body.result).toEqual({

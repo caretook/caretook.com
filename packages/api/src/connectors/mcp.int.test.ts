@@ -171,8 +171,11 @@ describe("/mcp", () => {
       expect.arrayContaining(["group_overview", "list_timeline"]),
     );
     // The plan ahead right after today's doses, for both grants.
-    for (const listed of [await names(writer.tokens.access_token), await names(reader.tokens.access_token)])
+    // The past days right after the plan ahead.
+    for (const listed of [await names(writer.tokens.access_token), await names(reader.tokens.access_token)]) {
       expect(listed[listed.indexOf("todays_doses") + 1]).toBe("dose_schedule");
+      expect(listed[listed.indexOf("dose_schedule") + 1]).toBe("past_doses");
+    }
     // add_provider at the end of the writes, for a writer only.
     const written = await names(writer.tokens.access_token);
     expect(written[written.indexOf("resolve_condition") + 1]).toBe("add_provider");
