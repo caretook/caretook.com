@@ -9,6 +9,10 @@ import {
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
   canHaveSubtask,
+  clampDue,
+  DUE_AFTER_PARENT_ISSUE,
+  inheritedDue,
+  isDueAfterParent,
   isTodoCompleter,
   isTodoWriter,
   MAX_TODO_DEPTH,
@@ -150,8 +154,6 @@ export type TodosFilter = {
   limit?: number;
   /** Only the todos carrying this tag (`?tag=`; tags PRD). */
   tagId?: string | null;
-  /** Only the todos that list on their own (`listsOnItsOwn`: top-level, or a dated or assigned subtask). */
-  listed?: boolean;
   /**
    * The Done list's rule (todo-subtasks-3): top-level todos, and subtasks whose
    * top-level todo is done too. One whose top-level todo is open shows struck in
@@ -159,10 +161,6 @@ export type TodosFilter = {
    */
   doneListed?: boolean;
 };
-
-/** `listsOnItsOwn` in SQL, for the queries that page or count (the Done list). */
-const LISTED_SQL = ` AND (parent_id IS NULL OR due_on IS NOT NULL OR assignee_id IS NOT NULL
-  OR (assignee_name IS NOT NULL AND TRIM(assignee_name) <> ''))`;
 
 /**
  * A todo's top-level todo's `done_at`, as a correlated subquery on the outer
@@ -188,7 +186,7 @@ const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unkn
 /** The chip's condition, the tag's and the listing rule's, ANDed. */
 const filterCondition = (filter: TodosFilter): { sql: string; params: unknown[] } => {
   const chip = whoCondition(filter);
-  const listing = (filter.listed ? LISTED_SQL : "") + (filter.doneListed ? DONE_LISTED_SQL : "");
+  const listing = filter.doneListed ? DONE_LISTED_SQL : "";
   const who = listing ? { sql: chip.sql + listing, params: chip.params } : chip;
   if (!filter.tagId) return who;
   return {
@@ -215,7 +213,7 @@ export const todosQuery = (groupId: string, filter: TodosFilter = {}): LocalQuer
 /** How many done todos the chip shows (the Done list's "Show more"). */
 export const doneCountQuery = (
   groupId: string,
-  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "listed" | "doneListed"> = {},
+  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "doneListed"> = {},
 ): LocalQuery => {
   const who = filterCondition(filter);
   return {
@@ -343,6 +341,8 @@ const badParent = refuse("Choose a todo in this care group that can have subtask
 const repeatWithSubtasks = refuse("A subtask, or a todo with subtasks, can't repeat", [
   { ...REPEAT_WITH_SUBTASKS_ISSUE },
 ]);
+/** `todos:dueAfterParent`: an edit moving a subtask's due day past its parent's (`isDueAfterParent`). */
+const dueAfterParent = refuse(DUE_AFTER_PARENT_ISSUE.message, [{ ...DUE_AFTER_PARENT_ISSUE }]);
 
 /**
  * A todo's ancestors, its parent first, deleted ones included (they still
@@ -425,6 +425,9 @@ export const plannedTodo = async (
   const parent = await parentRefusal(db, groupId, content.parentId);
   if (parent) return parent;
   if (content.parentId && content.repeatRule) return repeatWithSubtasks;
+  // A subtask with no due takes its parent's; one past the parent's day is clamped (as todoService).
+  const parentTodo = content.parentId ? await liveTodo(db, content.parentId) : null;
+  const due = parentTodo ? clampDue(content.dueOn ? content : inheritedDue(parentTodo), parentTodo) : content;
 
   const now = nowTimestamp();
   const id = crypto.randomUUID();
@@ -435,6 +438,8 @@ export const plannedTodo = async (
       groupId,
       recipientId,
       ...contentColumns(content),
+      dueOn: due.dueOn,
+      dueTime: due.dueTime,
       parentId: content.parentId,
       // The quick-entry runner's until it writes a link row; `createTodo` takes it off.
       eventId: content.eventId,
@@ -571,7 +576,12 @@ export const updateTodo = async (
   const defined = Object.fromEntries(Object.entries(shape.data).filter(([, v]) => v !== undefined));
   const merged = todoContentZSchema.safeParse({ ...todoContentOf(existing), ...defined });
   if (!merged.success) return invalid(merged.error);
-  const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
+  const { doneAt: _doneAt, doneBy: _doneBy, ...edited } = merged.data;
+  // A subtask's due never passes its parent's day: moving it there is refused; any
+  // other edit of one that's already late is clamped, as todoService clamps it.
+  const parent = existing.parentId ? await liveTodo(db, existing.parentId) : null;
+  if (parent && edited.dueOn !== existing.dueOn && isDueAfterParent(edited, parent)) return dueAfterParent;
+  const content = parent ? { ...edited, ...clampDue(edited, parent) } : edited;
 
   if (content.assigneeId !== existing.assigneeId) {
     const assignee = await assigneeRefusal(db, existing.groupId, content.assigneeId);
@@ -589,17 +599,67 @@ export const updateTodo = async (
   )
     return repeatWithSubtasks;
 
+  // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
+  const clamps =
+    content.dueOn && content.dueOn !== existing.dueOn ? await descendantClamps(db, id, content) : [];
+  const now = nowTimestamp();
   // A new rule or due day moves the anchor; no rule clears all three (as todoService).
-  await db.drizzle
-    .update(todos)
-    .set({
-      ...contentColumns(content),
-      ...repeatColumnsFor(id, existing, content),
-      updatedAt: nowTimestamp(),
-      updatedBy: db.userId,
-    })
-    .where(eq(todos.id, id));
+  await db.drizzle.transaction(async (tx) => {
+    await tx
+      .update(todos)
+      .set({
+        ...contentColumns(content),
+        ...repeatColumnsFor(id, existing, content),
+        updatedAt: now,
+        updatedBy: db.userId,
+      })
+      .where(eq(todos.id, id));
+    for (const clamp of clamps) {
+      await tx
+        .update(todos)
+        .set({ dueOn: clamp.dueOn, dueTime: clamp.dueTime, updatedAt: now, updatedBy: db.userId })
+        .where(eq(todos.id, clamp.id));
+    }
+  });
   return { ok: true, id };
+};
+
+/**
+ * The clamps a todo's new due (`due`) makes below it (todo-subtasks-3, as
+ * `todoService`'s): its open live descendants, all levels, each under its
+ * own parent's due as clamped here (`clampDue`). Done ones stay as they are.
+ */
+const descendantClamps = async (
+  db: SyncDb,
+  id: string,
+  due: { dueOn: string | null; dueTime: string | null },
+) => {
+  const rows = await readRows<{
+    id: string;
+    parent_id: string;
+    due_on: string | null;
+    due_time: string | null;
+    done_at: string | null;
+  }>(db, {
+    sql: `WITH RECURSIVE below(id, depth) AS (
+            SELECT id, 1 FROM todo WHERE parent_id = ? AND deleted_at IS NULL
+            UNION ALL
+            SELECT t.id, below.depth + 1 FROM todo t JOIN below ON t.parent_id = below.id
+              WHERE t.deleted_at IS NULL AND below.depth < ?
+          )
+          SELECT todo.id, todo.parent_id, todo.due_on, todo.due_time, todo.done_at
+          FROM todo JOIN below ON below.id = todo.id ORDER BY below.depth`,
+    params: [id, MAX_TODO_DEPTH],
+  });
+  const dueOf = new Map([[id, due]]);
+  const clamps: { id: string; dueOn: string | null; dueTime: string | null }[] = [];
+  for (const row of rows) {
+    const own = { dueOn: row.due_on, dueTime: row.due_time };
+    const next = row.done_at ? own : clampDue(own, dueOf.get(row.parent_id));
+    dueOf.set(row.id, next);
+    if (next.dueOn !== own.dueOn || next.dueTime !== own.dueTime) clamps.push({ id: row.id, ...next });
+  }
+  return clamps;
 };
 
 // Repeats (planner-2): ticking a repeating todo makes the next occurrence on
@@ -988,9 +1048,9 @@ import { toLocalTimestamp } from "../timeline/timeline.sync";
 // Subtasks (todo-subtasks)
 // ---------------------------------------------------------------------------
 
-/** A todo's live subtasks, done ones too, oldest first. */
+/** A todo's live subtasks, done ones too, in `siblingOrder` (`SIBLING_ORDER_SQL`). */
 export const subtasksQuery = (todoId: string): LocalQuery => ({
-  sql: "SELECT * FROM todo WHERE parent_id = ? AND deleted_at IS NULL ORDER BY created_at, id",
+  sql: `SELECT * FROM todo WHERE parent_id = ? AND deleted_at IS NULL ORDER BY ${SIBLING_ORDER_SQL}`,
   params: [todoId],
 });
 

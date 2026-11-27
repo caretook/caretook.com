@@ -3,7 +3,7 @@ import { assigneeOf } from "./todoRules";
 // Subtasks' pure rules (todo-subtasks, client-safe): a subtask is a todo with
 // a `parent_id`. The one place that says how deep the tree goes, which todo
 // may take a subtask, how a parent follows its children (the rollup), how
-// far along it is, and which subtasks list on their own. The service and
+// far along it is, and a subtask's due (never after its parent's). The service and
 // the device both call these; neither re-derives them.
 
 /** The deepest a todo sits: a todo, its subtasks, and theirs. */
@@ -61,17 +61,34 @@ export const subtaskProgress = (children: readonly Pick<TodoTreeFields, "doneAt"
   return { done: live.filter((c) => !!c.doneAt).length, total: live.length };
 };
 
+/** A todo's due day and time, as the due rules read them. */
+export type DueFields = { dueOn: string | null; dueTime: string | null };
+
 /**
- * Whether a todo shows in the lists on its own: a top-level todo, or a
- * subtask with a due day or an assignee. Other subtasks show under their
- * parent only.
+ * The due a new subtask takes when none is given (todo-subtasks-3): its
+ * parent's day and time. Under an undated parent, none.
  */
-export const listsOnItsOwn = (todo: {
-  parentId?: string | null;
-  dueOn: string | null;
-  assigneeId: string | null;
-  assigneeName: string | null;
-}) => !todo.parentId || !!todo.dueOn || assigneeOf(todo).type !== "none";
+export const inheritedDue = (parent: DueFields | null | undefined): DueFields =>
+  parent?.dueOn ? { dueOn: parent.dueOn, dueTime: parent.dueTime } : { dueOn: null, dueTime: null };
+
+/** Whether `due` falls on a day after its parent's (an undated one, or an undated parent, never does). */
+export const isDueAfterParent = (due: DueFields, parent: DueFields | null | undefined) =>
+  !!parent?.dueOn && !!due.dueOn && due.dueOn > parent.dueOn;
+
+/**
+ * A subtask's due, never after its parent's day (todo-subtasks-3): one on
+ * a later day is capped at the parent's day and takes its time; one on the
+ * same day or earlier, an undated one, or any under an undated parent is
+ * kept as it is. The service clamps with it rather than refusing.
+ */
+export const clampDue = (due: DueFields, parent: DueFields | null | undefined): DueFields =>
+  isDueAfterParent(due, parent) ? { dueOn: parent!.dueOn, dueTime: parent!.dueTime } : due;
+
+/** The field issue when a device edit moves a subtask's due day past its parent's (`isDueAfterParent`). */
+export const DUE_AFTER_PARENT_ISSUE = {
+  path: "dueOn",
+  message: "A subtask can't be due after the todo it's part of",
+} as const;
 
 /** What `siblingOrder` reads of a todo. */
 export type SiblingFields = {

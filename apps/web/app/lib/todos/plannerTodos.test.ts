@@ -4,14 +4,7 @@ import { describe, expect, it } from "vitest";
 import { upcomingSections } from "../appointments/upcomingDays";
 import type { TodoTreeNode } from "./todoTreeView";
 
-import {
-  isPlannerTodo,
-  isPlannerTree,
-  plannerDayTrees,
-  showsTodos,
-  plannerTodos,
-  withDueTodos,
-} from "./plannerTodos";
+import { isPlannerTree, plannerDayTrees, showsTodos, withDueTodos } from "./plannerTodos";
 import { todoTrees } from "./todoTreeView";
 
 const LA = "America/Los_Angeles";
@@ -47,31 +40,11 @@ const keyOf = (i: object) => ("key" in i ? (i as { key: string }).key : (i as It
 const shape = (sections: { label: string; items: object[] }[]) =>
   sections.map((s) => [s.label, s.items.map(keyOf)]);
 
-describe("plannerTodos", () => {
-  it("keeps open dated todos in the order given, with their state and the moment a timed one falls", () => {
-    const items = plannerTodos(
-      [
-        todo("late", "2026-11-16"),
-        todo("today", "2026-11-18", "17:00"),
-        todo("later", "2026-11-20"),
-        todo("undated", null),
-        todo("done", "2026-11-18", null, { doneAt: "2026-11-18T17:00:00.000Z" }),
-      ],
-      NOW,
-      LA,
-    );
-    expect(items.map((i) => [i.key, i.state, i.at])).toEqual([
-      ["todo:late", "overdue", null],
-      ["todo:today", "today", "2026-11-19T01:00:00.000Z"],
-      ["todo:later", "upcoming", null],
-    ]);
-    expect(items.every(isPlannerTodo)).toBe(true);
-  });
-
-  it("a todo due today at a time already past is overdue", () => {
-    expect(plannerTodos([todo("t", "2026-11-18", "09:00")], NOW, LA)[0]?.state).toBe("overdue");
-  });
-});
+/** Each todo as a one-todo tree's day items, in the order given. */
+const dueItems = (todos: ReturnType<typeof todo>[], now: Date, timeZone: string) =>
+  todos.flatMap((t) =>
+    plannerDayTrees(todoTrees([{ ...t, parentId: null, deletedAt: null }], { now, timeZone }), now, timeZone),
+  );
 
 describe("withDueTodos", () => {
   const place = (
@@ -79,15 +52,13 @@ describe("withDueTodos", () => {
     todos: ReturnType<typeof todo>[],
     { viewer = LA, recipient = LA, now = NOW } = {},
   ) =>
-    shape(
-      withDueTodos(
-        upcomingSections(entries, now, viewer),
-        plannerTodos(todos, now, recipient),
-        now,
-        viewer,
-        recipient,
-      ),
-    );
+    withDueTodos(
+      upcomingSections(entries, now, viewer),
+      dueItems(todos, now, recipient),
+      now,
+      viewer,
+      recipient,
+    ).map((s) => [s.label, s.items.map((i) => (isPlannerTree(i) ? `todo:${i.todo.id}` : i.id))]);
 
   it("puts overdue todos first under Today, never under Now", () => {
     const visit = entry("visit", "2026-11-18T17:30:00.000Z", { endsAt: "2026-11-18T19:00:00.000Z" });
@@ -182,28 +153,6 @@ describe("showsTodos", () => {
   });
 });
 
-describe("plannerTodos and the tree (todo-subtasks-2)", () => {
-  it("drops an undated, unassigned subtask and keeps a dated or assigned one", () => {
-    const step = (id: string, dueOn: string | null, extra: Partial<TodoRuleFields> = {}) => ({
-      ...todo(id, dueOn, null, extra),
-      parentId: "parent",
-    });
-    const items = plannerTodos(
-      [
-        { ...todo("parent", "2026-11-18"), parentId: null },
-        step("plain-step", null),
-        step("named-undated-step", null, { assigneeName: "Aunt May" }),
-        step("dated-step", "2026-11-19"),
-        step("mine-step", "2026-11-20", { assigneeId: "me" }),
-      ],
-      NOW,
-      LA,
-    );
-    // An undated subtask is never a Planner item, assigned or not: it lists on the Todos tab.
-    expect(items.map((i) => i.todo.id)).toEqual(["parent", "dated-step", "mine-step"]);
-  });
-});
-
 describe("plannerDayTrees (todo-subtasks-3)", () => {
   const TUESDAY = "2026-11-24";
   const FRIDAY = "2026-11-27";
@@ -235,7 +184,6 @@ describe("plannerDayTrees (todo-subtasks-3)", () => {
     const [first] = plannerDayTrees(trees(todos), NOW, LA);
     expect(first?.key).toBe(`tree:trip:${TUESDAY}`);
     expect(first && isPlannerTree(first)).toBe(true);
-    expect(first && isPlannerTodo(first as never)).toBe(false);
   });
 
   it("an overdue step's branch sits with the overdue items, first under today", () => {

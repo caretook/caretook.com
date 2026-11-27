@@ -112,7 +112,9 @@ export const todoDayOf = (todo: TreeTodo, now: Date | number, timeZone: string) 
  * when it's overdue) the whole tree; otherwise the branches of the open
  * steps due then (`todoDayOf`), each with its subtree, its ancestors as
  * context. An undated tree shows only its dated steps' branches; a tree with
- * nothing open due that day isn't there. Order is kept.
+ * nothing open due that day isn't there. A context row's day counts for
+ * nothing: under a filter, a match due the same day as its unmatched parent
+ * is its own branch, led (and ranked) by the match. Order is kept.
  */
 export const todoDayTrees = <T extends TreeTodo>(
   trees: readonly TodoTree<T>[],
@@ -120,12 +122,14 @@ export const todoDayTrees = <T extends TreeTodo>(
   now: Date | number,
   timeZone: string,
 ): TodoTree<T>[] => {
-  const dueThen = (todo: T) => todoDayOf(todo, now, timeZone) === day;
+  // A context row (an ancestor kept for a match) is never due here: the lead
+  // and the cut come from shown todos only (B-974).
+  const dueThen = (node: TodoTreeNode<T>) => !node.context && todoDayOf(node.todo, now, timeZone) === day;
   return trees.flatMap((tree) => {
-    if (dueThen(tree.todo)) return [{ ...tree, lead: tree.todo }];
+    if (dueThen(tree)) return [{ ...tree, lead: tree.todo }];
     const due: T[] = [];
     const cut = (node: TodoTreeNode<T>): TodoTreeNode<T> | null => {
-      if (dueThen(node.todo)) {
+      if (dueThen(node)) {
         due.push(node.todo);
         return node;
       }
