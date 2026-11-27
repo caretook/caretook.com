@@ -24,7 +24,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `todo-subtasks-3` | — | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | — | `todo-subtasks-3` | — | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
-| `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/settings/`, `scripts/browser-checks/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
@@ -124,6 +124,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `onboarding-3` | hold | `onboarding-2` | — | — |
 | `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
 | `med-intervals` | — | — | — | Every-N-hours schedules for medications and Med times (B-938). |
+| `tags-4` | hold | `tags-3` | — | — |
+| `shared-displays` | hold | `todo-subtasks-3`, `tags-3` | — | — |
 
 ## Summary
 
@@ -279,18 +281,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-958 | change | landed | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | landed | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | landed | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
-| B-961 | change | inbox |  |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
+| B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | landed | fixes-ui | prd/fixes-ui | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | landed | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 | B-964 | feature | triaged |  |  | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
-| B-968 | bug | triaged | fixes-bug |  | …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York |
-| B-969 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
-| B-970 | bug | triaged | fixes-bug |  | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
-| B-971 | bug | triaged | fixes-bug |  | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
-| B-972 | feature | inbox |  |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
+| B-968 | bug | ready | fixes-bug | prd/fixes-bug | …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York |
+| B-969 | bug | ready | fixes-bug | prd/fixes-bug | CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York |
+| B-970 | bug | ready | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York |
+| B-971 | bug | ready | fixes-bug | prd/fixes-bug | CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York |
+| B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 
 ## Items
 
@@ -1832,8 +1834,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: shared-displays
 - owner:
 - commit:
 
@@ -1895,44 +1897,45 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-968 · bug · …: apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx fails in America/New_York
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: d8ce4a4eb
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 05eeb40b7f34] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
 
 ### B-969 · bug · CI: apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx fails in America/New_York
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 641ecbb54
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 30b8d207bcc4] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
 
 ### B-970 · bug · CI: scripts/browser-checks/layout-offline.spec.mjs fails in America/New_York
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 2375e2995
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 8b719e2e0ba0] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
+- 2026-11-27 (slice/fixes-bug/78): Not a zone bug: failed in LA too (same seeded dose row). QuickTags' full-width relative z-10 line covered the row's open target, so a tap beside the chips did nothing; now w-fit (slice 78, f18fdec55), proved by components/tags/quickTagsRow.browser.test.tsx.
 
 ### B-971 · bug · CI: scripts/browser-checks/roundtrip.spec.mjs fails in America/New_York
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 2375e2995
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 2f974a423a03] [ci-zone 39b4beaf] Fails in America/New_York on 39b4beaf; reported, not blocking.
 
 ### B-972 · feature · Tags tab on the planner: a unified view listing all tags and the items tagged with each
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: tags-4
 - owner:
 - commit:
 
