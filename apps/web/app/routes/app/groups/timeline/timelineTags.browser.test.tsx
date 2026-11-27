@@ -105,14 +105,14 @@ describe("quick tags on rows", () => {
       await device.settle();
       await expect.poll(() => FILTER()?.value).toBe("");
       await expect.poll(() => chipsOf(text)).toBe(`${name},Knee`);
-      expect(moreOf(text)).toBe("+1");
+      await expect.poll(() => moreOf(text)).toBe("+1");
       await closePicker();
 
       // One tap on a chip's × untags it, on the row, and the hidden third shows.
       await userEvent.click(await found(() => removeOf(text, "Knee")));
       await device.settle();
       await expect.poll(() => chipsOf(text)).toBe(`${name},Urgent`);
-      expect(moreOf(text)).toBeNull();
+      await expect.poll(() => moreOf(text)).toBeNull();
       stayed();
     }
     // One tag per name, each new one once; the links queued for upload.
@@ -163,7 +163,7 @@ describe("quick tags on rows", () => {
     await toggle("Urgent");
     await device.settle();
     await expect.poll(() => chipsOf("Walked to the mailbox")).toBe("Care home move,Knee");
-    expect(moreOf("Walked to the mailbox")).toBeNull();
+    await expect.poll(() => moreOf("Walked to the mailbox")).toBeNull();
     await closePicker();
 
     await userEvent.click(await found(() => removeOf("Walked to the mailbox", "Care home move")));
