@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeSync, openSync, syncUserId, watchLiveQuery } from "./index";
+import { closeSync, openSync, sameRows, syncUserId, watchLiveQuery } from "./index";
 import { recall, remember } from "./remembered";
 
 // The database is faked: watchLiveQuery only needs `powersync.watch`.
@@ -239,6 +239,92 @@ describe("shared watches (B-910)", () => {
     // The first user's screen cleaning up later closes nothing of the second's.
     stop();
     expect(watchCall(1)[3].signal.aborted).toBe(false);
+  });
+});
+
+describe("identical answers (B-956)", () => {
+  let frames: FrameRequestCallback[];
+  const runFrame = () => frames.splice(0).forEach((f) => f(0));
+  const rows = (...r: Record<string, unknown>[]) => ({ rows: { _array: r } });
+  beforeEach(() => {
+    vi.stubGlobal("window", {});
+    frames = [];
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.stubGlobal("requestAnimationFrame", (f: FrameRequestCallback) => frames.push(f));
+    watch.mockReset();
+  });
+  afterEach(async () => {
+    runFrame();
+    vi.useRealTimers();
+    await closeSync();
+    vi.unstubAllGlobals();
+  });
+
+  it("delivers the first answer, then nothing for one with the same rows, so no state is set", async () => {
+    await openSync("u1");
+    const onRows = vi.fn();
+    watchLiveQuery(KEY, onRows);
+    const { onResult } = watchCall()[2];
+    onResult(rows({ id: "p1", name: "Dr. Example" }));
+    runFrame();
+    expect(onRows).toHaveBeenCalledOnce();
+    // A fresh array of fresh row objects, as PowerSync hands back on a rerun.
+    onResult(rows({ id: "p1", name: "Dr. Example" }));
+    runFrame();
+    vi.advanceTimersByTime(100);
+    expect(onRows).toHaveBeenCalledOnce();
+    expect(frames).toHaveLength(0);
+  });
+
+  it("delivers a changed row, an added row and a removed row", async () => {
+    await openSync("u1");
+    const onRows = vi.fn();
+    watchLiveQuery(KEY, onRows);
+    const { onResult } = watchCall()[2];
+    onResult(rows({ id: "p1", name: "A" }));
+    runFrame();
+    onResult(rows({ id: "p1", name: "B" }));
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([{ id: "p1", name: "B" }]);
+    onResult(rows({ id: "p1", name: "B" }, { id: "p2", name: "C" }));
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([
+      { id: "p1", name: "B" },
+      { id: "p2", name: "C" },
+    ]);
+    onResult(rows({ id: "p2", name: "C" }));
+    runFrame();
+    expect(onRows).toHaveBeenLastCalledWith([{ id: "p2", name: "C" }]);
+    expect(onRows).toHaveBeenCalledTimes(4);
+  });
+
+  it("delivers an empty first answer, and a late subscriber still gets the current rows at once", async () => {
+    await openSync("u1");
+    const first = vi.fn();
+    watchLiveQuery(KEY, first);
+    const { onResult } = watchCall()[2];
+    onResult(rows());
+    runFrame();
+    expect(first).toHaveBeenCalledWith([]);
+    onResult(rows());
+    const late = vi.fn();
+    watchLiveQuery(KEY, late);
+    expect(late).toHaveBeenCalledWith([]);
+    runFrame();
+    expect(first).toHaveBeenCalledOnce();
+    expect(late).toHaveBeenCalledOnce();
+  });
+});
+
+describe("sameRows", () => {
+  it("compares the count, then each row's columns", () => {
+    expect(sameRows([], [])).toBe(true);
+    expect(sameRows([{ a: 1, b: null }], [{ a: 1, b: null }])).toBe(true);
+    expect(sameRows([{ a: 1 }], [{ a: 1 }, { a: 2 }])).toBe(false);
+    expect(sameRows([{ a: 1 }], [{ a: "1" }])).toBe(false);
+    expect(sameRows([{ a: 1 }], [{ a: 1, b: 2 }])).toBe(false);
+    expect(sameRows([{ a: 1, b: undefined }], [{ a: 1, c: undefined }])).toBe(false);
+    expect(sameRows([{ a: 1 }, { a: 2 }], [{ a: 2 }, { a: 1 }])).toBe(false);
   });
 });
 

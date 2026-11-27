@@ -252,6 +252,23 @@ const closeWatches = () => {
   watches.clear();
 };
 
+/**
+ * Whether two answers hold the same rows: the same count, and each row the
+ * same columns with the same values (SQLite's are plain values, so `Object.is`).
+ */
+export const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] as Record<string, unknown>;
+    const y = b[i] as Record<string, unknown>;
+    if (x === y) continue;
+    const columns = Object.keys(x);
+    if (columns.length !== Object.keys(y).length) return false;
+    for (const column of columns) if (!(column in y) || !Object.is(x[column], y[column])) return false;
+  }
+  return true;
+};
+
 const openWatch = (db: SyncDb, key: string): SharedWatch => {
   const shared: SharedWatch = { controller: new AbortController(), subscribers: new Set(), rows: null };
   const { signal } = shared.controller;
@@ -266,6 +283,10 @@ const openWatch = (db: SyncDb, key: string): SharedWatch => {
       onResult: (result) => {
         owedFirst.delete(first);
         const rows = result.rows?._array ?? [];
+        // PowerSync reruns a watch on any change to its tables, so most answers
+        // repeat the last one (a note preview's query on a keystroke off screen):
+        // passing those on re-rendered the whole screen for nothing (B-956).
+        if (shared.rows && sameRows(shared.rows, rows)) return;
         shared.rows = rows;
         // The subscribers this result is for: one joining before the frame got it at once.
         const handed = [...shared.subscribers];
@@ -288,7 +309,8 @@ const openWatch = (db: SyncDb, key: string): SharedWatch => {
  * result to `onRows`, at the next frame with every other watch's result that
  * came in meanwhile (above); returns the cleanup, after which nothing more is
  * passed. Subscribers to the same `key` share one watch (`SharedWatch`); one
- * joining a watch that has answered gets its latest rows at once. With no
+ * joining a watch that has answered gets its latest rows at once. An answer
+ * with the same rows as the last (`sameRows`) is passed to no one. With no
  * database open it watches nothing: a component can still mount while
  * sign-out is closing the database (a watch result arriving mid-sign-out
  * renders a new child), and there's nothing left to show it then.
