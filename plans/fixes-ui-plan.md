@@ -28,12 +28,12 @@ Notes for every wave:
 
 **Wave 19 landed 2026-11-27** as dev 36b84a4a through PR #250, `--no-review` (Codex out of credits), CI components flake only (search.sync perf, not ours; run 45953425948); to-test/2026-11-27-0155-fixes-ui.md; report filed. Slices 103–105 all opus (B-937, B-939, B-940); details in the history file. Browser roundtrip fails at its tags step from dev's tags-2 (B-951; the backlog session is raising it). Follow-up B-950 (fixes-nit). Docs folded (68cec34a, 3faeaeb1). Slice worktrees removed. Rotated after (past the soft context limit).
 
-**Wave 20 (this session, 2026-11-27):** landing mode run-through (recorded above). Synced dev (ef18e42a, Risa split: scripts now under risa). Slices 106 (B-957 first-load progress) and 107 (B-962 note full screen edge to edge), both opus, parallel. B-972 (planner Tags tab) is a feature, left for the backlog session. Still held: B-325. Reports to the backlog session (ListAgents).
+**Wave 20 (this session, 2026-11-27):** landing mode run-through (recorded above). Synced dev (ef18e42a, Risa split: scripts now under risa). Slices 106 (B-957 first-load progress) and 107 (B-962 note full screen edge to edge), both opus, parallel. B-972 (planner Tags tab) is a feature, left for the backlog session. Still held: B-325. Reports to the backlog session (ListAgents). Both merged (40d5df4c6, e32df1434); CI components run requested.
 
-| Slice | Item  | State         | Merge        |
-| ----- | ----- | ------------- | ------------ |
-| 106   | B-957 | merged (opus) | 40d5df4c6    |
-| 107   | B-962 | merged (opus) | (this merge) |
+| Slice | Item  | State         | Merge     |
+| ----- | ----- | ------------- | --------- |
+| 106   | B-957 | merged (opus) | 40d5df4c6 |
+| 107   | B-962 | merged (opus) | e32df1434 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
