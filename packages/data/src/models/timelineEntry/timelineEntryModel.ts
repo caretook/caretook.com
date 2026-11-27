@@ -261,6 +261,17 @@ export const lockId = (id: string, tx: Tx) =>
     "timelineEntryModel:lock",
   );
 
+/**
+ * Hold one dose slot (`medicationId:day:slot`, whatever the answer) until the
+ * transaction ends, so a sheet's given and another's refused for it take
+ * turns: a dose's id includes its answer, so `lockId` alone lets both in (B-984).
+ */
+export const lockDoseSlot = (slotKey: string, tx: Tx) =>
+  dbMayFail(
+    () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`dose_slot:${slotKey}`}, 0))`),
+    "timelineEntryModel:lock",
+  );
+
 /** Hard delete, for retention jobs and data-deletion requests. System only. */
 export const purge = (args: QuerySelectArgs<K>) =>
   isSystemUser(args.authUser) ? base.remove(args) : Promise.resolve(rejectError(args.authUser));

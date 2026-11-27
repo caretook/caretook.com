@@ -268,8 +268,9 @@ const passDoses = async (
   if (!pass || pass.groupId !== groupId) return newError({ code: "assistantActionService:passGone" });
 
   const [medications, passes] = await Promise.all([
-    medicationModel.list({ ...ctx, tx, filter, paginate: { page: 1, limit: 500 } }),
-    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true, paginate: { page: 1, limit: 100 } }),
+    // Every row: a page stops at 100 (B-986).
+    medicationModel.list({ ...ctx, tx, filter }),
+    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true }),
   ]);
   if (isError(medications)) return medications;
   if (isError(passes)) return passes;
@@ -887,9 +888,9 @@ const daysFrom = (a: string, b: string) =>
  * mark's note, carrying `via`; every other mark is reported, never written
  * (`sheetDoseOutcomes`: already logged, a conflict, no slot, not yet, too
  * old, repeated). The slots come from the dose record (`doseRecord`, the
- * due-dose core), the same `past_doses` reads. Each slot's id
- * (`doseSlotIdFor`, as `log_dose` gives it) is locked in sorted order before
- * the doses are read, so two simultaneous sheets add each dose once. A
+ * due-dose core), the same `past_doses` reads. Each slot (any answer), then
+ * its id (`doseSlotIdFor`, as `log_dose` gives it), is locked in sorted order
+ * before the doses are read, so two simultaneous sheets add each slot once. A
  * malformed batch, a viewer or a group without a recipient writes nothing.
  */
 export const logPastDoses = (
@@ -933,13 +934,9 @@ export const logPastDoses = (
     if (from && last) {
       const filter = { groupId: { type: "eq" as const, value: groupId } };
       const [medications, passes] = await Promise.all([
-        medicationModel.list({ ...inTx, filter, paginate: { page: 1, limit: 500 } }),
-        medicationPassModel.list({
-          ...inTx,
-          filter,
-          includeDeleted: true,
-          paginate: { page: 1, limit: 100 },
-        }),
+        // Every row: a page stops at 100 (B-986).
+        medicationModel.list({ ...inTx, filter }),
+        medicationPassModel.list({ ...inTx, filter, includeDeleted: true }),
       ]);
       if (isError(medications)) return medications;
       if (isError(passes)) return passes;
@@ -965,14 +962,21 @@ export const logPastDoses = (
           timeZone,
         });
 
-      // The slots the sheet would add, from the schedule alone; their ids locked before the doses are read.
+      // The slots the sheet would add, from the schedule alone; locked before the doses are read:
+      // each slot whatever its answer (another sheet's refused for it waits), then each id (an upload of it waits).
       const planned = sheetDoseOutcomes({ record: recordOf([]), marks: sheet, now, earliestDay });
+      const slotKeys = new Set<string>();
       const ids = new Set<string>();
       planned.forEach((o, i) => {
         if (o.outcome !== "add") return;
+        slotKeys.add(`${o.slot.medication.id}:${o.slot.day}:${o.slot.passId ?? o.slot.time}`);
         const id = slotIdOf(o.slot, sheet[i]!.status, passTimeOf(o.slot.passId));
         if (id) ids.add(id);
       });
+      for (const key of [...slotKeys].sort()) {
+        const locked = await timelineEntryModel.lockDoseSlot(key, tx);
+        if (isError(locked)) return locked;
+      }
       for (const id of [...ids].sort()) {
         const locked = await timelineEntryModel.lockId(id, tx);
         if (isError(locked)) return locked;
