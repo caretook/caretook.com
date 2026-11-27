@@ -95,6 +95,7 @@ export function SearchResults({
                       units={units}
                       now={now}
                       search={search}
+                      namedTags={data.namedTags[hit.id]}
                     />
                   )
                 );
@@ -109,6 +110,7 @@ export function SearchResults({
                       notes={data.notes[hit.id]}
                       search={search}
                       onOpen={open({ type: "provider", id: provider.id })}
+                      namedTags={data.namedTags[hit.id]}
                     />
                   )
                 );
@@ -137,6 +139,7 @@ export function SearchResults({
                       now={now}
                       timeZone={timeZone}
                       search={search}
+                      namedTags={data.namedTags[hit.id]}
                     />
                   )
                 );
@@ -151,6 +154,7 @@ export function SearchResults({
                     notes={data.notes[hit.id]}
                     search={search}
                     onOpen={open({ type: "medication", id: medication.id })}
+                    namedTags={data.namedTags[hit.id]}
                   />
                 )
               );

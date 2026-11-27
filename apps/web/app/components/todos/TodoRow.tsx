@@ -5,7 +5,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { TagChips } from "~/components/tags";
+import { QuickTags } from "~/components/tags";
 import { TodoRepeatMark } from "./TodoRepeatMark";
 import { TodoTick } from "./TodoTick";
 import { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";
@@ -18,8 +18,9 @@ import { todoPageState } from "~/lib/todos/todoSheets";
 /**
  * One todo: its tick (for whoever may complete it), the title (opening the
  * todo's page, for everyone), the due line (red when overdue) or the done
- * line, the repeat mark when it repeats, the assignee chip, and its tags'
- * chips (`tagsOf`; tags PRD). A parent shows "n of m done" (its tick waits
+ * line, the repeat mark when it repeats, the assignee chip, and its tags
+ * (`tagsOf`, the list's one query) as `QuickTags` (two chips, then "+N";
+ * × and Add tag for whoever may tag it; a `context` row's chips only; tags-3). A parent shows "n of m done" (its tick waits
  * on open subtasks); a listed subtask "Part of <parent>" (todo-subtasks-2).
  * The `context` look (todo-subtasks-3) is an ancestor shown only to place a
  * branch: dimmed, no tick, still a link to its page. A tree (`TodoTree`)
@@ -34,6 +35,8 @@ import { todoPageState } from "~/lib/todos/todoSheets";
  * Planner tree's top row, laid out like an event), `easy` (easy mode's big
  * tick and text), `context` (a dimmed ancestor).
  */
+const NO_TAGS: readonly { id: string; name: string }[] = [];
+
 export type TodoRowLook = "list" | "card" | "easy" | "context";
 
 export function TodoRow({
@@ -80,6 +83,18 @@ export function TodoRow({
   const line = todo.doneAt ? doneText(todo, nameOf, now, timeZone) : dueText(todo, now, timeZone);
   const progress = progressOf?.(todo.id);
   const parent = todo.parentId ? parentOf?.(todo.parentId) : undefined;
+  const tags = (className: string) => (
+    <QuickTags
+      target="todo"
+      recordId={todo.id}
+      label={todo.title}
+      createdBy={todo.createdBy}
+      max={2}
+      tags={tagsOf?.(todo.id) ?? NO_TAGS}
+      readOnly={context}
+      className={className}
+    />
+  );
   const tick = mayTick && (
     <TodoTick
       title={todo.title}
@@ -150,7 +165,7 @@ export function TodoRow({
               parent={parent}
               className="text-muted relative z-10 block text-sm"
             />
-            <TagChips tags={tagsOf?.(todo.id)} className="mt-0.5" />
+            {tags("mt-0.5")}
             {overdue && line && (
               <p className="text-error-ink text-sm" data-todo-due>
                 {line}
@@ -241,7 +256,7 @@ export function TodoRow({
             <ViaTag via={todo.via} />
           </p>
           <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
-          <TagChips tags={tagsOf?.(todo.id)} className="mt-1" />
+          {tags("mt-1")}
           {addSubtask}
         </div>
       </div>

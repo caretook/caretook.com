@@ -3,9 +3,12 @@ export { QuickTags } from "./QuickTags";
 export { TagChips } from "./TagChips";
 export type { TagPickerTarget } from "./TagPickerSheet";
 export { TagPickerSheet } from "./TagPickerSheet";
+export { TagSwatch } from "./TagSwatch";
 export { useTagPicker } from "./useTagPicker";
 export { useGroupRecordTags, useGroupTags, useRecordTags } from "./useTags";
 // tags-3 (slice 2): the Tags page in group settings shares the editor, the delete confirm and one counts query.
 export { DeleteTagDialog } from "./DeleteTagDialog";
 export { TagEditor } from "./TagEditor";
 export { useGroupTagUses } from "./useTags";
+// tags-3 (slice 4): merging one tag into another, on the Tags page.
+export { MergeTagDialog } from "./MergeTagDialog";

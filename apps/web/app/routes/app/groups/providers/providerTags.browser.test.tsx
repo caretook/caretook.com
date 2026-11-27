@@ -22,7 +22,8 @@ import {
 // Tags on providers (tags slice 5): chips on the directory's rows and the
 // provider's page for every role, `QuickTags` on the page and the edit sheet
 // for writers (tags-2 slice 5; the picker is entry/entryTags'), and the
-// directory's Tag filter (`?tag=`) beside Type and the search. The filter
+// directory's Tag filter (`?tag=`) beside Type and the search. The rows tag
+// too (`QuickTags`, tags-3), without opening the provider. The filter
 // functions are providerDirectory.test.ts's.
 
 const HEART = tag("Heart");
@@ -121,7 +122,7 @@ describe("tags on a provider", () => {
     // The row under the sheet follows too.
     await expect.poll(() => rowChips(ALVAREZ.id)).toBe("Knee");
 
-    await userEvent.click(page.getByRole("button", { name: "Remove tag Knee" }));
+    await userEvent.click(page.getByCss("[role=dialog]").getByRole("button", { name: "Remove tag Knee" }));
     await device.settle();
     await expect.poll(sheetChips).toBe("");
     expect(await linksOf(device, ALVAREZ.id)).toEqual([]);
@@ -139,6 +140,33 @@ describe("tags on a provider", () => {
     expect(document.querySelectorAll('main header [data-region="details"] button')).toHaveLength(0);
     expect(document.querySelector("main [data-quick-tag-add]")).toBeNull();
     expect(ACTIONS()).toBeNull();
+  });
+
+  test("a writer tags and untags from a directory row without opening it; a tap beside the chips opens it", async () => {
+    const device = await open(PROVIDERS_URL);
+    const row = `main li[data-provider-id="${ALVAREZ.id}"]`;
+    await found(() => document.querySelector(row));
+    await userEvent.click(page.getByCss(row).getByRole("button", { name: "Add tag" }));
+    await found(() => document.querySelector("[data-tag-picker]"));
+    await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
+    await device.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    await expect.poll(() => rowChips(ALVAREZ.id)).toBe("Knee");
+    expect(device.location()).toBe(PROVIDERS_URL);
+
+    await userEvent.click(page.getByCss(row).getByRole("button", { name: "Remove tag Knee" }));
+    await device.settle();
+    await expect.poll(() => rowChips(ALVAREZ.id)).toBe("");
+    expect(await linksOf(device, ALVAREZ.id)).toEqual([]);
+    expect(device.location()).toBe(PROVIDERS_URL);
+
+    // Just beside a row's chips is still the row's open target.
+    const patel = document.querySelector<HTMLElement>(`main li[data-provider-id="${PATEL.id}"]`)!;
+    const line = patel.querySelector<HTMLElement>("[data-quick-tags]")!.getBoundingClientRect();
+    expect(document.elementFromPoint(line.left - 4, line.top + line.height / 2)).toBe(
+      patel.querySelector("a[data-provider-name]"),
+    );
   });
 
   test("the directory's rows show two chips, then +N, for a viewer too", async () => {

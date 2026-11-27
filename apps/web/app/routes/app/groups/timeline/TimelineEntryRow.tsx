@@ -77,7 +77,7 @@ const NO_TAGS: readonly { id: string; name: string }[] = [];
 
 /**
  * A row's or card's tags (tags-2): `QuickTags` with two chips, then "+N",
- * and a compact "Add tag", from the list's query (never one per row). Its
+ * and "Add tag", from the list's query (never one per row). Its
  * taps sit above the stretched open target, so they never open the entry.
  */
 export function RowTags({
@@ -93,7 +93,6 @@ export function RowTags({
       createdBy={entry.createdBy}
       max={2}
       tags={tags ?? NO_TAGS}
-      compact
       className={className}
     />
   );
