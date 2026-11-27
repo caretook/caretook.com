@@ -24,7 +24,9 @@ const SHOW_ALL = () => true;
 
 const CREATE = "\u0000create";
 const ITEM =
-  "rounded-field flex cursor-pointer flex-col px-3 py-2 outline-none data-[focused]:bg-base-200 data-[disabled]:opacity-50";
+  "rounded-field cursor-pointer px-3 py-2 outline-none data-[focused]:bg-base-200 data-[disabled]:opacity-50";
+/** With an icon: the icon in a first column, beside the label and description. */
+const ICON_ITEM = "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3";
 
 /**
  * A text field with a list of choices under it (React Aria: the list opens
@@ -167,29 +169,25 @@ export function ComboBox({
 }
 
 function Option({ item }: { item: ComboBoxOption }) {
+  // The label stays the item's first child and the description its second,
+  // with or without an icon (tests and helpers read the first child as the
+  // label): the icon comes last in the markup and the grid puts it first.
+  const Icon = item.icon;
+  const text = Icon ? " col-start-2" : "";
   return (
     <ListBoxItem
       id={item.id}
       textValue={item.label}
-      className={`${ITEM} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
+      className={`${ITEM} ${Icon ? ICON_ITEM : "flex flex-col"} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
     >
-      {item.icon ? (
-        <span className="flex min-w-0 items-center gap-3">
-          <item.icon aria-hidden="true" className="text-muted size-4 shrink-0" />
-          <OptionText item={item} />
-        </span>
-      ) : (
-        <OptionText item={item} />
+      <span className={`truncate${text}`}>{item.label}</span>
+      {item.description && <span className={`text-muted truncate text-sm${text}`}>{item.description}</span>}
+      {Icon && (
+        <Icon
+          aria-hidden="true"
+          className={`text-muted col-start-1 row-start-1 size-4 shrink-0 ${item.description ? "row-span-2" : ""}`}
+        />
       )}
     </ListBoxItem>
-  );
-}
-
-function OptionText({ item }: { item: ComboBoxOption }) {
-  return (
-    <span className="flex min-w-0 flex-col">
-      <span className="truncate">{item.label}</span>
-      {item.description && <span className="text-muted truncate text-sm">{item.description}</span>}
-    </span>
   );
 }
