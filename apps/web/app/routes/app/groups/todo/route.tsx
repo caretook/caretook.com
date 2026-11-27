@@ -6,7 +6,7 @@ import { canCompleteTodo, canTagRecord } from "@caretook/data/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { TagChips, useRecordTags, useTagPicker } from "~/components/tags";
+import { QuickTags, useRecordTags } from "~/components/tags";
 import { useTodoTick } from "~/components/todos";
 import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -107,9 +107,8 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
     if (deleted && removedHere.current) void navigate(listUrl, { replace: true });
   }, [deleted, navigate, listUrl]);
 
-  // Tags (tags PRD): every chip for every role; Tags in ⋯ for a writer.
+  // Tags (tags-2): every chip for every role; × and Add tag for a writer (`QuickTags`).
   const tags = useRecordTags("todo", todoId);
-  const tagPicker = useTagPicker();
   const mayTag = canTagRecord(group.role, { target: "todo", createdBy: todo.createdBy }, group.userId);
 
   return (
@@ -135,18 +134,24 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
                 busy={tick.busy}
                 onReopen={() => void tick.reopen(todo)}
                 onDelete={deleting}
-                onTags={
-                  mayTag
-                    ? () => tagPicker.ask({ target: "todo", recordId: todoId, label: todo.title })
-                    : undefined
-                }
               />
             )
           }
-          tags={!deleted && tags.length > 0 && <TagChips tags={tags} max={null} />}
+          tags={
+            !deleted &&
+            (mayTag || tags.length > 0) && (
+              <QuickTags
+                target="todo"
+                recordId={todoId}
+                label={todo.title}
+                createdBy={todo.createdBy}
+                max={null}
+                tags={tags}
+              />
+            )
+          }
         />
         {!deleted && <TodoParentLink groupId={groupId} parent={tree.parent} />}
-        {tagPicker.sheet}
       </Section>
 
       {deleted ? (

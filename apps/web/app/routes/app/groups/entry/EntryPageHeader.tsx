@@ -11,10 +11,8 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { canTagRecord } from "@caretook/data/schema";
-import { TagChips, useRecordTags, useTagPicker } from "~/components/tags";
+import { QuickTags } from "~/components/tags";
 import { ConfirmDialog, Message, ViaTag } from "~/components/ui";
-import { useGroup } from "~/lib/app-shell/group";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
@@ -35,7 +33,7 @@ import { ShareButton } from "./ShareButton";
  * link to, Share and the ⋯ menu (for writers, an event's Reschedule, its
  * Cancel or Undo cancel, then Print and Delete, each confirmed but Undo; for
  * viewers, Print);
- * who it was with (providers); for writers on an event that says the
+ * its tags (`QuickTags`); who it was with (providers); for writers on an event that says the
  * recipient moved, a care period to start; and, for events, where it is.
  * On an upcoming series visit, the ⋯ menu's Edit, Reschedule, Cancel and
  * Delete, and a title, time or place typed here, ask Only this visit or
@@ -73,14 +71,6 @@ export function EntryPageHeader({
   const schedule = { occurredAt: entry.occurredAt, endsAt: entry.endsAt, allDay: entry.allDay };
   const liveKind = entry.kind === "event" || entry.kind === "note" ? entry.kind : null;
   const titleInput = useRef<HTMLInputElement>(null);
-  // Tags (tags PRD): every chip for every role; Tags in ⋯ for whoever may tag it.
-  const group = useGroup();
-  const tags = useRecordTags("entry", entry.id);
-  const tagPicker = useTagPicker();
-  const mayTag =
-    stored &&
-    !deleted &&
-    canTagRecord(group.role, { target: "entry", createdBy: entry.createdBy }, group.userId);
 
   return (
     <>
@@ -126,11 +116,6 @@ export function EntryPageHeader({
               <EntryActions
                 kind={entry.kind}
                 label={`Actions for this ${noun}`}
-                onTags={
-                  mayTag
-                    ? () => tagPicker.ask({ target: "entry", recordId: entry.id, label: heading })
-                    : undefined
-                }
                 onEdit={
                   canSetUp && asksScope(entry, new Date())
                     ? () => scope.ask(entry, "edit", { only: live.onlyThisVisit })
@@ -172,7 +157,19 @@ export function EntryPageHeader({
         editors={editors}
         via={entry.via && <ViaTag via={entry.via} />}
         repeat={<EntryRepeat live={live} />}
-        tags={!deleted && stored && <TagChips tags={tags} max={null} />}
+        // Tags (tags-2): every chip for every role; × and Add tag for whoever may tag it.
+        tags={
+          !deleted &&
+          stored && (
+            <QuickTags
+              target="entry"
+              recordId={entry.id}
+              label={heading}
+              createdBy={entry.createdBy}
+              max={null}
+            />
+          )
+        }
         with={
           !deleted && (
             <EntryWithRow
@@ -234,7 +231,6 @@ export function EntryPageHeader({
       />
       {rescheduling.sheet}
       {remind.sheet}
-      {tagPicker.sheet}
       {scope.element}
       <SeriesScopeDialog
         open={live.scopeAsked}
