@@ -1,7 +1,14 @@
 import type { AuthUser } from "@caretook/data/permissions";
 import type { ActionResult } from "~/lib/core/api";
 
-import { GROUP_ROLES, GROUP_ROLE_NAMES, hasPermission } from "@caretook/data/permissions";
+import {
+  GROUP_ROLES,
+  GROUP_ROLE_NAMES,
+  OWNERS,
+  WRITERS,
+  hasGroupRole,
+  hasPermission,
+} from "@caretook/data/permissions";
 import type { EasyTile, EasyTiles } from "@caretook/data/schema";
 
 import { careGroupNameZSchema, careRecipientProfileZSchema, EASY_TILE_COUNT } from "@caretook/data/schema";
@@ -40,6 +47,18 @@ export const groupSettingsAccess = (groupId: string, role: string | null) => {
 };
 
 type GroupRoles = NonNullable<AuthUser["groupRoles"]>;
+
+/**
+ * What a member with `role` may do on the group's Symptoms page, by the role
+ * sets the server checks (`symptomTypeService`; it stays the authority):
+ * archive and unarchive for writers, replace (merge one symptom into
+ * another, symptom-catalog-3) for owners. Anyone else sees the list only.
+ * The role is the member's in `groupId`, the page's group.
+ */
+export const symptomCatalogAccess = (groupId: string, role: string | null | undefined) => ({
+  archive: hasGroupRole(WRITERS, role),
+  replace: hasGroupRole(OWNERS, role),
+});
 
 type Failure = Extract<ActionResult, { ok: false }>;
 type Parsed<T> = { ok: true; data: T } | Failure;
