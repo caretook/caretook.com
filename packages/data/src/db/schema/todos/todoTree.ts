@@ -84,8 +84,8 @@ export type SiblingFields = {
 /**
  * Two siblings' order (a `sort` comparator): dated before undated; dated by
  * day, and on one day timed ones by time before day-only ones; then by when
- * they were made, then the id. In SQL: `due_on IS NULL, due_on, due_time IS
- * NULL, due_time, created_at, id`. Done or open doesn't move a sibling.
+ * they were made, then the id. In SQL: `SIBLING_ORDER_SQL`. Done or open
+ * doesn't move a sibling.
  */
 export const compareSiblings = (a: SiblingFields, b: SiblingFields) => {
   if (!a.dueOn !== !b.dueOn) return a.dueOn ? -1 : 1;
@@ -95,6 +95,9 @@ export const compareSiblings = (a: SiblingFields, b: SiblingFields) => {
   if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 };
+
+/** `compareSiblings` as an `ORDER BY` list, for the device's tree queries. */
+export const SIBLING_ORDER_SQL = "due_on IS NULL, due_on, due_time IS NULL, due_time, created_at, id";
 
 /** A todo's subtasks (or any siblings) in tree order (`compareSiblings`), as a new array. */
 export const siblingOrder = <T extends SiblingFields>(siblings: readonly T[]): T[] =>

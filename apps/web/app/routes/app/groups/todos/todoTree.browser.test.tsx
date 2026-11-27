@@ -3,16 +3,18 @@ import type { GroupRole } from "../../../../../test/fixtures";
 
 import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import * as todosRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 
-// The Todos tab shows the tree (todo-subtasks-2 slice 1): a parent with
-// "n of m done" and a tick that waits on its subtasks, a subtask with its own
-// due day or assignee listed with "Part of <parent>", and the rest only on
-// the parent's page, in the open sections and Done alike.
+// The Todos tab shows trees (todo-subtasks-3 slice 5): a subtask only inside
+// its tree, indented, a done one struck in place (and not in Done); a parent
+// with "n of m done" and a tick that waits on its subtasks; a filter's match
+// under its parent as a context row; a writer's quick add on every row, a
+// viewer's none; no "Part of" row. The seed's "Get ready for the hospital
+// stay", in fictional form.
 
 const LIST = `/app/groups/${TEST_GROUP.id}/todos`;
 const ROUTES: DeviceRoute[] = [{ path: "/app/groups/:groupId/todos", module: todosRoute }];
@@ -51,13 +53,32 @@ const open = (role: GroupRole = "owner", url = LIST) =>
 const titles = (selector: string) =>
   [...document.querySelectorAll(`${selector} [data-todo-title]`)].map((el) => el.textContent?.trim());
 const rowOf = (todoId: string) => document.querySelector(`[data-todo="${todoId}"]`);
+const titleOf = (todoId: string) => rowOf(todoId)?.querySelector("[data-todo-title]");
+const left = (todoId: string) => titleOf(todoId)?.getBoundingClientRect().left ?? Number.NaN;
+const OPEN_SECTIONS = "[data-todo-section]:not([data-todo-section=done])";
 
 afterEach(() => clearTodoUndo());
 
-describe("the Todos tab's tree", () => {
-  test("a parent reads “1 of 3 done” and waits on its subtasks; a dated subtask is under its day with “Part of”; a plain one isn't listed", async () => {
+describe("the Todos tab's trees", () => {
+  test("a tree shows its children indented under it, a done one struck, under its most urgent step's day; no subtask on a row of its own", async () => {
     await open();
     await expect.element(page.getByText("1 of 3 done")).toBeVisible();
+
+    // The tree goes under its dated step's day (tomorrow), children in siblingOrder.
+    expect(titles(`[data-todo-section="${tomorrow}"]`)).toEqual([
+      "Get ready for the hospital stay",
+      "Arrange the dog sitter",
+      "Pack the bag",
+      "Print the medication list",
+    ]);
+    expect(titles('[data-todo-section="undated"]')).toEqual(["Plan the birthday", "Order the cake"]);
+    for (const child of [id(2), id(3), id(4)]) expect(left(child)).toBeGreaterThan(left(PARENT));
+    expect(left(id(7))).toBeGreaterThan(left(id(6)));
+    expect(titleOf(id(4))?.classList.contains("line-through")).toBe(true);
+    expect(titleOf(id(2))?.classList.contains("line-through")).toBe(false);
+    // Each todo is there once, and no row says "Part of".
+    expect(document.querySelectorAll(`[data-todo="${id(3)}"]`)).toHaveLength(1);
+    expect(document.querySelector("[data-todo-part-of]")).toBeNull();
 
     expect(rowOf(PARENT)?.querySelector("[data-todo-progress]")?.textContent).toBe("1 of 3 done");
     const parentTick = page.getByRole("checkbox", {
@@ -67,24 +88,54 @@ describe("the Todos tab's tree", () => {
     // The row's mark says it; the tick shows no second count.
     expect(rowOf(PARENT)?.querySelector("[data-tick-progress]")).toBeNull();
 
-    expect(titles(`[data-todo-section="${tomorrow}"]`)).toEqual(["Arrange the dog sitter"]);
-    const partOf = rowOf(id(3))?.querySelector("[data-todo-part-of]");
-    expect(partOf?.textContent).toBe("Part of Get ready for the hospital stay");
-    expect(partOf?.querySelector("a")?.getAttribute("href")).toBe(`${LIST}/${PARENT}`);
-    expect(rowOf(PARENT)?.querySelector("[data-todo-part-of]")).toBeNull();
-
-    expect(rowOf(id(2))).toBeNull();
-    // Done follows the same rule: the plain done subtask isn't there, the top-level one is.
+    // Done is flat: the done subtask of an open tree is struck in its tree, not here.
     expect(titles('[data-todo-section="done"]')).toEqual(["Book the eye exam"]);
     expect(document.querySelector('[data-todo-section="done"] [data-done-more]')).toBeNull();
   });
 
-  test("Mine shows viewer@'s assigned subtask with “Part of”, and they may tick it", async () => {
+  test("Mine shows viewer@'s subtask under its parent, a dimmed context row; they may tick it, and see no +", async () => {
     await open("viewer", `${LIST}?who=mine`);
     await expect.element(page.getByText("Order the cake")).toBeVisible();
 
-    expect(titles("[data-todo-section]:not([data-todo-section=done])")).toEqual(["Order the cake"]);
-    expect(rowOf(id(7))?.querySelector("[data-todo-part-of]")?.textContent).toBe("Part of Plan the birthday");
+    expect(titles(OPEN_SECTIONS)).toEqual(["Plan the birthday", "Order the cake"]);
+    expect(rowOf(id(6))?.getAttribute("data-todo-look")).toBe("context");
+    expect(rowOf(id(7))?.getAttribute("data-todo-look")).toBe("list");
+    expect(left(id(7))).toBeGreaterThan(left(id(6)));
+    expect(document.querySelector("[data-todo-part-of]")).toBeNull();
     await expect.element(page.getByRole("checkbox", { name: "Mark “Order the cake” done" })).toBeEnabled();
+    expect(document.querySelector("[data-todo-quick-add]")).toBeNull();
+  });
+
+  test("a viewer sees no + on any row", async () => {
+    await open("viewer");
+    await expect.element(page.getByText("Get ready for the hospital stay")).toBeVisible();
+    expect(document.querySelector("[data-todo-quick-add]")).toBeNull();
+    await expect.element(page.getByRole("button", { name: /^Add subtask to/ })).not.toBeInTheDocument();
+  });
+
+  test("a writer adds two children from a row with Enter; they land in its tree, in order", async () => {
+    await open();
+    const opener = page.getByRole("button", { name: "Add subtask to Plan the birthday" });
+    await expect.element(opener).toBeVisible();
+    // Every open row of a writer's list has its own quick add.
+    expect(
+      page.getByRole("button", { name: "Add subtask to Get ready for the hospital stay" }).elements(),
+    ).toHaveLength(1);
+
+    await userEvent.click(opener);
+    const field = page.getByRole("textbox", { name: "New subtask" });
+    await expect.element(field).toHaveFocus();
+    await userEvent.keyboard("Buy the candles{Enter}");
+    await expect.element(page.getByRole("link", { name: "Buy the candles" })).toBeVisible();
+    await expect.element(field).toHaveFocus();
+    await userEvent.keyboard("Send the invites{Enter}");
+    await expect.element(page.getByRole("link", { name: "Send the invites" })).toBeVisible();
+
+    expect(titles('[data-todo-section="undated"]')).toEqual([
+      "Plan the birthday",
+      "Order the cake",
+      "Buy the candles",
+      "Send the invites",
+    ]);
   });
 });

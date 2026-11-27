@@ -2,11 +2,18 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { TodoSection } from "~/lib/todos/todoList";
 
 import { EmptyState, TITLE_SUB } from "~/components/ui";
-import { TodoRow } from "~/components/todos";
+import { TodoTree } from "~/components/todos";
 
-type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo">;
+type TreeProps = Omit<
+  Parameters<typeof TodoTree>[0],
+  "trees" | "look" | "adding" | "ancestors" | "className"
+>;
 
-/** The open todos, in sections (Overdue, Today, a day per later day, No due date). */
+/**
+ * The open trees, in sections (Overdue, Today, a day per later day, No due
+ * date): the shared `TodoTree`, each row with its quick add (writers only;
+ * `TodoQuickAdd` decides).
+ */
 export function TodoSections({
   sections,
   empty,
@@ -14,7 +21,7 @@ export function TodoSections({
 }: {
   sections: TodoSection<LocalTodo>[];
   empty: string;
-} & RowProps) {
+} & TreeProps) {
   if (!sections.length) return <EmptyState data-todos-empty="">{empty}</EmptyState>;
   return (
     <div className="space-y-4">
@@ -26,11 +33,7 @@ export function TodoSections({
           >
             {section.label}
           </h2>
-          <ul className="divide-base-300 divide-y">
-            {section.todos.map((todo) => (
-              <TodoRow key={todo.id} todo={todo} {...row} />
-            ))}
-          </ul>
+          <TodoTree trees={section.trees} adding className="divide-base-300 divide-y" {...row} />
         </section>
       ))}
     </div>
