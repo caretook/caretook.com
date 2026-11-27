@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged (2026-11-27); CI `integration` run out on the tip. Slice worktrees kept until green. `planner-3` landed in `dev` (start condition met).
+**Where it stands:** wave 1 merged (2026-11-27); CI `integration` run 46059491494 braked only on my plan file's format (fixed); rerun out. Slice worktrees kept until green. `planner-3` landed in `dev` (start condition met).
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
@@ -16,10 +16,10 @@
 
 **Unplanned items on this topic:** B-760 (`add_provider`), B-761 (`add_medication`), B-917 (log doses from a photo of a weekly sheet) are triaged `connectors-3` but in no slice; they need a planning pass before any wave takes them.
 
-| Slice | Wave | State       | Merge into `prd/connectors-3` (slice commits) |
-| ----- | ---- | ----------- | --------------------------------------------- |
-| 1     | 1    | merged      | a2383ef8b (ad3342564, c6147c2f9) |
-| 2     | 1    | merged      | 6e026ab18 (f0f00891c, f2edd4a62) |
+| Slice | Wave | State  | Merge into `prd/connectors-3` (slice commits) |
+| ----- | ---- | ------ | --------------------------------------------- |
+| 1     | 1    | merged | a2383ef8b (ad3342564, c6147c2f9)              |
+| 2     | 1    | merged | 6e026ab18 (f0f00891c, f2edd4a62)              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on it when the slice merges.
 
