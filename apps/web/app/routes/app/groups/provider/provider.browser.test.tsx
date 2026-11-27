@@ -304,7 +304,7 @@ describe("mentions in the notes", () => {
   });
 });
 
-/** The header's ⋯ (Copy to another group, Tags) and its items' names, once open. */
+/** The header's ⋯ (Copy to another group) and its items' names, once open. */
 const ACTIONS = () => document.querySelector<HTMLButtonElement>("main header [data-provider-actions]");
 const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
 const openActions = async () => {
@@ -317,7 +317,7 @@ const rect = (el: Element | null | undefined) => {
 };
 
 describe("the header on a phone (375px)", () => {
-  test("a pharmacy's Edit and ⋯ sit beside its name, inside the header; Copy to another group and Tags are in the ⋯", async () => {
+  test("a pharmacy's Edit and ⋯ sit beside its name, inside the header; Copy to another group is in the ⋯", async () => {
     await open(providerUrl(CORNERSTONE.id), { role: "caretaker", width: 375 });
     await waitUntil(() => !!ACTIONS(), "the ⋯");
     const header = document.querySelector<HTMLElement>("main header")!;
@@ -339,7 +339,7 @@ describe("the header on a phone (375px)", () => {
       ),
     ).toEqual(["Edit", ""]);
     await openActions();
-    expect(menuItems()).toEqual(["Copy to another group", "Tags"]);
+    expect(menuItems()).toEqual(["Copy to another group"]);
   });
 });
 
@@ -410,9 +410,9 @@ describe("Copy to another group", () => {
     device = await open(providerUrl(PATEL.id), { role: "caretaker", fixtures: [directory(), SAM] });
     await waitUntil(() => !!NOTES(), "the page");
     await device.settle();
-    await openActions();
-    expect(menuItems()).toEqual(["Tags"]);
-    await userEvent.keyboard("{Escape}");
+    // No copy target and no Tags in the ⋯ (tags-2's `QuickTags`): no ⋯ at all, Edit still there.
+    expect(ACTIONS()).toBeNull();
+    expect(document.querySelector("main header [data-edit-provider]")).not.toBeNull();
     await device.screen.unmount();
 
     device = await open(providerUrl(PATEL.id), {
@@ -421,8 +421,7 @@ describe("Copy to another group", () => {
     });
     await waitUntil(() => !!NOTES(), "the page");
     await device.settle();
-    await openActions();
-    expect(menuItems()).toEqual(["Tags"]);
+    expect(ACTIONS()).toBeNull();
   });
 });
 

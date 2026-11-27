@@ -124,13 +124,15 @@ describe("condition changes on the timeline", () => {
     await expect.poll(() => again.location()).toBe(`${TIMELINE_URL}?kind=conditionChange`);
   });
 
-  test("a change opens nothing and its ⋯ is Tags, Copy link and Delete", async () => {
+  test("a change opens nothing and its ⋯ is Copy link and Delete", async () => {
     await open("?kind=conditionChange");
     await expect.poll(() => rowWith("Resolved Hip fracture")).toBeTruthy();
     const row = () => rowWith("Resolved Hip fracture");
     expect(openOf(await found(row))).toBeNull();
+    // Still taggable, as an entry (tags-2): by the row's own Add tag, not ⋯.
+    expect(row()?.querySelector("[data-quick-tag-add]")).not.toBeNull();
     await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
-    await expect.poll(menuItems).toEqual(["Tags", "Copy link", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Copy link", "Delete"]);
   });
 
   test("a viewer sees the rows, with a ⋯ of Copy link alone", async () => {
@@ -140,6 +142,7 @@ describe("condition changes on the timeline", () => {
       await found(() => rowWith("Resolved Hip fracture")?.querySelector('button[aria-label^="Actions for"]')),
     );
     await expect.poll(menuItems).toEqual(["Copy link"]);
+    expect(rowWith("Resolved Hip fracture")?.querySelector("[data-quick-tag-add]")).toBeNull();
   });
 });
 

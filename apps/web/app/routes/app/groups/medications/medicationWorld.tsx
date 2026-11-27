@@ -283,14 +283,21 @@ export const rowText = (name: string, field: string) =>
 
 export const NOTES = () => document.querySelector<HTMLElement>("main .ProseMirror");
 
+/** The header's details line, without its tags (`QuickTags`: tags' own tests read those). */
+const headerDetails = () => {
+  const details = document.querySelector<HTMLElement>('main header [data-region="details"]');
+  if (!details) return null;
+  const copy = details.cloneNode(true) as HTMLElement;
+  copy.querySelectorAll("[data-quick-tags], [data-tag-chips]").forEach((t) => t.remove());
+  return copy.textContent.trim();
+};
 /** A medication's page as the DOM has it. */
 export const medPage = () => ({
   h1: document.querySelector<HTMLElement>("main h1")?.textContent?.trim(),
   badge:
     document.querySelector<HTMLElement>('main header [data-region="title"] .badge')?.textContent?.trim() ??
     null,
-  details:
-    document.querySelector<HTMLElement>('main header [data-region="details"]')?.textContent?.trim() ?? null,
+  details: headerDetails(),
   stopped: document.querySelector<HTMLElement>("main [data-medication-stopped]")?.textContent?.trim() ?? null,
   rows: Object.fromEntries(
     [...document.querySelectorAll<HTMLElement>("main [data-detail]")].map((r) => [

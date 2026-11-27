@@ -200,14 +200,14 @@ describe("on the timeline", () => {
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=dose`);
   });
 
-  test("a change opens nothing and its ⋯ is Tags and Delete; Delete removes it and the medication stays; its edit URL is the timeline, filters kept", async () => {
+  test("a change opens nothing and its ⋯ is Copy link and Delete; Delete removes it and the medication stays; its edit URL is the timeline, filters kept", async () => {
     const device = await open({ query: "?kind=medicationChange" });
     const row = () => rowWith("Changed strength 5 mg → 10 mg");
     await expect
       .poll(() => row()?.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]'))
       .toBeNull();
     await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
-    await expect.poll(menuItems).toEqual(["Tags", "Copy link", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Copy link", "Delete"]);
     await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(row).toBeUndefined();
@@ -308,7 +308,7 @@ describe("the Dose sheet", () => {
     );
   });
 
-  test("a dose opens its edit sheet with the medication fixed; Skipped saves; its ⋯ has Edit, Tags and Delete, and Delete removes it", async () => {
+  test("a dose opens its edit sheet with the medication fixed; Skipped saves; its ⋯ has Edit, Copy link and Delete, and Delete removes it", async () => {
     const dose = fx.dose({
       medicationId: IBUPROFEN.id,
       amount: "2 tablets",
@@ -328,7 +328,7 @@ describe("the Dose sheet", () => {
     await userEvent.click(
       await found(() => rowWith(LABEL)?.querySelector('button[aria-label^="Actions for"]')),
     );
-    await expect.poll(menuItems).toEqual(["Edit", "Tags", "Copy link", "Delete"]);
+    await expect.poll(menuItems).toEqual(["Edit", "Copy link", "Delete"]);
     await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(() => rowWith(LABEL)).toBeUndefined();

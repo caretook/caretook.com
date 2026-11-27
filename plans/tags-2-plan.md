@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/tags-2` (slice commits)     |
-| ----- | ---- | ------- | ------------------------------------------- |
-| 1     | 1    | landed  | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
-| 2     | 2    | landed  | 7b892610 (d362bd70)                         |
-| 3     | 3    | landed  | 8cc6a9c5 (ca9829f5)                         |
-| 4     | 4    | landed  | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
-| 5     | 5    | planned |                                             |
-| 6     | 5    | planned |                                             |
+| Slice | Wave | State  | Merge into `prd/tags-2` (slice commits)     |
+| ----- | ---- | ------ | ------------------------------------------- |
+| 1     | 1    | landed | 5cb59418 (af753337, 46b45b17, a5b7e245)     |
+| 2     | 2    | landed | 7b892610 (d362bd70)                         |
+| 3     | 3    | landed | 8cc6a9c5 (ca9829f5)                         |
+| 4     | 4    | landed | 09a762ee, fix ee65bf90 (0cd98a93, e4ddb041) |
+| 5     | 5    | merged | bfdac885 (d29079bb)                         |
+| 6     | 5    | merged | 84dbac1c (ca68acc1, e314f75b)               |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave, ask only real questions).
 
-**Now:** wave 4 green (flake verdict, run 45945943940 on d5e4b103: sheetExit flake outside the branch); dev sync a no-op; worktree tags-2-4 removed; PR #248 opened; Codex out of credits → landing `--no-review`, tier components; tags doc folded. **Next session:** wave 5, slices 5 (providers, medications) and 6 (timeline rows) at once, both opus; slice 6 touches `routes/app/groups/timeline/` (todo-subtasks-2 hot file: sync dev first if it runs). Slice 4 notes: rows pass `max={2}` and `tags={byRecord.get(id) ?? []}`; "Add tag" text may be too wide on rows (a compact variant is a small `QuickTags` change); Planner rows keep ⋯ Tags (not in this PRD). Slice 6's merge, with 5's, runs `pnpm backlog done B-892`. Fold [timeline](../docs/domain/timeline.md) at wave 5.
+**Now:** wave 5 (slices 5, 6, opus) merged; fix 14ad3a98 after run 45948140555 (tests still expected ⋯ Tags). Run 45949410404 components **green** on 14ad3a98 (synced with dev). Worktrees tags-2-5/6 removed. PR #249; Codex out of credits (exit 4) → land `--no-review`, `--tier components --why` (full proposed only for the quarantine.txt test rename). roundtrip browser check passed. Docs folded (f9afed22). Landing now; last wave, then `pnpm prd rm tags-2`. Open: condition-change timeline rows can be tagged (they could before via ⋯); B-921 noted as maybe fixed.
 
 ## Architectural decisions
 
