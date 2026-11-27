@@ -4,17 +4,25 @@
 
 ## Status
 
-Planned 2026-11-26 (dev 153d6b95). Not started.
+Planned 2026-11-26 (dev 153d6b95). Started 2026-11-26 on prd/orchestration-split-4 (base d7472379).
 
-| Slice | Wave | State   | Merge into `prd/orchestration-split-4` |
-| ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | planned |                                        |
-| 2     | 1    | planned |                                        |
-| 3     | 1    | planned |                                        |
-| 4     | 2    | planned |                                        |
-| 5     | 3    | planned |                                        |
-| 6     | 3    | planned |                                        |
-| 7     | 4    | planned |                                        |
+**Landing mode: run everything through** (dispatcher start): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+Start: anchors fixed (new-file markers in slices 1-5), B-929 claimed. Wave 1 started: slices 1, 2, 3 worktrees made, agents spawned on opus. All three merged; wave 1 CI run requested next.
+
+- Slice 1 handed off (3d1a6b44): `standalone.mjs` (300 s default per-file limit), `lib.sh` exits on no config, lease case. Baseline: sample 576 failed of 2046 in 66 files; project 221 of 2033 in 26 files; none 464 of 1191 in 77 files, 0 hung. Its check failed only `stack.test.mjs` (B-932).
+
+- Slice 2 handed off (98241866): `project-check` built; its slice check passed every unit test but timed out in the tooling step at load ~49 (600 s budget); `stack.test.mjs` "rm.sh from inside the worktree it removes (B-812)" fails 2 cases on the base too (maybe agent-session env): the wave's CI run decides. Also `makeRepo` stops copying `boundary.manifest`/`.allowlist`, adds `sampleData()`. Slice 3 handed off (3d79c811): `fixtureTierData()` in `config-fixture.mjs`; its slice check passed (unit 5454, tooling 2913). The `stack.test.mjs` B-812 failures are the orchestrator session's `RISA_SESSION_*`/`CLAUDE_PID` env leaking into subagent shells (pass with them unset): already B-932. Follow-up idea: `test:tooling` runs `tooling-lint.mjs` before the check, so broken tier data throws a stack trace first.
+
+| Slice | Wave | State   | Model | Merge into `prd/orchestration-split-4` |
+| ----- | ---- | ------- | ----- | -------------------------------------- |
+| 1     | 1    | merged  | opus  | 8d6fdd82                               |
+| 2     | 1    | merged  | opus  | 78153d01                               |
+| 3     | 1    | merged  | opus  | 3f8e5900                               |
+| 4     | 2    | planned |       |                                        |
+| 5     | 3    | planned |       |                                        |
+| 6     | 3    | planned |       |                                        |
+| 7     | 4    | planned |       |                                        |
 
 ## Architectural decisions
 
@@ -39,7 +47,7 @@ Stack: no · Reads: scripts/loops/docs/project-config.md, docs/agents/project-co
 
 **What to build**
 
-- `scripts/loops/standalone.mjs` (new; PRD _Implementation decisions_, "The standalone run"): `--root sample|project|none`, `--keep`, a per-file time limit; its pure parts exported (`coreFiles(manifestText)`, `failedFrom(report)`); its CLI prints `<failed> <file>` lines, the total, and any hung file. Its Vitest config names `scripts/loops/test-setup.mjs` when that file exists (slice 7 adds it).
+- `scripts/loops/standalone.mjs` (new; PRD _Implementation decisions_, "The standalone run"): `--root sample|project|none`, `--keep`, a per-file time limit; its pure parts exported (`coreFiles(manifestText)`, `failedFrom(report)`); its CLI prints `<failed> <file>` lines, the total, and any hung file. Its Vitest config names `scripts/loops/test-setup.mjs` (new in slice 7) when that file exists.
 - `scripts/loops/lib.sh`: the config line exits the sourcing script (`exit 1`) with its one line, instead of returning. First grep the tests that source `lib.sh` for one that expects to carry on after a config failure, and change it.
 - `scripts/loops/lease.test.mjs`: `lease.sh take` with `RISA_CONFIG` pointing at a missing file exits 1 within seconds with the config line.
 - `scripts/loops/standalone.test.mjs` (new): `coreFiles` keeps only `core` lines; `failedFrom` counts failed tests per file and names a file with no result as hung.
@@ -47,7 +55,7 @@ Stack: no · Reads: scripts/loops/docs/project-config.md, docs/agents/project-co
 
 **Acceptance criteria**
 
-- Unit: `standalone.test.mjs` and the new `lease.test.mjs` case pass in `pnpm test:tooling`.
+- Unit: `standalone.test.mjs` (new) and the new `lease.test.mjs` case pass in `pnpm test:tooling`.
 - `node scripts/loops/standalone.mjs --root none` finishes with no hang; `--root sample` and `--root project` report about the planner's 560 and 206 (the slice's report records the baseline).
 
 **Blocked by:** none. **Blocks:** 7.
@@ -69,7 +77,7 @@ Stack: no · Reads: scripts/loops/docs/project-config.md, docs/agents/project-co
 
 **Acceptance criteria**
 
-- Unit: `project-check.test.mjs` and `project-data.test.mjs` pass. `pnpm prd project-check` passes on the checkout; on a scratch edit breaking `scripts/ci/tiers.json`, `pnpm test:tooling` fails naming it (shown in the slice's report, the edit reverted).
+- Unit: `project-check.test.mjs` (new) and `project-data.test.mjs` (new) pass. `pnpm prd project-check` passes on the checkout; on a scratch edit breaking `scripts/ci/tiers.json`, `pnpm test:tooling` fails naming it (shown in the slice's report, the edit reverted).
 
 **Blocked by:** none. **Blocks:** 4, 5, 6.
 
@@ -81,7 +89,7 @@ Stack: no · Reads: scripts/loops/docs/project-config.md · Tests: unit
 
 **What to build**
 
-- The tests that copy `scripts/ci/tiers.json` by its literal path, or read it from `REPO`'s config, take the file the config in `RISA_CONFIG` names, relative to that config's folder (so they pass on Caretook's config now and on the fixture after slice 7): `scripts/loops/reclaim.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/stack.test.mjs`, `scripts/loops/tidy-cli.test.mjs`, `scripts/loops/check-run.test.mjs`, `scripts/ci/ci-ids.test.mjs`. One helper in `scripts/loops/config-fixture.mjs` (`fixtureTierData()`) if more than two need it.
+- The tests that copy `scripts/ci/tiers.json` by its literal path, or read it from `REPO`'s config, take the file the config in `RISA_CONFIG` names, relative to that config's folder (so they pass on Caretook's config now and on the fixture after slice 7): `scripts/loops/reclaim.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/stack.test.mjs`, `scripts/loops/tidy-cli.test.mjs`, `scripts/loops/check-run.test.mjs`, `scripts/ci/ci-ids.test.mjs`. If more than two need it, one new helper, `fixtureTierData()`, goes in `scripts/loops/config-fixture.mjs`.
 
 **Acceptance criteria**
 
@@ -97,13 +105,13 @@ Stack: no · Reads: scripts/loops/docs/project-config.md · Tests: unit
 
 **What to build**
 
-- `scripts/loops/fixture-project/` (new): `risa.json` with today's names (trunk `dev`, `prd/` `slice/` `plan/` `hotfix/`, ids `B`, the `pnpm prd` and `pnpm backlog` command names, the same hooks shape as Caretook's on the sample stubs), its paths inside the folder: `tiers.json` (the tiers and gates the land and CI tests expect), `check-plan-rules.json`, `quarantine.txt`, `brake-list.txt`, `docs/preferences.md` (a never list) and `docs/planner.md` (one role's additions).
-- `scripts/loops/project-check.test.mjs`: a case that the fixture project passes the check.
+- `scripts/loops/fixture-project/` (new): `risa.json` with today's names (trunk `dev`, `prd/` `slice/` `plan/` `hotfix/`, ids `B`, the `pnpm prd` and `pnpm backlog` command names, the same hooks shape as Caretook's on the sample stubs), its paths inside the folder: `tiers.json` (the tiers and gates the land and CI tests expect), `check-plan-rules.json`, `quarantine.txt`, `brake-list.txt`, `docs/preferences.md` (new: a never list) and `docs/planner.md` (one role's additions).
+- `scripts/loops/project-check.test.mjs` (new in slice 2): a case that the fixture project passes the check.
 - `scripts/loops/boundary.manifest`: the new files.
 
 **Acceptance criteria**
 
-- Unit: the new `project-check.test.mjs` case passes; `pnpm test:tooling` passes (nothing reads the fixture by default yet).
+- Unit: the new `project-check.test.mjs` (new in slice 2) case passes; `pnpm test:tooling` passes (nothing reads the fixture by default yet).
 - **Measured before the flip:** `RISA_CONFIG=<the fixture's risa.json> pnpm test:tooling` runs, and the slice's report lists what still fails; the land tests (`land`, `land-gate`, `land-unsynced`, `land-force-resume`), `ci/gate` and `ci/outstanding` (about 161 of the 206) must pass on the fixture's tier data, so the fixture is fixed here, not in slice 7.
 
 **Blocked by:** 2. **Blocks:** 5, 6, 7.
@@ -119,12 +127,12 @@ Stack: no · Reads: scripts/loops/docs/project-config.md · Tests: unit
 - `scripts/loops/doc.test.mjs`: the "this repo's roles" cases run on the fixture project's config and docs (its roles and additions); the "every doc in docs/agents is a role" case goes (the check covers it); the generic-doc cases read `scripts/loops/docs/` only.
 - `scripts/loops/skeptics.test.mjs`: the brief's rules read from the fixture's preferences, not `REPO`'s.
 - `scripts/loops/boundary.test.mjs`: the rule tests on made-up trees only; the lint of the real tree goes (the check runs it, and CI through slice 2's test).
-- The prompt golden: the golden test's renderer moves into a core module (`scripts/loops/prompt-render.mjs`, new) that `prompt-golden.test.mjs` and `project-check.mjs` both use; the check gains the golden line (PRD _Implementation decisions_); `prompt-golden.test.mjs`'s "on this repo's own config" case goes; `project-check.test.mjs` gains a mismatched-golden case.
+- The prompt golden: the golden test's renderer moves into `scripts/loops/prompt-render.mjs` (new, a core module) that `prompt-golden.test.mjs` and `project-check.mjs` (new in slice 2) both use; the check gains the golden line (PRD _Implementation decisions_); `prompt-golden.test.mjs`'s "on this repo's own config" case goes; `project-check.test.mjs` (new in slice 2) gains a mismatched-golden case.
 - `scripts/loops/boundary.manifest`: the new module.
 
 **Acceptance criteria**
 
-- Unit: `pnpm test:tooling` passes, with the new `project-check.test.mjs` case; `pnpm prd project-check` passes on the checkout (Caretook's golden matches). Standalone `--root project` no longer lists `doc`, `skeptics`, `boundary` or `prompt-golden`.
+- Unit: `pnpm test:tooling` passes, with the new `project-check.test.mjs` (new in slice 2) case; `pnpm prd project-check` passes on the checkout (Caretook's golden matches). Standalone `--root project` no longer lists `doc`, `skeptics`, `boundary` or `prompt-golden`.
 
 **Blocked by:** 2, 4. **Blocks:** 7.
 
