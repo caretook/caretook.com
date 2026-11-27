@@ -151,11 +151,15 @@ describe("Details", () => {
       .poll(() => recipientCard.querySelector('[role="status"]')?.textContent?.trim())
       .toBe("Saved.");
 
-    // The device is in Los Angeles (the tests' zone).
+    // The shortcut names and picks this device's zone, wherever the test runs (Chicago is neither runner zone).
+    const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(deviceZone).not.toBe("America/Chicago");
     await userEvent.selectOptions(ZONE(), "America/Chicago");
-    const shortcut = page.getByRole("button", { name: "Use this device's (America/Los Angeles)" });
+    const shortcut = page.getByRole("button", {
+      name: `Use this device's (${deviceZone.replaceAll("_", " ")})`,
+    });
     await userEvent.click(shortcut);
-    await expect.element(ZONE()).toHaveValue("America/Los_Angeles");
+    await expect.element(ZONE()).toHaveValue(deviceZone);
   });
 
   test("a caretaker: the group's name is read-only, with no controls; the profile is linked", async () => {

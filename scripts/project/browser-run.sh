@@ -2,7 +2,7 @@
 # Caretook's plain browser-check runner: runs the named checks (Playwright Test
 # specs, scripts/browser-checks/<check>.spec.mjs) one after another and says how
 # each went. It holds no lease and has no load wait, cap, retry or hang watchdog:
-# `pnpm prd browser` (the tool's gate) wraps those around it through risa.json's
+# `risa browser` (the tool's gate) wraps those around it through risa.json's
 # hooks.browser, and CI's browser job (scripts/ci/browser-job.mjs) calls it bare.
 #
 #   browser-run.sh list

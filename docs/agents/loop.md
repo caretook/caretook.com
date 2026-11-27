@@ -1,14 +1,14 @@
-<!-- The whole handbook: `pnpm prd doc loop`. -->
+<!-- The whole handbook: `risa doc loop`. -->
 
 - Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24).
 - Your stack is your own: `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` use your ports. Never touch the main checkout, other worktrees or other Compose projects.
-- Serve with `pnpm prd serve` (`WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`: `docker compose restart powersync`.
-- Keep shared-file edits small. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
-- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, above); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
+- Serve with `risa serve` (`WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`: `docker compose restart powersync`.
+- Keep shared-file edits small. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `risa backlog note`.
+- **Commit on your branch**, then check (`risa check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, above); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 
 ## Your worktree and stack
 
-- A slice gets a stack only for `Stack: yes`. Stackless, a check still runs everything: integration tests use your own database, `caretook_test_<name>`, on the shared test Postgres (:5436, `pnpm prd test-db`), created on first use. **Never run `pnpm datastore:*:test` stackless**: with no root `.env` it hits the main checkout's test project. `pnpm prd stack up` adds a stack, `stack down` removes it; tell your orchestrator.
+- A slice gets a stack only for `Stack: yes`. Stackless, a check still runs everything: integration tests use your own database, `caretook_test_<name>`, on the shared test Postgres (:5436, `risa test-db`), created on first use. **Never run `pnpm datastore:*:test` stackless**: with no root `.env` it hits the main checkout's test project. `risa stack up` adds a stack, `stack down` removes it; tell your orchestrator.
 - **Slots and ports.** A stack leases the lowest free slot (1–19): slot N in 1–9 has web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80 (10–19: 7(N−10) for 6N); Compose projects `caretook-loopN`.
 - **Env files** (gitignored, by `new.sh`): the root `.env`, `packages/data/.env` and `.env.test.local`, `apps/web/.env`, and `.env.loop` (`SLOT`, `BASE_BRANCH`, `BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`, `SEED_USER_PASSWORD`).
 - Every port, Compose name and the PowerSync audience come from env; a new service, port or container name is configurable the same way, never fixed.
@@ -19,17 +19,17 @@
 - **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build.
 - A browser step that asserts pure logic or one device's screen goes once a unit or component test covers it.
 - **Tests don't race the machine:** wait on state, not a sleep; fake clocks take few steps (`RISA_CLOCK_FILE`); fake pids are 99_999_999; a polled fake file is renamed in; a slow integration file shares a world per describe.
-- **Only your own tests.** While building: the test files you add or edit, plus `pnpm prd browser <check>` only for a spec you add or edit. **Before hand-off:** `pnpm prd check --quick "slice hand-off"` (static, every unit test, your own integration and component files). Never `--changed` or `--suite`. Never rerun a passed check or run two at once.
+- **Only your own tests.** While building: the test files you add or edit, plus `risa browser <check>` only for a spec you add or edit. **Before hand-off:** `risa check --quick "slice hand-off"` (static, every unit test, your own integration and component files). Never `--changed` or `--suite`. Never rerun a passed check or run two at once.
 
 ## Browser checks
 
-`scripts/browser-checks/`: one Playwright Test spec per check (`<check>.spec.mjs`; `checks.test.mjs` wants one per manifest line). `marketing-screenshots.mjs` is outside the manifest, run by hand against `pnpm prd serve --built` (B-40). The flows each owns:
+`scripts/browser-checks/`: one Playwright Test spec per check (`<check>.spec.mjs`; `checks.test.mjs` wants one per manifest line). `marketing-screenshots.mjs` is outside the manifest, run by hand against `risa serve --built` (B-40). The flows each owns:
 
 - `sign-in` (one sign-in on a double click); `first-sync` (a sheet URL as a full page, a slow first sync, a new group syncing in); `session-end` (another device signing this one out; recent searches and the search index gone); `layout-offline` (an offline layout change reaching the server, another browser's layout winning, sheets offline, and a real reload offline served by the service worker).
 - `roundtrip` (sheet entries converging across two devices, offline then reconnect, the viewer, reschedule, a series and its split, the sync matrix, removal, refused uploads, a connector write via `/mcp` with its tag); `phase2` (the timeline by sync, a server-linked provider, offline filtering); `live-notes` (documents across devices: typing, concurrent edits, offline, shared links).
 - `app-shell` (theme before first paint, sign-out, rename and members across devices, the details stream, `/admin`'s 404s and an audited banner); `invites` (account emails, email and link invites, join requests, access codes, through `/dev/mail.json`); `ui` (production CSS and the CSP: menu and sheet surfaces on a check build); `marketing` (the public site and headers).
 
-- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds the machine-wide `browser` lease and logs to the git dir.
+- **Run them only through `risa browser <check> [args…]`** (`browser.sh`). It holds the machine-wide `browser` lease and logs to the git dir.
 - **`--changed`** runs what the diff needs; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list`. **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (`@smoke` tests only); `--verbose`; `--dev` (the dev server).
 - **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`; CI greps both out of production), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production` turns Better Auth's rate limits on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`.
 - **Limits, each a TIMEOUT:** silence (`RISA_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`RISA_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
@@ -55,7 +55,7 @@
 
 ### Writing a check
 
-- **Specs:** import `test` and `expect` from `fixtures.mjs`, never `@playwright/test`. `device(label, opts)`: a context with its own `x-forwarded-for` (420×900, America/Los_Angeles; twice for two devices). `d.errors` fails on console errors and CSP violations; helpers: `signIn`, `signOut`, `openDevFamily`, `psql`, `DEV_FAMILY`, `waitFor` (awaits), `localCopyHolds`, `assetsSettled`. One worker, no retries; only `Timeout Nms` counts as contention. Tag the core path `@smoke`. Extra args to `pnpm prd browser` are file filters, no `-g`.
+- **Specs:** import `test` and `expect` from `fixtures.mjs`, never `@playwright/test`. `device(label, opts)`: a context with its own `x-forwarded-for` (420×900, America/Los_Angeles; twice for two devices). `d.errors` fails on console errors and CSP violations; helpers: `signIn`, `signOut`, `openDevFamily`, `psql`, `DEV_FAMILY`, `waitFor` (awaits), `localCopyHolds`, `assetsSettled`. One worker, no retries; only `Timeout Nms` counts as contention. Tag the core path `@smoke`. Extra args to `risa browser` are file filters, no `-g`.
 - **Offline:** `device(label, { offlineable: true })` and `d.offline(on)`, through the device's own proxy (`context.setOffline` alone leaves PowerSync connected; add it when the page reads `navigator.onLine`); `d.proxy.hold(port)` and `release()` hold one port's requests. On a check build, `await assetsSettled(page)` before going offline: prefetching route chunks cut mid-fetch reloads into chrome-error.
 - **Order-independent:** tag what the run makes, assert on your own entries (never global state or seed order), soft-delete what you made, restore seeds in `beforeAll`/`afterAll`. **member@ has two groups:** `signIn` goes on to Dev Family (`{ home: true }` stays put); use caretaker@ or viewer@ for a one-group user.
 - **Waits:** wait on the thing, never a fixed sleep; locators are strict (`.first()` when several match). `locator.click()` waits for the navigation it starts: for a click meant to land offline, `evaluate((el) => el.click())`. A tap on a closing menu can be swallowed: retry once (`live-notes`). Auth queues mail after responding, so "no mail" or "one email" needs a quiet window (`invites`' `mailSettled`), never "the outbox is empty now".

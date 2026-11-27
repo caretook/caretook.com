@@ -1,6 +1,6 @@
 # Local development datastore. Start it with `pnpm datastore:start`.
 # Every port and the project name come from variables, so parallel loops can each
-# run a stack (scripts/loops/new.sh writes them into the worktree's root .env,
+# run a stack (Risa's new.sh writes them into the worktree's root .env,
 # which Compose reads). The defaults are the main checkout's.
 name: ${CARETOOK_STACK:-caretook}
 

@@ -47,7 +47,7 @@ export function buildListing({ routeManifest, chunkModules, gzipOf, appRoute = "
     if (!(chunk in chunkModules)) throw new Error(`${chunk} has no module list in .vite/chunk-modules.json`);
     chunks[chunk] = { gzip: gzipOf(chunk), modules: chunkModules[chunk] };
   }
-  return { groups, chunks };
+  return { groups, chunks, modules: chunkModules };
 }
 
 /** Reads the listing from a build's client directory (apps/web/build/web/client). */

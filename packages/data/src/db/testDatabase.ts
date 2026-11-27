@@ -5,7 +5,7 @@
  * - The main checkout's (and an older loop worktree's) own test Postgres: a
  *   local host on `PG_TEST_PORT` (default 5435).
  * - A worktree's database on the shared test Postgres (`SHARED_TEST_DB=1`, from
- *   the `.env.test.local` that scripts/loops writes): a local host on
+ *   the `.env.test.local` that the tool (Risa) writes): a local host on
  *   `PG_TEST_PORT`, and a database named `caretook_test_<worktree>`, so a run
  *   never clears another server's or another worktree's main database.
  * - Each integration worker's copy of it (`workerDatabase`):
@@ -72,7 +72,7 @@ export const intWorkers = (value: string | undefined): number | undefined => {
 // longer one). No worktree base starts `caretook_tw_`, so `foo`'s worker can't
 // be `foo-w1`'s base, and two long bases with the same first 38 differ by the
 // hash. test-db.sh (`list`, `drop`) builds the same prefix in SQL, and
-// scripts/loops/tidy.mjs in JS: change all three together.
+// Risa's loops/tidy.mjs in JS: change all three together.
 const WORKER_PREFIX = "caretook_tw_";
 const WORKER_STEM_LENGTH = 38;
 const WORKER_HASH_LENGTH = 8;

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { EntryProviderLinkInput, Tx } from "../db";
+import type { EntryProviderLinkInput, TimelineEntryProvider, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
@@ -101,6 +101,72 @@ export const link = (ctx: ServiceContext, input: EntryProviderLinkInput) =>
     if (existing) return existing;
 
     return timelineEntryProviderModel.create({ ...ctx, tx, data: { id, groupId, entryId, providerId } });
+  }, ctx);
+
+/**
+ * `link` for every pair of `entryIds` and `providerIds` in one INSERT (a
+ * series' visits: B-755), with link's checks on each: a live note or event
+ * and a provider that isn't deleted, as the actor sees them, both in
+ * `groupId`. Pairs already linked keep their link. All or nothing. Returns
+ * the links entry by entry, in `providerIds`' order.
+ */
+export const linkMany = (
+  ctx: ServiceContext,
+  input: { groupId: string; entryIds: readonly string[]; providerIds: readonly string[] },
+) =>
+  withTransaction(async (tx) => {
+    const pairs = [];
+    for (const entryId of input.entryIds)
+      for (const providerId of input.providerIds) {
+        const parsed = entryProviderLinkZSchema.safeParse({ groupId: input.groupId, entryId, providerId });
+        if (!parsed.success) return invalid(parsed.error);
+        pairs.push({ ...parsed.data, id: entryProviderId(entryId, providerId) });
+      }
+    if (!pairs.length) return [] as TimelineEntryProvider[];
+    const { groupId } = input;
+
+    const entries = await timelineEntryModel.list({
+      ...ctx,
+      tx,
+      filter: { id: { type: "inArray", value: [...input.entryIds] } },
+    });
+    if (isError(entries)) return entries;
+    const entryOf = new Map(entries.data.map((entry) => [entry.id, entry]));
+    for (const id of input.entryIds) {
+      if (entryOf.has(id)) continue;
+      // Not visible: the right refusal, as link gives it.
+      const entry = await visibleEntry(ctx, tx, id);
+      if (isError(entry)) return entry;
+      entryOf.set(id, entry);
+    }
+    const providers = [];
+    for (const id of input.providerIds) {
+      const provider = await visibleProvider(ctx, tx, id);
+      if (isError(provider)) return provider;
+      providers.push(provider);
+    }
+    for (const entry of entryOf.values()) {
+      if (entry.groupId !== groupId) return newError({ code: "entryProviderService:immutable" });
+      if (!canLinkProviders(entry.kind)) return newError({ code: "entryProviderService:wrongKind" });
+    }
+    if (providers.some((provider) => provider.groupId !== groupId))
+      return newError({ code: "entryProviderService:immutable" });
+
+    const existing = await timelineEntryProviderModel.list({
+      ...ctx,
+      tx,
+      filter: { id: { type: "inArray", value: pairs.map((p) => p.id) } },
+    });
+    if (isError(existing)) return existing;
+    const links = new Map(existing.data.map((link) => [link.id, link]));
+    const created = await timelineEntryProviderModel.createMany({
+      ...ctx,
+      tx,
+      data: pairs.filter((p) => !links.has(p.id)),
+    });
+    if (isError(created)) return created;
+    for (const link of created) links.set(link.id, link);
+    return pairs.flatMap((p) => links.get(p.id) ?? []);
   }, ctx);
 
 /**

@@ -2,6 +2,27 @@
 
 Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `pnpm prd status-trim fixes-ui`, the newest trim first.
 
+## Trimmed 2026-11-27
+
+**Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus; all merged, items done. Wave gate: CI components (proposed). For the landing docs: providers.md's "Full rows carry no contact details" (B-422) is reversed by 105; 103 added `elsewhere` to `TimelineEntryRow` and `rowDayLabel` (timeline.md), and `LinkedEntries` imports the timeline route folder (follow-up filed). CI components on 1f79a41f (run 45951811176): `file`, 4 failures, all the branch's (blame 45952661845): timelineDoses, medicationForm, allergies (the brand list) sent to slice 104; providerTags to slice 105. Fixes merged (104 fix 7f9e9fd5, test-only; 105 fix test-only: linked entries' rows now carry their own Add tag, so the test scoped its pick). CI components rerun on d58283fb (run 45953425948): `flake` only (search.sync perf, brake list, not our files): green. Sync: up to date. Browser `--changed --base dev`: roundtrip fails at its tags step twice alone (not our code): filed B-951 (fixes-bug), told the backlog session (caretook-com-ea). PR #250 open; Codex review waiting. Follow-up B-950 (fixes-nit): move TimelineEntryRow into components/entry. Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
+
+| Slice | Item                                              | State                   | Merge    |
+| ----- | ------------------------------------------------- | ----------------------- | -------- |
+| 105   | B-940 provider rows show phone and address (opus) | merged (slice 4f49f76d) | 0ebc73a6 |
+| 104   | B-939 medication brand names (opus)               | merged (slice dfddba9b) | 13111221 |
+| 103   | B-937 linked entries use the timeline row (opus)  | merged (slice 683a0e4b) | 88660c00 |
+
+## Trimmed 2026-11-26
+
+**Wave 18 (this session, 2026-11-26):** slices 99–102 written, all opus: 99 B-899 (copy link into ⋯, lands first for tags-2), 100 B-923 (specialty suggestions), 101 B-924 (provider header on a phone), 102 B-925 (care period arrows gap; after 99). The backlog session asked for a recheck after the 95021acb sync: the wave's CI run is the gate. Still held: B-325 (Capacitor). All four merged; sync skipped (dev docs only). Wave CI run 45903344661 on 9ccd9e8d: file. Dev's: doc.test.mjs (B-928). Ours, sent back: slice 99 (inScreens menus and Delete confirm, groupSettings viewer ⋯), slice 102 (timelineHeader no-overlap bound). Docs folded (197999f6). Fixes merged (99: 4d604b62, 102: 0df8ef02); rerun 45905436254 on abec828a: file, only dev's doc.test.mjs (B-928); ours green. Sync: no merge needed. Browser `--suite` was classifier-blocked; ran `--changed --base dev` (roundtrip, ui). PR #237 open, Codex review waiting. Next: land `--tier components`; then rotate (past the soft context limit).
+
+| Slice | Item  | State                                                                      | Merge        |
+| ----- | ----- | -------------------------------------------------------------------------- | ------------ |
+| 102   | B-925 | merged (opus)                                                              | (this merge) |
+| 101   | B-924 | merged (opus); docs: providers.md header line, ui-kit DetailHeader min-w-0 | bfb256e0     |
+| 100   | B-923 | merged (opus)                                                              | 33df29e0     |
+| 99    | B-899 | merged (opus); docs: timeline.md copy-link line                            | 63bebd6c     |
+
 ## Trimmed 2026-11-26
 
 **Wave 16 (2026-11-26, this session; run-through):** slices 86–94 written from the triaged items (B-885, B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916). 90 waits for 89. Models: 86 sonnet, the rest opus. Still held: B-694, B-325.

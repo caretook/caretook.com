@@ -1,4 +1,4 @@
-# CI (test-gates): runs only when asked. `pnpm prd ci run <tier>` pushes a commit
+# CI (test-gates): runs only when asked. `risa ci run <tier>` pushes a commit
 # to a `ci/<tier>/<name>` ref, and this workflow runs that commit's checks. No
 # pull request, no push to dev, staging or main, no schedule.
 #
@@ -153,7 +153,7 @@ jobs:
           RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --time-gate --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --shard=1/2
+          --project server:unit --project project:unit --project project:tooling --shard=1/2
           --reporter=default --reporter=json --outputFile.json=ci-results/unit-1.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
@@ -163,7 +163,7 @@ jobs:
           RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --reporter=default
+          --project server:unit --project project:unit --project project:tooling --reporter=default
           --reporter=json --outputFile.json=ci-results/unit-1.json
       - id: report
         name: Report the failures
@@ -201,7 +201,7 @@ jobs:
           RISA_LEASES: ""
         run: >-
           node scripts/ci/test-job.mjs --time-gate --project data:unit --project web:unit --project notifications:unit
-          --project server:unit --project core:unit --project project:unit --project project:tooling --project tooling:unit --shard=2/2
+          --project server:unit --project project:unit --project project:tooling --shard=2/2
           --reporter=default --reporter=json --outputFile.json=ci-results/unit-2.json
       - id: report
         name: Report the failures

@@ -7,7 +7,7 @@
 //    kept, is timelineSheetUrls.browser.test.tsx's). Then a new care group
 //    (careGroup.create) syncs in and its empty timeline opens.
 // 3. Slow first sync (the device's proxy holds PowerSync's traffic for HOLD_MS):
-//    home shows "Getting your care groups…" (never "not in a care group"), then
+//    home shows "Syncing your care groups…" (never "not in a care group"), then
 //    goes straight to the timeline once the group arrives.
 // 4. Same, signing in to a deep link (the timeline): the syncing state, not a 404.
 // 5. Same, deep-linking to another group route (group settings' Members): the

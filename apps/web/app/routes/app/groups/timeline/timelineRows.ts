@@ -4,11 +4,12 @@ import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
 
-import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
+import { windowDocumentsQuery } from "~/lib/live-notes/notes.sync";
 import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import {
   fromLocalTimestamp,
   historyQuery,
+  historyWindow,
   membersQuery,
   readingsQuery,
   readRows,
@@ -39,7 +40,11 @@ export const loadTimelineRows = async (
       readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff, before)),
       readRows<MemberRow>(db, membersQuery(groupId)),
       readRows<ReadingRow>(db, readingsQuery(groupId)),
-      readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
+      // Only the shown entries' documents (their previews), over the same window.
+      readRows<NoteDocRow>(
+        db,
+        windowDocumentsQuery(groupId, historyWindow(groupId, filters, PAGE_SIZE, cutoff, before)),
+      ),
       readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff, before)),
       readRows<EntryRow>(db, ahead.next),
       // The care periods' track (the current-period line and the markers).

@@ -2,7 +2,7 @@
 // a plan's _Status_ size and the size past which `pnpm docs:budget` warns (the
 // doc budget, doc-budget.mjs), and the next slice number (fixes-plans.test.mjs).
 // A small pure module used on both sides is copied, not shared; the trim itself
-// stays the core's (`pnpm prd status-trim`).
+// stays the core's (`risa status-trim`).
 
 /** Past this many bytes, a plan's _Status_ draws a warning. */
 export const STATUS_WARN_BYTES = 6 * 1024;

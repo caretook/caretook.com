@@ -11,13 +11,13 @@
 #                               served by react-router-serve on the same port
 #   serve.sh [name] --built --fresh   the same, and a running check build that's
 #                               older than its source (or the env baked into it)
-#                               is rebuilt and restarted (`pnpm prd browser`)
+#                               is rebuilt and restarted (`risa browser`)
 #
 # name defaults to the worktree you're in. The log is <worktree>/.dev.log.
 #
 # Browser checks run against --built: no Vite websocket, no dependency
 # re-optimization reloading a page mid-check, no stale optimized deps, faster
-# pages. `pnpm prd browser` starts one by itself (replacing a dev server), and
+# pages. `risa browser` starts one by itself (replacing a dev server), and
 # rebuilds and restarts it when the source is newer than the build (--fresh); its --dev
 # keeps the dev server instead. Use the dev server (no flag, or --dev) to work
 # on the app by hand. The mode is kept in <worktree>/.serve-mode, so --restart
@@ -85,7 +85,7 @@ if [[ -z $(server_pids "$port") ]]; then
     # VITE_CHECK_BUILD at run time too: with a localhost APP_URL, the server
     # sends mail to the dev mailbox (isCheckBuild in @caretook/notifications).
     # The whole subshell's output goes to the log: a subshell left holding our
-    # stdout would keep `pnpm prd serve --built | tail` waiting for ever.
+    # stdout would keep `risa serve --built | tail` waiting for ever.
     # host-headers.mjs adds the host's headers (vercel.json) to the files
     # react-router-serve serves itself, as Vercel does (prerendered pages, assets).
     (cd apps/web && VITE_CHECK_BUILD=1 HOST=127.0.0.1 PORT=$port NODE_ENV=production exec nohup node \

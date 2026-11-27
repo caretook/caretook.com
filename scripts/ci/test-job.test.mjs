@@ -110,7 +110,7 @@ describe("a test step", () => {
     [["--project", "web:components"], "components"],
     [["--project", "tooling:browser"], "browser-tooling"],
     [["--project", "integration"], "integration"],
-    [["--project", "data:unit", "--project", "tooling:unit"], "unit"],
+    [["--project", "data:unit", "--project", "project:tooling"], "unit"],
   ])("%j owns the %s files", (args, group) => {
     expect(stepGroup(args)).toBe(group);
   });

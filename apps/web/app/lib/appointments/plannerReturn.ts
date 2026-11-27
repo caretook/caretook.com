@@ -51,6 +51,9 @@ export const plannerReturnUrl = (
   return isUpcoming(entry, now) ? appointmentUrls.planner(groupId) : appointmentUrls.plannerPast(groupId);
 };
 
-/** Whether going back is one step back in history: the page sits right after its opener, and goes there. */
-export const backIsHistoryStep = (ret: PlannerReturn, url: string, currentIdx: unknown) =>
-  ret.idx !== null && url === ret.from && currentIdx === ret.idx + 1;
+/** Whether going back is one step back in history: the page sits right after its opener, and goes there (any opener: lib/timeline/entryOrigin.ts's too). */
+export const backIsHistoryStep = (
+  ret: Pick<PlannerReturn, "from" | "idx">,
+  url: string,
+  currentIdx: unknown,
+) => ret.idx !== null && url === ret.from && currentIdx === ret.idx + 1;

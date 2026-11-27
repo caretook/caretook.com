@@ -4,6 +4,7 @@ import type { GroupRole } from "../../../../../test/fixtures";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as todoRoute from "./route";
+import * as entryRoute from "../entry/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, entryTodo, fx, todo, TEST_GROUP } from "../../../../../test/fixtures";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
@@ -25,6 +26,8 @@ const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/entries/:entryId", module: { default: EntryProbe } },
 ];
 const pageOf = (id: string) => `/app/groups/${TEST_GROUP.id}/todos/${id}`;
+/** The todo page and the real entry page, for its Back. */
+const WITH_ENTRY: DeviceRoute[] = [ROUTES[0]!, { path: ROUTES[1]!.path, module: entryRoute }];
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -280,5 +283,25 @@ describe("the todo page's linked entries", () => {
     const links = page.getByRole("region", { name: "Linked to" });
     await expect.element(links.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
     expect(links.element().querySelector("ul")).toBeNull();
+  });
+});
+
+// Back from an entry opened here returns to the todo (B-936).
+describe("back from a linked entry", () => {
+  test("the appointment's link opens its page, whose Back reads Todo and lands on the todo", async () => {
+    const device = await renderWithDevice({
+      route: WITH_ENTRY,
+      url: pageOf(LINKED.id),
+      role: "caretaker",
+      fixtures: [LARK, VISIT, METFORMIN, LINKED, LINKED_ROW],
+    });
+    await userEvent.click(
+      page.getByRole("region", { name: "Linked to" }).getByRole("link", { name: "Cardiology follow-up" }),
+    );
+    await expect.poll(() => device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${VISIT.id}`);
+    const back = page.getByRole("main").getByRole("link", { name: "Todo", exact: true });
+    await expect.element(back).toHaveAttribute("href", pageOf(LINKED.id));
+    await userEvent.click(back);
+    await expect.poll(() => device.location()).toBe(pageOf(LINKED.id));
   });
 });

@@ -2,7 +2,7 @@
 // before Chromium starts, and its teardown after Chromium closes.
 //
 // Component tests' Chromium counts against the same machine-wide `browser`
-// lease as `pnpm prd browser`, so worktrees can't all start browsers together.
+// lease as `risa browser`, so worktrees can't all start browsers together.
 // The lease is the tool's, through the config's lease command (risa.json's
 // `hooks.lease`): `<command> <kind> --label L --watch P` holds one, prints
 // "lease <N> <dir>" once held, and releases when its stdin closes or P (this

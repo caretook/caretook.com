@@ -29,6 +29,7 @@ import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineViewMenu } from "./TimelineViewMenu";
+import { inRounds } from "./loaderRounds";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
 import { TodayCard } from "./TodayCard";
@@ -78,30 +79,40 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const zone = localTimeZone();
   const day = readDay(urlSearch, dayInZone(now, zone));
   const before = day ? jumpBound(day, zone, now) : null;
-  const [status, searchPeriods, tagRows] = await Promise.all([
-    filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
-    filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
-    readRows<TagRow>(db, tagsQuery(params.groupId)),
-  ]);
-  const tag = activeTag(filters.tag, tagRows)?.id ?? null;
-  const range = searchPeriodRange(searchPeriods, filters.period);
-  const { match } = timelineSearch(params.groupId, filters.q, status, range);
-  const [rows, settings] = await Promise.all([
-    loadTimelineRows(
-      db,
-      params.groupId,
-      {
-        kind: filters.kind,
-        author: filters.author,
-        vital: filters.vital,
-        symptoms: filters.symptoms,
-        tag,
-        match,
-      },
-      before,
-    ),
-    loadSettings(request, db.userId),
-  ]);
+  // The tags join the first round only under `?tag=`; otherwise they're read with the entries.
+  const {
+    first: [, searchPeriods],
+    tags: tagRows,
+    second: [rows, settings],
+  } = await inRounds({
+    tagFilter: !!filters.tag,
+    first: () =>
+      Promise.all([
+        filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
+        filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
+      ]),
+    tags: () => readRows<TagRow>(db, tagsQuery(params.groupId)),
+    second: ([status, periods], tags) => {
+      const range = searchPeriodRange(periods, filters.period);
+      const { match } = timelineSearch(params.groupId, filters.q, status, range);
+      return Promise.all([
+        loadTimelineRows(
+          db,
+          params.groupId,
+          {
+            kind: filters.kind,
+            author: filters.author,
+            vital: filters.vital,
+            symptoms: filters.symptoms,
+            tag: tags ? (activeTag(filters.tag, tags)?.id ?? null) : null,
+            match,
+          },
+          before,
+        ),
+        loadSettings(request, db.userId),
+      ]);
+    },
+  });
   return {
     userId: db.userId,
     title: pageTitle(group.name),
