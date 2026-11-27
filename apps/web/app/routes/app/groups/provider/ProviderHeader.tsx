@@ -17,7 +17,7 @@ const NO_ROWS: ProviderRow[] = [];
  *
  * - `editors`: who is editing the notes now (avatars).
  * - `actions`: Edit and a ⋯ menu (`ProviderActions`), for writers.
- * - `tags`: its tag chips, under the details (tags PRD).
+ * - `tags`: its tags (`QuickTags`), under the details (chips for every role; tags PRD).
  */
 export function ProviderHeader({
   provider,

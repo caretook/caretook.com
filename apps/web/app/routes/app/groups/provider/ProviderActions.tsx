@@ -1,7 +1,7 @@
 import type { MenuEntry } from "~/components/ui";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { Copy, Ellipsis, Pencil, Tag } from "lucide-react";
+import { Copy, Ellipsis, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Button, Menu } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -12,27 +12,24 @@ import { CopyToGroup, useCopyTargets } from "./CopyToGroup";
 /**
  * A writer's actions on a provider, the shape of every `DetailHeader`'s:
  * Edit (the directory's sheet, which comes back here) and ⋯ with Copy to
- * another group (when you write in another group) and Tags (when `onTags`
- * is given). With neither, no ⋯. `onCopied` gets the copy's status line.
+ * another group (when you write in another group); without it, no ⋯.
+ * Tags are the header's `QuickTags` (tags-2). `onCopied` gets the copy's
+ * status line.
  */
 export function ProviderActions({
   provider,
   groupName,
   onCopied,
-  onTags,
 }: {
   provider: LocalProvider;
   /** This group as the import sheet names it (the person, else the group). */
   groupName: string;
   onCopied: (message: string) => void;
-  /** Opens the tag picker; left out, there's no Tags. */
-  onTags?: () => void;
 }) {
   const targets = useCopyTargets(provider);
   const [copying, setCopying] = useState(false);
   const items: MenuEntry[] = [
     targets.length > 0 && { id: "copy", label: COPY_ACTION, icon: Copy, onAction: () => setCopying(true) },
-    onTags && { id: "tags", label: "Tags", icon: Tag, onAction: onTags },
   ];
 
   return (
