@@ -17,7 +17,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 78    | B-970 | merged (Opus; app: quick tags line covered the row link, `w-fit`) | 8028c782 |
 | 79    | B-971 | merged (Opus; test-only: split label assumed LA)                  | 2375e299 |
 
-**Wave 18 green, PR #258 open, Codex review out** (2026-11-27): `components` green on 054c14e7 (run 46044015326); `risa sync` needed no merge; browser checks on the integration tip: roundtrip and layout-offline pass (no `--suite`: the user asks first). Hot: `apps/web/app/routes/app/groups/settings/`, `scripts/browser-checks/`. B-750 (umbrella) and B-752 (waits on B-753's watchdog) stay triaged.
+**Idle after wave 18** (landed through PR #258, 2026-11-27, Codex clean on 96ff344; components CI flake on 96ff3441, run 46048908769: `search.sync.browser.test.tsx` timing, not this branch's, filed by land). Slices 76 (B-968), 77 (B-969), 79 (B-971) were test-only (Los Angeles assumed); 78 (B-970) was an app bug: quick tags' line covered a row's open link (`w-fit` in `QuickTags.tsx`, folded into tags.md). To-test: `to-test/2026-11-27-1329-fixes-bug.md`. Slice worktrees removed. Lesson for zone slices: a test file not in `vitest.config.ts`'s `NY_INCLUDE` can't import `test/zone.ts`; compute the expectation with the screen's formatter or `Intl`. Browser checks at landing were roundtrip and layout-offline only (no `--suite`: the user asks first). Land twice refused on components.md's budget while dev moved: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 19 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
