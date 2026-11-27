@@ -55,6 +55,11 @@ export const CONNECTORS_ERRORS = {
     message: "Only an owner can change this care group's Assistants settings",
     statusCode: 403,
   },
+  // A read tool's input that its schema can't check (a day before today, in the recipient's zone).
+  "connectorTool:invalid": {
+    message: "The tool's arguments are invalid",
+    statusCode: 400,
+  },
   // assistantActionService.run: an action the batch can't carry out. `meta.index` names it.
   "assistantActionService:invalid": {
     message: "This action can't be saved as it is",

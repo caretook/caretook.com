@@ -250,3 +250,108 @@ describe("the rollup on the device", () => {
     ]);
   });
 });
+
+// Slice 9 (todo-subtasks-3): a subtask's due inherits its parent's and never
+// passes its parent's day, as todoService clamps it; the device refuses only
+// an edit that moves the day past the parent's.
+describe("subtask due dates on the device", () => {
+  const ok = <T extends { ok: boolean }>(res: T) => {
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    return res;
+  };
+  const friday = addDays(today, 4);
+  const dueOf = async (db: Db, todoId: string) => {
+    const t = await read(db, todoId);
+    return { dueOn: t?.dueOn ?? null, dueTime: t?.dueTime ?? null };
+  };
+  const datedTree = (more: Parameters<typeof todo>[0][] = []) => [
+    todo({ id: TOP, title: "Get ready for the hospital stay", dueOn: friday, dueTime: "09:00" }),
+    todo({ id: SUB, title: "Pack a bag", parentId: TOP, dueOn: friday, dueTime: "15:00" }),
+    todo({ id: SUB_SUB, title: "Find the charger", parentId: SUB, dueOn: friday }),
+    ...more.map((t) => todo(t)),
+  ];
+
+  test("a new subtask with no due takes its parent's day and time; one past it is clamped", async () => {
+    const { db } = await device(datedTree());
+    const made = ok(await createTodo(db, TEST_GROUP.id, { title: "Print the forms", parentId: TOP }));
+    if (!made.ok) throw new Error("not made");
+    expect(await dueOf(db, made.id)).toEqual({ dueOn: friday, dueTime: "09:00" });
+    const late = ok(
+      await createTodo(db, TEST_GROUP.id, {
+        title: "Call the ward",
+        parentId: TOP,
+        dueOn: addDays(friday, 3),
+      }),
+    );
+    if (!late.ok) throw new Error("not made");
+    expect(await dueOf(db, late.id)).toEqual({ dueOn: friday, dueTime: "09:00" });
+    const early = ok(
+      await createTodo(db, TEST_GROUP.id, {
+        title: "Book the sitter",
+        parentId: TOP,
+        dueOn: addDays(today, 1),
+      }),
+    );
+    if (!early.ok) throw new Error("not made");
+    expect(await dueOf(db, early.id)).toEqual({ dueOn: addDays(today, 1), dueTime: null });
+  });
+
+  test("refuses moving a subtask's due day past its parent's, on the due field, queuing nothing", async () => {
+    const { db } = await device(datedTree());
+    expect(await updateTodo(db, SUB, { dueOn: addDays(friday, 1) })).toMatchObject({
+      ok: false,
+      issues: [{ path: "dueOn" }],
+    });
+    expect(await dueOf(db, SUB)).toEqual({ dueOn: friday, dueTime: "15:00" });
+    expect(await queued(db)).toEqual([]);
+    // The parent's own day, any time, is fine.
+    ok(await updateTodo(db, SUB, { dueOn: friday, dueTime: "18:00" }));
+    expect(await dueOf(db, SUB)).toEqual({ dueOn: friday, dueTime: "18:00" });
+  });
+
+  test("a title-only edit of an already-late subtask saves, clamped", async () => {
+    const LATE = id(60);
+    const { db } = await device(
+      datedTree([
+        { id: LATE, title: "Call the ward", parentId: TOP, dueOn: addDays(friday, 2), dueTime: "10:00" },
+      ]),
+    );
+    ok(await updateTodo(db, LATE, { title: "Call the ward again" }));
+    expect(await read(db, LATE)).toMatchObject({
+      title: "Call the ward again",
+      dueOn: friday,
+      dueTime: "09:00",
+    });
+  });
+
+  test("moving the parent earlier clamps its open descendants in its own transaction; done ones and clearing it change nothing", async () => {
+    const DONE_STEP = id(61);
+    const EARLY = id(62);
+    const { db } = await device(
+      datedTree([
+        {
+          id: DONE_STEP,
+          title: "Fold the pajamas",
+          parentId: TOP,
+          dueOn: friday,
+          doneAt: hoursAgo(1),
+          doneBy: TEST_USER.id,
+        },
+        { id: EARLY, title: "Book the sitter", parentId: TOP, dueOn: today },
+      ]),
+    );
+    const tuesday = addDays(today, 1);
+    ok(await updateTodo(db, TOP, { dueOn: tuesday, dueTime: "08:00" }));
+    for (const step of [SUB, SUB_SUB])
+      expect(await dueOf(db, step)).toEqual({ dueOn: tuesday, dueTime: "08:00" });
+    expect(await dueOf(db, DONE_STEP)).toEqual({ dueOn: friday, dueTime: null });
+    expect(await dueOf(db, EARLY)).toEqual({ dueOn: today, dueTime: null });
+    const moved = await queued(db);
+    expect(moved.map((o) => o.id)).toEqual([TOP, SUB, SUB_SUB]);
+    expect(new Set(moved.map((o) => o.tx)).size).toBe(1);
+
+    ok(await updateTodo(db, TOP, { dueOn: null, dueTime: null }));
+    expect(await dueOf(db, SUB)).toEqual({ dueOn: tuesday, dueTime: "08:00" });
+    expect((await queued(db)).slice(moved.length).map((o) => o.id)).toEqual([TOP]);
+  });
+});

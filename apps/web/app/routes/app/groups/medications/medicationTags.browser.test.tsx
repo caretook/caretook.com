@@ -18,7 +18,8 @@ import {
 // Tags on medications (tags slice 5): chips on the list's rows and the
 // medication's page for every role, `QuickTags` on the page and the edit
 // sheet for writers (tags-2 slice 5; the picker is entry/entryTags'), and the
-// list's Tag filter (`?tag=`) beside Status, Type and the search. The filter
+// list's Tag filter (`?tag=`) beside Status, Type and the search. The rows
+// tag too (`QuickTags`, tags-3), without opening the medication. The filter
 // functions are medicationList.test.ts's.
 
 const HEART = tag("Heart");
@@ -57,9 +58,9 @@ const linksOf = async (device: Awaited<ReturnType<typeof open>>, medicationId: s
       [medicationId],
     )
   ).map((r) => r.name);
-/** Add tag, then the picker's toggle for `name` (the picker stays open). */
-const pick = async (name: string) => {
-  await userEvent.click(page.getByRole("button", { name: "Add tag" }));
+/** Add tag in `scope` (the edit sheet's, over the list's rows), then the picker's toggle for `name` (the picker stays open). */
+const pick = async (name: string, scope = "main") => {
+  await userEvent.click(page.getByCss(scope).getByRole("button", { name: "Add tag" }));
   await found(() => document.querySelector("[data-tag-picker]"));
   await userEvent.click(page.getByRole("checkbox", { name }));
 };
@@ -105,7 +106,7 @@ describe("tags on a medication", () => {
     expect(sheetChips()).toBe("");
     expect(document.querySelector("[role=dialog] [data-tag-record]")).toBeNull();
 
-    await pick("Knee");
+    await pick("Knee", "[role=dialog]");
     await device.settle();
     await expect.poll(sheetChips).toBe("Knee");
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
@@ -113,10 +114,10 @@ describe("tags on a medication", () => {
     // The row under the sheet follows too.
     await expect.poll(() => rowChips(METFORMIN.id)).toBe("Knee");
 
-    await pick("Heart");
+    await pick("Heart", "[role=dialog]");
     await device.settle();
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
-    await userEvent.click(page.getByRole("button", { name: "Remove tag Knee" }));
+    await userEvent.click(page.getByCss("[role=dialog]").getByRole("button", { name: "Remove tag Knee" }));
     await device.settle();
     await expect.poll(sheetChips).toBe("Heart");
     expect(await linksOf(device, METFORMIN.id)).toEqual(["Heart"]);
@@ -124,6 +125,32 @@ describe("tags on a medication", () => {
     // Tagging isn't an edit to discard: the sheet closes without asking.
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => SHEET()).toBeNull();
+  });
+
+  test("a writer tags and untags from a list row without opening it; a tap beside the chips opens it", async () => {
+    const device = await open(LIST);
+    await found(() => document.querySelector(row(METFORMIN.id)));
+    await userEvent.click(page.getByCss(row(METFORMIN.id)).getByRole("button", { name: "Add tag" }));
+    await found(() => document.querySelector("[data-tag-picker]"));
+    await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
+    await device.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    await expect.poll(() => rowChips(METFORMIN.id)).toBe("Knee");
+    expect(device.location()).toBe(LIST);
+
+    await userEvent.click(page.getByCss(row(METFORMIN.id)).getByRole("button", { name: "Remove tag Knee" }));
+    await device.settle();
+    await expect.poll(() => rowChips(METFORMIN.id)).toBe("");
+    expect(await linksOf(device, METFORMIN.id)).toEqual([]);
+    expect(device.location()).toBe(LIST);
+
+    // Just beside a row's chips is still the card's open target.
+    const card = document.querySelector<HTMLElement>(row(LISINOPRIL.id))!;
+    const line = card.querySelector<HTMLElement>("[data-quick-tags]")!.getBoundingClientRect();
+    expect(document.elementFromPoint(line.left - 4, line.top + line.height / 2)).toBe(
+      card.querySelector("a[data-medication-name]"),
+    );
   });
 
   test("a viewer sees two chips then +N on the rows", async () => {

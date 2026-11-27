@@ -47,4 +47,12 @@ export const TIMELINE_ERRORS = {
     message: "Couldn't fill in the symptom catalog",
     statusCode: 500,
   },
+  "symptomTypeService:notFound": {
+    message: "That symptom isn't in this care group's list",
+    statusCode: 404,
+  },
+  "symptomTypeService:merged": {
+    message: "That symptom was merged into another and can't be archived or brought back",
+    statusCode: 409,
+  },
 } as const;

@@ -2,6 +2,8 @@ export * from "./medication";
 export * from "./medicationPass";
 export * from "./dueDoses";
 export * from "./duePasses";
+export * from "./doseSchedule";
+export * from "./doseRecord";
 export * from "./scheduleHistory";
 export * from "./medicationDisplay";
 export * from "./medicationTypeDisplay";

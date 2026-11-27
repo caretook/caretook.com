@@ -5,6 +5,7 @@ import { z } from "zod";
 import { newError } from "@caretook/data";
 import { handleMcp, JSON_RPC, MCP_PROTOCOL_VERSIONS } from "./protocol";
 import { defineTool, READ_ANNOTATIONS, WRITE_ANNOTATIONS } from "./registry";
+import { CONNECTOR_TOOLS } from "./tools";
 
 // The MCP module at its edge: a JSON-RPC message in, a reply out. The tools
 // here are stand-ins; the real ones run against the database in
@@ -141,6 +142,62 @@ describe("handleMcp", () => {
       "refuse",
       "broken",
     ]);
+  });
+
+  it("lists the connector's dose_schedule after todays_doses, for read and write grants", async () => {
+    for (const scope of ["read", "readWrite"] as const) {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      const names = (result?.tools ?? []).map((t) => t.name);
+      expect(names[names.indexOf("todays_doses") + 1], scope).toBe("dose_schedule");
+    }
+  });
+
+  it("lists the connector's add_provider at the end of the writes, for write grants only", async () => {
+    const namesFor = async (scope: "read" | "readWrite") => {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      return (result?.tools ?? []).map((t) => t.name);
+    };
+    expect(await namesFor("read")).not.toContain("add_provider");
+    const names = await namesFor("readWrite");
+    expect(names[names.indexOf("resolve_condition") + 1]).toBe("add_provider");
+  });
+
+  it("lists the connector's add_medication right after add_provider, for write grants only", async () => {
+    const namesFor = async (scope: "read" | "readWrite") => {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      return (result?.tools ?? []).map((t) => t.name);
+    };
+    expect(await namesFor("read")).not.toContain("add_medication");
+    const names = await namesFor("readWrite");
+    expect(names[names.indexOf("add_provider") + 1]).toBe("add_medication");
+  });
+
+  it("lists the connector's past_doses right after dose_schedule, for read and write grants", async () => {
+    for (const scope of ["read", "readWrite"] as const) {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      const names = (result?.tools ?? []).map((t) => t.name);
+      expect(names[names.indexOf("dose_schedule") + 1], scope).toBe("past_doses");
+    }
+  });
+
+  it("lists the connector's log_past_doses right after give_pass, for write grants only", async () => {
+    const namesFor = async (scope: "read" | "readWrite") => {
+      const reply = await handleMcp(request(2, "tools/list"), ctx(scope), CONNECTOR_TOOLS);
+      if (reply.kind !== "response") throw new Error(`expected a response, got ${reply.kind}`);
+      const { result } = reply.body as { result?: { tools: { name: string }[] } };
+      return (result?.tools ?? []).map((t) => t.name);
+    };
+    expect(await namesFor("read")).not.toContain("log_past_doses");
+    const names = await namesFor("readWrite");
+    expect(names[names.indexOf("give_pass") + 1]).toBe("log_past_doses");
   });
 
   it("calls a tool: its text as content, its data as structuredContent", async () => {

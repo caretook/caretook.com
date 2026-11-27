@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   canHaveSubtask,
+  clampDue,
   depthOf,
-  listsOnItsOwn,
+  inheritedDue,
+  isDueAfterParent,
   MAX_TODO_DEPTH,
   rollupOf,
   siblingOrder,
@@ -77,19 +79,42 @@ describe("subtaskProgress", () => {
   });
 });
 
-describe("listsOnItsOwn", () => {
-  const plain = { parentId: null, dueOn: null, assigneeId: null, assigneeName: null };
+describe("clampDue and inheritedDue (todo-subtasks-3)", () => {
+  const friday = { dueOn: "2026-11-27", dueTime: "09:00" };
+  const undated = { dueOn: null, dueTime: null };
 
-  it.each([
-    ["a top-level todo", plain, true],
-    ["a top-level todo with no parent field", { dueOn: null, assigneeId: null, assigneeName: null }, true],
-    ["a plain subtask", { ...plain, parentId: PARENT }, false],
-    ["a dated subtask", { ...plain, parentId: PARENT, dueOn: "2026-11-30" }, true],
-    ["a subtask assigned to a member", { ...plain, parentId: PARENT, assigneeId: USER }, true],
-    ["a subtask assigned to a typed name", { ...plain, parentId: PARENT, assigneeName: "Aunt May" }, true],
-    ["a subtask with a blank typed name", { ...plain, parentId: PARENT, assigneeName: "  " }, false],
-  ])("%s: %s", (_, todo, expected) => {
-    expect(listsOnItsOwn(todo)).toBe(expected);
+  it("caps a later day at the parent's day and takes its time", () => {
+    expect(clampDue({ dueOn: "2026-11-30", dueTime: "15:00" }, friday)).toEqual(friday);
+    expect(clampDue({ dueOn: "2026-11-30", dueTime: null }, friday)).toEqual(friday);
+    expect(
+      clampDue({ dueOn: "2026-11-30", dueTime: "15:00" }, { dueOn: "2026-11-27", dueTime: null }),
+    ).toEqual({ dueOn: "2026-11-27", dueTime: null });
+    expect(isDueAfterParent({ dueOn: "2026-11-30", dueTime: null }, friday)).toBe(true);
+  });
+
+  it("keeps the same day (any time) and an earlier one", () => {
+    const sameDayLater = { dueOn: "2026-11-27", dueTime: "18:00" };
+    expect(clampDue(sameDayLater, friday)).toEqual(sameDayLater);
+    const earlier = { dueOn: "2026-11-24", dueTime: null };
+    expect(clampDue(earlier, friday)).toEqual(earlier);
+    expect(isDueAfterParent(sameDayLater, friday)).toBe(false);
+  });
+
+  it("an undated parent caps nothing, and an undated subtask is kept", () => {
+    const late = { dueOn: "2026-12-31", dueTime: "08:00" };
+    expect(clampDue(late, undated)).toEqual(late);
+    expect(clampDue(late, null)).toEqual(late);
+    expect(clampDue(undated, friday)).toEqual(undated);
+  });
+
+  it("inherits the parent's day and time; an undated parent's is none", () => {
+    expect(inheritedDue(friday)).toEqual(friday);
+    expect(inheritedDue({ dueOn: "2026-11-27", dueTime: null })).toEqual({
+      dueOn: "2026-11-27",
+      dueTime: null,
+    });
+    expect(inheritedDue(undated)).toEqual(undated);
+    expect(inheritedDue(null)).toEqual(undated);
   });
 });
 

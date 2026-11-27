@@ -10,10 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State         | Merge     |
+| ----- | ----- | ------------- | --------- |
+| 82    | B-979 | merged (opus) | 336733f55 |
 
-**Idle after wave 18** (landed through PR #258, 2026-11-27, Codex clean on 96ff344; components CI flake on 96ff3441, run 46048908769: `search.sync.browser.test.tsx` timing, not this branch's, filed by land). Slices 76 (B-968), 77 (B-969), 79 (B-971) were test-only (Los Angeles assumed); 78 (B-970) was an app bug: quick tags' line covered a row's open link (`w-fit` in `QuickTags.tsx`, folded into tags.md). To-test: `to-test/2026-11-27-1329-fixes-bug.md`. Slice worktrees removed. Lesson for zone slices: a test file not in `vitest.config.ts`'s `NY_INCLUDE` can't import `test/zone.ts`; compute the expectation with the screen's formatter or `Intl`. Browser checks at landing were roundtrip and layout-offline only (no `--suite`: the user asks first). `risa status-trim` (Risa v0.1.3) fails: "Cannot find package 'prettier'" from `~/.risa/releases/v0.1.3/loops/status-trim.mjs`; wave 18 rows moved to history by hand. Land twice refused on components.md's budget while dev moved: `risa sync --force` until dev's copy matches. **Next session:** ingest, `risa backlog list`; write wave 19 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence).
+**Wave 21 under way** (session fixes-bug-d7): tags-3 landed in dev as ba42f193c; synced with `--force` for its search code. Slice 82 (B-979, opus, merge 336733f55): search reruns on a key of the group tags' ids, names and colors, so result chips follow a rename, recolor, delete or merge. Wave 21 gate requested. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence).
 
 ## Wave 1
 
@@ -828,3 +829,47 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain
 Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: e2e:roundtrip
 
 `scripts/browser-checks/roundtrip.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 failed this check on a stack missing one), and name the failing step in the hand-off.
+
+## Wave 19
+
+One slice: quick entry vitals with the label after the number.
+
+### Slice 80: a vital's label after its number still counts (B-976)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/timeline.md · Tests: unit
+
+Quick entry reads a vital only when its label comes first: `140/78 74bpm 97 o2` keeps the blood pressure and heart rate but drops the O2 (`o2 97` works), and heart rate as `74 hr` is dropped the same way. These are very common lines. The parsing lives in `packages/data/src/db/schema/assistant/quickEntry.ts` and `timeline/vitals.ts`.
+
+- Each vital quick entry knows (O2/SpO2, heart rate/HR/pulse/bpm, and the others with a short label) reads with its label before or after its number, with or without a space (`97o2`, `97 o2`, `o2 97`, `74 hr`, `hr 74`, `74bpm`). A number between two labels goes to the nearer one; when that's unclear, keep today's label-first reading.
+- Nothing that reads today changes: label-first lines, units (`98.6 °F`, `97%`), blood pressure, and the measurement-word rules of slices 20–40 (a number after a label is still no date, an amount or a time).
+- Unit tests: `140/78 74bpm 97 o2` gives all three; `97 o2 hr 74`, `74 hr 97 o2` and `bp 140/78 pulse 74 o2 97` each give each vital once with the right value; the preview (`quickEntryPreview.ts`) shows the same.
+
+## Wave 20
+
+One slice: an installed app notices a new version without being reopened.
+
+### Slice 81: an installed app shows the update notice without a restart (B-978)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+An installed PWA resumed from the background shows no update notice until it's closed and reopened. `registerServiceWorker` (`apps/web/app/lib/app-shell/serviceWorkerRegister.ts`) registers `/sw.js` once at load and relies on the browser's navigation-time update check; a resumed app never navigates, so `updatefound` never fires and `UpdateNotice` stays hidden. **First confirm with a failing test** (the fake container in `serviceWorkerRegister.test.ts`).
+
+- The page asks the registration for an update (`registration.update()`) when it becomes visible again (`visibilitychange` to visible) and on a slow interval (about hourly) while visible, throttled so a burst of visibility changes asks at most once every few minutes. A failed `update()` (offline) is swallowed quietly and tried again next time.
+- A worker found this way shows the existing notice through the existing `updatefound` path; no new notice, control or copy. Nothing changes for a first install or for a page no worker controls.
+- The timer and listener are owned in one place (the registration code or its caller), so a second registration or a test doesn't stack them; tests pass the document/clock as parameters the way the container already is.
+- Unit tests: becoming visible calls `update()`; two visibility changes inside the throttle call it once; the interval calls it; a rejected `update()` doesn't throw or stop later checks; an update found after resume sets the waiting worker.
+
+## Wave 21
+
+One slice: search results' tag chips follow a rename or recolor from another device.
+
+### Slice 82: search result tag chips stay current after a tag rename or recolor (B-979)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/search.md, docs/domain/tags.md · Tests: component
+
+On the search page, a result's tag chips (`data.namedTags`, from `loadSearch`) keep a tag's old name or color after another device renames or recolors it, while the filter chips update. `useSearchPage` (`apps/web/app/routes/app/groups/search/useSearchPage.ts`) reruns `loadSearch` on the watched tag ids, `linkKey`, index changes and status, but not on tag metadata: tags aren't an index change source. **First confirm with a failing test** (the existing `searchTags.browser.test.tsx` setup).
+
+- A rename or recolor of a tag shown on a result updates that result's chips without a navigation or reload, whichever device made it. Pick the smaller sound fix: rerun the search when the names or colors of the group's tags change (a key built from the live `tags` list), or have the result chips read name and color from the live group tags by id. Note the choice in a comment.
+- Typing doesn't flicker the list (the previous results stay up, as today); no extra query per keystroke beyond what the fix needs.
+- A deleted or merged tag drops off the chips the same way (if the chosen fix covers it for free; otherwise leave it as today and say so in the hand-off).
+- Component test: a result shows tag "Alpha" (fictional data); renaming it in the local database to "Beta" and recoloring it updates the result's chip; the filter chip still updates as before.

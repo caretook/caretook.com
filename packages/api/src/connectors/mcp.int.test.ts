@@ -170,6 +170,22 @@ describe("/mcp", () => {
     expect(await names(reader.tokens.access_token)).toEqual(
       expect.arrayContaining(["group_overview", "list_timeline"]),
     );
+    // The plan ahead right after today's doses, for both grants.
+    // The past days right after the plan ahead.
+    for (const listed of [await names(writer.tokens.access_token), await names(reader.tokens.access_token)]) {
+      expect(listed[listed.indexOf("todays_doses") + 1]).toBe("dose_schedule");
+      expect(listed[listed.indexOf("dose_schedule") + 1]).toBe("past_doses");
+    }
+    // add_provider at the end of the writes, for a writer only.
+    const written = await names(writer.tokens.access_token);
+    expect(written[written.indexOf("resolve_condition") + 1]).toBe("add_provider");
+    expect(await names(reader.tokens.access_token)).not.toContain("add_provider");
+    // add_medication right after it, for a writer only.
+    expect(written[written.indexOf("add_provider") + 1]).toBe("add_medication");
+    expect(await names(reader.tokens.access_token)).not.toContain("add_medication");
+    // log_past_doses right after give_pass, for a writer only.
+    expect(written[written.indexOf("give_pass") + 1]).toBe("log_past_doses");
+    expect(await names(reader.tokens.access_token)).not.toContain("log_past_doses");
 
     const refused = await mcpPost(handler, reader.tokens.access_token, toolRequest("add_thing"));
     expect(refused.status).toBe(403);
@@ -391,13 +407,18 @@ describe("/mcp", () => {
     const w = await world();
     await addNote(w.caretaker.ctx, w.group.id, "Called the pharmacy", hoursAgo(3));
     const { tokens } = await connectAssistant({ email: w.caretaker.user.email, groupId: w.group.id });
-    const outputs = [
+    const answers = [
       await (await mcpPost(handler, tokens.access_token, toolRequest("group_overview"))).text(),
       await (await mcpPost(handler, tokens.access_token, toolRequest("list_timeline"))).text(),
+    ].join("\n");
+    // tools/list names add_provider's phones and address inputs: no fields of data, but no emails either.
+    const outputs = [
+      answers,
       await (await mcpPost(handler, tokens.access_token, rpc("tools/list"))).text(),
     ].join("\n");
     for (const who of [w.owner, w.caretaker, w.viewer]) expect(outputs).not.toContain(who.user.email);
-    expect(outputs).not.toMatch(/"(email|phones?|address)"\s*:/i);
+    expect(answers).not.toMatch(/"(email|phones?|address)"\s*:/i);
+    expect(outputs).not.toMatch(/"email"\s*:/i);
     expect(outputs).not.toContain("@example.com");
   });
 

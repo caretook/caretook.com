@@ -12,8 +12,10 @@ import {
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
   canHaveSubtask,
+  clampDue,
   completionOnly,
   isTodoCompleter,
+  inheritedDue,
   isTodoWriter,
   localDate,
   MAX_TODO_DEPTH,
@@ -308,6 +310,38 @@ const checkRepeatInTree = async (tx: Tx, todo: Todo) => {
   return hasSubtasks ? repeatWithSubtasks() : null;
 };
 
+/** A subtask's parent, live, read as the system (its due caps the subtask's); null for a top-level todo. */
+const liveParentOf = async (tx: Tx, parentId: string | null) =>
+  parentId ? todoModel.getById(parentId, system(tx)) : null;
+
+/**
+ * A todo's due day just changed (todo-subtasks-3): its open live
+ * descendants, all levels, are clamped (`clampDue`), each under its own
+ * parent's due as clamped here. Each goes through `write`, so each queues
+ * its calendar push. Done ones are left as they are.
+ */
+const clampDescendants = async (ctx: ServiceContext, tx: Tx, todo: Todo) => {
+  const dueOf = new Map([[todo.id, { dueOn: todo.dueOn, dueTime: todo.dueTime }]]);
+  let level = [todo.id];
+  for (let depth = 1; level.length && depth < MAX_TODO_DEPTH + 1; depth++) {
+    const rows = await todoModel.list({
+      ...system(tx),
+      filter: { groupId: { type: "eq", value: todo.groupId }, parentId: { type: "inArray", value: level } },
+    });
+    if (isError(rows)) return rows;
+    for (const child of rows.data) {
+      const own = { dueOn: child.dueOn, dueTime: child.dueTime };
+      const due = child.doneAt ? own : clampDue(own, child.parentId ? dueOf.get(child.parentId) : null);
+      dueOf.set(child.id, due);
+      if (due.dueOn === own.dueOn && due.dueTime === own.dueTime) continue;
+      const written = await write(ctx, tx, child.id, due);
+      if (isError(written)) return written;
+    }
+    level = rows.data.map((r) => r.id);
+  }
+  return null;
+};
+
 const openSubtasks = () => newError({ code: "todoService:openSubtasks" });
 
 /** Whether the todo has a live subtask still open: then only its subtasks tick it. */
@@ -505,6 +539,10 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
     const parent = await checkParent(ctx, tx, data.groupId, data.parentId);
     if (parent) return parent;
     if (data.parentId && data.repeatRule) return repeatWithSubtasks();
+    // A subtask with no due takes its parent's; any due is never after the parent's day (clamped).
+    const parentRow = await liveParentOf(tx, data.parentId);
+    if (isError(parentRow)) return parentRow;
+    const due = parentRow ? clampDue(data.dueOn ? data : inheritedDue(parentRow), parentRow) : null;
 
     const id = data.id ?? randomUUID();
     const created = await todoModel.create({
@@ -512,6 +550,7 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
       tx,
       data: {
         ...data,
+        ...(due ? { dueOn: due.dueOn, dueTime: due.dueTime } : {}),
         id,
         recipientId: recipient.id,
         ...repeatColumnsFor(id, null, data),
@@ -573,12 +612,25 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
       if (tree) return tree;
     }
 
-    const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
+    const { doneAt: _doneAt, doneBy: _doneBy, ...edited } = merged.data;
+    // A writer's edit keeps a subtask's due on or before its parent's day (clamped,
+    // never refused). Not a completer's: theirs changes no due (`completionOnly`).
+    const writer = isTodoWriter(role);
+    const parent = writer ? await liveParentOf(tx, existing.parentId) : null;
+    if (isError(parent)) return parent;
+    const content = parent ? { ...edited, ...clampDue(edited, parent) } : edited;
     // An old client's changed event moves its link row (the mirror).
     const mirrored = await mirrorEvent(ctx, tx, existing, existing.eventId, content.eventId);
     if (mirrored) return mirrored;
     // A new rule or due day moves the anchor; no rule clears all three.
-    return write(ctx, tx, id, { ...content, ...repeatColumnsFor(id, existing, content) });
+    const written = await write(ctx, tx, id, { ...content, ...repeatColumnsFor(id, existing, content) });
+    if (isError(written) || !written) return written;
+    // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
+    if (writer && content.dueOn && content.dueOn !== existing.dueOn) {
+      const clamped = await clampDescendants(ctx, tx, written);
+      if (clamped) return clamped;
+    }
+    return written;
   }, ctx);
 
 /**

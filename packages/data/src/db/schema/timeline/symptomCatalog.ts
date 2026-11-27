@@ -122,9 +122,12 @@ const similarity = (key: string, words: string[], other: string): number | null 
  * `name` against a group's catalog: the row with the same key (`exact`, to
  * reuse), else up to three similar ones (`similar`, closest first, then A
  * to Z): the same words in any order, a small typo, or one name's words (two
- * or more) all inside the other's. Pure, so it runs on the device's local copy offline.
+ * or more) all inside the other's. An `archived` row (symptom-catalog-2) is
+ * still an exact match, so its name keeps its spelling and row, but never a
+ * similar one: nothing steers a new name towards it. Pure, so it runs on the
+ * device's local copy offline.
  */
-export const similarSymptoms = <T extends { name: string }>(
+export const similarSymptoms = <T extends { name: string; archived?: boolean }>(
   name: string,
   catalog: readonly T[],
 ): { exact: T | null; similar: T[] } => {
@@ -134,6 +137,7 @@ export const similarSymptoms = <T extends { name: string }>(
   if (exact) return { exact, similar: [] };
   const words = wordsOf(key);
   const similar = catalog
+    .filter((row) => !row.archived)
     .map((row) => ({ row, key: symptomKey(row.name), rank: similarity(key, words, symptomKey(row.name)) }))
     .filter((c): c is { row: T; key: string; rank: number } => c.rank !== null)
     .sort((a, b) => a.rank - b.rank || a.key.localeCompare(b.key, "en-US"))

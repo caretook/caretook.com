@@ -166,4 +166,24 @@ describe("todoDayTrees", () => {
     const trees = build([todo("move"), todo("movers", { parentId: "move", dueOn: THURSDAY, doneAt: DONE })]);
     expect(todoDayTrees(trees, THURSDAY, NOW, ZONE)).toEqual([]);
   });
+
+  it("under a filter, a match due the same day as its unmatched parent leads at its own time (B-974)", () => {
+    const trees = build(
+      [
+        todo("hospital", { dueOn: FRIDAY, dueTime: "09:00" }),
+        todo("bag", { parentId: "hospital", dueOn: FRIDAY, dueTime: "15:00" }),
+        todo("list", { parentId: "hospital", dueOn: FRIDAY, dueTime: "08:00" }),
+      ],
+      { matches: (t) => t.id === "bag" },
+    );
+    const friday = todoDayTrees(trees, FRIDAY, NOW, ZONE);
+    expect(shape(friday)).toEqual({ "~hospital": { bag: {} } });
+    expect(friday[0]?.lead?.id).toBe("bag");
+    // A context row due that day with no match due then places nothing.
+    const other = build(
+      [todo("trip", { dueOn: FRIDAY }), todo("sitter", { parentId: "trip", dueOn: TUESDAY })],
+      { matches: (t) => t.id === "sitter" },
+    );
+    expect(todoDayTrees(other, FRIDAY, NOW, ZONE)).toEqual([]);
+  });
 });
