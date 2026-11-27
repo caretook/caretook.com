@@ -40,7 +40,7 @@ const input = z.object({
 export const upcoming = defineTool({
   name: "upcoming",
   title: "Upcoming events and todos",
-  description: `Upcoming events (appointments) and open todos with a due day, overdue todos first, then by day and time; each item says whether it is an event or a todo. An event has place, end time, text and whether it is cancelled; a todo has its due day and time, assignee, if it repeats, how, and, for a step of another todo, the todo it is part of (partOf); a step is listed only when it is assigned or due before that todo. Includes what is happening now and today's all-day items. The next ${UPCOMING_DEFAULT_DAYS} days by default, at most ${UPCOMING_MAX_DAYS}; at most ${LIST_PAGE_MAX} items. Doses are not here: use todays_doses.`,
+  description: `Upcoming events (appointments) and open todos with a due day, overdue todos first, then by day and time; each item says whether it is an event or a todo. An event has place, end time, text and whether it is cancelled; a todo has its due day and time, assignee, if it repeats, how, and, for a step of another todo, the todo it is part of (partOf); a step is listed only when it is assigned or due before that todo. Includes what is happening now and today's all-day items. The next ${UPCOMING_DEFAULT_DAYS} days by default, at most ${UPCOMING_MAX_DAYS}; at most ${LIST_PAGE_MAX} items. Doses are not here: use todays_doses for today and dose_schedule for the days ahead.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
