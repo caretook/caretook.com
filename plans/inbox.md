@@ -48,3 +48,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Review feature sets and identify overlap, places where we can surpass them, and places where we already do.
 
 ## Chores
+
+- Recheck the realpath wrapper in pnpm test:tooling once Risa ships RISA-1093
+  package.json's test:tooling calls Risa's runner through $(realpath …), a workaround for RISA-1048 (through the node_modules symlink the runner ran nothing and exited 0). v0.2.3 (pinned 2026-11-28) fixes the runner: the plain path ran all 35 files. Kept on the user's word until RISA-1093 (about 20 other Risa entry points with the same symlink no-op) is in a pinned release; then drop the wrapper and trim step 4 of docs/agents/project-config.md (Updating Risa).
