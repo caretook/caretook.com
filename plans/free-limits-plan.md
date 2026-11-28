@@ -12,7 +12,7 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 1 landed in dev through PR #334 (CI green, components, run 46160525942; Codex clean after one P2 filed as B-1036). care-groups.md took the cap rule. **Wave 2 started (2026-11-28):** slice 2 worktree free-limits-2 made, agent (opus) handed off and merged, B-1036 done with it; wave CI gate next (claimed; read the limit before `careGroupService.create`'s transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked). B-1012 is the umbrella item: done only after slice 4.
+**Now (2026-11-28):** wave 1 landed in dev through PR #334 (CI green, components, run 46160525942; Codex clean after one P2 filed as B-1036). care-groups.md took the cap rule. **Wave 2 started (2026-11-28):** slice 2 worktree free-limits-2 made, agent (opus) handed off and merged, B-1036 done with it; wave CI green (full, run 46162204873, 07c18d52b); sync needed no merge; PR and Codex review next (claimed; read the limit before `careGroupService.create`'s transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked). B-1012 is the umbrella item: done only after slice 4.
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
