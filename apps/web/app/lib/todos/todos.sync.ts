@@ -758,6 +758,15 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
   return localDate(new Date(), row?.time_zone ?? "UTC");
 };
 
+/** The todo columns `row` sets, with their values (undefined ones left out). */
+const todoColumns = (row: Partial<typeof todos.$inferInsert>) => {
+  const columns = getTableColumns(todos);
+  return Object.entries(row).flatMap(([key, value]) => {
+    const column = columns[key as keyof typeof columns];
+    return column && value !== undefined ? [{ column, value }] : [];
+  });
+};
+
 /**
  * Insert a todo row, its upload flagged with `metadata` when given.
  * `_metadata` is PowerSync's, outside the Drizzle table, so a flagged insert
@@ -765,11 +774,7 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
  */
 const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: string | null) => {
   if (!metadata) return tx.insert(todos).values(row);
-  const columns = getTableColumns(todos);
-  const set = Object.entries(row).flatMap(([key, value]) => {
-    const column = columns[key as keyof typeof columns];
-    return column && value !== undefined ? [{ column, value }] : [];
-  });
+  const set = todoColumns(row);
   return tx.run(
     sql`INSERT INTO ${todos} (${sql.join(
       set.map(({ column }) => sql.identifier(column.name)),
@@ -781,6 +786,20 @@ const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: stri
   );
 };
 
+/** Update todo `id` with `row`, its upload flagged with `metadata` when given (as `insertTodo`). */
+const updateTodoRow = async (
+  tx: Tx,
+  id: string,
+  row: Partial<typeof todos.$inferInsert>,
+  metadata: string | null,
+) => {
+  if (!metadata) return tx.update(todos).set(row).where(eq(todos.id, id));
+  const set = todoColumns(row).map(
+    ({ column, value }) => sql`${sql.identifier(column.name)} = ${sql.param(value, column)}`,
+  );
+  return tx.run(sql`UPDATE ${todos} SET ${sql.join(set, sql`, `)}, _metadata = ${metadata} WHERE id = ${id}`);
+};
+
 /**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
  * unless a live open row with its id exists; a live done one, like `todo`
@@ -789,7 +808,7 @@ const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: stri
  * `todoService`'s `insertNext`, so both write the same row. `now` is the
  * tick's time: the next is made then (and after `todo`, whose `created_at`
  * may be the server's, ahead of this clock), so `reopenTodo` finds it.
- * `metadata` flags a new row's upload (a tick's: `TICK_NEXT_METADATA`).
+ * `metadata` flags the next's upload, new or made again (a tick's: `TICK_NEXT_METADATA`).
  */
 const planNext = async (
   db: SyncDb,
@@ -826,11 +845,15 @@ const planNext = async (
   return async (tx: Tx) => {
     if (row) {
       // Made again: `created_at` is now, so `reopenTodo` finds it as the
-      // occurrence made after this tick (`laterInChain`), as the server's restore.
-      await tx
-        .update(todos)
-        .set({ ...content, createdAt: now, updatedAt: now, updatedBy: db.userId })
-        .where(eq(todos.id, id));
+      // occurrence made after this tick (`laterInChain`), as the server's
+      // restore. A tick's is flagged too, so a stale one never brings a
+      // stopped chain back on the server (B-1003).
+      await updateTodoRow(
+        tx,
+        id,
+        { ...content, createdAt: now, updatedAt: now, updatedBy: db.userId },
+        metadata,
+      );
     } else {
       await insertTodo(
         tx,

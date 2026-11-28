@@ -870,10 +870,17 @@ export const skip = (ctx: ServiceContext, id: string) =>
  * null): its tick or skip remade one an Undo had taken away. A tick's is
  * already back (`complete` restores it); a skip's comes back here when the
  * chain has no other open todo, for writers. A stale one changes nothing,
- * and a todo that isn't a later occurrence is never undeleted. Returns the
- * row as it now is.
+ * and a todo that isn't a later occurrence is never undeleted. A tick's
+ * (`fromTick`, the upload's `TICK_NEXT_METADATA`) never restores: with no
+ * open row the chain was stopped since that tick, so it stays stopped and
+ * null says nothing was written, for any role (B-1003). Returns the row as
+ * it now is, or null.
  */
-export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
+export const restoreOccurrence = (
+  ctx: ServiceContext,
+  id: string,
+  { fromTick = false }: { fromTick?: boolean } = {},
+) =>
   withTransaction(async (tx) => {
     const visible = await lockVisible(ctx, tx, id, { includeDeleted: true });
     if (isError(visible)) return visible;
@@ -890,12 +897,14 @@ export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
     });
     if (isError(open)) return open;
     if (open) return visible;
+    if (fromTick) return null;
 
     const role = await roleIn(ctx, tx, visible.groupId);
     if (isError(role)) return role;
     if (!isTodoWriter(role)) return rejectError(ctx.authUser);
     const restored = await todoModel.restore(id, {}, tx);
-    if (isError(restored) || !restored) return restored;
+    if (isError(restored)) return restored;
+    if (!restored) return visible;
     return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? restored;
   }, ctx);
 
