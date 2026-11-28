@@ -389,13 +389,29 @@ const currentState = async (invite: CareGroupInviteModel, tx?: Tx) => {
  * while it's usable, the group's display name, the inviter's name, the role
  * and (email invites) the address. Null for a token that matches nothing.
  * `unavailable` while its kind is switched off (admin settings).
+ *
+ * A link its sign-ups used up still reads usable to the one signed-in person
+ * whose own sign-up took a use (`linkStateFor`), so they can go on to ask to
+ * join. `viewerId` gives that person's id, and is called only then; everyone
+ * else gets the same `usedUp`.
  */
-export const preview = async (token: string) => {
+export const preview = async (
+  token: string,
+  opts: { viewerId?: () => Promise<string | null | undefined> } = {},
+) => {
   const invite = await careGroupInviteModel.getByToken(token);
   if (isError(invite)) return invite;
   if (!invite) return null;
-  const state = await currentState(invite);
+  let state = await currentState(invite);
   if (isError(state)) return state;
+  if (state === "usedUp" && invite.kind === "link" && opts.viewerId) {
+    const userId = await opts.viewerId();
+    if (userId) {
+      const theirs = await withTransaction((tx) => linkStateFor(invite, userId, tx));
+      if (isError(theirs)) return theirs;
+      state = theirs;
+    }
+  }
   if (state !== "usable") return { state, invite: null, groupName: null, inviterName: null };
   // Its kind switched off (admin settings): say so, and nothing about the group.
   if (await kindRefusal(invite))

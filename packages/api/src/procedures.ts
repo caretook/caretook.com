@@ -18,8 +18,8 @@ export type LazyAuthUser = {
 };
 
 /**
- * Memoise `lookup` for one request (B-140). Public procedures never call
- * it; authed ones resolve it once, staff ones once with `live`. A live
+ * Memoise `lookup` for one request (B-140). Public procedures don't call
+ * it (but `invite.preview` for a used-up link: `optionalAuthUser`); authed ones resolve it once, staff ones once with `live`. A live
  * answer also stands for a cached one.
  */
 export const lazyAuthUser = (lookup: AuthUserLookup): LazyAuthUser => {
@@ -41,7 +41,7 @@ export const lazyAuthUser = (lookup: AuthUserLookup): LazyAuthUser => {
  * Per-request context; procedures never read requests. Either `authUser`
  * is given (in-process callers and tests), or the mount point passes
  * `getAuthUser`, which authed and staff procedures resolve in their
- * middleware; public procedures never look up a session. `clientIp` is the
+ * middleware; public procedures don't look up a session (but `optionalAuthUser`). `clientIp` is the
  * caller's address, for the public forms' rate limit.
  */
 export type ApiContext = {
@@ -57,6 +57,12 @@ const resolveAuthUser = async (context: ApiContext, live: boolean) =>
     : context.getAuthUser
       ? unwrap(await context.getAuthUser({ live }))
       : null;
+
+/**
+ * The caller if signed in, else null, for a public procedure whose answer
+ * differs for one person (`invite.preview`). Call it only when needed.
+ */
+export const optionalAuthUser = (context: ApiContext) => resolveAuthUser(context, false);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

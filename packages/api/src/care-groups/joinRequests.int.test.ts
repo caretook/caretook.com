@@ -138,6 +138,43 @@ describe("signing up through a link", () => {
     });
     expect(again).toEqual({ email: s.viewer.user.email, verified: false });
   });
+
+  it("a sign-up that used up the link still reaches the consent form, for that person only", async () => {
+    const s = await setup();
+    const made = await s.owner.api.invite.createLink({ groupId: s.groupId, role: "viewer", maxUses: 1 });
+    const email = `jr-last-${randomUUID().slice(0, 8)}@example.com`;
+    await anonymous.invite.signUp({
+      token: made.token,
+      name: "Robin",
+      email,
+      password: "a long enough passphrase",
+      legal: true,
+    });
+    const user = await userModel.getWhole({
+      authUser: SYSTEM_USER,
+      filter: { email: { type: "eq", value: email } },
+    });
+    if (isError(user) || !user) throw new Error("no user");
+    // Verified and signed in, they load the invite page again.
+    const robin = clientFor({ id: user.id, roleNames: user.roleNames });
+    expect(await robin.invite.preview({ token: made.token })).toMatchObject({
+      state: "usable",
+      kind: "link",
+      role: "viewer",
+    });
+    // Everyone else sees a used-up link and nothing of the group.
+    const other = await joinerClient("jr-other");
+    expect(await anonymous.invite.preview({ token: made.token })).toEqual({ state: "usedUp" });
+    expect(await other.api.invite.preview({ token: made.token })).toEqual({ state: "usedUp" });
+
+    expect(await robin.invite.accept({ token: made.token, consent: true })).toMatchObject({
+      status: "requested",
+      groupId: s.groupId,
+    });
+    expect(await codesOf(other.api.invite.accept({ token: made.token, consent: true, legal: true }))).toBe(
+      "CONFLICT:careGroupInviteService:unusable",
+    );
+  });
 });
 
 describe("join requests", () => {
