@@ -12,13 +12,13 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 3 running: slice 3 started (worktree free-limits-3, agent on opus, spawned after a takeover). Waves 1 and 2 landed (wave 2 via PR #335; history in plans/free-limits-history.md). B-1012 is the umbrella item: done only after slice 4.
+**Now (2026-11-28):** wave 3: slice 3 handed off (check green) and merged; integration CI run out (`risa ci run integration`). Keep free-limits-3 until green. Waves 1 and 2 landed (wave 2 via PR #335; history in plans/free-limits-history.md). B-1012 is the umbrella item: done only after slice 4.
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
 | 1     | 1    | landed  | e66e2fecf (f04414fb5)                        |
 | 2     | 2    | landed  | 5e65f672a (68577a4fd)                        |
-| 3     | 3    | running | —                                            |
+| 3     | 3    | merged  | 194d554f9 (db891e817, 6c6f7341f)             |
 | 4     | 4    | planned | —                                            |
 
 ## Architectural decisions
