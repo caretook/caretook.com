@@ -7,6 +7,7 @@ import {
   EyeOff,
   HeartPulse,
   IdCard,
+  LayoutGrid,
   ListTodo,
   MapPin,
   NotebookPen,
@@ -53,6 +54,7 @@ export const MARKETING_ICONS = {
   search: Search,
   profile: IdCard,
   assistant: Plug,
+  easyMode: LayoutGrid,
 } as const satisfies Record<string, LucideIcon>;
 
 export type MarketingIconName = keyof typeof MARKETING_ICONS;
