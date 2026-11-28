@@ -8,6 +8,7 @@ import { deviceLabel } from "~/lib/auth/deviceLabel";
 import { groupRoleLabel } from "@caretook/data/permissions";
 import { adminDay, adminTime, mailStatusLabel, staffRoleLabel } from "../accountDisplay";
 import { adminUrls } from "../adminUrls";
+import { GroupLimitControl } from "./GroupLimitControl";
 import { HelpAction } from "./HelpAction";
 
 // The regions of an account's page: the account and how it signs in, its
@@ -15,6 +16,7 @@ import { HelpAction } from "./HelpAction";
 // staff with `users.help`. Nothing here is a group's care data.
 
 type AccountPage = ApiOutputs["admin"]["users"]["get"];
+type GroupLimit = ApiOutputs["admin"]["users"]["groupLimit"];
 
 const person = (p: { name: string | null; email: string | null }) =>
   p.name ? `${p.name} (${p.email ?? "no email"})` : (p.email ?? "Deleted account");
@@ -115,9 +117,18 @@ export function SessionsSection({ page, canHelp }: { page: AccountPage; canHelp:
   );
 }
 
-export function GroupsSection({ page }: { page: AccountPage }) {
+export function GroupsSection({
+  page,
+  groupLimit,
+  canSetLimit,
+}: {
+  page: AccountPage;
+  groupLimit: GroupLimit;
+  canSetLimit: boolean;
+}) {
   return (
     <Card id="groups" title="Care groups">
+      <GroupLimitControl groupLimit={groupLimit} canSet={canSetLimit} />
       {page.groups.length === 0 ? (
         <EmptyState>Not in any care group.</EmptyState>
       ) : (
