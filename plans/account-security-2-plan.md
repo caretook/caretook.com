@@ -80,7 +80,7 @@ Stack: no · Reads: docs/domain/care-groups.md · Tests: integration · Blocked 
 - `packages/data/src/services/inviteMaker.ts` (new): move `makerMayStill` there from `careGroupInviteService.ts` (it's private today; `careGroupInviteService` already imports `joinRequestService`, so the check needs a neutral home, beside the link sign-up helper). `careGroupInviteService` imports it from there.
 - `packages/data/src/services/joinRequestService.ts` `approve`: after `lockForManager`, load the request's invite and refuse when it's revoked or `makerMayStill` fails (`system` exempt), with the revoked-invite error, before any membership is created.
 - `requestWithLink`: the cooldown branch returns `{ request: null, created: false, queued: [] }`.
-- `packages/data/src/services/careGroupInviteService.ts` `askWithLink`: treat `request: null` as "requested", not `notFound` (only a null answer is `notFound`); `requested()` takes the group and role from the invite, not the request; `AcceptResult.requestId` is dropped (no caller reads it: the oRPC answer returns status, groupId and role).
+- `packages/data/src/services/careGroupInviteService.ts` `askWithLink`: treat `request: null` as "requested", not `notFound` (only a null answer is `notFound`); `requested()` takes the group and role from the invite, not the request; `AcceptResult.requestId` stays for a waiting or new request and is left out only on the cooldown answer (optional on the `requested` variant), so existing tests that approve through it don't change.
 
 **Acceptance criteria:**
 
@@ -88,7 +88,7 @@ Stack: no · Reads: docs/domain/care-groups.md · Tests: integration · Blocked 
   - a waiting request whose link's maker was removed (set up directly, as one waiting today) can't be approved: the revoked-invite error, no membership; it can still be declined;
   - a waiting request whose link was revoked can't be approved;
   - a request through a `system` link still approves;
-  - a re-ask within the cooldown returns no request and creates nothing; `mine` lists nothing for it.
+  - a re-ask within the cooldown returns no request and no `requestId` and creates nothing; `mine` lists nothing for it (the existing cooldown test, which expects the old id back, is rewritten, not added to).
 
 **Blocks:** nothing. Starts only when `data-rights` lists neither `joinRequestService` nor `careGroupInviteService` among its hot files.
 

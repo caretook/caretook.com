@@ -45,7 +45,7 @@ Each rule holds on locked rows and rechecks what accept already rechecks. Every 
 ### Join requests
 
 - `joinRequestService.approve` rechecks the request's link (`inviteId`): not revoked, and its maker still allowed to make it (the same check `careGroupInviteService.accept` and `askWithLink` use; `system` exempt). A failed recheck returns the error a revoked invite returns, inside the transaction, before any membership is made. `decline` is unchanged.
-- `requestWithLink` within `REASK_COOLDOWN_DAYS` of a declined or withdrawn request returns no request (`request: null`, `created: false`). `careGroupInviteService.askWithLink` answers "requested" for it (group and role from the invite), and `AcceptResult.requestId` is dropped; `invite.accept`'s oRPC answer already carries no id.
+- `requestWithLink` within `REASK_COOLDOWN_DAYS` of a declined or withdrawn request returns no request (`request: null`, `created: false`). `careGroupInviteService.askWithLink` answers "requested" for it (group and role from the invite), and `AcceptResult.requestId` is left out on that answer only; `invite.accept`'s oRPC answer already carries no id.
 - The maker check (`makerMayStill`) moves out of `careGroupInviteService` into its own small module, so both services use it without an import cycle.
 
 ### Account email limits (packages/auth)
