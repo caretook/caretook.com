@@ -44,7 +44,7 @@ import { NewerEntries } from "./NewerEntries";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP, ROWS_BOX } from "./layout";
-import { OFFSCREEN_ROWS, ROW_SIZE, settledDays } from "./offscreenRows";
+import { offscreenRowsClass, ROW_SIZE, settledDays } from "./offscreenRows";
 import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
@@ -230,7 +230,8 @@ export function TimelineEntryList({
           ...days,
         ]
       : days;
-  // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
+  // Days before the newest page (and before Today) skip drawing their rows while off screen
+  // (`offscreenRows`; never on WebKit, B-1046).
   // A restored window's rows (Back to it, `timelinePaging.ts`) are new elements with no
   // remembered size, so its first frames draw them all: the page is as tall as the one left
   // when the scroll position comes back, and each row remembers its size before it skips again.
@@ -249,7 +250,7 @@ export function TimelineEntryList({
     setDrawnBound(windowBound);
     setDrawAll(true);
   }
-  const settled = drawAll ? NO_SETTLED : settledDays(sections);
+  const settled = drawAll ? NO_SETTLED : settledDays(sections, todayKey);
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
     summaryMode !== "off" &&
@@ -388,7 +389,7 @@ export function TimelineEntryList({
             />
             {day.entries.length > 0 && (
               <ol
-                className={`${LIST_CLASS[view]} ${ROW_SIZE[view]} ${settled.has(day.key) ? OFFSCREEN_ROWS : ""}`}
+                className={`${LIST_CLASS[view]} ${ROW_SIZE[view]} ${settled.has(day.key) ? offscreenRowsClass() : ""}`}
                 data-view={view}
               >
                 {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}

@@ -20,8 +20,9 @@ import {
 // app, under several filters at once, and after the logo's way back to Today.
 // Each path the report suspects, on the test device: the entries show as soon
 // as they're in the local database, with no scroll. None of them leaves the
-// list empty here (Chromium). The last test pins the state a WebKit paint of
-// `content-visibility: auto` rows (`offscreenRows.ts`) would have to get right.
+// list empty here (Chromium). The lead was WebKit not painting rows under
+// `content-visibility: auto` (`offscreenRows.ts`): Today's rows now never carry
+// it, and on WebKit no row does (slice 99). The last test pins that.
 
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
 const texts = () => rows().map((li) => li.textContent ?? "");
@@ -126,7 +127,7 @@ describe("back to Today from another page of the group", () => {
     await expect.poll(() => rows().length).toBe(before);
   });
 
-  test("three pages down, the logo: Today's rows, now skipped off screen (`offscreenRows`), are drawn on screen", async () => {
+  test("three pages down, the logo: Today's rows never skip rendering (`offscreenRows`), and are drawn on screen", async () => {
     await openTimeline({ route: ROUTES, frame: true, fixtures: world(100) });
     while (rows().length < 90) {
       const loaded = rows().length;
@@ -139,9 +140,9 @@ describe("back to Today from another page of the group", () => {
     await userEvent.click(await found(logo));
     await waitUntil(() => window.scrollY === 0 && rows().length >= 90, "the top of the same window");
     await frames();
-    // Today's day is settled now (its rows may skip rendering off screen), and on screen they're drawn.
+    // Today's day is past the newest page now, and still never settled: its rows are always drawn.
     const pickup = await found(() => rowWith("Picked up the refill."));
-    expect(getComputedStyle(pickup).contentVisibility).toBe("auto");
+    expect(getComputedStyle(pickup).contentVisibility).toBe("visible");
     const drawn = onScreen();
     expect(drawn.length).toBeGreaterThan(0);
     expect(drawn.every(Boolean)).toBe(true);

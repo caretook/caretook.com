@@ -2,6 +2,16 @@
 
 Finished-wave history moved out of [the plan](fixes-bug-plan.md)'s _Status_ by `pnpm prd status-trim fixes-bug`, the newest trim first.
 
+## Trimmed 2026-11-28
+
+**Wave 28** (2026-11-28): dev synced (d48ce5cd0; app-shell doc conflict resolved and trimmed under budget). Slices 96-98 written and starting in parallel. Models: all three opus (the plan's Model field). All three merged in plan order; CI components run 46186862084 on a5f62d0e: flake (todayCard.browser.test.tsx, not the branch's), so it lands. Sync: none needed. Slice worktrees removed. PR #354 open, Codex reviewing; no browser checks needed (`risa browser --changed`). B-1046 not fixed: slice 96's lead is WebKit not painting `content-visibility: auto` rows (`offscreenRows.ts`, B-139); report 2 looks like the local database not answering after an iOS resume. Decided (ask a430, skeptic s105, the user may veto): wave 29 gets a slice that stops `content-visibility: auto` on WebKit or the newest days; B-1046 stays open for report 2. Wave 27 landed earlier (PR #323); its history is in the history file. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+
+| Slice | Item   | State                                                      | Merge     |
+| ----- | ------ | ---------------------------------------------------------- | --------- |
+| 98    | B-1058 | merged                                                     | 19a8a6163 |
+| 97    | B-1056 | merged                                                     | ab844fbec |
+| 96    | B-1046 | merged: tests only, no repro in Chromium (item stays open) | 2e7ac9335 |
+
 ## Trimmed 2026-11-27 (wave 19)
 
 Wave 19 landed through PR #268 (2026-11-27), Codex clean on c730262, integration CI green on 587de6c6 (run 46055609322), landed unsynced (dev's 2 commits shared no file). To-test: `to-test/2026-11-27-1446-fixes-bug.md`.
