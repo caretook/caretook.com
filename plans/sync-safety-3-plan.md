@@ -4,19 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/sync-safety-3` (slice commits) |
-| ----- | ---- | -------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus)  | 98f9114db (e46c7c7c7, 96dc47533)               |
-| 2     | 2    | planned        |                                                |
-| 3     | 3    | planned        |                                                |
-| 4     | 1    | running (opus) |                                                |
-| 5     | 4    | planned        |                                                |
+| Slice | Wave | State         | Merge into `prd/sync-safety-3` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus) | 98f9114db (e46c7c7c7, 96dc47533)               |
+| 2     | 2    | planned       |                                                |
+| 3     | 3    | planned       |                                                |
+| 4     | 1    | merged (opus) | 95b947f22 (0aa0e004d, fe68fed3e)               |
+| 5     | 4    | planned       |                                                |
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
 - 2026-11-28: wave 1 started. B-294 claimed. Worktrees `sync-safety-3-1` and `sync-safety-3-4` made from prd at the plan's anchor fix; one opus agent each. Start conditions clear (onboarding-2 and code-health-2 not running).
 
 - Slice 1 handed off (quick check green on 96dc47533), merged 98f9114db. No upload-path service needed changing; only the registry's softDelete PUT now passes `ctx`. For slice 2: PATCH/DELETE paths in the registry (softDelete remove/update, timeline_entry and todo PATCH) run without `tx` today; slice 2's whole-PUT `tx` makes them join. A nested throw now returns `db:transaction` instead of propagating. B-294 stays open until slice 5.
+
+- Slice 4 handed off (quick check green on fe68fed3e), merged 95b947f22. `SYNC_WRITE_LIMIT = 1000` in `@caretook/data/domain`. Audit: every multi-row `*.sync.ts` save already uses one `db.drizzle.transaction`; nothing wrapped. Largest write measured: the series split, 437 ops (pinned). Screens chaining several single-row saves were out of scope. Audit list for the sync doc at landing is in the slice's hand-off (multi-row saves: appointments, series, visitPrep, quickEntry, medicationPasses, passLogs, medications, allergies, liveEntry, providers, tags, carePeriods, todos, conditions, medicationConditions, timeline, symptomTypes).
+- Wave 1 gate: `risa ci run components` on 95b947f22 (requested).
 
 ## Durable decisions
 
