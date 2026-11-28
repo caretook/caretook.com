@@ -19,6 +19,7 @@ import * as careGroupMemberService from "./careGroupMemberService";
 import { groupDisplayName } from "./groupNames";
 import * as joinRequestService from "./joinRequestService";
 import * as legalAcceptanceService from "./legalAcceptanceService";
+import { hasSignUpUse, markSignUpUse } from "./linkSignUpUses";
 
 export { groupDisplayName };
 
@@ -423,7 +424,8 @@ const askWithLink = async (
   });
   if (isError(waiting)) return waiting;
   if (waiting) return requested(waiting.request);
-  const state = inviteState({ invite });
+  const state = await linkStateFor(invite, userId, tx);
+  if (isError(state)) return state;
   const closed = await kindRefusal(invite);
   if (closed) return closed;
   if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
@@ -433,6 +435,19 @@ const askWithLink = async (
   if (isError(asked)) return asked;
   if (!asked) return newError({ code: "careGroupInviteService:notFound" });
   return { ...requested(asked.request), queued: asked.queued };
+};
+
+/**
+ * A link's state for `userId`'s join request. A link used up by sign-ups is
+ * still usable for someone whose own sign-up through it took one of those
+ * uses (`useLinkForSignUp`): their request counts nothing more.
+ */
+const linkStateFor = async (invite: CareGroupInviteModel, userId: string, tx: Tx) => {
+  const state = inviteState({ invite });
+  if (state !== "usedUp") return state;
+  const user = await userModel.getWholeById(userId, system(tx));
+  if (isError(user)) return user;
+  return user && (await hasSignUpUse(tx, invite.id, user.email)) ? ("usable" as const) : state;
 };
 
 const requested = (request: { id: string; groupId: string; role: GroupRoleName }): AcceptResult => ({
@@ -564,3 +579,29 @@ export const ticketFor = async (token: string, tx?: Tx) => {
   if (invite.kind === "email" && !invite.email) return newError({ code: "ticket:invalid" });
   return invite;
 };
+
+/**
+ * A link's sign-up counts a use toward its `max_uses` (B-333), with the
+ * link's row locked so two sign-ups can't both take its last use. An address
+ * whose sign-up through this link already counted counts nothing more (a
+ * second try, or its later join request: `joinRequestService` takes the
+ * marker instead of counting). A link that's no longer usable, or not a
+ * link, is `ticket:invalid`, as `ticketFor` says. Called for a new address
+ * and one with an account alike, so the two answer the same.
+ */
+export const useLinkForSignUp = (token: string, email: string) =>
+  withTransaction(async (tx) => {
+    const invite = await careGroupInviteModel.getByToken(token, { tx, lock: true });
+    if (isError(invite)) return invite;
+    if (!invite || invite.kind !== "link") return newError({ code: "ticket:invalid" });
+    if (await hasSignUpUse(tx, invite.id, email)) return { counted: false };
+    if (inviteState({ invite }) !== "usable") return newError({ code: "ticket:invalid" });
+    const used = await careGroupInviteModel.update({
+      ...system(tx),
+      filter: byId(invite.id),
+      data: { useCount: invite.useCount + 1 },
+    });
+    if (isError(used)) return used;
+    await markSignUpUse(tx, invite.id, email, invite.expiresAt);
+    return { counted: true };
+  });

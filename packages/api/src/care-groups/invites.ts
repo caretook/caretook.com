@@ -252,14 +252,18 @@ export const invite = {
         legal: z.literal(true),
       }),
     )
-    .handler(async ({ input }) => {
+    .handler(async ({ context, input }) => {
       const user = unwrap(
-        await signUpWithTicket({
-          ticket: { kind: "invite", token: input.token, legal: input.legal },
-          name: input.name,
-          email: input.email,
-          password: input.password,
-        }),
+        await signUpWithTicket(
+          {
+            ticket: { kind: "invite", token: input.token, legal: input.legal },
+            name: input.name,
+            email: input.email,
+            password: input.password,
+          },
+          // A link's sign-up is limited per client IP (and per link).
+          { clientIp: context.clientIp },
+        ),
       );
       return { email: user.email, verified: user.emailVerified };
     }),
