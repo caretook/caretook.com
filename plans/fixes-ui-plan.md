@@ -36,12 +36,10 @@ Notes for every wave:
 
 **Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
 
-**Wave 21:** slices 108 and 109 merged; CI components green on 771c2172 (run 46091445854). Synced dev as 6f0b5ccea (todo-links-2's TodoTree `chain` conflicted with our `inline`; kept both). Recheck of the synced tip running.
+**Wave 21 landed 2026-11-27** as dev 40ff2e6 through PR #297 (Codex clean on 75f1874), CI components green on the synced tip (run 46092112343, 6f0b5cce); to-test/2026-11-27-2025-fixes-ui.md. Slices 108 (B-975 marketing AI 'will not', sonnet, 1689bd40d) and 109 (B-980 subtask add on the title line via `TodoQuickAdd inline`, opus, c5e753432). Sync conflict in TodoTree (todo-links-2's `chain`), kept both. Browser `--changed --base dev`: marketing pass. Docs folded into todos. Slice worktrees removed. Lesson: format the plan after every Status edit, not only after writing slices (slice 108's check tripped on it). No fixes-ui item waits: topic closed.
 
-| Slice | Item  | State           | Merge     |
-| ----- | ----- | --------------- | --------- |
-| 108   | B-975 | merged (sonnet) | 1689bd40d |
-| 109   | B-980 | merged (opus)   | c5e753432 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
