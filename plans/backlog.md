@@ -122,7 +122,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `orchestration-split` | done | — | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `.githooks/`, `scripts/project/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `AGENTS.md`, `risa.json` | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `orchestration-split-2` | done | `orchestration-split` | `scripts/loops/`, `scripts/project/`, `packages/data/test/`, `apps/web/test/`, `docs/agents/`, `docs/orchestration.md`, `AGENTS.md`, `risa.json` | — |
-| `sync-safety-3` | — | `sync-safety-2` | `packages/data/src/db/client.ts`, `packages/data/src/domain/sync/`, `packages/data/src/errors/sync.ts`, `packages/api/src/sync.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/testing.ts`, `apps/web/app/lib/sync/uploader.ts`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/unsavedChanges`, `apps/web/app/routes/app/settings/not-saved/` | A device write lands whole (B-294): savepoints, the server applies a write in one transaction, the uploader sends whole writes, one line per write on Changes not saved. Plan: plans/sync-safety-3-plan.md |
+| `sync-safety-3` | done | `sync-safety-2` | `packages/data/src/db/client.ts`, `packages/data/src/domain/sync/`, `packages/data/src/errors/sync.ts`, `packages/api/src/sync.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/testing.ts`, `apps/web/app/lib/sync/uploader.ts`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/unsavedChanges`, `apps/web/app/routes/app/settings/not-saved/` | A device write lands whole (B-294): savepoints, the server applies a write in one transaction, the uploader sends whole writes, one line per write on Changes not saved. Plan: plans/sync-safety-3-plan.md |
 | `onboarding-3` | — | `onboarding-2` | — | — |
 | `care-booklet` | — | — | — | Printed care booklet (B-918): profile front page, medication list, weekly sheet, emergency sheet, providers list; pick pages by hand. Released 2026-11-28 after inline triage; guide pages (B-919) in care-booklet-2. |
 | `marketing-4` | — | `care-booklet` | — | Marketing for the printed care booklet (B-1035), once care-booklet lands. Describe two-way (written notes coming back through a connected AI) only for sheets whose read-back has shipped: the weekly medication sheet (B-917) now, the rest with care-booklet-2. **The user reviews and approves the copy during planning:** the planner files an ask (--waits) with each proposed page change and its draft text, and lands the plan only after the user approves. |
@@ -216,7 +216,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-772 | chore | landed | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
-| B-782 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
+| B-782 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-785 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
 | B-790 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
@@ -303,6 +303,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1045 | bug | triaged | fixes-tooling |  | Inbox handoff (risa rotate --self) didn't work |
 | B-1046 | bug | triaged | fixes-bug |  | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
 | B-1047 | feature | triaged | fixes-ui |  | Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close… |
+| B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
+| B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
 
 ## Items
 
@@ -989,6 +991,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): 2026-11-23: under B-670 only group creators get onboarding, so this test user must be a group creator with nothing set up, resettable to before first login.
 - 2026-11-23 (Robert Bo Davis): Correction, 2026-11-23: /join/CARE-DEMO-0001 already makes a group creator, but needs a new address each time. This item is still what makes the flow repeatable: a creator with nothing set up, resettable to before first login.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 5 (re-measure test flakes; test fixtures).
+- 2026-11-28 (slice/fixes-tooling/108): Slice 108 (1a1bff123): onboarding@example.com seeded (seeds/onboardingUser.ts), outside setupDismissed and realOwners; pnpm datastore:reset:onboarding resets it (local or staging, behind seedRefusal). Not run against staging.
 
 ### B-749 · chore · check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip
 
@@ -1076,12 +1079,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-782 · bug · CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 2a28cbe32
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 81e93b941241] Flaked (passed on its rerun); found by prd/fixes-ui.
+- 2026-11-28 (slice/fixes-tooling/103): Slice 103: cause shown from CI run 45485782241 (prd/fixes-ui @2ab2a87): 'expected [] to have a length of 1' at the user.view audit check. Then get recorded user.view with adminAuditService.recordSoon, a bare void promise outside the notifications background runner, so the test's settle() never waited for it and under load the read beat the insert. Already fixed by 273ba77a0 (account-security slice 4, B-332, 2026-11-28): record awaited before get answers; the test reads at once (entriesBy). No other unstable part (one group row, sessions counted, mail scoped by unique email). 10/10 passes on prd/fixes-tooling 11f524f5e under CARETOOK_QUARANTINE=run. No code change; the quarantine line can go.
 
 ### B-785 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back …
 
@@ -1931,6 +1935,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): From the inbox: Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the screen is empty until the user scrolls, then everything appears (alpha tester, mobile)
 - 2026-11-28 (Robert Bo Davis): Timeline paints empty below the header until a scroll; likely the infinite list measuring before layout or data arrives. Screenshot from an alpha tester, 2026-11-28.
 - 2026-11-28 (Robert Bo Davis): Second report, same tester, installed PWA: tapping the logo top left led to Today with an empty timeline (no vitals line either); scrolling did NOT fix it this time and the app felt stuck; closing and reopening the PWA fixed it. Points at a stale state or a client navigation that never loads, not only a layout measure.
+- 2026-11-28 (Robert Bo Davis): Third report, same tester, Safari (not only the PWA): (1) a filtered timeline with several filter categories at once showed Today's header and nothing else; (2) after closing and reopening Safari, day headers rendered (Today, Yesterday, Thu Nov 26, each with its care-period chip and + button) but every day's entries were empty; a page refresh fixed it. So the day list loads but the entries query returns nothing or never re-renders: suspect the entries query/subscription (filters combined, or the local database not ready on resume) rather than layout. Repro to try: iOS Safari, combine several filter categories; background Safari and resume.
 
 ### B-1047 · feature · Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close…
 
@@ -1941,3 +1946,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close and reopen the app to recover a stuck screen, B-1046)
 - 2026-11-28 (Robert Bo Davis): Small UI flow addition for the standalone PWA only (display-mode: standalone); must not fight the timeline's infinite scroll or the browser's own pull-to-refresh. Related to B-1046.
+
+### B-1048 · feature · Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to…
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to that symptom, so you can find the last time it happened without scrolling; show the link only when it has entries (alpha tester)
+- 2026-11-28 (Robert Bo Davis): Timeline filtering already exists (list-filters); this links the count to a filtered-timeline URL. No link at 0 entries (user, 2026-11-28). Reuse the shared filter and link controls; if other catalogs (tags, vitals) show counts, they should link the same way.
+
+### B-1049 · bug · A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose)
+
+- status: triaged
+- prd: data-rights
+- owner:
+- commit:
+
+- 2026-11-28 (prd/data-rights): From data-rights wave 1 (slice 1 fix): packages/api/src/connectors/tools/listMedications.ts reads deleted passes so an old schedule keeps its names; the scrub now clears passName. Decide: keep a deleted pass's name while its medication is live (like the dose carve-out), or label it.

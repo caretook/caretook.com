@@ -40,7 +40,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked before upload, with usage shown in settings (B-1014)
   For B-56 (document uploads, not built yet). Also a per-file size cap. Deletions free their bytes.
 - Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close and reopen the app to recover a stuck screen, B-1046) (B-1047)
-- Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to that symptom, so you can find the last time it happened without scrolling; show the link only when it has entries (alpha tester)
+- Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to that symptom, so you can find the last time it happened without scrolling; show the link only when it has entries (alpha tester) (B-1048)
 
 ## Big plans
 
