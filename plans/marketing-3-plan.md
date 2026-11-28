@@ -4,6 +4,14 @@
 
 ## Status
 
+**From the user**
+
+- 2026-11-28 (B-855 hero text): "Yes. Exact text. Go"
+
+**Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Now (2026-11-28):** wave 1 starting (slices 1, 2, 3, 4, 7). Models: 1, 2, 4 opus; 3, 7 sonnet (research note; exact text spelled out). Backlog at wave 1 boundary: nothing new for marketing-3.
+
 | Slice | Wave | State   | Merge into `prd/marketing-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
 | 1     | 1    | planned |                                              |
