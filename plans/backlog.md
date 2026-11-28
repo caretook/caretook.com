@@ -312,6 +312,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1051 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
+| B-1054 | bug | triaged | fixes-tooling |  | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 
 ## Items
 
@@ -2028,3 +2029,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/data-rights): Codex on PR #341 (thread PRRT_kwDOVx-WLM69Gy4E, 0051_scrub_deleted.sql:60): noteDocumentService.appendUpdate checks visibleDocument/mayWriteOwner without locking the owner, so an in-flight append can land after the scrub trigger cleared the document and deleted its updates; the stream replicates it and compaction can write it back. Fix: lock the owner row (FOR SHARE) in appendUpdate and recheck deleted_at under the lock, refusing the append when deleted.
+
+### B-1054 · bug · Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (prd/quick-entry-3): Seen 3/3 on prd/quick-entry-3 synced with dev 0578f2ae6, 2026-11-28 (error-context: today's rows show doses, notes, events, vitals; no symptom link). quick-entry-3 touches no timeline, entry or seed code. Fix: pick a row the seed guarantees (or seed a symptom today), or scroll to one, rather than assume.
