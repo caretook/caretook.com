@@ -15,6 +15,7 @@
 | 7     | 1    | merged (opus)   | efcf7177b (c67da6147)                            |
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+- **Waiting on onboarding-2 (B-670):** its slice 2 moves `ProviderForm`, `ProviderListItem`, `ProviderRowContact` to `components/providers/` (and `providerFormData.ts` to `lib/providers/`). Agreed 2026-11-28: it lands first; slice 4 starts only after it's in `dev` and `risa sync` (onboarding-2-c2 will message; also check `pnpm log dev`).
 - **Wave 1** started 2026-11-28: worktrees `.loops/shared-displays-1` and `-7`, agents spawned; `risa watch` running. Slice 1 merged; slice 2 started early (blocked only by 1; no overlap with 7). Slice 7 merged. Wave 1's CI run (components) requested on efcf7177b+. Slice 7 notes: Planner row menus gain Copy link; `TodoRow.tsx:139` comment still says `UpcomingRow` (slice 5 to fix); components doc: `UpcomingEntryCard` is the Planner look. B-961 claimed. Backlog at start: nothing new for this topic (B-1004, a `linkToBox` flake, is `fixes-tooling`).
 
 ## Architectural decisions
