@@ -66,7 +66,7 @@
     "globals": "^17.14.0",
     "playwright": "1.65.1",
     "prettier": "^3.10.1",
-    "risa": "github:interrobangc/risa#fa38e19360e17a33dfe73719a4f1cf820449f2f9",
+    "risa": "github:interrobangc/risa#a00a84664ce0d933388dfd534c4418530882c367",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.73.0",
     "vitest": "^5.1.0",
