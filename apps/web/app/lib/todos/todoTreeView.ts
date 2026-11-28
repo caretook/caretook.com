@@ -99,6 +99,23 @@ export const todoTrees = <T extends TreeTodo>(
   ];
 };
 
+/**
+ * Subtasks on their own (todo-links-2): every live, open todo that matches
+ * as a tree of its own (no children, not context, its own lead), in
+ * `todoOrder`, so each is placed by its own due. Done and deleted todos are
+ * left out, and a match keeps no ancestors (there's no tree to place it in).
+ * The shape is `todoTrees`', so `todoSections` and `todoDayTrees` take it.
+ */
+export const splitTrees = <T extends TreeTodo>(
+  todos: readonly T[],
+  { now, timeZone, matches }: Omit<Options<T>, "rootId">,
+): TodoTree<T>[] =>
+  todoOrder(
+    todos.filter((t) => !t.deletedAt && !t.doneAt && (!matches || matches(t))),
+    now,
+    timeZone,
+  ).map((todo) => ({ todo, context: false, children: [], lead: todo }));
+
 /** The day view a todo is due in: "overdue", its due day, or null (done or undated). */
 export const todoDayOf = (todo: TreeTodo, now: Date | number, timeZone: string) => {
   const state = todoState(todo, now, timeZone);

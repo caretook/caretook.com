@@ -138,7 +138,7 @@ describe("the todo list", () => {
     expect(document.querySelector('main nav[aria-label="Filters on"]')).toBeNull();
     expect(device.location()).toBe(LIST);
 
-    // One section, Everyone first and checked.
+    // Assigned to (Everyone first and checked), then Subtasks on its default (todo-links-2).
     await openFilters();
     const menu = page.getByRole("menu", { name: "Filter todos" });
     await expect.element(menu).toBeVisible();
@@ -147,8 +147,12 @@ describe("the todo list", () => {
         document.getElementById(group.getAttribute("aria-labelledby") ?? "")?.textContent,
       [...group.querySelectorAll('[role="menuitemradio"]')].map((item) => item.textContent?.trim()),
     ]);
-    expect(sections).toEqual([["Assigned to", ["Everyone", "Mine", "Unassigned"]]]);
+    expect(sections).toEqual([
+      ["Assigned to", ["Everyone", "Mine", "Unassigned"]],
+      ["Subtasks", ["In their tree", "On their own"]],
+    ]);
     await expect.element(page.getByRole("menuitemradio", { name: "Everyone" })).toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "In their tree" })).toBeChecked();
     expect(page.getByRole("menuitem", { name: "Clear filters" }).query()).toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.element(menu).not.toBeInTheDocument();
