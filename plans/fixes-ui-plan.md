@@ -26,11 +26,11 @@ Notes for every wave:
 
 **Restarted 2026-11-28, run-through:** landing mode run everything through. Fixed 2 stale anchors (slices 96, 97: forms moved to `components/`). Ingest empty, prd/fixes-ui = dev (04f86cd85). Wave 23: slices 111 (B-1015), 112 (B-1016), 113 (B-1021), all opus, parallel. Hot: `components/entry/`, `routes/app/groups/timeline/`, `routes/app/groups/todos/`, `lib/todos/`, `components/tags/`.
 
-| Slice | Item                                     | State          | Merge |
-| ----- | ---------------------------------------- | -------------- | ----- |
-| 111   | B-1015 one entry display, Full/Condensed | started (opus) |       |
-| 112   | B-1016 Done as todo trees                | started (opus) |       |
-| 113   | B-1021 add-tag button alignment          | started (opus) |       |
+| Slice | Item                                     | State                                              | Merge |
+| ----- | ---------------------------------------- | -------------------------------------------------- | ----- |
+| 111   | B-1015 one entry display, Full/Condensed | started (opus)                                     |       |
+| 112   | B-1016 Done as todo trees                | handed off 0ae0fd476 (opus); merges after 111      |       |
+| 113   | B-1021 add-tag button alignment          | handed off 1d3c31239 (opus); merges after 111, 112 |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
