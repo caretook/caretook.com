@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/timeline/offscreenRows`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/timelineBlank.browser.test.tsx`, `apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `packages/api/src/connectors/tools/listMedications`, `packages/data/src/services/noteDocumentService`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/routes/app/layout/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `marketing-3` | — | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
@@ -196,7 +196,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-457 | chore | dropped | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
-| B-563 | feature | triaged | marketing-3 |  | Accessibility statement page |
+| B-563 | feature | ready | marketing-3 | prd/marketing-3 | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights-2 |  | Ownership transfer: a last owner can hand a care group to another member |
 | B-619 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
@@ -217,19 +217,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-795 | chore | triaged |  |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-802 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
 | B-808 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
-| B-829 | question | triaged | marketing-3 |  | Research: compare Care Book to Caring Village |
+| B-829 | question | ready | marketing-3 | prd/marketing-3 | Research: compare Care Book to Caring Village |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
-| B-836 | feature | triaged | marketing-3 |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
+| B-836 | feature | ready | marketing-3 | prd/marketing-3 | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-839 | bug | landed | fixes-tooling | prd/fixes-tooling | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-851 | chore | landed | fixes-tooling | prd/fixes-tooling | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | landed | fixes-tooling | prd/fixes-tooling | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
-| B-855 | change | triaged | marketing-3 |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
+| B-855 | change | ready | marketing-3 | prd/marketing-3 | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
 | B-858 | feature | triaged | onboarding-3 |  | Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants |
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
-| B-887 | change | triaged | marketing-3 |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
-| B-888 | change | triaged | marketing-3 |  | Features page should highlight easy mode |
+| B-887 | change | ready | marketing-3 | prd/marketing-3 | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
+| B-888 | change | ready | marketing-3 | prd/marketing-3 | Features page should highlight easy mode |
 | B-896 | feature | triaged | quick-entry-4 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
@@ -283,11 +283,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1046 | bug | in-progress | fixes-bug | prd/fixes-bug | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
 | B-1047 | feature | triaged | fixes-ui |  | Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close… |
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
-| B-1049 | bug | triaged | fixes-bug |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
+| B-1049 | bug | ready | fixes-bug | prd/fixes-bug | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
 | B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
 | B-1051 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
-| B-1053 | bug | triaged | fixes-bug |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
+| B-1053 | bug | ready | fixes-bug | prd/fixes-bug | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 | B-1054 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
 | B-1056 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
@@ -304,6 +304,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1067 | chore | triaged | fixes-nit |  | careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102 |
 | B-1068 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records |
 | B-1069 | chore | triaged | fixes-tooling |  | Recheck the realpath wrapper in pnpm test:tooling once Risa ships RISA-1093 |
+| B-1070 | change | triaged | fixes-ui |  | Marketing meta descriptions say 'care notebook for families' while the hero now says 'A shared care journal' |
+| B-1071 | bug | ready | fixes-bug | prd/fixes-bug | CI: the build job fails on dev |
 
 ## Items
 
@@ -771,10 +773,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-563 · feature · Accessibility statement page
 
-- status: triaged
+- status: ready
 - prd: marketing-3
-- owner:
-- commit:
+- owner: prd/marketing-3
+- commit: 651f2b48b
 
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22); out of scope for onboarding.
 - 2026-11-22 (Robert Bo Davis): Triage: marketing, a public page beside the privacy policy and terms (B-54).
@@ -1012,10 +1014,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-829 · question · Research: compare Care Book to Caring Village
 
-- status: triaged
+- status: ready
 - prd: marketing-3
-- owner:
-- commit:
+- owner: prd/marketing-3
+- commit: 651f2b48b
 
 - 2026-11-25 (prd/orchestration-split): From the inbox: Review feature sets and identify overlap, places where we can surpass them, and places where we already do.
 - 2026-11-25 (Robert Bo Davis): Triage: competitor research (Care Book vs Caring Village) to feed positioning
@@ -1034,10 +1036,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-836 · feature · Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos)
 
-- status: triaged
+- status: ready
 - prd: marketing-3
-- owner:
-- commit:
+- owner: prd/marketing-3
+- commit: 20e314887
 
 - 2026-11-25 (plan/marketing-2): Split from B-417 when marketing-2 took its copy part (2026-11-25): the visual refresh B-417 also asked for, left for a later marketing topic.
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
@@ -1090,10 +1092,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-855 · change · Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix)
 
-- status: triaged
+- status: ready
 - prd: marketing-3
-- owner:
-- commit:
+- owner: prd/marketing-3
+- commit: 651f2b48b
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-26: 'way too much marketing speak in that hero'; the hotfix removes the 'Keep track of someone's care, together.' heading, the rest of the trim is this item
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
@@ -1121,10 +1123,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-887 · change · Features page "Type it the way you'd say it" section should highlight more that users can just say…
 
-- status: triaged
+- status: ready
 - prd: marketing-3
-- owner:
-- commit:
+- owner: prd/marketing-3
+- commit: ece376081
 
 - 2026-11-26 (Robert Bo Davis): From the inbox: Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation / Move this section so it's the first item after the timeline on the features page.
 - 2026-11-26 (Robert Bo Davis): Triage: Features page copy; marketing topic (held), beside the visual refresh B-836.
@@ -1135,10 +1137,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-888 · change · Features page should highlight easy mode
 
-- status: triaged
+- status: ready
 - prd: marketing-3
-- owner:
-- commit:
+- owner: prd/marketing-3
+- commit: ece376081
 
 - 2026-11-26 (Robert Bo Davis): Triage: Features page copy; marketing topic (held), beside the visual refresh B-836.
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
@@ -1689,13 +1691,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1049 · bug · A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose)
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 490073328
 
 - 2026-11-28 (prd/data-rights): From data-rights wave 1 (slice 1 fix): packages/api/src/connectors/tools/listMedications.ts reads deleted passes so an old schedule keeps its names; the scrub now clears passName. Decide: keep a deleted pass's name while its medication is live (like the dose carve-out), or label it.
 - 2026-11-28 (prd/data-rights): Moved from data-rights at its close: a small wrong-data fix.
+- 2026-11-28 (slice/fixes-bug/100): Slice 100: no code change needed; scheduleText already names a scrubbed pass via passLabel/REMOVED_PASS (data-rights slice 1, B-84), and pass deletes plus medicationService move slots off deleted passes. Pinned with an integration test in readTools.int.test.ts.
 
 ### B-1050 · change · Finishing a todo's last subtask silently completes the parent and it vanishes from the list;…
 
@@ -1730,10 +1733,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1053 · bug · A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 8d9a348ac
 
 - 2026-11-28 (prd/data-rights): Codex on PR #341 (thread PRRT_kwDOVx-WLM69Gy4E, 0051_scrub_deleted.sql:60): noteDocumentService.appendUpdate checks visibleDocument/mayWriteOwner without locking the owner, so an in-flight append can land after the scrub trigger cleared the document and deleted its updates; the stream replicates it and compaction can write it back. Fix: lock the owner row (FOR SHARE) in appendUpdate and recheck deleted_at under the lock, refusing the append when deleted.
 - 2026-11-28 (prd/data-rights): Moved from data-rights at its close: a small wrong-data fix.
@@ -1890,3 +1893,24 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: package.json's test:tooling calls Risa's runner through $(realpath …), a workaround for RISA-1048 (through the node_modules symlink the runner ran nothing and exited 0). v0.2.3 (pinned 2026-11-28) fixes the runner: the plain path ran all 35 files. Kept on the user's word until RISA-1093 (about 20 other Risa entry points with the same symlink no-op) is in a pinned release; then drop the wrapper and trim step 4 of docs/agents/project-config.md (Updating Risa).
 - 2026-11-28 (Robert Bo Davis): Triaged to fixes-tooling: a one-line script change plus a doc step. Not runnable until RISA-1093 is in a release Caretook pins; Risa's backlog session was asked to say when.
+
+### B-1070 · change · Marketing meta descriptions say 'care notebook for families' while the hero now says 'A shared care journal'
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-28 (prd/marketing-3): From marketing-3 slice 7 (B-855): the user's exact hero descriptor says 'care journal'; home, features, FAQ and About meta descriptions still say 'care notebook for families', and site/meta.test.ts holds that phrase. Needs the user's wording call; a fix edits the four descriptions and that test.
+
+### B-1071 · bug · CI: the build job fails on dev
+
+- status: ready
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: daed7796b
+
+- 2026-11-28 (prd/code-health-4): [ci-key job-build] Fails on dev too (a brake); found by prd/code-health-4 in https://github.com/caretook/caretook.com/actions/runs/46189381963.
+- 2026-11-28 (Robert Bo Davis): Blocks every landing (code-health-4 slice 6 waits on it; run 46189953770 on dev 73622ed4: yjs in the app bundle via the noteYjs chunk, app group 488 KB gzip vs a 375 KB ceiling). Fix first in fixes-bug. Suspect to rule out: code-health-4's role-module imports (slice 3, setupRedirect.ts through permissions.ts) reaching domain/live-notes/noteYjs.ts.
+- 2026-11-28 (prd/fixes-bug): fixes-bug triage: first failure is prd/code-health-4 run 46189381963 at 14771cece, before fixes-bug wave 29 landed. Likely cause: f89bcae4f (code-health-4 slice 3, B-363) imports isOwnerRole from @caretook/data/permissions in app-shell groupSetup.ts/setupRedirect.ts, pulling the whole PERMISSIONS map (incl. live-notes) into the app chunk. Suggested to code-health-4 to fix on its branch (lean roles import).
+- 2026-11-28 (prd/code-health-4): Bisected (first-parent dev, local pnpm build:budget): good f8b7daa59 (app 350693 B gzip), first bad 9741f478a feat(quick-entry-3): quick entry from any group page (wave 1, B-1038, B-1039), which pulls noteYjs/yjs into the app group (488 KB). Not code-health-4: dev before its first landing (ba0a2e715) is already over, and reverting its app files on the tip changes nothing.
