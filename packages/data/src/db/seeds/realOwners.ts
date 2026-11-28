@@ -1,8 +1,9 @@
-import { inArray, like, notLike, or, eq } from "drizzle-orm";
+import { and, inArray, like, ne, notLike, or, eq } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
 import { careGroupMemberSchema, careGroupSchema, userSchema } from "../schema";
 import { SEEDED_DOMAIN } from "./accounts";
+import { ONBOARDING_USER_ID } from "./onboardingUser";
 
 const seedAudits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
 
@@ -11,7 +12,8 @@ const seedAudits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
  * isn't `@example.com`) becomes an owner of every seeded group, so the people
  * testing staging see the fictional data without an invite. A seeded group is
  * one the system or a seeded account created; a group a real account made is
- * left alone, and so is a membership that already exists, whatever its role.
+ * left alone, and so is one the onboarding test account made (it stays its
+ * own), and a membership that already exists, whatever its role.
  * Idempotent. Elsewhere (dev, tests) it does nothing.
  */
 export const seed = async ({ env = process.env }: { env?: { APP_ENV?: string } } = {}) => {
@@ -25,7 +27,10 @@ export const seed = async ({ env = process.env }: { env?: { APP_ENV?: string } }
     .where(notLike(userSchema.email, seeded));
   if (!realUsers.length) return { added: 0 };
 
-  const seededUsers = db.select({ id: userSchema.id }).from(userSchema).where(like(userSchema.email, seeded));
+  const seededUsers = db
+    .select({ id: userSchema.id })
+    .from(userSchema)
+    .where(and(like(userSchema.email, seeded), ne(userSchema.id, ONBOARDING_USER_ID)));
   const groups = await db
     .select({ id: careGroupSchema.id })
     .from(careGroupSchema)
