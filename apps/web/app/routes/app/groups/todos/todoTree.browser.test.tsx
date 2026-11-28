@@ -157,25 +157,27 @@ describe("the Todos tab's Done trees", () => {
   ];
   const DONE = '[data-todo-section="done"]';
   const doneTops = () =>
-    [...document.querySelectorAll(`${DONE} > [data-todo-tree] > [data-todo]`)].map((el) =>
-      el.getAttribute("data-todo"),
+    [...document.querySelectorAll(`${DONE} > [data-todo-tree] > li`)].map((li) =>
+      li.querySelector("[data-todo]")?.getAttribute("data-todo"),
     );
+  /** A row's `<li>`: its subtasks' list is inside it, after the row. */
+  const itemOf = (todoId: string) => rowOf(todoId)?.closest("li");
 
   test("a done parent shows its done subtasks nested under it, the open tree's markup; Show more adds the next trees", async () => {
     await renderWithDevice({ route: ROUTES, url: LIST, role: "owner", fixtures: doneWorld() });
     await expect.element(page.getByText("Move into the new room")).toBeVisible();
 
     // One tree: the subtasks are rows inside the parent's row, a level down, indented.
-    const move = rowOf(MOVE);
+    const move = itemOf(MOVE);
     expect(move?.closest(DONE)).not.toBeNull();
     expect(move?.querySelector(`:scope [data-todo-level="2"] [data-todo="${id(21)}"]`)).not.toBeNull();
     expect(move?.querySelector(`:scope [data-todo-level="2"] [data-todo="${id(22)}"]`)).not.toBeNull();
     expect(
-      rowOf(id(22))?.querySelector(`:scope [data-todo-level="3"] [data-todo="${id(23)}"]`),
+      itemOf(id(22))?.querySelector(`:scope [data-todo-level="3"] [data-todo="${id(23)}"]`),
     ).not.toBeNull();
     for (const child of [id(21), id(22)]) expect(left(child)).toBeGreaterThan(left(MOVE));
     expect(left(id(23))).toBeGreaterThan(left(id(22)));
-    expect(move?.getAttribute("data-todo-look")).toBe("list");
+    expect(rowOf(MOVE)?.getAttribute("data-todo-look")).toBe("list");
     for (const child of [id(21), id(22), id(23)]) {
       expect(document.querySelectorAll(`[data-todo="${child}"]`)).toHaveLength(1);
       expect(titleOf(child)?.classList.contains("line-through")).toBe(true);
