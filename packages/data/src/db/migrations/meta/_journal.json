@@ -351,6 +351,13 @@
       "when": 1795811459775,
       "tag": "0049_symptom_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795880935006,
+      "tag": "0050_user_group_limit",
+      "breakpoints": true
     }
   ]
 }
