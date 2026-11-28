@@ -202,7 +202,23 @@ describe("Undo", () => {
 
     ok(await completeTodo(db, BINS_ID));
     expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, doneAt: null, dueOn: tomorrow });
-    // Brought back by a PATCH of `deleted_at` (the server restores it on the tick).
+    // Brought back by a PATCH of `deleted_at` (the server restores it on the
+    // tick), flagged as the tick's: a stale one never brings back a chain
+    // stopped meanwhile (B-1003).
+    expect((await queued(db)).at(-1)).toMatchObject({
+      op: "PATCH",
+      id: NEXT_ID,
+      data: { deleted_at: null },
+      metadata: TICK_NEXT_METADATA,
+    });
+  });
+
+  test("a skip that brings back a next an Undo took away is unflagged: the server restores it for a writer (B-1003)", async () => {
+    const { db } = await device();
+    ok(await completeTodo(db, BINS_ID));
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await skipTodo(db, BINS_ID)).toEqual({ ok: true, id: BINS_ID });
+    expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, doneAt: null, dueOn: tomorrow });
     expect((await queued(db)).at(-1)).toMatchObject({
       op: "PATCH",
       id: NEXT_ID,

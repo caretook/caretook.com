@@ -186,3 +186,59 @@ describe("sync.upload: a stale tick and a stopped chain (B-387)", () => {
     expect(ok(await todoService.getById(viewer.ctx, id))).toMatchObject({ doneBy: viewer.user.id });
   });
 });
+
+describe("sync.upload: a stale tick's restore of a stopped chain's next (B-1003)", () => {
+  /** A ticked online, then B stopped it: the original done, Tuesday's soft-deleted, nothing open. */
+  const stopped = async () => {
+    const world = await setup();
+    const { a, b } = world;
+    const id = await made(world);
+    const first = [tick(id, MONDAY, a.user.id), twin(world, id, "2026-11-17", { fromTick: true })];
+    expect(await statuses(a.api, first)).toEqual(["applied", "applied"]);
+    const tuesday = nextTodoId(id, "2026-11-17");
+    expect(await statuses(b.api, [{ op: "DELETE", table: "todo", id: tuesday }])).toEqual(["applied"]);
+    expect(await openIn(world, id)).toEqual([]);
+    return { world, id, tuesday };
+  };
+
+  /** The device's PATCH bringing back the next it held soft-deleted (an Undo's); a tick's is flagged. */
+  const bringBack = (id: string, { fromTick }: { fromTick: boolean }) => ({
+    op: "PATCH" as const,
+    table: "todo",
+    id,
+    data: { deleted_at: null, title: "Check the cuff's batteries", updated_at: TUESDAY },
+    metadata: fromTick ? TICK_NEXT_METADATA : null,
+  });
+
+  it("C's stale tick, flagged, is applied and leaves the next deleted: the chain stays stopped", async () => {
+    const { world, id, tuesday } = await stopped();
+    const { a, c } = world;
+    const stale = [tick(id, MONDAY, c.user.id), bringBack(tuesday, { fromTick: true })];
+    expect(await upload(c.api, stale)).toEqual([
+      { id, status: "applied" },
+      { id: tuesday, status: "applied" },
+    ]);
+    expect(await todoService.getById(a.ctx, tuesday)).toBeNull();
+    const kept = ok(await todoService.getById(a.ctx, tuesday, { includeDeleted: true }));
+    expect(kept?.deletedAt).not.toBeNull();
+    expect(kept?.title).toBe("Check the blood pressure cuff");
+    expect(await openIn(world, id)).toEqual([]);
+  });
+
+  it("a viewer's flagged one is applied too, and changes nothing", async () => {
+    const { world, id, tuesday } = await stopped();
+    expect(await statuses(world.viewer.api, [bringBack(tuesday, { fromTick: true })])).toEqual(["applied"]);
+    expect(await todoService.getById(world.a.ctx, tuesday)).toBeNull();
+    expect(await openIn(world, id)).toEqual([]);
+  });
+
+  it("an unflagged one (a skip's) from a writer still restores it, its edit with it", async () => {
+    const { world, id, tuesday } = await stopped();
+    expect(await statuses(world.c.api, [bringBack(tuesday, { fromTick: false })])).toEqual(["applied"]);
+    expect(ok(await todoService.getById(world.a.ctx, tuesday))).toMatchObject({
+      title: "Check the cuff's batteries",
+      deletedAt: null,
+    });
+    expect(await openIn(world, id)).toEqual([[tuesday, "2026-11-17"]]);
+  });
+});
