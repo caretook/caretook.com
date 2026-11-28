@@ -1405,6 +1405,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-27 (prd/fixes-bug): From fixes-bug slice 75 (B-951), 2026-11-27: the roundtrip tags failure was a stack without migration 0048 (tag.color) after a dev sync with no datastore:reset; every tag upload failed sync:failed and the server held 0:0. Wanted: pnpm prd browser (and prd serve) refuse, or warn, when the stack's applied migrations are behind packages/data's, naming pnpm datastore:reset.
 - 2026-11-27 (prd/fixes-bug): Hit again 2026-11-27 on fixes-bug's own stack (loop1) at wave 17's browser checks: roundtrip failed with uploads waiting:2 on both devices; pnpm datastore:reset made it pass.
+- 2026-11-28 (prd/fixes-tooling): Hit again 2026-11-28 (fixes-tooling wave 12): after risa sync merged free-limits' user.group_limit, serve --restart kept the old schema; sign-in 500'd (column group_limit does not exist) and both browser checks failed at sign-in; pnpm datastore:migrate fixed it.
 
 ### B-965 · change · Group the tiny shared app helper chunks on the first /app load
 
