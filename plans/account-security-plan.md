@@ -8,7 +8,7 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Now (2026-11-28):** wave 1 all merged (tip 25ab484aa); its CI run (integration tier) is out. Slice 2 merge: one conflict in `askWithLink`, resolved with slice 2's `linkStateFor` ending in slice 1's maker recheck; `useLinkForSignUp` rechecks the maker too (orchestrator's edit). Slice 2's check failed only on `prompt-golden.txt:14` (rendered prompts vs golden; not its diff): watch for it in CI. Slice 2 fold for auth.md: per-address limits (every code try counts), link sign-up limits and use count, `/update-user` off, the limiter now in `@caretook/data` (`services/rateLimiter.ts`; `api/rateLimit.ts` re-exports). Earlier: slices 1, 2, 3 started (worktrees `.loops/account-security-{1,2,3}`), each agent on opus (real logic); items claimed; `risa watch` running. Slice 1 merged (B-327, B-336 done; follow-up B-1017 filed: approve doesn't recheck a revoked link). Slice 3 handed off, merges after slice 2. At landing fold: admin.md (`hasOwner`, the owners' `staffGroupChange` email; recipients = owners after the change plus a demoted/removed owner), notifications.md (`staffGroupChange`); production needs `SUPPORT_EMAIL` or staff changes roll back. B-1011 (rate-limit audit) arrived with `prd=account-security` but isn't in this plan: a later wave or `account-security-2`, the planner's call.
+**Now (2026-11-28):** wave 1 all merged (tip 25ab484aa); its CI run (integration tier) is out. Wave 2 started meanwhile: slices 4, 5, 6 (opus each; B-332, B-329, B-330, B-339, B-334 claimed); they merge after wave 1 lands. Slice 2 merge: one conflict in `askWithLink`, resolved with slice 2's `linkStateFor` ending in slice 1's maker recheck; `useLinkForSignUp` rechecks the maker too (orchestrator's edit). Slice 2's check failed only on `prompt-golden.txt:14` (rendered prompts vs golden; not its diff): watch for it in CI. Slice 2 fold for auth.md: per-address limits (every code try counts), link sign-up limits and use count, `/update-user` off, the limiter now in `@caretook/data` (`services/rateLimiter.ts`; `api/rateLimit.ts` re-exports). Earlier: slices 1, 2, 3 started (worktrees `.loops/account-security-{1,2,3}`), each agent on opus (real logic); items claimed; `risa watch` running. Slice 1 merged (B-327, B-336 done; follow-up B-1017 filed: approve doesn't recheck a revoked link). Slice 3 handed off, merges after slice 2. At landing fold: admin.md (`hasOwner`, the owners' `staffGroupChange` email; recipients = owners after the change plus a demoted/removed owner), notifications.md (`staffGroupChange`); production needs `SUPPORT_EMAIL` or staff changes roll back. B-1011 (rate-limit audit) arrived with `prd=account-security` but isn't in this plan: a later wave or `account-security-2`, the planner's call.
 
 **Items:** slice 1 B-327, B-336 · slice 2 B-328, B-333, B-335 · slice 3 B-331 · slice 4 B-332 · slice 5 B-329, B-330, B-339 · slice 6 B-334 · slice 7 B-337.
 
@@ -17,9 +17,9 @@
 | 1     | 1    | merged  | 7dc6937a2 (d9a59529a)                             |
 | 2     | 1    | started | —                                                 |
 | 3     | 1    | merged  | 25ab484aa (28faf5d5e)                             |
-| 4     | 2    | planned | —                                                 |
-| 5     | 2    | planned | —                                                 |
-| 6     | 2    | planned | —                                                 |
+| 4     | 2    | started | —                                                 |
+| 5     | 2    | started | —                                                 |
+| 6     | 2    | started | —                                                 |
 | 7     | 3    | planned | —                                                 |
 
 ## Architectural decisions
