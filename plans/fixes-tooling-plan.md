@@ -21,15 +21,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
 
-| Slice | Item  | State   | Merge |
-| ----- | ----- | ------- | ----- |
-| 102   | B-778 | started |       |
-| 103   | B-782 | started |       |
-| 104   | B-802 | started |       |
-| 105   | B-375 | started |       |
-| 106   | B-852 | started |       |
-| 107   | B-757 | started |       |
-| 108   | B-667 | started |       |
+| Slice | Item  | State                | Merge |
+| ----- | ----- | -------------------- | ----- |
+| 102   | B-778 | agent spawned (opus) |       |
+| 103   | B-782 | agent spawned (opus) |       |
+| 104   | B-802 | agent spawned (opus) |       |
+| 105   | B-375 | agent spawned (opus) |       |
+| 106   | B-852 | agent spawned (opus) |       |
+| 107   | B-757 | agent spawned (opus) |       |
+| 108   | B-667 | agent spawned (opus) |       |
 
 ## Wave 1
 
