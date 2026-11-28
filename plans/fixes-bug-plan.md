@@ -16,7 +16,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 91    | B-1003 | merged (opus) | e7e35e32d |
 | 92    | B-1006 | merged (opus) | 514da289a |
 
-**Wave 26 in flight** (2026-11-28): three sync-safety follow-ups, all parallel, all opus. First start was on a stale base (prd/fixes-bug lacked sync-safety-2); the agents stopped with nothing built, worktrees removed, `risa sync` brought dev in (0abec694c, timeline.md conflict resolved keeping the lock note), slices restarted. Fold at landing: medications.md/sync.md: `medication` tracks metadata, the server drops a `PASS_REWRITE_METADATA` PATCH's schedule (slice 92); todos.md's "⚠ unflagged: B-1003" note (a flagged PATCH restore never restores a chain with no open row). Hot files set on the fixes-bug row. Wave 25 landed through PR #295 (ef9445cb8); its notes are in the history file after the next status-trim. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 26 green, PR #321 open, Codex review out** (2026-11-28): all three slices opus, merged; CI components green on 8e910fee (run 46125201506); synced with dev, recheck green on 3c0c67ff (run 46125961686); browser `--changed --base dev` 3/3 (phase2, roundtrip, live-notes); docs folded (af12c4b56, todos.md + medications.md, under budget); slice worktrees removed. Next: triage Codex, land `--tier components`, report, status-trim, rotate (context past the soft limit). B-1002's note keeps the mixed-chain edge case. Held: B-750, B-752.
 
 ## Wave 1
 
