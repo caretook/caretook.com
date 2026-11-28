@@ -140,7 +140,8 @@ describe("back to Today from another page of the group", () => {
     await waitUntil(() => window.scrollY === 0 && rows().length >= 90, "the top of the same window");
     await frames();
     // Today's day is settled now (its rows may skip rendering off screen), and on screen they're drawn.
-    expect(getComputedStyle(rowWith("Picked up the refill.")!).contentVisibility).toBe("auto");
+    const pickup = await found(() => rowWith("Picked up the refill."));
+    expect(getComputedStyle(pickup).contentVisibility).toBe("auto");
     const drawn = onScreen();
     expect(drawn.length).toBeGreaterThan(0);
     expect(drawn.every(Boolean)).toBe(true);
