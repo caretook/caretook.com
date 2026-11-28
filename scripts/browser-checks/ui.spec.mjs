@@ -61,22 +61,33 @@ for (const [width, scheme, tag] of [
       await addToTimeline(page, "Symptom");
       await expect(dialogs).toHaveCount(1, { timeout: 15_000 });
       await expect(dialogs.locator("form")).toBeVisible();
-      const g = await dialogs.first().evaluate(async (start) => {
-        let el = start;
-        while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
-        await Promise.all(el.getAnimations().map((a) => a.finished.catch(() => {})));
-        const r = el.getBoundingClientRect();
-        const o = el.parentElement.getBoundingClientRect();
-        return {
-          top: Math.round(r.top),
-          left: Math.round(r.left - o.left),
-          width: Math.round(r.width),
-          height: Math.round(r.height),
-          bottom: r.bottom,
-          vw: Math.round(o.width),
-          vh: innerHeight,
-        };
-      });
+      // The sheet's surface, measured once its animations finish. Re-read until it has a box: under
+      // load the panel can still be unlaid (or replaced, its old node detached) just after the form
+      // shows, and a read then gives 0×0 against the viewport (B-808).
+      const measure = () =>
+        dialogs.first().evaluate(async (start) => {
+          let el = start;
+          while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
+          await Promise.all(el.getAnimations().map((a) => a.finished.catch(() => {})));
+          const r = el.getBoundingClientRect();
+          const o = el.parentElement.getBoundingClientRect();
+          return {
+            top: Math.round(r.top),
+            left: Math.round(r.left - o.left),
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+            bottom: r.bottom,
+            vw: Math.round(o.width),
+            vh: innerHeight,
+          };
+        });
+      let g;
+      await expect
+        .poll(async () => ((g = await measure()), g.width > 0 && g.height > 0 && g.vw > 0), {
+          message: "the sheet's surface has a box",
+          timeout: 10_000,
+        })
+        .toBe(true);
       expect
         .soft(themed(await dialogs.first().evaluate(lightness), scheme), "the sheet's surface")
         .toBe(true);

@@ -1,7 +1,7 @@
 // The check-areas resolver (check-areas.mjs): most specific wins across rule
 // files, the markers, the built-ins, and the lint over the real tree.
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -15,6 +15,7 @@ import {
   specificity,
 } from "./check-areas.mjs";
 import { readRisa } from "./risa.mjs";
+import { SYNC_WRITERS } from "../browser-checks/sync-writers.mjs";
 
 const CLI = new URL("./check-areas.mjs", import.meta.url).pathname;
 const ROOT = new URL("../..", import.meta.url).pathname;
@@ -265,6 +266,43 @@ describe("lint", () => {
       .split("\n")
       .filter((f) => f && existsSync(join(ROOT, f)));
     expect(lint(real, tracked, (p) => existsSync(join(ROOT, p)))).toEqual([]);
+  });
+});
+
+describe("the sync matrix's writers (B-749)", () => {
+  // Each module a writer calls (`m.<name>.…` in its run), found by the module
+  // hook's imports in lib/sync/index.ts: a change to one runs roundtrip.
+  const hook = readFileSync(join(ROOT, "apps/web/app/lib/sync/index.ts"), "utf8");
+  const modules = new Map(
+    [...hook.matchAll(/(\w+): await import\("\.\.\/([^"]+)"\)/g)].map(([, name, path]) => [
+      name,
+      `apps/web/app/lib/${path}.ts`,
+    ]),
+  );
+  const called = [
+    ...new Set(
+      Object.values(SYNC_WRITERS).flatMap((w) =>
+        w.run ? [...w.run.toString().matchAll(/\bm\.(\w+)\./g)].map(([, name]) => name) : [],
+      ),
+    ),
+  ].sort();
+  const real = loadRules(join(ROOT, readRisa(ROOT).paths.checkAreas));
+
+  it("finds every writer's module in the hook", () => {
+    expect(called).toEqual(expect.arrayContaining(["todos", "allergies", "conditions", "notes"]));
+    expect(called.filter((name) => !modules.has(name))).toEqual([]);
+  });
+
+  it("maps each writer's module to roundtrip", () => {
+    const missing = called
+      .map((name) => /** @type {string} */ (modules.get(name)))
+      .filter(
+        (file) =>
+          !resolveFile(file, real, (p) => existsSync(join(ROOT, p)))
+            .checks.split(" ")
+            .includes("roundtrip"),
+      );
+    expect(missing).toEqual([]);
   });
 });
 
