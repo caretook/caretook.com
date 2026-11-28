@@ -6,12 +6,16 @@
 
 **Planned 2026-11-27** by the dispatcher's planner. Two slices, two waves; nothing asked. Skeptic s81's go: slice 2 gained the Planner's `route.tsx` (the loader's view, trees for easy roles), slice 1's `parentOf` reads done rows too, a revalidation note, the counts fixed.
 
-**Landing mode: run everything through** (dispatcher start, 2026-11-27). Orchestrator session 1: anchors fixed (slice 2 wording), B-964 claimed; wave 1 started: slice 1 worktree `.loops/todo-links-2-1`, agent on opus; handed off 33290c34f (quick check passed), merged 7d93c761d; wave 1 CI (components, run 46086880529) file: todos.browser.test.tsx menu sections (slice 1's, fixed e3a89259a, merged 6158c3121; synced, dev unchanged; rerun out); resetStaging.int flake. B-964 stays open until slice 2. Fold at landing: docs/domain/todos.md _Lists_ ("Done stays flat" gains the view option). Backlog at the boundary: nothing new for this topic.
+**Landing mode: run everything through** (dispatcher start, 2026-11-27).
 
-| Slice | Wave | Model | State   | Merge into `prd/todo-links-2` (slice commits) |
-| ----- | ---- | ----- | ------- | --------------------------------------------- |
-| 1     | 1    | opus  | merged  | 7d93c761d (33290c34f)                         |
-| 2     | 2    | opus  | planned |                                               |
+**Wave 1 landed 2026-11-27** in dev as 3ca78f4d7 through PR #294 (tier components, green run 46088122493 on cd47f4b32; landed on an unsynced tip, dev's one newer commit shared no file). Slice 1 on opus. One CI miss was slice 1's (`todos.browser.test.tsx` expected one menu section; fixed e3a89259a). Codex: one P2 (a split row at the depth limit offers Add subtask that fails), filed as B-994 (claimed) and folded into slice 2; thread replied and resolved. `docs/domain/todos.md` _Lists_ folded (view option), trimmed under dev's size. Browser: `--changed` needs none; `--suite` not run (user asks first). Report filed.
+
+**Next (session 2): wave 2** — `risa slice todo-links-2 2`, agent on opus (it has real logic: the filters, the day trees, B-994's depth). Then its CI (components), sync, PR, Codex, land; then mark B-964 and B-994 done and `risa rm todo-links-2`. Slice 1's worktree `.loops/todo-links-2-1` removed after wave 1's green verdict.
+
+| Slice | Wave | Model | State   | Merge into `prd/todo-links-2` (slice commits)   |
+| ----- | ---- | ----- | ------- | ----------------------------------------------- |
+| 1     | 1    | opus  | landed  | 7d93c761d, fix 6158c3121 (33290c34f, e3a89259a) |
+| 2     | 2    | opus  | planned |                                                 |
 
 ## Architectural decisions
 
@@ -64,7 +68,7 @@ Size: six code files (one new) and five tests (four are additions to existing fi
 
 Stack: no · Reads: docs/domain/todos.md, docs/domain/appointments.md, docs/domain/components.md · Tests: unit, component · Blocked by: 1
 
-**Backlog:** B-964. **User stories:** 6, 7, 8.
+**Backlog:** B-964, B-994 (Codex on PR #294). **User stories:** 6, 7, 8.
 
 Size: five code files and three tests.
 
@@ -74,6 +78,7 @@ Size: five code files and three tests.
 - `apps/web/app/routes/app/groups/planner/route.tsx`: the loader's parsed `view` (`parseUpcomingFilters` reads `""` for easy roles, so they stay on trees) goes into `useUpcomingData`'s filters and `upcomingFilterBar`. `useUpcomingData` never reads `?subtasks=` itself.
 - `apps/web/app/routes/app/groups/planner/useUpcomingData.ts`. When the view it is passed is `own`, it builds `plannerDayTrees(splitTrees(...))` instead of `todoTrees`, and a `parentOf` from the tree rows in the returned data.
 - `apps/web/app/routes/app/groups/planner/UpcomingList.tsx`. It passes the data's new `parentOf` to `TodoTree` (a split row is a top row in the `card` look, with its "Part of" line).
+- **B-994 (both tabs):** a split row's quick add knows its real depth: `TodoTree` (or the split lists) give `TodoQuickAdd` the row's real ancestor chain from the rows read, so a todo at `MAX_TODO_DEPTH` offers no Add subtask on the split view (Todos too, landed in wave 1). A unit or component test: on `?subtasks=own` a third-level todo shows no quick add.
 - `apps/web/app/routes/app/groups/planner/plannerFilters.tsx` `upcomingFilterBar`: takes `view` and passes it to `upcomingFilterSections`; Clear filters drops `?subtasks=` too, as on the Todos menu.
 
 **Acceptance criteria:**
