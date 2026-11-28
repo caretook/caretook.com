@@ -22,9 +22,10 @@ Notes for every wave:
 
 **Restarted 2026-11-27 (next session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (fae76d70c). Wave 22: B-999 (day headers abbreviate the weekday on phones) slice 110 on opus. Hot: `routes/app/groups/timeline/`, `lib/timeline/`.
 
-| Slice | Item  | State                                                                                                                            | Merge     |
-| ----- | ----- | -------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| 110   | B-999 | merged (opus); CI components green 46102026478; dev synced (a4d044ac, seeds changed, datastore reset), recheck green 46102756026 | 4b24c08e0 |
+**Wave 22 landed 2026-11-27** as dev f41af6ffc through PR #305 (Codex clean on 88d910a), CI components green on the synced tip (run 46102756026, a4d044ac; the sync brought seeds, datastore reset); landed on an unsynced tip (dev's 1 commit shared no file). to-test/2026-11-27-2235-fixes-ui.md. Slice 110 (B-999 `shortDayLabel` below `sm`, full label stays the heading's name; opus, 4b24c08e0). Browser `--changed`: none mapped. Docs folded into timeline (trimmed to stay under budget). Slice worktree removed. No fixes-ui item waits: topic closed.
+
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
