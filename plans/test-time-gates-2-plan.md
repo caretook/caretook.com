@@ -14,11 +14,15 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 **Slice 1 (merged cd093268c, 2026-11-28):** requested `components` run 46162250609 on b176b461 (`flake`: the brake-listed `search.sync` perf test and `resetStaging.int.test.ts`, neither ours). Test-step seconds: shard 1 323 (warn), 2 305 (warn), 3 199, 4 208; 262 files, 2580 tests. The three-shard count from 45760650119 (220 files, 2198 tests) is 2009 commits old; the nearest three-shard run, free-limits' 46160525942 on 25aab0f1, had 260 files and 2571 tests (5 files differ). Slice 3 refreshes the table from 46162250609. Its quick check was judged under today's rule (125 s, ok), with no `tooling` step. Note: slice shells inherit `RISA_CONFIG`/`RISA_SESSION_*` from this session; unset them in slice prompts.
 
-| Slice                                        | Wave | State                                                                                           | Merge     |
-| -------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------- | --------- |
-| 1. Four component shards                     | 1    | merged                                                                                          | cd093268c |
-| 2. The quick gate armed                      | 1    | started (opus, worktree test-time-gates-2-2; quiet window: "now", decided for you, skeptic s91) | —         |
-| 3. The durations refreshed; components armed | 2    | planned                                                                                         | —         |
+**Slice 2 (merged 340667590, 2026-11-28):** the measuring quick check on 134128d4c (window a403, "now", decided for you, skeptic s91): judged `ok`, 142 s; loads 3.09 start, 5.41 end on 10 cores; steps typegen 1, static 80, count 2, unit 37, lint 1, docs 0, tooling 12. `quick` armed (8c1e1f5fa); `pnpm test:tooling` passes (605 tests). It didn't need RISA-1065.
+
+**Wave 1 gate:** both merged; the `full` run on the tip is next.
+
+| Slice                                        | Wave | State   | Merge     |
+| -------------------------------------------- | ---- | ------- | --------- |
+| 1. Four component shards                     | 1    | merged  | cd093268c |
+| 2. The quick gate armed                      | 1    | merged  | 340667590 |
+| 3. The durations refreshed; components armed | 2    | planned | —         |
 
 ## Architectural decisions
 
