@@ -6,12 +6,13 @@
 
 | Slice | Wave | State   | Merge into `prd/sync-safety-2` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | started |                                                |
+| 1     | 1    | merged  | 4d070348b (9f4435a03)                              |
 | 2     | 1    | started |                                                |
 | 3     | 2    | planned |                                                |
 | 4     | 1    | started |                                                |
 
-- **Landing mode: run everything through** (dispatcher start, 2026-11-27). Wave 1: slices 1, 2, 4 started 2026-11-27 (worktrees `.loops/sync-safety-2-<n>`, agents on opus; items claimed). Start conditions met: `tags`, `todo-subtasks` landed (staging).
+- **Landing mode: run everything through** (dispatcher start, 2026-11-27). Wave 1: slices 1, 2, 4 started 2026-11-27 (worktrees `.loops/sync-safety-2-<n>`, agents on opus; items claimed).
+- Slice 1 hand-off: device writes source row first, change entry last; a member's entry PUT arriving before its save is still refused (`systemWrittenKind`), the clamp in `upsert` covers system-actor creates. Docs at landing: `occurred_at` is min(`changedAt`, now), id still keyed by `changedAt`. Start conditions met: `tags`, `todo-subtasks` landed (staging).
 
 ## Durable decisions
 
