@@ -1,62 +1,52 @@
+import type { GroupTagRow } from "~/lib/tags/tags.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { useMemo } from "react";
-import { Link } from "react-router";
-import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { EmptyState, List, ListRow, Section } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
+import { ContactActions, ProviderCard } from "~/components/providers";
+import { useGroupRecordTags } from "~/components/tags";
+import { EmptyState, List, Section } from "~/components/ui";
 import { quickActions } from "~/lib/providers/contactActions";
 import { useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 
 const NO_ROWS: ProviderRow[] = [];
+const NO_TAGS: GroupTagRow[] = [];
 
 /**
- * One of the medication's providers: its name linking to its page, what it
- * is, and its quick contact actions. A provider deleted since is greyed
- * "(removed)" and not a link. Live: edits on another device show at once.
+ * One of the medication's providers: the shared `ProviderCard` (condensed)
+ * under its label, its name linking to its page, its badges and tags, and
+ * all its quick contact actions. A provider deleted since is greyed
+ * "(removed)", with no link or actions. Live: edits on another device show
+ * at once.
  */
 function ProviderRowItem({
   groupId,
   providerId,
   label,
   loaded,
+  tags,
 }: {
   groupId: string;
   providerId: string;
   label: string;
   /** The loader's rows for this provider (stable), or none. */
   loaded: ProviderRow[];
+  tags: readonly GroupTagRow[];
 }) {
   const query = providerQuery(providerId);
   const rows = useLiveQuery<ProviderRow>(query.sql, query.params, loaded);
   const provider = rows[0] ? toProvider(rows[0]) : null;
   if (!provider || provider.groupId !== groupId) return null;
-  const removed = !!provider.deletedAt;
   return (
-    <ListRow
-      className="hover:bg-base-200/50 relative isolate flex items-center gap-3"
+    <ProviderCard
+      provider={provider}
+      look="condensed"
+      label={label}
+      removed={!!provider.deletedAt}
+      actions={<ContactActions actions={quickActions(provider)} />}
+      tags={tags}
       data-medication-provider={label.toLowerCase()}
-    >
-      <ProviderTypeIcon type={provider.type} past={removed || provider.status === "past"} />
-      <div className="min-w-0 flex-1">
-        <p className="text-muted text-sm">{label}</p>
-        {removed ? (
-          <p className="text-faint truncate" data-provider-name>
-            {provider.name} (removed)
-          </p>
-        ) : (
-          <Link
-            to={appUrls.provider(groupId, provider.id)}
-            className="block truncate font-medium outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2"
-            data-provider-name
-          >
-            {provider.name}
-          </Link>
-        )}
-      </div>
-      {!removed && <ContactActions actions={quickActions(provider)} />}
-    </ListRow>
+    />
   );
 }
 
@@ -82,6 +72,8 @@ export function MedicationProviders({
       }),
     [initialRows, prescriberId, pharmacyId],
   );
+  // One live query for both rows' tags, never one per row.
+  const tagsOf = useGroupRecordTags(groupId, "provider");
   return (
     <Section title="Prescriber and pharmacy" id="providers">
       {!prescriberId && !pharmacyId ? (
@@ -94,6 +86,7 @@ export function MedicationProviders({
               providerId={prescriberId}
               label="Prescriber"
               loaded={prescriberRows ?? NO_ROWS}
+              tags={tagsOf.get(prescriberId) ?? NO_TAGS}
             />
           )}
           {pharmacyId && (
@@ -102,6 +95,7 @@ export function MedicationProviders({
               providerId={pharmacyId}
               label="Pharmacy"
               loaded={pharmacyRows ?? NO_ROWS}
+              tags={tagsOf.get(pharmacyId) ?? NO_TAGS}
             />
           )}
         </List>
