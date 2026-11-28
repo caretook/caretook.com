@@ -19,8 +19,17 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+- **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
+
+| Slice | Item  | State   | Merge |
+| ----- | ----- | ------- | ----- |
+| 102   | B-778 | started |       |
+| 103   | B-782 | started |       |
+| 104   | B-802 | started |       |
+| 105   | B-375 | started |       |
+| 106   | B-852 | started |       |
+| 107   | B-757 | started |       |
+| 108   | B-667 | started |       |
 
 ## Wave 1
 
@@ -1018,3 +1027,73 @@ The `*.sync.ts` writers `scripts/browser-checks/sync-writers.mjs` calls for roun
 
 - Add each writer the roundtrip check calls to its area's `check-areas.d/<area>` file with `roundtrip` (read `sync-writers.mjs` for the list today; additive lines at the end of each group). Add a rule for `scripts/build/` at the tier its files need (tooling: unit tests that live there, `scripts/build/pins.test.mjs` among them).
 - Unit tests (`check-areas.test.mjs` and the check-plan rules' tests): a writer maps to roundtrip; a new `scripts/build/` file proposes no higher than the tier the rule gives.
+
+## Wave 13
+
+Started 2026-11-28 by the run-through orchestrator. Two admin integration-test flakes (free since free-limits landed), a browser-check flake, the leftover small test fixes, the marketing claims test's gaps, the slice check's second zone and a resettable onboarding test user. Each item's backlog notes (`risa backlog show B-<n>`) carry the details. For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of the race) and fix that cause; a looser bound alone is acceptable only when the hand-off shows the work is genuinely that slow on a loaded runner. Never touch a running topic's hot files (`risa backlog prd list`: data-rights holds `careGroupService`, `careGroupInviteService`, `todoService`, the migrations and many screens; sync-safety-3 the sync code). Only slice 105 may touch `vitest.config.ts`; none touch `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 102: accountAdmin's setRole test survives a shared database (B-778)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/admin.md, docs/domain/data-layer.md · Tests: integration · Blocked by: none · Check: packages/data/src/services/accountAdmin.int.test.ts
+
+`packages/data/src/services/accountAdmin.int.test.ts` 'accountAdminService.setRole makes an account support, ad…' flaked on CI and passed on its rerun (ci-key 31dfbabdc436, found by prd/fixes-ui).
+
+- Find the cause from the test and the CI failure (`risa ci` history for the key): an assertion on rows other tests or workers create (a count, a "first" row, an unscoped list), a timestamp ordering tie, or shared state between cases; fix that cause so the test asserts only on its own rows.
+- Integration test: the same assertions, scoped to the test's own data; the hand-off says what made it flake and shows it passing 10 of 10, including alongside the other `packages/data` integration files.
+
+### Slice 103: usersAdmin's get test survives a shared database (B-782)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/admin.md, docs/domain/api.md · Tests: integration · Blocked by: none · Check: packages/api/src/admin/usersAdmin.int.test.ts
+
+`packages/api/src/admin/usersAdmin.int.test.ts` 'admin.users.get shows the account, its sessions, groups and ma…' flaked on CI and passed on its rerun (ci-key 81e93b941241, found by prd/fixes-ui).
+
+- Find the cause (as in slice 102: unscoped rows, ordering ties, shared state, time) and fix it in the test, or in `usersAdmin.ts` if the procedure's output order is genuinely unstable (then a stable order, said in the hand-off).
+- Integration test: the same assertions; the hand-off says what made it flake and shows it passing 10 of 10.
+
+### Slice 104: invites.spec's reset-password step waits for the signed-in page (B-802)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/domain/notifications.md · Tests: e2e:invites · Blocked by: none · Check: scripts/browser-checks/invites.spec.mjs
+
+`scripts/browser-checks/invites.spec.mjs` '3. reset a password by email › the new password signs in' failed once at `invites.spec.mjs:477` (`expect(...).toBe(...)`) on CI run 45535937950 and passed on its rerun.
+
+- Read the step for a read-before-render race (a value read once instead of polled, a URL or text checked before navigation settles, the reset mail read before it is sent) and fix that cause with a web-first wait; no added retries or longer timeouts alone.
+- e2e: invites.spec passes; the hand-off names the race and shows the step passing 5 of 5 under the load gate.
+
+### Slice 105: the small test fixes: a real refusal code, packages/ mapped to browser checks, web:unit's ~/ alias (B-375)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/calendars.md, docs/agents/loop.md · Tests: integration, unit · Blocked by: none · Check: packages/api/src/calendars/calendars.int.test.ts, scripts/project/check-areas.test.mjs
+
+Three of B-375's four parts (the timelineScroll `retry: 2` went in slice 97):
+
+- `packages/api/src/calendars/calendars.int.test.ts` (now ~404) asserts the refusal's `code` with `toBeTruthy()`, so any error passes: assert the exact code the procedure returns.
+- `scripts/project/check-areas.d/` maps `packages/data` and `packages/api` to no browser check: map each area's `packages/` paths (services, models, procedures) to the checks that cover that area, where one does; leave unmapped what no check covers, and say which in the hand-off. Read slice 101's additions first; keep lines additive.
+- The `web:unit` project in `vitest.config.ts` lacks the `~/` alias the app uses: add it (the same resolution as `web:components`). Don't rewrite the deep relative imports in bulk; convert none, or only those in files this slice already touches.
+- Tests: the calendars integration test fails on a wrong code; `check-areas.test.mjs` maps a `packages/data` service file to its area's check; a unit test file importing via `~/` runs under `web:unit`.
+
+### Slice 106: the marketing claims test covers competitor names and every page's strings (B-852)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: unit · Blocked by: none · Check: apps/web/app/routes/marketing/site/claims.test.ts
+
+`apps/web/app/routes/marketing/site/claims.test.ts` has no competitor-name pattern though the marketing doc bans naming competitors, and its `SOURCES` leave out `contact/content.ts` and the header and footer strings.
+
+- Add a competitor-name pattern (the names the marketing doc or the marketing plans list; a short list in the test, matched case-insensitively on word boundaries) and add the contact content and the header and footer strings to `SOURCES`, each found by the "finds the copy it checks" case. Today's copy should pass; if it doesn't, the hand-off names the string and changes no copy (the orchestrator files it).
+- Unit test: a planted competitor name and a banned phrase in a header string each fail (shown, then removed); per the user, test the structure, not marketing prose word for word.
+
+### Slice 107: the slice check runs a slice's own component files in New York too (B-757)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md · Tests: unit · Blocked by: none · Check: scripts/project/check-body.sh
+
+`scripts/project/check-body.sh` (~153) passes only `--project web:components` for a slice's own browser test files, so a slice touching timeline, medications or planner tests never sees the second zone (`web:components:ny`) until CI.
+
+- For a slice's own component files that `web:components:ny`'s include list covers, also run them under `web:components:ny` (one Vitest invocation with both projects, or a second one); files outside that list run in Los Angeles only, as today. Keep the change inside `check-body.sh` and its tooling test.
+- Unit test (the check body's tooling test, under `pnpm test:tooling`): a timeline component file yields both projects; a file outside the NY include list yields only `web:components`.
+
+### Slice 108: a resettable seeded onboarding test user (B-667)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/care-groups.md, docs/domain/data-layer.md · Tests: integration · Blocked by: none · Check: packages/data/src/db/seeds/
+
+No seeded account sees onboarding: `seeds/setupDismissed.ts` dismisses setup for every member of seeded groups, and only a group creator gets onboarding (B-670), so trying the new-member flow needs a new address each time through `/join/CARE-DEMO-0001`.
+
+- Seed one fictional `@example.com` account (dev and staging seeds only; the seed guard keeps it out of production) that has signed up but created no group and has nothing set up, outside the seeded dismissal, so signing in starts the creator's setup flow.
+- Add a reset that returns it to before first login (removes the groups it created and their data, its preferences and setup state, and its sessions), as a `pnpm` script beside the seed commands that refuses any database but local and staging, deleting only that one account's own data. Don't run it against staging. Use the services or the seed helpers; touch none of data-rights' hot files (`careGroupService`, `careGroupInviteService`, `joinRequestService`, `todoService`, the migrations); if the reset can't avoid one, stop and say so in the hand-off.
+- Integration test: after seeding, the account has no group and no dismissed setup; after it creates a group and the reset runs, it's back to that state, and no other account's rows changed. Document the account and the reset in the area doc (app-shell's onboarding part).
