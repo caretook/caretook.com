@@ -4,16 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                                            | Merge into `prd/shared-displays` (slice commits) |
-| ----- | ---- | ------------------------------------------------ | ------------------------------------------------ |
-| 1     | 1    | merged (sonnet), worktree removed                | 8be180eb6 (4e7f6360e)                            |
-| 2     | 2    | handed off (opus), merge held until wave 1 lands | (2925d1922)                                      |
-| 3     | 3    | planned                                          |                                                  |
-| 4     | 3    | planned                                          |                                                  |
-| 5     | 3    | planned                                          |                                                  |
-| 6     | 4    | planned                                          |                                                  |
-| 7     | 1    | merged (opus), fix merged, worktree removed      | efcf7177b, 21edf2e9e (453808b81)                 |
+| Slice | Wave | State                                              | Merge into `prd/shared-displays` (slice commits) |
+| ----- | ---- | -------------------------------------------------- | ------------------------------------------------ |
+| 1     | 1    | merged (sonnet), worktree removed                  | 8be180eb6 (4e7f6360e)                            |
+| 2     | 2    | merged (opus); worktree kept until wave 2 is green | 60103d25e (2925d1922)                            |
+| 3     | 3    | planned                                            |                                                  |
+| 4     | 3    | planned                                            |                                                  |
+| 5     | 3    | planned                                            |                                                  |
+| 6     | 4    | planned                                            |                                                  |
+| 7     | 1    | merged (opus), fix merged, worktree removed        | efcf7177b, 21edf2e9e (453808b81)                 |
 
+- **Hand-over (rotated after wave 1, context):** next is **wave 2's gate**: `risa ci run components --wait` on the tip (slice 2 merged; its own check ran only `searchTags`; search.browser, searchTodos, easyResultSheet, searchConditions first run there; failures go to a fresh fix agent in `.loops/shared-displays-2`, opus, with `risa prompt slice shared-displays 2 --continue`). Green: `risa rm shared-displays-2`, `risa sync --force` (brings onboarding-2's provider move, needed by slice 4), serve, browser `--changed`, PR, review, land. Then wave 3: slices 3, 4, 5 at once, all opus. Slice 5 should also fix `TodoRow.tsx`'s stale `UpcomingRow` comment.
 - **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 - **Waiting on onboarding-2 (B-670):** its slice 2 moves `ProviderForm`, `ProviderListItem`, `ProviderRowContact` to `components/providers/` (and `providerFormData.ts` to `lib/providers/`). Agreed 2026-11-28: it lands first; slice 4 starts only after it's in `dev` and `risa sync` (onboarding-2-c2 will message; also check `pnpm log dev`). After it, onboarding-2 won't edit those three; its slice 3 may add `MedicationForm` to `components/medications/index.ts` (they'll warn first; an additive export, merge both).
 - onboarding-2's provider move **landed in dev** (62b26b9): slice 4 builds on `components/providers/ProviderListItem.tsx` and `ProviderRowContact.tsx` (fix slice 4's paths in its brief; the plan names the old `routes/…/providers/` path). onboarding-2 wave 3 also adds exports to `components/medications/index.ts` (additive; keep both).
