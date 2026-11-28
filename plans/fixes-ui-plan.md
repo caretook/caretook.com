@@ -34,8 +34,14 @@ Notes for every wave:
 
 **Restarted 2026-11-27 (fixes-ui-4f), run-through:** landing mode still run everything through. Anchors ok, ingest empty, dev = origin/dev (85aa63a6e). Only B-325 (Native readiness: safe-area inset and cold-start blank page) is triaged for fixes-ui, held for Capacitor; B-973 (trim components.md under budget) is fixes-nit, not ours. No wave to start. **Closed again 2026-11-27** at caretook-com-69's word: B-325 moved to hosting (held with the Capacitor prerequisites), so fixes-ui has 0 waiting and the dispatcher stops restarting it; B-973 stays fixes-nit. No slice in flight. A new fixes-ui item restarts the topic with `risa start fixes-ui`.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
+
+**Wave 21:** slices 108 and 109 merged; CI components green on 771c2172 (run 46091445854). Synced dev as 6f0b5ccea (todo-links-2's TodoTree `chain` conflicted with our `inline`; kept both). Recheck of the synced tip running.
+
+| Slice | Item  | State           | Merge     |
+| ----- | ----- | --------------- | --------- |
+| 108   | B-975 | merged (sonnet) | 1689bd40d |
+| 109   | B-980 | merged (opus)   | c5e753432 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1570,3 +1576,34 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test: a viewer in full screen sees the title and Exit, and no toolbar.
 - [ ] Component test: not in full screen, the bar has no title.
 - [ ] Existing NoteFullScreen and live notes tests still pass; grep tests and `scripts/browser-checks/` for `data-note-full-screen` and the old heading and update any that assert it.
+
+## Wave 21 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Slices 108 and 109 share no file and run in parallel.
+
+## Slice 108: Marketing home says AI providers will not keep or train on your data (B-975)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: component
+
+**Problem.** The marketing home's "Not for AI training" answer (`apps/web/app/routes/marketing/home/content.ts`, the `noAiTraining` item) ends "If we add AI features, their providers may not keep your data or train on it." "May not" reads as "might not", the opposite of the promise (AGENTS.md _Compliance_: AI vendors that don't retain or train on our data).
+
+**Build.** Change "may not keep your data or train on it" to "will not keep your data or train on it". Grep `apps/web/app/routes/marketing/` for the same "may not keep" wording elsewhere (privacy pages) and fix any match the same way; change nothing else.
+
+**Acceptance criteria.**
+
+- [ ] The home's AI answer says "will not keep your data or train on it"; no "may not keep" remains under `routes/marketing/`.
+- [ ] Existing marketing tests pass (no word-for-word copy test is added).
+
+## Slice 109: A nested todo's add-subtask button sits right-aligned on its title's line (B-980)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** In the nested todo tree, `TodoRow.tsx` renders the `addSubtask` slot (`TodoTree`'s per-row compact `TodoQuickAdd`) under the row's text (around lines 174, 220 and 260, one per look), so it takes its own line below the title.
+
+**Build.** In each `TodoRow` look that renders `addSubtask`, put it at the end of the title's line, right-aligned (the title truncates or wraps before it, never under it), keeping its tap target room from neighbouring controls (the row's own ⋯ or tick). When the quick add opens its input, the input may take the row's width below as it does today; only the closed button moves. Rows without `addSubtask` look exactly as today. Update the doc comment at the top of `TodoRow.tsx` ("under the row's text").
+
+**Acceptance criteria.**
+
+- [ ] Component test: in each look that renders it, the add-subtask button is inside the title's line (the same row container as the title), after the title.
+- [ ] Component test: a row without `addSubtask` renders as before.
+- [ ] Existing TodoRow, TodoTree and planner/todos tests pass; grep tests and `scripts/browser-checks/` for the add-subtask button's label and update any that assert its old place.
