@@ -9,6 +9,7 @@ import {
   CONNECTOR_READ_ONLY_BY_OWNER_LABEL,
   CONNECTOR_SCOPE_LABELS,
 } from "@caretook/data/schema";
+import { isOwnerRole, isWriterRole } from "@caretook/data/permissions";
 import { AskOwners } from "~/components/connectors/ask";
 import { Button, Card, CheckField, ChoiceGroup, LINK, Message, Notice } from "~/components/ui/plain";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -74,7 +75,7 @@ export function NoEligibleGroups({ offGroups }: { offGroups: OffGroup[] }) {
           {offGroups.map((group) => (
             <li key={group.id} className="space-y-2 py-3" data-off-group={group.id}>
               <p className="font-medium">{groupLabel(group)}</p>
-              {group.role === "owner" ? (
+              {isOwnerRole(group.role) ? (
                 <p className="text-sm">
                   You’re an owner:{" "}
                   <a href={appUrls.groupSettings(group.id, "assistants")} className={LINK}>
@@ -129,7 +130,7 @@ export function ConnectConsent({ groups, error }: { groups: ConnectGroup[]; erro
         <p className="text-muted text-sm" data-read-only="">
           {group.readOnlyByOwner
             ? CONNECTOR_READ_ONLY_BY_OWNER_LABEL
-            : group.role === "viewer"
+            : !isWriterRole(group.role)
               ? "As a viewer in this group, you can connect for reading only."
               : "This assistant asked only to read."}
         </p>

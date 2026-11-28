@@ -11,7 +11,7 @@ import { adminFailure } from "../adminForms";
 import { adminUrls } from "../adminUrls";
 import { AuditEntryList } from "../AuditEntryList";
 import { auditSearch } from "../auditFilters";
-import { groupRoleLabel } from "@caretook/data/permissions";
+import { groupRoleLabel, isOwnerRole } from "@caretook/data/permissions";
 import { countText, dayText, recipientLabel } from "../groupDisplay";
 import { InviteOwnerForm } from "./InviteOwnerForm";
 import { MemberList } from "./MemberList";
@@ -83,7 +83,7 @@ export async function action({ request, params }: Route.ActionArgs): Promise<Adm
 
 export default function Group({ loaderData, actionData }: Route.ComponentProps) {
   const { group, audit, auditCount, canManage } = loaderData;
-  const owners = group.members.filter((m) => m.role === "owner").length;
+  const owners = group.members.filter((m) => isOwnerRole(m.role)).length;
   return (
     <>
       <BackLink to={adminUrls.groups()} label="All groups" />
