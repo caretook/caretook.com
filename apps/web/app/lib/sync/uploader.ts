@@ -219,13 +219,14 @@ const lineKeyOf = (batch: Batch, entry: CrudEntry) => {
   return write !== null && size > 1 ? `write:${write}` : lineKey(entry.table, entry.id, entry.opData);
 };
 
-/** Record refused and set-aside ops in `unsaved_change`, one row each, in one transaction. */
+/** Record refused and set-aside ops in `unsaved_change`, one row each, in one transaction, in queue order (`write_seq`). */
 const recordUnsaved = async (db: AbstractPowerSyncDatabase, batch: Batch, unsaved: Unsaved[]) => {
   if (!unsaved.length) return;
+  const now = new Date().toISOString();
   const rows = await Promise.all(
-    unsaved.map(async ([entry, result]) => [
+    unsaved.map(async ([entry, result], seq) => [
       crypto.randomUUID(),
-      new Date().toISOString(),
+      now,
       entry.table,
       entry.id,
       entry.op,
@@ -236,14 +237,15 @@ const recordUnsaved = async (db: AbstractPowerSyncDatabase, batch: Batch, unsave
       await labelFor(db, entry),
       lineKeyOf(batch, entry),
       writeIdOf(batch, entry),
+      seq,
     ]),
   );
   await db.writeTransaction(async (tx) => {
     for (const row of rows)
       await tx.execute(
         `INSERT INTO unsaved_change
-           (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key, write_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key, write_id, write_seq)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         row,
       );
   });
