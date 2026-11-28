@@ -109,7 +109,7 @@ describe("the todo page's links", () => {
       LINKED,
       LINKED_ROW,
     ]);
-    await expect.poll(() => nameIn("provider")).toBe("Dr. Mira Lark (removed)");
+    await expect.poll(() => nameIn("provider")).toBe("Removed provider");
     expect(row("provider")?.querySelector("a")).toBeNull();
     expect(nameIn("medication")).toBe("Metformin 500 mg (removed)");
     expect(row("medication")?.querySelector("a")).toBeNull();

@@ -1,5 +1,6 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 
+import { REMOVED_PROVIDER } from "./entryProviders";
 import { compareProviders, fold, matchesQuery, PROVIDER_TYPE_META, queryTokens } from "./providerDirectory";
 
 // The provider pickers' pure parts (the medication form's prescriber and
@@ -29,7 +30,8 @@ export type ProviderFit = (type: string) => boolean;
  * The picker's choices for `text`: the group's providers that fit and
  * aren't deleted (nor in `exclude`, already chosen), matching every typed
  * word (name, specialty or practice), in display order. Each says what it
- * is: "Cardiology · Westside Family Medicine", "Practice", "Past".
+ * is: "Cardiology · Westside Family Medicine", "Practice", "Past". A deleted
+ * practice is neither named nor matched.
  */
 export const pickerOptions = (
   providers: readonly PickableProvider[],
@@ -37,7 +39,7 @@ export const pickerOptions = (
   text: string,
   { limit = PICKER_LIMIT, exclude = [] }: { limit?: number; exclude?: readonly string[] } = {},
 ) => {
-  const names = new Map(providers.map((p) => [p.id, p.name]));
+  const names = new Map(providers.filter((p) => !p.deletedAt).map((p) => [p.id, p.name]));
   const tokens = queryTokens(text);
   return providers
     .filter((p) => !p.deletedAt && fits(p.type) && !exclude.includes(p.id))
@@ -69,9 +71,9 @@ export const canAddPicked = (
   return !providers.some((p) => !p.deletedAt && fits(p.type) && fold(p.name.trim()) === name);
 };
 
-/** What a chosen provider's chip says: its name, "(removed)" once deleted, "(new)" before it's saved. */
+/** What a chosen provider's chip says: its name, "Removed provider" once deleted, "(new)" before it's saved. */
 export const chosenLabel = (name: string, { deleted = false, isNew = false } = {}) =>
-  isNew ? `${name} (new)` : deleted ? `${name} (removed)` : name;
+  isNew ? `${name} (new)` : deleted ? REMOVED_PROVIDER : name;
 
 /** Who can diagnose or manage a condition: anyone but a pharmacy. */
 export const fitsCondition: ProviderFit = (type) => type !== "pharmacy";

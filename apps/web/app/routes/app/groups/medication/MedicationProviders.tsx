@@ -16,7 +16,7 @@ const NO_TAGS: GroupTagRow[] = [];
  * One of the medication's providers: the shared `ProviderCard` (condensed)
  * under its label, its name linking to its page, its badges and tags, and
  * all its quick contact actions. A provider deleted since is greyed
- * "(removed)", with no link or actions. Live: edits on another device show
+ * "Removed provider", with no link or actions. Live: edits on another device show
  * at once.
  */
 function ProviderRowItem({

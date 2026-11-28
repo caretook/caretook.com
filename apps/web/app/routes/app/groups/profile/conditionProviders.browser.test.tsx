@@ -7,8 +7,8 @@ import { openProfile, PROFILE_URL } from "./profileWorld";
 // Who diagnosed a condition and who manages it (conditions slice 3): picking
 // both on the add sheet (one of the group's providers, and a new one added
 // from the picker by name), changing them on the edit sheet, the view's
-// lines with each provider a link, and a deleted provider greyed "(removed)"
-// and not a link. Every write is local and offline: the order it queues in
+// lines with each provider a link, and a deleted provider greyed "Removed
+// provider" and not a link (scrubbed or not). Every write is local and offline: the order it queues in
 // is what the server reads (syncConditionManagers.int.test.ts); what the
 // server decides is conditionProviders.int.test.ts's.
 
@@ -80,20 +80,20 @@ describe("a condition's sheet", () => {
     },
   );
 
-  test("a deleted provider is greyed (removed) and not a link", async () => {
+  test('a deleted provider is greyed "Removed provider" and not a link', async () => {
     await open("caretaker", conditionUrl(GOUT.id));
-    await expect.poll(() => viewLine("diagnosedBy")).toEqual([["Dr. Old Hart (removed)", null]]);
-    expect(viewLine("managedBy")).toEqual([["Dr. Old Hart (removed)", null]]);
+    await expect.poll(() => viewLine("diagnosedBy")).toEqual([["Removed provider", null]]);
+    expect(viewLine("managedBy")).toEqual([["Removed provider", null]]);
+    const shown = SHEET()?.querySelector("[data-condition-line=diagnosedBy] [data-condition-provider]");
+    expect(shown?.classList.contains("text-faint")).toBe(true);
   });
 
-  test("a provider deleted on another device turns grey while the sheet is open", async () => {
+  test("a provider deleted (and scrubbed) on another device turns grey while the sheet is open", async () => {
     const device = await open("viewer", conditionUrl(AFIB.id));
     await expect.poll(() => viewLine("diagnosedBy").length).toBe(1);
-    await device.sync(
-      fx.provider({ id: LEE.id, name: "Dr. Mei Lee", specialty: "Cardiology", deletedAt: at() }),
-    );
+    await device.sync(fx.provider({ id: LEE.id, name: "", specialty: null, deletedAt: at() }));
     await device.settle();
-    expect(viewLine("diagnosedBy")).toEqual([["Dr. Mei Lee (removed)", null]]);
+    expect(viewLine("diagnosedBy")).toEqual([["Removed provider", null]]);
   });
 });
 
@@ -197,8 +197,10 @@ describe("the edit sheet", () => {
 
   test("a deleted provider already chosen stays greyed, and other edits save without touching it", async () => {
     const device = await open("caretaker", `${conditionUrl(GOUT.id)}/edit`);
-    await expect.poll(() => chips("diagnosedBy")).toEqual(["Dr. Old Hart (removed)"]);
-    expect(chips("managedBy")).toEqual(["Dr. Old Hart (removed)"]);
+    await expect.poll(() => chips("diagnosedBy")).toEqual(["Removed provider"]);
+    expect(chips("managedBy")).toEqual(["Removed provider"]);
+    for (const id of ["diagnosedBy", "managedBy"] as const)
+      expect(picker(id)?.querySelector("li[data-chip]")?.classList.contains("text-faint")).toBe(true);
     await userEvent.fill(
       await found(() => FORM()?.querySelector<HTMLInputElement>('[name="note"]')),
       "Flares in winter",
