@@ -10,10 +10,13 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item   | State          | Merge |
+| ----- | ------ | -------------- | ----- |
+| 93    | B-1008 | started (opus) |       |
+| 94    | B-1009 | started (opus) |       |
+| 95    | B-1010 | started (opus) |       |
 
-**Idle after wave 26** (idle hand-over; landed through PR #321, 2026-11-28, dev 56424f1, CI components green run 46125961686 on 3c0c67ff, Codex clean on 9553919, then a docs-only timeline.md trim landed `--no-review --by-user` (standing word for docs-only); to-test `to-test/2026-11-28-0357-fixes-bug.md`; report a385). Slices 90 (B-1002, 8340445bf), 91 (B-1003, e7e35e32d), 92 (B-1006, 514da289a), all opus; docs folded into todos.md and medications.md. Lesson: run `risa sync` before writing a wave's slices (wave 26 first started on a base 345 commits behind and had to restart). `risa status-trim` crashed (v0.1.8 can't resolve `prettier`), so wave 25 and 26's notes weren't moved to the history file: run it next session. **Next session:** ingest, `risa backlog list`, then `risa sync` first. Waiting: B-1008, B-1009, B-1010 (setup nudges, setup medications Back, setup redirect) touch onboarding-2's hot files (setup, setupNudges, toastQueue): leave them until onboarding-2 lands. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 27 running** (2026-11-28): onboarding-2 is done, so its three follow-ups run now; prd/fixes-bug was up to date with dev at the start. Hot files set to the three slices' paths. Landed wave 26: PR #321 (dev 56424f1), report a385. `risa status-trim` still to run after this landing (it crashed last time). Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -981,3 +984,34 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domai
 
 - The device keeps rewriting its local medication rows (screens stay right offline) but flags those schedule PATCHes with op metadata, as B-387's `TICK_NEXT_METADATA` does; the server's medication case in `syncRegistry.ts` drops the `schedule` field of a flagged op (and accepts the op, so the queue drains), since the pass delete rewrites the schedules itself. Other fields in the op, and unflagged schedule edits, apply as today. (Revised after the first hand-off: no local-only write path fits a synced table.)
 - Component test: deleting a pass queues the pass delete and flagged medication ops, and the local medications drop the pass. Integration test: a flagged stale schedule PATCH after the pass delete leaves another member's edit in place. Integration test: the server's pass delete rewrites a medication's schedule and keeps another member's concurrent schedule edit.
+
+## Wave 27
+
+Three onboarding-2 follow-ups (Codex findings on PRs #314 and #318), run in parallel: each touches different files. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional. No migration.
+
+### Slice 93: a setup nudge toast goes away with its group and its eligibility (B-1008)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: component · Check: apps/web/app/routes/app/groups/layout/setupNudges.browser.test.tsx
+
+`useSetupNudges` (`apps/web/app/routes/app/groups/layout/useSetupNudges.ts`, about line 114) shows a nudge toast and forgets it, so after switching groups or opening a setup page the toast stays, and its Open goes to the old group's setup or new note.
+
+- Track the active nudge's toast id; dismiss it when its group's layout unmounts (switching groups) or the nudge stops being eligible (a setup page is open). Use the shared toast queue's own dismiss (`components/ui/toastQueue.ts`), no new toast path.
+- Component tests: a shown nudge is gone after switching to another group; a shown nudge is gone after opening a setup page.
+
+### Slice 94: a medication opened from the setup step goes Back to the setup step (B-1009)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: unit · Check: apps/web/app/lib/medications/medicationOrigin.test.ts
+
+`labelFor` in `apps/web/app/lib/medications/medicationOrigin.ts` doesn't know the setup medications route (`routes/app/groups/setup/medications/`), so a medication opened there goes Back to the Medications list.
+
+- Recognise the setup medications path as an origin, with a label that names the setup step (match the step's own heading), so Back returns there.
+- Unit test: an origin of the setup medications path gives that label and that URL back.
+
+### Slice 95: the setup redirect uses the settings that arrive while it reads (B-1010)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: component · Check: apps/web/app/routes/app/groups/layout/setupRedirect.browser.test.tsx
+
+In `apps/web/app/routes/app/groups/layout/setupRedirect.ts` (about line 56), settings that arrive during `readSetupFacts` count as known, but the decision uses the defaults captured before the await, so a creator on a new device can be sent back to setup.
+
+- In the known-settings branch, re-read `cachedSettings(userId)` after the await and decide from it.
+- Component test: settings that arrive (setup dismissed) while `readSetupFacts` is pending: no redirect to setup.
