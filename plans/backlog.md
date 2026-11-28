@@ -125,6 +125,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `sync-safety-3` | — | `sync-safety-2` | `packages/data/src/db/client.ts`, `packages/data/src/domain/sync/`, `packages/data/src/errors/sync.ts`, `packages/api/src/sync.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/testing.ts`, `apps/web/app/lib/sync/uploader.ts`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/unsavedChanges`, `apps/web/app/routes/app/settings/not-saved/` | A device write lands whole (B-294): savepoints, the server applies a write in one transaction, the uploader sends whole writes, one line per write on Changes not saved. Plan: plans/sync-safety-3-plan.md |
 | `onboarding-3` | — | `onboarding-2` | — | — |
 | `care-booklet` | — | — | — | Printed care booklet (B-918): profile front page, medication list, weekly sheet, emergency sheet, providers list; pick pages by hand. Released 2026-11-28 after inline triage; guide pages (B-919) in care-booklet-2. |
+| `marketing-4` | — | `care-booklet` | — | Marketing for the printed care booklet (B-1035), once care-booklet lands. Describe two-way (written notes coming back through a connected AI) only for sheets whose read-back has shipped: the weekly medication sheet (B-917) now, the rest with care-booklet-2. |
 | `care-booklet-2` | hold (2026-11-28: needs a guide content source; WAY off (user, 2026-11-26)) | `care-booklet` | — | Printed medication guide pages (B-919), split from care-booklet on the user's word 2026-11-28: needs a source for guide content (vendor or member-written) and a look at what we may print. |
 | `med-intervals` | — | `connectors-3` | `packages/data/src/db/schema/medications/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/medications/`, `packages/data/src/services/assistantActionService.ts`, `packages/data/src/services/medicationService.ts`, `packages/api/src/connectors/tools/` | Every-N-hours schedules for medications and Med times (B-938). |
 | `i18n` | alone | `simple-mode` | `apps/web/app/components/`, `apps/web/app/lib/core/format.ts`, `packages/data/`, `apps/web/app/root.tsx`, `packages/notifications/`, `pnpm-workspace.yaml`, `scripts/build/budget.json` | [PRD](i18n-prd.md), [plan](i18n-plan.md): 11 slices, waves 1 → 2 → (3, 4, 5, 6) → (7, 8, 9, 10) → 11: a per-user language (English and Spanish, AI-drafted, review before launch) in `user.preferences` with a cookie for server rendering; typed catalogs on `i18next` and `react-i18next`; format helpers, error codes and label maps take the language; the app swept area by area; emails, the invite's language, calendar text and the public site at `/es/`; a lint rule against literal text (`eslint-plugin-i18next`, dev). Quick entry is a plain box for non-English users; search matching, the connector and `/admin` stay English (B-209). Slice 8 adds a migration (one nullable invite column); three dependencies approved 2026-11-21; slice 1 needs a stack. **Ready to start** once its start condition holds · Depends on: `list-filters` (last item B-249), `planner-2` (last item B-248), the current `quick-fixes` wave and `simple-mode` (last items B-221, B-400) in `dev`; **runs alone** (tooling-only work beside it) · Hot files: every user-facing string: all `/app`, sign-in and marketing routes, `components/`, `lib/core/format.ts` and the other format helpers, the label maps in `packages/data` schema, `userPreferences.ts`, `root.tsx`, the service worker, `packages/notifications` templates and registry, the invite schema and service, `calendarText.ts`, ESLint config, `pnpm-workspace.yaml`, `scripts/build/budget.json` |
@@ -277,6 +278,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1024 | feature | triaged | care-booklet |  | Printed todo sheet, hand-fillable (check off, write in new todos), as a care booklet page |
 | B-1025 | feature | triaged | care-booklet |  | Printed schedule sheet (upcoming Events and med times), as a care booklet page |
 | B-1026 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads a photo of a hand-filled printed todo sheet and applies it (ticks done, adds new todos), adding only what isn't already there |
+| B-1027 | feature | triaged | care-booklet |  | Printed Timeline sheet, hand-fillable: notes, symptoms (the group's symptom catalog), vitals (pain, temperature, blood pressure, meals, fluids) and shift handoffs by time, as a care booklet page |
+| B-1028 | feature | triaged | care-booklet |  | Printed as-needed dose log: time given, dose, reason and whether it helped, with each medicine's minimum gap printed, as a care booklet page |
+| B-1029 | feature | triaged | care-booklet |  | Printed visit notes sheet per upcoming Event: the visit-prep questions with space for answers, med changes and follow-ups, as a care booklet page |
+| B-1030 | feature | triaged | care-booklet |  | Printed medication changes sheet: write in a doctor's new, stopped or changed medicine, as a care booklet page |
+| B-1031 | feature | triaged | care-booklet |  | Printed care team contacts sheet: group members and who to call for what, with after-hours and pharmacy numbers, as a care booklet page |
+| B-1032 | feature | triaged | care-booklet |  | Printed daily routine and preferences sheet from the profile (meals, mobility, sleep, likes and dislikes), as a care booklet page |
+| B-1033 | feature | triaged | care-booklet |  | Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back |
+| B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
+| B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
 
 ## Items
 
@@ -1309,6 +1319,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-26 (Robert Bo Davis): User 2026-11-26: likely direction for printing. Front page from the profile carries allergies and conditions (so they leave the weekly sheet, B-916). Print the whole booklet or single updated pages. Not yet a registry row: no PRD until the user asks.
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28 (inline triage): pages in order: the patient profile front page (allergies, conditions), medication list, weekly medication sheet, emergency sheet, and a providers list (a new sheet). 'Only the pages that changed' means a checklist of booklet pages picked by hand; nothing tracks what was printed. B-919 guide pages split to care-booklet-2.
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the booklet also takes a printed todo sheet (B-1024) and a schedule sheet (B-1025).
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the booklet also takes the Timeline sheet (B-1027), as-needed dose log (B-1028), visit notes (B-1029), medication changes (B-1030), care team contacts (B-1031), daily routine and preferences (B-1032) and a cover page (B-1033).
 
 ### B-919 · feature · Printed medication guide page for each medication, as booklet pages
 
@@ -1695,3 +1706,87 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'eventually processable by a connected agent via photo upload'. Follows B-917 (the same for the weekly medication sheet, connectors-3). Needs B-1024's printed todo sheet first, so care-booklet-2 (held, after care-booklet).
+
+### B-1027 · feature · Printed Timeline sheet, hand-fillable: notes, symptoms (the group's symptom catalog), vitals (pain, temperature, blood pressure, meals, fluids) and shift handoffs by time, as a care booklet page
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: one fillable Timeline sheet for notes, symptoms, vitals and handoffs (not separate sheets).
+
+### B-1028 · feature · Printed as-needed dose log: time given, dose, reason and whether it helped, with each medicine's minimum gap printed, as a care booklet page
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (Robert Bo Davis): Pairs with med-intervals (B-938 as-needed and interval schedules) for the minimum gap.
+
+### B-1029 · feature · Printed visit notes sheet per upcoming Event: the visit-prep questions with space for answers, med changes and follow-ups, as a care booklet page
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+
+### B-1030 · feature · Printed medication changes sheet: write in a doctor's new, stopped or changed medicine, as a care booklet page
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+
+### B-1031 · feature · Printed care team contacts sheet: group members and who to call for what, with after-hours and pharmacy numbers, as a care booklet page
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+
+### B-1032 · feature · Printed daily routine and preferences sheet from the profile (meals, mobility, sleep, likes and dislikes), as a care booklet page
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (Robert Bo Davis): The profile may not hold routine and preference fields yet; the planner checks and adds them if needed.
+
+### B-1033 · feature · Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back
+
+- status: triaged
+- prd: care-booklet
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+
+### B-1034 · feature · Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm
+
+- status: triaged
+- prd: care-booklet-2
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'Anything they write by hand should come back to carebook from a connected agent.' Follows B-917 (weekly medication sheet, connectors-3) and B-1026 (todo sheet). Needs the care-booklet sheets first, so care-booklet-2.
+
+### B-1035 · feature · Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used
+
+- status: triaged
+- prd: marketing-4
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'need a marketing topic to add info about the booklet feature where appropriate when it is done. Highight that caretook is designed to work with non-technical users who prefer pen and paper... with 2 way communication if a connector is used.' Booklet: B-918 and its sheets; read-back: B-917 (shipped), B-1026, B-1034 (care-booklet-2). Claim only what has shipped; follow the marketing copy rules (no word-for-word copy tests).
