@@ -1,17 +1,21 @@
 import type { MedicationRow, RecipientRow } from "./medications.sync";
 
-import { doseSlotId } from "@caretook/data/schema";
+import { doseSlotId, PASS_REWRITE_METADATA } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
 import { newId } from "../../../test/fixtures";
 import {
   ACETAMINOPHEN,
+  AMOXICILLIN,
   GROUP,
   LISINOPRIL,
+  METFORMIN,
+  MORNING,
   RECIPIENT,
   world,
 } from "../../routes/app/groups/medications/medicationWorld";
 import { readRows } from "../timeline/timeline.sync";
+import { removePass } from "./medicationPasses.sync";
 import { addToPassLog } from "./passLogs.sync";
 import {
   changeMedicationStatus,
@@ -174,6 +178,68 @@ describe("a writer's medication", () => {
     const listed = await readRows<MedicationRow>(db, medicationsQuery(GROUP));
     expect(listed.some((m) => m.id === LISINOPRIL.id)).toBe(false);
     expect(await changes(db, LISINOPRIL.id)).toHaveLength(2);
+  });
+});
+
+describe("deleting a pass", () => {
+  /** The queued uploads, each with its local transaction and flag. */
+  const queued = (db: Db) =>
+    db.powersync
+      .getAll<{ tx_id: number; data: string }>("SELECT tx_id, data FROM ps_crud ORDER BY id")
+      .then((rows) =>
+        rows.map((r) => {
+          const op = JSON.parse(r.data) as {
+            op: string;
+            type: string;
+            id: string;
+            data?: Record<string, unknown>;
+            metadata?: string;
+          };
+          return {
+            tx: r.tx_id,
+            table: op.type,
+            op: op.op,
+            id: op.id,
+            data: op.data ?? {},
+            metadata: op.metadata ?? null,
+          };
+        }),
+      );
+
+  test("queues the pass delete and flagged schedule rewrites (B-1006); the local medications drop the pass", async () => {
+    const { db } = await device();
+    expect((await removePass(db, MORNING.id)).ok).toBe(true);
+    const ops = await queued(db);
+    expect(new Set(ops.map((o) => o.tx)).size).toBe(1);
+    expect(ops.filter((o) => o.table === "medication_pass")).toEqual([
+      expect.objectContaining({ op: "PATCH", id: MORNING.id, metadata: null }),
+    ]);
+    const meds = ops.filter((o) => o.table === "medication");
+    expect(meds.map((o) => o.id).sort()).toEqual([LISINOPRIL.id, METFORMIN.id, AMOXICILLIN.id].sort());
+    // Flagged, so the server keeps its own rewrite over this device's copy.
+    expect(meds.every((o) => o.op === "PATCH" && o.metadata === PASS_REWRITE_METADATA)).toBe(true);
+    expect(ops).toHaveLength(4);
+
+    for (const id of [LISINOPRIL.id, METFORMIN.id, AMOXICILLIN.id]) {
+      const schedule = JSON.parse((await row(db, id)).schedule ?? "null") as { slots: object[] };
+      expect(schedule.slots).not.toContainEqual(expect.objectContaining({ passId: MORNING.id }));
+      expect(schedule.slots).toContainEqual({ time: "08:00" });
+    }
+  });
+
+  test("a medication's own schedule edit is unflagged", async () => {
+    const { db } = await device();
+    expect(
+      (
+        await updateMedication(db, LISINOPRIL.id, {
+          schedule: { type: "scheduled", slots: [{ time: "09:00" }] },
+        })
+      ).ok,
+    ).toBe(true);
+    const ops = await queued(db);
+    expect(ops.filter((o) => o.table === "medication")).toEqual([
+      expect.objectContaining({ id: LISINOPRIL.id, metadata: null }),
+    ]);
   });
 });
 

@@ -14,6 +14,7 @@ import {
   newError,
   noteDocumentService,
   OWN_DOSE_COPY_METADATA,
+  PASS_REWRITE_METADATA,
   recordTagService,
   providerService,
   recipientAllergyService,
@@ -310,16 +311,27 @@ const provider = softDelete({
 // The service writes the timeline's change entry with each save, with an id
 // derived from the medication and the device's `updated_at`, so the copy of
 // that entry the device uploads next lands on the same row.
+const MEDICATION_CONTENT: ColumnMap = {
+  ...each("name strength form dose directions reason status started_on stopped_on stop_reason", text),
+  ...each("stop_note prescriber_id pharmacy_id last_filled_on quantity rx_number type", text),
+  schedule: json,
+  refills_left: int,
+};
+
 const medication = softDelete({
   service: medicationService,
   errors: "medicationService",
   fixed: GROUP_RECIPIENT,
   changedAt: true,
-  content: {
-    ...each("name strength form dose directions reason status started_on stopped_on stop_reason", text),
-    ...each("stop_note prescriber_id pharmacy_id last_filled_on quantity rx_number type", text),
-    schedule: json,
-    refills_left: int,
+  content: MEDICATION_CONTENT,
+  // A pass delete's rewrite (B-1006): the pass's delete already rewrote the
+  // schedule here, onto any edit made meanwhile, so the device's copy is dropped.
+  patch: async (ctx, op, { remove, update }) => {
+    const data = { ...op.data };
+    if (op.metadata === PASS_REWRITE_METADATA) delete data.schedule;
+    if (data.deleted_at) return remove(ctx, op.id);
+    const content = mapped(MEDICATION_CONTENT, data);
+    return Object.keys(content).length === 0 ? applied : update(ctx, op, content);
   },
 });
 

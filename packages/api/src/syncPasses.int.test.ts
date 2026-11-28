@@ -4,6 +4,7 @@ import {
   careRecipientService,
   medicationPassService,
   medicationService,
+  PASS_REWRITE_METADATA,
   passMovedId,
   recipientAllergyService,
   timelineEntryService,
@@ -184,7 +185,7 @@ describe("sync.upload: medication_pass", () => {
     expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
   });
 
-  it("deletes a pass alone, rewriting a schedule and keeping another member's edit made meanwhile", async () => {
+  it("deletes a pass, keeping another member's schedule edit made meanwhile; the device's flagged rewrite drops its schedule (B-1006)", async () => {
     const { owner, viewer, caretaker, group, morning, evening } = await setup();
     const medication = ok(
       await medicationService.create(owner.ctx, {
@@ -222,21 +223,28 @@ describe("sync.upload: medication_pass", () => {
     expect((await upload(owner.api, [remove])).map((r) => r.status)).toEqual(["applied"]);
     const schedule = async () => ok(await medicationService.getById(viewer.ctx, medication!.id))?.schedule;
     // The server turned Morning into a time of its own, onto the caretaker's schedule.
-    expect(await schedule()).toEqual({
+    const kept = {
       type: "scheduled",
       slots: [
         { passId: evening.id, amount: "500 mg" },
         { time: "08:00", amount: "1000 mg" },
       ],
-    });
-    // Why the device must not also send its own rewrite: that stale copy would undo the edit.
-    const resend = {
+    };
+    expect(await schedule()).toEqual(kept);
+    // The device's own rewrite, flagged, from its stale copy: the schedule is dropped, the edit stays.
+    const rewrite = {
       op: "PATCH" as const,
       table: "medication",
       id: medication!.id,
-      data: { schedule: JSON.stringify(stale), updated_at: MOVED_AT },
+      data: { schedule: JSON.stringify(stale), updated_at: MOVED_AT, updated_by: "ignored" },
+      metadata: PASS_REWRITE_METADATA,
     };
-    expect((await upload(owner.api, [resend])).map((r) => r.status)).toEqual(["applied"]);
+    expect((await upload(owner.api, [rewrite])).map((r) => r.status)).toEqual(["applied"]);
+    expect(await schedule()).toEqual(kept);
+    // Unflagged, a schedule PATCH is a member's edit and applies as ever.
+    expect((await upload(owner.api, [{ ...rewrite, metadata: undefined }])).map((r) => r.status)).toEqual([
+      "applied",
+    ]);
     expect(await schedule()).toEqual(stale);
   });
 
