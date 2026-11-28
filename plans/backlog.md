@@ -1918,6 +1918,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: risa rotate --self reported 'Opened inbox in a new background iTerm2 tab' but the handoff did not take effect, per the user.
 - 2026-11-28 (Robert Bo Davis): A Risa bug (risa rotate --self); passed to the risa backlog session 2026-11-28.
+- 2026-11-28 (Robert Bo Davis): Filed in Risa as RISA-1082 (related: RISA-1077). The fix comes with a Risa tag.
 
 ### B-1046 · bug · Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the…
 
