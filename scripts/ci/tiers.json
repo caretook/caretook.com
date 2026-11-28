@@ -4,7 +4,7 @@
     "static": ["static"],
     "unit": ["unit-1", "unit-2"],
     "integration": ["integration"],
-    "components": ["components-1", "components-2", "components-3"],
+    "components": ["components-1", "components-2", "components-3", "components-4"],
     "full": ["build"],
     "candidate": ["browser"],
     "release": ["browser-2", "browser-3", "zone-components-1", "zone-components-2", "zone-browser"]
@@ -26,7 +26,7 @@
     "measures": {
       "unit": { "aim": 300, "cutoff": 360, "armed": true },
       "components": { "aim": 300, "cutoff": 360, "armed": false },
-      "quick": { "aim": 300, "cutoff": 360, "armed": false, "modes": ["quick", "slice"] }
+      "quick": { "aim": 300, "cutoff": 360, "armed": true, "modes": ["quick", "slice"] }
     }
   }
 }

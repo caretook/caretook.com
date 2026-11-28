@@ -16,9 +16,9 @@
 // whose first job a narrowed run starts); `browserCheck` (a browser check's spec,
 // `*` its name); the two marker files `narrowedFile` and `forcedFlakeFile`; `refPrefix`.
 //
-// Why the jobs are what they are: the component tests are three shards, since one
-// job ran past the 10-minute limit (13 minutes) and two ran 12–15 with the second
-// zone; `full` adds the build job and `candidate` the browser suite on the Docker
+// Why the jobs are what they are: the component tests are four shards, since one
+// job ran past the 10-minute limit (13 minutes), two ran 12–15 with the second
+// zone and three past the 300-second aim; `full` adds the build job and `candidate` the browser suite on the Docker
 // stack. `release` adds two more suite runs and the second zone. Each suite run is
 // its own job: one job's 35-minute limit holds one suite (its caps total about 26
 // minutes). The forced-flake marker (`ci run candidate --force-flake <check>`) is
@@ -136,7 +136,7 @@ export function parseCiRef(ref) {
 
 /**
  * The plan job's outputs for a ref name, and a narrowed run's files if any.
- * `components2` is the second and third component shards, `unit2` the second unit
+ * `components2` is the second to fourth component shards, `unit2` the second unit
  * shard: a narrowed run has one components job and one unit job.
  * @param {string} ref
  * @param {string[] | null} [narrowed]
