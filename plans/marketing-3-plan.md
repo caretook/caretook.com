@@ -20,7 +20,7 @@
 | 4     | 1    | working |                                              |
 | 5     | 2    | planned |                                              |
 | 6     | 2    | planned |                                              |
-| 7     | 1    | working |                                              |
+| 7     | 1    | handed off (044c01061) |                                              |
 
 ## Architectural decisions
 
