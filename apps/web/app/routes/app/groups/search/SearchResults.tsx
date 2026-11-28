@@ -102,7 +102,10 @@ export function SearchResults({
             <span className={TITLE_SECTION}>{section.label}</span>
             <span className="text-faint text-sm">{section.total}</span>
           </h2>
-          <ul className="divide-base-300 border-base-300 divide-y rounded-box border">
+          {/* Todos are the Todos page's rows, which leave the sides to their list. */}
+          <ul
+            className={`divide-base-300 border-base-300 divide-y rounded-box border ${section.type === "todo" ? "px-3" : ""}`}
+          >
             {section.hits.map((hit) => {
               if (section.type === "entry") {
                 const entry = data.entries[hit.id];
@@ -114,7 +117,6 @@ export function SearchResults({
                       groupId={groupId}
                       canWrite={canWrite}
                       units={units}
-                      now={now}
                       search={search}
                       tags={tagsOf(entryTags, entry.id)}
                       tagsReadOnly={tagsReadOnly}
@@ -167,7 +169,6 @@ export function SearchResults({
                       tags={tagsOf(todoTags, todo.id)}
                       tagsReadOnly={tagsReadOnly}
                       nameOf={nameOf}
-                      imageOf={imageOf}
                     />
                   )
                 );

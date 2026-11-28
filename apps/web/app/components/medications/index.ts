@@ -14,5 +14,6 @@ export { PassUndoStatus } from "./PassUndoStatus";
 export { usePassLog, undoPassLog, offerUndoToast, UndoToastProvider, useUndoToast } from "./usePassLog";
 export { NameField } from "./NameField";
 export { MedicationCard } from "./MedicationCard";
+export { MedicationIcon } from "./MedicationIcon";
 // The add and edit form (the list's sheets, the setup pages).
 export { MedicationForm } from "./MedicationForm";
