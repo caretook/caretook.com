@@ -40,6 +40,29 @@ const invalid = (issues: { path: string; message: string }[]) =>
 
 const audits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
 
+/**
+ * The group's catalog lock (B-992), held to the end of `tx`: `replace` takes
+ * it exclusive, and every symptom entry write (through `ensure`, or the entry
+ * service's own check) takes it shared before it reads which row a name logs
+ * under. So a write can't resolve a name, or keep a stored pointer, from the
+ * catalog as it was before a replace and land after it, on the tombstone the
+ * replace just made. Taken before any name's lock, so the order is always
+ * catalog, then name.
+ */
+export const lockCatalog = (tx: Tx, groupId: string, mode: "shared" | "exclusive") => {
+  const key = `symptom_catalog:${groupId.toLowerCase()}`;
+  return dbMayFail(
+    () =>
+      tx.execute(
+        mode === "shared"
+          ? sql`SELECT pg_advisory_xact_lock_shared(hashtextextended(${key}, 0))`
+          : sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
+      ),
+    "baseModel:update",
+    { schemaName },
+  );
+};
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -81,6 +104,8 @@ export const getResolved = async (ctx: ServiceContext, groupId: string, name: st
  * transactions adding the same name at once wait for each other (an
  * advisory lock on the derived id) instead of colliding. A deleted name (a
  * tombstone) returns its replacement (`resolveSymptom`), and adds nothing.
+ * Holds the catalog lock shared (`lockCatalog`) first, so it never answers
+ * with a row a running `replace` is retiring.
  */
 export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
   withTransaction(async (tx) => {
@@ -89,6 +114,8 @@ export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
       return invalid(parsed.error.issues.map(({ message }) => ({ path: "name", message })));
     const row = symptomTypeRow(groupId, parsed.data);
 
+    const catalog = await lockCatalog(tx, groupId, "shared");
+    if (isError(catalog)) return catalog;
     const lock = await dbMayFail(
       () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${row.id}, 0))`),
       "baseModel:create",
@@ -172,8 +199,9 @@ export const unarchive = (ctx: ServiceContext, input: { groupId: string; id: str
  * tombstones that pointed at `id` now point at the replacement, so there's
  * never a chain; and `id` becomes a tombstone (`replaced_by_id`, archived
  * when it wasn't), kept so its derived id can't come back as a new row.
- * Locks both ids first: the advisory lock `ensure` takes (so an entry write
- * naming either waits) and the rows. Refuses the same id (`sameSymptom`), a
+ * Takes the catalog lock exclusive first (`lockCatalog`: every symptom entry
+ * write in the group waits, and then sees the tombstone), then the rows.
+ * Refuses the same id (`sameSymptom`), a
  * missing or another group's row (`notFound`) or replacement
  * (`replacementNotFound`), and a tombstone as either (`merged`,
  * `replacementMerged`): a rerun is refused and changes nothing. Returns how
@@ -194,16 +222,9 @@ export const replace = (
     const to = replacementId.toLowerCase();
     if (from === to) return newError({ code: "symptomTypeService:sameSymptom" });
 
-    // In id order, so two replaces naming the same pair can't deadlock.
+    const lock = await lockCatalog(tx, groupId, "exclusive");
+    if (isError(lock)) return lock;
     const ids = [from, to].sort();
-    for (const lockId of ids) {
-      const lock = await dbMayFail(
-        () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockId}, 0))`),
-        "baseModel:update",
-        { schemaName },
-      );
-      if (isError(lock)) return lock;
-    }
     const t = symptomTypeSchema;
     const rows = await dbMayFail(
       () => tx.select().from(t).where(inArray(t.id, ids)).orderBy(asc(t.id)).for("update"),
