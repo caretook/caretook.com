@@ -243,10 +243,8 @@ describe("the todo page's linked entries", () => {
       row("event")?.querySelector('[data-icon-chip] svg[class*="lucide-calendar-check"]'),
     ).not.toBeNull();
     expect(row("note")?.querySelector('[data-icon-chip] svg[class*="lucide-notebook-pen"]')).not.toBeNull();
-    for (const kind of ["event", "note"]) {
-      const author = row(kind)?.querySelector("[data-author]");
-      expect(author?.textContent).toMatch(/^By /);
-    }
+    for (const kind of ["event", "note"])
+      expect(row(kind)?.querySelector("[data-author]")?.textContent).toContain("By Alex Moreno");
     expect(row("note")?.querySelector("[data-row-day]")).not.toBeNull();
   });
 
