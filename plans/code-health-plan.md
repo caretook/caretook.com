@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 2, 5) starting 2026-11-27. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
+**Where it stands:** wave 1 (slices 1, 2, 5) running since 2026-11-27; items B-366, B-365, B-361 claimed. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
@@ -12,11 +12,11 @@
 
 | Slice | Wave | State       | Merge into `prd/code-health` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
+| 1     | 1    | running (worktree code-health-1, opus agent spawned 2026-11-27) |                                              |
+| 2     | 1    | running (worktree code-health-2, opus agent spawned 2026-11-27) |                                              |
 | 3     | —    | dropped (B-367 moved to Risa) |                                |
 | 4     | —    | dropped (B-367 moved to Risa) |                                |
-| 5     | 1    | not started |                                              |
+| 5     | 1    | running (worktree code-health-5, opus agent spawned 2026-11-27) |                                              |
 | 6     | 2    | not started |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `risa backlog done` on an item when its last slice merges.
