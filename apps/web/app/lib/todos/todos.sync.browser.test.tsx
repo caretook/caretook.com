@@ -202,7 +202,23 @@ describe("Undo", () => {
 
     ok(await completeTodo(db, BINS_ID));
     expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, doneAt: null, dueOn: tomorrow });
-    // Brought back by a PATCH of `deleted_at` (the server restores it on the tick).
+    // Brought back by a PATCH of `deleted_at` (the server restores it on the
+    // tick), flagged as the tick's: a stale one never brings back a chain
+    // stopped meanwhile (B-1003).
+    expect((await queued(db)).at(-1)).toMatchObject({
+      op: "PATCH",
+      id: NEXT_ID,
+      data: { deleted_at: null },
+      metadata: TICK_NEXT_METADATA,
+    });
+  });
+
+  test("a skip that brings back a next an Undo took away is unflagged: the server restores it for a writer (B-1003)", async () => {
+    const { db } = await device();
+    ok(await completeTodo(db, BINS_ID));
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await skipTodo(db, BINS_ID)).toEqual({ ok: true, id: BINS_ID });
+    expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, doneAt: null, dueOn: tomorrow });
     expect((await queued(db)).at(-1)).toMatchObject({
       op: "PATCH",
       id: NEXT_ID,
@@ -341,6 +357,49 @@ describe("Undo: the successor by when it was made (B-383)", () => {
     ok(await reopenTodo(db, BINS_ID));
     expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY });
     expect((await read(db, NEXT_ID))?.deletedAt).not.toBeNull();
+  });
+});
+
+describe("Undo of a tick made before B-383 (B-1002)", () => {
+  // Ticked on the server before B-383: the successor's `created_at` (the
+  // transaction's now) a few ms before the tick's `done_at` (the app clock).
+  const doneAt = new Date(Date.now() - 2 * 3_600_000);
+  const tickedBefore = () => [
+    bins({ doneAt: at(doneAt), doneBy: TEST_USER.id }),
+    bins({ id: NEXT_ID, dueOn: tomorrow, eventId: null, createdAt: at(new Date(doneAt.getTime() - 4)) }),
+  ];
+
+  test("an untouched successor made a few ms before the tick is still found and taken away", async () => {
+    const { db } = await device(tickedBefore());
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY, repeatId: BINS_ID });
+    expect((await read(db, NEXT_ID))?.deletedAt).not.toBeNull();
+  });
+
+  test("an edited one stays, and the reopened todo stops repeating", async () => {
+    const { db } = await device(tickedBefore());
+    ok(await updateTodo(db, NEXT_ID, { title: "Bins and recycling" }));
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: null, repeatId: null });
+    expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, repeatRule: DAILY });
+  });
+
+  test("the fallback never takes a row made before the reopened one (its predecessor) for its successor", async () => {
+    // A ticked made B; B moved back before A's day and ticked; B's successor is gone.
+    const a = bins({ dueOn: tomorrow, doneAt: hoursAgo(5), doneBy: TEST_USER.id });
+    const B_ID = nextTodoId(BINS_ID, addDays(tomorrow, 1));
+    const b = bins({
+      id: B_ID,
+      dueOn: addDays(today, -1),
+      eventId: null,
+      createdAt: hoursAgo(5),
+      doneAt: hoursAgo(3),
+      doneBy: TEST_USER.id,
+    });
+    const { db } = await device([a, b]);
+    ok(await reopenTodo(db, B_ID));
+    expect(await read(db, B_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY, repeatId: BINS_ID });
+    expect(await read(db, BINS_ID)).toMatchObject({ deletedAt: null, doneBy: TEST_USER.id });
   });
 });
 

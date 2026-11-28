@@ -198,6 +198,15 @@ export const withoutPass = (
   return medicationScheduleZSchema.parse({ type: "scheduled", slots });
 };
 
+/**
+ * The upload's flag on a pass delete's schedule rewrite (the device's
+ * `_metadata` on each medication `removePass` rewrites, B-1006): the server's
+ * own delete rewrites every schedule naming the pass, so it drops a flagged
+ * PATCH's `schedule` (the device's copy may be stale) and applies the rest.
+ * A medication's own schedule edit is unflagged.
+ */
+export const PASS_REWRITE_METADATA = "medication:passRewrite";
+
 /** One slot of a schedule at its time of day. */
 export type TimedSlot = {
   /** "HH:MM" in the recipient's zone: the pass's time, or the slot's own. */
