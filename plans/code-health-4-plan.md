@@ -13,7 +13,7 @@
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
 | 1     | 1    | running |                                                |
-| 2     | 1    | running |                                                |
+| 2     | 1    | handed off (0a14230d1), reviewed; merges after 1 |
 | 3     | 2    | planned |                                                |
 | 4     | 2    | planned |                                                |
 | 5     | 2    | planned |                                                |
