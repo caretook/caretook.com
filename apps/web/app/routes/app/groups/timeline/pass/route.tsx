@@ -36,19 +36,25 @@ const parseDetails = (value: string | null) => {
   }
 };
 
-/** The rows as the form shows them: each dose with its medication's name ("(removed)" once deleted). */
+/** The rows as the form shows them: each dose with its medication's name ("Removed medication" once deleted). */
 const toPassLogDoses = (rows: PassLogDoseRow[]): PassLogDose[] =>
   rows.flatMap((row) => {
     const details = parseDetails(row.details);
     if (!details || !row.occurred_at) return [];
     const name = medicationLabel(
-      row.medication_name ? { name: row.medication_name, strength: row.medication_strength } : null,
+      row.medication_name || row.medication_deleted_at
+        ? {
+            name: row.medication_name ?? "",
+            strength: row.medication_strength,
+            deletedAt: row.medication_deleted_at,
+          }
+        : null,
     );
     return [
       {
         id: row.id,
         occurredAt: fromLocalTimestamp(row.occurred_at),
-        medicationName: row.medication_deleted_at ? `${name} (removed)` : name,
+        medicationName: name,
         details,
       },
     ];

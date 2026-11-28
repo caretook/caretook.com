@@ -360,6 +360,30 @@ describe("visitPrepSection", () => {
     ]);
   });
 
+  it("names a deleted medication's change Removed medication changed, its summary gone", () => {
+    const gone: PrepMedication = {
+      ...OXY,
+      name: "",
+      strength: null,
+      dose: null,
+      deletedAt: "2026-11-12T18:00:00Z",
+    };
+    const lines = texts(
+      visitPrepSection(
+        data({
+          medications: [gone, LISINOPRIL],
+          entries: [
+            entry("medicationChange", "2026-11-03T18:00:00Z", {
+              details: { medicationId: OXY.id, change: "changed" },
+            }),
+          ],
+        }),
+        WINDOW,
+      ),
+    );
+    expect(lines.slice(1, 3)).toEqual(["Medication changes", "Removed medication changed (Nov 3)"]);
+  });
+
   it("gives each vital's range, average and direction against the time before", () => {
     const entries = [
       // Before (Sep 20 – Oct 20).

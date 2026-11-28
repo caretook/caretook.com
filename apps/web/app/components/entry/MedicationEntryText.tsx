@@ -13,13 +13,15 @@ import { highlightRanges } from "@caretook/data/domain";
  * A dose's or change's heading: the medication ("Lisinopril 10 mg"), a link
  * to its page above the row's open target (`relative z-10`), then what
  * happened ("Given 1 tablet", "Changed dose 1 tablet → 2 tablets"). A deleted
- * medication is greyed "(removed)" and isn't a link; nor is it for the
- * easy roles.
+ * medication is greyed "Removed medication" and isn't a link (nor is it for
+ * the easy roles); its change is one greyed line, "Removed medication
+ * changed" (`removed`).
  */
 export function MedicationHeading({
   entry,
   what,
   standalone = false,
+  removed = false,
   search,
   className = "",
 }: {
@@ -27,6 +29,8 @@ export function MedicationHeading({
   what: string;
   /** `what` is the whole line (a pass's move names no medication). */
   standalone?: boolean;
+  /** `what` is the whole line, greyed: a deleted medication's change ("Removed medication changed"). */
+  removed?: boolean;
   /** Mark the medication's name where the search matches it. */
   search?: ParsedSearch;
   className?: string;
@@ -35,6 +39,12 @@ export function MedicationHeading({
   const { id: groupId, easyRole } = useGroup();
   // Its page's Back comes back here.
   const linkState = useMedicationLinkState();
+  if (removed)
+    return (
+      <p className={`text-faint font-semibold break-words ${className}`} data-medication-entry data-removed>
+        {what}
+      </p>
+    );
   if (standalone)
     return (
       <p className={`font-semibold break-words ${className}`} data-medication-entry data-pass-moved>
@@ -56,10 +66,7 @@ export function MedicationHeading({
           {shown}
         </Link>
       ) : (
-        <span className={medication?.deletedAt ? "text-faint" : undefined}>
-          {shown}
-          {medication?.deletedAt && " (removed)"}
-        </span>
+        <span className={medication?.deletedAt ? "text-faint" : undefined}>{shown}</span>
       )}
       <span className="font-normal">: {what}</span>
     </p>

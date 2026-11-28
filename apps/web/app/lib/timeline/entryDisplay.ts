@@ -1,10 +1,11 @@
-import type { TimelineEntryKind, UnitChoices } from "@caretook/data/schema";
+import type { ConditionChangeDetails, TimelineEntryKind, UnitChoices } from "@caretook/data/schema";
 import type { LucideIcon } from "lucide-react";
 import type { AccentOrNeutral } from "~/components/ui/accents";
 import type { IconChipLook } from "~/components/ui/IconChip";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import {
+  conditionChangeText,
   formatReading,
   isKnownReading,
   isSymptomDetails,
@@ -74,3 +75,27 @@ export const entrySummary = (entry: TimelineEntry, units: UnitChoices) => {
     body: entry.body || null,
   };
 };
+
+// ---------------------------------------------------------------------------
+// Removed names (data-rights): a delete scrubs a medication or condition, names
+// too, and the summaries in its change entries with it.
+// ---------------------------------------------------------------------------
+
+/** What a deleted condition reads as: its name went with it. */
+export const REMOVED_CONDITION = "Removed condition";
+
+/** A change row whose summary is gone: "Removed medication changed". */
+export const removedChangeText = (removedName: string) => `${removedName} changed`;
+
+/**
+ * What a condition change row says: its heading and lines
+ * (`conditionChangeText`), or "Removed condition changed" with no lines once
+ * the condition's delete has emptied its summary (`removed`).
+ */
+export const conditionChangeRow = (
+  details: ConditionChangeDetails,
+): { heading: string; lines: string[]; removed?: true } =>
+  // A scrub may leave the name empty or drop it.
+  details.conditionName?.trim()
+    ? conditionChangeText(details)
+    : { heading: removedChangeText(REMOVED_CONDITION), lines: [], removed: true };
