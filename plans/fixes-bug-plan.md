@@ -10,10 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State  | Merge     |
+| ----- | ----- | ------ | --------- |
+| 88    | B-993 | merged | 91d6467b7 |
 
-**Idle after wave 23** (idle hand-over; landed through PR #285, 2026-11-27, Codex clean on cc772da, CI integration green run 46078822158; to-test `to-test/2026-11-27-1757-fixes-bug.md`; landed unsynced, dev had 4 unrelated commits). Slice 87 (B-987, opus, 061b55605): `log_dose`'s `scheduledDose` reads every pass unpaged. Docs folded into connectors.md. **2026-11-27 resume:** ingest found nothing new and no item is workable (only B-750 and B-752 wait, both held), so the docs-only hand-over was landed and the lane freed (`risa rm fixes-bug`; standing). **Next session:** ingest, `risa backlog list`; write wave 24 from `risa status-trim fixes-bug --next`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table (a bad row fails every slice check).
+**Wave 24 (2026-11-27): slice 88 merged, CI components green (run 46086204846); sync skipped (no shared files); PR #293 open, Codex review out; no browser checks needed (`--changed`); slice worktree removed**; slice 88 (B-993, opus): link suggestions' `upcomingEvents` limits before dropping ended all-day events. Hot: `apps/web/app/lib/todos/linkSearch`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Last landed: wave 23 (PR #285). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -926,3 +927,16 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain
 
 - Read every pass as slice 86 did for `log_past_doses` and `give_pass` (drop the page, or read only the medication's passes if the model has that filter; say which in the hand-off). Keep the change inside `slotDose`, no reformatting.
 - Integration test: a fictional group with 100 or more deleted passes and one live pass made last; `log_dose` against that pass's slot logs it in that pass.
+
+## Wave 24
+
+One slice, a Codex follow-up from todo-links (PR #290). **First confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 88: past all-day events don't crowd upcoming ones out of link suggestions (B-993)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/appointments.md · Tests: components
+
+`upcomingEvents` (`apps/web/app/lib/todos/linkSearch.sync.ts`, about line 230) admits all-day events that started up to two days ago and takes `LIMIT limit + 10` in `occurred_at` order before `upcomingItems` drops the ones already over, so a group with more than `limit + 10` all-day events in the last two days suggests no upcoming event at all.
+
+- Make the query's limit hold only for what can survive: either filter ended all-day events in SQL first (careful: an all-day event's day is in its own zone, which is why the window is two days), or page in `occurred_at, id` order until `limit` survive `upcomingItems` or the rows run out. Say which in the hand-off. Keep the change inside `upcomingEvents`; Upcoming's order and the in-progress all-day rule stay as they are.
+- Test (beside the existing `suggestLinkables` tests, or a new `linkSearch` sync test if none): a fictional group with `limit + 11` or more all-day events from yesterday and the day before (ended) and one timed event tomorrow; the suggestions include tomorrow's event.

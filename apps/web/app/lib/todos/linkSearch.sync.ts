@@ -1,4 +1,5 @@
 import type { SearchItemType } from "@caretook/data/schema";
+import type { TimelineEntry } from "~/lib/core/rpc";
 import type { RankedHit } from "~/lib/search/searchResults";
 import type { SyncDb } from "~/lib/sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
@@ -9,7 +10,7 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { LinkCandidate, LinkPick, LinkType } from "./linkOptions";
 
 import { isEmptySearch } from "@caretook/data/schema";
-import { upcomingItems } from "~/lib/appointments/upcoming";
+import { isUpcoming, upcomingItems } from "~/lib/appointments/upcoming";
 import { previewText } from "~/lib/live-notes/notes.sync";
 import { toMedication } from "~/lib/medications/medications.sync";
 import { toProvider } from "~/lib/providers/providers.sync";
@@ -226,20 +227,45 @@ const DAY_MS = 86_400_000;
 /**
  * The group's next `limit` live, not cancelled events at `now`: upcoming or
  * in progress (an all-day one through its day), in Upcoming's order.
+ * Read in pages in start order until `limit + 10` are still upcoming (the
+ * slack for all-day ones, whose day is in their own zone, sorting ahead of
+ * a timed one that starts a little earlier) or the rows run out: the SQL
+ * can't tell an ended all-day event from one still today, so many ended
+ * ones never crowd the upcoming out (B-993).
  */
 const upcomingEvents = async (db: SyncDb, groupId: string, now: Date, limit: number): Promise<LinkPick[]> => {
   const at = toLocalTimestamp(now);
   // An all-day event started up to a day and a bit ago may still be today, in its own zone.
   const allDayFrom = toLocalTimestamp(new Date(now.getTime() - 2 * DAY_MS));
-  const rows = await db.powersync.getAll<EntryRow>(
-    `SELECT * FROM timeline_entry
-     WHERE group_id = ? AND kind = 'event' AND deleted_at IS NULL AND cancelled_at IS NULL
-       AND (occurred_at > ? OR ends_at > ? OR (all_day = 1 AND occurred_at > ?))
-     ORDER BY occurred_at, id LIMIT ?`,
-    [groupId, at, at, allDayFrom, limit + 10],
-  );
-  const events = rows.flatMap((row) => toTimelineEntry(row) ?? []);
-  return upcomingItems(events, now)
+  const want = limit + 10;
+  const kept: TimelineEntry[] = [];
+  let after: { occurredAt: string; id: string } | null = null;
+  for (;;) {
+    const rows: EntryRow[] = await db.powersync.getAll<EntryRow>(
+      `SELECT * FROM timeline_entry
+       WHERE group_id = ? AND kind = 'event' AND deleted_at IS NULL AND cancelled_at IS NULL
+         AND (occurred_at > ? OR ends_at > ? OR (all_day = 1 AND occurred_at > ?))
+         AND (? IS NULL OR occurred_at > ? OR (occurred_at = ? AND id > ?))
+       ORDER BY occurred_at, id LIMIT ?`,
+      [
+        groupId,
+        at,
+        at,
+        allDayFrom,
+        after?.id ?? null,
+        after?.occurredAt ?? null,
+        after?.occurredAt ?? null,
+        after?.id ?? null,
+        want,
+      ],
+    );
+    const events = rows.flatMap((row) => toTimelineEntry(row) ?? []);
+    kept.push(...events.filter((e) => isUpcoming(e, now)));
+    const last = rows.at(-1);
+    if (rows.length < want || kept.length >= want || !last?.occurred_at) break;
+    after = { occurredAt: last.occurred_at, id: last.id };
+  }
+  return upcomingItems(kept, now)
     .slice(0, limit)
     .map((e) => ({ type: "event", id: e.id }));
 };
