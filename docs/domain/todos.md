@@ -27,7 +27,7 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md). A todo: title, assignee, due day a
 - **Columns** (`0033_todo_repeats`): `repeat_rule` (RRULE text, `appointment_series.rule`'s grammar), `repeat_starts_on` (the anchor) and `repeat_id` (the chain; the first todo's id). Checks: all three or none; a rule needs `due_on` (`REPEAT_NEEDS_DAY_ISSUE`). `repeatColumnsFor`: a new rule starts a chain; a changed rule or due day moves the anchor; no rule clears all three. `todoRepeatText` says the rule.
 - **`todoRepeat`** (pure, `@caretook/data/series`): `nextDueDay` (first rule day after the due day and today; null once ended), `nextTodoId` (UUID v5 of chain and day), `nextOccurrence` (not entry links, notes or done), `isUntouchedNext` (open, live, as the tick made it).
 - **A repeating todo is one open row.** `complete` makes the next as the system in its transaction ("today": the tick's `doneAt` in the recipient's zone), unless a live row has its id (a soft-deleted one is restored). `reopen` soft-deletes an untouched next, else stops repeating. **Locked reads:** `complete`, `reopen`, `skip`, `removeUndoneNext`, `restoreOccurrence` read it `FOR UPDATE` (`lockById`) and decide from it (two ticks at once: one next). **Reopen's successor** (`laterInChain`, server and device): the chain's other live row made at or after this `done_at` and after this row, earliest by `created_at` then id, any due day; else by `due_on` (old ticks). Needs `done_at` clamped to `now()` (`complete`) and a next (restored too) made at the tick ≥1 ms after this (`stampMadeAfter`; device: `planNext`). `skip` (writers) deletes, makes the next. Stop is a plain delete.
-- **The screens:** `TodoRepeat` opens `RepeatSheet` (lazy; needs a due day; clearing the day clears it, `todoFormData`). `TodoRepeatMark` ("Repeats") on every row and the Today card; `todoRepeatLine` in details. `RepeatDeleteDialog` (Skip this one, Delete and stop repeating) for an open repeating todo only (`SKIP_INTENT`).
+- **The screens:** `TodoRepeat` opens `RepeatSheet` (lazy; needs a due day; clearing the day clears it, `todoFormData`). `TodoRepeatMark` ("Repeats") on every row and the Today card; `todoRepeatLine` in details. `RepeatDeleteDialog` (Skip this one, Delete and stop repeating): `TodoMenu`'s Delete on an open repeating todo.
 - **The device's next is a twin** with the same id, written in the tick's local transaction (`completeTodo`, `reopenTodo`, `skipTodo`). `todoOp`: a PUT whose `repeat_id` is another todo's goes to `upsertOccurrence` (an existing row is done for any role; a tick's (`TICK_NEXT_METADATA`) never creates; else another open todo in the chain makes it a no-op, or a writer's skip creates it); a PATCH of `deleted_at` to null restores (a tick's never with no open row). An Undo's delete of the next carries `UNDO_NEXT_METADATA`: `removeUndoneNext` checks the role, then applies it only if `reopen` would.
 
 ## Subtasks
@@ -46,18 +46,19 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md). A todo: title, assignee, due day a
 
 - `todosQuery`/`todoQuery` read; `createTodo`, `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. An unflagged done PATCH maps to `complete` or `reopen`.
 - `dueTodosQuery`, `dueTodosThrough`: the Today card; `linkedTodosQuery`, `linkOf`, `TodoLink`: provider and medication links.
-- Wording: `todoDisplay.ts`; filter, sections: `todoList.ts`; Undo: `todoUndo.ts`, `TodoUndoStatus` (stays mounted).
+- Wording: `todoDisplay.ts`; sections: `todoList.ts`; Undo: `todoUndo.ts`, `TodoUndoStatus`.
 
 ## Screens
 
 - **The Todos tab** (`routes/app/groups/todos/`, `appUrls.todos`; the Planner's): no Add button. "Assigned to" (Everyone, Mine, Unassigned; `?who=`); Overdue, Today, by day, No date; Done, 20 trees a page.
 - **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; `TodoLinkFields`: a `LinkToBox`, chips; posts `providerId`, `medicationId`, `entryIds`; edit: `addEntryIds`, `removeEntryIds`). They close to their opener (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS`.
-- **The todo page** (`routes/app/groups/todo/`, `appUrls.todo`), banded: `TodoHeader` (writers edit and delete), Details, Linked to (its links as their shared displays; writers' `LinkToBox`, Remove), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted: 404.
+- **One todo menu** (`TodoMenu`, B-1022): writers' ⋯ (Edit, Reopen once done, Delete) on `list`-look rows and the page header; each closes back where opened.
+- **The todo page** (`routes/app/groups/todo/`), banded: `TodoHeader` (writers' `TodoMenu`), Details, Linked to (shared displays; writers' `LinkToBox`, Remove), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted: 404.
 - **The tick** (`TodoTick`, `useTodoTick`) everywhere. **Easy roles:** the Planner (read-only), a todo's page (no edit or delete); they tick only their own.
 - **Links and backlinks:** **Link to box** (`LinkToBox`; `linkSearch.sync.ts`, pure `linkOptions.ts`): site search's device index; providers, medications, live notes and events, `compareHits` order, linked ones out; type chips and a first or last type word (`linkTypeWord`). Empty or a type word: `linkSuggestions`. `LinkedTodos` (provider, medication pages): open linked todos; writers' full `TodoQuickAdd` with the link and a compact one per open row.
-- **An entry's Todos** (`entry/EntryTodos.tsx`): open (tick, Undo), done (newest 20); writers' `TodoQuickAdd`, Link a todo (ComboBox, ≤ 20), Remove.
+- **An entry's Todos** (`entry/EntryTodos.tsx`): open, done (newest 20); writers' quick add, Link a todo, Remove.
 
 ## Seeds and checks
 
-- **Seeds** (`seeds/todos.ts`): open, overdue, done, unassigned; viewer@'s "Pick up groceries"; a linked one; weekly "Put the bins out"; "Get ready for the hospital stay" (subtasks).
+- **Seeds** (`seeds/todos.ts`): every state, a linked one, a weekly one, one with subtasks; viewer@'s "Pick up groceries".
 - **Tests:** unit, integration, component; `roundtrip` (`todo`, `timeline_entry_todo`): viewer@ ticks offline and a weekly one.
