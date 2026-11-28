@@ -39,7 +39,7 @@ Notes for every wave:
 | Slice | Item  | State           | Merge     |
 | ----- | ----- | --------------- | --------- |
 | 108   | B-975 | merged (sonnet) | 1689bd40d |
-| 109   | B-980 | started (opus)  |           |
+| 109   | B-980 | merged (opus)   | c5e753432 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
