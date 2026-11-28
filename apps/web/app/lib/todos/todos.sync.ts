@@ -772,6 +772,25 @@ const todoColumns = (row: Partial<typeof todos.$inferInsert>) => {
  * `_metadata` is PowerSync's, outside the Drizzle table, so a flagged insert
  * names the columns itself (a later UPDATE of it alone would upload a second op).
  */
+// A soft delete scrubs (data-rights): this device's copy of a todo it
+// deletes is left as the server's trigger leaves it (`SCRUB_SPECS.todo`), so
+// bringing it back (`planNext`) uploads every content column the server cleared.
+import { scrubbedColumns } from "@caretook/data/domain";
+
+const SCRUBBED_TODO_COLUMNS = Object.entries(scrubbedColumns("todo"));
+const SCRUBBED_TODO = Object.fromEntries(
+  SCRUBBED_TODO_COLUMNS.map(([column, value]) => [
+    column.replace(/_(\w)/g, (_, c: string) => c.toUpperCase()),
+    value,
+  ]),
+) as Partial<typeof todos.$inferInsert>;
+/** `SCRUBBED_TODO` as a raw `SET` list. */
+const scrubbedTodoSql = () =>
+  sql.join(
+    SCRUBBED_TODO_COLUMNS.map(([column, value]) => sql`${sql.identifier(column)} = ${value}`),
+    sql`, `,
+  );
+
 const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: string | null) => {
   if (!metadata) return tx.insert(todos).values(row);
   const set = todoColumns(row);
@@ -984,8 +1003,8 @@ export const reopenTodo = async (db: SyncDb, id: string): Promise<TodoWriteResul
       // still untouched there, as its reopen does (B-382). `_metadata` is
       // PowerSync's, outside the Drizzle table.
       await tx.run(
-        sql`UPDATE todo SET deleted_at = ${now}, updated_at = ${now}, updated_by = ${db.userId},
-              _metadata = ${UNDO_NEXT_METADATA} WHERE id = ${next.id}`,
+        sql`UPDATE todo SET ${scrubbedTodoSql()}, deleted_at = ${now}, updated_at = ${now},
+              updated_by = ${db.userId}, _metadata = ${UNDO_NEXT_METADATA} WHERE id = ${next.id}`,
       );
     }
     await rollup(tx);
@@ -1008,7 +1027,7 @@ export const skipTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult>
   await db.drizzle.transaction(async (tx) => {
     await tx
       .update(todos)
-      .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+      .set({ ...SCRUBBED_TODO, deletedAt: now, updatedAt: now, updatedBy: db.userId })
       .where(eq(todos.id, id));
     await next?.(tx);
   });
@@ -1044,7 +1063,7 @@ export const removeTodo = async (db: SyncDb, id: string): Promise<ActionResult> 
   if (!isTodoWriter(group?.role)) return forbidden;
   const below = await liveDescendantIds(db, id);
   const now = nowTimestamp();
-  const removed = { deletedAt: now, updatedAt: now, updatedBy: db.userId };
+  const removed = { ...SCRUBBED_TODO, deletedAt: now, updatedAt: now, updatedBy: db.userId };
   const rollup = await planRollup(
     db,
     { id, parentId: existing.parentId, doneAt: existing.doneAt, deletedAt: now },

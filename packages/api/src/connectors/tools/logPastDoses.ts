@@ -6,6 +6,7 @@ import {
   medicationPassService,
   medicationService,
   medicationTitle,
+  passLabel,
   SHEET_DOSE_MARKS_MAX,
   sheetDoseMarkZSchema,
 } from "@caretook/data";
@@ -82,7 +83,7 @@ export const logPastDoses = defineTool({
     const members = await loadMembers(ctx);
     if (isError(members)) return members;
     const medName = new Map(meds.data.map((m) => [m.id, medicationTitle(m)]));
-    const passName = new Map(passes.data.map((p) => [p.id, p.name]));
+    const passName = new Map(passes.data.map((p) => [p.id, passLabel(p)]));
     const who = new Map(members.map((m) => [m.id, m.name]));
 
     const marks: SheetDoseMark[] = args.marks;

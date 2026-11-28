@@ -4,14 +4,22 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-25), not started, **on hold** (two plan send-backs; the user chose the carve-out, a243). Lift with `pnpm backlog prd set data-rights flags-=hold`.
+### From the user
+
+- 2026-11-28 (relayed by the backlog session), asked to switch sessions to the personal account: "Yes, switch now"
+
+**Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
+
+**Where it stands:** wave 1 (slices 1 to 4, opus) is merged (2026-11-28). Codex round 1 on PR #341: thread …Gy4E tracked as B-1053; …Gy4C and …Gy4D fixed by the opus fix agent (f37932c78: a deleted todo keeps `assignee_id`; 9603a16e6 + 1b21ba284: `toPass` keeps a deleted pass, labelled `REMOVED_PASS` "Removed med time"), merged as `e2b40176f`, replied, resolved. Synced with dev again (no migration from dev) and pushed (78432f1). Codex round 2 (`risa review --wait`) and the full gate (`risa ci run full --wait`) run in the background. Next: on clean and green, `risa land data-rights --tier full`, `risa rm data-rights-<1..4>`, `risa backlog done B-84`, docs fold, status-trim, then `risa rotate` (past the soft context limit); slice 5 (claim B-357) in the next session. Follow-ups: B-1049, B-1053.
+
+**Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
-| 3     | 1    | not started |                                              |
-| 4     | 1    | not started |                                              |
+| 1     | 1    | merged      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
+| 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
+| 3     | 1    | merged      | `bfcdf7504` (60e80fbe7..f0745418d)           |
+| 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
 | 5     | 2    | not started |                                              |
 | 6     | 3    | not started |                                              |
 
