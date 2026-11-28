@@ -10,9 +10,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State          | Merge |
-| ----- | ----- | -------------- | ----- |
-| 88    | B-993 | working (opus) | —     |
+| Slice | Item  | State  | Merge     |
+| ----- | ----- | ------ | --------- |
+| 88    | B-993 | merged | 91d6467b7 |
 
 **Wave 24 running (2026-11-27):** slice 88 (B-993, opus): link suggestions' `upcomingEvents` limits before dropping ended all-day events. Hot: `apps/web/app/lib/todos/linkSearch`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Last landed: wave 23 (PR #285). Gotcha: run prettier on the plan after editing the Status table.
 
