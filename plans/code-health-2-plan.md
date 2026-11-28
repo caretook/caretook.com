@@ -4,7 +4,11 @@
 
 ## Status
 
-**Where it stands:** planned; nothing started.
+**From the user:** none yet.
+
+**Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Where it stands (2026-11-28):** wave 1 (slices 1, 4) starting. Models: opus for every slice (all refactors with real logic). Anchors: the four missing ones are files the slices create (exit 0); the file-budget warnings on slices 3-6 are the planner's, left.
 
 | Slice | Wave | State   | Merge into `prd/code-health-2` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
