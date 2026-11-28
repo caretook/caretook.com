@@ -19,15 +19,15 @@
 
 **Items:** slice 1 B-327, B-336 · slice 2 B-328, B-333, B-335 · slice 3 B-331 · slice 4 B-332 · slice 5 B-329, B-330, B-339 · slice 6 B-334 · slice 7 B-337.
 
-| Slice | Wave | State   | Merge into `prd/account-security` (slice commits)          |
-| ----- | ---- | ------- | ---------------------------------------------------------- |
-| 1     | 1    | landed  | 7dc6937a2 (d9a59529a)                                      |
-| 2     | 1    | landed  | 3ba59077b, fix 648aa0227 (aff560477, 68308a310, 1eff99e42) |
-| 3     | 1    | landed  | 25ab484aa, fix 555acc466 (28faf5d5e, 089a77ddd)            |
-| 4     | 2    | landed  | 515224cc9 (273ba77a0)                                      |
-| 5     | 2    | landed  | fcf8a50d3 (1a43a0197)                                      |
-| 6     | 2    | landed  | e75ed6950 (1e5f23269)                                      |
-| 7     | 3    | merged  | d678e2ed6 (7de389d29)                                      |
+| Slice | Wave | State  | Merge into `prd/account-security` (slice commits)          |
+| ----- | ---- | ------ | ---------------------------------------------------------- |
+| 1     | 1    | landed | 7dc6937a2 (d9a59529a)                                      |
+| 2     | 1    | landed | 3ba59077b, fix 648aa0227 (aff560477, 68308a310, 1eff99e42) |
+| 3     | 1    | landed | 25ab484aa, fix 555acc466 (28faf5d5e, 089a77ddd)            |
+| 4     | 2    | landed | 515224cc9 (273ba77a0)                                      |
+| 5     | 2    | landed | fcf8a50d3 (1a43a0197)                                      |
+| 6     | 2    | landed | e75ed6950 (1e5f23269)                                      |
+| 7     | 3    | merged | d678e2ed6 (7de389d29)                                      |
 
 ## Architectural decisions
 
