@@ -8,17 +8,17 @@
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
-**Now (2026-11-28):** wave 1 (1, 3, 4 + fixes) green on the synced tip 0578f2ae6 (run 46177579925); docs folded (assistant, app-shell); browser checks: app-shell, sign-in, first-sync pass; session-end fails 3/3 on a missing symptom row, not ours (no green anywhere since 2026-11-27; filed B-1054, backlog session agrees). PR #344 open, Codex clean on 8a0c7ab (two findings: B-1056 filed; the sheet-not-closing-after-Go one is fixed by slice 5). Land refused (dev touched domain.test.ts): re-synced aa76a65e, components CI rerun out; then `risa pr`, land wave 1, merge 2 then 5, rotate (past soft limit). Slices 2 (190bb66e4) and 5 (3af4ddbfd) handed off, held unmerged. Wave 1's fixes: slice 3 renamed its type `QuickEntryPageContext`; slice 1 kept header `px-4` up to `lg` for headerFit at 640.
+**Now (2026-11-28), hand-over for the next session:** **wave 1 (slices 1, 3, 4) landed** in dev as 9741f478a (PR #344, components; Codex clean; flake noted on B-1057; report a415; docs folded into assistant.md and app-shell.md). **Wave 2 (slices 2, 5) is merged** into prd/quick-entry-3: slice 2 as 5b49e0039 (d59858be2), slice 5 as f2d90201b (fe9a688df); B-1038, B-1039 marked done (ready). No slice in flight. **Resumed (session 3):** synced 8f8a21825 (no merge needed; took dev's quarantine.txt, so `risa tier` says full; the code is apps/ only, so the wave 2 run is **components**, landing `--why` that). Wave 2 docs folded into assistant.md (trimmed to stay under budget). Browser `--changed`: sign-in pass, session-end FAIL (known B-1054, not ours). Wave 2 components run 46179610800 on 8f8a21825: **flake** (frame.browser.test.tsx group menu; not our file). Synced dev again (04250ad18: packages/ from dev), integration recheck out. PR #345 open, Codex review waiting. **Next:** the recheck, Codex triage, land `--tier components --why`; then the rest of the old next: the wave 2 CI run (`risa tier`; likely components), browser checks (`risa browser --changed --base dev`), `risa pr quick-entry-3` + `risa review --wait`, land wave 2, fold its docs (assistant.md: the shortcut `/`, Cmd/Ctrl+K via `useQuickEntryShortcut`, offered by the frame's `useOfferQuickEntry`; `runCommand` in lib/assistant: page → `appUrls`, new tab `window.open(…, "noopener")`, in place on native; Go closes the sheet; `QuickEntryCommandCard`), file the report, then `risa rm quick-entry-3` (last wave). Slice worktrees 2 and 5 were removed (merged) so rotate could run; a wave 2 CI failure gets a fresh fix agent on a new `risa slice` worktree or on prd directly. Both docs are at their 10 KB budget: trim what you fold in. Open: B-1054 (session-end browser check, fixes-tooling, not ours), B-1056 (Codex follow-up, triaged to this topic for the user).
 
-**Notes from hand-offs:** slice 1 added a reader refusal in the box (`!canLog` → no cards, `READER_REFUSAL` message), since `partsForRole` didn't refuse a reader's vital; fold into assistant.md at landing. Check `headerFit.browser.test.tsx` at the gate (new header button, ~36px). Slice 4's page keys and suggested URL map are in its hand-off for slice 5 (planner, medicationSchedule, profileAllergies, groupSettings for members/tags, account settings, periods). Slice 3: `useQuickEntrySuggestions` gets no page context (left alone). Backlog at the boundary: nothing new for this topic.
+**Notes from hand-offs (wave 1, landed):** slice 1 added a reader refusal in the box (`!canLog` → no cards, `READER_REFUSAL` message), since `partsForRole` didn't refuse a reader's vital; fold into assistant.md at landing. Check `headerFit.browser.test.tsx` at the gate (new header button, ~36px). Slice 4's page keys and suggested URL map are in its hand-off for slice 5 (planner, medicationSchedule, profileAllergies, groupSettings for members/tags, account settings, periods). Slice 3: `useQuickEntrySuggestions` gets no page context (left alone). Backlog at the boundary: nothing new for this topic.
 
-| Slice | Wave | State      | Merge into `prd/quick-entry-3` (slice commits) |
-| ----- | ---- | ---------- | ---------------------------------------------- |
-| 1     | 1    | merged     | 918598d63 (ac658e785)                          |
-| 2     | 2    | handed off |                                                |
-| 3     | 1    | merged     | 5dd34f0d8 (d81c8c54e, 6e4c09790, 19c9d74ae)    |
-| 4     | 1    | merged     | 4a31039bc (f9cd16008)                          |
-| 5     | 2    | handed off |                                                |
+| Slice | Wave | State  | Merge into `prd/quick-entry-3` (slice commits) |
+| ----- | ---- | ------ | ---------------------------------------------- |
+| 1     | 1    | merged | 918598d63 (ac658e785)                          |
+| 2     | 2    | merged | 5b49e0039 (d59858be2)                          |
+| 3     | 1    | merged | 5dd34f0d8 (d81c8c54e, 6e4c09790, 19c9d74ae)    |
+| 4     | 1    | merged | 4a31039bc (f9cd16008)                          |
+| 5     | 2    | merged | f2d90201b (fe9a688df)                          |
 
 **Backlog:** claim a slice's item when it starts; `risa backlog done` an item when its last slice merges.
 
