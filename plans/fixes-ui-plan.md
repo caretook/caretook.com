@@ -26,8 +26,12 @@ Notes for every wave:
 
 **Restarted 2026-11-28, run-through:** landing mode run everything through. Fixed 2 stale anchors (slices 96, 97: forms moved to `components/`). Ingest empty, prd/fixes-ui = dev (04f86cd85). Wave 23: slices 111 (B-1015), 112 (B-1016), 113 (B-1021), all opus, parallel. Hot: `components/entry/`, `routes/app/groups/timeline/`, `routes/app/groups/todos/`, `lib/todos/`, `components/tags/`.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Restarted 2026-11-28 (next session), run-through:** landing mode run everything through. No cut-off landing; ingest empty; sync: up to date with dev (prd/fixes-ui = dev + the wave 23 docs commit b16e882e4). Wave 24: slices 114 (B-1022), 115 (B-1023), both opus, parallel. Hot: `components/todos/`, `routes/app/groups/todo/`, `routes/app/groups/todos/`, `routes/app/groups/planner/`, `lib/todos/`, `components/tags/`.
+
+| Slice | Item                  | State         | Merge |
+| ----- | --------------------- | ------------- | ----- |
+| 114   | B-1022 (todo ⋯ menu)  | started, opus |       |
+| 115   | B-1023 (add-tag wrap) | started, opus |       |
 
 **Wave 23 landed 2026-11-28** as dev cbed7d899 through PR #330 (Codex clean on 2838d42), CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shared no file), landed on an unsynced tip. to-test/2026-11-28-0957-fixes-ui.md. Slices 111 (B-1015 one `TimelineEntryRow` with `look`, `TimelineEntryCard` gone, `PassLogItem` follows; opus, 1bca848ec), 112 (B-1016 Done as trees via `doneTreePage`; opus, e8c1c0298), 113 (B-1021 add-tag button is the chips list's last item; opus, 299ddb718). Browser `--changed`: roundtrip pass (no `--suite`: the user wants it asked first). Docs folded into components, timeline, todos, layout (trimmed to stay at or under dev). Slice worktrees removed. Waiting for the next wave: B-1022 (todo rows get a ⋯ menu), B-1023 (add-tag wraps 6px in on narrow rows).
 
@@ -1658,4 +1662,37 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component test (`quickTagsRow.browser.test.tsx`): with chips present, the add-tag button's vertical centre matches the chips' within 1px, in a row and in a header placement.
 - [ ] Hand-off names each place checked in the browser and how it looked.
+- [ ] Existing tags tests pass.
+
+## Wave 24 (written 2026-11-28 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency. The two slices run in parallel: slice 115 stays inside `components/tags/`; slice 114 doesn't touch it.
+
+## Slice 114: Todo rows get the shared ⋯ menu (Edit, Reopen, Delete); the todo page's Edit moves into it (B-1022)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** The user (2026-11-28): "The todo items in the planner todos tab should have a hamburger menu to the right of the add subtask icon button that allows direct edit and delete. Edit should move into the hamburger on the todo display page." And: "shared components that go back to the right place for all of that if possible".
+
+**Build.** One shared todo menu (the existing ⋯ look: `components/ui` `Menu` with the `Ellipsis` icon, as `routes/app/groups/todo/TodoActions.tsx` and the timeline's `EntryMenu` use; not a new hamburger icon) with Edit, Reopen (only once done) and Delete, used by `components/todos/TodoRow.tsx` (right of the add-subtask button, so it shows wherever todo rows appear: planner Todos tab, Todos page, Done) and by the todo page header (`TodoHeader`: its actions become ⋯ only). Move what both need (the menu, the delete confirm naming subtasks, `RepeatDeleteDialog`'s skip-or-stop for an open repeating todo, the intents) into `components/todos/` so there's one edit sheet and one delete flow. Each returns to where it was opened: Edit from a row opens the same edit sheet and closes back to that row's list with its scroll kept, not the todo page; Delete from a row stays on the list (the row leaves); from the todo page, Edit comes back to the page and Delete goes back to the list the page was opened from (as today). Writers only: readers see no menu. Keep the row's tap targets spaced from the add-subtask button.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a writer's todo row shows ⋯ right of add-subtask with Edit and Delete (and Reopen when done); a reader's row shows none.
+- [ ] Component test: Edit from a row on the planner Todos tab and on the Todos page opens the edit sheet and saving or closing returns to that list, not the todo page.
+- [ ] Component test: Delete from a row asks the same confirm (subtask count; skip-or-stop for a repeating todo) and the row leaves while the list stays.
+- [ ] Component test: the todo page header has no separate Edit button; ⋯ holds Edit, Reopen and Delete, and they behave as before.
+- [ ] Existing todo, todos, todo-tree and planner tests pass; grep tests and `scripts/browser-checks/` for the old Edit button and update any that break.
+
+## Slice 115: The add-tag button starts flush left when it wraps to its own line (B-1023)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/tags.md · Tests: component
+
+**Problem.** Found by slice 113 (B-1021): the add-tag button is the tags list's last item with `ml-1.5` (`components/tags/TagChips.tsx`); in narrow columns (medication list row ~238px, provider page header ~246px) two chips plus +N fill the line, so the button wraps and starts 6px in from the left.
+
+**Build.** Fix it once in `components/tags/` (e.g. the list's gap spacing the button instead of a left margin), so a wrapped button starts flush with the chips' left edge and an unwrapped one keeps its room from the last chip and its centre line (B-1021). Don't edit callers' layouts.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in a narrow container where the button wraps, its left edge matches the first chip's within 1px; in a wide one it keeps its spacing from the last chip and its vertical centre matches the chips' within 1px.
 - [ ] Existing tags tests pass.
