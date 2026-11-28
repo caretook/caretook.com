@@ -19,8 +19,8 @@ import {
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { QuickTags } from "~/components/tags";
 import { ConfirmDialog, Message, Sheet } from "~/components/ui";
-import { ProviderForm } from "../ProviderForm";
-import { issuesForRows, providerFromForm } from "../providerFormData";
+import { ProviderForm } from "~/components/providers";
+import { issuesForRows, providerFromForm } from "~/lib/providers/providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
 import { editProviderGuard } from "../providerSheetGuard";
 
