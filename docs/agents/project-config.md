@@ -37,6 +37,6 @@ The `risa` command runs the machine's release (`~/.risa/releases/<tag>`); the re
 
 1. Pin the release's commit (the tag's `^{}` sha, `git ls-remote https://github.com/interrobangc/risa 'refs/tags/<tag>^{}'`) in `package.json`; `pnpm install`.
 2. Regenerate `scripts/project/prompt-golden.txt` (`renderPrompts` from `risa/loops/prompt-render.mjs` on `risa.json`) and read the diff: only the release's intended changes.
-3. Read the release's role docs where our additions continue them: an additions file follows the generic doc's last section, so restore in our file any lead-in the release dropped (2026-11-28: v0.2.0 dropped backlog's "Standing priorities:").
+3. Read the release's `CHANGELOG.md` for changed role-doc headings: an additions `## <Heading>` naming a generic `##` heading ends that section (2026-11-28: v0.2.1 added orchestrator's _Rules across PRDs_ and _The check gate_, so ours became their continuations).
 4. Run `pnpm test:tooling` and see the test files run and pass (35 on 2026-11-28). It calls the runner by its real path: through the `node_modules` symlink the runner does nothing and exits 0 (RISA-1048, since Risa v0.1.0). Once that fix is pinned, the script may go back to the plain path.
 5. Commit as `build(tooling): pin Risa vX.Y.Z`, naming what the release brings.

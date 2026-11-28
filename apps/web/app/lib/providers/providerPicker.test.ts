@@ -48,6 +48,17 @@ describe("pickerOptions for a condition", () => {
       { id: "lee", label: "Dr. Mei Lee", description: "Cardiology" },
     ]);
   });
+
+  it("neither names nor matches a deleted practice", () => {
+    const group = [
+      provider("old", "practice", "Harbor Clinic", { deletedAt: "2026-11-01T00:00:00Z" }),
+      provider("ada", "clinician", "Dr. Ada Moss", { specialty: "Neurology", practiceId: "old" }),
+    ];
+    expect(pickerOptions(group, fitsCondition, "")).toEqual([
+      { id: "ada", label: "Dr. Ada Moss", description: "Neurology" },
+    ]);
+    expect(pickerOptions(group, fitsCondition, "harbor")).toEqual([]);
+  });
 });
 
 describe("canAddPicked", () => {
@@ -61,11 +72,12 @@ describe("canAddPicked", () => {
     expect(canAddPicked(GROUP, fitsCondition, "  ")).toBe(false);
   });
 
-  it("labels a chosen one new or removed", () => {
+  it("labels a chosen one new or removed, never naming a removed one", () => {
     expect([
       chosenLabel("A", { isNew: true }),
       chosenLabel("A", { deleted: true }),
+      chosenLabel("", { deleted: true }),
       chosenLabel("A"),
-    ]).toEqual(["A (new)", "A (removed)", "A"]);
+    ]).toEqual(["A (new)", "Removed provider", "Removed provider", "A"]);
   });
 });

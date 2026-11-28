@@ -8,6 +8,7 @@ import {
   doseText,
   passMovedText,
 } from "@caretook/data/schema";
+import { removedChangeText } from "../timeline/entryDisplay";
 
 // The dose, schedule and change wording is `medicationDisplay`'s, shared with
 // the medication page; re-exported so the timeline imports one module.
@@ -35,9 +36,21 @@ export type WithMedication = {
   schedulePasses?: readonly SchedulePass[];
 };
 
-/** "Lisinopril 10 mg", or just the name without a strength; "Medication" when it isn't on the device. */
-export const medicationLabel = (medication: Pick<EntryMedication, "name" | "strength"> | null | undefined) =>
-  medication ? [medication.name, medication.strength?.trim()].filter(Boolean).join(" ") : "Medication";
+/** What a deleted medication reads as: its name went with it (a delete scrubs the row). */
+export const REMOVED_MEDICATION = "Removed medication";
+
+/**
+ * "Lisinopril 10 mg", or just the name without a strength; "Removed
+ * medication" once it's deleted; "Medication" when it isn't on the device.
+ */
+export const medicationLabel = (
+  medication: (Pick<EntryMedication, "name" | "strength"> & { deletedAt?: string | null }) | null | undefined,
+) =>
+  !medication
+    ? "Medication"
+    : medication.deletedAt
+      ? REMOVED_MEDICATION
+      : [medication.name, medication.strength?.trim()].filter(Boolean).join(" ");
 
 /** The medication a dose's or change's details name, or null for any other entry. */
 export const medicationIdOf = (entry: {
@@ -77,18 +90,26 @@ export const entryMedication = (entry: object): EntryMedication | null | undefin
  * A dose's or change's two parts: what happened ("Given 1 tablet") and its
  * note (a dose's note, a stop's note), or null for any other entry. A pass's
  * move names no medication: its `what` is the whole line ("Morning moved
- * 8:00 → 8:30"), shown on its own (`standalone`).
+ * 8:00 → 8:30"), shown on its own (`standalone`). A deleted medication's
+ * change lost its summary with the medication: the whole line is "Removed
+ * medication changed" (`removed`).
  */
 export const medicationEntryText = (
   entry: {
     kind: TimelineEntryKind;
     details: TimelineEntryDetails | null;
   } & WithMedication,
-): { what: string; note: string | null; standalone?: true } | null => {
+): { what: string; note: string | null; standalone?: true; removed?: true } | null => {
   if (entry.kind === "medicationChange" && isPassMovedDetails(entry.details))
     return { what: passMovedText(entry.details), note: null, standalone: true };
   if (entry.kind === "dose" && isDoseDetails(entry.details))
     return { what: doseText(entry.details), note: entry.details.note?.trim() || null };
+  if (
+    entry.kind === "medicationChange" &&
+    isMedicationChangeDetails(entry.details) &&
+    entry.medication?.deletedAt
+  )
+    return { what: removedChangeText(REMOVED_MEDICATION), note: null, removed: true };
   if (entry.kind === "medicationChange" && isMedicationChangeDetails(entry.details))
     return {
       what: changeText(entry.details, entry.schedulePasses),

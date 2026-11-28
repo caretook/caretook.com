@@ -147,10 +147,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | hosting |  | Real app screenshots for the marketing site before launch |
 | B-52 | feature | triaged | data-rights-2 |  | Ability to download all data from the app to a file for backup or transfer to another device. |
-| B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
+| B-53 | feature | in-progress | data-rights | prd/data-rights | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
+| B-84 | feature | in-progress | data-rights | prd/data-rights | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security-2 |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
@@ -208,17 +208,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
-| B-749 | chore | in-progress | fixes-tooling | prd/fixes-tooling | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
+| B-749 | chore | ready | fixes-tooling | prd/fixes-tooling | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-tooling |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-752 | bug | triaged | fixes-tooling | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-772 | chore | landed | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
-| B-776 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
+| B-776 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
-| B-785 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
-| B-790 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
+| B-785 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
+| B-790 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
 | B-795 | chore | triaged |  |  | Clean Caretook's history of the orchestration tooling and its bloat |
 | B-802 | bug | triaged | fixes-tooling |  | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
@@ -228,7 +228,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-836 | feature | triaged | marketing-3 |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
 | B-837 | change | landed | test-time-gates-2 | prd/test-time-gates-2 | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | ready | fixes-tooling | prd/fixes-tooling | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
-| B-851 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
+| B-851 | chore | ready | fixes-tooling | prd/fixes-tooling | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
@@ -246,10 +246,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
-| B-949 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
+| B-949 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
-| B-967 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
+| B-967 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
@@ -300,6 +300,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1042 | feature | triaged | quick-entry-4 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
 | B-1043 | feature | triaged | quick-entry-find |  | Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer |
 | B-1044 | feature | triaged | quick-entry-find |  | Quick entry 'go to <provider or medication>' by name (after moving the parser's name matchers into the assistant domain) |
+| B-1045 | bug | triaged | fixes-tooling |  | Inbox handoff (risa rotate --self) didn't work |
+| B-1046 | bug | triaged | fixes-bug |  | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
 
 ## Items
 
@@ -347,9 +349,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-53 · feature · Ability to delete ALL data from the app.
 
-- status: triaged
+- status: in-progress
 - prd: data-rights
-- owner:
+- owner: prd/data-rights
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for 'data-rights' with B-52. Needs scoping in the PRD: 'delete ALL data' could mean this device's copy, one group (owners), or the whole account. Ties to the open question about a last owner deleting their account.
@@ -380,9 +382,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
-- status: triaged
+- status: in-progress
 - prd: data-rights
-- owner:
+- owner: prd/data-rights
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-1 (launch): soft-deleted rows keep title, body, details and the document, and sync to every member's device. Scrub to a tombstone and purge later. The undo window and retention are open for the data-rights interview (user, 2026-11-19).
@@ -930,7 +932,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-23 (Robert Bo Davis): [ci-key c6539843d37a] Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/test-gates.
 - 2026-11-23 (prd/test-gates): Same test as B-492 (search.sync, about 2,000 entries, flaky under load), now seen on the CI Linux runner in run 45117253571: likely a duplicate, for fixes-tooling to merge.
@@ -989,10 +991,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-749 · chore · check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-24 (prd/test-health-2): From test-health-2 slice 5 (B-371, landed 2724ace): sync-writers.mjs calls these through the module hook, so a change to one should run roundtrip.
 
@@ -1055,10 +1057,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-776 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-24 (Robert Bo Davis): [ci-key e2d38cbde9e2] Flaked (passed on its rerun); found by prd/symptom-catalog.
 
@@ -1082,23 +1084,25 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-785 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back …
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 6f358488771f] Flaked (passed on its rerun); found by prd/fixes-ui.
 - 2026-11-24 (prd/fixes-ui): Flaked (passed on its rerun); found by prd/fixes-ui.
 - 2026-11-27 (prd/fixes-bug): Seen again 2026-11-27, fixes-bug wave 17 components run 45989155987 (afeee38c), quarantined (failed). The wave changed entry Back (B-936) but not the timeline opener this test uses.
+- 2026-11-28 (slice/fixes-tooling/97): Slice 97: cause found. Reaching today from a jump ends the bounded window, so Chrome's scroll anchoring came back on in that same commit and moved the page, then NewerEntries' hold moved it again (the row ended about 2000 px off screen and the tap missed). Fixed in the app (anchoring off for the hold's measure and move), with a new test; out of quarantine.
 
 ### B-790 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 43621eb66fd1] Flaked (passed on its rerun); found by prd/fixes-ui.
+- 2026-11-28 (slice/fixes-tooling/97): Slice 97: the race, read from the code: the sentinel is still in range when the fourth page lands, so a fifth can start before the scroll away and land between the row counts. The test now waits for any page still loading. 20/20 in both zones; out of quarantine. retry: 2 was already gone.
 
 ### B-791 · bug · CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe…
 
@@ -1134,7 +1138,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-25 (prd/planner-3): planner-3's lean browser suite (2026-11-25, load ~10 on 10 cores): ui.spec.mjs:83, '420 dark › add sheet: the full screen', the Symptom add sheet's surface measured width 0, height 0. Passed alone on a rerun (6s), same tip. Looks like a read-before-render race: the evaluate walks up to the first element with a background and measures it once its animations finish, without waiting for a non-zero box. Fix the wait (e.g. expect.poll on the box), not a retry. No planner-3 file touches the add sheet or ui.spec.
 - 2026-11-25 (prd/fixes-ui): Seen again 2026-11-25 in fixes-ui wave 13's lean suite (420 dark, add sheet measured 0 by 0; load 14-22); the wave didn't touch the add sheet.
@@ -1193,16 +1197,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-25 (Robert Bo Davis): search.sync.browser.test.tsx's timing case failed once in components-2 on candidate run 45672578898 (77d9d75a) and passed on rerun; on the brake list (*.sync.browser.test.tsx), so it refused promote. A rerun on the same tip was green (45675167795). Triage: fixes-tooling (a CI-load timing bound, not a sync bug); loosen or move the bound off the brake path.
 
 ### B-851 · chore · Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-25 (Robert Bo Davis): from marketing-2's landing, 2026-11-25: tier proposed full only for scripts/build/share-image.mjs
 
@@ -1367,7 +1371,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-26 (prd/fixes-ui): fixes-ui wave 16 landing, 2026-11-26: ui.spec.mjs:83 '420 dark › add sheet: the full screen' got {top 0, left 0, width 0, height 0} (vw 0) under load ~20 on prd/fixes-ui 47084b66; passed alone twice right after. The walk up to the first non-transparent ancestor runs before the sheet has size; wait for a non-zero rect (expect.poll) before measuring. Log: .git/worktrees/fixes-ui/caretook-browser/ui-20261126-141150.log
 
@@ -1386,12 +1390,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-949 · bug · CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-27 (Robert Bo Davis): [ci-key fd7fd0937a02] Flaked (passed on its rerun); found by prd/tags-2. First failure: AssertionError: expected '/sheet' to be '/' // Object.is equality at http://127.0.0.1:41401/home/runner/work/caretook.com/caretook.com/apps/web/app/components/ui/sheetExit.browser.test.tsx?import&browserv=1812567600000:336:22 at async http://127.0.0.1:41401/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq--D.js?v=affb89f5:5247:20
+- 2026-11-28 (slice/fixes-tooling/98): Cause (slice 98): the test read the location one frame after Back, but with reduced motion nothing holds it and the router lands it in a React transition (RouterProvider's startTransition), a task of its own. After a long task the overdue frame runs first: a 150 ms busy loop after pressBack fails it 3 of 3 locally with the CI error. Fix: poll the location, then assert no exit played. useSheetExit is right. Still in quarantine until risa ci removes the entry.
 
 ### B-954 · bug · Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause
 
@@ -1402,6 +1407,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-27 (prd/fixes-bug): From fixes-bug slice 75 (B-951), 2026-11-27: the roundtrip tags failure was a stack without migration 0048 (tag.color) after a dev sync with no datastore:reset; every tag upload failed sync:failed and the server held 0:0. Wanted: pnpm prd browser (and prd serve) refuse, or warn, when the stack's applied migrations are behind packages/data's, naming pnpm datastore:reset.
 - 2026-11-27 (prd/fixes-bug): Hit again 2026-11-27 on fixes-bug's own stack (loop1) at wave 17's browser checks: roundtrip failed with uploads waiting:2 on both devices; pnpm datastore:reset made it pass.
+- 2026-11-28 (prd/fixes-tooling): Hit again 2026-11-28 (fixes-tooling wave 12): after risa sync merged free-limits' user.group_limit, serve --restart kept the old schema; sign-in 500'd (column group_limit does not exist) and both browser checks failed at sign-in; pnpm datastore:migrate fixed it.
 
 ### B-965 · change · Group the tiny shared app helper chunks on the first /app load
 
@@ -1415,10 +1421,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-967 · bug · Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: d5de20fb4
 
 - 2026-11-27 (prd/fixes-perf): Found at the fixes-perf wave 2 landing (2026-11-27): fails 4/4 on prd/fixes-perf and also on the wave 1 tip (5fe538b8) with no wave 2 change, so it predates wave 2. scripts/browser-checks/layout-offline.spec.mjs ~166 clicks main ol a[aria-label^="Edit "] (an absolute inset-0 overlay); in the Full layout its centre lands on the row's tag-chip strip (div.flex.flex-wrap.items-center.gap-1 in div.min-w-0.flex-1.space-y-0.5) and the sticky [data-day-header], which intercept the click. Logs: .git/worktrees/fixes-perf-9/caretook-browser/layout-offline-20261127-083228.log and -083346.log. Fix: click the link clear of the chips (position), or check whether chips should pass clicks through to the row link (if users can't open a row by tapping its middle, it's a fixes-ui item instead).
 - 2026-11-28 (slice/fixes-tooling/99): Slice 99 (a76b86566): not a UI bug now. B-970 (fixes-bug, landed 2026-11-27 13:29, after these failure logs) made QuickTags w-fit, so a tap beside the chips opens the row; chips are their own controls by design (tags.md). layout-offline passed unchanged; the step now taps the card's top padding (only the stretched link) so it no longer depends on the first row's tag widths.
@@ -1453,7 +1459,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-27 (prd/symptom-catalog-2): symptom-catalog-2 landing, 2026-11-27, load 15-19: ui.spec.mjs:83 read the box before the sheet's open animation laid it out (read-before-render race). Passed alone at once.
 
@@ -1472,7 +1478,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-27 (prd/code-health): Seen on prd/code-health 5d4ee6ba (PR #299), full run 46097107440, components-1. The branch doesn't touch lib/search; it passed 3 of 3 locally. A hard 50 ms wall-clock bound is too tight for a loaded runner.
 - 2026-11-27 (prd/code-health): Same flake filed from CI as B-1000 at code-health's landing (run 46098408581); one fix covers both.
@@ -1482,7 +1488,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-27 (Robert Bo Davis): [ci-key 19f35fba4fff] Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/code-health. First failure: AssertionError: {"knee":17.5,"short of breath":12.200000000011642,"\"short of breath\"":16.900000000023283,"walk -cane":9.299999999988358,"pres":5.699999999953434,"the":66.90000000002328}: expected 66.90000000002328 to be less than 50 at http://127.0.0.1:40387/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:273:68 at async http://127.0.0.1:40387/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e…
 - 2026-11-28 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/onboarding-2. First failure: AssertionError: {"knee":13.900000000023283,"short of breath":23.599999999976717,"\"short of breath\"":12.599999999976717,"walk -cane":24.20000000006985,"pres":14.699999999953434,"the":64.80000000004657}: expected 64.80000000004657 to be less than 50 at http://127.0.0.1:33399/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:273:68 at async http://127.0.0.1:33399/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bf…
@@ -1524,7 +1530,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-28 (Robert Bo Davis): [ci-key 4fabb218dd4d] Flaked (passed on its rerun); found by prd/sync-safety-2. First failure: Error: expected [] to deeply equal [ [ { type: 'event', …(1) } ] ] at Proxy.__VITEST_POLL_CHAIN__ (http://127.0.0.1:39733/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/index.CZzC1gGg-CNxlpHSe.js?v=6a759c9c:5950:47) at http://127.0.0.1:39733/home/runner/work/caretook.com/caretook.com/apps/web/app/components/todos/linkToBox.browser.test.tsx?import&browserv=1812567600000:145:46 at async http://127.0.0.1:39733/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bff…
 - 2026-11-28 (prd/sync-safety-2): Flaked (passed on its rerun); found by prd/sync-safety-2. First failure: Error: expected [] to deeply equal [ [ { type: 'event', …(1) } ] ] at Proxy.__VITEST_POLL_CHAIN__ (http://127.0.0.1:39733/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/index.CZzC1gGg-CNxlpHSe.js?v=6a759c9c:5950:47) at http://127.0.0.1:39733/home/runner/work/caretook.com/caretook.com/apps/web/app/components/todos/linkToBox.browser.test.tsx?import&browserv=1812567600000:145:46 at async http://127.0.0.1:39733/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bff…
@@ -1535,7 +1541,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit: 6b78c07f3
+- commit: d5de20fb4
 
 - 2026-11-28 (Robert Bo Davis): [ci-key 46c0bc48fe6c] Flaked (passed on its rerun); found by prd/onboarding-2. First failure: Error: expected [] to deeply equal [ [ { type: 'event', …(1) } ] ] at Proxy.__VITEST_POLL_CHAIN__ (http://127.0.0.1:42671/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/index.CZzC1gGg-CNxlpHSe.js?v=cccfb9e6:5950:47) at http://127.0.0.1:42671/home/runner/work/caretook.com/caretook.com/apps/web/app/components/todos/linkToBox.browser.test.tsx?import&browserv=1812567600000:430:46 at async http://127.0.0.1:42671/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bff…
 - 2026-11-28 (slice/fixes-tooling/96): Cause (slice 96): the test rendered the box edge to edge; React Aria's list (12px in from the viewport edge, as wide as the field) ran 12px past the right edge, so ArrowDown's scroll of the focused option into view scrolled the document, and useCloseOnScroll closed the list a frame later. An Enter landing after that frame (a slow runner) found it closed and picked nothing. Shown deterministically with a 400 ms gap between the keys (both fail; pass after the fix). Fix: render inside the px-4 gutter, as on its sheets; a guard asserts no sideways overflow before the keys.
@@ -1902,3 +1908,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (plan/quick-entry-3): Split from B-1039 on 2026-11-28 (user chose to split quick-entry-3 in two after two skeptic send-backs). Scope and the matchers' move list: quick-entry-3 PRD, The whole plan.
+
+### B-1045 · bug · Inbox handoff (risa rotate --self) didn't work
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: risa rotate --self reported 'Opened inbox in a new background iTerm2 tab' but the handoff did not take effect, per the user.
+- 2026-11-28 (Robert Bo Davis): A Risa bug (risa rotate --self); passed to the risa backlog session 2026-11-28.
+
+### B-1046 · bug · Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the…
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the screen is empty until the user scrolls, then everything appears (alpha tester, mobile)
+- 2026-11-28 (Robert Bo Davis): Timeline paints empty below the header until a scroll; likely the infinite list measuring before layout or data arrives. Screenshot from an alpha tester, 2026-11-28.

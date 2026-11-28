@@ -86,7 +86,7 @@ describe("this checkout's role docs", () => {
       ["loop", "Your worktree and stack", /Slots and ports/],
       ["orchestrator", "Models", /^## Models\n\n\*\*Coding goes to opus/],
       ["orchestrator", "Recovery", /\*\*Resuming as orchestrator:\*\*/],
-      ["orchestrator", "The check gate", /^### The check gate\n[\s\S]*\*\*How each kind lands:\*\*/],
+      ["orchestrator", "The check gate", /^## The check gate\n[\s\S]*\*\*How each kind lands:\*\*/],
       [
         "orchestrator",
         "Rules across PRDs",
