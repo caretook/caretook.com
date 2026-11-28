@@ -90,8 +90,8 @@ export const signOutOnServer = async (sessionId: string | null): Promise<void> =
   setPending((await tellServer()) ? false : { sessionId });
 };
 
-/** Whose session the cookie holds now: its id, `null` for none, or `unknown` with no answer. */
-const cookieSession = async (): Promise<string | null | "unknown"> => {
+/** Whose session the cookie holds now: `{ id }` (`null` for none), or `unknown` with no answer. */
+const cookieSession = async (): Promise<{ id: string | null } | "unknown"> => {
   const answer = await withTimeout(
     authClient.getSession({ query: { disableCookieCache: true } }).catch(() => null),
     NETWORK_ANSWER_MS,
@@ -99,8 +99,8 @@ const cookieSession = async (): Promise<string | null | "unknown"> => {
   );
   if (!answer) return "unknown";
   const outcome = sessionOutcome(answer);
-  if (outcome.kind === "ok") return outcome.data.session.id;
-  return outcome.kind === "signedOut" ? null : "unknown";
+  if (outcome.kind === "ok") return { id: outcome.data.session.id };
+  return outcome.kind === "signedOut" ? { id: null } : "unknown";
 };
 
 /**
@@ -128,9 +128,9 @@ export const finishPendingSignOut = async (): Promise<PendingSignOut> => {
   if (sessionId !== null) {
     const holding = await cookieSession();
     if (holding === "unknown") return "pending";
-    if (holding !== sessionId) {
+    if (holding.id !== sessionId) {
       setPending(false);
-      return holding === null ? "signedOut" : "kept";
+      return holding.id === null ? "signedOut" : "kept";
     }
   }
   if (!(await tellServer())) return "pending";
