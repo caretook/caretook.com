@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/lib/todos/`, `apps/web/app/components/tags/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `marketing-3` | — | — | — | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `free-limits` | — | — | `packages/data/src/services/careGroupService.ts`, `packages/data/src/services/groupLimitService.ts`, `packages/data/src/db/schema/admin/appSettings.ts`, `packages/data/src/db/schema/admin/staffRules.ts`, `packages/data/src/db/schema/admin/adminAudit.ts`, `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/db/migrations/`, `packages/data/src/permissions/auth.ts`, `packages/api/src/admin/usersAdmin.ts`, `apps/web/app/routes/admin/user/` | — |
@@ -273,8 +273,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1019 | bug | triaged | account-security-2 |  | Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role |
 | B-1020 | bug | triaged | account-security-2 |  | Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one |
 | B-1021 | bug | landed | fixes-ui | prd/fixes-ui | The add-tag icon button doesn't line up vertically with the tag chips beside it |
-| B-1022 | change | ready | fixes-ui | prd/fixes-ui | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
-| B-1023 | bug | ready | fixes-ui | prd/fixes-ui | When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left |
+| B-1022 | change | landed | fixes-ui | prd/fixes-ui | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
+| B-1023 | bug | landed | fixes-ui | prd/fixes-ui | When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left |
 | B-1024 | feature | triaged | care-booklet |  | Printed todo sheet, hand-fillable (check off, write in new todos), as a care booklet page |
 | B-1025 | feature | triaged | care-booklet |  | Printed schedule sheet (upcoming Events and med times), as a care booklet page |
 | B-1026 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads a photo of a hand-filled printed todo sheet and applies it (ticks done, adds new todos), adding only what isn't already there |
@@ -287,7 +287,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1033 | feature | triaged | care-booklet |  | Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back |
 | B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
-| B-1036 | bug | triaged | free-limits |  | Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked |
+| B-1036 | bug | in-progress | free-limits | prd/free-limits | Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked |
 
 ## Items
 
@@ -1664,7 +1664,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1022 · change · Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: fb20719d5
@@ -1674,7 +1674,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1023 · bug · When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: fb20719d5
@@ -1797,9 +1797,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1036 · bug · Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked
 
-- status: triaged
+- status: in-progress
 - prd: free-limits
-- owner:
+- owner: prd/free-limits
 - commit:
 
 - 2026-11-28 (prd/free-limits): Codex P2 on PR #334 (groupLimitService.ts:32): getSetting() on a cold cache calls appSettingModel.all() outside tx; with a small or busy pool it waits ~10 s and falls back to the defaults (3) instead of the staff value. Fix: read the setting (and later the override's fallback) before withTransaction, or pass the limit into refusal. Fits slice 2, which edits refusal anyway.
