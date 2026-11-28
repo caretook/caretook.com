@@ -3,6 +3,7 @@ import type { DeviceOptions, DeviceRoute } from "../../../../../test/device";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { forgetSettings } from "~/lib/app-shell/me";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as layout from "../setup/layout/route";
@@ -51,6 +52,8 @@ const setupPage = () => document.querySelector("[data-setup-page]")?.getAttribut
 const later = () => userEvent.click(page.getByRole("link", { name: "Later, take me to Caretook!" }));
 
 beforeEach(() => {
+  // What this page knows of the settings, too: a server's answer in one test isn't the next one's.
+  forgetSettings();
   localStorage.clear();
   forgetSetupRedirects();
 });
@@ -79,6 +82,12 @@ describe("a creator's first open", () => {
     });
     await expect.poll(device.location).toBe(appUrls.setup(TEST_GROUP.id, "profile"));
     await expect.poll(setupPage).toBe("profile");
+  });
+
+  test("on a new device (no cached settings), once the server answers that it wasn't opened", async () => {
+    const device = await open(TIMELINE, { api: { "me.get": () => ({ units: {}, groupSetup: {} }) } });
+    await expect.poll(device.location).toBe(appUrls.setup(TEST_GROUP.id, "providers"));
+    await expect.poll(setupPage).toBe("providers");
   });
 
   test("with storage refusing writes, Later still opens the Timeline", async () => {
@@ -122,6 +131,14 @@ describe("opens on the Timeline", () => {
         fx.member({ userId: OTHER_ID, role: "owner", createdAt: hoursAgo(24) }),
         fx.member({ userId: TEST_USER.id, role, createdAt: hoursAgo(1) }),
       ],
+    });
+    await expect.element(page.getByText("Timeline page")).toBeVisible();
+    expect(device.location()).toBe(TIMELINE);
+  });
+
+  test("on a new device, when the server answers that it was opened elsewhere", async () => {
+    const device = await open(TIMELINE, {
+      api: { "me.get": () => ({ units: {}, groupSetup: { [TEST_GROUP.id]: { opened: true } } }) },
     });
     await expect.element(page.getByText("Timeline page")).toBeVisible();
     expect(device.location()).toBe(TIMELINE);
