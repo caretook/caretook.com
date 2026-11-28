@@ -2,14 +2,25 @@
 // sync.upload as a device's queue posts it. Never imported by app code.
 // The /mcp helpers are in connectors/testing.ts.
 import type { AuthUser } from "@caretook/data";
+import type { UserLimits } from "./rateLimit";
 import type { CrudOp } from "./sync";
 
 import { createRouterClient, ORPCError } from "@orpc/server";
 import { router } from "./router";
 
-/** The router as `authUser` (null: signed out), in process. `clientIp` for the public forms' rate limit. */
-export const clientFor = (authUser: AuthUser | null, clientIp?: string) =>
-  createRouterClient(router, { context: { authUser, ...(clientIp ? { clientIp } : {}) } });
+/**
+ * The router as `authUser` (null: signed out), in process. `clientIp` for
+ * the per-IP limits; `userLimits` turns the per-user limits on (they're off
+ * outside production).
+ */
+export const clientFor = (
+  authUser: AuthUser | null,
+  clientIp?: string,
+  opts: { userLimits?: UserLimits } = {},
+) =>
+  createRouterClient(router, {
+    context: { authUser, ...(clientIp ? { clientIp } : {}), ...opts },
+  });
 export type Api = ReturnType<typeof clientFor>;
 
 /** The ORPCError a call fails with; throws when it succeeds or fails otherwise. */

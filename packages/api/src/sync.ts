@@ -13,7 +13,7 @@ import {
 import { SYNC_WRITE_LIMIT } from "@caretook/data/domain";
 import { z } from "zod";
 import { unwrap } from "./errors";
-import { authedProcedure } from "./procedures";
+import { limitedProcedure } from "./procedures";
 import { applyOp, text } from "./syncRegistry";
 
 // PowerSync's upload queue. A device writes to its local SQLite, PowerSync
@@ -222,7 +222,7 @@ const applyWrite = async (
 
 export const sync = {
   /** Apply a device's queued changes, in order, a write at a time. See the notes at the top of this file. */
-  upload: authedProcedure
+  upload: limitedProcedure("sync")
     .input(
       z.object({
         ops: z

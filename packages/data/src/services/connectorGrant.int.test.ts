@@ -461,3 +461,39 @@ describe("the group switch and memberships", () => {
     expect(access).toEqual([]);
   });
 });
+
+describe("connectorGrantService.revokeAllForUser", () => {
+  it("ends every live grant of the account, in every group, with tokens and consent, and no one else's", async () => {
+    const w = await world();
+    const { group: second } = await createGroup(w.owner, [{ user: w.caretaker.user, role: "caretaker" }]);
+    ok(
+      await careGroupService.update(w.owner.ctx, {
+        filter: byId(second.id),
+        data: { connectorsEnabled: true },
+      }),
+    );
+    const here = await connect(w.caretaker, w.group.id);
+    const there = await connect(w.caretaker, second.id);
+    await issueTokens(w.caretaker.user.id, here.clientId);
+    await issueTokens(w.caretaker.user.id, there.clientId);
+    const theirs = await connect(w.viewer, w.group.id, "read");
+    await issueTokens(w.viewer.user.id, theirs.clientId);
+
+    expect(ok(await connectorGrantService.revokeAllForUser(w.caretaker.user.id))).toEqual({ count: 2 });
+
+    expect(ok(await connectorGrantService.listMine(w.caretaker.ctx))).toEqual([]);
+    const ended = { access: false, refresh: false, consent: false };
+    expect(await tokensLive(w.caretaker.user.id, here.clientId)).toEqual(ended);
+    expect(await tokensLive(w.caretaker.user.id, there.clientId)).toEqual(ended);
+    expect(ok(await connectorGrantService.listMine(w.viewer.ctx)).map((g) => g.id)).toEqual([
+      ok(theirs.grant).id,
+    ]);
+    expect(await tokensLive(w.viewer.user.id, theirs.clientId)).toEqual({
+      access: true,
+      refresh: true,
+      consent: true,
+    });
+    // Nothing left: a second call ends none.
+    expect(ok(await connectorGrantService.revokeAllForUser(w.caretaker.user.id))).toEqual({ count: 0 });
+  });
+});
