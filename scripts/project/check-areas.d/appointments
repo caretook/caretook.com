@@ -21,3 +21,7 @@ apps/web/app/components/repeat/          -
 packages/data/src/db/seeds/appointmentSeries.ts -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/appointments/           -
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/appointmentSeriesService.ts roundtrip
+packages/data/src/models/appointmentSeries/ roundtrip
