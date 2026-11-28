@@ -22,6 +22,7 @@ import {
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
+import { medicationChangeId } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
@@ -368,6 +369,15 @@ describe("read tools", { timeout: 60_000 }, () => {
         schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       },
       { changedAt: "2030-06-12T21:59:00.000Z" },
+    );
+    // Keyed by the device's 14:59 there, but dated by the service no later than
+    // the real clock (B-295), before this one: put it at 14:59 through the model.
+    ok(
+      await timelineEntryModel.update({
+        authUser: SYSTEM_USER,
+        filter: { id: { type: "eq", value: medicationChangeId(med.id, "2030-06-12T21:59:00.000Z") } },
+        data: { occurredAt: "2030-06-12T21:59:00.000Z" },
+      }),
     );
     const token = await w.connect(w.viewer);
     const result = await callTool(handler, token, "todays_doses");
