@@ -416,6 +416,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (plan/sync-safety-3): sync-safety-3 planned (2026-11-28): five slices (nested transactions as savepoints, the server applies a write whole, the uploader sends whole writes, one save one local transaction, Changes not saved one line per write). The notes' claim that services never join ctx.tx was wrong; the gap is savepoints. removePass split out as B-1006.
 - 2026-11-28 (prd/sync-safety-3): slice 2 merged c3121383a (server applies a write whole)
 - 2026-11-28 (prd/sync-safety-3): wave 2 green: integration run 46148641016
+- 2026-11-28 (prd/sync-safety-3): wave 2 green: integration run 46148641016; PR #325
 
 ### B-325 · change · Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null)
 
