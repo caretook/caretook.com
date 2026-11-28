@@ -103,6 +103,15 @@ describe("/connect", () => {
     await expect.element(page.getByText(CONNECTOR_CONSENT_TEXT)).toBeVisible();
   });
 
+  // The server records CONNECTOR_CONSENT_VERSION on the grant
+  // (connectorGrant.int.test.ts); the page shows the words that version means.
+  test("shows the consent that names tags (connectors-5), on the tickbox", async () => {
+    await open(consent);
+    const checkbox = page.getByRole("checkbox");
+    await expect.element(checkbox).toHaveAccessibleName(/\btags\b/);
+    await expect.element(checkbox).not.toBeChecked();
+  });
+
   test("offers read and write to a caretaker, and read only to a viewer", async () => {
     await open(consent);
     await expect.element(radio("Read only")).toBeChecked();
