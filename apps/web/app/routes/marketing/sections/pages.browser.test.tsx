@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { BRAND } from "~/components/brand";
 import * as faq from "../faq/route";
+import { content as features } from "../features/content";
 import { homeContent } from "../home/content";
+import type { ShowcaseContent } from "./types";
 import { openMarketing, scrollsSideways, SITE_URL } from "../marketingWorld";
 
 // The inner pages (features, FAQ, About) on one device, moved down from
@@ -74,6 +76,38 @@ test("at 360 the hero's two buttons share one row and neither label wraps", asyn
     expect(el.scrollWidth, "label fits").toBeLessThanOrEqual(el.clientWidth);
   }
   expect(scrollsSideways(), "no horizontal scroll").toBe(false);
+});
+
+describe("the features page's jump links", () => {
+  test.each([420, 1280])("at %i: one On this page nav, a link to each block, one h2 each", async (width) => {
+    const { screen } = await openMarketing("/features", { width });
+    const nav = screen.getByRole("navigation", { name: "On this page" });
+    await expect.element(nav).toBeVisible();
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+    const links = [...nav.element().querySelectorAll("a")];
+    expect(links).toHaveLength(features.showcases.length);
+    for (const link of links) {
+      const id = decodeURIComponent(new URL(link.href).hash.slice(1));
+      const block = document.getElementById(id);
+      expect(block?.tagName, `block #${id}`).toBe("SECTION");
+      expect(block?.querySelectorAll("h2"), `one h2 in #${id}`).toHaveLength(1);
+      expect(link.textContent).toBe(block?.querySelector("h2")?.textContent);
+    }
+    const row = nav.element().querySelector("ul");
+    if (width === 420) expect(row && row.scrollWidth > row.clientWidth, "row scrolls sideways").toBe(true);
+    expect(scrollsSideways(), "no horizontal scroll").toBe(false);
+  });
+
+  test("at 1280 a block with no screenshot shows its icon large, hidden from assistive tech", async () => {
+    const { screen } = await openMarketing("/features", { width: 1280 });
+    await expect.element(screen.getByRole("heading", { level: 1 })).toBeVisible();
+    const blocks: ShowcaseContent[] = features.showcases;
+    const bare = blocks.find((s) => !s.image);
+    if (!bare) throw new Error("every block has a screenshot");
+    const icon = document.getElementById(bare.id)?.querySelector("[data-showcase-icon]");
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    expect(icon?.getBoundingClientRect().width, "icon column").toBeGreaterThan(200);
+  });
 });
 
 test("the inner pages keep their own heading as the h1, with no lockup", async () => {
