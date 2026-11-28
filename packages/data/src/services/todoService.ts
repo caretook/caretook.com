@@ -218,15 +218,27 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
  * the device's `laterInChain` in `reopenTodo`. Relies on `complete` clamping
  * `done_at` to at most the transaction's now (`tickTime`), and on a restored
  * next being made again (`todoModel.restore`).
+ *
+ * None found, the rule before B-383: the next row made after `todo` by due
+ * day (then id). A tick from before B-383 took `done_at` from the app clock
+ * after the transaction's now, so its successor can look made a few ms
+ * before it (B-1002). For a chain ticked since, a row this misses was made
+ * before the tick, and the chain has only `todo`'s predecessors (made before
+ * it, so passed over here) and what its tick and later ones made (made after
+ * `done_at`, found above): a chain keeps one open row, so no other is made
+ * while `todo` is open.
  */
 const laterInChain = async (tx: Tx, todo: Todo) => {
   if (!todo.repeatId || !todo.doneAt) return null;
-  const rows = await todoModel.list({
+  const chain = {
+    groupId: { type: "eq", value: todo.groupId },
+    repeatId: { type: "eq", value: todo.repeatId },
+    id: { type: "ne", value: todo.id },
+  } as const;
+  const made = await todoModel.list({
     ...system(tx),
     filter: {
-      groupId: { type: "eq", value: todo.groupId },
-      repeatId: { type: "eq", value: todo.repeatId },
-      id: { type: "ne", value: todo.id },
+      ...chain,
       createdAt: {
         type: "and",
         value: [
@@ -241,8 +253,23 @@ const laterInChain = async (tx: Tx, todo: Todo) => {
     ],
     paginate: { limit: 1, page: 1 },
   });
-  if (isError(rows)) return rows;
-  return rows.data[0] ?? null;
+  if (isError(made)) return made;
+  if (made.data[0] || !todo.dueOn) return made.data[0] ?? null;
+  const byDay = await todoModel.list({
+    ...system(tx),
+    filter: {
+      ...chain,
+      dueOn: { type: "gt", value: todo.dueOn },
+      createdAt: { type: "gt", value: todo.createdAt },
+    },
+    orderBy: [
+      { field: "dueOn", direction: "asc" },
+      { field: "id", direction: "asc" },
+    ],
+    paginate: { limit: 1, page: 1 },
+  });
+  if (isError(byDay)) return byDay;
+  return byDay.data[0] ?? null;
 };
 
 const hasNotes = async (tx: Tx, todoId: string) => {

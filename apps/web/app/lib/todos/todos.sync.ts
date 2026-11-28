@@ -891,17 +891,28 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
  * todoService's `laterInChain` (which says why both). The tick writes both
  * times from this device's clock, the next made after `todo` (`planNext`);
  * synced rows carry the server's. `julianday` compares the device's and
- * PowerSync's timestamp texts alike.
+ * PowerSync's timestamp texts alike. None found, the rule before B-383: the
+ * next row made after `todo` by due day, for a tick from before it whose
+ * successor looks made a few ms earlier (B-1002), as todoService's.
  */
 const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
   if (!todo.repeatId || !todo.doneAt) return null;
-  const [row] = await readRows<TodoRow>(db, {
-    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ?
+  const chain = `group_id = ? AND repeat_id = ? AND id != ? AND deleted_at IS NULL`;
+  const [made] = await readRows<TodoRow>(db, {
+    sql: `SELECT * FROM todo WHERE ${chain}
             AND julianday(created_at) >= julianday(?) AND julianday(created_at) > julianday(?)
-            AND deleted_at IS NULL
           ORDER BY julianday(created_at), id LIMIT 1`,
     params: [todo.groupId, todo.repeatId, todo.id, todo.doneAt, todo.createdAt],
   });
+  const [byDay] =
+    made || !todo.dueOn
+      ? []
+      : await readRows<TodoRow>(db, {
+          sql: `SELECT * FROM todo WHERE ${chain} AND due_on > ? AND julianday(created_at) > julianday(?)
+                ORDER BY due_on, id LIMIT 1`,
+          params: [todo.groupId, todo.repeatId, todo.id, todo.dueOn, todo.createdAt],
+        });
+  const row = made ?? byDay;
   return row ? toTodo(row) : null;
 };
 
