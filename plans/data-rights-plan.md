@@ -14,14 +14,14 @@
 
 **Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
-| Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | landed      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
-| 2     | 1    | landed      | `288ff6273` (2677eadb0, e4cf04280)           |
-| 3     | 1    | landed      | `bfcdf7504` (60e80fbe7..f0745418d)           |
-| 4     | 1    | landed      | `9a7856062` (4b511c986)                      |
-| 5     | 2    | started     |                                              |
-| 6     | 3    | not started |                                              |
+| Slice | Wave | State                  | Merge into `prd/data-rights` (slice commits) |
+| ----- | ---- | ---------------------- | -------------------------------------------- |
+| 1     | 1    | landed                 | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
+| 2     | 1    | landed                 | `288ff6273` (2677eadb0, e4cf04280)           |
+| 3     | 1    | landed                 | `bfcdf7504` (60e80fbe7..f0745418d)           |
+| 4     | 1    | landed                 | `9a7856062` (4b511c986)                      |
+| 5     | 2    | in flight (opus agent) |                                              |
+| 6     | 3    | not started            |                                              |
 
 **Backlog:** claim each slice's item when it starts. Run `pnpm backlog done` for B-84 after slices 1 to 4 and for B-357 after slice 5. B-53 stays open after slice 6 with a note: its account half is `data-rights-2`'s.
 
