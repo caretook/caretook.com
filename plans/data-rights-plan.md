@@ -10,16 +10,16 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** wave 1 (slices 1 to 4, opus) is merged (2026-11-28). Codex round 1 on PR #341: thread …Gy4E tracked as B-1053; …Gy4C and …Gy4D fixed by the opus fix agent (f37932c78: a deleted todo keeps `assignee_id`; 9603a16e6 + 1b21ba284: `toPass` keeps a deleted pass, labelled `REMOVED_PASS` "Removed med time"), merged as `e2b40176f`, replied, resolved. Synced with dev again (no migration from dev) and pushed (78432f1). Codex round 2 (`risa review --wait`) and the full gate (`risa ci run full --wait`) run in the background. Next: on clean and green, `risa land data-rights --tier full`, `risa rm data-rights-<1..4>`, `risa backlog done B-84`, docs fold, status-trim, then `risa rotate` (past the soft context limit); slice 5 (claim B-357) in the next session. Follow-ups: B-1049, B-1053.
+**Where it stands:** **wave 1 landed in dev 2026-11-28** through PR #341 (full tier green, run 46177793758; Codex clean after one round), landing report filed, to-test `2026-11-28-1355-data-rights.md`. B-84 done. Slice worktrees 1 to 4 removed. Docs folded (data-layer `#scrub`, sync, timeline, medications, providers, care-periods, todos, live-notes). **Next session: wave 2 = slice 5** (consent evidence survives deletion; adds migration 0052 after 0051): `risa backlog ingest`/`list`, `risa sync`, claim B-357, `risa slice data-rights 5`, spawn on **opus** (a migration, FK drops, RBAC), watch, CI gate, PR, land. Then wave 3 = slice 6 (B-53 group half). Follow-ups filed for this topic: B-1049 (a deleted pass's name blank in the connector's `listMedications`; `REMOVED_PASS` now exists, so it may just need `passLabel`), B-1053 (a note upload racing a delete keeps content). Lesson for the next plan: slices 1 to 3 ran 14 to 21 files, past the hook's 12.
 
 **Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | merged      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
-| 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
-| 3     | 1    | merged      | `bfcdf7504` (60e80fbe7..f0745418d)           |
-| 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
+| 1     | 1    | landed      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
+| 2     | 1    | landed      | `288ff6273` (2677eadb0, e4cf04280)           |
+| 3     | 1    | landed      | `bfcdf7504` (60e80fbe7..f0745418d)           |
+| 4     | 1    | landed      | `9a7856062` (4b511c986)                      |
 | 5     | 2    | not started |                                              |
 | 6     | 3    | not started |                                              |
 
