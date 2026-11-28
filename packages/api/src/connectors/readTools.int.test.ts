@@ -16,7 +16,9 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  recordTagService,
   SYSTEM_USER,
+  tagService,
   timelineEntryModel,
   todoService,
   timelineEntryService,
@@ -1591,6 +1593,14 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         sinceYear: 2018,
       }),
     );
+    const sweepTag = ok(await tagService.create(w.caretaker.ctx, { groupId: w.group.id, name: "Sweep" }))!;
+    ok(
+      await recordTagService.link(w.caretaker.ctx, {
+        groupId: w.group.id,
+        tagId: sweepTag.id,
+        medicationId: med.id,
+      }),
+    );
 
     const reads = CONNECTOR_TOOLS.filter((t) => t.scope === "read");
     expect(reads.map((t) => t.name)).toEqual(
@@ -1607,6 +1617,8 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         "list_todos",
         "list_providers",
         "recipient_profile",
+        "list_tags",
+        "tagged_items",
       ]),
     );
     const inputs: Record<string, Record<string, unknown>> = {
@@ -1615,6 +1627,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
       list_todos: { status: "all" },
       list_medications: { includePast: true },
       list_providers: { includePast: true },
+      tagged_items: { tag: "sweep" },
     };
     const secretValues = [
       ...Object.values(secrets),

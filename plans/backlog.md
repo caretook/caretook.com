@@ -1343,7 +1343,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - status: ready
 - prd: connectors-5
 - owner: prd/connectors-5
-- commit: 204b120de
+- commit: 49b163e76
 
 - 2026-11-25 (Robert Bo Davis): From the inbox: Connector: tags and tagging (list tags, filter by a tag, add and remove tags on records) for groups that have turned on sharing medical information with connectors / The user's word 2026-11-25: connectors DO need tags when the group shares medical information; the tags PRD (B-548) keeps them out, so this follows it.
 - 2026-11-25 (Robert Bo Davis): Connector tag tools follow in connectors-5 (B-861), gated on the group's medical-information sharing (the user, 2026-11-25)
