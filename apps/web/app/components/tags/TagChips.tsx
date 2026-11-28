@@ -14,7 +14,8 @@ type ChipTag = { id: string; name: string; color?: string | null };
  *
  * `onRemove` gives each chip an × button ("Remove tag <name>"), and
  * `onMore` makes "+N" a button (it opens the picker); `add` (Add tag) is the
- * list's last item, a wider gap after the chips; all three are `QuickTags`'s,
+ * list's last item, a wider gap after the chips on its line and flush left
+ * when it wraps to a line of its own (B-1023); all three are `QuickTags`'s,
  * for whoever may tag the record.
  *
  * Each item is a flex box, so every item is its chip's height and they share
@@ -41,12 +42,18 @@ export function TagChips({
   if (!tags?.length) return add ? <div className="flex">{add}</div> : null;
   const { shown, more } = max === null ? { shown: tags, more: 0 } : chipSplit(tags, max);
   const moreLabel = more === 1 ? "1 more tag" : `${more} more tags`;
+  // Add tag's wider gap (10px, not the chips' 4px, so a tap meant for one doesn't hit the other) is
+  // the last item's own right padding, not Add tag's left margin: a margin went with it when it
+  // wrapped, so it started 6px in from the chips' left edge (B-1023); the padding stays behind at
+  // the end of the line above. Padding, not a margin, so the item stays inside `max-w-full`.
+  const beforeAdd = add ? "pr-1.5" : "";
   return (
     <ul className={`flex flex-wrap items-center gap-1 ${className}`} aria-label="Tags" data-tag-chips="">
-      {shown.map((t) => {
+      {shown.map((t, i) => {
         const fill = tagColorClass(t.color);
+        const last = i === shown.length - 1 && more === 0;
         return (
-          <li key={t.id} className="flex max-w-full">
+          <li key={t.id} className={`flex max-w-full ${last ? beforeAdd : ""}`}>
             <Badge
               className={`max-w-full ${onRemove ? "gap-0.5 pr-0.5" : ""}`}
               fill={fill}
@@ -72,7 +79,7 @@ export function TagChips({
         );
       })}
       {more > 0 && (
-        <li className="flex">
+        <li className={`flex ${beforeAdd}`}>
           {onMore ? (
             <button
               type="button"
@@ -94,8 +101,7 @@ export function TagChips({
           )}
         </li>
       )}
-      {/* A wider gap before Add tag (10px) than between chips, so a tap meant for one doesn't hit the other. */}
-      {add && <li className="ml-1.5 flex">{add}</li>}
+      {add && <li className="flex">{add}</li>}
     </ul>
   );
 }
