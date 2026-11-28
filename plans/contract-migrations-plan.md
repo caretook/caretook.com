@@ -4,7 +4,7 @@
 
 ## Status
 
-**From the user:** a426 (B-456's note series) and a427 (B-457's relink) pending at writing.
+**From the user:** a426 (2026-11-28): delete the note series; their notes may go too, whichever makes the simpler migration (the series-only delete, as planned); the user resets staging afterwards. a427 (B-457's relink) pending at writing.
 
 | Slice | Wave | State   | Merge into `prd/contract-migrations` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------------- |
