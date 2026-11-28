@@ -1,5 +1,6 @@
 import type { DeviceOptions, DeviceRoute } from "../../../../../test/device";
 
+import { PowerSyncDatabase } from "@powersync/web";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -142,6 +143,28 @@ describe("opens on the Timeline", () => {
     });
     await expect.element(page.getByText("Timeline page")).toBeVisible();
     expect(device.location()).toBe(TIMELINE);
+  });
+
+  test("on a new device, when settings saying it was dismissed arrive while the facts are read (B-1010)", async () => {
+    // The /app middleware's early settings fetch (`startSettings`) landing
+    // while the redirect reads the group's facts: the decision is made from
+    // what arrived, not the defaults read before.
+    const getAll = PowerSyncDatabase.prototype.getAll;
+    vi.spyOn(PowerSyncDatabase.prototype, "getAll").mockImplementation(async function (
+      this: PowerSyncDatabase,
+      sql: string,
+      params?: unknown[],
+    ) {
+      const rows: unknown[] = await getAll.call(this, sql, params);
+      if (sql.includes("AS joined_at") && localStorage.getItem(`caretook:settings:${TEST_USER.id}`) === null)
+        knownSettings({ setupDismissed: [TEST_GROUP.id] });
+      return rows;
+    } as typeof getAll);
+    const device = await open(TIMELINE);
+    await expect.element(page.getByText("Timeline page")).toBeVisible();
+    await device.settle();
+    expect(device.location()).toBe(TIMELINE);
+    expect(setupPage()).toBeUndefined();
   });
 
   test("when this device has no cached settings (offline, so they can't be known)", async () => {
