@@ -12,17 +12,17 @@
 
 **For wave 1's landing report** (slice 3's ideas, B-829): claim a todo ("I'll take it", a "needs someone" filter); dose reminder emails from Med times; routines as repeating todos with a weekly done count; starter checklists as todo templates; photos on entries; documents beside the profile (insurance cards, POLST, power of attorney); a site line: free for the whole family, plus no tracking; a catch-up digest email. Also B-1070 (meta "care notebook" vs hero "care journal") for the user's wording call.
 
-**Now (2026-11-28):** wave 1 merged (B-836 stays open for wave 2); wave 1 CI (run 46190535266) failed only static: Prettier on this plan's table (fixed); every component test passed. One components run follows once 5 and 6 merge (gates both waves); wave 2 slices 5, 6 working (opus). Docs to fold at landing: marketing.md's page list gains /accessibility. Worktrees made; agents on opus (the plan's Model field) for all five. Backlog at wave 1 boundary: nothing new for marketing-3.
+**Now (2026-11-28):** all 7 slices merged; components CI green on 2f5ee15a (run 46191450677); `risa sync` needed no merge; docs folded into marketing.md. Next: browser checks (layout-offline, first-sync, marketing) running, then `risa pr`, `risa review`, land (last wave: then `risa rm marketing-3`).
 
-| Slice | Wave | State                                                               | Merge into `prd/marketing-3` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------- | -------------------------------------------- |
-| 1     | 1    | merged                                                              | ece376081 (1a8ca0000)                        |
-| 2     | 1    | merged                                                              | 249bfb719 (d54231d81)                        |
-| 3     | 1    | merged                                                              | cb7b17dba (1233d1544)                        |
-| 4     | 1    | merged                                                              | c4ec80abb (b54c99c0e)                        |
-| 5     | 2    | working                                                             |                                              |
-| 6     | 2    | handed off (6e5c74c43; its plan-format commit 4972ba02d: keep ours) |                                              |
-| 7     | 1    | merged                                                              | 651f2b48b (044c01061)                        |
+| Slice | Wave | State  | Merge into `prd/marketing-3` (slice commits) |
+| ----- | ---- | ------ | -------------------------------------------- |
+| 1     | 1    | merged | ece376081 (1a8ca0000)                        |
+| 2     | 1    | merged | 249bfb719 (d54231d81)                        |
+| 3     | 1    | merged | cb7b17dba (1233d1544)                        |
+| 4     | 1    | merged | c4ec80abb (b54c99c0e)                        |
+| 5     | 2    | merged | 0faaa0c5a (5be59d1c2, a9c795be7)             |
+| 6     | 2    | merged | dda8232aa (6e5c74c43; plan file kept ours)   |
+| 7     | 1    | merged | 651f2b48b (044c01061)                        |
 
 ## Architectural decisions
 

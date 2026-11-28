@@ -4,6 +4,7 @@ import { Link, NavLink } from "react-router";
 
 import { FullLogo } from "~/components/brand";
 import { IconButton } from "~/components/ui/plain";
+import { BAND_PAGE, CONTAINER, HEADER_SURFACE } from "../sections/look";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
 import { layoutContent } from "./content";
 
@@ -38,8 +39,8 @@ export function MarketingHeader() {
     `rounded-field px-3 py-2 font-medium hover:bg-base-200 ${isActive ? "text-primary" : ""}`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-2 px-4 sm:px-6">
+    <header className={`sticky top-0 z-30 ${HEADER_SURFACE}`}>
+      <div className={`${CONTAINER} flex h-16 items-center gap-2`}>
         <Link to="/" className="mr-auto rounded-field" aria-label={words.homeLabel}>
           <FullLogo />
         </Link>
@@ -71,10 +72,10 @@ export function MarketingHeader() {
         id={menuId}
         aria-label={words.navLabel}
         hidden={!open}
-        className="border-t border-base-300 bg-base-100 md:hidden"
+        className={`border-t border-base-300 md:hidden ${BAND_PAGE}`}
         data-marketing-menu
       >
-        <ul className="mx-auto flex max-w-5xl flex-col px-4 py-2">
+        <ul className={`${CONTAINER} flex flex-col py-2`}>
           {HEADER_PAGES.map((page) => (
             <li key={page.id}>
               <NavLink

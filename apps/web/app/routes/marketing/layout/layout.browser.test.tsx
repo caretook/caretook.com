@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterEach, describe, expect, test } from "vitest";
+import { cdp, userEvent } from "vitest/browser";
 import { openMarketing, SITE_URL } from "../marketingWorld";
 import * as home from "../home/route";
 import { MARKETING_LINKS } from "../site/pages";
@@ -15,6 +15,15 @@ import * as layoutRoute from "./route";
 const menuPanel = () => document.querySelector<HTMLElement>("[data-marketing-menu]");
 const headerNav = () => document.querySelector("header nav");
 const shown = (el: Element | null) => !!el && getComputedStyle(el).display !== "none";
+/** Chrome DevTools, for media emulation (Vitest types the session loosely). */
+const devtools = () => cdp() as unknown as { send: (method: string, params: object) => Promise<unknown> };
+/** A labelled nav's list: its links' text and targets. */
+const listLinks = (nav: Element) =>
+  [...nav.querySelectorAll(":scope ul > li > a")].map((a) => [a.textContent?.trim(), a.getAttribute("href")]);
+
+afterEach(async () => {
+  await devtools().send("Emulation.setEmulatedMedia", { features: [] });
+});
 
 describe("the marketing frame", () => {
   test("one h1 and the header, main and footer landmarks", async () => {
@@ -104,6 +113,57 @@ describe("the marketing frame", () => {
       .toHaveAttribute("href", MARKETING_LINKS.waitlist);
     await userEvent.click(banner.getByRole("link", { name: "Sign in" }).first());
     await expect.poll(() => device.location()).toBe(MARKETING_LINKS.signIn);
+  });
+});
+
+describe("the header's current page and the footer's groups", () => {
+  test("at 1280 the current page's header link has aria-current, and no other does", async () => {
+    const { screen } = await openMarketing("/faq", { width: 1280 });
+    const banner = screen.getByRole("banner");
+    await expect.element(banner.getByRole("link", { name: "FAQ" })).toHaveAttribute("aria-current", "page");
+    const current = [...(headerNav()?.querySelectorAll('[aria-current="page"]') ?? [])];
+    expect(current.map((a) => a.getAttribute("href"))).toEqual(["/faq"]);
+  });
+
+  test("the footer has a labelled site list (Accessibility among it) and a labelled legal list", async () => {
+    const { screen } = await openMarketing("/");
+    const footer = screen.getByRole("contentinfo");
+    const site = footer.getByRole("navigation", { name: "Site" });
+    const legal = footer.getByRole("navigation", { name: "Legal" });
+    await expect.element(site.getByRole("list")).toBeVisible();
+    await expect.element(legal.getByRole("list")).toBeVisible();
+    expect(listLinks(site.element())).toEqual(
+      expect.arrayContaining([
+        ["Accessibility", "/accessibility"],
+        ["Sign in", MARKETING_LINKS.signIn],
+      ]),
+    );
+    expect(listLinks(legal.element())).toEqual(
+      expect.arrayContaining([
+        ["Privacy policy", "/privacy"],
+        ["Terms", "/terms"],
+      ]),
+    );
+    expect(listLinks(legal.element()).map(([, href]) => href)).not.toContain("/accessibility");
+  });
+
+  test("the header is blurred and see-through, and opaque with no blur under reduced transparency", async () => {
+    const { screen } = await openMarketing("/");
+    const header = screen.getByRole("banner").element();
+    const alpha = () => {
+      const probe = document.createElement("canvas").getContext("2d");
+      if (!probe) throw new Error("no canvas");
+      probe.fillStyle = getComputedStyle(header).backgroundColor;
+      probe.fillRect(0, 0, 1, 1);
+      return probe.getImageData(0, 0, 1, 1).data[3];
+    };
+    expect(alpha()).toBeLessThan(255);
+    expect(getComputedStyle(header).backdropFilter).toContain("blur");
+    await devtools().send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+    });
+    await expect.poll(alpha).toBe(255);
+    expect(getComputedStyle(header).backdropFilter).not.toContain("blur");
   });
 });
 
