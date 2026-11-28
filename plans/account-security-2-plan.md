@@ -92,7 +92,7 @@ Stack: no · Reads: docs/domain/care-groups.md · Tests: integration · Blocked 
 
 ## Slice 4: Account email and session limits
 
-Stack: no · Reads: docs/domain/auth.md, docs/domain/notifications.md · Tests: unit, integration · Blocked by: none · Check: packages/auth/src/auth.int.test.ts
+Stack: no · Reads: docs/domain/auth.md, docs/domain/notifications.md · Tests: integration · Blocked by: none · Check: packages/auth/src/auth.int.test.ts
 
 **User stories:** US 5, 6.
 
@@ -105,7 +105,6 @@ Stack: no · Reads: docs/domain/auth.md, docs/domain/notifications.md · Tests: 
 **Acceptance criteria:**
 
 - Integration (`auth.int.test.ts`, limits on with low counts): the sixth reset request for one address in an hour answers as the first and queues no email (from different IPs too); the same for verification, including the resend on a password sign-in of an unverified account; a session past its count gets 429 on `/list-sessions` while another session of the same user doesn't.
-- `limits.test.ts` keeps `AUTH_LIMITS`' names and counts pinned (unit, already there: extend it).
 
 **Blocks:** slice 6.
 
@@ -117,7 +116,7 @@ Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md · Tests: integratio
 
 **Build:** _Per-IP limits on `/rpc`_ (PRD).
 
-- `packages/api/src/rateLimit.ts`: `IP_LIMITS` (`public` 120 a minute, `signedInCeiling` 6,000 a minute) and `createIpLimits`, shaped like `createUserLimits` (scope `ip.<name>`).
+- `packages/api/src/rateLimit.ts`: new `IP_LIMITS` and new `createIpLimits`: `public` 120 a minute, `signedInCeiling` 6,000 a minute,, shaped like `createUserLimits` (scope `ip.<name>`).
 - `packages/api/src/procedures.ts`: a `perIp(name)` middleware keyed through `clientIpKey`; `publicProcedure` uses `perIp("public")`, `signedIn` uses `perIp("signedInCeiling")` before `perUser`. It counts only `/rpc` calls (no `authUser` given), and in production a `/rpc` call with no client IP is a 400. Context gains `ipLimits` (tests pass their own).
 
 **Acceptance criteria:**
@@ -129,7 +128,7 @@ Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md · Tests: integratio
 
 ## Slice 6: The limits manifest and its sweep
 
-Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md, docs/domain/connectors.md, docs/domain/calendars.md · Tests: integration · Blocked by: 4, 5 · Check: packages/api/src/callLimits.int.test.ts
+Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md, docs/domain/connectors.md, docs/domain/calendars.md · Tests: integration · Blocked by: 4, 5 · Check: packages/api/src/callLimits.int.test.ts (new)
 
 **User stories:** US 7.
 
@@ -141,7 +140,7 @@ Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md, docs/domain/connect
 
 **Acceptance criteria:**
 
-- Integration (`callLimits.int.test.ts`): green on the current router and auth; removing an entry, or adding a procedure without one, fails it (shown in the hand-off).
+- Integration (the new `callLimits.int.test.ts`): green on the current router and auth; removing an entry, or adding a procedure without one, fails it (shown in the hand-off).
 - The api doc's table lists every `CALL_LIMITS` entry.
 
 **Blocks:** nothing.
