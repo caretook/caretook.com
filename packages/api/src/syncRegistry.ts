@@ -439,12 +439,13 @@ const todo = softDelete({
       return outcome(await todoService.removeUndoneNext(ctx, op.id));
     if (data.deleted_at) return remove(ctx, op.id);
     // A repeating todo's later occurrence brought back (a tick or skip remade
-    // one an Undo took away); its content follows as an ordinary edit. A
-    // tick's (flagged) never restores a chain stopped since: nothing is
-    // written, and the op is applied so the queue drains (B-1003).
+    // one an Undo took away), with its content: the delete scrubbed it
+    // (data-rights). A tick's (flagged) never restores a chain stopped
+    // since: nothing is written, and the op is applied so the queue drains (B-1003).
     if ("deleted_at" in data) {
       const fromTick = op.metadata === TICK_NEXT_METADATA;
-      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick });
+      const content = mapped(TODO_CONTENT, data);
+      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick, content: content as never });
       if (isError(res)) return res;
       if (res === null) return applied;
     }

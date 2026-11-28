@@ -283,7 +283,10 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       )) === "caretaker@example.com",
     );
 
-    // 3. Delete on A, disappears on B, soft-deleted.
+    // 3. Delete on A, disappears on B, soft-deleted (by id: the delete scrubs its name).
+    const symptomId = psql(
+      `SELECT id FROM timeline_entry WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL LIMIT 1`,
+    );
     await press(A, `${rowWith(name)}.querySelector('button[aria-label^="Actions"]')`);
     await wf(A, menuItem("Delete"));
     await press(A, menuItem("Delete"));
@@ -295,9 +298,44 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await check(
       "delete: soft-deleted in Postgres",
       (await waitForSql(
-        `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE details->>'name' LIKE '${tag}%'`,
+        `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE id = '${symptomId}'`,
         (r) => r === "true",
       )) === "true",
+    );
+
+    // 3z. A writer deletes a note (data-rights): after sync the other device's
+    // copy has no title or body, and its document no text.
+    const noteTitle = `${tag} private note`;
+    const noteId = psql(
+      `WITH e AS (INSERT INTO timeline_entry (group_id, recipient_id, kind, occurred_at, time_zone, title, created_by, updated_by)
+         VALUES ('${DEV_FAMILY}', '${matrix.recipientId}', 'note', now(), 'America/Los_Angeles', '${noteTitle}', '${memberId}', '${memberId}')
+         RETURNING id)
+       INSERT INTO note_document (id, group_id, subject, entry_id, text, created_by, updated_by)
+         SELECT id, '${DEV_FAMILY}', 'entry', id, 'Words to forget', '${memberId}', '${memberId}' FROM e
+       RETURNING id`,
+    );
+    await wf(A, rowWith(noteTitle), 15_000);
+    const noteOnB = async (holds) =>
+      until(async () => {
+        const [row] = await localRows(
+          B,
+          `SELECT e.title, e.body, e.deleted_at, d.text FROM timeline_entry e
+             LEFT JOIN note_document d ON d.id = e.id WHERE e.id = ?`,
+          [noteId],
+        );
+        return row && holds(row) ? row : null;
+      });
+    await check("note: the other device has it", !!(await noteOnB((r) => r.title === noteTitle)));
+    await press(A, `${rowWith(noteTitle)}.querySelector('button[aria-label^="Actions"]')`);
+    await wf(A, menuItem("Delete"));
+    await press(A, menuItem("Delete"));
+    await wf(A, `document.querySelector("dialog[open] .btn-error")`);
+    await press(A, `document.querySelector("dialog[open] .btn-error")`);
+    const scrubbed = await noteOnB((r) => !!r.deleted_at && r.title === null && r.body === null && !r.text);
+    await check(
+      "note delete: the other device's copy has no title, body or text",
+      !!scrubbed,
+      JSON.stringify(scrubbed),
     );
 
     // 3a. The same new symptom from both members, each offline (symptom-catalog):
