@@ -174,7 +174,6 @@ LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.deleted_at IS NULL THEN RETURN NEW; END IF;
   NEW.title := '';
-  NEW.assignee_id := NULL;
   NEW.assignee_name := NULL;
   NEW.provider_id := NULL;
   NEW.medication_id := NULL;

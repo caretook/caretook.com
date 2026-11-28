@@ -6,7 +6,7 @@ import type { PassLogDose } from "./PassLogForm";
 
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
-import { doseDetailsZSchema } from "@caretook/data/schema";
+import { doseDetailsZSchema, passLabel } from "@caretook/data/schema";
 import { Sheet } from "~/components/ui";
 import { formString } from "~/lib/core/form";
 import { getGroup } from "~/lib/app-shell/group";
@@ -84,7 +84,9 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const [pass] = passId
     ? await readRows<{ name: string | null }>(db, { sql: passNameSql, params: [passId] })
     : [];
-  return { rows, choices: toDoseChoices(choiceRows), passName: pass?.name ?? null };
+  // A deleted pass's name is cleared (data-rights): it reads as the timeline's row does.
+  const passName = pass ? passLabel({ name: pass.name ?? "" }) : null;
+  return { rows, choices: toDoseChoices(choiceRows), passName };
 }
 
 /** Local writes; live queries show them at once, and PowerSync uploads them. */

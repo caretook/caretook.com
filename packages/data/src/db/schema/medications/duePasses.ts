@@ -6,6 +6,7 @@ import { addDays } from "../../../domain/core/entryTiming";
 import { uuidV5 } from "../../../domain/core/uuidV5";
 import { dayInZone, zonedInstant } from "../../../domain/core/zonedDay";
 import { isOpen } from "./dueDoses";
+import { passLabel } from "./medicationPass";
 
 // Today's slots rolled up into passes (medication rounds): what Today, the
 // Dose sheet, Upcoming and the timeline's medication strip show, and what
@@ -44,6 +45,11 @@ export type DuePass = {
   passLogId: string | null;
 };
 
+const passNameIn = (byId: ReadonlyMap<string, Pick<PassLike, "name">>, id: string) => {
+  const pass = byId.get(id);
+  return pass ? passLabel(pass) : null;
+};
+
 /** Today's passes: named passes in the day's order by time, then name; a time of its own after a pass at the same time. */
 export function duePasses(
   due: Pick<DueDoses, "slots">,
@@ -71,7 +77,7 @@ export function duePasses(
     return {
       key,
       passId: first.passId,
-      name: first.passId ? (byId.get(first.passId)?.name ?? null) : null,
+      name: first.passId ? passNameIn(byId, first.passId) : null,
       time: first.time,
       at: first.at,
       slots,
