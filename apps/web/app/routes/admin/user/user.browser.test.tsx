@@ -18,6 +18,7 @@ import * as user from "./route";
 // packages/data/src/services/accountAdmin.int.test.ts.
 
 type UserPage = ApiOutputs["admin"]["users"]["get"];
+type GroupLimit = ApiOutputs["admin"]["users"]["groupLimit"];
 
 const ID = "5a7d0c00-cccc-4000-8000-000000000001";
 const USER_URL = `/admin/users/${ID}`;
@@ -37,6 +38,8 @@ type Options = {
   canHelp?: boolean;
   canDisable?: boolean;
   canSetRole?: boolean;
+  /** `users.limits`: both roles hold it, so false is a faked capability set. */
+  canSetLimit?: boolean;
   isSelf?: boolean;
   staff?: "admin" | "support";
   answer?: (form: FormData) => unknown;
@@ -48,6 +51,7 @@ const openUser = async ({
   canHelp = true,
   canDisable = true,
   canSetRole = true,
+  canSetLimit = true,
   isSelf = false,
   staff = "admin",
   answer = () => ({ ok: true, message: "Done." }),
@@ -60,11 +64,16 @@ const openUser = async ({
     mail: [adminFx.mail({ template: "verifyEmail", status: "failed", attempts: 3, errorCode: "bounced" })],
   });
   current = change(current);
+  let groupLimit: GroupLimit = adminFx.groupLimit();
   const posted = postedForms((form) => {
     const result = answer(form);
     // The server's change, seen on the next load.
     if (form.get("intent") === "revokeSession")
       current = { ...current, sessions: current.sessions.filter((s) => s.id !== form.get("sessionId")) };
+    if (form.get("intent") === "setGroupLimit") {
+      const override = formString(form, "limit") ? Number(formString(form, "limit")) : null;
+      groupLimit = { ...groupLimit, override, limit: override ?? 3 };
+    }
     return result;
   });
   const device = await openAdmin({
@@ -74,9 +83,11 @@ const openUser = async ({
       module: user,
       loaderData: () => ({
         page: current,
+        groupLimit,
         canHelp,
         canDisable,
         canSetRole,
+        canSetLimit,
         isSelf,
         history: {
           count: 1,
@@ -252,6 +263,47 @@ describe("an account's page", () => {
     const admin = await found(() => section("admin"));
     expect(admin.querySelector("[data-self-note]")).not.toBeNull();
     expect(admin.querySelectorAll("button, select")).toHaveLength(0);
+  });
+
+  test("the Groups section: how many it started of its limit, the default said", async () => {
+    await openUser();
+    const groups = await found(() => section("groups"));
+    expect(groups.querySelector("[data-group-limit-count]")?.textContent).toBe("Started 2 of 3 (default)");
+  });
+
+  test("staff without users.limits see the limit but no form", async () => {
+    await openUser({ staff: "support", canDisable: false, canSetRole: false, canSetLimit: false });
+    const groups = await found(() => section("groups"));
+    expect(groups.textContent).toContain("Started 2 of 3 (default)");
+    expect(groups.querySelector("[data-group-limit-controls]")).toBeNull();
+    expect(groups.querySelectorAll("input, button")).toHaveLength(0);
+  });
+
+  test("changing the limit waits for a new number, takes a reason, posts both, and the section shows it", async () => {
+    const { device, posts } = await openUser({
+      staff: "support",
+      canDisable: false,
+      canSetRole: false,
+      answer: () => ({
+        ok: true,
+        message: accountActionDoneMessage("setGroupLimit", { limit: 5, override: 5 }),
+      }),
+    });
+    const change = device.screen.getByRole("button", { name: "Change limit" });
+    await expect.element(change).toBeDisabled();
+    const field = device.screen.getByRole("spinbutton", { name: /Care group limit/ });
+    await userEvent.fill(field, "0");
+    await expect.element(device.screen.getByText("At least 1")).toBeVisible();
+    await expect.element(change).toBeDisabled();
+    await userEvent.fill(field, "5");
+    await confirmWithReason(change, "Change limit", "Cares for two families");
+    await expect
+      .element(device.screen.getByRole("status"))
+      .toHaveTextContent("They can start 5 care groups now.");
+    expect(posts).toEqual([{ limit: "5", intent: "setGroupLimit", reason: "Cares for two families" }]);
+    await expect
+      .poll(() => section("groups")?.querySelector("[data-group-limit-count]")?.textContent)
+      .toBe("Started 2 of 5");
   });
 
   test("support: the help actions, but no Access card", async () => {

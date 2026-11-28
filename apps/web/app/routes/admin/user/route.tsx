@@ -25,8 +25,10 @@ import { helpDoneMessage, parseHelpForm } from "./helpActions";
 // Opening it records `user.view`. Staff with `users.help` (admin and
 // support) can resend the confirmation email, send a password reset and
 // sign sessions out, each with a reason. Admins (slice 3) can also disable
-// and re-enable it and change its staff role, never their own. Never a
-// group's care data.
+// and re-enable it and change its staff role, never their own. The Groups
+// section shows how many groups it started against its limit (free-limits
+// PRD); staff with `users.limits` (admin and support) can change that limit,
+// with a reason. Never a group's care data.
 
 export const meta = ({ loaderData }: Route.MetaArgs) => [
   { title: `${loaderData?.page.account.email ?? "Account"} · Caretook admin` },
@@ -42,14 +44,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const { api, authUser, capabilities } = await requireStaff(request, "users.read");
   try {
     const page = await api.admin.users.get({ userId: params.userId });
+    const groupLimit = await api.admin.users.groupLimit({ userId: page.account.id });
     const history = capabilities.includes("audit.read")
       ? await api.admin.audit.list({ target: page.account.id })
       : null;
     return {
       page,
+      groupLimit,
       canHelp: capabilities.includes("users.help"),
       canDisable: capabilities.includes("users.disable"),
       canSetRole: capabilities.includes("users.setRole"),
+      canSetLimit: capabilities.includes("users.limits"),
       isSelf: authUser.id === page.account.id,
       history: history ? { count: history.count, entries: history.entries.slice(0, RECENT_ENTRIES) } : null,
     };
@@ -81,7 +86,7 @@ export async function action({ request, params }: Route.ActionArgs): Promise<Adm
   }
 }
 
-/** Disable, re-enable or a staff role (admins only). */
+/** Disable, re-enable or a staff role (admins only), or the care group limit (`users.limits`). */
 async function accountAction(
   request: Request,
   userId: string,
@@ -98,6 +103,10 @@ async function accountAction(
       await api.admin.users.enable(target);
       return { ok: true, message: accountActionDoneMessage("enable") };
     }
+    if (req.intent === "setGroupLimit") {
+      const result = await api.admin.users.setGroupLimit({ ...target, limit: req.limit ?? null });
+      return { ok: true, message: accountActionDoneMessage("setGroupLimit", result) };
+    }
     const { role } = await api.admin.users.setRole({ ...target, role: req.role ?? "" });
     return { ok: true, message: accountActionDoneMessage("setRole", { role }) };
   } catch (e) {
@@ -106,7 +115,7 @@ async function accountAction(
 }
 
 export default function UserPage({ loaderData }: Route.ComponentProps) {
-  const { page, canHelp, canDisable, canSetRole, isSelf, history } = loaderData;
+  const { page, groupLimit, canHelp, canDisable, canSetRole, canSetLimit, isSelf, history } = loaderData;
   return (
     <>
       <BackLink to={adminUrls.users()} label="All users" />
@@ -118,7 +127,7 @@ export default function UserPage({ loaderData }: Route.ComponentProps) {
         isSelf={isSelf}
       />
       <SessionsSection page={page} canHelp={canHelp} />
-      <GroupsSection page={page} />
+      <GroupsSection page={page} groupLimit={groupLimit} canSetLimit={canSetLimit} />
       <MailSection page={page} />
       {history && (
         <AdminCard id="history" titleSize="base" title="Audit log" data-user-section="history">

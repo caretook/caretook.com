@@ -1,6 +1,7 @@
+import type { ApiOutputs } from "~/lib/core/rpc";
 import type { DeviceOptions, DeviceRoute } from "../../../test/device";
 
-import { capabilitiesOf } from "../../../test/adminFixtures";
+import { adminFx, capabilitiesOf } from "../../../test/adminFixtures";
 import { renderWithDevice } from "../../../test/device";
 import * as layout from "./layout/route";
 
@@ -48,3 +49,34 @@ export const postedForms = (answer: (form: FormData) => unknown) => {
     },
   };
 };
+
+type AccountPageData = {
+  page: ApiOutputs["admin"]["users"]["get"];
+  groupLimit: ApiOutputs["admin"]["users"]["groupLimit"];
+  canHelp: boolean;
+  canDisable: boolean;
+  canSetRole: boolean;
+  canSetLimit: boolean;
+  isSelf: boolean;
+  history: { count: number; entries: ReturnType<typeof adminFx.auditEntry>[] } | null;
+};
+
+/**
+ * The account page's loader data (/admin/users/:userId) for `page`, as an
+ * admin sees it: every control, `admin.users.groupLimit`'s answer
+ * (adminFx.groupLimit) and no audit entries, unless `v` says otherwise.
+ */
+export const accountPageData = (
+  page: AccountPageData["page"],
+  v: Partial<Omit<AccountPageData, "page">> = {},
+): AccountPageData => ({
+  page,
+  groupLimit: adminFx.groupLimit(),
+  canHelp: true,
+  canDisable: true,
+  canSetRole: true,
+  canSetLimit: true,
+  isSelf: false,
+  history: null,
+  ...v,
+});

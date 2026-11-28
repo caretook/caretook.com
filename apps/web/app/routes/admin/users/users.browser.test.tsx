@@ -3,7 +3,7 @@ import type { LoaderArgs } from "../../../../test/device";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { adminFx } from "../../../../test/adminFixtures";
-import { openAdmin } from "../adminWorld";
+import { accountPageData, openAdmin } from "../adminWorld";
 import * as user from "../user/route";
 import * as users from "./route";
 import { parseUserSearch } from "./userSearch";
@@ -33,14 +33,10 @@ const ROUTES = [
   {
     path: "/admin/users/:userId",
     module: user,
-    loaderData: ({ params }: LoaderArgs) => ({
-      page: adminFx.userPage({ account: { id: params.userId, name: "Pat Lindqvist", email: pat.email } }),
-      canHelp: true,
-      canDisable: true,
-      canSetRole: true,
-      isSelf: false,
-      history: null,
-    }),
+    loaderData: ({ params }: LoaderArgs) =>
+      accountPageData(
+        adminFx.userPage({ account: { id: params.userId, name: "Pat Lindqvist", email: pat.email } }),
+      ),
   },
 ];
 
