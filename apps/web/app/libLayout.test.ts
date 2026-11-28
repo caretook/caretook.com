@@ -35,6 +35,7 @@ const SYNC_PLUMBING = [
   "useRememberedQuery.ts",
   "uploader.ts",
   "uploader.browser.test.tsx",
+  "deviceWrites.browser.test.tsx",
   "uploadTries.ts",
   "uploadTries.test.ts",
 ];
