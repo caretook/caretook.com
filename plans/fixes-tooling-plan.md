@@ -18,12 +18,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 - **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. All merged (slice 103 needed none); `risa ci run full` requested on afb22d1d (full: the seeds). New B-1051 (assistantActionManyMedications int-test load flake). Context past the soft limit: rotate at this wave's boundary. Fold at landing: slice 105 gave `web:unit` the `~/` alias; fix any doc saying web:unit uses relative imports only. Also fold slice 108's onboarding test account (`onboarding@example.com`, `pnpm datastore:reset:onboarding`, local or staging only) into docs/domain/app-shell.md's Setup part and a row in docs/seed-accounts.md (text in B-667's note). Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
 - **Wave 13 landed** (2026-11-28) through PR #342 at full (run 46174655374, Codex clean on 517e978); dev ce5dc44..eb2a078, notice 2063b8213; to-test/2026-11-28-1323-fixes-tooling.md. Slices 102, 104–108 merged; 103 (B-782) needed no code (fixed by 273ba77a0). Browser checks app-shell, invites, marketing 3/3. Folded: the onboarding test account (app-shell.md, seed-accounts.md), web:unit's `~/` (loop.md). Lesson: request a CI run once and commit nothing until its verdict (a second push cancels the first run). Seeds changed: the main checkout needs `pnpm datastore:reset` (the user's). **Idle hand-over:** no slice in flight; the next session starts wave 14 from the waiting items.
 - **Wave 14 landed** (2026-11-28) through PR #343 at integration (run 46178745404, Codex clean on da2c125); dev 5868035..f7147d5; to-test/2026-11-28-1408-fixes-tooling.md. Slice 109 (B-1051): Given all is set-based (one lock statement, one read, one INSERT; ~1 s to ~0.1 s per run). Browser check roundtrip failed until this stack's PowerSync was restarted (it served sync rules from before a dev merge that added tag.color); noted on B-954. Folded: app-shell.md's onboarding account trimmed to a pointer (doc budget). Lesson: after a dev merge that changes `powersync/`, restart the stack's PowerSync container before browser checks. **Idle hand-over:** no slice in flight; the next session starts wave 15 from the waiting items (new: B-1054, session-end browser check assumes a symptom row in view).
+- **Wave 15 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 110 (B-1054, session-end check) and 111 (B-1057, tagsSettings flake), both opus. Hot set to their paths.
 - **Waiting triaged items for later waves:** B-791 (waits on data-rights' profile routes; failed in quarantine again), B-750 and B-752 (parked, not runnable), B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item   | State   | Merge |
+| ----- | ------ | ------- | ----- |
+| 110   | B-1054 | started |       |
+| 111   | B-1057 | started |       |
 
 ## Wave 1
 
@@ -1104,3 +1107,25 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domai
 
 - Find where the test's time goes (the givePass run over 101 medications, or the test's own reads) and say so in the hand-off with timings, unloaded and under load. If `assistantActionService`'s givePass does per-medication work that batches cleanly (one query per medication where one set-based read or insert would do), make it set-based, keeping its results, audits and permissions as they are; otherwise keep the service and give this test an explicit timeout with a comment naming the work it waits on.
 - Integration test: the same assertions as today (every one of the 101 is given), plus whatever the service change needs; before/after times in the hand-off.
+
+## Wave 15
+
+Started 2026-11-28 by the run-through orchestrator (takeover after an interruption). One browser-check assumption and one component-test flake. Each item's backlog notes (`risa backlog show B-<n>`) carry the details. For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of the race) and fix that cause; a longer timeout alone is not a fix. Never touch a running topic's hot files (`risa backlog prd list`: data-rights holds `settings/details/`, `roundtrip.spec.mjs`, `app-shell.spec.mjs` and many screens; quick-entry-3 holds the quick-entry screens). None touch `vitest.config.ts`, `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 110: the session-end browser check doesn't assume a symptom row in view (B-1054)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/domain/timeline.md · Tests: browser check · Blocked by: none · Check: scripts/browser-checks/session-end.spec.mjs
+
+`scripts/browser-checks/session-end.spec.mjs` 'the device copy ends with the session' clicks `main a[href*="kind=symptom"]` offline to trigger the navigation that sends a long-offline device to sign-in. The caretaker's first timeline page doesn't always hold a symptom row (seen 3/3 on a dev-synced branch: today's rows were doses, notes, events and vitals), so the locator is never visible and the check fails at its `toBeVisible`.
+
+- The offline navigation uses a link the page is certain to have whatever the seed puts on today (an in-app link the shell always renders, or the first timeline row's link, whichever kind it is), and the check still proves the same thing: past 3 days offline, an in-app navigation lands on sign-in with the offline message and a `redirectTo` back to the timeline. Change no seed and no app code for this.
+- Browser check: `session-end.spec.mjs` passes 3/3 on this stack; the hand-off names the link it now uses and why the seed always has it.
+
+### Slice 111: the tags-settings merge test waits for the merge to reach the list (B-1057)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx
+
+`apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx` 'the Tags page an owner merges Urgent into …' flaked in CI (passed on rerun): at line ~254 it read `['Knee', 'Urgent']` where it expects `['Knee']`, i.e. it read the list before the merge's write reached the local database or the screen.
+
+- Show the race (what the assertion reads, and what it reads before), then make the test wait for the merged state the way a user would see it (a polled or retried expectation on the rendered list, or awaiting the write the screen reports done), never a fixed sleep. If the screen itself shows the old tag after the merge reports done, that is a real bug: fix it in the screen and say so.
+- Component test: the same assertions as today, passing 20/20 with `--repeat` (or a loop) locally; the hand-off says what raced.
