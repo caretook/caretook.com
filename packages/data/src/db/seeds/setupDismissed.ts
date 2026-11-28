@@ -1,6 +1,6 @@
 import type { GroupSetup } from "../schema";
 
-import { eq, inArray, like, or } from "drizzle-orm";
+import { and, eq, inArray, like, ne, or } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
 import {
@@ -12,6 +12,7 @@ import {
   userSchema,
 } from "../schema";
 import { SEEDED_DOMAIN } from "./accounts";
+import { ONBOARDING_USER_ID } from "./onboardingUser";
 
 type Membership = {
   userId: string;
@@ -50,15 +51,16 @@ export const dismissalsToAdd = (memberships: readonly Membership[]) => {
  * Every member of a seeded group (one the system or a seeded account created)
  * starts with its setup card dismissed and its setup done (opened, every
  * nudge retired), so neither the card, the setup redirect nor a nudge
- * appears across every check. A group a real account made is left alone.
- * Idempotent.
+ * appears across every check. A group a real account made is left alone, and
+ * so are the onboarding test account (`onboardingUser.ts`) and any group it
+ * made, so it always gets the setup flow. Idempotent.
  */
 export const seed = async () => {
   const db = getDb();
   const seededUsers = db
     .select({ id: userSchema.id })
     .from(userSchema)
-    .where(like(userSchema.email, `%${SEEDED_DOMAIN}`));
+    .where(and(like(userSchema.email, `%${SEEDED_DOMAIN}`), ne(userSchema.id, ONBOARDING_USER_ID)));
   const groups = db
     .select({ id: careGroupSchema.id })
     .from(careGroupSchema)
@@ -73,7 +75,12 @@ export const seed = async () => {
     })
     .from(careGroupMemberSchema)
     .innerJoin(userSchema, eq(userSchema.id, careGroupMemberSchema.userId))
-    .where(inArray(careGroupMemberSchema.groupId, groups));
+    .where(
+      and(
+        inArray(careGroupMemberSchema.groupId, groups),
+        ne(careGroupMemberSchema.userId, ONBOARDING_USER_ID),
+      ),
+    );
   const prefsOf = new Map(rows.map((r) => [r.userId, r.preferences]));
   const changes = dismissalsToAdd(
     rows.map((r) => ({
