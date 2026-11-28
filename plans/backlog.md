@@ -267,7 +267,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1009 | bug | staging | fixes-bug | prd/fixes-bug | A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route |
 | B-1010 | bug | staging | fixes-bug | prd/fixes-bug | The setup redirect can send a creator back to setup on a new device: settings that arrive during readSetupFacts are known but the decision uses the defaults captured before the await |
 | B-1011 | change | triaged | account-security-2 |  | Rate-limit audit: list every public, signed-in, sync, connector and email-sending call with its… |
-| B-1012 | feature | in-progress | free-limits | prd/free-limits | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
+| B-1012 | feature | ready | free-limits | prd/free-limits | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
 | B-1013 | feature | triaged | free-limits-2 |  | Free plan: limit account creation per address, so one person can't make many free accounts to get… |
 | B-1014 | feature | triaged | documents |  | Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked… |
 | B-1015 | change | landed | fixes-ui | prd/fixes-ui | Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a… |
@@ -949,6 +949,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-ui. First failure: AssertionError: {"knee":19.100000000034925,"short of breath":22.900000000023283,"\"short of breath\"":19.899999999965075,"walk -cane":6.2000000000116415,"pres":5.600000000034925,"the":51.90000000002328}: expected 51.90000000002328 to be less than 50 at http://127.0.0.1:34249/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:34249/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bf…
 - 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/fixes-bug. First failure: AssertionError: {"knee":26,"short of breath":18.099999999976717,"\"short of breath\"":20.79999999998836,"walk -cane":7.400000000023283,"pres":4.7999999999883585,"the":63.5}: expected 63.5 to be less than 50 at http://127.0.0.1:44531/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:44531/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8V…
 - 2026-11-27 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/todo-subtasks-3. First failure: AssertionError: {"knee":17.399999999965075,"short of breath":18.70000000001164,"\"short of breath\"":11.899999999965075,"walk -cane":5,"pres":5.2000000000116415,"the":56.20000000001164}: expected 56.20000000001164 to be less than 50 at http://127.0.0.1:34089/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:257:68 at async http://127.0.0.1:34089/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/…
+- 2026-11-28 (slice/fixes-tooling/94): Slice 94 cause: not a spike. 'the' matches ~1,900 items (5 of 6 filler sentences plus the tag 'The pharmacy') and its steady cost is ~20 ms on the Mac (min = median over 9 runs, load 19-46) and 50-85 ms on CI runners, i.e. the runner is ~3-4x slower; a fixed 50 ms budget encoded the Mac's speed. Fix: best of 7 per query, held to 5x a plain read of the group's items (joined to entries, sorted) measured in the same rounds; locally the ratio is 2.2-2.4. Rebuild: best of two under 2 s.
 
 ### B-625 · chore · Drop todo.event_id and its old-client mirror once no device writes it
 
@@ -1420,6 +1421,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/fixes-perf): Found at the fixes-perf wave 2 landing (2026-11-27): fails 4/4 on prd/fixes-perf and also on the wave 1 tip (5fe538b8) with no wave 2 change, so it predates wave 2. scripts/browser-checks/layout-offline.spec.mjs ~166 clicks main ol a[aria-label^="Edit "] (an absolute inset-0 overlay); in the Full layout its centre lands on the row's tag-chip strip (div.flex.flex-wrap.items-center.gap-1 in div.min-w-0.flex-1.space-y-0.5) and the sticky [data-day-header], which intercept the click. Logs: .git/worktrees/fixes-perf-9/caretook-browser/layout-offline-20261127-083228.log and -083346.log. Fix: click the link clear of the chips (position), or check whether chips should pass clicks through to the row link (if users can't open a row by tapping its middle, it's a fixes-ui item instead).
+- 2026-11-28 (slice/fixes-tooling/99): Slice 99 (a76b86566): not a UI bug now. B-970 (fixes-bug, landed 2026-11-27 13:29, after these failure logs) made QuickTags w-fit, so a tap beside the chips opens the row; chips are their own controls by design (tags.md). layout-offline passed unchanged; the step now taps the card's top padding (only the stretched link) so it no longer depends on the first row's tag widths.
 
 ### B-972 · feature · Tags tab on the planner: a unified view listing all tags and the items tagged with each
 
@@ -1588,10 +1590,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1012 · feature · Free plan: cap how many care groups one user can create (owner of), with a clear message at the…
 
-- status: in-progress
+- status: ready
 - prd: free-limits
 - owner: prd/free-limits
-- commit:
+- commit: 7d9931a48
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Free plan: cap how many care groups one user can create (owner of), with a clear message at the cap; staff can lift it per user / Part of 'reasonable limits on free'. Count groups the user created or owns, not ones they were invited to. Pick a default (e.g. 3) in the plan.
 - 2026-11-28 (plan/free-limits): Planned in plans/free-limits-prd.md: cap 3 groups started-and-owned (setting limits.groupsStarted), user.group_limit override, support and admin lift it (users.limits, a391), 4 slices.
