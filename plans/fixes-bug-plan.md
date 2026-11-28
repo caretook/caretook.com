@@ -13,7 +13,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
-**Wave 27 landed** (2026-11-28): PR #323 (dev 5dd73fd), Codex clean, CI components green (run 46129305490), browser checks app-shell, first-sync, invites passed; to-test `2026-11-28-0801-fixes-bug.md`. Slices 93-95 (B-1008, B-1009, B-1010) removed. **Next:** `risa sync` at the next wave's start, then plan wave 28 from the triaged `fixes-bug` items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 27 landed** (2026-11-28): PR #323 (dev 5dd73fd), Codex clean, CI components green (run 46129305490), browser checks app-shell, first-sync, invites passed; to-test `2026-11-28-0801-fixes-bug.md`. Slices 93-95 (B-1008, B-1009, B-1010) removed. Docs folded into app-shell (36768de99, on this branch: it rides the next landing). **Next:** `risa sync` at the next wave's start, then plan wave 28 from the triaged `fixes-bug` items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
