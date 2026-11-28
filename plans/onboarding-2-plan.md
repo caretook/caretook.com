@@ -21,11 +21,7 @@
 
 **Codex follow-ups (prd=onboarding-2, triaged):** B-1008 (a nudge toast outlives its group or a setup page opening), B-1009 (Back from a medication opened on the setup medications step goes to the Medications list), B-1010 (the redirect decides on defaults captured before `readSetupFacts`' await when settings arrive meanwhile: re-read `cachedSettings` in the known branch). Small; can ride with slice 6 if the planner agrees, else a fixes slice.
 
-**Wave 5 started (2026-11-28):** dev sync skipped (no shared file); fixes-ui idle; worktree onboarding-2-6 made, opus agent spawned. B-1008..1010 stay triaged (decide at landing: ride along or fixes-bug).
-
-**Slice 6 merged** as d3516f714; CI components run requested (tier proposed full only for `component-durations.json` key renames, shard balancing). Docs to fold at landing: app-shell.md's "Setup card" becomes the welcome (`TimelineWelcome.tsx`) for every non-setter plus `InviteSomeoneCard` for a lone manager in the full view; timeline.md's easy-view order says "the welcome".
-
-**Wave 5 = slice 6** (opus). Check `fixes-ui`'s current wave isn't on `routes/app/groups/timeline/` before starting (`pnpm backlog prd list`). The e2e specs `first-sync`/`invites` now click Later on `/setup/providers` and assert only the Timeline; slice 6 may bring back a card assertion after it. `done` B-670 when slice 6 merges.
+**Wave 5 (last) green, landing (2026-11-28):** slice 6 merged as d3516f714; components run 46123644164 green on 099073b; `risa sync` then merged dev (186a2f9); run 46124345248 on it: flake (only `search.sync.browser.test.tsx`'s speed test, on the brake list, a file this wave doesn't touch). Codex clean on 186a2f9 (PR #320). Tier: components, not the proposed full (full only for `component-durations.json` key renames). Docs folded: the welcome in app-shell.md and timeline.md. B-670 ready; B-1008..1010 moved to `fixes-bug` (triaged, the user reviews). Last step: `risa rm onboarding-2` (and `onboarding-2-6`).
 
 **Overlap with shared-displays:** onboarding-2 edits none of `components/providers/ProviderForm`, `ProviderListItem`, `ProviderRowContact` again (a promise). Planning note: slice 2 touched 24 files and slice 3 55 (it moved the medication, period and profile form pieces into `components/` and `lib/` so no route imports another's folder).
 

@@ -43,7 +43,7 @@
   - **Ids follow position** (a change needs `datastore:reset`); `timelineEntries.test.ts` checks them.
   - A note's or event's seed `body` becomes its document (`seedContentOf`).
 - **Tests:** beside the route (`timelineWorld.tsx`).
-- **The easy view** (`EasyTimeline.tsx`, chosen by `useEasyMode`), in order: the header, the setup card, Upcoming, My todos, the tiles with Remove last, `QuickEntryBox size="md" passChips={false}` (loggers), the full view's `FilterChips`, then `TimelineEntryList easy`: rows only, full type scale, ⋯ menus by owner, sheets for loggers; no filter links, markers, adding, strips.
+- **The easy view** (`EasyTimeline.tsx`, chosen by `useEasyMode`), in order: the header, the welcome, Upcoming, My todos, the tiles with Remove last, `QuickEntryBox size="md" passChips={false}` (loggers), the full view's `FilterChips`, then `TimelineEntryList easy`: rows only, full type scale, ⋯ menus by owner, sheets for loggers; no filter links, markers, adding, strips.
   - **Upcoming** (`EasyNow.tsx`): loggers get each due pass as a big Given all, Undo; the next item opens the Planner's next 5 (`EasyNext`; no doses), See all.
   - **My todos** (`EasyTodos.tsx`, `easyTodoTrees.ts`): trees matching mine, `TodoTree` `easy` look, Undo; `EASY_TODOS_CAP` counts mine, never cuts a tree. `EasyNext`: day trees, no ticks.
   - **Tiles** (loggers, `EasyTiles.tsx`; pure `lib/assistant/easyTiles.ts`): four links: fixed, learned (most-logged in 30 days) or the group's picks (`care_group.easy_tiles`, via `useEasySetup`). Each opens its sheet's **easy variant** (`TimelineOutlet.easy`). Until set, owners and admins get "Choose the tiles" (to Details).
