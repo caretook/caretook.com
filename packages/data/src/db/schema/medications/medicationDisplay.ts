@@ -15,7 +15,7 @@ import type { DoseSlot, DoseWarning } from "./dueDoses";
 
 import { timeInZone } from "../../../domain/core/zonedDay";
 import { isPassSlot, slotKey } from "./medication";
-import { sortPasses } from "./medicationPass";
+import { passLabel, sortPasses } from "./medicationPass";
 
 // How medications, their schedules, doses and changes read on screen: the
 // list, the medication page and its history (and later the timeline's rows,
@@ -62,7 +62,7 @@ export const clockTime = (time: string) => time.replace(/^0(\d:)/, "$1");
 export const listText = (items: readonly string[]) =>
   items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 
-/** What schedule wording needs of a pass (deleted ones too, so old schedules keep their names). */
+/** What schedule wording needs of a pass (deleted ones too, so old schedules keep their slots: `REMOVED_PASS`). */
 export type SchedulePass = Pick<PassLike, "id" | "name" | "time" | "sortOrder">;
 
 /** A slot's amount as the schedule shows it: only when it's set and differs from the usual dose. */
@@ -96,7 +96,7 @@ const slotLabels = (
     return amount ? `${name} (${amount})` : name;
   };
   return [
-    ...inPasses.map((p) => label(p.name, p.slot)),
+    ...inPasses.map((p) => label(passLabel(p), p.slot)),
     ...own.map((slot) => label(clockTime(slot.time), slot)),
   ];
 };
@@ -226,8 +226,11 @@ export const scheduleChangeParts = (
   const was = byKey(before.slots);
   const now = byKey(after.slots);
   const passOf = new Map(passes.map((p) => [p.id, p]));
-  const name = (slot: ScheduleSlot) =>
-    isPassSlot(slot) ? (passOf.get(slot.passId)?.name ?? "a med time") : clockTime(slot.time);
+  const name = (slot: ScheduleSlot) => {
+    if (!isPassSlot(slot)) return clockTime(slot.time);
+    const pass = passOf.get(slot.passId);
+    return pass ? passLabel(pass) : "a med time";
+  };
   // Passes in their order (unknown ones last), then times by time.
   const passRank = new Map(sortPasses(passes).map((p, index) => [p.id, index]));
   const rank = (slot: ScheduleSlot) =>
