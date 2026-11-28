@@ -10,13 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State         | Merge     |
-| ----- | ------ | ------------- | --------- |
-| 90    | B-1002 | merged (opus) | 8340445bf |
-| 91    | B-1003 | merged (opus) | e7e35e32d |
-| 92    | B-1006 | merged (opus) | 514da289a |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 26 green, PR #321 open, Codex review out** (2026-11-28): all three slices opus, merged; CI components green on 8e910fee (run 46125201506); synced with dev, recheck green on 3c0c67ff (run 46125961686); browser `--changed --base dev` 3/3 (phase2, roundtrip, live-notes); docs folded (af12c4b56, todos.md + medications.md, under budget); slice worktrees removed. Next: triage Codex, land `--tier components`, report, status-trim, rotate (context past the soft limit). B-1002's note keeps the mixed-chain edge case. Held: B-750, B-752.
+**Idle after wave 26** (idle hand-over; landed through PR #321, 2026-11-28, dev 56424f1, CI components green run 46125961686 on 3c0c67ff, Codex clean on 9553919, then a docs-only timeline.md trim landed `--no-review --by-user` (standing word for docs-only); to-test `to-test/2026-11-28-0357-fixes-bug.md`; report a385). Slices 90 (B-1002, 8340445bf), 91 (B-1003, e7e35e32d), 92 (B-1006, 514da289a), all opus; docs folded into todos.md and medications.md. Lesson: run `risa sync` before writing a wave's slices (wave 26 first started on a base 345 commits behind and had to restart). `risa status-trim` crashed (v0.1.8 can't resolve `prettier`), so wave 25 and 26's notes weren't moved to the history file: run it next session. **Next session:** ingest, `risa backlog list`, then `risa sync` first. Waiting: B-1008, B-1009, B-1010 (setup nudges, setup medications Back, setup redirect) touch onboarding-2's hot files (setup, setupNudges, toastQueue): leave them until onboarding-2 lands. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
