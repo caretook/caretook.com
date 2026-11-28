@@ -292,10 +292,17 @@ describe("sync.upload: repeating todos", () => {
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
 
     // Skip: this one's soft delete, then the next one brought back (the
-    // device has the Undo's deleted copy, so it's a PATCH, not a PUT).
+    // device has the Undo's deleted copy, so it's a PATCH, not a PUT). The
+    // delete scrubbed it (data-rights), and so did the device's copy, so its
+    // content comes back with it.
     const skip = [
       { op: "PATCH" as const, table: "todo", id, data: { deleted_at: MONDAY } },
-      { op: "PATCH" as const, table: "todo", id: next.id, data: { deleted_at: null } },
+      {
+        op: "PATCH" as const,
+        table: "todo",
+        id: next.id,
+        data: { deleted_at: null, title: "Call the pharmacy" },
+      },
     ];
     expect((await upload(owner.api, skip)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(await todoService.getById(owner.ctx, id)).toBeNull();
@@ -389,6 +396,30 @@ describe("sync.upload: repeating todos", () => {
         expect(await todoService.getById(owner.ctx, nextId)).toBeNull();
         expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
       }
+    });
+
+    it("brings a scrubbed next back with the device's content on a skip (data-rights)", async () => {
+      const { owner, caretaker, id, nextId, undo } = await ticked();
+      ok(await owner.api.sync.upload({ ops: undo }));
+      expect(ok(await todoService.getById(owner.ctx, nextId, { includeDeleted: true }))).toMatchObject({
+        title: "",
+        assigneeId: null,
+      });
+      const skip = [
+        { op: "PATCH" as const, table: "todo", id, data: { deleted_at: TUESDAY } },
+        {
+          op: "PATCH" as const,
+          table: "todo",
+          id: nextId,
+          data: { deleted_at: null, title: "Put the bins out", assignee_id: caretaker.user.id },
+        },
+      ];
+      expect((await upload(owner.api, skip)).map((r) => r.status)).toEqual(["applied", "applied"]);
+      expect(ok(await todoService.getById(owner.ctx, nextId))).toMatchObject({
+        title: "Put the bins out",
+        assigneeId: caretaker.user.id,
+        deletedAt: null,
+      });
     });
 
     it("an explicit delete of the next is unchanged: it goes even when edited", async () => {
