@@ -31,7 +31,7 @@ One shared tag list per care group; tags go on timeline entries (events included
 
 ## Limits
 
-- Connectors read tags ([connectors](connectors.md) _Tools_); no calendar feed, email, print view or search index does.
+- Connectors read and write tags ([connectors](connectors.md) _Tools_); no calendar feed, email, print view or search index does.
 - Not tagged: conditions, allergies, care periods, a repeating series as a whole. One tag per filter; no nesting. A merge drops `from`'s links on soft-deleted records too. The timeline's `?q=` doesn't match tag names.
 - Known limit: a device that never saw a rename can add the old name and land on the renamed tag.
 - Seeds: `seeds/tags.ts`, fictional tags with a color each on every seed group, on every taggable kind, written by the group's owner (derived ids).
