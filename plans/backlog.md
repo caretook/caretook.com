@@ -268,8 +268,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
 | B-1037 | change | triaged | fixes-perf |  | Bring the components tier's first shard under 275 s so the components time gate can be armed |
-| B-1038 | feature | ready | quick-entry-3 | prd/quick-entry-3 | Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider) |
-| B-1039 | feature | ready | quick-entry-3 | prd/quick-entry-3 | Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site |
+| B-1038 | feature | landed | quick-entry-3 | prd/quick-entry-3 | Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider) |
+| B-1039 | feature | landed | quick-entry-3 | prd/quick-entry-3 | Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site |
 | B-1040 | change | triaged | undo-first |  | Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask |
 | B-1041 | feature | triaged | undo-first |  | Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that' |
 | B-1042 | feature | triaged | quick-entry-4 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
@@ -289,6 +289,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1056 | bug | triaged | quick-entry-3 |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
 | B-1058 | bug | triaged | quick-entry-3 |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
+| B-1059 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 
 ## Items
 
@@ -1542,7 +1543,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1038 · feature · Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider)
 
-- status: ready
+- status: landed
 - prd: quick-entry-3
 - owner: prd/quick-entry-3
 - commit: f2d90201b
@@ -1551,7 +1552,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1039 · feature · Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site
 
-- status: ready
+- status: landed
 - prd: quick-entry-3
 - owner: prd/quick-entry-3
 - commit: f2d90201b
@@ -1745,3 +1746,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345 (thread PRRT_kwDOVx-WLM69HOQZ): add 'dialog' to inOtherLayer's selector in useQuickEntryShortcut.ts, with a row in quickEntryShortcut.browser.test.tsx
+
+### B-1059 · bug · CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): [ci-key 926bfebd2c90] Flaked (passed on its rerun); found by prd/quick-entry-3. First failure: Error: STACK_TRACE_ERROR at new m (http://127.0.0.1:39387/@fs/home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/@vitest+browser@5.1.0_vite@8.3.8_@types+node@24.19.2_esbuild@0.28.2_jiti@2.7.0_tsx@4.23.15__vitest@5.1.0/node_modules/@vitest/browser/dist/locators-GsmO59Q9.js?v=beaca9b8:1:1748) at new h (http://127.0.0.1:39387/@fs/home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/@vitest+browser@5.1.0_vite@8.3.8_@types+node@24.19.2_esbuild@0.28.2_jiti@2.7.0_tsx@4.23.1…
