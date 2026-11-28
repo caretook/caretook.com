@@ -14,3 +14,4 @@ export { PassUndoStatus } from "./PassUndoStatus";
 export { usePassLog, undoPassLog, offerUndoToast, UndoToastProvider, useUndoToast } from "./usePassLog";
 export { NameField } from "./NameField";
 export { MedicationCard } from "./MedicationCard";
+export { MedicationIcon } from "./MedicationIcon";
