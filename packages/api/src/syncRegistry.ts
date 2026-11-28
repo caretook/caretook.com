@@ -238,7 +238,7 @@ const softDelete = (spec: SoftDeleteSpec): UploadEntry => {
         if (res === null || !res.created) return applied;
         if (data.deleted_at) return remove(inTx, op.id);
         return spec.afterPut ? spec.afterPut(inTx, op) : applied;
-      });
+      }, ctx);
     }
 
     // PATCH: only the columns that changed.
