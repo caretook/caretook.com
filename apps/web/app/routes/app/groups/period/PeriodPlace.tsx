@@ -4,12 +4,13 @@ import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
 import { LINK, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { placeName } from "~/lib/care-periods/periodPlaces";
 import { allActions } from "~/lib/providers/contactActions";
 
 /**
  * Where the period is: the place (a link to its provider page, with every
  * way to reach it: call, email, map, website) and the room or bed. A place
- * deleted from the directory since is greyed "(removed)", with no link or
+ * deleted from the directory since is greyed "Removed place", with no link or
  * actions. Nothing when neither is set.
  */
 export function PeriodPlace({
@@ -31,7 +32,7 @@ export function PeriodPlace({
           {place &&
             (removed ? (
               <span className="text-faint" data-place-removed>
-                {place.name} (removed)
+                {placeName(place)}
               </span>
             ) : (
               <Link className={`${LINK} font-medium`} to={appUrls.provider(groupId, place.id)}>

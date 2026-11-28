@@ -12,12 +12,13 @@ import {
   startText,
   untilText,
 } from "~/lib/care-periods/periodDisplay";
+import { placeName } from "~/lib/care-periods/periodPlaces";
 import type { PeriodSpan } from "@caretook/data/domain";
 import { periodDay, periodLengthDays } from "@caretook/data/domain";
 
 /**
  * Every period on the track, newest first: its type's icon, its name and
- * label, the place (greyed "(removed)" once deleted from the directory), when
+ * label, the place (greyed "Removed place" once deleted from the directory), when
  * it started and until when ("now" for the current one), and how long. Each
  * opens the period's page.
  */
@@ -64,10 +65,7 @@ export function PeriodList({
                 {(place || period.placeDetail) && (
                   <span className="text-muted block text-sm" data-period-place>
                     {place && (
-                      <span className={place.deletedAt ? "text-faint" : undefined}>
-                        {place.name}
-                        {place.deletedAt && " (removed)"}
-                      </span>
+                      <span className={place.deletedAt ? "text-faint" : undefined}>{placeName(place)}</span>
                     )}
                     {place && period.placeDetail && ", "}
                     {period.placeDetail}

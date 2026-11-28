@@ -132,11 +132,11 @@ describe("the period page", () => {
     ).toBe(periodUrl(HOSPITAL.id));
   });
 
-  test("a place deleted from the directory shows greyed '(removed)', with no link or contact actions", async () => {
+  test("a place deleted from the directory reads greyed 'Removed place', with no link or contact actions", async () => {
     const place = fx.provider({ name: "Hillcrest Clinic", type: "practice", deletedAt: at(daysAgo(1)) });
     const stay = fx.period({
       type: "rehab",
-      label: "Removed place",
+      label: "After surgery",
       placeProviderId: place.id,
       startedAt: at(daysAgo(9, 12)),
     });
@@ -144,7 +144,7 @@ describe("the period page", () => {
     await waitUntil(onPage(stay.id), "the page");
     expect(pageState()).toMatchObject({
       removed: true,
-      place: "Hillcrest Clinic (removed)",
+      place: "Removed place",
       placeLink: null,
       actions: [],
     });
