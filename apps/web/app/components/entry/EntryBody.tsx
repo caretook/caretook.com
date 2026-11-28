@@ -4,10 +4,10 @@ import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 
-import { conditionChangeText, isConditionChangeDetails } from "@caretook/data/schema";
+import { isConditionChangeDetails } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { Highlight } from "~/components/ui";
-import { entrySummary, KIND_META } from "~/lib/timeline/entryDisplay";
+import { conditionChangeRow, entrySummary, KIND_META } from "~/lib/timeline/entryDisplay";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { chipLabel, withSummary, withText } from "~/lib/providers/entryProviders";
 import { medicationEntryText } from "~/lib/medications/medicationEntries";
@@ -23,7 +23,8 @@ const TEXT_CAP = "max-w-[75ch]";
  * What an entry says, the same in rows and cards: the kind (for screen
  * readers), then its heading (title or symptom name, with severity; a dose's
  * or change's medication and what happened; a condition change's "Added
- * Type 2 diabetes" and its before → after lines), its vital readings, who it was
+ * Type 2 diabetes" and its before → after lines; a deleted one's "Removed
+ * medication changed" or "Removed condition changed"), its vital readings, who it was
  * with (linked providers), a dose's or stop's note, and its text, in that order. The first of those can share a line
  * with `aside` (the card's live dot and time); `footer` comes last. Rows clamp
  * the text to two lines (`clamp`, with "More"); cards show all of it, a
@@ -60,7 +61,7 @@ export function EntryBody({
   const medication = medicationEntryText(entry);
   const condition =
     entry.kind === "conditionChange" && isConditionChangeDetails(entry.details)
-      ? conditionChangeText(entry.details)
+      ? conditionChangeRow(entry.details)
       : null;
   const marks = (text: string) => (search ? highlightRanges(text, search) : undefined);
   const snippet =
@@ -72,13 +73,21 @@ export function EntryBody({
         entry={entry}
         what={medication.what}
         standalone={medication.standalone}
+        removed={medication.removed}
         search={search}
         className={TEXT_CAP}
       />
     ),
     condition && (
-      <p key="condition" className={`font-semibold break-words ${TEXT_CAP}`} data-condition-entry>
-        <Highlight text={condition.heading} ranges={marks(condition.heading)} />
+      <p
+        key="condition"
+        className={`font-semibold break-words ${condition.removed ? "text-faint" : ""} ${TEXT_CAP}`}
+        data-condition-entry
+      >
+        <Highlight
+          text={condition.heading}
+          ranges={condition.removed ? undefined : marks(condition.heading)}
+        />
       </p>
     ),
     ...(condition?.lines ?? []).map((line) => (
@@ -147,8 +156,8 @@ function Readings({ readings, marks }: { readings: string[]; marks: Marks }) {
 }
 
 /**
- * "with Dr. A, Dr. B +1": up to two names, a removed provider greyed with
- * "(removed)". Text only (no links), so a tap still reaches the row's open
+ * "with Dr. A, Dr. B +1": up to two names, a removed provider greyed
+ * "Removed provider". Text only (no links), so a tap still reaches the row's open
  * target; screen readers get the sentence ("… and 1 more").
  */
 function WithLine({ providers, marks }: { providers: readonly LinkedProviderName[]; marks: Marks }) {

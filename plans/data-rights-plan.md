@@ -6,18 +6,18 @@
 
 ### From the user
 
-- (none yet; started run-through by the dispatcher, 2026-11-28)
+- 2026-11-28 (relayed by the backlog session), asked to switch sessions to the personal account: "Yes, switch now"
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** hold lifted; wave 1 (slices 1 to 4) starting 2026-11-28. Hot-file check: `fixes-ui` idle, `tags`/`todo-subtasks` done, so no wave waits. Models: slices 1 to 4 on opus.
+**Where it stands:** wave 1 (slices 1 to 4) was spawned 2026-11-28 on opus, rotated mid-wave for the account switch, and **respawned 2026-11-28 on opus with `--continue`** after the switch (slice 1: nothing committed yet; 2 and 4: uncommitted work; 3: one commit `60e80fbe7`). `risa watch data-rights --wait` runs. B-84 and B-53 claimed; B-357 is claimed when slice 5 starts. Backlog ingest at respawn: nothing new. dev has moved (fixes-bug, sync-safety-3 landed): `risa sync` at the wave boundary.
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
-| 3     | 1    | not started |                                              |
-| 4     | 1    | not started |                                              |
+| 1     | 1    | respawned   |                                              |
+| 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
+| 3     | 1    | respawned   |                                              |
+| 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
 | 5     | 2    | not started |                                              |
 | 6     | 3    | not started |                                              |
 

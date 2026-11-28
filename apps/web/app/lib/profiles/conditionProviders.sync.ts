@@ -14,7 +14,7 @@ import { toConditions } from "./conditions.sync";
 // slice 3): read by a condition's sheets and the provider page. The writes
 // are conditions.sync.ts's, with the condition and its change entry.
 // Deleted providers are read too, so a condition shows them greyed
-// "(removed)"; deleted conditions never show.
+// "Removed provider"; deleted conditions never show.
 
 // ---------------------------------------------------------------------------
 // A condition's providers

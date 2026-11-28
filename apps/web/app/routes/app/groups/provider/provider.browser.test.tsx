@@ -131,6 +131,26 @@ describe("the page", () => {
       .toBeVisible();
   });
 
+  test('a clinician whose practice is deleted (and scrubbed) elsewhere: it reads "Removed provider", greyed, not a link', async () => {
+    const device = await open(providerUrl(ALVAREZ.id));
+    await waitUntil(
+      () => !!document.querySelector<HTMLElement>("main header a[data-practice]"),
+      "the practice link",
+    );
+    await device.sync(
+      fx.provider({ id: WESTSIDE.id, type: "practice", name: "", specialty: null, deletedAt: at() }),
+    );
+    await device.settle();
+    await waitUntil(
+      () => !document.querySelector<HTMLElement>("main header a[data-practice]"),
+      "the practice unlinked",
+    );
+    const practice = document.querySelector<HTMLElement>("main header [data-practice]");
+    expect(practice?.textContent).toBe("Removed provider");
+    expect(practice?.classList.contains("text-faint")).toBe(true);
+    expect(pageHeader().details).toMatch(/^Clinician · Internal medicine · Removed provider/);
+  });
+
   test("a provider with a number, an email and an address: each is a working link on the page (B-422)", async () => {
     const reachable = fx.provider({
       name: "Dr. Priya Raman",
