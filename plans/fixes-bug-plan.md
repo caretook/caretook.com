@@ -10,9 +10,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State           | Merge     |
-| ----- | ------ | --------------- | --------- |
-| 99    | B-1046 | merged; CI next | e51817358 |
+| Slice | Item   | State                                                                                    | Merge     |
+| ----- | ------ | ---------------------------------------------------------------------------------------- | --------- |
+| 99    | B-1046 | merged; CI green (run 46188338488); dev synced (eac24a515), CI on tip + Codex on PR #356 | e51817358 |
 
 Wave 29 started 2026-11-28: `risa sync` needed no merge; slice 99 written; its agent (opus) handed off bd147b50e (slice check green; WebKit covered by unit tests only, hand-test iOS Safari and the PWA); merged as e51817358; CI components running (tier proposed full only for dev's quarantine.txt from the sync; land with --tier components --why). B-1046 stays open for report 2.
 
