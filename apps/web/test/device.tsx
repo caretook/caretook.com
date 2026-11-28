@@ -372,17 +372,21 @@ const withSetupRecord = (userId: string, api: DeviceOptions["api"] = {}): Device
   } catch {
     // No storage: nothing cached.
   }
-  const get = api["me.get"];
-  if (!get) return api;
-  return {
-    ...api,
-    "me.get": async (input) => {
-      const me: unknown = await get(input);
-      if (me instanceof Response || typeof me !== "object" || me === null) return me;
-      const { groupSetup } = me as { groupSetup?: Parameters<typeof mergeGroupSetup>[0] };
-      return { ...me, groupSetup: mergeGroupSetup(SETUP_DONE, groupSetup) };
+  // A view of the test's own handlers, read at each call: a test may add or
+  // remove one after the device opens (taking a procedure offline, say).
+  return new Proxy(api, {
+    get: (target, name, receiver) => {
+      const handler: unknown = Reflect.get(target, name, receiver);
+      if (name !== "me.get" || typeof handler !== "function") return handler;
+      const get = handler as (input: unknown) => unknown;
+      return async (input: unknown) => {
+        const me: unknown = await get(input);
+        if (me instanceof Response || typeof me !== "object" || me === null) return me;
+        const { groupSetup } = me as { groupSetup?: Parameters<typeof mergeGroupSetup>[0] };
+        return { ...me, groupSetup: mergeGroupSetup(SETUP_DONE, groupSetup) };
+      };
     },
-  };
+  });
 };
 
 /** Open a test device on a screen. See the top of this file. */
