@@ -1,8 +1,6 @@
-import type { NamedTag } from "./loadSearch";
 import type { ReactNode } from "react";
 
 import { Link } from "react-router";
-import { TagChips } from "~/components/tags";
 import { Highlight } from "~/components/ui";
 import type { ParsedSearch, Snippet } from "@caretook/data/domain";
 import { highlightRanges } from "@caretook/data/domain";
@@ -51,11 +49,6 @@ export function OpenName({
 /** `text` with the search's matches marked. */
 export const Marked = ({ text, search }: { text: string; search: ParsedSearch }) => (
   <Highlight text={text} ranges={highlightRanges(text, search)} />
-);
-
-/** The tags the text names that a result carries (tags-3): why it's here when its text doesn't say. */
-export const NamedTags = ({ tags }: { tags: readonly NamedTag[] | undefined }) => (
-  <TagChips tags={tags} max={null} className="mt-1" />
 );
 
 /** A line from the notes, around the match that's only there. */

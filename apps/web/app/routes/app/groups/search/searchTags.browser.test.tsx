@@ -1,8 +1,9 @@
 import type { DeviceRoute } from "../../../../../test/device";
+import type { GroupRole } from "../../../../../test/fixtures";
 
 import { TAG_COLORS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import * as searchRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { condition, fx, hoursAgo, recordTag, tag, TEST_GROUP, todo } from "../../../../../test/fixtures";
@@ -288,5 +289,81 @@ describe("search: the tag filter", () => {
     await device.settle();
     await expect.poll(results).toEqual([]);
     await found(() => tagChip("Beta"));
+  });
+});
+
+// Shared displays slice 2: each result's tags are read live (one query per
+// kind) and shown as the one tag control (`QuickTags`: two chips, then
+// "+N"), the tags the text names first.
+describe("search: tags on a result row", () => {
+  const APPLE = tag("Apple");
+  const BANANA = tag("Banana");
+  const WALNUT = tag("Walnut");
+  const SNACK = fx.note({ occurredAt: hoursAgo(9), text: "A snack by the window" });
+  const snacks = () => [
+    ...world(),
+    APPLE,
+    BANANA,
+    WALNUT,
+    SNACK,
+    recordTag(APPLE.id, SNACK.id),
+    recordTag(BANANA.id, SNACK.id),
+    recordTag(WALNUT.id, SNACK.id),
+  ];
+  const openAs = (query: string, role: GroupRole = "owner") =>
+    renderWithDevice({ route: ROUTES, url: `${BASE}${query}`, role, fixtures: snacks(), search: true });
+  const row = (id: string) => `[data-result-id="${id}"]`;
+  const moreCount = (id: string) =>
+    document.querySelector(`${row(id)} [data-tag-more] [aria-hidden]`)?.textContent ?? null;
+
+  test("the tag the text names is among a result's first two chips, the rest A to Z", async () => {
+    const device = await openAs("?q=walnut");
+    await expect.poll(results).toEqual([`entry:${SNACK.id}`]);
+    await expect.poll(() => resultChips(SNACK.id)).toEqual([WALNUT.id, APPLE.id]);
+    expect(moreCount(SNACK.id)).toBe("+1");
+    await device.screen.unmount();
+
+    await openAs("?q=snack");
+    await expect.poll(() => resultChips(SNACK.id)).toEqual([APPLE.id, BANANA.id]);
+  });
+
+  test("a writer adds a tag from a result row without opening it", async () => {
+    const device = await openAs("?q=lunch");
+    await found(() => document.querySelector(row(UNTAGGED_NOTE.id)));
+    expect(resultChips(UNTAGGED_NOTE.id)).toEqual([]);
+    await userEvent.click(page.getByCss(row(UNTAGGED_NOTE.id)).getByRole("button", { name: "Add tag" }));
+    await found(() => document.querySelector("[data-tag-picker]"));
+    await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
+    await device.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    await expect.poll(() => resultChips(UNTAGGED_NOTE.id)).toEqual([KNEE.id]);
+    expect(device.location()).toBe(`${BASE}?q=lunch`);
+    expect(
+      await device.query("SELECT tag_id FROM record_tag WHERE entry_id = ?", [UNTAGGED_NOTE.id]),
+    ).toEqual([{ tag_id: KNEE.id }]);
+  });
+
+  test.each(["viewer", "easy_helper", "easy_viewer"] as const)(
+    "a %s sees a result's chips with no Add tag or ×",
+    async (role) => {
+      await openAs("?q=snack", role);
+      await expect.poll(() => resultChips(SNACK.id)).toEqual([APPLE.id, BANANA.id]);
+      expect(document.querySelector(`${row(SNACK.id)} [data-tag-more]`)).not.toBeNull();
+      expect(
+        document.querySelector(
+          "[data-result] :is([data-quick-tag-add], [data-tag-remove], [data-tag-more-open])",
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a tag added on another device shows on the row", async () => {
+    const device = await openAs("?q=lunch");
+    await found(() => document.querySelector(row(UNTAGGED_NOTE.id)));
+    expect(resultChips(UNTAGGED_NOTE.id)).toEqual([]);
+    await device.sync([recordTag(URGENT.id, UNTAGGED_NOTE.id)]);
+    await device.settle();
+    await expect.poll(() => resultChips(UNTAGGED_NOTE.id)).toEqual([URGENT.id]);
   });
 });
