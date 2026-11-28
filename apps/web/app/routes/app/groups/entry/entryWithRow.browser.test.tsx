@@ -152,7 +152,7 @@ describe("the With row", () => {
     expect(await linkedIds(device, VISIT.id)).toEqual([WESTSIDE.id]);
   });
 
-  test("a provider deleted on another device: its chip is greyed “(removed)” and not a link; the entry is otherwise unchanged", async () => {
+  test("a provider deleted on another device: its chip is greyed “Removed provider” and not a link, scrubbed or not; the entry is otherwise unchanged", async () => {
     const device = await open(entryUrl(VISIT.id), {
       fixtures: [directory(), VISIT, fx.link(VISIT.id, PATEL.id), fx.link(VISIT.id, MARIA.id)],
     });
@@ -162,8 +162,16 @@ describe("the With row", () => {
     await device.sync({ ...MARIA, row: { ...MARIA.row, deleted_at: at() } });
     await device.settle();
     const gone = chips().find((c) => c.id === MARIA.id)!;
-    expect(gone).toMatchObject({ text: "Maria Reyes (removed)", href: null, muted: true });
+    expect(gone).toMatchObject({ text: "Removed provider", href: null, muted: true });
     expect(chips().length).toBe(2);
+    // Scrubbed by the delete: the name is gone too.
+    await device.sync({ ...MARIA, row: { ...MARIA.row, name: "", deleted_at: at() } });
+    await device.settle();
+    expect(chips().find((c) => c.id === MARIA.id)).toMatchObject({
+      text: "Removed provider",
+      href: null,
+      muted: true,
+    });
     expect(document.querySelector<HTMLElement>("main h1, main header input")?.outerHTML).toBe(title);
     expect(NOTES()).not.toBeNull();
   });

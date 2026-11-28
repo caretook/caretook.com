@@ -38,8 +38,8 @@ const NOT_READ_YET: ProviderRow[] = [];
 
 /**
  * The entry header's With region: who a note or event was with. Every
- * linked provider is a chip that opens their page (a deleted one is greyed,
- * "(removed)", and not a link). Writers remove a chip with its ×, and add
+ * linked provider is a chip that opens their page (a deleted one is greyed
+ * "Removed provider", and not a link). Writers remove a chip with its ×, and add
  * through a picker over the group's providers, which can also add a new
  * clinician by the typed name, linked in the same write. Once something is
  * typed, the picker also lists the user's other groups' matches under "From
@@ -125,7 +125,7 @@ export function EntryWithRow({
     to: provider.deletedAt || easyRole ? null : appUrls.provider(groupId, provider.id),
     muted: !!provider.deletedAt,
     ...(canWrite && {
-      removeLabel: `Remove ${provider.name}`,
+      removeLabel: `Remove ${chipLabel(provider)}`,
       onRemove: () =>
         stored.length
           ? void unlinkProvider(getSync(), entryId, provider.id).then(report)

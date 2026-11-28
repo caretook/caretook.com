@@ -32,7 +32,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as timelineEntryService from "./timelineEntryService";
@@ -353,25 +353,19 @@ export const upsert = (
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId, kind } = parsed.data;
 
-    const existing = await appointmentSeriesModel.getById(id, {
-      authUser: SYSTEM_USER,
+    return createIfAbsent({
+      ctx,
       tx,
-      includeDeleted: true,
+      getById: appointmentSeriesModel.getById,
+      id,
+      create: () => create({ ...ctx, tx }, input, opts),
+      immutable: (visible) =>
+        visible.groupId !== groupId ||
+        visible.kind !== kind ||
+        (recipientId !== undefined && visible.recipientId !== recipientId)
+          ? immutable()
+          : undefined,
     });
-    if (isError(existing)) return existing;
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input, opts));
-
-    const visible = await appointmentSeriesModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-
-    if (
-      visible.groupId !== groupId ||
-      visible.kind !== kind ||
-      (recipientId !== undefined && visible.recipientId !== recipientId)
-    )
-      return immutable();
-    return unchanged(visible);
   }, ctx);
 
 /**

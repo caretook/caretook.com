@@ -6,7 +6,8 @@
 # tool's check plan has decided MODE and the diff's own test files; this runs them.
 #   slice: typecheck, lint, format, every unit test, and the integration and
 #          component test files the diff adds or edits (the OWN files that still
-#          exist), then the check-areas lint and the docs budget
+#          exist; a component file web:components:ny includes runs in both zones),
+#          then the check-areas lint and the docs budget
 #   quick: the same, plus the integration tests related to the diff
 #          (`vitest --changed BASE`); no component test beyond the OWN files
 #   full:  what `pnpm check` runs, then the build budget
@@ -129,6 +130,15 @@ else
   done
   clock count
   files() { pnpm exec vitest list --filesOnly "$@" | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u; }
+  # The own component files web:components:ny's include list covers (B-757): those
+  # run in the second zone too, the rest in the test zone only. Vitest's file
+  # filters match substrings, so only the own files themselves count.
+  ny=0
+  if ((${#own_browser[@]})); then
+    while IFS= read -r f; do
+      if [[ " ${own_browser[*]} " == *" $f "* ]]; then ny=1; fi
+    done < <(files --project web:components:ny "${own_browser[@]}")
+  fi
   all=$(files --project '!tooling:browser' --project '!project:tooling' | grep -c . || true)
   run=$( { files "${unit[@]}"
            if [[ $mode == quick ]]; then files --project integration --changed "$base"; fi
@@ -151,6 +161,7 @@ else
   fi
   if ((${#own_browser[@]})); then
     projects=(--project web:components) targets=("${own_browser[@]}")
+    ((ny == 0)) || projects+=(--project web:components:ny)
     tests components
     targets=()
   fi

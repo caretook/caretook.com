@@ -3,10 +3,8 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { check, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { careGroupSchema } from "../care-groups/careGroup";
 import { id } from "../core/columns";
 import { STAFF_REASON_MAX } from "./staffRules";
-import { userSchema } from "../auth/user";
 
 // The staff audit log (admin PRD): every staff write, every time staff
 // open an account's or a group's page, and every account search (with its
@@ -94,8 +92,10 @@ export const adminAuditLogSchema = pgTable(
     // keeps who acted even if their account is deleted later.
     actorId: uuid("actor_id"),
     action: text("action", { enum: AUDIT_ACTIONS }).notNull(),
-    targetUserId: uuid("target_user_id").references(() => userSchema.id, { onDelete: "set null" }),
-    targetGroupId: uuid("target_group_id").references(() => careGroupSchema.id, { onDelete: "set null" }),
+    // No FKs either (data-rights PRD): an entry keeps its target's id after
+    // the account or group is deleted.
+    targetUserId: uuid("target_user_id"),
+    targetGroupId: uuid("target_group_id"),
     reason: text("reason"),
     changes: jsonb("changes").$type<AuditChanges>().notNull().default({}),
     createdAt: timestampColumn("created_at").defaultNow().notNull(),

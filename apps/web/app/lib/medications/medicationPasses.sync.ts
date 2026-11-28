@@ -65,14 +65,18 @@ export type LocalPass = PassLike & {
   deletedAt: string | null;
 };
 
-/** A local row as a pass, or null for a half-synced one. */
+/**
+ * A local row as a pass, or null for a half-synced one. A deleted pass's
+ * name is empty (a delete scrubs it, data-rights) but it stays: schedules
+ * and missed doses still read its time. Screens name it with `passLabel`.
+ */
 export const toPass = (row: PassRow): LocalPass | null => {
-  if (!row.group_id || !row.name || !row.time) return null;
+  if (!row.group_id || !row.time || (!row.name && !row.deleted_at)) return null;
   return {
     id: row.id,
     groupId: row.group_id,
     recipientId: row.recipient_id ?? "",
-    name: row.name,
+    name: row.name ?? "",
     time: row.time,
     sortOrder: row.sort_order ?? 0,
     deletedAt: row.deleted_at ? fromLocalTimestamp(row.deleted_at) : null,

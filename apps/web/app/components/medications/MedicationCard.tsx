@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ListRow } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { REMOVED_MEDICATION } from "~/lib/medications/medicationEntries";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { medicationTitle } from "@caretook/data/schema";
 import { MedicationIcon } from "./MedicationIcon";
@@ -29,7 +30,7 @@ const OPENS =
  * `open` says how it opens: left out, the whole card links to its page
  * (carrying where it was opened from); a callback, the name is a button
  * (`data-opens-sheet`; the easy roles' read-only sheet); `null`, a plain
- * name that opens nothing. A `removed` one is greyed "<name> (removed)",
+ * name that opens nothing. A `removed` one is greyed "Removed medication" (never its name),
  * with no link, badge or actions (`trailing` stays, so a link to it can
  * still be removed).
  */
@@ -84,7 +85,7 @@ export function MedicationCard({
         <p className="flex min-w-0 items-start justify-between gap-2">
           {removed ? (
             <span className={nameClass} data-medication-name>
-              {name} (removed)
+              {REMOVED_MEDICATION}
             </span>
           ) : open === null ? (
             <span className={nameClass} data-medication-name>

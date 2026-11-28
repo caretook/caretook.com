@@ -2,6 +2,31 @@
 
 Finished-wave history moved out of [the plan](fixes-tooling-plan.md)'s _Status_ by `pnpm prd status-trim fixes-tooling`, the newest trim first.
 
+## Trimmed 2026-11-28
+
+| Slice | Item  | State                                                                                             | Merge     |
+| ----- | ----- | ------------------------------------------------------------------------------------------------- | --------- |
+| 108   | B-667 | merged                                                                                            | 3428db815 |
+| 107   | B-757 | merged                                                                                            | 50769fb60 |
+| 106   | B-852 | merged                                                                                            | d8619fb78 |
+| 105   | B-375 | merged                                                                                            | b2604ca66 |
+| 104   | B-802 | merged                                                                                            | dfcad98c1 |
+| 103   | B-782 | no change: already fixed by 273ba77a0 (B-332); item done; its quarantine line stays for `risa ci` | —         |
+| 102   | B-778 | merged                                                                                            | 762a318ab |
+
+## Trimmed 2026-11-28
+
+| Slice | Item                        | State  | Merge    |
+| ----- | --------------------------- | ------ | -------- |
+| 101   | B-749, B-851                | merged | 01fe040c |
+| 100   | B-776                       | merged | 221080e9 |
+| 99    | B-967                       | merged | 110895a3 |
+| 98    | B-949                       | merged | 4ebe9b3f |
+| 97    | B-785, B-790                | merged | 930a420c |
+| 96    | B-1004, B-1005              | merged | 8a9da3db |
+| 95    | B-808, B-922, B-983         | merged | 454097ee |
+| 94    | B-619, B-839, B-998, B-1000 | merged | 4d663e36 |
+
 ## Trimmed 2026-11-26
 
 | Slice | Item  | State  | Merge    |

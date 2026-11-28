@@ -1,4 +1,7 @@
 import type { QuickEntryMedication, QuickEntryProvider } from "@caretook/data/schema";
+import type { QuickEntryCommand, QuickEntryPage } from "@caretook/data/domain";
+
+import { jumpDayText } from "../../lib/timeline/timelineJump";
 
 /** The still prompt in the empty box. */
 export const QUICK_ENTRY_PLACEHOLDER = "Type what happened…";
@@ -38,3 +41,30 @@ export const quickEntryRules = (examples: readonly string[]) =>
 
 /** A Go to line for a day after today. */
 export const GO_TO_AHEAD = "The timeline ends today.";
+
+/** What a reader's line says instead of cards: they can view the group but not add to it. */
+export const READER_REFUSAL = "You can view this care group, so nothing you type here is saved.";
+
+/** What a command card calls each page it opens. */
+export const QUICK_ENTRY_PAGE_NAMES: Record<QuickEntryPage, string> = {
+  timeline: "Timeline",
+  todos: "To-dos",
+  planner: "Planner",
+  medications: "Medications",
+  medicationSchedule: "Medication schedule",
+  providers: "Providers",
+  carePeriods: "Care periods",
+  profile: "Profile",
+  allergies: "Allergies",
+  settings: "Your settings",
+  members: "Members",
+  tags: "Tags",
+  search: "Search",
+};
+
+/** The line under a command that opens in a new tab. */
+export const IN_NEW_TAB = "In a new tab";
+
+/** What a command card names: the page, or the timeline's day. */
+export const commandTarget = (command: QuickEntryCommand) =>
+  command.kind === "page" ? QUICK_ENTRY_PAGE_NAMES[command.page] : jumpDayText(command.day);

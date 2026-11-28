@@ -6,23 +6,24 @@ The seeds live in `packages/data/src/db/seeds/`. Add a new account there and her
 
 ## Accounts
 
-| Account                    | Name              | Care groups (role)                                                     | Good for                             |
-| -------------------------- | ----------------- | ---------------------------------------------------------------------- | ------------------------------------ |
-| `member@example.com`       | Dev Member        | Dev Family (owner), Dev Family 2 (owner)                               | the everyday account; two groups     |
-| `caretaker@example.com`    | Dev Caretaker     | Dev Family (caretaker)                                                 | a caretaker's view                   |
-| `viewer@example.com`       | Dev Viewer        | Dev Family (viewer)                                                    | read-only view                       |
-| `easyhelper@example.com`   | Dev Easy Helper   | Dev Family (easy helper)                                               | the easy roles                       |
-| `easyviewer@example.com`   | Dev Easy Viewer   | Dev Family (easy viewer)                                               | the easy roles                       |
-| `trio@example.com`         | Dev Trio          | Rivera Family (owner), Okafor Family (caretaker), Chen Family (viewer) | one person, three roles              |
-| `groupadmin@example.com`   | Dev Group Admin   | Rivera Family (admin)                                                  | the group admin role                 |
-| `viewer2@example.com`      | Dev Viewer Two    | Rivera Family (viewer), Okafor Family (viewer)                         | a viewer in two groups               |
-| `owner2@example.com`       | Dev Owner Two     | Okafor Family (owner), Chen Family (owner)                             | owning more than one group           |
-| `solo@example.com`         | Dev Solo          | Solo Care (owner, the only member)                                     | a group of one                       |
-| `tedder@example.com`       | Dev Tedder        | Tedder Family (owner)                                                  | trying the app by hand: fullest data |
-| `tedderhelper@example.com` | Dev Tedder Helper | Tedder Family (caretaker)                                              | the Tedder Family as a helper        |
-| `joiner@example.com`       | Dev Joiner        | none; has a pending request to join Dev Family                         | the join request flow                |
-| `admin@example.com`        | Dev Admin         | none; site role `admin`                                                | `/admin`                             |
-| `support@example.com`      | Dev Support       | none; site role `support`                                              | `/admin` as support staff            |
+| Account                    | Name              | Care groups (role)                                                     | Good for                                                     |
+| -------------------------- | ----------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `member@example.com`       | Dev Member        | Dev Family (owner), Dev Family 2 (owner)                               | the everyday account; two groups                             |
+| `caretaker@example.com`    | Dev Caretaker     | Dev Family (caretaker)                                                 | a caretaker's view                                           |
+| `viewer@example.com`       | Dev Viewer        | Dev Family (viewer)                                                    | read-only view                                               |
+| `easyhelper@example.com`   | Dev Easy Helper   | Dev Family (easy helper)                                               | the easy roles                                               |
+| `onboarding@example.com`   | Dev Onboarding    | none; nothing set up                                                   | the setup flow; reset with `pnpm datastore:reset:onboarding` |
+| `easyviewer@example.com`   | Dev Easy Viewer   | Dev Family (easy viewer)                                               | the easy roles                                               |
+| `trio@example.com`         | Dev Trio          | Rivera Family (owner), Okafor Family (caretaker), Chen Family (viewer) | one person, three roles                                      |
+| `groupadmin@example.com`   | Dev Group Admin   | Rivera Family (admin)                                                  | the group admin role                                         |
+| `viewer2@example.com`      | Dev Viewer Two    | Rivera Family (viewer), Okafor Family (viewer)                         | a viewer in two groups                                       |
+| `owner2@example.com`       | Dev Owner Two     | Okafor Family (owner), Chen Family (owner)                             | owning more than one group                                   |
+| `solo@example.com`         | Dev Solo          | Solo Care (owner, the only member)                                     | a group of one                                               |
+| `tedder@example.com`       | Dev Tedder        | Tedder Family (owner)                                                  | trying the app by hand: fullest data                         |
+| `tedderhelper@example.com` | Dev Tedder Helper | Tedder Family (caretaker)                                              | the Tedder Family as a helper                                |
+| `joiner@example.com`       | Dev Joiner        | none; has a pending request to join Dev Family                         | the join request flow                                        |
+| `admin@example.com`        | Dev Admin         | none; site role `admin`                                                | `/admin`                                                     |
+| `support@example.com`      | Dev Support       | none; site role `support`                                              | `/admin` as support staff                                    |
 
 ## Care groups
 

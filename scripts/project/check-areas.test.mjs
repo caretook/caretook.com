@@ -306,6 +306,34 @@ describe("the sync matrix's writers (B-749)", () => {
   });
 });
 
+describe("packages/ services and models (B-375)", () => {
+  const real = loadRules(join(ROOT, readRisa(ROOT).paths.checkAreas));
+  const checksOf = (file) => resolveFile(file, real, (p) => existsSync(join(ROOT, p))).checks.split(" ");
+  // Each service the upload switch imports from @caretook/data: the sync matrix
+  // (roundtrip 6b) uploads every one of its tables.
+  const registry = readFileSync(join(ROOT, "packages/api/src/syncRegistry.ts"), "utf8");
+  const services = [...registry.matchAll(/^\s+(\w+Service),$/gm)].map(([, name]) => name);
+
+  it("maps a packages/data service and its model to its area's check", () => {
+    expect(checksOf("packages/data/src/services/todoService.ts")).toEqual(["roundtrip"]);
+    expect(checksOf("packages/data/src/models/todo/todoModel.ts")).toEqual(["roundtrip"]);
+    expect(checksOf("packages/data/src/services/waitlistService.ts")).toEqual(["marketing"]);
+    expect(checksOf("packages/api/src/care-groups/careGroup.ts")).toEqual(["app-shell"]);
+  });
+
+  it("maps every service the upload switch writes through to roundtrip", () => {
+    expect(services).toEqual(expect.arrayContaining(["todoService", "tagService", "noteDocumentService"]));
+    const missing = services.filter(
+      (name) => !checksOf(`packages/data/src/services/${name}.ts`).includes("roundtrip"),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it("leaves a service no check covers at none (calendars)", () => {
+    expect(checksOf("packages/data/src/services/calendarSettingService.ts")).toEqual(["-"]);
+  });
+});
+
 describe("the command line", () => {
   const dir = mkdtempSync(join(tmpdir(), "check-areas-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));

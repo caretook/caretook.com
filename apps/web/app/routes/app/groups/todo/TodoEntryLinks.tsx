@@ -3,10 +3,11 @@ import type { LinkedEntry } from "./useTodoEntryLinks";
 import { DEFAULT_UNITS } from "@caretook/data/schema";
 import { X } from "lucide-react";
 import { TimelineEntryRow } from "~/components/entry";
-import { IconButton } from "~/components/ui";
+import { IconButton, ListRow } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useEntryOpenerState } from "~/lib/timeline/entryOrigin";
 import { linkedEntryName } from "~/lib/todos/entryTodoDisplay";
+import { REMOVED_ITEM } from "../todos/todoLinks";
 
 type RowTag = { id: string; name: string; color?: string | null };
 
@@ -20,6 +21,39 @@ export function RemoveLink({ name, onRemove }: { name: string; onRemove: () => v
       className="relative z-10"
       data-todo-link-remove=""
     />
+  );
+}
+
+/**
+ * A link to a provider or medication deleted since: "Removed item", greyed,
+ * under what it was ("Provider", "Medication"), opening nothing; writers'
+ * Remove clears the slot. Not its kind's card, on purpose (data-rights): a
+ * delete scrubs the row, so the card has no name, details or actions left to
+ * show, and every removed link reads the same here and on the sheet's chips
+ * (`chosenLinkChip`).
+ */
+export function RemovedLinkRow({
+  kind,
+  label,
+  onRemove,
+}: {
+  kind: "provider" | "medication";
+  /** What it was: "Provider", "Medication". */
+  label: string;
+  /** Writers: clear the slot. */
+  onRemove?: () => void;
+}) {
+  return (
+    <ListRow
+      trailing={onRemove && <RemoveLink name={REMOVED_ITEM} onRemove={onRemove} />}
+      data-todo-link={kind}
+      data-removed=""
+    >
+      <p className="text-muted text-xs">{label}</p>
+      <p className="text-faint" data-removed-link-name="">
+        {REMOVED_ITEM}
+      </p>
+    </ListRow>
   );
 }
 

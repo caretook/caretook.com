@@ -14,8 +14,8 @@ const keyOf = (c: Chosen) => (c.kind === "existing" ? c.id : `new:${c.name}`);
  * with × once chosen, picked from a combo box over the group's providers
  * that `fits` (not those already chosen), which can also add the typed name:
  * "Add "<typed>" as a new <noun>". New ones are only names until the form is
- * saved. A deleted one already chosen shows "(removed)", greyed, until it's
- * taken off. Posts one `name` per chosen id and one `newName` per new name.
+ * saved. A deleted one already chosen shows "Removed provider", greyed,
+ * until it's taken off. Posts one `name` per chosen id and one `newName` per new name.
  */
 export function ProvidersPickerField({
   pickerId,
@@ -87,7 +87,7 @@ export function ProvidersPickerField({
               // Plain text: a link would leave the form unsaved.
               to: null,
               muted: !!provider?.deletedAt,
-              removeLabel: `Remove ${c.kind === "new" ? c.name : (provider?.name ?? noun)}`,
+              removeLabel: `Remove ${c.kind === "new" ? c.name : provider ? chosenLabel(provider.name, { deleted: !!provider.deletedAt }) : noun}`,
               onRemove: () => setChosen((list) => list.filter((x) => keyOf(x) !== keyOf(c))),
             };
           })}

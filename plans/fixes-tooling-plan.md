@@ -7,28 +7,25 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 **From the user:**
 
 - 2026-11-28 (relayed by the backlog session, when asked to switch sessions to the personal account): "Yes, switch now"
+- 2026-11-28 (relayed by the backlog session): "Wrap up fixes-tooling" (land the slices in flight, start no new ones, then close out the run with `risa rm` so fixes-bug and then fixes-ui can start; waiting items stay in the backlog for the next run)
 
 **Landing mode: run everything through** (started run-through by the dispatcher 2026-11-28; land each green wave, clean up, ask only real questions via `risa ask`).
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`risa status-trim`).
 
 - **Wave 11 landed** (2026-11-26) as c99c452 (PR #227). Since then the Risa split landed: the loop tooling is Risa's (`risa …` replaces `pnpm prd …`/`pnpm backlog …`); Caretook keeps `scripts/project/` and `scripts/browser-checks/`.
-- **Wave 12 started 2026-11-28** (dev synced: ebf948dc). Slices 94–101 (CI/browser-check flakes and check-area mapping), all opus. All eight merged (tip 8798a4df). **Hand-over (account switch, 2026-11-28):** the wave's `risa ci run full` was requested on 8798a4df (run https://github.com/caretook/caretook.com/actions/runs/46170193933; full: slice 97 edited `scripts/ci/quarantine.txt`); the new session re-waits on it (`risa ci run full --wait`, or read its verdict), then on green: `risa rm fixes-tooling-94`..`-101`, `risa sync`, recheck, `risa serve --restart`, browser checks (`risa browser --changed --base dev`; ui and layout-offline changed), `risa pr fixes-tooling`, `risa review fixes-tooling --wait`, land, fold docs, `risa status-trim`. On a failure: `risa ci blame`; the slice agents are gone, so a fresh opus fix agent per failing slice, in its worktree. Slice 97 fixed a real bug in NewerEntries.tsx (reaching today from a jump threw the reader ~2000 px on Chrome). Fold at landing: docs/domain/search.md's "Queries take 2–15 ms" (slice 94 now bounds queries at 5× a measured baseline, best of 7). Hot files: free-limits holds the admin services and routes, so B-778/B-782 (admin int-test flakes) wait.
-- **Taken over 2026-11-28 (personal account):** no landing journal; Status matched git. Wave 12 green (full, 3e56ad6c, run 46170344473); slice worktrees 94–101 removed; items marked done. `risa sync` merged dev (d5de20fb, free-limits admin code); the full run on the synced tip is out. Browser checks 2/2 pass after `pnpm datastore:migrate` (the stack lacked `user.group_limit`: B-954, noted). Next: on green, `risa pr`, `risa review --wait`, land.
-- **Waiting triaged items for later waves:** B-375 (less its timelineScroll part, in 97), B-667, B-750 and B-752 (parked, not runnable), B-757, B-778, B-782, B-791, B-802, B-852, B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
+- **Wave 12 landed** (2026-11-28) through PR #340 at full (run 46171924664, Codex clean on abf3b81); dev pushed 5f77754..8377fdb; to-test/2026-11-28-1249-fixes-tooling.md. Folded: search.md's query timing. B-954 bit at the browser checks after the sync (stack lacked `user.group_limit`; `pnpm datastore:migrate` fixed it). **Idle hand-over:** no slice in flight; the next session starts wave 13 from the waiting items (B-1045, new: `risa rotate --self` failed, Risa tooling, likely Risa's like B-954).
+- **Wave 13 landed** (2026-11-28) through PR #342 at full (run 46174655374, Codex clean on 517e978); dev ce5dc44..eb2a078, notice 2063b8213; to-test/2026-11-28-1323-fixes-tooling.md. Slices 102, 104–108 merged; 103 (B-782) needed no code (fixed by 273ba77a0). Browser checks app-shell, invites, marketing 3/3. Folded: the onboarding test account (app-shell.md, seed-accounts.md), web:unit's `~/` (loop.md). Lesson: request a CI run once and commit nothing until its verdict (a second push cancels the first run). Seeds changed: the main checkout needs `pnpm datastore:reset` (the user's). **Idle hand-over:** no slice in flight; the next session starts wave 14 from the waiting items.
+- **Wave 14 landed** (2026-11-28) through PR #343 at integration (run 46178745404, Codex clean on da2c125); dev 5868035..f7147d5; to-test/2026-11-28-1408-fixes-tooling.md. Slice 109 (B-1051): Given all is set-based (one lock statement, one read, one INSERT; ~1 s to ~0.1 s per run). Browser check roundtrip failed until this stack's PowerSync was restarted (it served sync rules from before a dev merge that added tag.color); noted on B-954. Folded: app-shell.md's onboarding account trimmed to a pointer (doc budget). Lesson: after a dev merge that changes `powersync/`, restart the stack's PowerSync container before browser checks. **Idle hand-over:** no slice in flight; the next session starts wave 15 from the waiting items (new: B-1054, session-end browser check assumes a symptom row in view).
+- **Wave 15 landed** (2026-11-28) through PR #346 at components (run 46181031223, Codex clean on cf7691e); dev fast-forwarded to 7eaa9e6; to-test/2026-11-28-1433-fixes-tooling.md. Slice 110 (B-1054): session-end clicks the first row's kind filter link (every caretaker timeline row has one), not a symptom row. Slice 111 (B-1057): the tags merge test waits for the dialog to close, then polls the note's chips (a one-shot read raced their live query). Browser check session-end 1/1. Nothing to fold. Lesson: `risa sync` said no merge was needed but `risa pr` refused (dev moved); `risa sync --force` then a CI rerun on the synced tip cleared it. **Idle hand-over:** no slice in flight; the next session starts wave 16 from the waiting items (new: B-1059, frame.browser.test.tsx group-menu flake).
+- **Wave 16 started** (2026-11-28, takeover after the account switch): slice 112 (B-1059), on opus. Handed off (4498c7346: the switch test waited neither for the first menu to leave before reopening, nor for focus before Escape; 30/30 twice under load; test still quarantined until `risa ci` clears it); merged a4cdaad54; CI components green (run 46183700988 on b9beb47a); synced with dev (06e548f1, code-health-2 and data-rights work), components green again (run 46184320661). Nothing to fold (test-only). Last wave before the wrap-up: land, then `risa rm fixes-tooling`.
+- **Waiting triaged items for later waves:** B-791 (waits on data-rights' profile routes; failed in quarantine again), B-750 and B-752 (parked, not runnable), B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-| Slice | Item                        | State  | Merge    |
-| ----- | --------------------------- | ------ | -------- |
-| 94    | B-619, B-839, B-998, B-1000 | merged | 4d663e36 |
-| 95    | B-808, B-922, B-983         | merged | 454097ee |
-| 96    | B-1004, B-1005              | merged | 8a9da3db |
-| 97    | B-785, B-790                | merged | 930a420c |
-| 98    | B-949                       | merged | 4ebe9b3f |
-| 99    | B-967                       | merged | 110895a3 |
-| 100   | B-776                       | merged | 221080e9 |
-| 101   | B-749, B-851                | merged | 01fe040c |
+| Slice | Item   | State  | Merge     |
+| ----- | ------ | ------ | --------- |
+| 112   | B-1059 | merged | a4cdaad54 |
 
 ## Wave 1
 
@@ -1026,3 +1023,121 @@ The `*.sync.ts` writers `scripts/browser-checks/sync-writers.mjs` calls for roun
 
 - Add each writer the roundtrip check calls to its area's `check-areas.d/<area>` file with `roundtrip` (read `sync-writers.mjs` for the list today; additive lines at the end of each group). Add a rule for `scripts/build/` at the tier its files need (tooling: unit tests that live there, `scripts/build/pins.test.mjs` among them).
 - Unit tests (`check-areas.test.mjs` and the check-plan rules' tests): a writer maps to roundtrip; a new `scripts/build/` file proposes no higher than the tier the rule gives.
+
+## Wave 13
+
+Started 2026-11-28 by the run-through orchestrator. Two admin integration-test flakes (free since free-limits landed), a browser-check flake, the leftover small test fixes, the marketing claims test's gaps, the slice check's second zone and a resettable onboarding test user. Each item's backlog notes (`risa backlog show B-<n>`) carry the details. For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of the race) and fix that cause; a looser bound alone is acceptable only when the hand-off shows the work is genuinely that slow on a loaded runner. Never touch a running topic's hot files (`risa backlog prd list`: data-rights holds `careGroupService`, `careGroupInviteService`, `todoService`, the migrations and many screens; sync-safety-3 the sync code). Only slice 105 may touch `vitest.config.ts`; none touch `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 102: accountAdmin's setRole test survives a shared database (B-778)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/admin.md, docs/domain/data-layer.md · Tests: integration · Blocked by: none · Check: packages/data/src/services/accountAdmin.int.test.ts
+
+`packages/data/src/services/accountAdmin.int.test.ts` 'accountAdminService.setRole makes an account support, ad…' flaked on CI and passed on its rerun (ci-key 31dfbabdc436, found by prd/fixes-ui).
+
+- Find the cause from the test and the CI failure (`risa ci` history for the key): an assertion on rows other tests or workers create (a count, a "first" row, an unscoped list), a timestamp ordering tie, or shared state between cases; fix that cause so the test asserts only on its own rows.
+- Integration test: the same assertions, scoped to the test's own data; the hand-off says what made it flake and shows it passing 10 of 10, including alongside the other `packages/data` integration files.
+
+### Slice 103: usersAdmin's get test survives a shared database (B-782)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/admin.md, docs/domain/api.md · Tests: integration · Blocked by: none · Check: packages/api/src/admin/usersAdmin.int.test.ts
+
+`packages/api/src/admin/usersAdmin.int.test.ts` 'admin.users.get shows the account, its sessions, groups and ma…' flaked on CI and passed on its rerun (ci-key 81e93b941241, found by prd/fixes-ui).
+
+- Find the cause (as in slice 102: unscoped rows, ordering ties, shared state, time) and fix it in the test, or in `usersAdmin.ts` if the procedure's output order is genuinely unstable (then a stable order, said in the hand-off).
+- Integration test: the same assertions; the hand-off says what made it flake and shows it passing 10 of 10.
+
+### Slice 104: invites.spec's reset-password step waits for the signed-in page (B-802)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/domain/notifications.md · Tests: e2e:invites · Blocked by: none · Check: scripts/browser-checks/invites.spec.mjs
+
+`scripts/browser-checks/invites.spec.mjs` '3. reset a password by email › the new password signs in' failed once at `invites.spec.mjs:477` (`expect(...).toBe(...)`) on CI run 45535937950 and passed on its rerun.
+
+- Read the step for a read-before-render race (a value read once instead of polled, a URL or text checked before navigation settles, the reset mail read before it is sent) and fix that cause with a web-first wait; no added retries or longer timeouts alone.
+- e2e: invites.spec passes; the hand-off names the race and shows the step passing 5 of 5 under the load gate.
+
+### Slice 105: the small test fixes: a real refusal code, packages/ mapped to browser checks, web:unit's ~/ alias (B-375)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/calendars.md, docs/agents/loop.md · Tests: integration, unit · Blocked by: none · Check: packages/api/src/calendars/calendars.int.test.ts, scripts/project/check-areas.test.mjs
+
+Three of B-375's four parts (the timelineScroll `retry: 2` went in slice 97):
+
+- `packages/api/src/calendars/calendars.int.test.ts` (now ~404) asserts the refusal's `code` with `toBeTruthy()`, so any error passes: assert the exact code the procedure returns.
+- `scripts/project/check-areas.d/` maps `packages/data` and `packages/api` to no browser check: map each area's `packages/` paths (services, models, procedures) to the checks that cover that area, where one does; leave unmapped what no check covers, and say which in the hand-off. Read slice 101's additions first; keep lines additive.
+- The `web:unit` project in `vitest.config.ts` lacks the `~/` alias the app uses: add it (the same resolution as `web:components`). Don't rewrite the deep relative imports in bulk; convert none, or only those in files this slice already touches.
+- Tests: the calendars integration test fails on a wrong code; `check-areas.test.mjs` maps a `packages/data` service file to its area's check; a unit test file importing via `~/` runs under `web:unit`.
+
+### Slice 106: the marketing claims test covers competitor names and every page's strings (B-852)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: unit · Blocked by: none · Check: apps/web/app/routes/marketing/site/claims.test.ts
+
+`apps/web/app/routes/marketing/site/claims.test.ts` has no competitor-name pattern though the marketing doc bans naming competitors, and its `SOURCES` leave out `contact/content.ts` and the header and footer strings.
+
+- Add a competitor-name pattern (the names the marketing doc or the marketing plans list; a short list in the test, matched case-insensitively on word boundaries) and add the contact content and the header and footer strings to `SOURCES`, each found by the "finds the copy it checks" case. Today's copy should pass; if it doesn't, the hand-off names the string and changes no copy (the orchestrator files it).
+- Unit test: a planted competitor name and a banned phrase in a header string each fail (shown, then removed); per the user, test the structure, not marketing prose word for word.
+
+### Slice 107: the slice check runs a slice's own component files in New York too (B-757)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md · Tests: unit · Blocked by: none · Check: scripts/project/check-body.sh
+
+`scripts/project/check-body.sh` (~153) passes only `--project web:components` for a slice's own browser test files, so a slice touching timeline, medications or planner tests never sees the second zone (`web:components:ny`) until CI.
+
+- For a slice's own component files that `web:components:ny`'s include list covers, also run them under `web:components:ny` (one Vitest invocation with both projects, or a second one); files outside that list run in Los Angeles only, as today. Keep the change inside `check-body.sh` and its tooling test.
+- Unit test (the check body's tooling test, under `pnpm test:tooling`): a timeline component file yields both projects; a file outside the NY include list yields only `web:components`.
+
+### Slice 108: a resettable seeded onboarding test user (B-667)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/care-groups.md, docs/domain/data-layer.md · Tests: integration · Blocked by: none · Check: packages/data/src/db/seeds/
+
+No seeded account sees onboarding: `seeds/setupDismissed.ts` dismisses setup for every member of seeded groups, and only a group creator gets onboarding (B-670), so trying the new-member flow needs a new address each time through `/join/CARE-DEMO-0001`.
+
+- Seed one fictional `@example.com` account (dev and staging seeds only; the seed guard keeps it out of production) that has signed up but created no group and has nothing set up, outside the seeded dismissal, so signing in starts the creator's setup flow.
+- Add a reset that returns it to before first login (removes the groups it created and their data, its preferences and setup state, and its sessions), as a `pnpm` script beside the seed commands that refuses any database but local and staging, deleting only that one account's own data. Don't run it against staging. Use the services or the seed helpers; touch none of data-rights' hot files (`careGroupService`, `careGroupInviteService`, `joinRequestService`, `todoService`, the migrations); if the reset can't avoid one, stop and say so in the hand-off.
+- Integration test: after seeding, the account has no group and no dismissed setup; after it creates a group and the reset runs, it's back to that state, and no other account's rows changed. Document the account and the reset in the area doc (app-shell's onboarding part).
+
+## Wave 14
+
+Started 2026-11-28 by the run-through orchestrator. One integration-test load flake. The item's backlog notes (`risa backlog show B-1051`) carry the details. For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of where the time goes) and fix that cause; a looser bound alone is acceptable only when the hand-off shows the work is genuinely that slow on a loaded runner. Never touch a running topic's hot files (`risa backlog prd list`: data-rights holds `careGroupService`, `careGroupInviteService`, `joinRequestService`, `todoService`, the migrations and many screens; quick-entry-3 holds `packages/data/src/domain/assistant/` and the quick-entry screens). None touch `vitest.config.ts`, `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 109: the many-medications givePass test survives load (B-1051)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/assistant.md, docs/domain/data-layer.md · Tests: integration · Blocked by: none · Check: packages/data/src/services/assistantActionManyMedications.int.test.ts
+
+`packages/data/src/services/assistantActionManyMedications.int.test.ts` 'givePass gives every medication in the pass, past the first 100' timed out at Vitest's 5 s default once in 10 runs of packages/data integration at machine load 20–27 (the B-986 regression test: a pass of 101 medications).
+
+- Find where the test's time goes (the givePass run over 101 medications, or the test's own reads) and say so in the hand-off with timings, unloaded and under load. If `assistantActionService`'s givePass does per-medication work that batches cleanly (one query per medication where one set-based read or insert would do), make it set-based, keeping its results, audits and permissions as they are; otherwise keep the service and give this test an explicit timeout with a comment naming the work it waits on.
+- Integration test: the same assertions as today (every one of the 101 is given), plus whatever the service change needs; before/after times in the hand-off.
+
+## Wave 15
+
+Started 2026-11-28 by the run-through orchestrator (takeover after an interruption). One browser-check assumption and one component-test flake. Each item's backlog notes (`risa backlog show B-<n>`) carry the details. For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of the race) and fix that cause; a longer timeout alone is not a fix. Never touch a running topic's hot files (`risa backlog prd list`: data-rights holds `settings/details/`, `roundtrip.spec.mjs`, `app-shell.spec.mjs` and many screens; quick-entry-3 holds the quick-entry screens). None touch `vitest.config.ts`, `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 110: the session-end browser check doesn't assume a symptom row in view (B-1054)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/domain/timeline.md · Tests: browser check · Blocked by: none · Check: scripts/browser-checks/session-end.spec.mjs
+
+`scripts/browser-checks/session-end.spec.mjs` 'the device copy ends with the session' clicks `main a[href*="kind=symptom"]` offline to trigger the navigation that sends a long-offline device to sign-in. The caretaker's first timeline page doesn't always hold a symptom row (seen 3/3 on a dev-synced branch: today's rows were doses, notes, events and vitals), so the locator is never visible and the check fails at its `toBeVisible`.
+
+- The offline navigation uses a link the page is certain to have whatever the seed puts on today (an in-app link the shell always renders, or the first timeline row's link, whichever kind it is), and the check still proves the same thing: past 3 days offline, an in-app navigation lands on sign-in with the offline message and a `redirectTo` back to the timeline. Change no seed and no app code for this.
+- Browser check: `session-end.spec.mjs` passes 3/3 on this stack; the hand-off names the link it now uses and why the seed always has it.
+
+### Slice 111: the tags-settings merge test waits for the merge to reach the list (B-1057)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx
+
+`apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx` 'the Tags page an owner merges Urgent into …' flaked in CI (passed on rerun): at line ~254 it read `['Knee', 'Urgent']` where it expects `['Knee']`, i.e. it read the list before the merge's write reached the local database or the screen.
+
+- Show the race (what the assertion reads, and what it reads before), then make the test wait for the merged state the way a user would see it (a polled or retried expectation on the rendered list, or awaiting the write the screen reports done), never a fixed sleep. If the screen itself shows the old tag after the merge reports done, that is a real bug: fix it in the screen and say so.
+- Component test: the same assertions as today, passing 20/20 with `--repeat` (or a loop) locally; the hand-off says what raced.
+
+## Wave 16
+
+Started 2026-11-28 by the run-through orchestrator (takeover after the account switch). One component-test flake. The item's backlog notes (`risa backlog show B-1059`) carry what CI recorded (a locator error, the run found by prd/quick-entry-3). For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of the race) and fix that cause; a longer timeout alone is not a fix. Never touch a running topic's hot files (`risa backlog prd list`: data-rights holds many screens and `apps/web/app/lib/`; code-health-2 holds `packages/data/src/models/` and services). None touch `vitest.config.ts`, `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 112: the frame group-menu switch test waits for the menu it reads (B-1059)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/routes/app/layout/frame.browser.test.tsx
+
+`apps/web/app/routes/app/layout/frame.browser.test.tsx` 'the group menu and the last group › names the current group, lists both with it checked, and one tap switches (and is remembered)' flaked in CI (passed on its rerun) with a locator error from `@vitest/browser`: a step acted on or read an element that wasn't there yet, or was gone (the menu re-opening after the switch, the menu closing on Escape, or the header re-rendering for the new group).
+
+- Show the race: which step failed and what it read or clicked before the screen settled (reproduce it under load, e.g. `--repeat` with CPU contention, or reason it from the test and the frame's render order), then make the test wait for the state a user would see before each step that depends on it (an `expect.element`/`expect.poll` on the menu open or closed, the header naming the new group), never a fixed sleep. If the frame itself shows a wrong or stale state after the switch, that is a real bug: fix it in the frame and say so.
+- Component test: the same assertions as today, passing 20/20 with `--repeat` (or a loop) locally; the hand-off says what raced.

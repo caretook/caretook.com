@@ -7,8 +7,9 @@ export const schemaName = careGroupConsentModel.schemaName;
 
 type K = typeof schemaName;
 
-// Consent rows are written only by careGroupInviteService.accept (as the
-// system). Reads are scoped: a group's owners and admins, and the member themselves.
+// Consent rows are written only by careGroupInviteService.accept and
+// joinRequestService.requestWithLink (as the system). Reads are scoped: a
+// group's owners and admins, and the member themselves.
 export const get = (ctx: ServiceContext, opts: ServiceSelectArgs<K> = {}) =>
   careGroupConsentModel.get({ ...ctx, ...opts });
 

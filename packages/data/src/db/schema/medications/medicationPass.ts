@@ -135,6 +135,12 @@ export type PassLike = {
 
 const isLive = (pass: PassLike) => !pass.deletedAt;
 
+/** What a deleted pass reads as: its delete cleared its name (data-rights). */
+export const REMOVED_PASS = "Removed med time";
+
+/** A pass's name as screens show it: a deleted one's, cleared, reads `REMOVED_PASS`. */
+export const passLabel = (pass: Pick<PassLike, "name">) => pass.name.trim() || REMOVED_PASS;
+
 /**
  * Passes in the day's order: by time, then name. The `sort_order` column is
  * still written but no longer orders anything (B-701).

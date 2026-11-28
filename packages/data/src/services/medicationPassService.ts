@@ -34,7 +34,7 @@ import {
 import { isError, newError } from "../errors";
 import { careRecipientModel, medicationModel, medicationPassModel, timelineEntryModel } from "../models";
 import { rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 import { resolveRecipient } from "./medicationService";
 
 // A care group's medication passes (Morning, Evening…). Write through here,
@@ -249,16 +249,17 @@ export const upsert = (ctx: ServiceContext, input: MedicationPassUpsertInput, _o
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId } = parsed.data;
 
-    const existing = await medicationPassModel.getById(id, { ...system(tx), includeDeleted: true });
-    if (isError(existing)) return existing;
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
-
-    const visible = await medicationPassModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-    if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
-      return newError({ code: "medicationPassService:immutable" });
-    return unchanged(visible);
+    return createIfAbsent({
+      ctx,
+      tx,
+      getById: medicationPassModel.getById,
+      id,
+      create: () => create({ ...ctx, tx }, input),
+      immutable: (visible) =>
+        visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId)
+          ? newError({ code: "medicationPassService:immutable" })
+          : undefined,
+    });
   }, ctx);
 
 /**

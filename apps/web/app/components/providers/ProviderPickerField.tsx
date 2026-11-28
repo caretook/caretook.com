@@ -14,7 +14,7 @@ type Choice = { kind: "none" } | { kind: "existing"; id: string } | { kind: "new
  * typed name: "Add "<typed>" as a new <noun>". A new one is only a name
  * until the form is saved, when the device writes it with the form's row
  * (one transaction), so cancelling leaves nothing behind. A deleted one
- * already chosen shows "(removed)". Posts `name` (the id) or `newName`.
+ * already chosen shows "Removed provider". Posts `name` (the id) or `newName`.
  */
 export function ProviderPickerField({
   pickerId,

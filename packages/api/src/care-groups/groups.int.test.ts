@@ -161,7 +161,7 @@ describe("access codes", () => {
     expect(await legalAcceptanceService.hasCurrent(existing.user.id)).toBe(false);
   });
 
-  it("lets only the person read a row and only the system write one; deleting the account deletes it", async () => {
+  it("lets only the person read a row and only the system write one; deleting the account keeps it", async () => {
     const { api, ctx: staffCtx } = await staff();
     const code = await api.admin.accessCode.create({ label: "Rows", expiresInDays: 1 });
     const email = newAddress("rows");
@@ -191,7 +191,8 @@ describe("access codes", () => {
     expect(
       isError(await userModel.remove({ ...system, filter: { id: { type: "eq", value: user!.id } } })),
     ).toBe(false);
-    expect(await acceptancesOf(user!.id)).toEqual([]);
+    // Evidence outlives the account (data-rights PRD): the row stays, by bare id.
+    expect(await acceptancesOf(user!.id)).toHaveLength(1);
   });
 
   it("signs up and starts a group as its owner, in one go, and records the redemption", async () => {
