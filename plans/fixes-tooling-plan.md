@@ -24,7 +24,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
-| 109 | B-1051 | starting | |
+| 109 | B-1051 | agent spawned (opus) | |
 
 ## Wave 1
 
