@@ -4,6 +4,7 @@ import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
 import { waitlistSource } from "../sections/forms";
 import { PublicFormFrame, SelectField, SubmitButton, TextField, usePublicForm } from "../sections/PublicForm";
+import { BAND_ACCENT, CONTAINER, H2, SECTION } from "../sections/look";
 import { CTA_ON_ACCENT, CtaLink } from "../sections/Sections";
 import { CARING_FOR, CARING_FOR_LABELS, HEARD_FROM_MAX, NAME_MAX } from "@caretook/data/domain";
 
@@ -30,15 +31,15 @@ export function WaitlistBand({ content }: { content: WaitlistBandContent }) {
     <section
       id={content.id}
       aria-labelledby={`${content.id}-heading`}
-      className="scroll-mt-20 bg-primary text-primary-content"
+      className={`scroll-mt-20 ${BAND_ACCENT}`}
     >
-      <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-14 sm:px-6 md:grid-cols-[2fr_3fr]">
+      <div className={`${CONTAINER} ${SECTION} grid gap-10 md:grid-cols-[2fr_3fr] md:gap-14`}>
         <div>
-          <h2 id={`${content.id}-heading`} className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h2 id={`${content.id}-heading`} className={H2}>
             {content.heading}
           </h2>
-          <p className="mt-3 leading-relaxed">{content.body}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <p className="mt-4 text-lg leading-relaxed">{content.body}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
             {content.actions.map((cta) => (
               <CtaLink key={cta.href} cta={cta} className={CTA_ON_ACCENT} />
             ))}
