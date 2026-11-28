@@ -272,7 +272,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-989 | bug | landed | todo-links | prd/todo-links | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
 | B-990 | bug | landed | todo-links | prd/todo-links | Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot) |
 | B-991 | bug | landed | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
-| B-992 | bug | in-progress | fixes-bug | prd/fixes-bug | A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace) |
+| B-992 | bug | ready | fixes-bug | prd/fixes-bug | A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace) |
 | B-993 | bug | landed | fixes-bug | prd/fixes-bug | Link to box suggestions: many all-day events from the last two days can crowd every upcoming event out of the suggestions (upcomingEvents limits before upcomingItems filters) |
 | B-994 | bug | in-progress | todo-links-2 | prd/todo-links-2 | Subtasks on their own: a split row at the depth limit offers Add subtask, which always fails (the quick add gets no ancestors) |
 
@@ -1686,10 +1686,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-992 · bug · A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace)
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: a83841058
 
 - 2026-11-27 (prd/symptom-catalog-3): Codex P2 on PR #289 (thread PRRT_kwDOVx-WLM689nN-): timelineEntryService.update reads the entry unlocked, and symptomTypeFor skips ensure (and its advisory lock) when the stored pointer matches the name-derived id; an edit read before replace's bulk UPDATE and written after it restores the old name and pointer, leaving the entry on a tombstone. Fix: take the shared symptom lock (or lock the entry row) before reading/revalidating the pointer in update. Narrow: needs a concurrent online edit during replace. Fits slice 4's wave or a fix before it.
 - 2026-11-27 (prd/symptom-catalog-3): Codex P2 round 2 on PR #289 (thread PRRT_kwDOVx-WLM689pQf), same family: a create naming an older tombstone A (A→B) races replace(B→C): ensure locks only A's derived id, resolves A to B before replace moves B's entries, and inserts after the bulk UPDATE, so the entry stays on tombstone B. One fix for both: a per-group symptom-catalog advisory lock (shared) that replace and every symptom entry write (create, update, connector log, sync upload) take before resolving, then revalidate the resolved row isn't a tombstone.
