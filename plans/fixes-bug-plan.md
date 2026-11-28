@@ -10,10 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State                                         | Merge |
-| ----- | ------ | --------------------------------------------- | ----- |
-| 100   | B-1049 | started 2026-11-28, opus agent, worktree made | —     |
-| 101   | B-1053 | started 2026-11-28, opus agent, worktree made | —     |
+| Slice | Item   | State                                            | Merge     |
+| ----- | ------ | ------------------------------------------------ | --------- |
+| 100   | B-1049 | merged (already fixed by data-rights; test only) | 490073328 |
+| 101   | B-1053 | started 2026-11-28, opus agent, worktree made    | —         |
 
 **Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`. B-1056, B-1058 done.
 
