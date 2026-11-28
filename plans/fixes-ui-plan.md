@@ -28,10 +28,12 @@ Notes for every wave:
 
 **Restarted 2026-11-28 (next session), run-through:** landing mode run everything through. No cut-off landing; ingest empty; sync: up to date with dev (prd/fixes-ui = dev + the wave 23 docs commit b16e882e4). Wave 24: slices 114 (B-1022), 115 (B-1023), both opus, parallel. Hot: `components/todos/`, `routes/app/groups/todo/`, `routes/app/groups/todos/`, `routes/app/groups/planner/`, `lib/todos/`, `components/tags/`.
 
-| Slice | Item                  | State         | Merge |
-| ----- | --------------------- | ------------- | ----- |
-| 114   | B-1022 (todo ⋯ menu)  | started, opus |       |
-| 115   | B-1023 (add-tag wrap) | started, opus |       |
+| Slice | Item                  | State                                                                                              | Merge     |
+| ----- | --------------------- | -------------------------------------------------------------------------------------------------- | --------- |
+| 114   | B-1022 (todo ⋯ menu)  | merged (opus; `TodoMenu` in components/todos, todo route clientAction gone, not on Upcoming cards) | 99c5a2939 |
+| 115   | B-1023 (add-tag wrap) | merged (opus; pr-1.5 on the item before Add tag)                                                   | fb20719d5 |
+
+Wave 24 gate: CI components requested on fb20719d5. Docs to fold at landing: todos.md still names `SKIP_INTENT` and TodoHeader's own Edit; point it at `TodoMenu`.
 
 **Wave 23 landed 2026-11-28** as dev cbed7d899 through PR #330 (Codex clean on 2838d42), CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shared no file), landed on an unsynced tip. to-test/2026-11-28-0957-fixes-ui.md. Slices 111 (B-1015 one `TimelineEntryRow` with `look`, `TimelineEntryCard` gone, `PassLogItem` follows; opus, 1bca848ec), 112 (B-1016 Done as trees via `doneTreePage`; opus, e8c1c0298), 113 (B-1021 add-tag button is the chips list's last item; opus, 299ddb718). Browser `--changed`: roundtrip pass (no `--suite`: the user wants it asked first). Docs folded into components, timeline, todos, layout (trimmed to stay at or under dev). Slice worktrees removed. Waiting for the next wave: B-1022 (todo rows get a ⋯ menu), B-1023 (add-tag wraps 6px in on narrow rows).
 
