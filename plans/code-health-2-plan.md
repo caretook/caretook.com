@@ -15,7 +15,7 @@
 | 1     | 1    | running |                                                |
 | 2     | 2    | planned |                                                |
 | 3     | 3    | planned |                                                |
-| 4     | 1    | running |                                                |
+| 4     | 1    | handed off (7bdbfcd3a), reviewed; merges after 1 |                                                |
 | 5     | 2    | planned |                                                |
 | 6     | 3    | planned |                                                |
 
