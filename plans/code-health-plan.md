@@ -6,7 +6,7 @@
 
 **Where it stands:** wave 1 (slices 1, 2, 5) **landed** in `dev` 2026-11-27 through PR #299 at tier `full` (run 46098408581, a flake outside the branch: B-998/B-1000), Codex clean; to-test `to-test/2026-11-27-2138-code-health.md`. Slice worktrees removed. B-366, B-365 done; B-361 open for slice 6.
 
-**Next (hand-over):** wave 2 = slice 6 alone. `simple-mode` is done in the registry, so slice 6 is ready: `risa sync` first, `risa slice code-health 6`, opus agent, `risa watch`. Land it fast (the plan's _How to run_). Then the wave 2 docs fold, `risa rm code-health`.
+**Wave 2 under way (2026-11-27):** `risa sync` up to date; worktree `code-health-6` made on `slice/code-health/6`; opus agent spawned; B-361 claimed; watch running. Next: hand-off, merge, gate (full check + `pnpm build:budget` + browser checks), PR, land fast (the plan's _How to run_), wave 2 docs fold, `risa rm code-health`.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
@@ -23,7 +23,7 @@
 | 3     | —    | dropped (B-367 moved to Risa) |                                              |
 | 4     | —    | dropped (B-367 moved to Risa) |                                              |
 | 5     | 1    | merged                        | 777dd8279 (dcf97ac7b, 2c1d87fe9, 1b0a7c14c)  |
-| 6     | 2    | not started                   |                                              |
+| 6     | 2    | in progress (opus)            |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `risa backlog done` on an item when its last slice merges.
 
