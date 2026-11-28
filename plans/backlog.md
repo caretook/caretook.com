@@ -289,14 +289,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 | B-1054 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
-| B-1056 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
+| B-1056 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
-| B-1058 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
+| B-1058 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 | B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
 | B-1061 | chore | triaged | contract-migrations-2 |  | Drop the simple-mode columns (care_group_member.simple_mode, simple_mode_locked, care_group.simple_tiles) and strip the user.preferences simpleMode key, after contract-migrations takes them out of the Drizzle schema |
 | B-1062 | chore | triaged | contract-migrations-2 |  | Take todo.event_id out of the Drizzle schema, the device schema, todoRules.ts and the test fixtures, after contract-migrations stops every write and sync of it |
 | B-1063 | chore | triaged | contract-migrations-3 |  | Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES |
+| B-1064 | change | triaged | fixes-nit |  | The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module |
 
 ## Items
 
@@ -1089,6 +1090,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (Robert Bo Davis): User 2026-11-26: 'way too much marketing speak in that hero'; the hotfix removes the 'Keep track of someone's care, together.' heading, the rest of the trim is this item
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
 - 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
+- 2026-11-28 (Robert Bo Davis): Exact hero copy chosen by the user 2026-11-28 ("Yes. Exact text. Go"): descriptor 'A shared care journal, made by caregivers who've been there.' (also og-default.svg and site/meta.ts alt); lead 'Signal or not, caretakers can add today's notes, medications, visits and doctors' numbers, and it reaches everyone in the care group.' Badge, lockup and buttons unchanged. Passed to marketing-3's planner for slice 4 (a410).
 
 ### B-858 · feature · Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants
 
@@ -1643,6 +1645,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): Timeline paints empty below the header until a scroll; likely the infinite list measuring before layout or data arrives. Screenshot from an alpha tester, 2026-11-28.
 - 2026-11-28 (Robert Bo Davis): Second report, same tester, installed PWA: tapping the logo top left led to Today with an empty timeline (no vitals line either); scrolling did NOT fix it this time and the app felt stuck; closing and reopening the PWA fixed it. Points at a stale state or a client navigation that never loads, not only a layout measure.
 - 2026-11-28 (Robert Bo Davis): Third report, same tester, Safari (not only the PWA): (1) a filtered timeline with several filter categories at once showed Today's header and nothing else; (2) after closing and reopening Safari, day headers rendered (Today, Yesterday, Thu Nov 26, each with its care-period chip and + button) but every day's entries were empty; a page refresh fixed it. So the day list loads but the entries query returns nothing or never re-renders: suspect the entries query/subscription (filters combined, or the local database not ready on resume) rather than layout. Repro to try: iOS Safari, combine several filter categories; background Safari and resume.
+- 2026-11-28 (slice/fixes-bug/96): Slice 96: none of the three data paths reproduces in Chromium component tests (timelineBlank.browser.test.tsx). Lead: WebKit painting content-visibility:auto rows (offscreenRows.ts, B-139, 2026-11-20) once Today's day is settled (after paging, Back, or the logo on a long window); needs a WebKit repro. The no-vitals report looks like the local database on resume (e2e).
+- 2026-11-28 (prd/fixes-bug): wave 28 slice 96 (2e7ac9335): 6 component tests, no repro in Chromium. Decided (skeptic s105, for the user's veto): wave 29 slice stops content-visibility: auto on WebKit or the newest days (offscreenRows.ts). Report 2 (empty after logo, reopen fixed it) looks like the local DB not answering after an iOS resume: stays open here.
 
 ### B-1047 · feature · Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close…
 
@@ -1735,10 +1739,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1056 · bug · Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 19a8a6163
 
 - 2026-11-28 (prd/quick-entry-3): Codex on PR #344 (thread PRRT_kwDOVx-WLM69HDyw, quickEntry.ts:1856): the event eligibility check runs before aboutProvider, so the page provider doesn't count as named. Care needed: slice 3 kept the page provider out of naming on purpose (else every line on a provider's page, e.g. 'refill sent', becomes an event); fix only the visit-verb case and give the fallback event the page provider.
 - 2026-11-28 (prd/quick-entry-3): quick-entry-3 finished (PR #344, #345); follow-up moved to fixes-bug for the user's review
@@ -1757,10 +1761,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1058 · bug · Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements)
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 19a8a6163
 
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345 (thread PRRT_kwDOVx-WLM69HOQZ): add 'dialog' to inOtherLayer's selector in useQuickEntryShortcut.ts, with a row in quickEntryShortcut.browser.test.tsx
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345; quick-entry-3 finished, so moved to fixes-bug
@@ -1810,3 +1814,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (plan/contract-migrations): B-625 step three. Precondition: contract-migrations-2 on origin/staging. Hand-written custom migration.
+
+### B-1064 · change · The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module
+
+- status: triaged
+- prd: fixes-nit
+- owner:
+- commit:
+
+- 2026-11-28 (prd/code-health-4): Follow-up from code-health-4 slice 2 (B-363): the templates' role enums now come from the role module, the prose labels don't.
