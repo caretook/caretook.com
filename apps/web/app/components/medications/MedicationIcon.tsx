@@ -1,4 +1,9 @@
+import type { LucideIcon } from "lucide-react";
+
 import { Pill } from "lucide-react";
+
+/** The glyph inside `MedicationIcon`, for places that take a bare icon (the "Link to" box's options). */
+export const MEDICATION_GLYPH: LucideIcon = Pill;
 
 /**
  * A medication's one icon: the pill in a circle, the primary tint, muted
@@ -12,7 +17,7 @@ export function MedicationIcon({ muted = false, className = "" }: { muted?: bool
       className={`grid size-8 shrink-0 place-items-center rounded-full ${muted ? "bg-base-200 text-faint" : "bg-primary/15 text-primary"} ${className}`.trim()}
       data-medication-icon=""
     >
-      <Pill className="size-4" />
+      <MEDICATION_GLYPH className="size-4" />
     </span>
   );
 }

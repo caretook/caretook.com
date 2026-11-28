@@ -51,7 +51,8 @@ export async function loadTodo(db: SyncDb, groupId: string, todoId: string) {
     // Its tree (todo-subtasks): the parent's row, and every live todo under it.
     parentRows,
     descendantRows,
-    linkRows: { provider, medication, entries, documents },
+    // Its links, and the members for its notes' and events' authors.
+    linkRows: { provider, medication, entries, documents, members: memberRows },
     hasDocument: !!doc,
     initial: { snapshot: doc?.snapshot ?? null, updates },
   };
