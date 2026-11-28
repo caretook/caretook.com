@@ -16,3 +16,7 @@ packages/data/src/db/seeds/carePeriods.ts -
 apps/web/app/lib/care-periods/           -
 packages/data/src/db/schema/care-periods/ roundtrip
 packages/data/src/domain/care-periods/ roundtrip
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/carePeriodService.ts roundtrip
+packages/data/src/models/carePeriod/     roundtrip

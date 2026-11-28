@@ -20,3 +20,9 @@ packages/data/src/db/seeds/medications.ts phase2
 packages/data/src/db/seeds/medicationPasses.ts -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/medications/            -
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/medicationService.ts roundtrip
+packages/data/src/services/medicationPassService.ts roundtrip
+packages/data/src/models/medication/     roundtrip
+packages/data/src/models/medicationPass/ roundtrip

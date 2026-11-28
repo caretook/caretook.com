@@ -12,3 +12,9 @@ apps/web/app/components/tags/            -
 # The Tags page in group settings (tags-3): its component tests
 # (groups/settings/tagsSettings.browser.test.tsx); no browser check reads it.
 apps/web/app/routes/app/groups/settings/tags/  -
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/tagService.ts roundtrip
+packages/data/src/services/recordTagService.ts roundtrip
+packages/data/src/models/tag/            roundtrip
+packages/data/src/models/recordTag/      roundtrip
