@@ -4,20 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/onboarding-2` (slice commits) |
-| ----- | ---- | -------------- | --------------------------------------------- |
-| 1     | 1    | landed (opus)  | e6594062c (7844ff2e0)                         |
-| 2     | 2    | running (opus) |                                               |
-| 3     | 3    | planned        |                                               |
-| 4     | 3    | planned        |                                               |
-| 5     | 4    | planned        |                                               |
-| 6     | 5    | planned        |                                               |
+| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits) |
+| ----- | ---- | ------------- | --------------------------------------------- |
+| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                         |
+| 2     | 2    | merged (opus) | ab0722574 (f26ce5101)                         |     |
+| 3     | 3    | planned       |                                               |
+| 4     | 3    | planned       |                                               |
+| 5     | 4    | planned       |                                               |
+| 6     | 5    | planned       |                                               |
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
 **Wave 1 landed (2026-11-28)** in dev through PR #310 (tier full; Codex clean on 305451e; components recheck green, run 46110996724; landed unsynced over 1 dev commit sharing no file). Slice 1 on opus; merged e6594062c, fix cd75ec69f (test device read a test's api handlers live). Worktree removed. B-670 stays in progress (claimed). CI flake filed as B-1005 (fixes-tooling, linkToBox). Docs: setup record folded into docs/domain/app-shell.md.
 
 **Wave 2 started (2026-11-28, after a takeover):** dev synced (up to date), backlog ingested (nothing new for onboarding-2). Slice 2 worktree onboarding-2-2 made from d4d4aee7b, agent spawned on opus. Hints given: `settingsKnown`/`useSettingsKnown` in `lib/app-shell/me.ts`; `me.update` is `me.updatePreferences`; test device `noSetupRecord: true`.
+
+**Wave 2:** slice 2 handed off (check green on f26ce5101), merged ab0722574. CI tier components requested. **Overlap:** slice 2 moved ProviderForm/ProviderListItem/ProviderRowContact into `components/providers/` (shared-displays hot files); asked the backlog session (caretook-com-cb) and shared-displays-6b before landing. Hold the landing until they answer. For slice 3: `MedicationForm` must move to a shared folder like ProviderForm; add steps to `setup/routes.ts` and `SETUP_PAGES`. For slice 5: `readSetupFacts` + `setupRedirectStep` + `settingsKnown`. Note for planning: slice 2 touched 24 files (over 12).
 
 **Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
 
