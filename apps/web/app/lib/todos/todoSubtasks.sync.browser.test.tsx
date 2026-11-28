@@ -1,6 +1,5 @@
 import type { SubtaskProgressRow, TodoRow } from "./todos.sync";
 
-import { addDays, localDate, ROLLUP_METADATA } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
 import { hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
@@ -18,6 +17,7 @@ import {
   toTodos,
   updateTodo,
 } from "./todos.sync";
+import { addDays, localDate, ROLLUP_METADATA } from "@caretook/data/domain";
 
 // Subtasks on the device (todo-subtasks): `createTodo` checks the tree rules
 // against the local copy, so an upload the server would refuse is never

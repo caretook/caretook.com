@@ -2,15 +2,9 @@ import type { TimelineEntryDetails, TimelineEntryKind } from "../schema";
 
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import {
-  encodeNoteDoc,
-  noteDocFromText,
-  noteDocumentSchema,
-  noteText,
-  timelineEntrySchema,
-  userSchema,
-} from "../schema";
+import { noteDocumentSchema, timelineEntrySchema, userSchema } from "../schema";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 const TIME_ZONE = "America/Los_Angeles";
 const HOUR = 60 * 60 * 1000;

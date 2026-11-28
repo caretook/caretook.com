@@ -3,13 +3,7 @@ import type { EntryDraft } from "~/lib/assistant/quickEntryDraft";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useState } from "react";
-import {
-  DEVICE_FUTURE_SKEW_MS,
-  isKnownReading,
-  isSymptomDetails,
-  isVitalDetails,
-  TIMELINE_LIMITS,
-} from "@caretook/data/schema";
+import { isKnownReading, isSymptomDetails, isVitalDetails, TIMELINE_LIMITS } from "@caretook/data/schema";
 import { Field, FormFooter, Message } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { useGroup } from "~/lib/app-shell/group";
@@ -21,6 +15,7 @@ import { SymptomGate } from "./SymptomGate";
 import { useEntryFormSave } from "./useEntryFormSave";
 import { useSymptomGate } from "./useSymptomGate";
 import { VitalReadingsFields } from "./VitalReadingsFields";
+import { DEVICE_FUTURE_SKEW_MS } from "@caretook/data/domain";
 
 /** The latest time a symptom or vital can be given: now plus the device's skew, or a later stored time. */
 const latestTime = (stored?: string) => {

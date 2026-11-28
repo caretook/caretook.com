@@ -1,6 +1,6 @@
 import type { AllergySeverity } from "@caretook/data/schema";
 
-import { foldSearchText } from "@caretook/data/schema";
+import { foldSearchText } from "@caretook/data/domain";
 
 // The recipient's allergies, in words: one line per allergy, the region's
 // three states, and the medication form's warning. Pure: web:unit tests it;

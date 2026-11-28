@@ -1,4 +1,4 @@
-import type { AssistantAction, NoteMention, TimelineEntryContent } from "@caretook/data/schema";
+import type { AssistantAction, TimelineEntryContent } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { PassRow } from "../medications/medicationPasses.sync";
@@ -10,14 +10,11 @@ import { isLoggerRole, isWriterRole } from "@caretook/data/permissions";
 import { eq } from "drizzle-orm";
 import {
   assistantActionZSchema,
-  encodeNoteDoc,
   entryProviderId,
   isSymptomDetails,
-  noteDocFromText,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { scheduleChangesQuery } from "../appointments/visitPrep.sync";
-import { duePasses, givenAllWrites } from "../medications/duePasses";
 import {
   dosesSinceQuery,
   dueMedicationsQuery,
@@ -57,6 +54,9 @@ import {
   symptomTypeColumn,
   withSymptomName,
 } from "../timeline/timeline.sync";
+import type { NoteMention } from "@caretook/data/domain";
+import { encodeNoteDoc, noteDocFromText } from "@caretook/data/domain";
+import { duePasses, givenAllWrites } from "@caretook/data/schema";
 
 // Carrying out assistant actions (quick entry's cards) on this device: every
 // action in ONE local transaction, so a line is saved whole or not at all,

@@ -10,7 +10,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 
-import { canChangeEntry, canHaveNoteDocument, parseSearch } from "@caretook/data/schema";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -28,7 +28,7 @@ import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
-import { dayLabel, localTimeZone } from "~/lib/core/format";
+import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { useSymptomFilterTypes } from "~/lib/timeline/symptomFilter.sync";
@@ -57,6 +57,7 @@ import { useGroupRecordTags } from "~/components/tags";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
+import { canChangeEntry, parseSearch, dayLabel } from "@caretook/data/domain";
 
 const NO_SEARCH = { q: "", state: "none" } as const;
 

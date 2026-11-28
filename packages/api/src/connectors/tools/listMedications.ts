@@ -3,7 +3,6 @@ import {
   medicationPassService,
   medicationService,
   medicationTitle,
-  medicationTypeLabel,
   normalizeSchedule,
   providerService,
   scheduleText,
@@ -13,6 +12,7 @@ import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { LIST_PAGE_MAX, pageOf, pagingInput } from "./readSupport";
 import { asMember, loadGroup } from "./shared";
+import { medicationTypeLabel } from "@caretook/data/domain";
 
 const input = z.object({
   includePast: z

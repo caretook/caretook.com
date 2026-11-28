@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import type { DuePass } from "~/lib/medications/duePasses";
 import type { UsualSuggestion } from "~/lib/assistant/quickEntryPredictions";
 
 import { ChipGroup } from "~/components/ui";
-import { givePassText } from "~/lib/medications/medicationDisplay";
+import type { DuePass } from "@caretook/data/schema";
+import { givePassText } from "@caretook/data/schema";
 
 /**
  * The suggestions popover's body, for an empty box: first the passes due

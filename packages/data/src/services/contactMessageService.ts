@@ -1,14 +1,16 @@
 import type { Tx } from "../db";
-import type { ContactSendInput, SpamVerdict } from "../db/schema";
+import type { ContactSendInput } from "../db/schema";
 import type { AppError } from "../errors";
 import type { ContactMessageModel } from "../models";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
 
 import { DEFAULT_PAGE_SIZE, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { contactSendZSchema, spamVerdict } from "../db/schema";
+import { contactSendZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { contactMessageModel } from "../models";
+import type { SpamVerdict } from "../domain/marketing/publicFormRules";
+import { spamVerdict } from "../domain/marketing/publicFormRules";
 
 export const schemaName = contactMessageModel.schemaName;
 

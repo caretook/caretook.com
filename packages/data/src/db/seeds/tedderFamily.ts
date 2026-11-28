@@ -18,32 +18,22 @@ import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
 import {
   accountSchema,
-  addDays,
   appointmentSeriesSchema,
   careGroupMemberSchema,
   careGroupSchema,
   careRecipientDetailsSchema,
   careRecipientSchema,
-  dayInZone,
-  encodeNoteDoc,
   entryProviderId,
-  localDate,
   medicationChange,
   medicationChangeId,
   medicationContentZSchema,
   medicationPassSchema,
   medicationSchema,
   memberContactShareSchema,
-  noteDocFromText,
   noteDocumentSchema,
-  noteText,
   providerSchema,
   recipientAllergySchema,
   recipientConditionSchema,
-  SERIES_AHEAD_DAYS,
-  seriesVisitId,
-  sharedContact,
-  sharesAnything,
   timelineEntryProviderSchema,
   timelineEntrySchema,
   todoSchema,
@@ -53,6 +43,11 @@ import {
 import { seriesVisits } from "../../domain/appointments/seriesVisits";
 import { seedProviderContent } from "./providers";
 import { occurredAtOf, seedContentOf } from "./timelineEntries";
+import { addDays, localDate } from "../../domain/core/entryTiming";
+import { dayInZone } from "../../domain/core/zonedDay";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
+import { SERIES_AHEAD_DAYS, seriesVisitId } from "../../domain/appointments/repeatRule";
+import { sharedContact, sharesAnything } from "../../domain/profiles/profileVisibility";
 
 // "Tedder Family": a care group with normal, everyday activity, beside
 // Grandma Pat's heavy use (Dev Family). Grandpa Hal's timeline is quieter but

@@ -7,17 +7,18 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { MEDICATION_FORMS, MEDICATION_LIMITS, MEDICATION_TYPES } from "@caretook/data/schema";
+import { MEDICATION_FORMS, MEDICATION_LIMITS } from "@caretook/data/schema";
 import { NameField } from "~/components/medications";
 import { ChoiceGroup, Field, FormFooter, FormTabs, Message, revealField } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { FORM_LABELS, MEDICATION_TYPE_LABELS } from "~/lib/medications/medicationDisplay";
 import { CONDITION_IDS_PATH } from "~/lib/profiles/medicationConditions.sync";
 import { ConditionsField } from "./ConditionsField";
 import { FIELD, isFieldIssue } from "./medicationFormData";
 import { ProviderPickerField } from "./ProviderPickerField";
 import { revealInSchedule, ScheduleFields } from "./ScheduleFields";
+import { MEDICATION_TYPES, MEDICATION_TYPE_LABELS } from "@caretook/data/domain";
+import { FORM_LABELS } from "@caretook/data/schema";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 

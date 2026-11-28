@@ -1,4 +1,5 @@
-import type { ParsedSearch, SearchDocument, SearchItemType } from "@caretook/data/schema";
+import type { ParsedSearch } from "@caretook/data/domain";
+import type { SearchDocument, SearchItemType } from "@caretook/data/schema";
 import type { SyncDb } from "../sync/index";
 import type { SqlRunner } from "./searchTables.sync";
 
@@ -7,19 +8,17 @@ import {
   entrySearchDocument,
   medicationSearchDocument,
   parseProviderPhones,
-  parseSearch,
   providerSearchDocument,
   SEARCH_ITEM_TYPES,
   TAG_TARGET_COLUMNS,
   TAG_TARGETS,
   todoSearchDocument,
-  toFtsMatch,
 } from "@caretook/data/schema";
+import { parseSearch, toFtsMatch } from "@caretook/data/domain";
 import { previewText } from "../live-notes/notes.sync";
 import { createSearchTables, dropSearchTables, SEARCH_SOURCE_TABLES } from "./searchTables.sync";
 import { toLocalTimestamp } from "../timeline/timeline.sync";
 
-export { parseSearch };
 export { matchingTagIds } from "./tagMatch";
 
 // The device's search index: SQLite FTS5 over every entry, provider,

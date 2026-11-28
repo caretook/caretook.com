@@ -11,7 +11,7 @@ import {
   timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import { addDays, dayInZone, passRoundId, zonedInstant } from "@caretook/data/schema";
+import { passRoundId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -23,6 +23,7 @@ import {
   textOf,
   toolRequest,
 } from "./testing";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // log_past_doses through /mcp with real tokens: a fictional week of the
 // paper sheet, seeded through the services. The clock is pinned to noon

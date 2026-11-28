@@ -1,9 +1,8 @@
-import type { AsNeededToday, DueDoses } from "~/lib/medications/dueDoses";
-
 import { Message } from "~/components/ui";
 import { ExtraDoseWarning, MedicationCard } from "~/components/medications";
-import { asNeededCountText, overMaxText } from "~/lib/medications/medicationDisplay";
 import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
+import type { AsNeededToday, DueDoses } from "@caretook/data/schema";
+import { asNeededCountText, overMaxText } from "@caretook/data/schema";
 
 /**
  * An as-needed medication's day, as its `MedicationCard` (the whole card

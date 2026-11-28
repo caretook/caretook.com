@@ -3,7 +3,6 @@ import type { Fixture, GroupRole } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { addDays, localDate } from "@caretook/data/schema";
 import { renderWithDevice } from "../../../../../test/device";
 import {
   at,
@@ -17,10 +16,10 @@ import {
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { forgetRecentLines, recordLine } from "~/lib/assistant/recentLines";
-import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { chooseEasyMode } from "./timelineWorld";
 import { found, waitUntil } from "../../../../../test/found";
+import { addDays, localDate, dayInZone, timeInZone } from "@caretook/data/domain";
 
 // Easy mode's Upcoming block (assistant slice 7), on the test device (offline):
 // the pass due now as one big Given all (its Undo is medications/today's), and

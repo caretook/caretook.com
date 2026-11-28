@@ -1,9 +1,9 @@
-import { LEGAL_VERSIONS, legalCheckboxText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 
 import { content as healthData } from "../health-data-privacy/content";
 import { content as privacy } from "../privacy/content";
 import { content as terms } from "../terms/content";
+import { LEGAL_VERSIONS, legalCheckboxText } from "@caretook/data/domain";
 
 // An acceptance names each document's version, so a page edit that moves its
 // last-updated date has to move the version with it.

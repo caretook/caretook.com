@@ -1,6 +1,5 @@
-import type { CaringFor } from "@caretook/data/schema";
-
-import { CARING_FOR } from "@caretook/data/schema";
+import type { CaringFor } from "@caretook/data/domain";
+import { CARING_FOR } from "@caretook/data/domain";
 
 // /admin/waitlist's filters live in the URL (?from=&to=&caringFor=&source=&page=),
 // so a filtered view can be reloaded, shared between staff and exported. A

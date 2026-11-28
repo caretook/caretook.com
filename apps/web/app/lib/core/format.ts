@@ -29,8 +29,6 @@ export const formatDay = (iso: string) => {
   return dayFormat.format(date);
 };
 
-export { dayLabel } from "@caretook/data/schema";
-
 export const formatTime = (iso: string) => timeFormat().format(new Date(iso));
 
 /** The time where the entry was written, when that's a different zone; else null. */

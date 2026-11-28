@@ -1,6 +1,5 @@
 import type { TodoRow } from "./todos.sync";
 
-import { addDays, localDate, UNDO_NEXT_METADATA } from "@caretook/data/schema";
 import { nextTodoId } from "@caretook/data/series";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
@@ -27,6 +26,7 @@ import {
   toTodo,
   updateTodo,
 } from "./todos.sync";
+import { addDays, localDate, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // Repeating todos on the device (planner-2): a tick writes the todo done and
 // its next occurrence (the server's twin: the same id, `nextTodoId`) in one

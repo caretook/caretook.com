@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { providerQuery, providersQuery, toProvider, toProviders } from "../providers/providers.sync";
 import { useLiveQuery } from "../sync/index";
 import { readRows } from "../timeline/timeline.sync";
-import { sortConditions } from "./conditions";
+import { sortConditions } from "@caretook/data/domain";
 import { toConditions } from "./conditions.sync";
 
 // Who diagnosed a condition and who manages it, on this device (conditions

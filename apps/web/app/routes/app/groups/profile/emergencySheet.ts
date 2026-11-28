@@ -2,7 +2,7 @@ import type { RouterContextProvider } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 import type { EmergencySave } from "~/lib/profiles/emergencyList";
 
-import { canManageEmergencyContacts, outsideContactsZSchema } from "@caretook/data/schema";
+import { outsideContactsZSchema } from "@caretook/data/schema";
 import { redirect } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { EMERGENCY_FIELD, outsideFieldName, parseEmergencySave } from "~/lib/profiles/emergencyList";
@@ -13,6 +13,7 @@ import { sessionContext } from "~/lib/auth/session";
 import { loadMemberDetailRows, waitForEmergencyList } from "~/lib/care-groups/members.sync";
 import { loadRecipientDetailsRows } from "~/lib/profiles/recipientDetails.sync";
 import { failedProfileSave } from "./profileSheet";
+import { canManageEmergencyContacts } from "@caretook/data/domain";
 
 // The `profile/emergency` sheet's loader and save (owners and admins only).
 // The save is three online calls, in order: the outside contacts, the whole

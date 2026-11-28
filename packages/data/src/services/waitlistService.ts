@@ -1,11 +1,13 @@
-import type { SpamVerdict, WaitlistFilter, WaitlistJoinInput } from "../db/schema";
+import type { WaitlistFilter, WaitlistJoinInput } from "../db/schema";
 import type { WaitlistEntryModel } from "../models";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
 
 import { DEFAULT_PAGE_SIZE } from "../constants";
-import { spamVerdict, waitlistJoinZSchema } from "../db/schema";
+import { waitlistJoinZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { waitlistEntryModel } from "../models";
+import type { SpamVerdict } from "../domain/marketing/publicFormRules";
+import { spamVerdict } from "../domain/marketing/publicFormRules";
 
 export const schemaName = waitlistEntryModel.schemaName;
 

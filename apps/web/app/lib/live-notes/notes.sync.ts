@@ -2,11 +2,11 @@ import type { SyncDb } from "../sync/index";
 import type { LocalQuery } from "../timeline/timeline.sync";
 import type { NoteBlock } from "./noteRichText";
 
-import { buildNoteDoc, fromBase64, noteText, toBase64 } from "@caretook/data/schema";
 import * as Y from "yjs";
 import { noteUpdates } from "../sync/schema";
 import { toLocalTimestamp } from "../timeline/timeline.sync";
 import { noteRichText } from "./noteRichText";
+import { buildNoteDoc, fromBase64, noteText, toBase64 } from "@caretook/data/domain";
 
 // Live documents on this device. A document's state is its snapshot plus
 // every pending update row; both arrive through sync, so the editor works

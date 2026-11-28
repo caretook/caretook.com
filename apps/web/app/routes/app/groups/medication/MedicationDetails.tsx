@@ -1,19 +1,14 @@
 import type { ReactNode } from "react";
-import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Link } from "react-router";
 import { EmptyState, LINK, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
-import {
-  formatDate,
-  medicationTypeDetail,
-  scheduleText,
-  scheduleZoneNote,
-  stoppedText,
-} from "~/lib/medications/medicationDisplay";
 import { PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
+import type { SchedulePass } from "@caretook/data/schema";
+import { formatDate, scheduleText, scheduleZoneNote, stoppedText } from "@caretook/data/schema";
+import { medicationTypeDetail } from "@caretook/data/domain";
 
 function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (

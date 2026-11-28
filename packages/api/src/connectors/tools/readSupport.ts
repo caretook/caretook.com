@@ -1,9 +1,10 @@
 import type { TimelineEntryModel, TimelineEntryKind } from "@caretook/data";
 import type { ToolContext } from "../registry";
 
-import { dayInZone, isError, timelineEntryService } from "@caretook/data";
+import { isError, timelineEntryService } from "@caretook/data";
 import { z } from "zod";
 import { asMember } from "./shared";
+import { dayInZone } from "@caretook/data/domain";
 
 // What the read tools beyond the first two share: windows, paging a list the
 // services return whole, and a few small readers. Everything here works on

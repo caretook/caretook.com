@@ -1,14 +1,4 @@
-import {
-  assigneeOf,
-  dayInZone,
-  endOfDay,
-  isError,
-  startOfDay,
-  todoRepeatText,
-  todoService,
-  todoState,
-  upcomingListsSubtask,
-} from "@caretook/data";
+import { isError, todoService } from "@caretook/data";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso, zonedIsoOrNull } from "../time";
@@ -20,6 +10,15 @@ import {
   UPCOMING_MAX_DAYS,
 } from "./readSupport";
 import { asMember, loadGroup, loadMembers } from "./shared";
+import {
+  assigneeOf,
+  dayInZone,
+  endOfDay,
+  startOfDay,
+  todoRepeatText,
+  todoState,
+  upcomingListsSubtask,
+} from "@caretook/data/domain";
 
 const input = z.object({
   days: z

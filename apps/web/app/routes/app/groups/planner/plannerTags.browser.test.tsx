@@ -1,6 +1,5 @@
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
@@ -16,6 +15,7 @@ import {
   todo,
 } from "../../../../../test/fixtures";
 import { PLANNER_ROUTES } from "./plannerWorld";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Tags on todos and the Planner (tags slice 4): a writer tags a todo from
 // its page's Add tag (`QuickTags`), and from the Todos and Planner rows

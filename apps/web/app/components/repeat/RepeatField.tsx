@@ -1,15 +1,7 @@
-import type { RepeatFreq } from "@caretook/data/schema";
 import type { SeriesTiming } from "@caretook/data/series";
 import type { RepeatChoice, RepeatEndChoice, RepeatPreset } from "~/lib/appointments/repeatChoice";
 
-import {
-  parseRule,
-  repeatText,
-  ruleText,
-  seriesCrossFieldIssues,
-  WEEKDAYS,
-  weekdayName,
-} from "@caretook/data/schema";
+import { seriesCrossFieldIssues } from "@caretook/data/schema";
 import { nextVisits } from "@caretook/data/series";
 import { ChipGroup, ChoiceGroup, Field } from "~/components/ui";
 import { formatTime } from "~/lib/core/format";
@@ -21,6 +13,8 @@ import {
   toggleWeekday,
   UNIT_LABELS,
 } from "~/lib/appointments/repeatChoice";
+import type { RepeatFreq } from "@caretook/data/domain";
+import { parseRule, repeatText, ruleText, WEEKDAYS, weekdayName } from "@caretook/data/domain";
 
 const DAY_PARTS = { weekday: "short", month: "short", day: "numeric" } as const;
 const seriesDay = new Intl.DateTimeFormat(undefined, { ...DAY_PARTS, timeZone: "UTC" });

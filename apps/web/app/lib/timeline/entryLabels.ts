@@ -1,9 +1,10 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
-import { dayLabel, VITALS } from "@caretook/data/schema";
+import { VITALS } from "@caretook/data/schema";
 
 import { KIND_META } from "./entryDisplay";
 import { formatTime } from "../core/format";
+import { dayLabel } from "@caretook/data/domain";
 
 // The timeline's words for entries: link and menu names, and the empty list.
 // Pure, so web:unit tests it.

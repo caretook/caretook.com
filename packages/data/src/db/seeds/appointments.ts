@@ -1,11 +1,8 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
 import {
-  encodeNoteDoc,
   entryProviderId,
-  noteDocFromText,
   noteDocumentSchema,
-  noteText,
   timelineEntryProviderSchema,
   timelineEntrySchema,
   userSchema,
@@ -14,6 +11,7 @@ import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 import { occurredAtOf } from "./timelineEntries";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 // Fictional appointments (future events), placed
 // relative to the seeding time so they stay in the future after a reset:

@@ -1,7 +1,7 @@
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { QuickTags } from "~/components/tags";
-import { medicationTitle } from "~/lib/medications/medicationDisplay";
+import { medicationTitle } from "@caretook/data/schema";
 
 /**
  * The edit sheet's tags (`QuickTags`, tags-2): the medication's chips, live,

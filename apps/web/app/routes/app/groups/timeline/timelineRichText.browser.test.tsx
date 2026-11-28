@@ -1,9 +1,9 @@
-import { encodeNoteDoc, MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import * as Y from "yjs";
 import { at, fx } from "../../../../../test/fixtures";
 import { waitUntil } from "../../../../../test/found";
 import { openTimeline, rowWith, rows, setView, view } from "./timelineWorld";
+import { encodeNoteDoc, MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/domain";
 
 // A live note's formatting in the Full (cards) view (B-850): headings, lists,
 // bold and mentions as the editor shows them, read-only; Condensed (rows)

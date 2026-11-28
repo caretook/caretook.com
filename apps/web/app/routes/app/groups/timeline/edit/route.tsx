@@ -3,7 +3,6 @@ import type { ActionResult } from "~/lib/core/api";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
-import { canChangeEntry } from "@caretook/data/schema";
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
 import { QuickTags } from "~/components/tags";
@@ -23,6 +22,7 @@ import { entryLabel } from "~/lib/timeline/entryLabels";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { editSheetGuard } from "../sheetGuard";
+import { canChangeEntry } from "@caretook/data/domain";
 
 // Shared by web + native. `timeline/:entryId/edit`: a symptom's, vital's or
 // dose's edit sheet, over the timeline. A note or event goes to its page; a

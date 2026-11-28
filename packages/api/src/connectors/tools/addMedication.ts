@@ -1,7 +1,6 @@
 import type { MedicationScheduleInput, NewMedicationDraft } from "@caretook/data";
 
 import {
-  foldSearchText,
   isError,
   MEDICATION_FORMS,
   MEDICATION_LIMITS,
@@ -22,6 +21,7 @@ import { z } from "zod";
 import { linkTo, medicationPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { asMember } from "./shared";
+import { foldSearchText } from "@caretook/data/domain";
 
 // add_medication (connectors-3): a member's assistant adds a current
 // medication with its type and schedule through the Add medication sheet's

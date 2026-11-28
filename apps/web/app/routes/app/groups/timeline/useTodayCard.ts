@@ -3,10 +3,9 @@ import type { LatestVital } from "~/lib/core/rpc";
 import type { TimelineData } from "./useTimelineData";
 import type { TodayRow, TodayStatus } from "./todayStatus";
 
-import { formatReading } from "@caretook/data/schema";
+import { formatReading, clockTime } from "@caretook/data/schema";
 import { useState } from "react";
 import { localTimeZone } from "~/lib/core/format";
-import { clockTime } from "~/lib/medications/medicationDisplay";
 import { attentionCounts, todayStatus, todaySummary } from "./todayStatus";
 import { useMedicationStrip } from "./useMedicationStrip";
 import { useTodoStrip } from "./useTodoStrip";

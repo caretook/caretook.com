@@ -1,12 +1,12 @@
 import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 
 import { Pencil, Printer } from "lucide-react";
-import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
 import { Button, DetailHeader, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { ageText, birthdayText, PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
+import { canEditRecipient, canReadRecipient } from "@caretook/data/domain";
 
 /**
  * The profile's heading (`DetailHeader`): the recipient's avatar, the name

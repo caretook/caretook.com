@@ -1,19 +1,18 @@
 import type { LocalTodo, TodoLink } from "~/lib/todos/todos.sync";
 
-import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { Badge, Message, Section, TITLE_SECTION } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { linkOf } from "~/lib/todos/todos.sync";
-import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
 import { mayAddTodo, TodoQuickAdd } from "./TodoQuickAdd";
 import { TodoTick } from "./TodoTick";
 import { TodoUndoStatus } from "./TodoUndoStatus";
 import { useLinkedTodos } from "./useLinkedTodos";
 import { useQuickAddChains } from "./useQuickAddChains";
 import { useTodoTick } from "./useTodoTick";
+import { canCompleteTodo, todoState, assigneeLabel, dueText } from "@caretook/data/domain";
 
 /**
  * The open todos linked to this provider, medication or appointment (todos

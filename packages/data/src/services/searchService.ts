@@ -7,17 +7,16 @@ import { z } from "zod";
 import { dbMayFail, txOrDb } from "../db";
 import {
   medicationSchema,
-  parseSearch,
   providerSchema,
   SERVER_SEARCH_ITEM_TYPES,
   timelineEntrySchema,
-  toTsQuery,
   VITALS,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupModel } from "../models";
 import { generateQueryWhere } from "../models/base/queryHelpers";
 import { compactPending } from "./noteDocumentService";
+import { parseSearch, toTsQuery } from "../domain/search/search";
 
 // Server search over one care group's entries, providers and medications,
 // for the API and the assistant (the app searches its device index).

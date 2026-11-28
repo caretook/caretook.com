@@ -7,7 +7,13 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { Ban, CircleCheck, Ellipsis, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { MEDICATION_LIMITS, MEDICATION_STOP_REASONS } from "@caretook/data/schema";
+import {
+  MEDICATION_LIMITS,
+  MEDICATION_STOP_REASONS,
+  medicationTitle,
+  STOP_REASON_LABELS,
+  stoppedText,
+} from "@caretook/data/schema";
 import {
   Button,
   ChoiceGroup,
@@ -18,9 +24,8 @@ import {
   SEPARATOR,
   TITLE_SECTION,
 } from "~/components/ui";
-import { medicationTitle, STOP_REASON_LABELS, stoppedText } from "~/lib/medications/medicationDisplay";
 import { STATUS_FIELD } from "~/lib/medications/medicationStatusForm";
-import { dayInZone } from "~/lib/medications/medications.sync";
+import { dayInZone } from "@caretook/data/domain";
 
 type Dialog = Exclude<StatusIntent, "restart">;
 

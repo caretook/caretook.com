@@ -23,7 +23,6 @@ import {
   MEDICATION_FORMS,
   MEDICATION_STATUSES,
   MEDICATION_STOP_REASONS,
-  MEDICATION_TYPES,
   medicationChange,
   medicationChangeDetailsZSchema,
   medicationChangeId,
@@ -36,9 +35,9 @@ import {
   timelineEntryContentZSchema,
   withoutPass,
 } from "@caretook/data/schema";
+import { MEDICATION_TYPES, dayInZone } from "@caretook/data/domain";
 import { eq } from "drizzle-orm";
 import { changedColumns } from "../core/changedColumns";
-import { dayInZone } from "../core/zonedDay";
 import { newProviderRow } from "../providers/providers.sync";
 import { medications, noteDocuments, providers, timelineEntries } from "../sync/schema";
 import {
@@ -310,10 +309,6 @@ export const recipientQuery = (groupId: string): LocalQuery => ({
 // ---------------------------------------------------------------------------
 // Days in the recipient's zone
 // ---------------------------------------------------------------------------
-
-// The recipient's day (`dayInZone`) and its `[from, to)` moments for
-// `groupDosesQuery` (`dayBounds`), DST-safe: see `lib/core/zonedDay.ts`.
-export { dayBounds, dayInZone } from "../core/zonedDay";
 
 // ---------------------------------------------------------------------------
 // Writes

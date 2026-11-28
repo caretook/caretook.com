@@ -8,12 +8,11 @@ import {
   careRecipientDetailsSchema,
   careRecipientSchema,
   memberContactShareSchema,
-  sharedContact,
-  sharesAnything,
   userContactSchema,
   userSchema,
 } from "../schema";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
+import { sharedContact, sharesAnything } from "../../domain/profiles/profileVisibility";
 
 // Profiles for "Dev Family" (profiles slice 1): Grandma Pat's basics and
 // note for helpers, her contact details and two insurance plans, an outside

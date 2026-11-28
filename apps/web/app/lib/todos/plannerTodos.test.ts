@@ -1,11 +1,10 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
 import { describe, expect, it } from "vitest";
 import { upcomingSections } from "../appointments/upcomingDays";
 import type { TodoTreeNode } from "./todoTreeView";
 
 import { isPlannerTree, plannerDayTrees, showsTodos, withDueTodos } from "./plannerTodos";
 import { splitTrees, todoTrees } from "./todoTreeView";
+import type { TodoRuleFields } from "@caretook/data/domain";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";

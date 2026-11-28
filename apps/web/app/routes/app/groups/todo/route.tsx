@@ -2,7 +2,7 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 
-import { canCompleteTodo, canTagRecord } from "@caretook/data/schema";
+import { canTagRecord } from "@caretook/data/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
@@ -26,6 +26,7 @@ import { TodoParentLink, TodoSubtasks } from "./TodoSubtasks";
 import { useTodoNotes } from "./useTodoNotes";
 import { useTodoPage } from "./useTodoPage";
 import { useTodoSubtasks } from "./useTodoSubtasks";
+import { canCompleteTodo } from "@caretook/data/domain";
 
 // Shared by web + native. A todo's page: who it's for, when it's due, who
 // finished it, the complete or reopen button for whoever may complete it,

@@ -2,12 +2,12 @@ import type { MailHeaders } from "../define";
 import type { LinkBuilder } from "../links";
 
 import { calendarSettingService } from "@caretook/data";
-import { readReminderKey } from "@caretook/data/schema";
 import { Link } from "react-email";
 import { z } from "zod";
 import { defineNotification } from "../define";
 import { appPathZ } from "./appPath";
 import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
+import { readReminderKey } from "@caretook/data/domain";
 
 // Reminder emails (appointments-2 slice 6): an appointment or reminder
 // coming up (`appointmentReminder`) and a todo due (`todoDue`), sent by the

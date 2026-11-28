@@ -1,7 +1,6 @@
 import type { TodoLink, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { todoOrder } from "@caretook/data/schema";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
@@ -10,6 +9,7 @@ import { useNow } from "~/lib/live-notes/editors.sync";
 import { linkedTodosQuery, toTodos } from "~/lib/todos/todos.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { subscribeTodoUndo, type TodoUndo, todoUndoFor, todoUndoSnapshot } from "~/lib/todos/todoUndo";
+import { todoOrder } from "@caretook/data/domain";
 
 const NO_TODOS: TodoRow[] = [];
 const NO_MEMBERS: MemberRow[] = [];

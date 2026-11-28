@@ -1,8 +1,6 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { periodDay, periodLengthDays } from "@caretook/data/schema";
 import { Link } from "react-router";
 import { Badge, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -14,6 +12,8 @@ import {
   startText,
   untilText,
 } from "~/lib/care-periods/periodDisplay";
+import type { PeriodSpan } from "@caretook/data/domain";
+import { periodDay, periodLengthDays } from "@caretook/data/domain";
 
 /**
  * Every period on the track, newest first: its type's icon, its name and

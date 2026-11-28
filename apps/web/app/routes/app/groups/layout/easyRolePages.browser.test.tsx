@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { Fixtures, GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as planner from "../planner/route";
@@ -11,6 +10,7 @@ import * as todoPage from "../todo/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, condition, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The pages the easy roles (Easy helper, Easy viewer) reach beyond the
 // timeline (simple-mode slice 4), in the real /app frame on the test device:

@@ -1,4 +1,3 @@
-import type { NoteSectionLine } from "@caretook/data/schema";
 import type { VisitPrepData, VisitWindow } from "~/lib/appointments/visitPrep";
 
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +10,7 @@ import {
   loadVisitWindow,
 } from "~/lib/appointments/visitPrep.sync";
 import { hasVisitPrep, visitPrepSection } from "~/lib/appointments/visitPrep";
+import type { NoteSectionLine } from "@caretook/data/domain";
 
 export type VisitPrepPreview = {
   /** The window it found (null while loading): its start is the field's first value. */

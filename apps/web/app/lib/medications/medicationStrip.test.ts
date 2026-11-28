@@ -1,9 +1,7 @@
-import type { DueDose, DueMedication } from "./dueDoses";
-
 import { describe, expect, it } from "vitest";
-import { dueDoses } from "./dueDoses";
-import { duePasses } from "./duePasses";
 import { medCountText, medicationStrip, medicationStripText } from "./medicationStrip";
+import type { DueDose, DueMedication } from "@caretook/data/schema";
+import { dueDoses, duePasses } from "@caretook/data/schema";
 
 const LA = "America/Los_Angeles";
 const MORNING = "11111111-1111-4111-8111-111111111111";

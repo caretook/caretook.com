@@ -1,8 +1,8 @@
-import type { HighlightRange } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 import type { NoteBlock, NoteInline, NoteMark } from "~/lib/live-notes/noteRichText";
 
 import { Highlight } from "~/components/ui";
+import type { HighlightRange } from "@caretook/data/domain";
 
 type Marks = (text: string) => HighlightRange[] | undefined;
 

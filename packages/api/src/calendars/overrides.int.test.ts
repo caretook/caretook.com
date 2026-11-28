@@ -5,11 +5,11 @@ import {
   timelineEntryService,
   withTransaction,
 } from "@caretook/data";
-import { dayInZone, zonedInstant } from "@caretook/data/schema";
 import { createMemorySender, deliverDue, sweepReminders } from "@caretook/notifications";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import { clientFor, rejection } from "../testing";
+import { dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // "Remind me" over the API (appointments-2 slice 8): each member's own
 // choice for one appointment, whatever their role; an entry in another group

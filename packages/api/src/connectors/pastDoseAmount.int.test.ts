@@ -6,10 +6,10 @@ import {
   SYSTEM_USER,
   timelineEntryModel,
 } from "@caretook/data";
-import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import { callTool, connectAssistant, enablePasswordSignIn, mcpHandler } from "./testing";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // The usual dose a past slot had (B-985): a fictional Metformin went from
 // 1 tablet to 2 this morning, so yesterday's slots are 1 tablet in both

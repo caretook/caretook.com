@@ -1,10 +1,10 @@
 import type { WaitlistFilterValues } from "./waitlistFilters";
 
-import { CARING_FOR, CARING_FOR_LABELS } from "@caretook/data/schema";
 import { Form } from "react-router";
 import { Button, Field } from "~/components/ui";
 import { adminUrls } from "../adminUrls";
 import { hasFilters } from "./waitlistFilters";
+import { CARING_FOR, CARING_FOR_LABELS } from "@caretook/data/domain";
 
 // The waitlist's filters: a GET form, so they live in the URL.
 
