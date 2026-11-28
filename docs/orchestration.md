@@ -7,23 +7,23 @@ Agents follow the detailed rules in [AGENTS.md](../AGENTS.md) and the role docs 
 1. **Write an idea down** in [`plans/inbox.md`](../plans/inbox.md).
 2. **An agent files it** into the tracker, [`plans/backlog.md`](../plans/backlog.md), and proposes which PRD it belongs to. You review that.
 3. **Bigger things get a PRD** (what and why) and a **plan** (cut into slices).
-4. **You start a PRD** with `pnpm prd start <topic>` and open its orchestrator. From then on you steer it by talking to it: "run slices 5 and 7".
+4. **You start a PRD** with `risa start <topic>` and open its orchestrator. From then on you steer it by talking to it: "run slices 5 and 7".
 5. **When a wave is ready, the orchestrator gives you a link and a list**: a running dev server to try, and the bugs, features and changes it addresses.
 6. **You say "land it"**, and it merges into `dev`. From there work goes to `staging` and `main` by pull request.
 
 Day to day you need three commands, and the orchestrator runs the rest:
 
 ```sh
-pnpm prd status          # what's running, with links
-pnpm prd start <topic>   # start (or reopen) a PRD
-pnpm prd ready <topic>   # is it ready to land? what's in it?
+risa status          # what's running, with links
+risa start <topic>   # start (or reopen) a PRD
+risa ready <topic>   # is it ready to land? what's in it?
 ```
 
 ## Small changes: skip all of this
 
 Not everything needs a PRD. For a small change (a docs or tooling tweak, a config change, a contained fix), open an agent in the main checkout, ask for it, and have it commit straight onto `dev`. Use a PRD when the work needs its own database and dev server, runs in parallel with other work, or adds a migration. An agent that can't tell which a request is will ask you.
 
-To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`; the agent asks before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name> --pr` (reviewed) or `--local` ([hotfix](agents/hotfix.md)). Or start one with `pnpm prd hotfix <name> --open "<the fix>"`.
+To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `risa hotfix <name>` makes a stackless worktree on `hotfix/<name>`; the agent asks before each long test, commit and sync, and you land it with `risa land hotfix/<name> --pr` (reviewed) or `--local` ([hotfix](agents/hotfix.md)). Or start one with `risa hotfix <name> --open "<the fix>"`.
 
 ## Branches
 
@@ -76,37 +76,37 @@ Run these from the repo root (any worktree works):
 
 | Command                                           | What it does                                                   |
 | ------------------------------------------------- | -------------------------------------------------------------- |
-| `pnpm backlog inbox`                              | inbox lines not filed yet                                      |
-| `pnpm backlog ingest`                             | file them (orchestrators also do this before every wave)       |
-| `pnpm backlog list`                               | open items; `--all`, `--prd <topic>`, `--status <s>` to filter |
-| `pnpm backlog show B-12`                          | one item, with its notes                                       |
-| `pnpm backlog set B-12 prd=search status=triaged` | change a field (also `title=`, `type=`, `status=dropped`)      |
-| `pnpm backlog note B-12 "text"`                   | add a dated note                                               |
-| `pnpm backlog commit "message"`                   | commit your hand edits to either file                          |
+| `risa backlog inbox`                              | inbox lines not filed yet                                      |
+| `risa backlog ingest`                             | file them (orchestrators also do this before every wave)       |
+| `risa backlog list`                               | open items; `--all`, `--prd <topic>`, `--status <s>` to filter |
+| `risa backlog show B-12`                          | one item, with its notes                                       |
+| `risa backlog set B-12 prd=search status=triaged` | change a field (also `title=`, `type=`, `status=dropped`)      |
+| `risa backlog note B-12 "text"`                   | add a dated note                                               |
+| `risa backlog commit "message"`                   | commit your hand edits to either file                          |
 
-Every change is committed straight onto `dev` (only those two files), so every session sees the current list at once. You can also edit `backlog.md` by hand and run `pnpm backlog commit`.
+Every change is committed straight onto `dev` (only those two files), so every session sees the current list at once. You can also edit `backlog.md` by hand and run `risa backlog commit`.
 
 ## Running PRDs in parallel
 
 ### Starting a PRD
 
-1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that asks only what's costly to undo, writes and lands the PRD and plan. Planning, backlog and hotfix sessions run on opus (the planner's last skeptic on Fable); `--model <name>` picks another.
-2. `pnpm prd start <topic>` creates the PRD's worktree and stack, and prints a command.
+1. A PRD needs a written PRD and plan first. Not sure which? `risa plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `risa plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that asks only what's costly to undo, writes and lands the PRD and plan. Planning, backlog and hotfix sessions run on opus (the planner's last skeptic on Fable); `--model <name>` picks another.
+2. `risa start <topic>` creates the PRD's worktree and stack, and prints a command.
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
    ```sh
-   cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"
+   cd .loops/<topic> && claude --remote-control prd-<topic> "$(risa prompt orchestrator <topic>)"
    ```
 
-4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. If a session gets slow or confused, close it and rerun the same command (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section, which the orchestrator updates at every step (a slice started, handed off or merged, a wave landed), so nothing is lost whenever it stops.
+4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. If a session gets slow or confused, close it and rerun the same command (`risa start <topic>` reprints it). It picks up from the plan's _Status_ section, which the orchestrator updates at every step (a slice started, handed off or merged, a wave landed), so nothing is lost whenever it stops.
 
-**Four PRDs run at once,** or `pnpm prd dispatch --cap <n>`; running ones finish.
+**Four PRDs run at once,** or `risa dispatch --cap <n>`; running ones finish.
 
-**The dispatcher:** `pnpm prd dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `pnpm prd notices` lists heads-ups. `CARETOOK_UNSYNCED=off` stops unsynced landings.
+**The dispatcher:** `risa dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `risa queue <topic>` moves a topic first; a row's `hold` flag or `risa dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `risa asks` (answer with `risa answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `risa notices` lists heads-ups. `RISA_UNSYNCED=off` stops unsynced landings.
 
 ### After a restart, a crash or a usage limit
 
-Orchestrators and their slice agents stop when the machine restarts or a session dies, and sit idle after a usage limit. Each worktree keeps its work (commits and uncommitted changes), and each plan's _Status_ says where its orchestrator was, step by step. **The easy way:** before a planned restart, run `pnpm prd down` (it remembers what was running and stops it cleanly). Afterwards, run `pnpm prd recover` in a terminal: it starts Docker, clears stale locks, brings the stacks and dev servers back, then opens a recovery agent that tells every live orchestrator to carry on and reopens the rest in new iTerm2 tabs. After a usage limit, `pnpm prd recover --at 14:00` or `--wait` waits until you can work again, then does the same. `pnpm prd recover --dry-run` shows what it would do, and `pnpm prd reclaim` frees disk when new stacks are refused for low space.
+Orchestrators and their slice agents stop when the machine restarts or a session dies, and sit idle after a usage limit. Each worktree keeps its work (commits and uncommitted changes), and each plan's _Status_ says where its orchestrator was, step by step. **The easy way:** before a planned restart, run `risa down` (it remembers what was running and stops it cleanly). Afterwards, run `risa recover` in a terminal: it starts Docker, clears stale locks, brings the stacks and dev servers back, then opens a recovery agent that tells every live orchestrator to carry on and reopens the rest in new iTerm2 tabs. After a usage limit, `risa recover --at 14:00` or `--wait` waits until you can work again, then does the same. `risa recover --dry-run` shows what it would do, and `risa reclaim` frees disk when new stacks are refused for low space.
 
 To pick a PRD up again by hand, in a new terminal:
 
@@ -114,7 +114,7 @@ To pick a PRD up again by hand, in a new terminal:
 # its last conversation, if it had one
 cd .loops/<topic> && claude --continue --remote-control prd-<topic>
 # or a fresh orchestrator told it's taking over (add --auto for a queued or run-through PRD)
-cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic> --resume)"
+cd .loops/<topic> && claude --remote-control prd-<topic> "$(risa prompt orchestrator <topic> --resume)"
 ```
 
 A resumed orchestrator first checks its _Status_ against git (the slice worktrees and branches, and what's already merged), trusting git where they differ. It then restarts one agent per unfinished slice, told to continue from what's in its worktree rather than start over (a slice that had finished just writes its hand-off again), reviews any slice that was handed off but not merged, and carries on in the landing mode you chose before. You don't need to repeat your answers.
@@ -123,11 +123,11 @@ A resumed orchestrator first checks its _Status_ against git (the slice worktree
 
 Every PRD and every slice gets its own **worktree** in `.loops/` (a separate checkout of its branch), and most get their own **stack**: a private Postgres, test Postgres, PowerSync and dev server on their own ports. So agents reset databases and run browser checks without touching yours.
 
-`pnpm prd status` lists them all, with each one's dev server link and whether it's running. `pnpm prd serve <name>` starts one; `--stop` stops it.
+`risa status` lists them all, with each one's dev server link and whether it's running. `risa serve <name>` starts one; `--stop` stops it.
 
 ### Ready to land: try it first
 
-When a wave's slices are merged and green, the orchestrator syncs with `dev`, reruns the checks, restarts the PRD's dev server and shows you a report. You can ask for it yourself at any time with `pnpm prd ready <topic>`:
+When a wave's slices are merged and green, the orchestrator syncs with `dev`, reruns the checks, restarts the PRD's dev server and shows you a report. You can ask for it yourself at any time with `risa ready <topic>`:
 
 ```
 # prd/app-shell is ready to land
@@ -148,18 +148,18 @@ If something isn't ready (not synced with `dev`, checks not passed on the latest
 
 Open the link, try it, and then tell the orchestrator one of:
 
-- **"land it"**: it runs `pnpm prd land <topic>`, which merges the wave's GitHub PR into `dev` and updates your main checkout. The PR opens once the wave is green, so Codex reviews it while you try it (about three rounds, then the orchestrator asks you). It refuses unless the branch is synced and checked, the PR's head is that tip and the review is clean (`--no-review` on your word), so what lands is what you tried. It tells you if your main checkout then needs `pnpm datastore:reset` or `pnpm install`.
+- **"land it"**: it runs `risa land <topic>`, which merges the wave's GitHub PR into `dev` and updates your main checkout. The PR opens once the wave is green, so Codex reviews it while you try it (about three rounds, then the orchestrator asks you). It refuses unless the branch is synced and checked, the PR's head is that tip and the review is clean (`--no-review` on your word), so what lands is what you tried. It tells you if your main checkout then needs `pnpm datastore:reset` or `pnpm install`.
 - **what to change**: it sends the work back to a slice agent and comes back with a new report.
 
-You can also land it yourself from any terminal: `pnpm prd land <topic>`. `pr` and `land` push `dev` (fast-forward only). A hotfix asks "PR or local?".
+You can also land it yourself from any terminal: `risa land <topic>`. `pr` and `land` push `dev` (fast-forward only). A hotfix asks "PR or local?".
 
 Land one PRD at a time. The others sync with `dev` at their next wave.
 
-When a whole PRD is done: `pnpm prd rm <topic>` removes its worktree, stack and dev server, and deletes its branch once it's merged.
+When a whole PRD is done: `risa rm <topic>` removes its worktree, stack and dev server, and deletes its branch once it's merged.
 
 ### Going live
 
-`staging` takes a release candidate: `pnpm prd ci candidate cut --wait` fixes a `dev` commit on an `rc/*` branch, opens its PR and runs the whole suite and the browser checks in CI; `pnpm prd ci promote` merges it only if that run passes. Merging the PR by hand on GitHub is your override. Then open the pull request `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
+`staging` takes a release candidate: `risa ci candidate cut --wait` fixes a `dev` commit on an `rc/*` branch, opens its PR and runs the whole suite and the browser checks in CI; `risa ci promote` merges it only if that run passes. Merging the PR by hand on GitHub is your override. Then open the pull request `staging` → `main`. The tracker then shows the items as staging, then live (`risa backlog refresh` writes those statuses into the file).
 
 ## Commit messages
 
@@ -175,30 +175,30 @@ chore(app-shell): merge dev into prd/app-shell
 - **Types:** `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `build`, `ci`, `chore`, `revert`.
 - **Scope** (optional): the PRD topic, or the area. Backlog ids go at the end, in parentheses.
 - **Breaking change:** `feat(api)!: …`, with a `BREAKING CHANGE:` footer.
-- `pnpm backlog`, `pnpm prd sync` and `pnpm prd land` (`-m`, else a default) write their own.
+- `risa backlog`, `risa sync` and `risa land` (`-m`, else a default) write their own.
 
 ## Commands at a glance
 
-| Command                           | What it's for                                                                      |
-| --------------------------------- | ---------------------------------------------------------------------------------- |
-| `pnpm prd status`                 | every worktree and session: kind, context size (`pnpm prd context`), server link   |
-| `pnpm prd status-watch [seconds]` | the same, redrawn every 5 s; `pnpm prd watch`: each slice agent's next action      |
-| `pnpm prd metrics [--json]`       | slice and landing times, check times, flake rate, Codex's find rate (`--since`)    |
-| `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
-| `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
-| `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
-| `pnpm prd plan`                   | a backlog and inbox session in the main checkout; say "hand off" for a fresh one   |
-| `pnpm prd inbox`                  | a bare session outside the repo that only adds and edits inbox lines               |
-| `pnpm prd bye`                    | what just 'bye' runs: ends the session if nothing is open, else lists what is      |
-| `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
-| `pnpm prd ready [topic]`          | the ready-to-land report                                                           |
-| `pnpm prd land <topic>`           | merge the PRD's branch into `dev`                                                  |
-| `pnpm prd rm <name>`              | remove a worktree, its stack and (if merged) its branch                            |
-| `pnpm prd slice`, `check`, `sync` | what orchestrators run: a slice's worktree, record a passing check, merge `dev` in |
-| `pnpm backlog …`                  | the inbox and tracker (above)                                                      |
-| `pnpm hooks:install`              | turn on the git hooks (once per clone)                                             |
+| Command                       | What it's for                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| `risa status`                 | every worktree and session: kind, context size (`risa context`), server link       |
+| `risa status-watch [seconds]` | the same, redrawn every 5 s; `risa watch`: each slice agent's next action          |
+| `risa metrics [--json]`       | slice and landing times, check times, flake rate, Codex's find rate (`--since`)    |
+| `risa start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
+| `risa queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
+| `risa plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
+| `risa plan`                   | a backlog and inbox session in the main checkout; say "hand off" for a fresh one   |
+| `risa inbox`                  | a bare session outside the repo that only adds and edits inbox lines               |
+| `risa bye`                    | what just 'bye' runs: ends the session if nothing is open, else lists what is      |
+| `risa serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
+| `risa ready [topic]`          | the ready-to-land report                                                           |
+| `risa land <topic>`           | merge the PRD's branch into `dev`                                                  |
+| `risa rm <name>`              | remove a worktree, its stack and (if merged) its branch                            |
+| `risa slice`, `check`, `sync` | what orchestrators run: a slice's worktree, record a passing check, merge `dev` in |
+| `risa backlog …`              | the inbox and tracker (above)                                                      |
+| `pnpm hooks:install`          | turn on the git hooks (once per clone)                                             |
 
-`pnpm prd help` prints the full list. The scripts behind it are in `scripts/loops/`.
+`risa help` prints the full list. The tool is Risa ([interrobangc/risa](https://github.com/interrobangc/risa)).
 
 ## When something's off
 
@@ -207,4 +207,4 @@ chore(app-shell): merge dev into prd/app-shell
 - **"the commit subject isn't a Conventional Commit"**: reword it as `type(scope): description` (see [Commit messages](#commit-messages)).
 - **"dev has moved since prd/… last synced"** when landing: another PRD landed first. The orchestrator syncs and checks again ([the check gate](agents/orchestrator.md#the-check-gate)).
 - **"pnpm check hasn't passed on …'s tip"**: something was committed after the last check. Ask the orchestrator to check again; docs and tooling-only commits never trip this.
-- **A stale slot** in `pnpm prd status` output: a worktree was deleted by hand. Remove the lease directory it names.
+- **A stale slot** in `risa status` output: a worktree was deleted by hand. Remove the lease directory it names.

@@ -11,6 +11,7 @@ import {
   todoSections,
   whoOf,
 } from "./todoList";
+import { todoTrees } from "./todoTreeView";
 
 const LA = "America/Los_Angeles";
 // Friday 2026-11-20, 12:00 in Los Angeles.
@@ -28,6 +29,18 @@ const todo = (id: string, overrides: Record<string, unknown> = {}) => ({
   createdAt: "2026-11-01T00:00:00Z",
   ...overrides,
 });
+
+type Todo = ReturnType<typeof todo>;
+/** The trees `todoTrees` builds, sectioned. */
+const sectionsOf = (todos: Todo[], matches?: (t: Todo) => boolean) =>
+  todoSections(todoTrees(todos, { now: NOW, timeZone: LA, matches }), NOW, LA);
+/** A tree as nested ids: `[id, [children…]]`, a context row's id in brackets. */
+type Shape = [string, Shape[]];
+type Node = { todo: Todo; context: boolean; children: Node[] };
+const shape = (node: Node): Shape => [
+  node.context ? `(${node.todo.id})` : node.todo.id,
+  node.children.map(shape),
+];
 
 describe("the chip", () => {
   it("reads and writes ?who=", () => {
@@ -65,20 +78,16 @@ describe("the chip", () => {
 
 describe("todoSections", () => {
   it("is Overdue, Today, a day per later day, then No due date, without done todos", () => {
-    const sections = todoSections(
-      [
-        todo("undated"),
-        todo("mon", { dueOn: "2026-11-23" }),
-        todo("tomorrow", { dueOn: "2026-11-21" }),
-        todo("today", { dueOn: "2026-11-20", dueTime: "15:00" }),
-        todo("late-today", { dueOn: "2026-11-20", dueTime: "08:00" }),
-        todo("late", { dueOn: "2026-11-18" }),
-        todo("done", { dueOn: "2026-11-18", doneAt: "2026-11-19T00:00:00Z" }),
-      ],
-      NOW,
-      LA,
-    );
-    expect(sections.map((s) => [s.label, s.todos.map((t) => t.id)])).toEqual([
+    const sections = sectionsOf([
+      todo("undated"),
+      todo("mon", { dueOn: "2026-11-23" }),
+      todo("tomorrow", { dueOn: "2026-11-21" }),
+      todo("today", { dueOn: "2026-11-20", dueTime: "15:00" }),
+      todo("late-today", { dueOn: "2026-11-20", dueTime: "08:00" }),
+      todo("late", { dueOn: "2026-11-18" }),
+      todo("done", { dueOn: "2026-11-18", doneAt: "2026-11-19T00:00:00Z" }),
+    ]);
+    expect(sections.map((s) => [s.label, s.trees.map((t) => t.todo.id)])).toEqual([
       ["Overdue", ["late", "late-today"]],
       ["Today", ["today"]],
       ["Tomorrow", ["tomorrow"]],
@@ -88,7 +97,53 @@ describe("todoSections", () => {
   });
 
   it("is empty with nothing open", () => {
-    expect(todoSections([], NOW, LA)).toEqual([]);
+    expect(sectionsOf([])).toEqual([]);
+  });
+
+  it("sections trees: a subtask never sections alone, dated or assigned, and a done one stays in its tree (todo-subtasks-3)", () => {
+    const sections = sectionsOf([
+      todo("parent"),
+      todo("plain-step", { parentId: "parent" }),
+      todo("dated-step", { parentId: "parent", dueOn: "2026-11-21" }),
+      todo("mine-step", { parentId: "parent", assigneeId: ME }),
+      todo("done-step", { parentId: "parent", doneAt: "2026-11-19T00:00:00Z" }),
+      todo("sub-step", { parentId: "dated-step" }),
+      todo("other"),
+    ]);
+    // The tree goes under its most urgent open todo's day: the dated step's.
+    expect(sections.map((s) => [s.label, s.trees.map(shape)])).toEqual([
+      [
+        "Tomorrow",
+        [
+          [
+            "parent",
+            [
+              ["dated-step", [["sub-step", []]]],
+              ["done-step", []],
+              ["mine-step", []],
+              ["plain-step", []],
+            ],
+          ],
+        ],
+      ],
+      ["No due date", [["other", []]]],
+    ]);
+  });
+
+  it("a filter keeps a matching subtask in its tree, its parent as context; a tree with nothing open matching is left out", () => {
+    const sections = sectionsOf(
+      [
+        todo("parent"),
+        todo("mine-step", { parentId: "parent", assigneeId: ME }),
+        todo("sams-step", { parentId: "parent", assigneeId: SAM }),
+        todo("errand"),
+        todo("mine-done", { parentId: "errand", assigneeId: ME, doneAt: "2026-11-19T00:00:00Z" }),
+      ],
+      (t) => showsTodo("mine", t, ME),
+    );
+    expect(sections.map((s) => [s.label, s.trees.map(shape)])).toEqual([
+      ["No due date", [["(parent)", [["mine-step", []]]]]],
+    ]);
   });
 });
 

@@ -1,11 +1,11 @@
 import type { ContactValues } from "@caretook/data/schema";
 import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 
-import { visibleSharedFields } from "@caretook/data/schema";
 import { useId, useState } from "react";
 import { Chevron, Collapse } from "~/components/ui";
 import { memberShare, parseSharedFields, sharedSummary } from "~/lib/profiles/memberContact";
 import { SharingForm } from "./SharingForm";
+import { visibleSharedFields } from "@caretook/data/domain";
 
 /** Your own card's "What this group sees": closed, what you share; open, the form. */
 export function YourSharing({
@@ -33,7 +33,7 @@ export function YourSharing({
         What this group sees
       </button>
       {!open && (
-        <p data-sharing-summary="" className="text-base-content/70 text-sm">
+        <p data-sharing-summary="" className="text-muted text-sm">
           {sharedSummary(visibleSharedFields(memberShare(member)))}
         </p>
       )}

@@ -1,14 +1,16 @@
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
-import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
+import type { EntryFilters, EntryRow, LocalQuery, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/appointments/upcomingDays";
 import type { RecipientRow } from "~/lib/medications/medications.sync";
-import type { WithTodos } from "~/lib/todos/plannerTodos";
-import type { LocalTodo } from "~/lib/todos/todos.sync";
+import type { WithTrees } from "~/lib/todos/plannerTodos";
+import type { LocalTodo, SubtaskProgressRow, TodoRow } from "~/lib/todos/todos.sync";
+import type { TodoTickProgress } from "~/components/todos";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { PastTextRow, RescheduledTargetRow } from "./upcomingQueries";
 import type { GroupTagRow, TagRow } from "~/lib/tags/tags.sync";
+import type { TodoView } from "~/lib/todos/todoView";
 
 import { activeTag } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
@@ -20,8 +22,15 @@ import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveQuery } from "~/lib/sync";
 import { recipientQuery } from "~/lib/medications/medications.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
-import { useDueTodos } from "~/lib/todos/todos.sync";
-import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import {
+  dueTodosThrough,
+  progressByParent,
+  subtaskProgressQuery,
+  todoTreesQuery,
+  toTodos,
+} from "~/lib/todos/todos.sync";
+import { splitTrees, todoTrees } from "~/lib/todos/todoTreeView";
+import { toPreviews } from "~/lib/live-notes/notes.sync";
 import {
   fromLocalTimestamp,
   membersQuery,
@@ -32,8 +41,10 @@ import {
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
-import { showsTodos, plannerTodos, withDueTodos } from "~/lib/todos/plannerTodos";
+import { plannerDayTrees, showsTodos, withDueTodos } from "~/lib/todos/plannerTodos";
 import {
+  inUpcomingHorizon,
+  pastDocumentsQuery,
   pastQueries,
   pastTextCondition,
   pastTextQuery,
@@ -49,8 +60,8 @@ import {
 /** How often the clock ticks: an item leaves Upcoming within this long of its end. */
 export const UPCOMING_TICK_MS = 30_000;
 
-/** An entry, or (in Upcoming only) an open dated todo. */
-export type UpcomingListItem = WithTodos<TimelineEntry, LocalTodo>;
+/** An entry, or (in Upcoming only) a day's todo tree. */
+export type UpcomingListItem = WithTrees<TimelineEntry, LocalTodo>;
 
 export type UpcomingListData = {
   sections: UpcomingSection<UpcomingListItem>[];
@@ -72,6 +83,10 @@ export type UpcomingListData = {
   tag: TagRow | null;
   /** A listed event's or todo's tags, for its chips. */
   tagsOf: (target: "entry" | "todo", id: string) => GroupTagRow[] | undefined;
+  /** A parent todo's subtask progress (Upcoming only; the list's one progress query). */
+  progressOf?: (todoId: string) => TodoTickProgress | undefined;
+  /** With subtasks on their own (Upcoming only): a subtask's parent among the rows read, for "Part of". */
+  parentOf?: (parentId: string) => LocalTodo | undefined;
 };
 
 type TagRows = { tagRows: TagRow[]; entryTagRows: GroupTagRow[]; todoTagRows: GroupTagRow[] };
@@ -93,11 +108,18 @@ function useListTags(groupId: string, initial: TagRows, asked: string | null | u
   };
 }
 
+/** The group's subtask progress, live, in one query (todo-subtasks-2): a parent's "n of m done". */
+function useSubtaskProgress(groupId: string, initial: SubtaskProgressRow[]) {
+  const query = subtaskProgressQuery(groupId);
+  const rows = useLiveQuery<SubtaskProgressRow>(query.sql, query.params, initial);
+  const progress = useMemo(() => progressByParent(rows), [rows]);
+  return { progressOf: (todoId: string) => progress.get(todoId) };
+}
+
 /** Where a cancelled event was rescheduled to. */
 export type RescheduledTarget = { id: string; occurredAt: string };
-/** The group's documents' text, live, by id (a note's or event's document has its entry's id). */
-function useDocumentPreviews(groupId: string, initial: NoteDocRow[]) {
-  const documentsSql = groupDocumentsQuery(groupId);
+/** The list's documents' text, live, by id (a note's or event's document has its entry's id). */
+function useDocumentPreviews(documentsSql: LocalQuery, initial: NoteDocRow[]) {
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial);
   return useMemo(() => toPreviews(documentRows), [documentRows]);
 }
@@ -150,12 +172,15 @@ function useListSupport(
  * whose title, place or text and the todos whose title or assignee has every
  * word typed; Upcoming isn't paged, so it filters what it has. `filters.tag`
  * (`?tag=`) narrows events in their queries and todos here, once the group
- * is known to have it.
+ * is known to have it. `view` (the route's, from `?subtasks=`; todo-links-2)
+ * `own` lists each dated todo on its own (`splitTrees`), placed by its own
+ * due, with a `parentOf` for its "Part of" from the tree rows.
  */
 export function useUpcomingData({
   groupId,
   filters: asked,
   todosOnly = false,
+  view = "tree",
   q = "",
   initial,
 }: {
@@ -163,6 +188,8 @@ export function useUpcomingData({
   filters: EntryFilters;
   /** Todos only (`?show=todos`): no entries. */
   todosOnly?: boolean;
+  /** The todos in their tree (the default) or on their own. */
+  view?: TodoView;
   q?: string;
   initial: UpcomingRows;
 }): UpcomingListData {
@@ -176,7 +203,7 @@ export function useUpcomingData({
     queries.contacts.params,
     initial.contactRows,
   );
-  const previews = useDocumentPreviews(groupId, initial.documentRows);
+  const previews = useDocumentPreviews(queries.documents, initial.documentRows);
   const support = useListSupport(groupId, initial, contactRows, previews);
   const tokens = textTokens(q);
   // The recipient's zone, which todos' due days and times are in.
@@ -189,20 +216,33 @@ export function useUpcomingData({
     ? []
     : support
         .withPreview(toTimelineEntries(entryRows))
-        .filter((e) => matchesText(tokens, e.title, e.place, e.body));
+        .filter((e) => inUpcomingHorizon(e, at) && matchesText(tokens, e.title, e.place, e.body));
   const sections = upcomingSections(shown, at, zone);
-  // Open dated todos through Upcoming's last day, live: completing one drops it out.
-  const dueTodos = useDueTodos(groupId, todoZone, {
-    days: UPCOMING_HORIZON_DAYS,
-    initial: initial.todoRows,
-  });
+  // The trees (todo-subtasks-3): the trees' one query, cut per day through
+  // Upcoming's last day (`plannerDayTrees`), live: completing a todo drops it out.
+  const treesSql = todoTreesQuery(groupId);
+  const treeRows = useLiveQuery<TodoRow>(treesSql.sql, treesSql.params, initial.todoRows);
+  const treeTodos = useMemo(() => toTodos(treeRows), [treeRows]);
   const { tag, todoTags } = tagging;
-  const matching = dueTodos.todos.filter(
-    (t) =>
-      (!tag || !!todoTags.get(t.id)?.some((l) => l.id === tag.id)) &&
-      matchesText(tokens, t.title, t.assigneeName, t.assigneeId ? support.nameOf(t.assigneeId) : null),
-  );
-  const todos = showsTodos(filters) ? plannerTodos(matching, at, todoZone) : [];
+  // The tag and the text pick todos; a match keeps its subtree and its ancestors as context.
+  const matches =
+    tag || tokens.length
+      ? (t: LocalTodo) =>
+          (!tag || !!todoTags.get(t.id)?.some((l) => l.id === tag.id)) &&
+          matchesText(tokens, t.title, t.assigneeName, t.assigneeId ? support.nameOf(t.assigneeId) : null)
+      : undefined;
+  const own = view === "own";
+  const todos = showsTodos(filters)
+    ? plannerDayTrees(
+        (own ? splitTrees : todoTrees)(treeTodos, { now: at, timeZone: todoZone, matches }),
+        at,
+        todoZone,
+        { through: dueTodosThrough(at, todoZone, UPCOMING_HORIZON_DAYS) },
+      )
+    : [];
+  // On their own, a subtask's "Part of" (and its quick add's chain): its parent among the tree rows.
+  const byId = useMemo(() => (own ? new Map(treeTodos.map((t) => [t.id, t])) : null), [own, treeTodos]);
+  const tree = useSubtaskProgress(groupId, initial.progressRows);
   return {
     sections: withDueTodos(sections, todos, at, zone, todoZone),
     rescheduledOf: support.rescheduledOf,
@@ -215,6 +255,8 @@ export function useUpcomingData({
     tags: tagging.tags,
     tag: tagging.tag,
     tagsOf: tagging.tagsOf,
+    progressOf: tree.progressOf,
+    parentOf: byId ? (parentId: string) => byId.get(parentId) : undefined,
   };
 }
 
@@ -250,7 +292,10 @@ export function usePastEvents({
   const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
   const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
-  const previews = useDocumentPreviews(groupId, initial.documentRows);
+  const previews = useDocumentPreviews(
+    pastDocumentsQuery(groupId, filters, initial.cutoff),
+    initial.documentRows,
+  );
   const textSql = pastTextQuery(groupId, filters, initial.cutoff);
   const textRows = useLiveQuery<PastTextRow>(textSql.sql, textSql.params, initial.textRows);
   const match = useMemo(() => pastTextCondition(textRows, previews, q), [textRows, previews, q]);

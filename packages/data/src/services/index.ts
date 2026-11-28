@@ -46,7 +46,7 @@ export { staffGroupService };
 export type { StaffGroupInput } from "./staffGroupService";
 import * as medicationService from "./medicationService";
 export { medicationService };
-export type { MedicationWriteOptions } from "./medicationService";
+export type { MedicationCreateOptions, MedicationWriteOptions } from "./medicationService";
 
 import * as waitlistService from "./waitlistService";
 export { waitlistService };
@@ -93,6 +93,7 @@ export { accountAdminService };
 export type { AccountMailer, AccountMailUser } from "./accountAdminService";
 
 import * as groupAdminService from "./groupAdminService";
+export type { StaffGroupChange, StaffGroupMailer, StaffGroupNotice } from "./groupAdminService";
 export { groupAdminService };
 import * as appSettingService from "./appSettingService";
 export { appSettingService };
@@ -107,6 +108,8 @@ export { authKeysService };
 // Not in `services`: no model behind it (shared rate limits, hosting PRD).
 import * as rateLimitService from "./rateLimitService";
 export { rateLimitService };
+export type { RateLimiter, RateLimitStore } from "./rateLimiter";
+export { createRateLimiter, defaultStore, memoryStore, postgresStore } from "./rateLimiter";
 // Not in `services`: no model behind it (suppressed addresses, hosting PRD).
 import * as emailSuppressionService from "./emailSuppressionService";
 export { emailSuppressionService };
@@ -189,56 +192,5 @@ export { tagService };
 import * as recordTagService from "./recordTagService";
 export { recordTagService };
 
-export const services = {
-  user: userService,
-  careGroup: careGroupService,
-  careGroupMember: careGroupMemberService,
-  careRecipient: careRecipientService,
-  careGroupInvite: careGroupInviteService,
-  timelineEntry: timelineEntryService,
-  noteDocument: noteDocumentService,
-  provider: providerService,
-  entryProvider: entryProviderService,
-  careGroupConsent: careGroupConsentService,
-  legalAcceptance: legalAcceptanceService,
-  joinRequest: joinRequestService,
-  accessCode: accessCodeService,
-  staffGroup: staffGroupService,
-  medication: medicationService,
-  waitlist: waitlistService,
-  contactMessage: contactMessageService,
-  careRecipientDetails: careRecipientDetailsService,
-  emergencyContact: emergencyContactService,
-  userContact: userContactService,
-  memberSharing: memberSharingService,
-  carePeriod: carePeriodService,
-  medicationPass: medicationPassService,
-  recipientAllergy: recipientAllergyService,
-  adminAudit: adminAuditService,
-  adminGrant: adminGrantService,
-  groupAdmin: groupAdminService,
-  appSetting: appSettingService,
-  todo: todoService,
-  connectorGrant: connectorGrantService,
-  assistantRequest: assistantRequestService,
-  recipientCondition: recipientConditionService,
-  medicationCondition: medicationConditionService,
-  appointmentSeries: appointmentSeriesService,
-  calendarSetting: calendarSettingService,
-  calendarFeed: calendarFeedService,
-  reminderOverride: reminderOverrideService,
-  symptomType: symptomTypeService,
-  entryTodo: entryTodoService,
-  tag: tagService,
-  recordTag: recordTagService,
-};
-
-export type ServiceTypeMap = typeof services;
-export type ServiceName = keyof ServiceTypeMap;
-export type ServiceType<T extends ServiceName> = ServiceTypeMap[T];
-export type ServiceSchemaName<T extends ServiceName> = ServiceType<T>["schemaName"];
-
-export const getService = <T extends ServiceName>(serviceName: T): ServiceType<T> => services[serviceName];
-
-export const isServiceName = (name: unknown): name is ServiceName =>
-  typeof name === "string" && Object.hasOwn(services, name);
+import * as groupLimitService from "./groupLimitService";
+export { groupLimitService };

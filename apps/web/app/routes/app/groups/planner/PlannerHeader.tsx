@@ -19,7 +19,9 @@ type PlannerView = "upcoming" | "past";
  * picks the time first, `?when=pick`; Todo, the add sheet, which closes back
  * to the tab it was opened from); then the tabs, Upcoming, Past and Todos
  * (`TabNav`), links that carry the filters each reads (Upcoming: what it
- * shows and the author; Past: the author; Todos: its `?who=` chip).
+ * shows, the author, the tag and the todo view, `?subtasks=`; Past: the
+ * author, the tag and the view, kept for the way back; Todos: its `?who=`
+ * chip, the tag and the view).
  *
  * `view` is the Planner list on screen (none on Todos). `bar` is the open
  * tab's search and filter bar (`plannerFilters`, `todos/TodoFilters`): it

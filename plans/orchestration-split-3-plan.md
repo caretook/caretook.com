@@ -6,16 +6,30 @@
 
 **Released 2026-11-26 by the user** (registry row `orchestration-split-3`, after `orchestration-split-2`, queued after fixes-ui and fixes-nit); the dispatcher opens it. The user approves the big choices on this topic; an orchestrator asks before changing an `asked` row of the PRD's _Decisions_ or making a new choice of that size. **Models** (PRD _Decisions_): this orchestrator runs on Opus (the user, 2026-11-26; Fable before); each slice gets the lowest tier that is enough (sonnet with no logic to work out, opus for real logic), Fable only when the orchestrator judges it needs it, with the reason noted here. Slices 4 and 5 are scripted renames and slice 6 is moves: sonnet candidates once the script is written and reviewed. Slice 1 splits a 600-line gate: the likely Fable candidate.
 
-| Slice | Wave | State   | Merge into `prd/orchestration-split-3` |
-| ----- | ---- | ------- | -------------------------------------- |
-| 1     | 1    | planned |                                        |
-| 2     | 1    | planned |                                        |
-| 3     | 2    | planned |                                        |
-| 6     | 2    | planned |                                        |
-| 8     | 3    | planned |                                        |
-| 7     | 3    | planned |                                        |
-| 4     | 4    | planned |                                        |
-| 5     | 5    | planned |                                        |
+**Landing mode: run everything through** (dispatcher start, 2026-11-26): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+**Wave 1 landed 2026-11-26 as 00c60f0c** (PR #230, `--no-review`: Codex out of credits; full CI 45874687474 = flake in two app tests outside the branch, filed B-921; unsynced tip, dev's two commits shared no file). Slices 1 and 2 on opus; worktrees removed. On the user's word (via the backlog session caretook-com-20) the open-worktree rule was met by coordinating: fixes-ui parked, plan/self-recovery-2 removed (draft on its branch); the backlog session releases fixes-ui now. Docs folded: `docs/agents/project-config.md` (the `browser` hook contract, the host layer). The rest of wave 1's docs (machinery's browser hook and host layer) wait for the last landing, with the rest. B-543 stays in progress until slice 5 lands.
+
+**Wave 2 landed 2026-11-26 as ea90230** (PR #232, `--no-review`: Codex out of credits; full CI 45881677729 green on 7b7676ce, one quarantined browser test failed outside the branch; unsynced tip, dev's one commit shared no file). Slices 3 and 6 on opus; worktrees removed; report a284. Docs folded: `loop.md` and the orchestrator doc's _Rules across PRDs_ name `scripts/project/check-areas.d/` and `scripts/project/checks`. Its carried notes were folded or filed at wave 5.
+
+**Wave 3 landed 2026-11-26 as 7d4201a2** (PR #233, `--no-review`: Codex out of credits; integration CI 45887954631 green on 54579af8; unsynced tip, dev's 2 commits shared no file). Slices 8 and 7 on opus; worktrees removed. Docs folded: `project-config.md` (the machine config, `claude.configDir`, `tool.self`). Its carried notes were folded or filed (B-926, B-927) at wave 5.
+
+**Wave 4 landed 2026-11-26 as 48db0d34** (PR #234, `--no-review`: Codex out of credits; full CI 45891337323 green on 57d604a2, three quarantined browser tests failed outside the branch; unsynced tip, dev's 3 commits shared no file). Slice 4 on opus; worktree removed. Run past the open-worktree gate on the user's standing decision (fixes-ui parked at 2d267e50 by the backlog session caretook-com-6d, told at landing). Slice 4 renamed `BROWSER_SUITE`, `BROWSER_SUITE_CAP`, `BROWSER_RESULTS`, `CI_POLL` to `RISA_*` against the PRD's keep-list (an assumed row: only core files read them now) and split `CHECK_RERUN_MAX` into `RISA_` (core tooling step) and `CARETOOK_` (Caretook's body); fold both into the PRD's _Decisions_ list at the last landing. Its docs edits (inbox, loop, machinery, recovery, project-config, orchestration) landed with it. Carried: 108 `app-path` lint findings in core tests, for slice 5 or the move. B-543 stays in progress until slice 5 lands.
+
+**Dispatcher still paused** through wave 5. Ask a287 answered (inbox moved to `~/.risa/inbox` and trusted, relayed by the backlog session; verified on disk). Resume the dispatcher (`pnpm prd dispatch --resume`) once wave 5 lands, and tell caretook-com-6d so it releases fixes-ui.
+
+**Wave 5 (orchestrator session orchestration-split-3-77):** fixes-ui parked (dev 919af00d); the backlog session (now caretook-com-3c) gave the go past the open-worktree gate on the user's standing decision and wants a message at the landing to release fixes-ui. Slice 5 on opus, twice (the second `--continue` agent moved the core tests' sample paths: ea1bba0b); merged as db53734e. Allowlist: 22 lines, the residual list, each with its why. Local slice check: only the two `stack.test.mjs` rm.sh tests failed, on the base branch too (environment); full CI is the gate. Docs folded (the last landing's list): `docs/agents/project-config.md` (command names, `host-call` and `tool-command`, the host layer's whole scope, `stack.checkBuild`, the sample folders, the residual list) holds what the plan named for the machinery doc; the PRD's `CARETOOK_` row (slice 4's renames). Carried gaps filed: B-926 (keep-alive ignores the work switch), B-927 (the drain's Claude account). After landing: resume the dispatcher, message caretook-com-3c, `pnpm backlog done B-543`, `pnpm prd rm orchestration-split-3`.
+
+| Slice | Wave | State  | Merge into `prd/orchestration-split-3` |
+| ----- | ---- | ------ | -------------------------------------- |
+| 1     | 1    | landed | 41fa52cf (dev 00c60f0c)                |
+| 2     | 1    | landed | 8338ca66 (dev 00c60f0c)                |
+| 3     | 2    | landed | a9ca9561 (dev ea90230)                 |
+| 6     | 2    | landed | 6b1ba139 (dev ea90230)                 |
+| 8     | 3    | landed | 09f81cfd (dev 7d4201a2)                |
+| 7     | 3    | landed | 94a42c1a (dev 7d4201a2)                |
+| 4     | 4    | landed | d5ea9c23 (dev 48db0d34)                |
+| 5     | 5    | merged | db53734e                               |
 
 ## Architectural decisions
 

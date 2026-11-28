@@ -10,12 +10,13 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State  | Merge    |
-| ----- | ----- | ------ | -------- |
-| 72    | B-830 | merged | ab6da878 |
-| 73    | B-840 | merged | 9dd61dda |
+| Slice | Item   | State         | Merge     |
+| ----- | ------ | ------------- | --------- |
+| 93    | B-1008 | merged (opus) | a7ea28d9d |
+| 94    | B-1009 | merged (opus) | 548aa3f37 |
+| 95    | B-1010 | merged (opus) | 14c5dd7ed |
 
-**Wave 16 green** (full, run 45763093652 on 578ee6c7); dev synced (tags) at 223d4b0a, full recheck out; slice worktrees removed. PR #208 open; Codex out of credits (exit 4: land --no-review). Browser --changed: app-shell, invites pass. Next: land --tier full --no-review once the recheck is green. Landing notes: staging needs a Seed staging run after landing (user's step; the GitHub `staging` environment must hold `INVITE_LINK_KEY`); fold into docs/domain/care-groups.md (staging refuses the dev key, `db:seed:linkKey`, reseed reseals), ops/runbook.md (both Actions need the key), docs/domain/app-shell.md (banner grace 10 s, PowerSync's 5 s retry). (2026-11-26, resumed run-through after dev sync bringing the orchestration split). B-750 standing (no files named); B-752 waits for B-753's watchdog. Standing topic: never `pnpm prd rm fixes-bug`.
+**Wave 27: merged, CI green, paused for a reboot** (2026-11-28). Slices 93-95 merged (all opus); CI components green, run 46129305490, on dda2392 (per the backlog session; my `--wait` output was lost to a full disk, ENOSPC). Not yet synced: a `risa sync` hung (Docker hung machine-wide) and was stopped with the tree clean, no merge started. **Next, after the reboot:** `risa recover`, `risa sync`, the synced tip's CI recheck if sync merged, `risa serve --restart`, browser checks, `risa pr fixes-bug`, `risa review fixes-bug --wait`, then land (run-through). Then `risa rm fixes-bug-93/94/95`. Landed wave 26: PR #321 (dev 56424f1), report a385. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -778,3 +779,239 @@ The offline banner (`routes/app/layout/OfflineBanner.tsx`) flashes while the con
 - Find what drives it (`navigator.onLine`, PowerSync's connected status from `lib/sync/`, or both) and say in the hand-off which flips while online, and why.
 - Show the banner only after the offline state has held for a short grace period (a few seconds, one named constant); hide it as soon as the connection is back. Don't change what counts as offline elsewhere (uploads, page cache).
 - Component tests with fake timers: a drop shorter than the grace never shows the banner; one longer shows it; reconnecting hides it at once.
+
+## Wave 17
+
+Two fixes, independent, run at once. B-750 (the second-zone overflow umbrella) stays standing until its notes name files; B-752 (the timeline jump hang) stays open until B-753's watchdog (now in dev) names it on a recurrence.
+
+### Slice 74: Back from an entry returns to the page that opened it (B-936)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/providers.md, docs/domain/todos.md · Tests: component
+
+`routes/app/groups/entry/useLiveEntry.ts` (`backTo`, ~line 390) knows only the Planner (`plannerReturnFrom(location.state)`) and otherwise goes to the Timeline, so an entry opened from a provider's page (`provider/LinkedEntries.tsx`), a todo (`todo/TodoEntryLinks.tsx`) or the visit prep sheet (`components/visitPrep/VisitPrepSheet.tsx`) goes back to the timeline.
+
+- First a failing component test: open an entry from a provider's linked entries, press Back, land on the provider.
+- Carry where the entry was opened from in navigation state (as the Planner's `returnTo` does), with the opener's label and URL; Back returns there (a history step when it is the previous entry, as the Planner does). Keep the Planner's behaviour and the Timeline default unchanged; an unknown or missing state still goes to the Timeline.
+- Wire the provider, todo and visit prep openers. Tests for each opener's Back, plus the Planner and default cases still passing.
+
+### Slice 75: two devices naming the same tag in different case keep it on the server (B-951)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/sync.md · Tests: integration, browser
+
+The browser check `scripts/browser-checks/roundtrip.spec.mjs:61` fails at its tags step: two devices create the same tag name in different case, both agree on one id with one link each, but the server holds 0 tags and 0 links. Suspect tags-2's d362bd70 (tag colors through sync: `apps/web/app/lib/tags/tags.sync.ts`, `packages/api/src/syncRegistry.ts`).
+
+- Reproduce first: an integration test beside `packages/api/src/syncTags.int.test.ts` that uploads the two devices' creates (same name, different case, as the devices write them since d362bd70) and their links, and expects one tag and both links on the server. Then run the roundtrip check once (`pnpm prd browser` for that spec) to confirm.
+- Find why the server drops them (a rejected upload, a conflict path that discards, a color field the server refuses) and say so in the hand-off; fix it in the upload handler or the device write, keeping one tag per case-insensitive name per group.
+- Uploads must not silently drop: if the server refuses a write, the test shows the error path, not a missing row.
+
+## Wave 18
+
+Four second-zone failures from dev's release run on 39b4beaf (2026-11-27), independent, run at once. Each slice owns one test file and follows wave 12's _The zone slices_: run it in both zones first (component files: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm exec vitest run --project web:components <file>`, then `America/Los_Angeles`; browser checks: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm prd browser <spec>`, then Los Angeles), find out why each failure happens, then fix the test (it assumed Los Angeles: state or compute its zone, never weaken it, change the runner's zone or skip it) or the app (small and inside the slice's area, with the test proving it; else file a `fixes-bug` item and say so). If it doesn't reproduce in either zone, say so in the hand-off with the runs that show it (three in New York) and change nothing. Stay out of todo-subtasks-3's hot files (`pnpm backlog prd list`), `vitest.config.ts` and `scripts/ci/`. B-750 stays the standing umbrella; B-752 waits on B-753's watchdog.
+
+### Slice 76: Google calendar settings test passes in New York (B-968)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/calendars.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above.
+
+### Slice 77: group settings test passes in New York (B-969)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above. Slice 76 runs beside it in the same folder: change only this file and what it tests.
+
+### Slice 78: the offline layout check passes in New York (B-970)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: e2e:layout-offline
+
+`scripts/browser-checks/layout-offline.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 was a stack missing one).
+
+### Slice 79: the roundtrip check passes in New York (B-971)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: e2e:roundtrip
+
+`scripts/browser-checks/roundtrip.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 failed this check on a stack missing one), and name the failing step in the hand-off.
+
+## Wave 19
+
+One slice: quick entry vitals with the label after the number.
+
+### Slice 80: a vital's label after its number still counts (B-976)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/timeline.md · Tests: unit
+
+Quick entry reads a vital only when its label comes first: `140/78 74bpm 97 o2` keeps the blood pressure and heart rate but drops the O2 (`o2 97` works), and heart rate as `74 hr` is dropped the same way. These are very common lines. The parsing lives in `packages/data/src/db/schema/assistant/quickEntry.ts` and `timeline/vitals.ts`.
+
+- Each vital quick entry knows (O2/SpO2, heart rate/HR/pulse/bpm, and the others with a short label) reads with its label before or after its number, with or without a space (`97o2`, `97 o2`, `o2 97`, `74 hr`, `hr 74`, `74bpm`). A number between two labels goes to the nearer one; when that's unclear, keep today's label-first reading.
+- Nothing that reads today changes: label-first lines, units (`98.6 °F`, `97%`), blood pressure, and the measurement-word rules of slices 20–40 (a number after a label is still no date, an amount or a time).
+- Unit tests: `140/78 74bpm 97 o2` gives all three; `97 o2 hr 74`, `74 hr 97 o2` and `bp 140/78 pulse 74 o2 97` each give each vital once with the right value; the preview (`quickEntryPreview.ts`) shows the same.
+
+## Wave 20
+
+One slice: an installed app notices a new version without being reopened.
+
+### Slice 81: an installed app shows the update notice without a restart (B-978)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+An installed PWA resumed from the background shows no update notice until it's closed and reopened. `registerServiceWorker` (`apps/web/app/lib/app-shell/serviceWorkerRegister.ts`) registers `/sw.js` once at load and relies on the browser's navigation-time update check; a resumed app never navigates, so `updatefound` never fires and `UpdateNotice` stays hidden. **First confirm with a failing test** (the fake container in `serviceWorkerRegister.test.ts`).
+
+- The page asks the registration for an update (`registration.update()`) when it becomes visible again (`visibilitychange` to visible) and on a slow interval (about hourly) while visible, throttled so a burst of visibility changes asks at most once every few minutes. A failed `update()` (offline) is swallowed quietly and tried again next time.
+- A worker found this way shows the existing notice through the existing `updatefound` path; no new notice, control or copy. Nothing changes for a first install or for a page no worker controls.
+- The timer and listener are owned in one place (the registration code or its caller), so a second registration or a test doesn't stack them; tests pass the document/clock as parameters the way the container already is.
+- Unit tests: becoming visible calls `update()`; two visibility changes inside the throttle call it once; the interval calls it; a rejected `update()` doesn't throw or stop later checks; an update found after resume sets the waiting worker.
+
+## Wave 21
+
+One slice: search results' tag chips follow a rename or recolor from another device.
+
+### Slice 82: search result tag chips stay current after a tag rename or recolor (B-979)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/search.md, docs/domain/tags.md · Tests: component
+
+On the search page, a result's tag chips (`data.namedTags`, from `loadSearch`) keep a tag's old name or color after another device renames or recolors it, while the filter chips update. `useSearchPage` (`apps/web/app/routes/app/groups/search/useSearchPage.ts`) reruns `loadSearch` on the watched tag ids, `linkKey`, index changes and status, but not on tag metadata: tags aren't an index change source. **First confirm with a failing test** (the existing `searchTags.browser.test.tsx` setup).
+
+- A rename or recolor of a tag shown on a result updates that result's chips without a navigation or reload, whichever device made it. Pick the smaller sound fix: rerun the search when the names or colors of the group's tags change (a key built from the live `tags` list), or have the result chips read name and color from the live group tags by id. Note the choice in a comment.
+- Typing doesn't flicker the list (the previous results stay up, as today); no extra query per keystroke beyond what the fix needs.
+- A deleted or merged tag drops off the chips the same way (if the chosen fix covers it for free; otherwise leave it as today and say so in the hand-off).
+- Component test: a result shows tag "Alpha" (fictional data); renaming it in the local database to "Beta" and recoloring it updates the result's chip; the filter chip still updates as before.
+
+## Wave 22
+
+Four slices, Codex follow-ups from connectors-3 on the connector's dose tools (`packages/api/src/connectors/tools/pastDoses.ts`, `logPastDoses.ts`, and `packages/data/src/services/assistantActionService.ts`). They run at once; 84 to 86 change different functions of `assistantActionService.ts`, so keep each change inside its own function and add no reformatting. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 83: past_doses reads a bounded window, so old days don't show given doses as missed (B-982)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`past_doses` (`pastDoses.ts`, about line 123) calls `entriesBetween` with only `from` (the day before the range), newest first, capped at 40 pages of 50. A group logging about 24 doses a day asking for a day 90 days back can run out of pages before it reaches the range, and the doses it never read show as missed.
+
+- Pass `to` as well: the start of the day after the range, plus one day (as `from` takes one day before), so the read covers only the window.
+- When the read still fills its last page (the cap reached), don't report the result as a complete record: return an error or a clear note that the range was too busy to read whole, whichever fits the tool's existing error shape (say which in the hand-off).
+- Integration test (`packages/api/src/connectors/`): a fictional group with many recent doses and one given dose 90 days back; `past_doses` for that day reports it given, not missed. A second test for the cap note if it can be reached cheaply (lower the page cap through an existing seam if there is one; otherwise say so).
+
+### Slice 84: one dose slot can't take two statuses at once (B-984)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose` and `log_past_doses` (`assistantActionService.ts`, about lines 340 to 450 and 891 to 980) lock `doseSlotIdFor`'s id, which includes the status, so a given and a refused for the same medication, day and slot written at once take different locks and both insert.
+
+- Lock a status-free key (medication, day, slot) before the doses are read, in both paths, in a stable sorted order as today; keep the row's id as it is (no change to stored ids or data).
+- Integration test: two concurrent writes for one fictional slot, one given and one refused (via both `log_dose` twice and `log_past_doses` against `log_dose`); exactly one dose row results, and the other call returns what a repeat returns today.
+
+### Slice 85: log_past_doses records the dose usual on that day, not today's (B-985)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_past_doses` takes `slot.amount` from `slotAmount`, which falls back to the medication's current dose; `scheduleHistory` rebuilds the schedule as of a past day but not the usual dose. Changing 1 tablet to 2 today and logging yesterday's box records 2. `past_doses` shows the same wrong amount.
+
+- Resolve the usual dose at the slot's time from the medication-change entries (the same source `scheduleHistory` reads), and use it both for what `log_past_doses` writes and for the amount `past_doses` shows. Put the lookup where both can share it (beside `scheduleHistory`), not twice.
+- Integration test: a fictional medication changed from 1 tablet to 2 today; logging yesterday's slot records 1 tablet, `past_doses` for yesterday shows 1, and today's slot still shows 2.
+
+### Slice 86: log_past_doses sees every medication, not the first 100 (B-986)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_past_doses` (`assistantActionService.ts`, about line 936) asks `medicationModel.list` for 500, but `paginate` is clamped to `MAX_PAGE_SIZE` 100, so marks for any later medication come back `noSlot`, while `past_doses` (`medicationService.list`) reads all. The same `limit: 500` sits near line 271 (and passes near 272 and 941 at 100): check whether each one has the same cut-off and fix those that do.
+
+- Load the medications the marks name (preferred: a filter by id), or every page; say which in the hand-off.
+- Integration test: a fictional group with 101 or more medications; a mark for the last one logs its dose rather than `noSlot`.
+
+## Wave 23
+
+One slice, a follow-up from slice 86 on the connector's dose tools. **First confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 87: log_dose sees every pass, not the first 100 (B-987)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose`'s `slotDose` (`packages/data/src/services/assistantActionService.ts`, about line 405) reads `medicationPassModel.list` with `includeDeleted` and `paginate: { page: 1, limit: 100 }`, so a group that has ever made over 100 passes (deleted ones count) can miss a pass and resolve the wrong slot.
+
+- Read every pass as slice 86 did for `log_past_doses` and `give_pass` (drop the page, or read only the medication's passes if the model has that filter; say which in the hand-off). Keep the change inside `slotDose`, no reformatting.
+- Integration test: a fictional group with 100 or more deleted passes and one live pass made last; `log_dose` against that pass's slot logs it in that pass.
+
+## Wave 24
+
+One slice, a Codex follow-up from todo-links (PR #290). **First confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 88: past all-day events don't crowd upcoming ones out of link suggestions (B-993)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/appointments.md · Tests: components
+
+`upcomingEvents` (`apps/web/app/lib/todos/linkSearch.sync.ts`, about line 230) admits all-day events that started up to two days ago and takes `LIMIT limit + 10` in `occurred_at` order before `upcomingItems` drops the ones already over, so a group with more than `limit + 10` all-day events in the last two days suggests no upcoming event at all.
+
+- Make the query's limit hold only for what can survive: either filter ended all-day events in SQL first (careful: an all-day event's day is in its own zone, which is why the window is two days), or page in `occurred_at, id` order until `limit` survive `upcomingItems` or the rows run out. Say which in the hand-off. Keep the change inside `upcomingEvents`; Upcoming's order and the in-progress all-day rule stay as they are.
+- Test (beside the existing `suggestLinkables` tests, or a new `linkSearch` sync test if none): a fictional group with `limit + 11` or more all-day events from yesterday and the day before (ended) and one timed event tomorrow; the suggestions include tomorrow's event.
+
+## Wave 25
+
+### Slice 89: a symptom entry write can't land on a symptom replace just retired (B-992)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/data-layer.md, docs/domain/sync.md · Tests: integration
+
+`timelineEntryService.update` reads the entry unlocked, and `symptomTypeFor` (`packages/data/src/services/timelineEntryService.ts`, about line 137) skips `ensure` (and its advisory lock) when the stored pointer matches the name-derived id; an edit read before `symptomTypeService.replace`'s bulk UPDATE and written after it puts back the old name and pointer, leaving the entry on a tombstone. A create naming an older tombstone A (A→B) racing replace(B→C) has the same shape: `ensure` locks only A's derived id, resolves to B before replace moves B's entries, and inserts after, so the entry stays on tombstone B.
+
+- One per-group symptom-catalog advisory lock (`pg_advisory_xact_lock` on a `symptom_catalog:<groupId>` key, as `tagService.ts` does for tags): `replace` takes it exclusive; every symptom entry write (create, update, the connector's log, the sync upload's path through the service) takes it shared before resolving the symptom, then checks the resolved row isn't a tombstone (follow it if it is). Non-symptom entry writes take no lock. Keep the change inside `symptomTypeService.ts` and `timelineEntryService.ts` (plus the models they use); don't touch `packages/api/src/sync.ts`.
+- Integration tests (fictional group, two transactions on the shared test Postgres): an update read before replace and committed after it ends on the replacement symptom; a create naming a tombstone A (A→B) racing replace(B→C) ends on C. Say in the hand-off how the tests force the interleaving.
+
+## Wave 26
+
+Three sync-safety follow-ups, run in parallel (90 and 91 both touch the repeating-todo code in `todoService.ts` and `todos.sync.ts`, in different functions; the orchestrator merges in plan order). **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional. No migration and no change to existing rows (no backfill).
+
+### Slice 90: reopening a tick made before B-383 finds its successor (B-1002)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: integration, component
+
+Repeating todos ticked before sync-safety-2 (B-383) took `done_at` from the app clock after the transaction's `now()`, so their successor's `created_at` can sit slightly before the predecessor's `done_at`. The successor rule in `laterInChain` (server `packages/data/src/services/todoService.ts`, about line 222; device `apps/web/app/lib/todos/todos.sync.ts`, about line 896) then misses it, and reopen leaves both open and repeating.
+
+- Fix without touching data: when the current rule finds no successor, fall back to the old `dueOn` rule (the next row in the chain by `due_on`), on both server and device, the same way in each. Say in the hand-off why the fallback can't pick a wrong row for chains written after B-383.
+- Integration test: a fictional chain whose successor's `created_at` is a few milliseconds before the predecessor's `done_at`; reopening the predecessor removes or reopens it as the current rule does for new chains (one open row, still repeating). Component (device) test: the same chain in the local database through `reopenTodo`.
+
+### Slice 91: a stale tick's PATCH can't restore a stopped chain (B-1003)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: integration, component
+
+A device holding the Undo's soft-deleted next occurrence that ticks a stale copy writes a PATCH clearing `deleted_at`; the PATCH path in `packages/api/src/syncRegistry.ts` (about line 432) calls `todoService.restoreOccurrence` (`todoService.ts`, about line 849), which still restores for a writer when the chain has no open row, so a stopped chain comes back. B-387's flag covers only the PUT path.
+
+- The device flags that restore update with `TICK_NEXT_METADATA` (as B-387's PUT does); the PATCH path skips `restoreOccurrence` when the op is flagged and the chain has no open row, and the op is accepted with no change (not refused, so the queue drains). An unflagged restore (a member's own Undo) behaves as today. Keep the server change to the todo case of the upload switch and the service.
+- Integration test: a fictional stopped chain (no open row, next soft-deleted); a flagged PATCH clearing `deleted_at` leaves it deleted; an unflagged one from a writer still restores. Component test: the device's stale tick writes the flag.
+
+### Slice 92: deleting a pass doesn't resend every medication's schedule (B-1006)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/sync.md · Tests: component, integration
+
+`removePass` (`apps/web/app/lib/medications/medicationPasses.sync.ts`, about line 248) rewrites every medication's schedule from the device's copy and queues those medication PATCHes, so an offline delete overwrites another member's schedule edit made meanwhile. The server already rewrites the schedules itself when a pass is deleted (see the `medicationPass` comment in `packages/api/src/syncRegistry.ts`); confirm that first with an integration test.
+
+- The device keeps rewriting its local medication rows (screens stay right offline) but flags those schedule PATCHes with op metadata, as B-387's `TICK_NEXT_METADATA` does; the server's medication case in `syncRegistry.ts` drops the `schedule` field of a flagged op (and accepts the op, so the queue drains), since the pass delete rewrites the schedules itself. Other fields in the op, and unflagged schedule edits, apply as today. (Revised after the first hand-off: no local-only write path fits a synced table.)
+- Component test: deleting a pass queues the pass delete and flagged medication ops, and the local medications drop the pass. Integration test: a flagged stale schedule PATCH after the pass delete leaves another member's edit in place. Integration test: the server's pass delete rewrites a medication's schedule and keeps another member's concurrent schedule edit.
+
+## Wave 27
+
+Three onboarding-2 follow-ups (Codex findings on PRs #314 and #318), run in parallel: each touches different files. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional. No migration.
+
+### Slice 93: a setup nudge toast goes away with its group and its eligibility (B-1008)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: component · Check: apps/web/app/routes/app/groups/layout/setupNudges.browser.test.tsx
+
+`useSetupNudges` (`apps/web/app/routes/app/groups/layout/useSetupNudges.ts`, about line 114) shows a nudge toast and forgets it, so after switching groups or opening a setup page the toast stays, and its Open goes to the old group's setup or new note.
+
+- Track the active nudge's toast id; dismiss it when its group's layout unmounts (switching groups) or the nudge stops being eligible (a setup page is open). Use the shared toast queue's own dismiss (`components/ui/toastQueue.ts`), no new toast path.
+- Component tests: a shown nudge is gone after switching to another group; a shown nudge is gone after opening a setup page.
+
+### Slice 94: a medication opened from the setup step goes Back to the setup step (B-1009)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: unit · Check: apps/web/app/lib/medications/medicationOrigin.test.ts
+
+`labelFor` in `apps/web/app/lib/medications/medicationOrigin.ts` doesn't know the setup medications route (`routes/app/groups/setup/medications/`), so a medication opened there goes Back to the Medications list.
+
+- Recognise the setup medications path as an origin, with a label that names the setup step (match the step's own heading), so Back returns there.
+- Unit test: an origin of the setup medications path gives that label and that URL back.
+
+### Slice 95: the setup redirect uses the settings that arrive while it reads (B-1010)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: component · Check: apps/web/app/routes/app/groups/layout/setupRedirect.browser.test.tsx
+
+In `apps/web/app/routes/app/groups/layout/setupRedirect.ts` (about line 56), settings that arrive during `readSetupFacts` count as known, but the decision uses the defaults captured before the await, so a creator on a new device can be sent back to setup.
+
+- In the known-settings branch, re-read `cachedSettings(userId)` after the await and decide from it.
+- Component test: settings that arrive (setup dismissed) while `readSetupFacts` is pending: no redirect to setup.

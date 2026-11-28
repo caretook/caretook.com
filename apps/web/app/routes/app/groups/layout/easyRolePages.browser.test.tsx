@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { Fixtures, GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as planner from "../planner/route";
@@ -11,6 +10,7 @@ import * as todoPage from "../todo/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, condition, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The pages the easy roles (Easy helper, Easy viewer) reach beyond the
 // timeline (simple-mode slice 4), in the real /app frame on the test device:
@@ -121,7 +121,7 @@ describe("the easy roles' todo pages", () => {
     await expect.element(page.getByRole("heading", { name: "Water the plants" })).toBeVisible();
     // Back goes to the timeline, not the Todos list; no edit or delete.
     expect(page.getByRole("link", { name: /Timeline/ }).elements().length).toBeGreaterThan(0);
-    expect(document.querySelector("[data-edit-todo]")).toBeNull();
+    expect(document.querySelector("[data-todo-menu]")).toBeNull();
     expect(deadLinks()).toEqual([]);
 
     await userEvent.click(page.getByRole("button", { name: "Mark “Water the plants” done" }));
@@ -149,7 +149,7 @@ describe("the easy roles' todo pages", () => {
     await open("easy_helper", `${base}/todos/${linked.id}`, [lark, pills, linked]);
     await waitUntil(() => document.querySelectorAll("[data-todo-link]").length === 2, "the links");
     expect(deadLinks()).toEqual([]);
-    expect(document.querySelector('[data-todo-link="provider"] [data-todo-link-name]')?.textContent).toBe(
+    expect(document.querySelector('[data-todo-link="provider"] [data-provider-name]')?.textContent).toBe(
       "Dr. Mira Lark",
     );
   });

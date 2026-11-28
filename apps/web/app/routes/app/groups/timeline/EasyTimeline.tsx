@@ -17,7 +17,7 @@ import { EasyTodos } from "./EasyTodos";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { EasyModeToggle } from "./EasyModeToggle";
 import { EasyTiles, EasyTilesSkeleton } from "./EasyTiles";
-import { focusAfterSetup, GettingStartedCard } from "./GettingStartedCard";
+import { focusAfterWelcome, TimelineWelcome } from "./TimelineWelcome";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
 import { useCanDictate } from "~/lib/assistant/canDictate";
 import { useEasyTiles } from "./useEasyTiles";
@@ -61,16 +61,10 @@ export function EasyTimeline({
 }) {
   const group = useGroup();
   const dictate = useCanDictate();
-  // The setup card's "Log a first entry": the box, in view and focused.
   const quickField = useRef<HTMLTextAreaElement>(null);
-  const addEntry = () => {
-    const el = quickField.current;
-    el?.scrollIntoView({ block: "center" });
-    el?.focus({ preventScroll: true });
-  };
-  // A dismissed setup card's focus: the quick-entry box, else the name heading.
+  // A dismissed welcome's focus: the quick-entry box, else the name heading.
   const heading = useRef<HTMLHeadingElement>(null);
-  const afterSetup = () => focusAfterSetup(quickField.current, heading.current);
+  const afterWelcome = () => focusAfterWelcome(quickField.current, heading.current);
   return (
     <Page data-easy-timeline="">
       <header className={`flex items-start justify-between gap-3 ${COLUMN_CAP}`}>
@@ -84,14 +78,18 @@ export function EasyTimeline({
         </div>
         <EasyModeToggle mode={mode} />
       </header>
-      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} onDismissed={afterSetup} easy />
+      <TimelineWelcome className={COLUMN_CAP} onDismissed={afterWelcome} easy />
       <EasyNow
         groupId={group.id}
         canWrite={mode.inputs}
-        next={hasNext(data.next, data.now) ? <EasyNext next={data.next} now={data.now} /> : null}
+        next={
+          hasNext(data.next, data.now) ? (
+            <EasyNext next={data.next} now={data.now} nameOf={data.nameOf} />
+          ) : null
+        }
         className={COLUMN_CAP}
       />
-      <EasyTodos className={COLUMN_CAP} />
+      <EasyTodos nameOf={data.nameOf} className={COLUMN_CAP} />
       {mode.inputs && (
         <div className={`space-y-3 ${EASY_BLOCK} ${COLUMN_CAP}`}>
           <LoggerTiles canChoose={isManagerRole(group.role)} />

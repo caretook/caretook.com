@@ -61,9 +61,11 @@ describe("auth", () => {
       preferences: {},
       units: DEFAULT_UNITS,
       timelineView: DEFAULT_TIMELINE_VIEW,
+      providersView: "rows",
       easyMode: "full",
       daySummary: "highlights",
       setupDismissed: [],
+      groupSetup: {},
     });
   });
 });
@@ -75,6 +77,7 @@ describe("me.updatePreferences", () => {
       preferences: { units: { temperature: "c" } },
       units: { ...DEFAULT_UNITS, temperature: "c" },
       timelineView: DEFAULT_TIMELINE_VIEW,
+      providersView: "rows",
       easyMode: "full",
       daySummary: "highlights",
     });
@@ -117,6 +120,7 @@ describe("me.updatePreferences", () => {
       { units: { temperature: "k" } },
       { theme: "dark" },
       { timelineView: "grid" },
+      { providersView: "grid" },
       { easyMode: "sometimes" },
       { daySummary: "some" },
       { setupDismissed: ["not-a-group"] },

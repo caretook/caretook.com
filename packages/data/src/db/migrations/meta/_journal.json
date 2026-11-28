@@ -337,6 +337,27 @@
       "when": 1795684750752,
       "tag": "0047_todo_subtasks",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1795751389510,
+      "tag": "0048_tag_colors",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1795811459775,
+      "tag": "0049_symptom_archive",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795880935006,
+      "tag": "0050_user_group_limit",
+      "breakpoints": true
     }
   ]
 }

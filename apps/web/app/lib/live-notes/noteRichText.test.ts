@@ -1,7 +1,7 @@
-import { MENTION_NODE, NOTE_FRAGMENT, noteDocFromText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { noteRichText } from "./noteRichText";
+import { MENTION_NODE, NOTE_FRAGMENT, noteDocFromText } from "@caretook/data/domain";
 
 const text = (parent: Y.XmlElement, value: string, attributes?: Record<string, object>) => {
   const t = new Y.XmlText();

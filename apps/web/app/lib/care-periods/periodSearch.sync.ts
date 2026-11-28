@@ -1,16 +1,16 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { PeriodChoice, SearchablePeriod } from "./periodSearch";
 import type { CarePeriodRow, LocalCarePeriod } from "./carePeriods.sync";
 import type { SyncDb } from "../sync/index";
 import type { LocalQuery } from "../timeline/timeline.sync";
 
-import { periodRange, periodSpans } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { periodChoices } from "./periodSearch";
 import { toCarePeriod } from "./carePeriods.sync";
 import { useNow } from "../live-notes/editors.sync";
 import { useLiveQuery } from "../sync/index";
 import { readRows } from "../timeline/timeline.sync";
+import type { PeriodSpan } from "@caretook/data/domain";
+import { periodRange, periodSpans } from "@caretook/data/domain";
 
 // The care periods a search can be narrowed to, read locally: the group's
 // live periods with their place's name (one query), as choices

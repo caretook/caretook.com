@@ -16,7 +16,7 @@ import {
   timelineEntrySchema,
   timelineEntryService,
 } from "@caretook/data";
-import { setBackgroundRunner } from "@caretook/notifications";
+import { getSupportEmail, setBackgroundRunner } from "@caretook/notifications";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, ok } from "../../../data/test/fixtures";
@@ -86,6 +86,38 @@ const tagged = async (tag: string) => {
 };
 
 const tagOf = () => `G${randomUUID().slice(0, 8)}`;
+
+/** Every queued email named `name` to any of `to`. */
+const outboxTo = (name: string, to: string[]) =>
+  getDb().query.notificationOutboxSchema.findMany({
+    where: (t, { and, eq, inArray }) => and(eq(t.name, name), inArray(t.recipient, to)),
+  });
+
+/** Every audit row about `groupId`, of any action. */
+const allAuditFor = async (groupId: string) => {
+  const res = await adminAuditLogModel.search({
+    authUser: SYSTEM_USER,
+    filter: { target: groupId },
+    paginate: { page: 1, limit: 500 },
+  });
+  if (isError(res)) throw new Error(String(res.code));
+  return res.data.filter((e) => e.action !== "group.view");
+};
+
+/** `tagged`'s group with its owner gone (as when their account is deleted). */
+const ownerless = async (tag: string) => {
+  const world = await tagged(tag);
+  ok(
+    await careGroupMemberModel.remove({
+      ...system,
+      filter: {
+        groupId: { type: "eq", value: world.group.id },
+        userId: { type: "eq", value: world.owner.user.id },
+      },
+    }),
+  );
+  return world;
+};
 
 describe("admin.groups reads", () => {
   it("finds groups by group or recipient name, with members, owners and created date", async () => {
@@ -213,10 +245,8 @@ describe("admin.groups reads", () => {
     );
     expect(keysOf(res).filter((key) => contentColumns.has(key))).toEqual([]);
 
-    // Opening it records a view (in the background).
-    await expect
-      .poll(async () => (await auditFor(group.id, "group.view")).map((e) => e.actor?.id))
-      .toEqual([supportUser.id]);
+    // Opening it records a view before it answers.
+    expect((await auditFor(group.id, "group.view")).map((e) => e.actor?.id)).toEqual([supportUser.id]);
   });
 
   it("answers a 404 for an unknown group", async () => {
@@ -314,9 +344,9 @@ describe("admin.groups writes", () => {
       expect(await auditFor(group.id, action)).toEqual([]);
   });
 
-  it("sends an owner invite to an address, attested by the admin", async () => {
+  it("sends an owner invite to an address in an ownerless group, attested by the admin", async () => {
     const { api, user: adminUser } = await staff("admin");
-    const { group } = await tagged(tagOf());
+    const { group } = await ownerless(tagOf());
     const email = `new-owner-${randomUUID().slice(0, 8)}@example.com`;
     const sent = await api.admin.groups.inviteOwner({ groupId: group.id, email, reason: "Only owner died" });
     expect(sent.email).toBe(email);
@@ -337,6 +367,88 @@ describe("admin.groups writes", () => {
       "CONFLICT:careGroupInviteService:alreadyInvited",
     );
     expect(await auditFor(group.id, "group.inviteOwner")).toHaveLength(1);
+    // No owner, so no one to tell.
+    const told = await getDb().query.notificationOutboxSchema.findMany({
+      where: (t, { and, eq, like }) => and(eq(t.name, "staffGroupChange"), like(t.html, `%${group.id}%`)),
+    });
+    expect(told).toEqual([]);
+  });
+
+  it("refuses an owner invite into a group with an owner, writing no invite, email or audit row", async () => {
+    const { api } = await staff("admin");
+    const { group, owner, caretaker, viewer } = await tagged(tagOf());
+    const email = `extra-owner-${randomUUID().slice(0, 8)}@example.com`;
+    expect(
+      await codesOf(api.admin.groups.inviteOwner({ groupId: group.id, email, reason: "Asked by phone" })),
+    ).toBe("CONFLICT:groupAdminService:hasOwner");
+
+    const invites = await getDb().query.careGroupInviteSchema.findMany({
+      where: (t, { eq }) => eq(t.groupId, group.id),
+    });
+    expect(invites).toEqual([]);
+    const people = [email, owner.user.email, caretaker.user.email, viewer.user.email];
+    expect(
+      await getDb().query.notificationOutboxSchema.findMany({
+        where: (t, { inArray }) => inArray(t.recipient, people),
+      }),
+    ).toEqual([]);
+    expect(await allAuditFor(group.id)).toEqual([]);
+  });
+
+  it("emails every owner once per staff change, with no health details and no staff name", async () => {
+    const { api, user: adminUser } = await staff("admin");
+    const tag = tagOf();
+    const { group, owner, caretaker, viewer } = await tagged(tag);
+    const second = await createUser(`${tag}-second`);
+    ok(
+      await careGroupMemberModel.create({
+        ...system,
+        data: { groupId: group.id, userId: second.user.id, role: "owner" },
+      }),
+    );
+    const secret = `Secret-${randomUUID()}`;
+    ok(
+      await timelineEntryService.create(owner.ctx, {
+        groupId: group.id,
+        kind: "symptom",
+        details: { name: secret, severity: 3 },
+        occurredAt: "2026-11-10T19:30:00.000Z",
+        timeZone: "America/Los_Angeles",
+      }),
+    );
+    const reason = `Family asked ${secret}`;
+    const owners = [owner.user.email, second.user.email];
+    const others = [caretaker.user.email, viewer.user.email];
+
+    // Make owner: the two owners, and the new one.
+    await api.admin.groups.promoteOwner({ groupId: group.id, userId: caretaker.user.id, reason });
+    let rows = await outboxTo("staffGroupChange", [...owners, ...others]);
+    expect(rows.map((r) => r.recipient).sort()).toEqual([...owners, caretaker.user.email].sort());
+    expect(rows[0]!.text).toContain(`${tag}-caretaker`);
+
+    // Change role: the three owners, one each.
+    await api.admin.groups.changeRole({ groupId: group.id, userId: viewer.user.id, role: "admin", reason });
+    rows = await outboxTo("staffGroupChange", [...owners, ...others]);
+    expect(rows).toHaveLength(6);
+
+    // Remove: the three owners again; the viewer (now admin) hears nothing.
+    await api.admin.groups.removeMember({ groupId: group.id, userId: viewer.user.id, reason });
+    rows = await outboxTo("staffGroupChange", [...owners, ...others]);
+    expect(rows).toHaveLength(9);
+    expect(rows.filter((r) => r.recipient === viewer.user.email)).toEqual([]);
+    for (const to of [...owners, caretaker.user.email])
+      expect(rows.filter((r) => r.recipient === to)).toHaveLength(3);
+    // One per audit entry and owner.
+    expect(new Set(rows.map((r) => r.idempotencyKey)).size).toBe(9);
+
+    for (const row of rows) {
+      for (const part of [row.subject, row.html, row.text]) {
+        expect(part).not.toContain(secret);
+        expect(part).not.toContain(adminUser.email);
+        expect(part).not.toContain("grp-admin");
+      }
+      expect(row.text).toContain(getSupportEmail());
+    }
   });
 
   it("refuses support every write (a 403) and a member everything", async () => {

@@ -4,7 +4,6 @@ import { readFileSync, readdirSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { VERDICT_VERSION as READER_VERSION } from "./ci-runs.mjs";
 import { jobsFor } from "./tiers.mjs";
 import {
   MAX_MESSAGE,
@@ -15,6 +14,11 @@ import {
   summarizeJob,
   summarizeVitest,
 } from "./verdict.mjs";
+
+// Risa's CI folder: its package exports tier-data.mjs, and its reader and fixtures sit beside it.
+const RISA_CI = new URL("./", import.meta.resolve("risa/ci/tier-data.mjs"));
+/** @type {{ VERDICT_VERSION: number }} */
+const { VERDICT_VERSION: READER_VERSION } = await import(new URL("./ci-runs.mjs", RISA_CI).href);
 
 const ok = { result: "success" };
 const base = { commit: "c".repeat(40), runId: "1" };
@@ -48,6 +52,7 @@ describe("the verdict's kinds", () => {
       "components-1": ok,
       "components-2": ok,
       "components-3": ok,
+      "components-4": ok,
       build: ok,
       [job]: { result: "failure", outputs: { started: "true" } },
     };
@@ -423,6 +428,7 @@ describe("the verdict", () => {
       "components-1": ok,
       "components-2": ok,
       "components-3": ok,
+      "components-4": ok,
       build: ok,
     };
     expect(buildVerdict({ ...base, tier: "full", needs })).toMatchObject({
@@ -587,10 +593,10 @@ describe("a job's reports", () => {
   });
 });
 
-// The core reads these files (ci-runs.mjs's isVerdict, blame, promote) through its own
+// Risa reads these files (ci-runs.mjs's isVerdict, blame, promote) through its own
 // fixtures; this ties those fixtures and both version constants to what buildVerdict writes.
 describe("the verdict fixtures", () => {
-  const FIXTURES = new URL("./verdict.fixtures/", import.meta.url);
+  const FIXTURES = new URL("./verdict.fixtures/", RISA_CI);
   const fixture = (/** @type {string} */ name) => JSON.parse(readFileSync(new URL(name, FIXTURES), "utf8"));
   /** Every key, nested objects walked (arrays and nulls kept as leaves). @returns {string[]} */
   const keysOf = (/** @type {unknown} */ v, prefix = "") =>

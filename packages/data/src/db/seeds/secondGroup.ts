@@ -7,14 +7,12 @@ import {
   careGroupMemberSchema,
   careGroupSchema,
   careRecipientSchema,
-  encodeNoteDoc,
-  noteDocFromText,
   noteDocumentSchema,
-  noteText,
   timelineEntrySchema,
   userSchema,
 } from "../schema";
 import { occurredAtOf, seedContentOf } from "./timelineEntries";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 // A second, smaller care group, so switching groups can be tried in dev.
 // member@ is its only member (owner); caretaker@ and viewer@ stay in one

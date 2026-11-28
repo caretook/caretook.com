@@ -23,6 +23,7 @@ describe("parseUpcomingFilters", () => {
       show: "event",
       todosOnly: false,
       tag: null,
+      view: "tree",
     });
     expect(parseUpcomingFilters(`?show=todos&author=${A}`)).toEqual({
       kind: null,
@@ -30,6 +31,7 @@ describe("parseUpcomingFilters", () => {
       show: "todos",
       todosOnly: true,
       tag: null,
+      view: "tree",
     });
     expect(parseUpcomingFilters("")).toEqual({
       kind: null,
@@ -37,8 +39,11 @@ describe("parseUpcomingFilters", () => {
       show: "all",
       todosOnly: false,
       tag: null,
+      view: "tree",
     });
     expect(parseUpcomingFilters(`?tag=${T}`).tag).toBe(T);
+    // The todo view (todo-links-2).
+    expect(parseUpcomingFilters("?show=todos&subtasks=own")).toMatchObject({ show: "todos", view: "own" });
   });
 
   it("reads a kind Upcoming doesn't list as All", () => {
@@ -80,23 +85,41 @@ describe("tabSearch", () => {
       show: null,
       author: A,
       tag: null,
+      subtasks: null,
     });
     expect(tabSearch(`?show=todos&author=${A}`, "planner")).toEqual({
       kind: null,
       show: "todos",
       author: A,
       tag: null,
+      subtasks: null,
     });
     expect(tabSearch(`?kind=event&show=todos&author=${A}`, "past")).toEqual({
       kind: null,
       show: null,
       author: A,
       tag: null,
+      subtasks: null,
     });
-    expect(tabSearch("?kind=vital", "planner")).toEqual({ kind: null, show: null, author: null, tag: null });
+    expect(tabSearch("?kind=vital", "planner")).toEqual({
+      kind: null,
+      show: null,
+      author: null,
+      tag: null,
+      subtasks: null,
+    });
     // The tag goes to both tabs.
     expect(tabSearch(`?tag=${T}`, "planner").tag).toBe(T);
     expect(tabSearch(`?show=todos&tag=${T}`, "past")).toMatchObject({ show: null, tag: T });
+  });
+
+  it("carries the todo view, ?subtasks=own, to both tabs (Past shows none, but the way back keeps it)", () => {
+    expect(tabSearch("?show=todos&subtasks=own&q=x", "planner")).toMatchObject({
+      show: "todos",
+      subtasks: "own",
+    });
+    expect(tabSearch("?show=todos&subtasks=own", "past")).toMatchObject({ show: null, subtasks: "own" });
+    expect(tabSearch("?subtasks=flat", "planner").subtasks).toBeNull();
   });
 });
 
@@ -130,12 +153,13 @@ describe("onlyQueryChanged", () => {
 });
 
 describe("the Planner's filter options (tags)", () => {
-  it("Upcoming has Show alone without tags, and Show then Tag with them", () => {
-    expect(upcomingFilterSections("", "all", []).map((s) => s.id)).toEqual(["show"]);
+  it("Upcoming has Show and Subtasks without tags, and Show, Tag, Subtasks with them", () => {
+    expect(upcomingFilterSections("", "all", []).map((s) => s.id)).toEqual(["show", "subtasks"]);
     const sections = upcomingFilterSections(`?kind=event&tag=${T}`, "event", [URGENT]);
     expect(sections.map((s) => [s.id, s.current])).toEqual([
       ["show", "event"],
       ["tag", T],
+      ["subtasks", "tree"],
     ]);
     expect(sections[1]!.options.map((o) => [o.label, o.search])).toEqual([
       ["Any", "?kind=event"],
@@ -143,6 +167,22 @@ describe("the Planner's filter options (tags)", () => {
     ]);
     // Show's choices keep the tag.
     expect(sections[0]!.options.find((o) => o.id === "todos")?.search).toBe(`?show=todos&tag=${T}`);
+  });
+
+  it("Upcoming's Subtasks section is the todo lists' one: its options keep the filters", () => {
+    const search = `?show=todos&tag=${T}&subtasks=own`;
+    const sections = upcomingFilterSections(search, "todos", [URGENT], "own");
+    const view = sections.at(-1)!;
+    expect(view).toMatchObject({ id: "subtasks", title: "Subtasks", current: "own" });
+    expect(view.chipLabel).toBe("Subtasks on their own");
+    expect(view.options.map((o) => [o.label, o.search])).toEqual([
+      ["In their tree", `?show=todos&tag=${T}`],
+      ["On their own", search],
+    ]);
+    // Show's choices keep the view.
+    expect(sections[0]!.options.find((o) => o.id === "all")?.search).toBe(`?tag=${T}&subtasks=own`);
+    // Without `view`, it's read from the search.
+    expect(upcomingFilterSections("?subtasks=own", "all", []).at(-1)?.current).toBe("own");
   });
 
   it("Past carries the tag as a chip, and none without one", () => {

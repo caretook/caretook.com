@@ -10,14 +10,16 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 
-import { canChangeEntry, canHaveNoteDocument, canTagRecord, parseSearch } from "@caretook/data/schema";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   CancelEventDialog,
   OlderEntries,
+  TimelineEntryRow,
   useEventCancel,
   useEventReschedule,
+  useOpenTodoCounts,
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
@@ -26,12 +28,12 @@ import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
-import { dayLabel, localTimeZone } from "~/lib/core/format";
+import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { useSymptomFilterTypes } from "~/lib/timeline/symptomFilter.sync";
 import { clearSymptoms } from "~/lib/timeline/timelineFilters";
-import { emptyTimelineText, entryLabel } from "./entryLabels";
+import { emptyTimelineText } from "~/lib/timeline/entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/timeline/entryOpen";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -46,17 +48,15 @@ import { OFFSCREEN_ROWS, ROW_SIZE, settledDays } from "./offscreenRows";
 import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
-import { TimelineEntryCard } from "./TimelineEntryCard";
-import { TimelineEntryRow } from "./TimelineEntryRow";
-import { dayKeyIn, withMarkers } from "./timelineDays";
+import { dayKeyIn, shortDayLabel, withMarkers } from "~/lib/timeline/timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
-import { useOpenTodoCounts } from "./useOpenTodoCounts";
-import { useGroupRecordTags, useTagPicker } from "~/components/tags";
+import { useGroupRecordTags } from "~/components/tags";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
+import { canChangeEntry, parseSearch, dayLabel } from "@caretook/data/domain";
 
 const NO_SEARCH = { q: "", state: "none" } as const;
 
@@ -89,7 +89,8 @@ export type TimelineEntryListFilters = {
 
 /**
  * The entries, a section per day under a sticky heading (with the care
- * period that covers the day: `DayHeader`), as rows or cards,
+ * period that covers the day: `DayHeader`), each entry a `TimelineEntryRow`
+ * in the view's look (cards: Full; rows: Condensed),
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
  * line in its sticky header while no filter or search is on, then `OlderEntries`,
@@ -190,18 +191,16 @@ export function TimelineEntryList({
             only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
           })
       : undefined;
-  const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
+  // One display in both views: Full spaces the entries apart, Condensed sits them close (B-1015).
+  const look = view === "cards" ? "full" : "condensed";
   const group = useGroup();
   // The open-todo marks: one live query for the group (none in easy mode).
   const openTodos = useOpenTodoCounts(groupId, !easy);
   // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
   const mayChange = (createdBy: string | null) =>
     canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
-  // Tags (tags PRD): one live query for every row's chips; Tags in ⋯ by `canTagRecord`.
+  // Tags (tags PRD): one live query for every row's quick tags (`RowTags`; no Tags in ⋯).
   const entryTags = useGroupRecordTags(groupId, "entry");
-  const tagPicker = useTagPicker();
-  const mayTag = (createdBy: string | null) =>
-    canTagRecord(group.role, { target: "entry", createdBy }, group.userId);
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = group.recipient?.timeZone ?? "UTC";
   const now = new Date();
@@ -221,7 +220,15 @@ export function TimelineEntryList({
       : undefined;
   const sections =
     adding && reachesToday && days[0]?.key !== todayKey
-      ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
+      ? [
+          {
+            key: todayKey,
+            label: dayLabel(now.toISOString(), timeZone, now),
+            short: shortDayLabel(todayKey, timeZone, now),
+            entries: [],
+          },
+          ...days,
+        ]
       : days;
   // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
   // A restored window's rows (Back to it, `timelinePaging.ts`) are new elements with no
@@ -297,8 +304,9 @@ export function TimelineEntryList({
   const item = (entry: TimelineEntry, marked = false) => {
     const open = entryOpen({ groupId, entry, canWrite: mayChange(entry.createdBy), search });
     return (
-      <Entry
+      <TimelineEntryRow
         key={entry.id}
+        look={look}
         entry={entry}
         authorName={data.nameOf(entry.createdBy)}
         authorImage={data.imageOf(entry.createdBy)}
@@ -327,16 +335,11 @@ export function TimelineEntryList({
         }
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
-        richText={view === "cards" && canHaveNoteDocument(entry.kind) ? data.richTextOf(entry.id) : undefined}
+        richText={look === "full" && canHaveNoteDocument(entry.kind) ? data.richTextOf(entry.id) : undefined}
         search={marked ? parsed : undefined}
         easy={easy}
         openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}
         tags={entryTags.get(entry.id)}
-        onTags={
-          mayTag(entry.createdBy)
-            ? () => tagPicker.ask({ target: "entry", recordId: entry.id, label: entryLabel(entry) })
-            : undefined
-        }
       />
     );
   };
@@ -376,6 +379,7 @@ export function TimelineEntryList({
             <DayHeader
               dayKey={day.key}
               label={day.label}
+              short={day.short}
               newestAt={day.entries[0]?.occurredAt}
               groupId={groupId}
               periods={data.periods}
@@ -457,7 +461,6 @@ export function TimelineEntryList({
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
       {remind.sheet}
-      {tagPicker.sheet}
       {scope.element}
     </>
   );

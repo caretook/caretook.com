@@ -1,11 +1,10 @@
 import type { Fixture } from "../../../test/fixtures";
 
-import { parseSearch } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found } from "../../../test/found";
 import { renderWithDevice } from "../../../test/device";
-import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
+import { at, fx, hoursAgo, newId, recordTag, tag, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
 import * as entryRoute from "../../routes/app/groups/entry/route";
 import {
   rebuildSearchIndex,
@@ -14,10 +13,12 @@ import {
   searchGroup,
   searchIndexSettled,
   searchIndexStats,
+  matchingTagIds,
   startSearchIndex,
   stopSearchIndex,
 } from "./search.sync";
 import { createEntry } from "../timeline/timeline.sync";
+import { parseSearch } from "@caretook/data/domain";
 
 // The search index on the test device (from search.mjs, slice 1): the same
 // FTS5 index, triggers and indexer as on a phone, on PowerSync's own
@@ -194,7 +195,7 @@ describe("the index follows the device", () => {
 });
 
 describe("about 2,000 entries", () => {
-  test("the rebuild takes under 2 s, and a query (ids and the page's sections) under 50 ms", async () => {
+  test("the rebuild takes under 2 s, and a query (ids and the page's sections, tag names matched) under 50 ms", async () => {
     const sentences = [
       "Slept through the night and ate a good breakfast",
       "Walked to the end of the street with the cane",
@@ -210,10 +211,16 @@ describe("about 2,000 entries", () => {
         text: `${sentences[i % sentences.length]} ${i}`,
       }),
     );
-    const device = await open(filler);
+    // Tags-3: a search naming a tag adds what carries it; a tenth of the entries carry one.
+    const tags = [tag("Knee exercises"), tag("Short visits"), tag("The pharmacy"), tag("Walks")];
+    const links = filler.flatMap((entry, i) =>
+      i % 10 ? [] : [recordTag(tags[(i / 10) % tags.length]!.id, entry.id)],
+    );
+    const device = await open([...filler, ...tags, ...links]);
     const rebuild = await rebuildSearchIndex();
     expect(rebuild.items).toBeGreaterThanOrEqual(2000);
     expect(rebuild.ms).toBeLessThan(2000);
+    const groupTags = tags.map((t) => ({ id: t.id, name: String(t.row.name) }));
     const times: Record<string, number> = {};
     for (const q of ["knee", "short of breath", '"short of breath"', "walk -cane", "pres", "the"]) {
       const parsed = parseSearch(q);
@@ -221,7 +228,7 @@ describe("about 2,000 entries", () => {
       for (let i = 0; i < 5; i++) {
         const t = performance.now();
         await searchEntryIds(device.db, G, parsed);
-        await searchGroup(device.db, G, parsed);
+        await searchGroup(device.db, G, parsed, {}, null, null, matchingTagIds(groupTags, parsed));
         runs.push(performance.now() - t);
       }
       times[q] = runs.sort((a, b) => a - b)[2]!;

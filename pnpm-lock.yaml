@@ -176,46 +176,49 @@ importers:
   .:
     devDependencies:
       '@eslint/js':
-        specifier: ^10.0.1
+        specifier: 10.0.1
         version: 10.0.1(eslint@10.15.0(jiti@2.7.0))
       '@playwright/test':
         specifier: 1.65.1
         version: 1.65.1
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 24.19.2
         version: 24.19.2
       '@vitest/browser-playwright':
         specifier: 5.1.0
         version: 5.1.0(playwright@1.65.1)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))(vitest@5.1.0)
       eslint:
-        specifier: ^10.15.0
+        specifier: 10.15.0
         version: 10.15.0(jiti@2.7.0)
       eslint-config-prettier:
-        specifier: ^10.1.8
+        specifier: 10.1.8
         version: 10.1.8(eslint@10.15.0(jiti@2.7.0))
       eslint-plugin-jsx-a11y:
         specifier: 6.10.2
         version: 6.10.2(eslint@10.15.0(jiti@2.7.0))
       eslint-plugin-react-hooks:
-        specifier: ^7.1.1
+        specifier: 7.1.1
         version: 7.1.1(eslint@10.15.0(jiti@2.7.0))
       globals:
-        specifier: ^17.14.0
+        specifier: 17.14.0
         version: 17.14.0
       playwright:
         specifier: 1.65.1
         version: 1.65.1
       prettier:
-        specifier: ^3.10.1
+        specifier: 3.10.1
         version: 3.10.1
+      risa:
+        specifier: github:interrobangc/risa#4271285b5c92d66a0effbca878ac3bddea09454c
+        version: https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c
       typescript:
-        specifier: ^5.9.3
+        specifier: 5.9.3
         version: 5.9.3
       typescript-eslint:
-        specifier: ^8.73.0
+        specifier: 8.73.0
         version: 8.73.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3)
       vitest:
-        specifier: ^5.1.0
+        specifier: 5.1.0
         version: 5.1.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
       vitest-browser-react:
         specifier: 2.3.0
@@ -254,10 +257,10 @@ importers:
         specifier: 2.7.0
         version: 2.7.0(@powersync/common@2.5.0)(@powersync/shared-internals@1.6.0(@powersync/common@2.5.0))
       '@react-router/node':
-        specifier: ^8.5.1
+        specifier: 8.5.1
         version: 8.5.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3)
       '@react-router/serve':
-        specifier: ^8.5.1
+        specifier: 8.5.1
         version: 8.5.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3)
       '@tiptap/core':
         specifier: 3.34.0
@@ -290,10 +293,10 @@ importers:
         specifier: 1.3.7
         version: 1.3.7(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)(@react-router/dev@8.5.1(@react-router/serve@8.5.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3))(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(@react-router/node@8.5.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3))(isbot@5.2.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       drizzle-orm:
-        specifier: ^0.45.4
+        specifier: 0.45.4
         version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
       isbot:
-        specifier: ^5.1.40
+        specifier: 5.2.3
         version: 5.2.3
       lucide-react:
         specifier: 1.73.0
@@ -302,16 +305,16 @@ importers:
         specifier: 1.5.4
         version: 1.5.4
       react:
-        specifier: ^19.2.8
+        specifier: 19.3.1
         version: 19.3.1
       react-aria-components:
         specifier: 1.22.1
         version: 1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-dom:
-        specifier: ^19.2.8
+        specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       react-router:
-        specifier: ^8.5.1
+        specifier: 8.5.1
         version: 8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       y-protocols:
         specifier: 1.0.7
@@ -321,22 +324,22 @@ importers:
         version: 13.6.33
     devDependencies:
       '@react-router/dev':
-        specifier: ^8.5.1
+        specifier: 8.5.1
         version: 8.5.1(@react-router/serve@8.5.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3))(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@5.9.3)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
       '@tailwindcss/vite':
         specifier: 4.3.5
         version: 4.3.5(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
       '@types/node':
-        specifier: ^24
+        specifier: 24.19.2
         version: 24.19.2
       '@types/qrcode':
         specifier: 1.5.6
         version: 1.5.6
       '@types/react':
-        specifier: ^19.2.18
+        specifier: 19.3.0
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.2.7
+        specifier: 19.3.0
         version: 19.3.0(@types/react@19.3.0)
       daisyui:
         specifier: 5.8.1
@@ -345,10 +348,10 @@ importers:
         specifier: 4.3.5
         version: 4.3.5
       typescript:
-        specifier: ^5.9.3
+        specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^8.3.8
+        specifier: 8.3.8
         version: 8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
 
   packages/api:
@@ -369,14 +372,14 @@ importers:
         specifier: 11.1.4
         version: 11.1.4(@types/node@24.19.2)(rrule@2.8.1)
       zod:
-        specifier: ^4.6.7
+        specifier: 4.6.7
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 24.19.2
         version: 24.19.2
       typescript:
-        specifier: ^5.9.3
+        specifier: 5.9.3
         version: 5.9.3
 
   packages/auth:
@@ -394,14 +397,14 @@ importers:
         specifier: 1.7.25
         version: 1.7.25(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.1.0)
       drizzle-orm:
-        specifier: ^0.45.4
+        specifier: 0.45.4
         version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
     devDependencies:
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 24.19.2
         version: 24.19.2
       typescript:
-        specifier: ^5.9.3
+        specifier: 5.9.3
         version: 5.9.3
 
   packages/data:
@@ -410,47 +413,47 @@ importers:
         specifier: 20.2.0
         version: 20.2.0
       drizzle-orm:
-        specifier: ^0.45.4
+        specifier: 0.45.4
         version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
       drizzle-zod:
-        specifier: ^0.8.3
+        specifier: 0.8.3
         version: 0.8.3(drizzle-orm@0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))(zod@4.6.7)
       google-auth-library:
         specifier: 11.3.4
         version: 11.3.4
       pg:
-        specifier: ^8.23.1
+        specifier: 8.23.1
         version: 8.23.1
       rrule:
         specifier: 2.8.1
         version: 2.8.1
       typescript-errors:
-        specifier: ^1.1.1
+        specifier: 1.1.1
         version: 1.1.1
       yjs:
         specifier: 13.6.33
         version: 13.6.33
       zod:
-        specifier: ^4.6.7
+        specifier: 4.6.7
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 24.19.2
         version: 24.19.2
       '@types/pg':
-        specifier: ^8.23.1
+        specifier: 8.23.1
         version: 8.23.1
       better-auth:
         specifier: 1.7.25
         version: 1.7.25(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.1.0)
       drizzle-kit:
-        specifier: ^0.31.11
+        specifier: 0.31.11
         version: 0.31.11
       tsx:
-        specifier: ^4.23.15
+        specifier: 4.23.15
         version: 4.23.15
       typescript:
-        specifier: ^5.9.3
+        specifier: 5.9.3
         version: 5.9.3
 
   packages/notifications:
@@ -462,13 +465,13 @@ importers:
         specifier: 2.3.1
         version: 2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       drizzle-orm:
-        specifier: ^0.45.4
+        specifier: 0.45.4
         version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
       react:
-        specifier: ^19.2.8
+        specifier: 19.3.1
         version: 19.3.1
       react-dom:
-        specifier: ^19.2.8
+        specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       react-email:
         specifier: 6.11.13
@@ -477,20 +480,20 @@ importers:
         specifier: 6.38.1
         version: 6.38.1(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       zod:
-        specifier: ^4.6.7
+        specifier: 4.6.7
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 24.19.2
         version: 24.19.2
       '@types/react':
-        specifier: ^19.2.18
+        specifier: 19.3.0
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.2.7
+        specifier: 19.3.0
         version: 19.3.0(@types/react@19.3.0)
       typescript:
-        specifier: ^5.9.3
+        specifier: 5.9.3
         version: 5.9.3
 
 packages:
@@ -4039,6 +4042,12 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+
+  risa@https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c:
+    resolution: {gitHosted: true, integrity: sha512-RIBtq3sEB1yR82Qb0ZUe/EUD2oaKt6CXoOHv+0EajNl4Opph1buzL9MMKt31yOK/VYqCTaDKjaXFzL8BAZvz2A==, tarball: https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c}
+    version: 0.2.0
+    engines: {node: '>=24'}
+    hasBin: true
 
   rolldown@1.2.19:
     resolution: {integrity: sha512-QIiV1J9d0pzN4jeeTH4sjPy0AZ6cAy2cG0ExeoE1+U8Rvj+hR3gYkokx0YbeUNGlZqiQJJ2utcETe0oKXwzsuA==}
@@ -8027,6 +8036,8 @@ snapshots:
   resolve-pkg-maps@1.0.0: {}
 
   reusify@1.1.0: {}
+
+  risa@https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c: {}
 
   rolldown@1.2.19:
     dependencies:

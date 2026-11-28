@@ -1,0 +1,49 @@
+# check-areas: the timeline, its rows, filters, vitals and sheets. The screen
+# is component tests (timeline/timeline*.browser.test.tsx): its care periods,
+# doses and the medication strip, the Next strip and Upcoming block, search,
+# quick entry, easy mode and todos. phase2.mjs keeps sync arriving, server
+# links and offline, through the device queries.
+apps/web/app/routes/app/groups/timeline/  -
+apps/web/app/lib/timeline/*.sync.ts     phase2 roundtrip
+apps/web/app/lib/core/form.ts            roundtrip
+apps/web/app/components/entry/           roundtrip
+# The timeline row and its parts (moved from the timeline, B-950): component
+# tests, as they were there.
+apps/web/app/components/entry/TimelineEntryRow.tsx -
+apps/web/app/components/entry/UpcomingEntryCard.tsx -
+apps/web/app/components/entry/useOpenTodoCounts.ts -
+apps/web/app/components/entry/OpenTodosMark.tsx -
+apps/web/app/components/entry/CopyLinkButton.tsx -
+apps/web/app/components/entry/EntryOpenTarget.tsx -
+apps/web/app/components/entry/LiveDot.tsx -
+apps/web/app/components/entry/layout.ts -
+# The add and edit sheets: roundtrip.mjs (not yet component tests).
+apps/web/app/routes/app/groups/timeline/new/  roundtrip
+apps/web/app/routes/app/groups/timeline/edit/  roundtrip
+apps/web/app/routes/app/groups/timeline/EntryForm.tsx roundtrip
+apps/web/app/routes/app/groups/timeline/EntryKindPicker.tsx roundtrip
+# The welcome and the invite card (its hook first-sync and invites look for).
+apps/web/app/routes/app/groups/timeline/TimelineWelcome.tsx first-sync invites
+apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx first-sync invites
+apps/web/app/routes/app/groups/timeline/SymptomFields.tsx roundtrip
+apps/web/app/routes/app/groups/timeline/Vital* roundtrip
+apps/web/app/routes/app/groups/timeline/useEntryFormSave.ts roundtrip
+apps/web/app/routes/app/groups/timeline/useEntryRemoval.ts roundtrip
+apps/web/app/routes/app/groups/timeline/sheet.ts roundtrip
+apps/web/app/routes/app/groups/timeline/sheetGuard.ts roundtrip
+apps/web/app/routes/app/groups/timeline/route.tsx roundtrip
+# Each day heading's + menu: every add flow starts there.
+apps/web/app/routes/app/groups/timeline/QuickAddMenu.tsx roundtrip
+# The sheet-link state Upcoming's due doses open the Dose sheet with.
+apps/web/app/lib/timeline/timelineSheet.ts roundtrip
+packages/data/src/db/schema/timeline/timelineEntry.ts phase2 roundtrip live-notes
+packages/data/src/db/schema/timeline/vitals.ts    phase2 roundtrip
+packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
+# The date and time formatting helpers.
+apps/web/app/lib/core/format.ts -
+# The Symptoms page in group settings (symptom-catalog-2): its query and screen
+# are component tests (groups/settings/symptomCatalog.browser.test.tsx); no browser check reads them.
+apps/web/app/lib/timeline/symptomCatalogPage.sync.ts -
+apps/web/app/routes/app/groups/settings/symptoms/  -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/timeline/               -

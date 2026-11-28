@@ -1,4 +1,5 @@
 import type { AppError, AuthUser, ErrorCode, Tx, Upserted } from "@caretook/data";
+import type { TagColor } from "@caretook/data/schema";
 import type { CrudOp } from "./sync";
 
 import {
@@ -13,18 +14,18 @@ import {
   newError,
   noteDocumentService,
   OWN_DOSE_COPY_METADATA,
+  PASS_REWRITE_METADATA,
   recordTagService,
   providerService,
   recipientAllergyService,
   recipientConditionService,
-  ROLLUP_METADATA,
   symptomTypeService,
   tagService,
   timelineEntryService,
   todoService,
-  UNDO_NEXT_METADATA,
   withTransaction,
 } from "@caretook/data";
+import { ROLLUP_METADATA, TICK_NEXT_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // The upload registry: which device tables `sync.upload` writes, and how each
 // op maps onto the services (never the models, so RBAC and validation apply
@@ -237,7 +238,7 @@ const softDelete = (spec: SoftDeleteSpec): UploadEntry => {
         if (res === null || !res.created) return applied;
         if (data.deleted_at) return remove(inTx, op.id);
         return spec.afterPut ? spec.afterPut(inTx, op) : applied;
-      });
+      }, ctx);
     }
 
     // PATCH: only the columns that changed.
@@ -310,16 +311,27 @@ const provider = softDelete({
 // The service writes the timeline's change entry with each save, with an id
 // derived from the medication and the device's `updated_at`, so the copy of
 // that entry the device uploads next lands on the same row.
+const MEDICATION_CONTENT: ColumnMap = {
+  ...each("name strength form dose directions reason status started_on stopped_on stop_reason", text),
+  ...each("stop_note prescriber_id pharmacy_id last_filled_on quantity rx_number type", text),
+  schedule: json,
+  refills_left: int,
+};
+
 const medication = softDelete({
   service: medicationService,
   errors: "medicationService",
   fixed: GROUP_RECIPIENT,
   changedAt: true,
-  content: {
-    ...each("name strength form dose directions reason status started_on stopped_on stop_reason", text),
-    ...each("stop_note prescriber_id pharmacy_id last_filled_on quantity rx_number type", text),
-    schedule: json,
-    refills_left: int,
+  content: MEDICATION_CONTENT,
+  // A pass delete's rewrite (B-1006): the pass's delete already rewrote the
+  // schedule here, onto any edit made meanwhile, so the device's copy is dropped.
+  patch: async (ctx, op, { remove, update }) => {
+    const data = { ...op.data };
+    if (op.metadata === PASS_REWRITE_METADATA) delete data.schedule;
+    if (data.deleted_at) return remove(ctx, op.id);
+    const content = mapped(MEDICATION_CONTENT, data);
+    return Object.keys(content).length === 0 ? applied : update(ctx, op, content);
   },
 });
 
@@ -405,12 +417,15 @@ const todo = softDelete({
   handled: ["done_at", "repeat_id", "repeat_starts_on"],
   serverSet: ["done_by", "via"],
   // A repeating todo's later occurrence (its chain is another todo's): the
-  // twin of the row the server makes on the tick, or a device's skip.
+  // twin of the row the server makes on the tick (flagged: it never creates,
+  // B-387), or a device's skip.
   put: (ctx, op, input) => {
     const repeatId = text(op.data?.repeat_id);
     if (!repeatId || repeatId === op.id) return todoService.upsert(ctx, input as never);
     const occurrence = { ...input, repeatId, repeatStartsOn: text(op.data?.repeat_starts_on) };
-    return todoService.upsertOccurrence(ctx, occurrence as never);
+    return todoService.upsertOccurrence(ctx, occurrence as never, {
+      fromTick: op.metadata === TICK_NEXT_METADATA,
+    });
   },
   afterPut: async (ctx, op) => (op.data?.done_at ? setTodoDone(ctx, op.id, op.data.done_at) : applied),
   patch: async (ctx, op, { remove, update }) => {
@@ -424,10 +439,14 @@ const todo = softDelete({
       return outcome(await todoService.removeUndoneNext(ctx, op.id));
     if (data.deleted_at) return remove(ctx, op.id);
     // A repeating todo's later occurrence brought back (a tick or skip remade
-    // one an Undo took away); its content follows as an ordinary edit.
+    // one an Undo took away); its content follows as an ordinary edit. A
+    // tick's (flagged) never restores a chain stopped since: nothing is
+    // written, and the op is applied so the queue drains (B-1003).
     if ("deleted_at" in data) {
-      const res = await todoService.restoreOccurrence(ctx, op.id);
+      const fromTick = op.metadata === TICK_NEXT_METADATA;
+      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick });
       if (isError(res)) return res;
+      if (res === null) return applied;
     }
     const content = mapped(TODO_CONTENT, data);
     // A tick or reopen decides the repeat on the server (a reopen whose next
@@ -511,8 +530,13 @@ const noteUpdate: UploadEntry = {
 // id and key from the group and the name, so a replay, or another device's
 // PUT of the same name in any case or spacing, lands on the one row. Rows are
 // never changed or removed from a device. Loggers only (viewers refused).
+// Archiving (`archived_at`) and a merge's tombstone (`replaced_by_id`) are
+// the server's (oRPC, symptom-catalog-2): a PUT's values are ignored.
 const symptomType: UploadEntry = {
-  columns: columnsOf({ fixed: ["group_id", "name"], serverSet: ["name_key"] }),
+  columns: columnsOf({
+    fixed: ["group_id", "name"],
+    serverSet: ["name_key", "archived_at", "replaced_by_id"],
+  }),
   handle: async (ctx, op) => {
     if (op.op !== "PUT") return readOnly("symptom_type", op.op);
     const of = (column: string) => text(op.data?.[column]) ?? "";
@@ -528,9 +552,12 @@ const symptomType: UploadEntry = {
 // tag holds is `tagService:nameTaken`. Loggers only. A PATCH of `name` is a
 // rename (the server derives `name_key`; the device's is ignored): an Easy
 // helper's of a tag someone else created is `permissions:unauthorized`, as
-// `softDelete`'s refused own-row update. A DELETE is an owner's hard delete
-// (links cascade); a deleted tag's is a replay.
-const tagColumns = columnsOf({ fixed: ["group_id"], content: ["name"], serverSet: ["name_key"] });
+// `softDelete`'s refused own-row update. `color` (tags-2) is content: a PUT
+// passes it to `create` (none: the server picks one no group tag has), a
+// PATCH of it is `recolor` under rename's rule, and a PATCH of both runs
+// them in one transaction. A DELETE is an owner's hard delete (links
+// cascade); a deleted tag's is a replay.
+const tagColumns = columnsOf({ fixed: ["group_id"], content: ["name", "color"], serverSet: ["name_key"] });
 const tagKnown = new Set(Object.values(tagColumns).flat());
 
 const tag: UploadEntry = {
@@ -546,11 +573,24 @@ const tag: UploadEntry = {
       if (unknown.length > 0)
         return newError({ code: "sync:unknownColumn", meta: { table: op.table, columns: unknown } });
       if ("group_id" in data) return newError({ code: "tagService:immutable" });
-      if (!("name" in data)) return applied;
-      return outcome(await tagService.rename(ctx, op.id, text(data.name) ?? ""));
+      const renaming = "name" in data;
+      const recoloring = "color" in data;
+      if (!renaming && !recoloring) return applied;
+      return outcome(
+        await withTransaction(async (tx) => {
+          const within = { ...ctx, tx };
+          const renamed = renaming ? await tagService.rename(within, op.id, text(data.name) ?? "") : applied;
+          if (isError(renamed) || !recoloring) return renamed;
+          return tagService.recolor(within, op.id, text(data.color) ?? "");
+        }, ctx),
+      );
     }
     const of = (column: string) => text(data[column]) ?? "";
-    return outcome(await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name") }));
+    // Any text: `create` refuses one outside the palette (`tagService:invalid`).
+    const color = text(data.color) as TagColor | null;
+    return outcome(
+      await tagService.create(ctx, { id: op.id, groupId: of("group_id"), name: of("name"), color }),
+    );
   },
 };
 

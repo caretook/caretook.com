@@ -1,6 +1,7 @@
 import type { ReminderLead } from "@caretook/data/schema";
 
-import { MAX_REMINDER_LEADS, REMINDER_LEADS, reminderLeadLabel } from "@caretook/data/schema";
+import { MAX_REMINDER_LEADS } from "@caretook/data/schema";
+import { REMINDER_LEADS, reminderLeadLabel } from "@caretook/data/domain";
 
 // The Reminders card's pure parts (calendars, appointments-2 slice 6): the
 // lead choices with the three-lead cap, and the wording. The server checks

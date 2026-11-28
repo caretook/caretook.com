@@ -93,7 +93,7 @@ describe("the deploy workflows", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     for (const name of ["unit-1", "unit-2"]) {
       const unit = jobs[name].steps.find((s) => s.id === "test").run;
-      expect(unit).toContain("--project tooling:unit");
+      expect(unit).toContain("--project project:tooling");
       expect(unit).not.toContain("tooling:browser");
     }
     // The real project split: a pattern Vitest ignores fails here.
@@ -102,14 +102,14 @@ describe("the deploy workflows", () => {
         cwd: root,
         encoding: "utf8",
       });
-    expect(list("tooling:unit")).not.toContain("loops/browser.test.mjs");
-    expect(list("tooling:unit")).toContain("loops/lease.test.mjs");
+    expect(list("project:tooling")).not.toContain("project/browser-run.test.mjs");
     expect(
       list("tooling:browser")
         .trim()
         .split("\n")
         .filter((l) => l.includes(".test.")),
     ).toHaveLength(1);
+    expect(list("tooling:browser")).toContain("project/browser-run.test.mjs");
     const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
     expect(step.run).toContain("--project tooling:browser");
     expect(step.if).toBe("${{ !cancelled() }}");
@@ -127,6 +127,7 @@ describe("the deploy workflows", () => {
       "components-1": "components",
       "components-2": "components",
       "components-3": "components",
+      "components-4": "components",
       build: "full",
       browser: "candidate",
       "browser-2": "release",
@@ -143,6 +144,7 @@ describe("the deploy workflows", () => {
       "unit-2": "unit2",
       "components-2": "components2",
       "components-3": "components2",
+      "components-4": "components2",
     };
     for (const name of tierJobs)
       expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${switchOf[name]} == 'true' }}`);
@@ -158,24 +160,32 @@ describe("the deploy workflows", () => {
     const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`unit-${n}`];
     const run = (id) => job.steps.find((s) => s.id === id).run;
     expect(run("test")).toMatch(/^node scripts\/ci\/test-job\.mjs --time-gate /);
-    expect(run("test")).toContain(`--project tooling:unit --shard=${n}/2`);
+    expect(run("test")).toContain(`--project project:tooling --shard=${n}/2`);
     expect(run("test")).toContain(`--outputFile.json=ci-results/unit-${n}.json`);
     expect(run("report")).toContain(`ci-results/unit-${n}.json`);
   });
 
-  it.each([1, 2, 3])("runs CI's component shard %i in Chromium and reports it", (n) => {
+  it.each([1, 2, 3, 4])("runs CI's component shard %i in Chromium and reports it", (n) => {
     const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`components-${n}`];
     const run = (id) => job.steps.find((s) => s.id === id).run;
     expect(run("chromium")).toBe("pnpm exec playwright install --with-deps chromium");
     // Both zones' component projects: the second zone every day for its screens (B-372).
-    expect(run("test")).toContain(`--project web:components --project web:components:ny --shard=${n}/3`);
+    expect(run("test")).toContain(`--project web:components --project web:components:ny --shard=${n}/4`);
     expect(run("test")).toContain(`--outputFile.json=ci-results/components-${n}.json`);
     expect(run("report")).toContain(`ci-results/components-${n}.json`);
   });
 
   it("reruns through the test job, with quarantine steps that can't fail the run", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    for (const name of ["unit-1", "unit-2", "integration", "components-1", "components-2", "components-3"])
+    for (const name of [
+      "unit-1",
+      "unit-2",
+      "integration",
+      "components-1",
+      "components-2",
+      "components-3",
+      "components-4",
+    ])
       expect(jobs[name].steps.find((s) => s.id === "test").run).toMatch(/^node scripts\/ci\/test-job\.mjs /);
     for (const [name, id] of [
       ["unit-1", "quarantine"],
@@ -188,7 +198,7 @@ describe("the deploy workflows", () => {
       expect(step["continue-on-error"]).toBe("true");
     }
     // One shard runs the quarantined tests, not every shard.
-    for (const name of ["unit-2", "components-2", "components-3"])
+    for (const name of ["unit-2", "components-2", "components-3", "components-4"])
       expect(jobs[name].steps.some((s) => s.id === "quarantine")).toBe(false);
     for (const name of ["static", "build", "browser"])
       expect(jobs[name].outputs.started).toContain("steps.started");
@@ -245,7 +255,7 @@ describe("the deploy workflows", () => {
 
   it("gives each release suite run its own job, within one suite's limit", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    const capS = read("scripts/loops/checks")
+    const capS = read("scripts/project/checks")
       .split("\n")
       .filter((line) => !line.startsWith("#"))
       .map((line) => line.trim().split(/\s+/))

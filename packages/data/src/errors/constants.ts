@@ -126,6 +126,9 @@ export const MODEL_ERRORS = {
   "careGroupMemberModel:lockOwners": {
     message: "Failed to lock group owners",
   },
+  "careGroupMemberModel:lockForChange": {
+    message: "Failed to lock the membership",
+  },
   "careGroupMemberModel:lockGroupMembers": {
     message: "Failed to lock group members",
   },
@@ -226,11 +229,26 @@ export const MODEL_ERRORS = {
   "appointmentSeriesModel:remove": {
     message: "Failed to delete the repeating series",
   },
+  "appointmentSeriesModel:topUpZones": {
+    message: "Failed to read the repeating series' time zones",
+  },
+  "appointmentSeriesModel:listDueForTopUp": {
+    message: "Failed to read the repeating series due a top-up",
+  },
   "todoModel:remove": {
     message: "Failed to delete the todo",
   },
   "todoModel:restore": {
     message: "Failed to restore the todo",
+  },
+  "todoModel:lockById": {
+    message: "Failed to lock the todo",
+  },
+  "todoModel:transactionNow": {
+    message: "Failed to read the database's clock",
+  },
+  "todoModel:stampMadeAfter": {
+    message: "Failed to stamp the next todo's creation time",
   },
   "adminAuditLogModel:insert": {
     message: "Failed to record the audit entry",

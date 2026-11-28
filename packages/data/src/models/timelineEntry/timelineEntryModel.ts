@@ -34,6 +34,10 @@ export const get = (args: QuerySelectArgs<K> & IncludeDeleted) =>
 export const getById = (id: string, args: Omit<QuerySelectArgs<K>, "filter"> & IncludeDeleted) =>
   get({ ...args, filter: { id: { type: "eq", value: id } } });
 
+/** Every matching row, unpaged unless asked (a series' visits by id or day: B-755). */
+export const list = (args: QuerySelectArgs<K> & IncludeDeleted) =>
+  base.list({ ...args, filter: live(args.filter, args) });
+
 export type TimelineCursor = { occurredAt: string; id: string };
 
 // Postgres timestamptz text ("2026-11-17 10:00:00.123+00") or ISO 8601.
@@ -160,6 +164,9 @@ export const mayChange = async (
 
 export const { create } = base;
 
+/** Many entries in one INSERT (a series' visits: B-755). */
+export const createMany = baseModel.createMany({ schemaName, dbToModel });
+
 /** Deleted entries can't be edited. */
 export const update = (args: Parameters<typeof base.update>[0]) =>
   base.update({ ...args, filter: live(args.filter) });
@@ -251,6 +258,17 @@ export const restore = async (
 export const lockId = (id: string, tx: Tx) =>
   dbMayFail(
     () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`timeline_entry:${id}`}, 0))`),
+    "timelineEntryModel:lock",
+  );
+
+/**
+ * Hold one dose slot (`medicationId:day:slot`, whatever the answer) until the
+ * transaction ends, so a sheet's given and another's refused for it take
+ * turns: a dose's id includes its answer, so `lockId` alone lets both in (B-984).
+ */
+export const lockDoseSlot = (slotKey: string, tx: Tx) =>
+  dbMayFail(
+    () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`dose_slot:${slotKey}`}, 0))`),
     "timelineEntryModel:lock",
   );
 

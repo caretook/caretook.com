@@ -6,7 +6,8 @@ import {
   isLoggerRole,
   isWriterRole,
 } from "../../../constants/roles";
-import { uuidV5 } from "../core/uuidV5";
+import { AVATAR_COLORS } from "../app-shell/avatar";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // The tags' pure rules (tags PRD), client-safe: the one place that folds a
 // tag name, derives a tag's or a link's id, says who may tag what, and reads
@@ -78,6 +79,37 @@ export const tagNameZSchema = z
       .min(1, { error: "Enter a tag" })
       .max(TAG_NAME_MAX, { error: `Keep a tag to ${TAG_NAME_MAX} characters` }),
   );
+
+// ---------------------------------------------------------------------------
+// Colors (tags-2): the avatar palette, one set of ids and tokens
+// ---------------------------------------------------------------------------
+
+/**
+ * A tag's color ids: the avatar colors, so chips share the avatars' tokens
+ * and contrast. A new id needs an additive migration (the `tag` check lists
+ * them); a null or unknown stored color is the neutral chip.
+ */
+export const TAG_COLORS = AVATAR_COLORS;
+export type TagColor = (typeof TAG_COLORS)[number];
+
+/** A palette color id; anything else is refused. */
+export const tagColorZSchema = z.enum(TAG_COLORS);
+
+/**
+ * A new tag's color: a random one of those no tag in `used` has, or any
+ * palette color once all are used. `random` returns [0, 1) (`Math.random`;
+ * tests pass a fixed one).
+ */
+export const pickTagColor = (
+  used: Iterable<string | null | undefined>,
+  random: () => number = Math.random,
+): TagColor => {
+  const taken = new Set(used);
+  const free = TAG_COLORS.filter((c) => !taken.has(c));
+  const from = free.length > 0 ? free : TAG_COLORS;
+  const index = Math.min(Math.floor(random() * from.length), from.length - 1);
+  return from[Math.max(index, 0)]!;
+};
 
 // ---------------------------------------------------------------------------
 // What can be tagged, and by whom

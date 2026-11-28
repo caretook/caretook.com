@@ -80,6 +80,10 @@ export const ADMIN_ERRORS = {
     message: "Check the form and try again",
     statusCode: 400,
   },
+  "groupAdminService:hasOwner": {
+    message: "This care group already has an owner. Staff can invite an owner only into a group with none.",
+    statusCode: 409,
+  },
   "groupAdminService:unchanged": {
     message: "They already have that role.",
     statusCode: 409,

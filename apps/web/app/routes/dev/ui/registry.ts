@@ -41,6 +41,9 @@ import { ChoiceDialogSection } from "./sections/ChoiceDialogSection";
 import { MotionSection } from "./sections/MotionSection";
 import { IconChipSection } from "./sections/IconChipSection";
 import { TimeSelectSection } from "./sections/TimeSelectSection";
+import { PageLoadingSection } from "./sections/PageLoadingSection";
+import { FormTabsSection } from "./sections/FormTabsSection";
+import { SwatchSection } from "./sections/SwatchSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -94,4 +97,10 @@ export const GALLERY: readonly GallerySection[] = [
   { id: "icon-chip", title: "IconChip and the accents", Section: IconChipSection },
   // fixes-ui (slice 13): the hour-first time picker.
   { id: "time-select", title: "TimeSelect", Section: TimeSelectSection },
+  // fixes-ui (slice 92): the full-page loader inside the /app frame.
+  { id: "page-loading", title: "PageLoading", Section: PageLoadingSection },
+  // fixes-ui (slice 95): form tabs, in the page tabs' look (B-694).
+  { id: "form-tabs", title: "FormTabs", Section: FormTabsSection },
+  // tags-3 (slice 2): the round swatch choice, moved out of the avatar card.
+  { id: "swatch", title: "Swatch and SwatchGroup", Section: SwatchSection },
 ];

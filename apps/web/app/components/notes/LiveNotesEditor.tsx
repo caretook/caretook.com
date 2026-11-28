@@ -6,13 +6,12 @@ import type { ImportSource } from "~/lib/providers/providerImport";
 import type { NoteFullScreenOptions } from "./NoteFullScreen";
 import type { MentionAddResult } from "./useMentionPopup";
 
-import { NOTE_FRAGMENT } from "@caretook/data/schema";
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Button, IconButton, Message } from "~/components/ui";
+import { Button, IconButton, Message, TITLE_SECTION } from "~/components/ui";
 import { bindNoteDoc, createNoteDoc } from "~/lib/live-notes/notes.sync";
 import { useOtherGroupProviders } from "~/lib/providers/otherGroupProviders.sync";
 import { createProvider, importProviders } from "~/lib/providers/providers.sync";
@@ -20,10 +19,19 @@ import { MentionTargets } from "./MentionChip";
 import { MentionPopup, mentionOptionId } from "./MentionPopup";
 import { NoteFullScreen } from "./NoteFullScreen";
 import { ProviderMention, useMentionPopup } from "./useMentionPopup";
+import { NOTE_FRAGMENT } from "@caretook/data/domain";
 
 /** The bar above the text: the toolbar, and the full-screen button. */
-const BAR =
-  "border-base-300 bg-(--color-field)/95 sticky top-0 z-10 rounded-t-box border-b p-1 backdrop-blur";
+const BAR = "border-base-300 bg-(--color-field)/95 sticky top-0 z-10 border-b p-1 backdrop-blur";
+
+/** The bar's corners on the page (full screen fills the screen, square). */
+const ROUNDED = "rounded-t-box";
+
+/** Full screen: the bar clear of a notch (top and sides), the text clear of the sides and home bar. */
+const SAFE_BAR =
+  "pt-[max(0.25rem,env(safe-area-inset-top))] pr-[max(0.25rem,env(safe-area-inset-right))] pl-[max(0.25rem,env(safe-area-inset-left))]";
+const SAFE_TEXT =
+  "pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]";
 
 const NO_PROVIDERS: readonly MentionProvider[] = [];
 
@@ -54,9 +62,10 @@ export type LiveNotesEditorHandle = {
  * roles, who can't open a provider's page).
  *
  * `fullScreen` (the entry page) adds an "Open full screen" button, readers
- * included: the same editor moves into a modal over the page, with the
- * given heading and `aside`; the button again or Escape brings it back,
- * focus on the button.
+ * included: the same editor moves into a modal over the page, edge to edge,
+ * its bar headed by the given `title` and `aside` (B-962; on the page the
+ * bar has no title, the page has its heading); the button again or Escape
+ * brings it back, focus on the button.
  */
 export function LiveNotesEditor({
   label,
@@ -186,17 +195,32 @@ export function LiveNotesEditor({
   const toolbar = canWrite && editor && <Toolbar editor={editor} bare={!!fullScreen} />;
   const frame = (
     <div
-      className={`rounded-box border-base-300 border bg-(--color-field) ${full ? "min-h-0 flex-1 overflow-y-auto" : ""}`}
+      className={`bg-(--color-field) ${full ? "min-h-0 flex-1 overflow-y-auto" : "rounded-box border-base-300 border"}`}
     >
-      {fullScreen ? (
-        <div className={`${BAR} flex items-center gap-1`}>
+      {fullScreen && full ? (
+        // Wide: one row (title, avatars, toolbar, Exit). Phone: the toolbar on its own row below.
+        <div className={`${BAR} ${SAFE_BAR} flex flex-wrap items-center gap-1`} data-note-bar="">
+          <h2 className={`${TITLE_SECTION} order-1 min-w-0 flex-1 truncate px-2`}>{fullScreen.title}</h2>
+          {fullScreen.aside && <div className="order-2 flex shrink-0 items-center">{fullScreen.aside}</div>}
+          {toolbar && <div className="order-4 basis-full sm:order-3 sm:basis-auto">{toolbar}</div>}
+          <IconButton
+            ref={toggle}
+            label="Exit full screen"
+            icon={Minimize2}
+            onPress={() => setFull(false)}
+            className="order-3 sm:order-4"
+            data-note-full-screen-toggle=""
+          />
+        </div>
+      ) : fullScreen ? (
+        <div className={`${BAR} ${ROUNDED} flex items-center gap-1`} data-note-bar="">
           <div className="min-w-0 flex-1">{toolbar}</div>
           <IconButton
             ref={toggle}
-            label={full ? "Exit full screen" : "Open full screen"}
-            icon={full ? Minimize2 : Maximize2}
-            haspopup={full ? undefined : "dialog"}
-            onPress={() => setFull((on) => !on)}
+            label="Open full screen"
+            icon={Maximize2}
+            haspopup="dialog"
+            onPress={() => setFull(true)}
             data-note-full-screen-toggle=""
           />
         </div>
@@ -204,7 +228,7 @@ export function LiveNotesEditor({
         toolbar
       )}
       <MentionTargets value={targets}>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className={full ? SAFE_TEXT : undefined} />
       </MentionTargets>
       <MentionPopup popup={mentions.popup} />
       {mentions.error && (
@@ -218,7 +242,7 @@ export function LiveNotesEditor({
   return (
     <NoteFullScreen
       open={full}
-      {...fullScreen}
+      title={fullScreen.title}
       onOpen={() => {
         if (canWriteRef.current) editor?.commands.focus();
       }}
@@ -287,7 +311,11 @@ function Toolbar({
   ] as const;
 
   return (
-    <div role="toolbar" aria-label="Formatting" className={bare ? "flex gap-1" : `${BAR} flex gap-1`}>
+    <div
+      role="toolbar"
+      aria-label="Formatting"
+      className={bare ? "flex gap-1" : `${BAR} ${ROUNDED} flex gap-1`}
+    >
       {buttons.map(({ key, label, Icon, run }) => (
         <Button
           key={key}

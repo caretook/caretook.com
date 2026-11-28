@@ -1,7 +1,6 @@
 import type { Route } from "./+types/route";
 import type { Marking } from "~/components/medications";
 import type { ActionResult } from "~/lib/core/api";
-import type { PlannedDose } from "~/lib/medications/dueDoses";
 import type { DoseChoiceRow } from "~/lib/medications/medicationTimeline.sync";
 import type { MedicationNameRow } from "~/lib/medications/medications.sync";
 
@@ -10,10 +9,7 @@ import { redirect, useLocation } from "react-router";
 import { startAtFrom } from "~/lib/timeline/urls";
 import { MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
 import { EmptyState, Sheet } from "~/components/ui";
-import { doseWarnings } from "~/lib/medications/dueDoses";
-import { duePasses, isNamedPass, isPassDueNow } from "~/lib/medications/duePasses";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { doseWarningText } from "~/lib/medications/medicationDisplay";
 import { doseDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { sessionContext } from "~/lib/auth/session";
 import { loadDueDoses, useDueDoses } from "~/lib/medications/dueDoses.sync";
@@ -27,6 +23,8 @@ import { DoseForm } from "../DoseForm";
 import { doseSheetHome } from "~/lib/medications/medicationSheets";
 import { useCloseSheet } from "../sheet";
 import { newDoseGuard } from "../sheetGuard";
+import type { PlannedDose } from "@caretook/data/schema";
+import { doseWarnings, duePasses, isNamedPass, isPassDueNow, doseWarningText } from "@caretook/data/schema";
 
 // Shared by web + native. `timeline/new/dose` (`?medication=<id>&slot=08:00`
 // starts on that medication, for that slot; `?at=<ISO>` at that time): the Dose sheet, over the

@@ -107,6 +107,45 @@ describe("the toast queue", () => {
     expect(undo).not.toHaveBeenCalled();
   });
 
+  test("a second action shows after the first; each runs once and closes the toast", async () => {
+    await open();
+    const openIt = vi.fn();
+    const retire = vi.fn();
+    const ask = () =>
+      toast({
+        message: "Want help onboarding?",
+        timeout: null,
+        action: { label: "Open", onAction: openIt },
+        secondAction: { label: "Don't ask again", onAction: retire },
+      });
+    const names = () =>
+      shown("Want help onboarding?")
+        .getByRole("button")
+        .elements()
+        .map((b) => b.textContent?.trim() || b.getAttribute("aria-label"));
+    const press = async (name: string) => {
+      const button = shown("Want help onboarding?")
+        .getByRole("button", { name })
+        .element() as HTMLButtonElement;
+      button.click();
+      button.click();
+      await expect.element(shown("Want help onboarding?")).not.toBeInTheDocument();
+    };
+
+    ask();
+    await expect.element(shown("Want help onboarding?")).toBeVisible();
+    expect(names()).toEqual(["Open", "Don't ask again", "Dismiss"]);
+    await press("Don't ask again");
+    expect(retire).toHaveBeenCalledOnce();
+    expect(openIt).not.toHaveBeenCalled();
+
+    ask();
+    await expect.element(shown("Want help onboarding?")).toBeVisible();
+    await press("Open");
+    expect(openIt).toHaveBeenCalledOnce();
+    expect(retire).toHaveBeenCalledOnce();
+  });
+
   test("a timeout closes it; a toast without one stays", async () => {
     await open();
     fixClock();

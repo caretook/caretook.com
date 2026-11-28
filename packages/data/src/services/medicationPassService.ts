@@ -7,6 +7,7 @@ import type {
   Tx,
 } from "../db";
 import type { IncludeDeleted } from "../models/medicationPass";
+import type { ChangeTimes } from "../db/schema";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
@@ -27,8 +28,8 @@ import {
   passMovedId,
   passNameTaken,
   timelineEntryContentZSchema,
-  toChangeTime,
   withoutPass,
+  changeTimes,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careRecipientModel, medicationModel, medicationPassModel, timelineEntryModel } from "../models";
@@ -42,7 +43,6 @@ import { resolveRecipient } from "./medicationService";
 // change entry, and where deleting a pass turns it into a time of its own in
 // every medication's schedule, each in one transaction.
 
-export const serviceName = "medicationPass";
 export const schemaName = medicationPassModel.schemaName;
 
 const invalid = (error: z.ZodError) =>
@@ -59,8 +59,8 @@ const tooMany = () => newError({ code: "medicationPassService:tooMany" });
 /** When a save happened, as with medications: a device passes its row's `updated_at`. */
 export type PassWriteOptions = { changedAt?: string | null };
 
-const changeTimeOf = (opts: PassWriteOptions) =>
-  (opts.changedAt ? toChangeTime(opts.changedAt) : null) ?? new Date().toISOString();
+/** The save's change times: the device's for the entry's id, never later than now for its date. */
+const changeTimeOf = (opts: PassWriteOptions) => changeTimes(opts.changedAt);
 
 const system = (tx: Tx) => ({ authUser: SYSTEM_USER, tx });
 
@@ -96,7 +96,7 @@ const medicationsWithPass = async (tx: Tx, groupId: string, passId: string) => {
 const writeMoved = async (
   ctx: ServiceContext,
   tx: Tx,
-  { before, after, changedAt }: { before: MedicationPass; after: MedicationPass; changedAt: string },
+  { before, after, changedAt }: { before: MedicationPass; after: MedicationPass; changedAt: ChangeTimes },
 ) => {
   const medications = await medicationsWithPass(tx, after.groupId, after.id);
   if (isError(medications)) return medications;
@@ -107,7 +107,7 @@ const writeMoved = async (
   );
   if (!details) return null;
 
-  const id = passMovedId(after.id, changedAt);
+  const id = passMovedId(after.id, changedAt.key);
   const existing = await timelineEntryModel.getById(id, { ...system(tx), includeDeleted: true });
   if (isError(existing)) return existing;
   if (existing) return existing;
@@ -117,7 +117,7 @@ const writeMoved = async (
   const timeZone = recipient?.timeZone ?? "UTC";
   const content = timelineEntryContentZSchema.safeParse({
     kind: "medicationChange",
-    occurredAt: changedAt,
+    occurredAt: changedAt.date,
     timeZone,
     details,
   });
@@ -131,7 +131,7 @@ const writeMoved = async (
       groupId: after.groupId,
       recipientId: after.recipientId,
       kind: "medicationChange",
-      occurredAt: changedAt,
+      occurredAt: changedAt.date,
       timeZone,
       title: null,
       body: null,

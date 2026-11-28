@@ -3,11 +3,8 @@ import type { ProviderPhone, ProviderStatus, ProviderType } from "../schema";
 import { eq } from "drizzle-orm";
 import { getDb } from "../client";
 import {
-  encodeNoteDoc,
   entryProviderId,
-  noteDocFromText,
   noteDocumentSchema,
-  noteText,
   providerSchema,
   timelineEntryProviderSchema,
   userSchema,
@@ -15,6 +12,7 @@ import {
 import { DEV_GROUP_ID } from "./careGroups";
 import { entryId as secondGroupEntryId, SECOND_GROUP_ENTRIES, SECOND_GROUP_ID } from "./secondGroup";
 import { entryId as devFamilyEntryId, SEED_ENTRIES } from "./timelineEntries";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 // Fictional providers for both seeded groups, with a few shared notes and
 // links to existing seeded events and notes. Everything here is made up:

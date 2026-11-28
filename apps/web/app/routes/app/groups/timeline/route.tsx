@@ -4,7 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { activeTag, dayInZone } from "@caretook/data/schema";
+import { activeTag } from "@caretook/data/schema";
 import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { Page } from "~/components/ui";
@@ -22,13 +22,14 @@ import { parseFilters, readDay } from "~/lib/timeline/timelineFilters";
 import { jumpBound } from "~/lib/timeline/timelineJump";
 import { localTimeZone } from "~/lib/core/format";
 import { AddedMedicationToast } from "./AddedMedicationToast";
-import { focusAfterSetup, GettingStartedCard } from "./GettingStartedCard";
+import { focusAfterWelcome, TimelineWelcome } from "./TimelineWelcome";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineViewMenu } from "./TimelineViewMenu";
+import { inRounds } from "./loaderRounds";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
 import { TodayCard } from "./TodayCard";
@@ -39,6 +40,7 @@ import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useEasyMode } from "~/lib/assistant/useEasyMode";
 import { EasyTimeline } from "./EasyTimeline";
+import { dayInZone } from "@caretook/data/domain";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -78,30 +80,40 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const zone = localTimeZone();
   const day = readDay(urlSearch, dayInZone(now, zone));
   const before = day ? jumpBound(day, zone, now) : null;
-  const [status, searchPeriods, tagRows] = await Promise.all([
-    filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
-    filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
-    readRows<TagRow>(db, tagsQuery(params.groupId)),
-  ]);
-  const tag = activeTag(filters.tag, tagRows)?.id ?? null;
-  const range = searchPeriodRange(searchPeriods, filters.period);
-  const { match } = timelineSearch(params.groupId, filters.q, status, range);
-  const [rows, settings] = await Promise.all([
-    loadTimelineRows(
-      db,
-      params.groupId,
-      {
-        kind: filters.kind,
-        author: filters.author,
-        vital: filters.vital,
-        symptoms: filters.symptoms,
-        tag,
-        match,
-      },
-      before,
-    ),
-    loadSettings(request, db.userId),
-  ]);
+  // The tags join the first round only under `?tag=`; otherwise they're read with the entries.
+  const {
+    first: [, searchPeriods],
+    tags: tagRows,
+    second: [rows, settings],
+  } = await inRounds({
+    tagFilter: !!filters.tag,
+    first: () =>
+      Promise.all([
+        filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
+        filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
+      ]),
+    tags: () => readRows<TagRow>(db, tagsQuery(params.groupId)),
+    second: ([status, periods], tags) => {
+      const range = searchPeriodRange(periods, filters.period);
+      const { match } = timelineSearch(params.groupId, filters.q, status, range);
+      return Promise.all([
+        loadTimelineRows(
+          db,
+          params.groupId,
+          {
+            kind: filters.kind,
+            author: filters.author,
+            vital: filters.vital,
+            symptoms: filters.symptoms,
+            tag: tags ? (activeTag(filters.tag, tags)?.id ?? null) : null,
+            match,
+          },
+          before,
+        ),
+        loadSettings(request, db.userId),
+      ]);
+    },
+  });
   return {
     userId: db.userId,
     title: pageTitle(group.name),
@@ -170,9 +182,9 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     el?.scrollIntoView({ block: "center" });
     el?.focus({ preventScroll: true });
   };
-  // A dismissed setup card's focus: the quick-entry box, else the "Timeline" heading.
+  // A dismissed welcome's focus: the quick-entry box, else the "Timeline" heading.
   const header = useRef<HTMLDivElement>(null);
-  const afterSetup = () => focusAfterSetup(quickField.current, header.current?.querySelector("h1"));
+  const afterWelcome = () => focusAfterWelcome(quickField.current, header.current?.querySelector("h1"));
 
   const sheets = (
     <>
@@ -231,7 +243,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <div className={COLUMN_CAP} ref={header}>
         <TimelineHeader easyMode={mode} />
       </div>
-      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} onDismissed={afterSetup} />
+      <TimelineWelcome className={COLUMN_CAP} onDismissed={afterWelcome} />
       <TodayCard
         groupId={groupId}
         canWrite={canWrite}

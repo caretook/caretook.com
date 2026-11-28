@@ -125,6 +125,35 @@ describe("today's line", () => {
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   });
 
+  test.each([
+    [390, "Condensed"],
+    [1280, "Condensed"],
+    [390, "Full"],
+    [1280, "Full"],
+  ] as const)(
+    "Change sits right beside the period at %i px in the %s view: its glyph as far from the period's icon as the icon from the text, its hit box full size (B-906, B-925)",
+    async (width, view) => {
+      await open("", { width });
+      await ready();
+      await setView(view);
+      const change = await found(CHANGE);
+      const line = change.closest<HTMLElement>("[data-period-line]")!;
+      const [glyph, icon] = [change.querySelector("svg")!, line.querySelector(":scope > svg")!];
+      const text = line.querySelector<HTMLElement>("[data-period-current]")!;
+      const box = change.getBoundingClientRect();
+      // The visible gap, glyph to icon, is the icon-to-text gap.
+      const glyphGap = icon.getBoundingClientRect().left - glyph.getBoundingClientRect().right;
+      const textGap = text.getBoundingClientRect().left - icon.getBoundingClientRect().right;
+      expect(Math.abs(glyphGap - textGap)).toBeLessThanOrEqual(1);
+      // The hit box keeps its 32px size; it reaches no more than its padding's spare 2px past the icon's edge.
+      expect(Math.round(box.width)).toBe(32);
+      expect(Math.round(box.height)).toBe(32);
+      expect(box.right).toBeLessThanOrEqual(icon.getBoundingClientRect().left + 2.5);
+      expect(change.getAttribute("aria-label")).toBe("Change care period");
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+    },
+  );
+
   test("Change is an icon button, found by its name, and opens the add sheet", async () => {
     const device = await open();
     await ready();

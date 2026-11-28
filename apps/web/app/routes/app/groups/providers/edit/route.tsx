@@ -17,15 +17,18 @@ import {
   updateProvider,
 } from "~/lib/providers/providers.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
+import { QuickTags } from "~/components/tags";
 import { ConfirmDialog, Message, Sheet } from "~/components/ui";
-import { ProviderForm } from "../ProviderForm";
-import { issuesForRows, providerFromForm } from "../providerFormData";
+import { ProviderForm } from "~/components/providers";
+import { issuesForRows, providerFromForm } from "~/lib/providers/providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
 import { editProviderGuard } from "../providerSheetGuard";
 
 // Shared by web + native. `providers/:providerId/edit`: the edit sheet, over
 // the directory, with Delete (soft, after a confirm). A viewer, and a
 // provider that's missing, deleted or in another group, land on the list.
+// Its tags (`QuickTags`, tags-2) sit under the form: each tap is its own
+// local write, never part of Save.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -96,6 +99,15 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
         onDelete={() => setConfirming(true)}
       />
       {refusal && <Message tone="error">{refusal}</Message>}
+      <div className="border-base-300 mt-4 border-t pt-4" data-provider-edit-tags="">
+        <QuickTags
+          target="provider"
+          recordId={provider.id}
+          label={provider.name}
+          createdBy={provider.createdBy}
+          max={null}
+        />
+      </div>
       <ConfirmDialog
         open={confirming}
         title={`Delete ${provider.name}?`}

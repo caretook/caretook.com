@@ -9,6 +9,7 @@ import {
   appSettingSchema,
   careGroupInviteSchema,
   careGroupJoinRequestSchema,
+  careGroupMemberSchema,
   CONSENT_VERSION,
   legalAcceptanceSchema,
   userSchema,
@@ -64,6 +65,18 @@ const userWith = async (email: string) => {
 };
 
 const roleOf = (groupId: string, userId: string) => careGroupMemberModel.getRole(groupId, userId);
+
+/** The id of `who`'s membership in the setup's group. */
+const membershipId = async (s: { groupId: string }, who: { user: { id: string } }) => {
+  const row = ok(
+    await careGroupMemberModel.get({
+      ...system,
+      filter: { groupId: { type: "eq", value: s.groupId }, userId: { type: "eq", value: who.user.id } },
+    }),
+  );
+  if (!row) throw new Error("not a member");
+  return row.id;
+};
 
 describe("creating an email invite", () => {
   it("records the attestation, sends the email in the transaction, and never returns the hash", async () => {
@@ -488,6 +501,13 @@ describe("while signup.emailInvites is off (B-106)", () => {
 
   it("lets a staff owner invite to a group be previewed and accepted", async () => {
     const s = await setup();
+    // Staff invite an owner only into an ownerless group: the owner goes first.
+    ok(
+      await careGroupMemberModel.remove({
+        ...system,
+        filter: { groupId: { type: "eq", value: s.groupId }, userId: { type: "eq", value: s.owner.user.id } },
+      }),
+    );
     await withEmailInvitesOff(async (staff) => {
       const { sent, mail } = recordingMailer();
       const email = newAddress("staff-owner");
@@ -546,5 +566,147 @@ describe("while signup.emailInvites is off (B-106)", () => {
         expect(await roleOf(s.groupId, used.invitee.user.id)).toBeNull();
       }
     });
+  });
+});
+
+// A manager's power ends with their role (account-security slice 1, B-327):
+// leaving, removal and demotion revoke the invites and links they made, and
+// accepting rechecks the maker's current role (staff's owner invites exempt).
+describe("when the inviter's role ends", () => {
+  const revokedAnswer = { code: "careGroupInviteService:unusable", meta: { state: "revoked" } };
+
+  /** Accepting `token` as a new account with `email` (a link: any new account). */
+  const acceptAs = async (token: string, email: string) => {
+    const joiner = await userWith(email);
+    const res = await careGroupInviteService.accept(joiner.ctx, { token, consent: true, legal: true });
+    return { res, joiner };
+  };
+
+  const stateOf = async (id: string) => ok(await careGroupInviteModel.getById(id, system))?.status;
+
+  it("stops a removed owner coming back through their own owner invite", async () => {
+    const s = await setup();
+    ok(
+      await careGroupMemberService.updateRole(s.owner.ctx, {
+        id: await membershipId(s, s.admin),
+        role: "owner",
+      }),
+    );
+    const alt = newAddress("own-alt");
+    const made = await invite(s.admin, s.groupId, alt, "owner");
+    ok(await careGroupMemberService.remove(s.owner.ctx, await membershipId(s, s.admin)));
+    expect(await stateOf(made.invite.id)).toBe("revoked");
+
+    const { res, joiner } = await acceptAs(made.token, alt);
+    expect(res).toMatchObject(revokedAnswer);
+    expect(await roleOf(s.groupId, joiner.user.id)).toBeNull();
+  });
+
+  it("stops a demoted admin's link and email invites, and leaves other managers' alone", async () => {
+    const s = await setup();
+    const link = ok(
+      await careGroupInviteService.createLink(s.admin.ctx, { groupId: s.groupId, role: "viewer" }),
+    );
+    const email = await invite(s.admin, s.groupId, newAddress("adm-email"));
+    const ownersLink = ok(
+      await careGroupInviteService.createLink(s.owner.ctx, { groupId: s.groupId, role: "viewer" }),
+    );
+    ok(
+      await careGroupMemberService.updateRole(s.owner.ctx, {
+        id: await membershipId(s, s.admin),
+        role: "caretaker",
+      }),
+    );
+    expect(await stateOf(link.invite.id)).toBe("revoked");
+    expect(await stateOf(email.invite.id)).toBe("revoked");
+    expect(await stateOf(ownersLink.invite.id)).toBe("pending");
+
+    const asker = await createUser("inv-link-asker");
+    expect(
+      await careGroupInviteService.accept(asker.ctx, { token: link.token, consent: true, legal: true }),
+    ).toMatchObject(revokedAnswer);
+    expect(ok(await careGroupInviteService.preview(link.token))).toMatchObject({ state: "revoked" });
+  });
+
+  it("takes only owner invites from an owner who becomes an admin", async () => {
+    const s = await setup();
+    ok(
+      await careGroupMemberService.updateRole(s.owner.ctx, {
+        id: await membershipId(s, s.admin),
+        role: "owner",
+      }),
+    );
+    const ownerInvite = await invite(s.admin, s.groupId, newAddress("own-inv"), "owner");
+    const viewerInvite = await invite(s.admin, s.groupId, newAddress("view-inv"), "viewer");
+    ok(
+      await careGroupMemberService.updateRole(s.owner.ctx, {
+        id: await membershipId(s, s.admin),
+        role: "admin",
+      }),
+    );
+    expect(await stateOf(ownerInvite.invite.id)).toBe("revoked");
+    expect(await stateOf(viewerInvite.invite.id)).toBe("pending");
+    expect(codeOf((await acceptAs(viewerInvite.token, viewerInvite.invite.email!)).res)).toBe("ok");
+  });
+
+  it("refuses an invite whose maker left without the service, as a revoked one", async () => {
+    const s = await setup();
+    const address = newAddress("orphan");
+    const made = await invite(s.admin, s.groupId, address);
+    const link = ok(
+      await careGroupInviteService.createLink(s.admin.ctx, { groupId: s.groupId, role: "viewer" }),
+    );
+    // As one waiting today: the membership gone, the invites still pending.
+    await getDb()
+      .delete(careGroupMemberSchema)
+      .where(eq(careGroupMemberSchema.id, await membershipId(s, s.admin)));
+    expect(await stateOf(made.invite.id)).toBe("pending");
+
+    expect(ok(await careGroupInviteService.preview(made.token))).toMatchObject({
+      state: "revoked",
+      invite: null,
+    });
+    expect(codeOf(await careGroupInviteService.ticketFor(made.token))).toBe("ticket:invalid");
+    const { res, joiner } = await acceptAs(made.token, address);
+    expect(res).toMatchObject(revokedAnswer);
+    expect(await roleOf(s.groupId, joiner.user.id)).toBeNull();
+
+    const asker = await createUser("inv-orphan-asker");
+    expect(
+      await careGroupInviteService.accept(asker.ctx, { token: link.token, consent: true, legal: true }),
+    ).toMatchObject(revokedAnswer);
+  });
+
+  it("refuses an owner invite whose maker is now an admin, set without the service", async () => {
+    const s = await setup();
+    ok(
+      await careGroupMemberService.updateRole(s.owner.ctx, {
+        id: await membershipId(s, s.admin),
+        role: "owner",
+      }),
+    );
+    const address = newAddress("demoted-owner");
+    const made = await invite(s.admin, s.groupId, address, "owner");
+    await getDb()
+      .update(careGroupMemberSchema)
+      .set({ role: "admin" })
+      .where(eq(careGroupMemberSchema.id, await membershipId(s, s.admin)));
+    expect((await acceptAs(made.token, address)).res).toMatchObject(revokedAnswer);
+  });
+
+  it("still lets a staff owner invite be accepted: the system made it", async () => {
+    const staff = await createUser("inv-staff-owner", "admin");
+    const { sent, mail } = recordingMailer();
+    const email = newAddress("staff-made");
+    const made = ok(
+      await staffGroupService.createWithOwnerInvite(
+        staff.ctx,
+        { groupName: "Staff-made group", recipientName: "Lou Example", ownerEmail: email, attested: true },
+        { mail },
+      ),
+    );
+    const { res, joiner } = await acceptAs(sent[0]?.token ?? "", email);
+    expect(ok(res)).toMatchObject({ status: "joined", groupId: made.groupId, role: "owner" });
+    expect(await roleOf(made.groupId, joiner.user.id)).toBe("owner");
   });
 });

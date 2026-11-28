@@ -9,7 +9,7 @@ import { PROBE } from "../../../../test/probe";
 // The loading screen while the app starts (B-806): root.tsx's HydrateFallback
 // (the only one) shows it while the /app layout waits on the session and the
 // local database, instead of a blank page. It stays invisible for its first
-// 300 ms, follows the theme, and has no spinner under reduced motion (emulated
+// 300 ms, follows the theme, and has no spinner or bar under reduced motion (emulated
 // from this file, reset after each test).
 
 /** Chrome DevTools, for media emulation (Vitest types the session loosely). */
@@ -19,7 +19,7 @@ afterEach(async () => {
   await devtools().send("Emulation.setEmulatedMedia", { features: [] });
 });
 
-const status = () => page.getByRole("status", { name: "Loading…" });
+const status = () => page.getByRole("status", { name: "Opening Caretook…" });
 const screen = () => found(() => document.querySelector<HTMLElement>("[data-app-loading]"));
 const opacity = (el: Element) => getComputedStyle(el).opacity;
 
@@ -33,10 +33,11 @@ const pausedAt = (el: HTMLElement, ms: number) => {
 };
 
 describe("the loading screen", () => {
-  test("HydrateFallback renders the mark and Loading as a status", async () => {
+  test("HydrateFallback renders the mark and its first step as a status, with its bar", async () => {
     await renderInRouter(<HydrateFallback />);
-    await expect.element(status()).toHaveTextContent("Loading…");
+    await expect.element(status()).toHaveTextContent("Opening Caretook…");
     const el = await screen();
+    await expect.element(page.getByRole("progressbar", { name: "Starting Caretook" })).toBeInTheDocument();
     expect(el.querySelector("svg")).not.toBeNull();
     // A spinner in daisyUI's loading style, hidden from assistive tech.
     expect(el.querySelector(".loading.loading-spinner[aria-hidden='true']")).not.toBeNull();
@@ -54,7 +55,7 @@ describe("the loading screen", () => {
     await expect.poll(() => opacity(el)).toBe("1");
   });
 
-  test("under reduced motion: no spinner, and it appears at once at 300 ms", async () => {
+  test("under reduced motion: no spinner or bar, and it appears at once at 300 ms", async () => {
     await devtools().send("Emulation.setEmulatedMedia", {
       features: [{ name: "prefers-reduced-motion", value: "reduce" }],
     });
@@ -63,6 +64,10 @@ describe("the loading screen", () => {
     const spinner = el.querySelector(".loading");
     expect(spinner).not.toBeNull();
     expect(getComputedStyle(spinner as Element).display).toBe("none");
+    // Just the step line: no bar.
+    const bar = el.querySelector("progress");
+    expect(bar).not.toBeNull();
+    expect(getComputedStyle(bar as Element).display).toBe("none");
     expect(getComputedStyle(el).animationDuration).toBe("0s");
     const appear = pausedAt(el, 299);
     expect(opacity(el)).toBe("0");

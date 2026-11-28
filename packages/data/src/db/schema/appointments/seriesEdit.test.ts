@@ -1,9 +1,9 @@
 import type { PlanSeries, PlanVisit, SeriesEntryWrite, SeriesPlan } from "./seriesEdit";
 
 import { describe, expect, it } from "vitest";
-import { seriesVisitId } from "./repeatRule";
+import { seriesVisitId } from "../../../domain/appointments/repeatRule";
 import { isPastVisit, planSeriesEdit, ruleFrom, ruleUntil } from "./seriesEdit";
-import { seriesVisits } from "./seriesVisits";
+import { seriesVisits } from "../../../domain/appointments/seriesVisits";
 
 // The appointments area's clock: Wed 2026-11-18 10:00 in Los Angeles.
 const LA = "America/Los_Angeles";

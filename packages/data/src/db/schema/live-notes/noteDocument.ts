@@ -1,6 +1,6 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "../core/columns";
-import type { NoteEditors } from "./noteEditors";
+import type { NoteEditors } from "../../../domain/live-notes/noteEditors";
 import type { TimelineEntryKind } from "../timeline/timelineEntry";
 
 import { sql } from "drizzle-orm";
@@ -9,7 +9,7 @@ import { z } from "zod";
 import { carePeriodSchema } from "../care-periods/carePeriod";
 import { audits, enumCheck, timestamps } from "../core/columns";
 import { medicationSchema } from "../medications/medication";
-import { isYjsUpdate } from "./noteYjs";
+import { isYjsUpdate } from "../../../domain/live-notes/noteYjs";
 import { providerSchema } from "../providers/provider";
 import { todoSchema } from "../todos/todo";
 import { timelineEntrySchema } from "../timeline/timelineEntry";

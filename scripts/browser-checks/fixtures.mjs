@@ -20,10 +20,10 @@
 // - `signIn`, `openDevFamily` and `signOut` `waitFor`
 //   (polls an in-page function and awaits what it returns, so a promise counts
 //   by what it resolves to: B-172), and `psql` against the worktree's `PG_CONTAINER`.
-// - Smoke mode (`SMOKE=1`, `pnpm prd browser --smoke`): a test without the
+// - Smoke mode (`SMOKE=1`, `risa browser --smoke`): a test without the
 //   `@smoke` tag is skipped ("SKIP <title> (smoke)").
 //
-// Run specs only through `pnpm prd browser <check>` (browser.sh): it holds the
+// Run specs only through `risa browser <check>` (browser.sh): it holds the
 // lease, runs Playwright Test with one worker and this directory's config, and
 // applies the limits and the retry.
 import { execFileSync } from "node:child_process";

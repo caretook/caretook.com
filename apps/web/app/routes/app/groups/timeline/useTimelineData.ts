@@ -6,7 +6,7 @@ import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
-import type { TimelineDay } from "./timelineDays";
+import type { TimelineDay } from "~/lib/timeline/timelineDays";
 import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { TimelinePeriods } from "./timelinePeriods";
@@ -23,18 +23,19 @@ import { getSync, useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
-import { cachedRichText, groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import { cachedRichText, toPreviews, windowDocumentsQuery } from "~/lib/live-notes/notes.sync";
 import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import {
   fromLocalTimestamp,
   historyQuery,
+  historyWindow,
   membersQuery,
   readingsQuery,
   toLatestVitals,
   toMember,
   toTimelineEntries,
 } from "~/lib/timeline/timeline.sync";
-import { groupByDay } from "./timelineDays";
+import { groupByDay } from "~/lib/timeline/timelineDays";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { rowPassLogId, wholeLogsPage } from "~/lib/medications/passLogs";
@@ -153,10 +154,14 @@ export function useTimelineData({
   const [returning] = useState(() => wasKept(userId, groupId, locationKey));
   const [start] = useState(() => ({
     initial,
-    ...startPaging<EntryRow, EntryProviderLinkRow, EntryRow, EntryMedicationRow>(userId, groupId, {
-      locationKey,
-      filterKey,
-    }),
+    ...startPaging<EntryRow, EntryProviderLinkRow, EntryRow, EntryMedicationRow, NoteDocRow>(
+      userId,
+      groupId,
+      {
+        locationKey,
+        filterKey,
+      },
+    ),
   }));
   // The kept rows are the restored window's: they stand in for the loader's (one page) until the
   // watches answer, so the first render is as tall as the one left. New loader data replaces them.
@@ -192,9 +197,18 @@ export function useTimelineData({
   const memberRows = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, initial.memberRows);
   const readingsSql = readingsQuery(groupId);
   const readingRows = useLiveQuery<ReadingRow>(readingsSql.sql, readingsSql.params, initial.readingRows);
-  // Previews are rebuilt locally from the documents, so they include unsynced edits.
-  const documentsSql = groupDocumentsQuery(groupId);
-  const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
+  // Previews are rebuilt locally from the documents, so they include unsynced edits: only the
+  // documents of the entries in the window (the same as the entries'), never the group's.
+  const documentsSql = windowDocumentsQuery(
+    groupId,
+    historyWindow(groupId, filters, requested, cutoff, before),
+  );
+  const documents = useLiveRows<NoteDocRow>(
+    documentsSql.sql,
+    documentsSql.params,
+    restored?.documentRows ?? initial.documentRows,
+  );
+  const documentRows = documents.rows;
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   const documentsById = useMemo(() => new Map(documentRows.map((row) => [row.id, row])), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
@@ -210,7 +224,7 @@ export function useTimelineData({
   const nextRows = useLiveQuery<EntryRow>(ahead.next.sql, ahead.next.params, initial.nextRows);
   const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
   // The rows last read whole, which stay up while a moved window loads.
-  const windowFresh = entries.fresh && links.fresh;
+  const windowFresh = entries.fresh && links.fresh && documents.fresh;
   const [held, setHeld] = useState(entries.rows);
   // The window the rows on screen were fetched for: the cutoff's minute turn
   // refetches the same window, so it doesn't shrink the list while it does. A restored window
@@ -289,7 +303,13 @@ export function useTimelineData({
       filterKey,
       limit: requested,
       before,
-      rows: { entryRows: entries.rows, linkRows: links.rows, summaryRows, medicationRows: medications.rows },
+      rows: {
+        entryRows: entries.rows,
+        linkRows: links.rows,
+        summaryRows,
+        medicationRows: medications.rows,
+        documentRows,
+      },
     });
   }, [
     settledWindow,
@@ -303,6 +323,7 @@ export function useTimelineData({
     links.rows,
     summaryRows,
     medications.rows,
+    documentRows,
   ]);
 
   const days = groupByDay(shown, zone, new Date());

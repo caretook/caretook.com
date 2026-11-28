@@ -2,9 +2,10 @@ import type { MedicationForm } from "../medications/medication";
 import type { ProviderType } from "../providers/provider";
 
 import { MEDICATION_LIMITS } from "../medications/medication";
+import { FORM_LABELS } from "../medications/medicationDisplay";
 import { PROVIDER_LIMITS } from "../providers/provider";
-import { foldSearchText } from "../search/search";
-import { openingNewItem, vocabularyWord } from "./quickEntryVocabulary";
+import { foldSearchText } from "../../../domain/search/search";
+import { openingNewItem, vocabularyWord } from "../../../domain/assistant/quickEntryVocabulary";
 
 // Quick entry's new medications and providers: a line opening with "new
 // med", "started" (with a strength or form), "add provider" and the like
@@ -388,3 +389,25 @@ export const readNewItem = (
 /** Whether a line opens with a phrase that keeps it whole ("add provider Dr Kim, cardiology"). */
 export const keepsNewItemLine = (line: string) =>
   !!openingNewItem(line.split(/\s+/).slice(0, 4).map(vocabularyWord))?.entry.wholeLine;
+
+/**
+ * A new item card's wording: its name ("Lisinopril", or "New medication"
+ * with none), and what else the sheet will start with ("10 mg · Tablet ·
+ * once daily"; "Cardiology · 555-0100"). `practiceName` names a practice it's
+ * at. Quick entry's cards and the connector's add_provider answer with it.
+ */
+export const newItemPreview = (
+  draft: NewItemDraft,
+  practiceName?: (id: string) => string | undefined,
+): { title: string; detail: string | null; when: string } => {
+  const parts =
+    draft.kind === "medication"
+      ? [draft.strength, draft.form && FORM_LABELS[draft.form], draft.directions]
+      : [draft.specialty, draft.practiceId && practiceName?.(draft.practiceId), draft.phone, draft.address];
+  const fallback = draft.kind === "medication" ? "New medication" : "New provider";
+  return {
+    title: draft.name || fallback,
+    detail: parts.filter(Boolean).join(" · ") || null,
+    when: "",
+  };
+};

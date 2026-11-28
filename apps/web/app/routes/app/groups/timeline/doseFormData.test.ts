@@ -1,5 +1,3 @@
-import type { DoseSlot } from "../../../../lib/medications/dueDoses";
-
 import { describe, expect, it } from "vitest";
 import {
   doseFromForm,
@@ -10,6 +8,7 @@ import {
   parseDoseOption,
   quickAddFromForm,
 } from "./doseFormData";
+import type { DoseSlot } from "@caretook/data/schema";
 
 const M = "11111111-2222-4333-8444-555555555555";
 const form = (fields: Record<string, string>) => {

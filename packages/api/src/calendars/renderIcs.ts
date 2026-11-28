@@ -1,7 +1,8 @@
-import type { CalendarItem, ShareLevel } from "@caretook/data/schema";
+import type { ShareLevel } from "@caretook/data/schema";
 
-import { calendarText } from "@caretook/data/schema";
 import ical, { ICalEventStatus } from "ical-generator";
+import type { CalendarItem } from "@caretook/data/domain";
+import { calendarText } from "@caretook/data/domain";
 
 // The iCal feed's rendering (appointments-2, slice 5): `CalendarItem`s to a
 // VCALENDAR over ical-generator, server only. Timed items are in UTC, all-day

@@ -510,6 +510,9 @@ export const symptomTypes = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // Server-set (symptom-catalog-2): when a writer archived it, and a merged row's replacement.
+    archivedAt: text("archived_at"),
+    replacedById: text("replaced_by_id"),
   },
   (t) => [index("symptom_type_group").on(t.groupId)],
 );
@@ -549,6 +552,8 @@ export const tags = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // A palette id (tags-2, `TAG_COLORS`); null or unknown is the neutral chip.
+    color: text("color"),
   },
   (t) => [index("tag_group").on(t.groupId)],
 );
@@ -589,7 +594,12 @@ export const recordTags = sqliteTable(
  * `set_aside` (tried too often, slice 3). `data` is the op's data (JSON
  * text), `label` the row's title or name when the device knew it, and
  * `line_key` what the "Changes not saved" page groups by (a note's document
- * and its updates share one). Written by `lib/sync/uploader.ts`.
+ * and its updates share one; so do a multi-op write's ops, B-294), and
+ * `write_id` the write it was sent in (its local transaction id), null when it
+ * went without one; `write_seq` its place among the records written with it
+ * (one recording shares one `recorded_at`, so this keeps a write's op order
+ * for the page's first op and Try again, slice 5). Written by
+ * `lib/sync/uploader.ts`.
  */
 export const unsavedChanges = sqliteTable(
   "unsaved_change",
@@ -605,6 +615,8 @@ export const unsavedChanges = sqliteTable(
     outcome: text("outcome"),
     label: text("label"),
     lineKey: text("line_key"),
+    writeId: integer("write_id"),
+    writeSeq: integer("write_seq"),
   },
   (t) => [index("unsaved_change_line").on(t.lineKey)],
 );
@@ -641,13 +653,15 @@ export const drizzleSchema = {
  * The tables as PowerSync gets them (`DrizzleAppSchema`): `drizzleSchema`,
  * with per-table options. `todo` tracks metadata, so a write can flag itself
  * for the upload through its `_metadata` column (an Undo's delete of the
- * next occurrence, B-382). Drizzle queries keep `drizzleSchema`.
+ * next occurrence, B-382); so does `medication` (a pass delete's schedule
+ * rewrite, B-1006). Drizzle queries keep `drizzleSchema`.
  * `unsaved_change` is local only: no stream, no upload, no sync-matrix row
  * (`LOCAL_ONLY_TABLES`, which the agreement tests skip).
  */
 export const powerSyncSchema = {
   ...drizzleSchema,
   todos: { tableDefinition: todos, options: { trackMetadata: true } },
+  medications: { tableDefinition: medications, options: { trackMetadata: true } },
   unsavedChanges: { tableDefinition: unsavedChanges, options: { localOnly: true } },
 };
 

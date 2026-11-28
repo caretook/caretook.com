@@ -30,6 +30,7 @@ import {
   addToTimeline,
   expect,
   psql,
+  randomIp,
   signIn as fixtureSignIn,
   signOut,
   test,
@@ -381,10 +382,24 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         b[0].links === 1
       );
     }, 30_000);
+    // On a miss, where each device's tag upload stands (B-951: a stack missing
+    // a migration fails every tag insert, so it waits in the queue, retried).
+    const uploadsOf = async (page) =>
+      JSON.stringify({
+        waiting: (await localRows(page, "SELECT count(*) AS n FROM ps_crud"))[0]?.n,
+        notSaved: await localRows(
+          page,
+          "SELECT table_name, op, code, outcome FROM unsaved_change WHERE table_name IN ('tag', 'record_tag')",
+        ),
+      });
+    const tagsOk =
+      !!tagA?.ok && !!tagB?.ok && tagA.id === tagB.id && tagsOnServer === "1:1" && !!tagsConverged;
     await check(
       "tags: two members adding the same new tag to one record offline converge on one tag and one link",
-      !!tagA?.ok && !!tagB?.ok && tagA.id === tagB.id && tagsOnServer === "1:1" && !!tagsConverged,
-      `A ${JSON.stringify(tagA)}, B ${JSON.stringify(tagB)}; server ${tagsOnServer} (tags:links); A ${JSON.stringify(await tagsOn(A))}; B ${JSON.stringify(await tagsOn(B))}`,
+      tagsOk,
+      tagsOk
+        ? ""
+        : `A ${JSON.stringify(tagA)}, B ${JSON.stringify(tagB)}; server ${tagsOnServer} (tags:links); A ${JSON.stringify(await tagsOn(A))} uploads ${await uploadsOf(A)}; B ${JSON.stringify(await tagsOn(B))} uploads ${await uploadsOf(B)}`,
     );
 
     // 3b. A connector's write through /mcp reaches this device with its "via" tag.
@@ -407,6 +422,8 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
         authorization: `Bearer ${token}`,
+        // The check build runs as production, where /mcp refuses a request without a client IP.
+        "x-forwarded-for": randomIp(),
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
@@ -451,9 +468,10 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       const startsOn = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
         .format(new Date(Date.now() + 86400000));
       const byDay = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][new Date(startsOn + "T12:00:00Z").getUTCDay()];
-      return series.createSeries(window.caretookSync, { groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event",
+      const r = await series.createSeries(window.caretookSync, { groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event",
         rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=" + byDay, startsOn, startTime: "10:00", allDay: false, timeZone: tz,
         title: ${JSON.stringify(seriesTitle)}, durationMinutes: 60, place: null, providerIds: [] });
+      return { ...r, startsOn };
     })()`);
     const visitIds = made.ok
       ? (
@@ -496,13 +514,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await signIn(C, "viewer@example.com");
     await wf(C, rowWith(offName), 20_000);
     await check("viewer: sees the timeline, including the offline entry", true);
+    // A viewer's ⋯ holds no writer items: a symptom's is Copy link alone (every kind's items: component tests).
+    await press(C, `${rowWith(offName)}.querySelector('button[aria-label^="Actions"]')`);
+    await wf(C, menuItem("Copy link"), 10_000);
+    const viewerItems = await C.evaluate(
+      `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim()).join(",")`,
+    );
+    await C.keyboard.press("Escape");
     await check(
-      // A viewer's ⋯ is Print alone, on notes and events only (its items: component tests).
-      "viewer: no + button, no ⋯ menus but notes' and events' Print, no edit targets",
+      "viewer: no + button, no edit targets, and a symptom's ⋯ is Copy link alone",
       (await addButton(C).count()) === 0 &&
-        (await C.evaluate(
-          `!document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
-        )),
+        (await C.evaluate(`!document.querySelector('main ol [aria-label^="Edit "]')`)) &&
+        viewerItems === "Copy link",
+      viewerItems,
     );
 
     // 6-series. The series 5a made offline, checked once the viewer is in
@@ -651,9 +675,39 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       const s = await splitOn(B);
       return splitDone(s) ? s : null;
     }, 30_000);
+    // The series is Los Angeles's 14:30; B's row shows that instant in B's own
+    // zone (5:30 PM in New York), so the label is computed, not assumed.
+    const splitDay = new Date(Date.parse(`${made.startsOn}T00:00:00Z`) + 14 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const retimedLabel = await B.evaluate(
+      ([day]) => {
+        const wall = (t) => {
+          const p = Object.fromEntries(
+            new Intl.DateTimeFormat("en-US", {
+              timeZone: "America/Los_Angeles",
+              hourCycle: "h23",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+              .formatToParts(t)
+              .map((x) => [x.type, x.value]),
+          );
+          return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute);
+        };
+        const target = Date.parse(`${day}T14:30:00Z`);
+        let t = target;
+        for (let i = 0; i < 3; i++) t -= wall(t) - target;
+        return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(t);
+      },
+      [splitDay],
+    );
     const retimed = await waits(
       B,
-      `${upcomingRow(splitId)}?.querySelector("[data-when]")?.textContent.includes("2:30")`,
+      `${upcomingRow(splitId)}?.querySelector("[data-when]")?.textContent.includes(${JSON.stringify(retimedLabel)})`,
     );
     const serverRows = psql(
       `SELECT json_agg(r) FROM (SELECT 'old' AS id, rule, NULL AS start_time, NULL::uuid AS series_id FROM appointment_series WHERE id = '${made.seriesId}'
@@ -664,9 +718,9 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await check(
       `series: "this and later" reaches the other member as the split (old series ended, ${moved.length} later visits moved, ids kept)`,
       !!split.ok && !!splitB && retimed && splitDone(splitServer),
-      splitB
+      splitB && retimed && splitDone(splitServer)
         ? `${Date.now() - tSplit} ms after the edit`
-        : `${JSON.stringify(split)}; B ${JSON.stringify(await splitOn(B))}; server ${JSON.stringify(splitServer)}; retimed ${retimed}`,
+        : `${JSON.stringify(split)}; B ${JSON.stringify(await splitOn(B))}; server ${JSON.stringify(splitServer)}; retimed ${retimed} (${retimedLabel})`,
     );
     seriesMs += Date.now() - tSeries;
     console.log(`  series: its steps added ${seriesMs} ms to the run`);

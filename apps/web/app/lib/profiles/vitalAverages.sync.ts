@@ -6,10 +6,10 @@ import type { LocalQuery } from "../timeline/timeline.sync";
 import { isKnownReading } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { LONGEST_WINDOW, vitalAverages, windowStart } from "./vitalAverages";
-import { addDays, dayInZone, startOfDay } from "../core/zonedDay";
 import { useNow } from "../live-notes/editors.sync";
 import { useLiveQuery } from "../sync/index";
 import { fromLocalTimestamp, readRows, toLocalTimestamp } from "../timeline/timeline.sync";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 // Recent vital averages on the profile (B-100), from the device's copy: every
 // vital reading in the group since the longest window began, averaged by the

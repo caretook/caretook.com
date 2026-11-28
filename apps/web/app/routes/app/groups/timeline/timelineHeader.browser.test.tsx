@@ -182,7 +182,9 @@ describe("the + menu", () => {
     const headers = dayHeaders();
     expect(headers.length).toBeGreaterThan(2);
     for (const header of headers) {
-      const label = header.querySelector("h3")!.textContent;
+      // The full label (a past day's h3 also holds its phone form, B-999).
+      const label =
+        header.querySelector("h3 [data-day-full]")?.textContent ?? header.querySelector("h3")!.textContent;
       expect(plusOf(header)?.getAttribute("aria-label")).toBe(`Add to ${label}`);
       // In the day's actions, on the heading's row of the sticky header, and last (the far right).
       const actions = header.querySelector("[data-day-actions]")!;
@@ -288,6 +290,57 @@ describe("the Today card's vitals", () => {
   });
 });
 
+describe("a past day's heading (B-999)", () => {
+  /** The past day's heading, its visible text (the sr-only span is 1px), and the day as full and short text. */
+  const heading = () => {
+    const { key, header } = pastDay();
+    const h3 = header.querySelector("h3")!;
+    const [y, m, d] = key.split("-").map(Number) as [number, number, number];
+    const day = new Date(y, m - 1, d, 12);
+    const as = (weekday: "long" | "short") =>
+      day.toLocaleDateString("en-US", { weekday, month: "short", day: "numeric" });
+    const visible = [...h3.querySelectorAll<HTMLElement>("span")]
+      .filter((s) => s.checkVisibility() && s.getBoundingClientRect().width > 1)
+      .map((s) => s.textContent);
+    return { full: as("long"), short: as("short"), visible };
+  };
+
+  test("shows the short weekday on a phone and the full one from sm, named in full at both", async () => {
+    await openTimeline({ width: 420 });
+    await ready();
+    const { full, short, visible } = heading();
+    expect(short).not.toBe(full);
+    expect(visible).toEqual([short]);
+    await expect
+      .element(page.getByRole("heading", { level: 3, name: full, exact: true }))
+      .toBeInTheDocument();
+    // The copy-link and + labels keep the full label.
+    const { header } = pastDay();
+    expect(header.querySelector("[data-copy-link] button")?.getAttribute("aria-label")).toBe(
+      `Copy link to ${full}`,
+    );
+    expect(plusOf(header)?.getAttribute("aria-label")).toBe(`Add to ${full}`);
+
+    await page.viewport(1280, 900);
+    await frames();
+    expect(heading().visible).toEqual([full]);
+    await expect
+      .element(page.getByRole("heading", { level: 3, name: full, exact: true }))
+      .toBeInTheDocument();
+  });
+
+  test("Today stays one word at both widths", async () => {
+    await openTimeline({ width: 420 });
+    await ready();
+    const today = page.getByRole("heading", { level: 3, name: "Today", exact: true });
+    await expect.element(today).toBeVisible();
+    expect(today.element().textContent).toBe("Today");
+    await page.viewport(1280, 900);
+    await frames();
+    expect(today.element().textContent).toBe("Today");
+  });
+});
+
 describe("the care period in the day headers", () => {
   const daysAgo = (d: number, hour: number) => {
     const t = new Date();
@@ -353,7 +406,9 @@ describe("the care period in the day headers", () => {
     const change = today.querySelector<HTMLElement>("[data-period-change]")!;
     const icon = today.querySelector<SVGElement>("[data-period-line] > svg")!;
     expect(change.nextElementSibling).toBe(icon);
-    expect(change.getBoundingClientRect().right).toBeLessThanOrEqual(icon.getBoundingClientRect().left);
+    // Its box ends at the icon: its padding may reach up to 2.5px past the icon's edge (B-925).
+    expect(change.getBoundingClientRect().right).toBeLessThanOrEqual(icon.getBoundingClientRect().left + 2.5);
+    expect(change.getBoundingClientRect().left).toBeLessThan(icon.getBoundingClientRect().left);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   });
 

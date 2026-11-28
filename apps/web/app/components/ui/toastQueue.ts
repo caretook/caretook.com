@@ -17,6 +17,8 @@ export type ToastOptions = {
   message: string;
   /** One action button; it runs once and closes the toast. */
   action?: ToastAction;
+  /** A second action, after `action` (a nudge's Don't ask again); it too runs once and closes the toast. */
+  secondAction?: ToastAction;
   /** An Undo button (before `action`): it runs once and closes the toast. */
   undo?: () => void;
   /** Milliseconds until it closes itself (paused while hovered or focused); `null` stays until dismissed or used. */
@@ -56,8 +58,19 @@ class FadingQueue extends ToastQueue<ToastContent> {
 export const queue = new FadingQueue({ maxVisibleToasts: 1 });
 
 /** Show a toast; returns its id, for `dismissToast`. */
-export function toast({ message, action, undo, timeout = TOAST_TIMEOUT, data }: ToastOptions): string {
-  const actions = [...(undo ? [{ label: "Undo", onAction: undo }] : []), ...(action ? [action] : [])];
+export function toast({
+  message,
+  action,
+  secondAction,
+  undo,
+  timeout = TOAST_TIMEOUT,
+  data,
+}: ToastOptions): string {
+  const actions = [
+    ...(undo ? [{ label: "Undo", onAction: undo }] : []),
+    ...(action ? [action] : []),
+    ...(secondAction ? [secondAction] : []),
+  ];
   return queue.add({ message, data, actions }, timeout === null ? {} : { timeout });
 }
 

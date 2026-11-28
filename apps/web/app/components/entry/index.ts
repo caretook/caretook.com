@@ -1,4 +1,4 @@
-// One timeline entry, on more than one screen (the timeline, Upcoming and the entry page).
+// One timeline entry, on more than one screen (the timeline, the Planner's cards and the entry page).
 export type { EntryCancelActions } from "./EntryActions";
 export { CancelEventDialog } from "./CancelEventDialog";
 export { EntryActions } from "./EntryActions";
@@ -14,3 +14,13 @@ export { useEventCancel } from "./useEventCancel";
 export type { RescheduleTarget } from "./useEventReschedule";
 export { useEventReschedule } from "./useEventReschedule";
 export { MedicationHeading } from "./MedicationEntryText";
+export type { EntryLook, EntryViewProps } from "./TimelineEntryRow";
+export { CANCELLED_TEXT, CancelledBadge, EntryMenu, RowTags, TimelineEntryRow } from "./TimelineEntryRow";
+export type { UpcomingCardExtras, UpcomingPlace } from "./UpcomingEntryCard";
+export { UpcomingEntryCard } from "./UpcomingEntryCard";
+export { useOpenTodoCounts } from "./useOpenTodoCounts";
+export { OpenTodosMark } from "./OpenTodosMark";
+export { CopyLinkButton, useCopyLink } from "./CopyLinkButton";
+export { EntryOpenTarget } from "./EntryOpenTarget";
+export { LiveDot } from "./LiveDot";
+export { ASIDE_CLASS } from "./layout";

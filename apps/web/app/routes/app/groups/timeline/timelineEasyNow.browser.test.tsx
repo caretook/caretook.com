@@ -3,7 +3,6 @@ import type { Fixture, GroupRole } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { localDate } from "@caretook/data/schema";
 import { renderWithDevice } from "../../../../../test/device";
 import {
   at,
@@ -17,10 +16,10 @@ import {
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { forgetRecentLines, recordLine } from "~/lib/assistant/recentLines";
-import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { chooseEasyMode } from "./timelineWorld";
 import { found, waitUntil } from "../../../../../test/found";
+import { addDays, localDate, dayInZone, timeInZone } from "@caretook/data/domain";
 
 // Easy mode's Upcoming block (assistant slice 7), on the test device (offline):
 // the pass due now as one big Given all (its Undo is medications/today's), and
@@ -172,10 +171,12 @@ describe("the next appointment opens the next five upcoming items", () => {
   const toggle = () => page.getByRole("button", { name: /^Next: / });
   const list = () => document.querySelector<HTMLElement>("[data-easy-upcoming]");
   const items = () => [...(list()?.querySelectorAll<HTMLLIElement>("[data-easy-upcoming-item]") ?? [])];
-  const titles = () => items().map((li) => li.querySelector("span")?.textContent);
+  const titleOf = (li: Element) =>
+    li.querySelector("[data-easy-upcoming-title], [data-todo-title]")?.textContent;
+  const titles = () => items().map(titleOf);
   const itemLink = (title: string) =>
     items()
-      .find((li) => li.querySelector("span")?.textContent === title)!
+      .find((li) => titleOf(li) === title)!
       .querySelector("a")!;
 
   test("a tap opens the next five in Upcoming's order without navigating; See all; a second tap closes it", async () => {
@@ -237,6 +238,41 @@ describe("the next appointment opens the next five upcoming items", () => {
     await userEvent.click(itemLink("Fax the form"));
     await expect.element(page.getByRole("heading", { name: "Todo page" })).toBeVisible();
     expect(device.location()).toBe(appUrls.todo(TEST_GROUP.id, FAX.id));
+  });
+
+  test("a parent's tree on its day, and its step's branch under the dimmed parent on the step's; no ticks (todo-subtasks-3)", async () => {
+    const today = localDate(new Date(), TEST_TIME_ZONE);
+    const TRIP = todo({ title: "Plan the trip", dueOn: addDays(today, 3) });
+    const VAN = todo({ title: "Book the van", dueOn: today, parentId: TRIP.id });
+    const BAG = todo({ title: "Pack the bag", parentId: TRIP.id });
+    await open("caretaker", [VISIT, TRIP, VAN, BAG]);
+    await userEvent.click(toggle());
+    const item = (day: string) => list()?.querySelector(`[data-easy-upcoming-item="tree:${TRIP.id}:${day}"]`);
+    await waitUntil(() => !!item(today) && !!item(addDays(today, 3)), "the trip's two days");
+    // Today: the step's branch, its parent a dimmed context row.
+    const branch = item(today)!;
+    expect(branch.querySelector(`[data-todo="${TRIP.id}"]`)?.getAttribute("data-todo-look")).toBe("context");
+    expect(branch.querySelector(`[data-todo="${VAN.id}"]`)?.getAttribute("data-todo-look")).toBe("easy");
+    expect(branch.querySelector(`[data-todo="${BAG.id}"]`)).toBeNull();
+    // Its day: the whole tree in the easy look, the steps under the parent.
+    const whole = item(addDays(today, 3))!;
+    expect(
+      [...whole.querySelectorAll<HTMLElement>("[data-todo]")].map((row) => [
+        row.querySelector("[data-todo-title]")?.textContent,
+        row.dataset.todoLook,
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        ["Plan the trip", "easy"],
+        ["Book the van", "easy"],
+        ["Pack the bag", "easy"],
+      ]),
+    );
+    expect(whole.querySelector(`[data-todo="${TRIP.id}"]`)?.closest("li")?.textContent).toContain(
+      "Pack the bag",
+    );
+    // The list only shows: no ticks.
+    expect(list()?.querySelectorAll("input[type=checkbox]")).toHaveLength(0);
   });
 
   test("with one upcoming item: that item, then See all", async () => {

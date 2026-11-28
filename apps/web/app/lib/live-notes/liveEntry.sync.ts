@@ -2,7 +2,7 @@ import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 
 import { isLoggerRole } from "@caretook/data/permissions";
-import { canChangeEntry, canHaveNoteDocument, timelineEntryContentZSchema } from "@caretook/data/schema";
+import { canHaveNoteDocument, timelineEntryContentZSchema } from "@caretook/data/schema";
 import { noteDocuments, timelineEntries } from "../sync/schema";
 import {
   contentColumns,
@@ -13,6 +13,7 @@ import {
   nowTimestamp,
   readRows,
 } from "../timeline/timeline.sync";
+import { canChangeEntry } from "@caretook/data/domain";
 
 // Saving a live entry: a note (or event) and its live document, written
 // together on the first change (see lib/live-notes/liveEntry.ts for when).

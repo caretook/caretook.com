@@ -1,11 +1,11 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { CarePeriodRow, LocalCarePeriod } from "./carePeriods.sync";
 
-import { currentPeriod } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { useLiveQuery } from "../sync/index";
 import { carePeriodsQuery, toPeriodSpans } from "./carePeriods.sync";
 import { useNow } from "../live-notes/editors.sync";
+import type { PeriodSpan } from "@caretook/data/domain";
+import { currentPeriod } from "@caretook/data/domain";
 
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.
 const NO_ROWS: CarePeriodRow[] = [];

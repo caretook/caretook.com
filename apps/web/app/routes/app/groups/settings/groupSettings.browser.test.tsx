@@ -151,11 +151,15 @@ describe("Details", () => {
       .poll(() => recipientCard.querySelector('[role="status"]')?.textContent?.trim())
       .toBe("Saved.");
 
-    // The device is in Los Angeles (the tests' zone).
+    // The shortcut names and picks this device's zone, wherever the test runs (Chicago is neither runner zone).
+    const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(deviceZone).not.toBe("America/Chicago");
     await userEvent.selectOptions(ZONE(), "America/Chicago");
-    const shortcut = page.getByRole("button", { name: "Use this device's (America/Los Angeles)" });
+    const shortcut = page.getByRole("button", {
+      name: `Use this device's (${deviceZone.replaceAll("_", " ")})`,
+    });
     await userEvent.click(shortcut);
-    await expect.element(ZONE()).toHaveValue("America/Los_Angeles");
+    await expect.element(ZONE()).toHaveValue(deviceZone);
   });
 
   test("a caretaker: the group's name is read-only, with no controls; the profile is linked", async () => {
@@ -501,9 +505,13 @@ describe("Members", () => {
     await device.sync(fx.member({ id: mine!.id, userId: TEST_USER.id, role: "viewer" }));
     await device.settle();
     await expect.element(page.getByRole("button", { name: /^Add to / })).not.toBeInTheDocument();
-    expect(
-      document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]'),
-    ).toHaveLength(0);
+    expect(document.querySelectorAll('main ol [aria-label^="Edit "]')).toHaveLength(0);
+    // The row's ⋯ stays (Copy link is anyone's), its writer items gone.
+    await userEvent.click(page.getByRole("button", { name: /^Actions for symptom/ }));
+    await expect
+      .poll(() => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim()))
+      .toEqual(["Copy link"]);
+    await userEvent.keyboard("{Escape}");
     // No viewer note (timeline-ux-2): the missing writer controls say it.
     expect(page.getByText(/You can view/).query()).toBeNull();
   });

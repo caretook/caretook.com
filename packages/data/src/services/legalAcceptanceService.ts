@@ -3,11 +3,10 @@ import type { LegalAcceptanceSource } from "../db/schema";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
 
 import { DEFAULT_PAGE_SIZE, SYSTEM_USER } from "../constants";
-import { LEGAL_VERSIONS } from "../db/schema";
 import { isError, newError } from "../errors";
 import { legalAcceptanceModel } from "../models";
+import { LEGAL_VERSIONS } from "../domain/auth/legalRules";
 
-export const serviceName = "legalAcceptance";
 export const schemaName = legalAcceptanceModel.schemaName;
 
 type K = typeof schemaName;

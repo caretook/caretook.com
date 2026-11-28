@@ -2,6 +2,7 @@ import type { AssigneeChoice } from "./AssigneeField";
 import type { AssigneeMember } from "./assigneeOptions";
 import type { LinkChoices } from "./todoSheet";
 import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { LinkPick } from "~/lib/todos/linkOptions";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { TODO_LIMITS } from "@caretook/data/schema";
@@ -33,18 +34,32 @@ export type TodoFormPrefill = {
   dueTime?: string | null;
   providerId?: string | null;
   medicationId?: string | null;
+  /** An event to link (`todos/new?eventId=`): one of the starting `entryIds`. */
   eventId?: string | null;
-  /** A live note to link (`todos/new?entryId=`; an event's goes in `eventId`), kept in a hidden field. */
+  /** A live note or event to link (`todos/new?entryId=`): one of the starting `entryIds`. */
   entryId?: string | null;
   repeatRule?: string | null;
+};
+
+/**
+ * The record a new todo's sheet was opened from (B-947: the box suggests it
+ * first): its link prefill, a provider's, a medication's or an event's or
+ * note's page. An `entryId` is a note or an event; the box reads which.
+ */
+const cameFromOf = (prefill: TodoFormPrefill | undefined): LinkPick | null => {
+  if (prefill?.providerId) return { type: "provider", id: prefill.providerId };
+  if (prefill?.medicationId) return { type: "medication", id: prefill.medicationId };
+  if (prefill?.eventId) return { type: "event", id: prefill.eventId };
+  if (prefill?.entryId) return { type: "note", id: prefill.entryId };
+  return null;
 };
 
 /**
  * Add or edit a todo: the title, who does it, an optional due day with an
  * optional time (both in the recipient's zone), how it repeats (once it
  * has a day: planner-2; none for a subtask or a todo with subtasks:
- * todo-subtasks), and optional links to a
- * provider, an appointment and a medication. Posts to its sheet
+ * todo-subtasks), and optional links (the shared "Link to" box: a
+ * provider, a medication, any notes and events). Posts to its sheet
  * route's clientAction, which writes on the device; the shared Zod schema's
  * messages show on the fields.
  */
@@ -179,19 +194,18 @@ export function TodoForm({
         />
       )}
 
-      {!todo && prefill?.entryId && <input type="hidden" name={FIELD.entryId} value={prefill.entryId} />}
-
       <TodoLinkFields
         choices={links}
-        withEvent={!todo}
+        todoId={todo?.id ?? null}
+        cameFrom={todo ? null : cameFromOf(prefill)}
         initial={{
           providerId: todo ? todo.providerId : (prefill?.providerId ?? null),
-          eventId: todo ? null : (prefill?.eventId ?? null),
           medicationId: todo ? todo.medicationId : (prefill?.medicationId ?? null),
+          // An edited todo's notes and events are its link rows (read by the fields).
+          entryIds: todo ? [] : [prefill?.eventId, prefill?.entryId].filter((id): id is string => !!id),
         }}
         errors={{
           providerId: issueFor(issues, FIELD.providerId),
-          eventId: issueFor(issues, FIELD.eventId),
           medicationId: issueFor(issues, FIELD.medicationId),
         }}
       />

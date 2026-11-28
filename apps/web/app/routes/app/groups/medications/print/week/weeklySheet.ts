@@ -1,9 +1,15 @@
 import type { PrintMedicationInput, PrintRecipient } from "../printSheet";
-import type { SchedulePass } from "../../../../../../lib/medications/medicationDisplay";
 
-import { slotAmount, slotTimes, sortPasses } from "@caretook/data/schema";
-import { clockTime, FORM_LABELS, medicationTitle } from "../../../../../../lib/medications/medicationDisplay";
+import {
+  slotAmount,
+  slotTimes,
+  sortPasses,
+  clockTime,
+  FORM_LABELS,
+  medicationTitle,
+} from "@caretook/data/schema";
 import { addDays, dayIn, printSheet } from "../printSheet";
+import type { SchedulePass } from "@caretook/data/schema";
 
 // The weekly bedside sheet's view model: one week in the recipient's zone, a
 // row per pass and medication with a box per day, then blank rows for
@@ -13,6 +19,17 @@ import { addDays, dayIn, printSheet } from "../printSheet";
 
 /** Blank rows each as-needed medication gets, with room for the time and initials. */
 export const AS_NEEDED_LINES = 2;
+
+/**
+ * The marks in each dose box, one per answered dose state in the app: circle
+ * or tick one. In their own boxes, in this order, so a photo of the sheet
+ * reads back as the app's states. The sheet's legend says what each means.
+ */
+export const DOSE_MARKS = [
+  { mark: "G", state: "given", label: "Given" },
+  { mark: "S", state: "skipped", label: "Skipped" },
+  { mark: "R", state: "refused", label: "Refused" },
+] as const;
 
 /** The URL parameter for the week's first day ("YYYY-MM-DD"). */
 export const WEEK_START_PARAM = "start";

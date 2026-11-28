@@ -7,7 +7,7 @@ import { z } from "zod";
 import { audits, timestamps } from "../core/columns";
 import { providerSchema } from "./provider";
 import { timelineEntrySchema } from "../timeline/timelineEntry";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // Which providers an event or note was with: one row per (entry, provider).
 // A visit with the clinic and a call to the pharmacy link both.

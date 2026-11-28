@@ -15,16 +15,27 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 Notes for every wave:
 
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
-- Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-**Previous hand-over:** wave 14 landed 2026-11-25 as dev 51e9466 through PR #201, `--no-review` (Codex out of credits), CI components green (run 45749161182, 2cb10cc5); to-test/2026-11-25-2238-fixes-ui.md. Slices 79–84 (B-819, B-833, B-843, B-848, B-849 sonnet, B-850; others opus); details in the history file. Lesson: a label rename slice also greps `scripts/browser-checks/` (83 missed layout-offline.spec). `browser --suite` blocked by the permission classifier; `--changed --base dev` 6/6 after the fix. Docs folded into app-shell.md, live-notes.md; slice worktrees removed.
+**Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
 
-**Previous hand-over:** wave 15 landed 2026-11-25 as dev 2584a81 through PR #203, `--no-review` (Codex out of credits), CI integration green (run 45750856542, de32eac7), landed on an unsynced tip (dev shared no file); to-test/2026-11-25-2254-fixes-ui.md. Slice 85 (B-857, quick entry previews say Event; sonnet). Docs folded into assistant.md (trimmed to stay under budget). Slice worktree removed.
+**Wave 21 landed 2026-11-27** as dev 40ff2e6 through PR #297 (Codex clean on 75f1874), CI components green on the synced tip (run 46092112343, 6f0b5cce); to-test/2026-11-27-2025-fixes-ui.md. Slices 108 (B-975 marketing AI 'will not', sonnet, 1689bd40d) and 109 (B-980 subtask add on the title line via `TodoQuickAdd inline`, opus, c5e753432). Sync conflict in TodoTree (todo-links-2's `chain`), kept both. Browser `--changed --base dev`: marketing pass. Docs folded into todos. Slice worktrees removed. Lesson: format the plan after every Status edit, not only after writing slices (slice 108's check tripped on it). No fixes-ui item waits: topic closed.
 
-**Next session:** `pnpm backlog ingest` and `list`. Nothing triaged and waiting. Still held: B-694 (the user approves each form live), B-325 (Capacitor). No slice in flight.
+**Restarted 2026-11-27 (next session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (fae76d70c). Wave 22: B-999 (day headers abbreviate the weekday on phones) slice 110 on opus. Hot: `routes/app/groups/timeline/`, `lib/timeline/`.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Wave 22 landed 2026-11-27** as dev f41af6ffc through PR #305 (Codex clean on 88d910a), CI components green on the synced tip (run 46102756026, a4d044ac; the sync brought seeds, datastore reset); landed on an unsynced tip (dev's 1 commit shared no file). to-test/2026-11-27-2235-fixes-ui.md. Slice 110 (B-999 `shortDayLabel` below `sm`, full label stays the heading's name; opus, 4b24c08e0). Browser `--changed`: none mapped. Docs folded into timeline (trimmed to stay under budget). Slice worktree removed. No fixes-ui item waits: topic closed.
+
+**Restarted 2026-11-28, run-through:** landing mode run everything through. Fixed 2 stale anchors (slices 96, 97: forms moved to `components/`). Ingest empty, prd/fixes-ui = dev (04f86cd85). Wave 23: slices 111 (B-1015), 112 (B-1016), 113 (B-1021), all opus, parallel. Hot: `components/entry/`, `routes/app/groups/timeline/`, `routes/app/groups/todos/`, `lib/todos/`, `components/tags/`.
+
+**Restarted 2026-11-28 (next session), run-through:** landing mode run everything through. No cut-off landing; ingest empty; sync: up to date with dev (prd/fixes-ui = dev + the wave 23 docs commit b16e882e4). Wave 24: slices 114 (B-1022), 115 (B-1023), both opus, parallel. Hot: `components/todos/`, `routes/app/groups/todo/`, `routes/app/groups/todos/`, `routes/app/groups/planner/`, `lib/todos/`, `components/tags/`.
+
+| Slice | Item                  | State                                                                                              | Merge     |
+| ----- | --------------------- | -------------------------------------------------------------------------------------------------- | --------- |
+| 114   | B-1022 (todo ⋯ menu)  | merged (opus; `TodoMenu` in components/todos, todo route clientAction gone, not on Upcoming cards) | 99c5a2939 |
+| 115   | B-1023 (add-tag wrap) | merged (opus; pr-1.5 on the item before Add tag)                                                   | fb20719d5 |
+
+Wave 24 gate: CI components on 62284cd9 failed (run 46159215768): plannerAddTodo "a todo's page Edit still comes back" (blame: ours, slice 114); fix sent to slice 114's agent; fix 126253a21 merged as 3f1db7e6e (plannerAddTodo and easyRolePages tests go through the ⋯); rerun green (run 46160421549, 4b6e82fb); sync: no merge needed. PR #333 opened, Codex clean on 4b6e82f. Browser `--changed`: none mapped. Docs folded into todos (`TodoMenu`, trimmed to stay under budget) and tags. Landing now. Docs to fold at landing: todos.md still names `SKIP_INTENT` and TodoHeader's own Edit; point it at `TodoMenu`.
+
+**Wave 23 landed 2026-11-28** as dev cbed7d899 through PR #330 (Codex clean on 2838d42), CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shared no file), landed on an unsynced tip. to-test/2026-11-28-0957-fixes-ui.md. Slices 111 (B-1015 one `TimelineEntryRow` with `look`, `TimelineEntryCard` gone, `PassLogItem` follows; opus, 1bca848ec), 112 (B-1016 Done as trees via `doneTreePage`; opus, e8c1c0298), 113 (B-1021 add-tag button is the chips list's last item; opus, 299ddb718). Browser `--changed`: roundtrip pass (no `--suite`: the user wants it asked first). Docs folded into components, timeline, todos, layout (trimmed to stay at or under dev). Slice worktrees removed. Waiting for the next wave: B-1022 (todo rows get a ⋯ menu), B-1023 (add-tag wraps 6px in on narrow rows).
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1244,3 +1255,446 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/
 
 - [ ] Unit test: "appointment with Dr. Lee tomorrow 3pm" previews the title "Event with <provider>"; "dental cleaning appt friday" previews "Dental cleaning"; a bare "appointment tomorrow" previews "Event".
 - [ ] No test, browser check or screen still expects an "Appointment" title from quick entry.
+
+## Wave 16 (written 2026-11-26 by the orchestrator, from the triaged fixes-ui items)
+
+Slices 86–94. Slice 90 is blocked by 89 (same file, `OfflineBanner.tsx`); the others are independent. Still held: B-694, B-325.
+
+## Slice 86: The front page's hero buttons sit side by side on a phone (B-885)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: component
+
+**Problem.** On a phone the front page hero's two call-to-action buttons wrap onto two lines (`apps/web/app/routes/marketing/home/`, `routes/marketing/sections/Sections.tsx`).
+
+**Build.** The two buttons fit side by side at 360 px wide and up (shorter padding or size on small screens, `flex-nowrap`, no text wrapping inside a button); the wider layout is unchanged. Don't change the copy.
+
+**Acceptance criteria.**
+
+- [ ] Component test at a 360 px viewport: the hero's two buttons share one row (same top) and neither label wraps.
+
+## Slice 87: Quick entry's suggestion popovers don't overlap; Tab completes one suggestion (B-897, B-900)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/components.md · Tests: component
+
+**Problem.** In quick entry (`components/quick-entry/`: `QuickEntryBox.tsx`, `QuickEntryCompletions.tsx`, `QuickEntrySuggestions.tsx`), the medication autocomplete popover covers the event suggestion box (B-897). Tab does nothing useful in the autocomplete (B-900).
+
+**Build.** The autocomplete opens **above** the input and the suggestion box stays **below**, so neither covers the other (keep it on screen near the top edge: flip below only when there's no room above, and then the suggestion box still isn't covered). Tab: with exactly one autocomplete suggestion, Tab completes it and keeps focus in the input; with several, Tab moves focus into the suggestion list (the first item) so arrows and Enter pick one; with none, Tab moves on as usual. Escape still closes the list.
+
+**Acceptance criteria.**
+
+- [ ] Component test: typing a medication name with the event suggestion showing, the autocomplete's box sits above the input and doesn't intersect the suggestion box.
+- [ ] Component test: one suggestion, Tab completes it and focus stays in the input; several, Tab focuses the first suggestion; none, Tab leaves the input.
+
+## Slice 88: Quick entry reads type words without a colon and 'add' as a cue (B-902)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit (`packages/data`)
+
+**Problem.** The parser (`packages/data/src/db/schema/assistant/quickEntry.ts`) only takes a kind from prefixes like `t:`, `task:`, `todo`, `to-do:`, `to do:`. "to-do call the pharmacy", "add todo …", "add note …", "add event …" don't pick their kind.
+
+**Build.** A leading type word picks its kind with or without a colon (`todo`, `to-do`, `to do`, `task`, `note`, `event`, and whichever other kind words the parser already knows). A leading `add` followed by a type word is a cue: both words are dropped and the kind is set. `add` not followed by a type word stays part of the text ("add salt to diet" is not a kind cue and keeps its words). Don't misread a type word that is the start of ordinary text when the existing rules already treat it as text (keep every existing test green; if one conflicts with this item, follow the item and note it in the hand-off). Update the prefixes list in `docs/domain/assistant.md`'s wording only through the hand-off (loops don't edit docs: say what changed).
+
+**Acceptance criteria.**
+
+- [ ] Unit tests: "to-do call the pharmacy", "todo call the pharmacy", "add todo call the pharmacy", "add to-do call the pharmacy" each parse as a to-do titled "Call the pharmacy" (or the parser's usual casing); "add note slept well" is a note; "add event dentist friday 3pm" is an event; "add salt to diet" keeps "add" in its text and isn't given a kind by the cue.
+
+## Slice 89: The offline banner no longer shows at random while online (B-904)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** After B-840's 10 s grace (`routes/app/layout/OfflineBanner.tsx`), the banner still appears at random while online, mostly on local dev.
+
+**Build.** Find the cause first, on the dev stack: log what flips the status the banner reads (PowerSync `connected`, `navigator.onLine`, or whatever it uses) with timestamps and reasons. Leads: a cold dev load (Vite unbundled modules, the PowerSync worker and WASM) taking over 10 s to connect; dev server restarts or HMR reloads; the local PowerSync container closing streams, or the 5-minute token refresh (`auth.ts`) leaving `connected` false longer than a retry. Fix the cause. If it is dev-only and not reachable in production, widen the grace on dev only (by `import.meta.env.DEV`), and say so. The banner should mean "you're offline", so prefer `navigator.onLine` plus a failed reconnect over a single PowerSync disconnect if that's the cause. Remove the logging before hand-off (or leave it behind a dev-only flag). The hand-off names the cause found.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `offlineBanner.browser.test.tsx`) covering the cause found: e.g. a stream that drops and reconnects within the grace, or a token refresh, never shows the banner; a real offline still shows it after the grace.
+
+## Slice 90: The offline banner is a kit banner and doesn't shift the page (B-905)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component · Blocked by: slice 89
+
+**Problem.** `OfflineBanner.tsx` is a hand-rolled `<p>` in the page flow under the header, so it pushes the page down when it opens.
+
+**Build.** Build it from the kit: `ui/Notice` if it fits, else a banner variant added to `ui/` (and to the `/dev/ui` gallery), per ui-kit.md. Show it without moving content: overlaid just under the header (absolutely or fixed positioned within the frame), never covering the header, the tab bar or an open sheet. Keep its live region (`role="status"` or what it has), `print:hidden`, and slice 89's timing.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the banner renders through the kit component; showing it doesn't change the main content's top offset (measure before and after); it doesn't overlap the header.
+
+## Slice 91: Today's add-care-period button sits next to the care period (B-906)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/care-periods.md · Tests: component
+
+**Problem.** On the timeline's Today header (`routes/app/groups/timeline/DayHeader.tsx`), the add-a-care-period icon sits far from the care period display.
+
+**Build.** Put the button right beside the care period display (a small gap, one group), at every width; nothing else on the header moves. Keep its label and hit size.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `timelineCarePeriods.browser.test.tsx`): the button's left edge is within a few pixels (say 16 px) of the care period display's right edge, at phone and desktop widths.
+
+## Slice 92: One standard full-page loader inside the app frame (B-908)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** In-app full-page loads use `ui/Loading`'s small inline spinner (`components/shell/FirstSyncPending.tsx`: "Getting your care groups…"), not the app loader's look (`brand/AppLoading.tsx`).
+
+**Build.** A `ui/` page loader with AppLoading's look (the mark, spinner and message, centred in the content area), shown inside the `/app` frame under the header, with a custom message. Optional, configurable "Go back" button to cancel a load, and a watcher that after a configurable threshold (default about 10 s) shows a "this is taking a while" prompt with Go back. Go back uses history when there is any, else the groups list (`appUrls`). Reuse AppLoading's styles (share them, don't copy); AppLoading itself stays root's script-free HydrateFallback. Add it to the `/dev/ui` gallery. Move FirstSyncPending onto it. The other `ui/Loading` uses (home route, RemindMeSheet, VisitPrepSheet, GoogleCard) are inline or in sheets: move only the home route if it's a full-page load, leave the rest.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the loader shows its message; the slow prompt appears only after the threshold (fake timers); Go back navigates back, or to the groups list with no history. No exact-wording asserts.
+- [ ] FirstSyncPending renders through the new loader (its test updated).
+
+## Slice 93: Providers list: Condensed and Full layouts, sharing the timeline's control (B-909)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/providers.md, docs/domain/timeline.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: unit, component
+
+**Problem.** The timeline has a Condensed/Full layout choice (the Layout section of `routes/app/groups/timeline/TimelineViewMenu.tsx`, saved as `userPreferences.timelineView` through `useTimelineView` and `saveSettings`); the providers list has none.
+
+**Build.** Lift the layout items and their icons (lucide `List` for Condensed, `LayoutList` for Full) into one shared piece in `components/` (or `ui/` if it's generic) used by both the timeline's menu and the providers list. Add a separate optional `providersView` key to `userPreferencesZSchema` (`packages/data/src/db/schema/app-shell/userPreferences.ts`; jsonb, no migration; same values as `TIMELINE_VIEWS`, default Condensed), with a resolver like `resolveTimelineView`, and a hook like `useTimelineView`. The providers list (`routes/app/groups/providers/`: `ProviderListItem.tsx`, `DirectoryResults.tsx`) gets a dense one-line row for Condensed (name, specialty, the main contact action) and today's fuller item for Full. The timeline's behaviour is unchanged. The user's choice (2026-11-26): separate settings. If this runs past 12 files, hand off what's done and say so.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: `providersView` parses, and resolves to Condensed when unset; the timeline's key is unaffected.
+- [ ] Component test: the providers list shows Condensed rows by default; choosing Full switches to the fuller items and saves `providersView`; the timeline's menu still shows its layout choice through the shared piece.
+
+## Slice 94: The printed weekly sheet marks a dose given, skipped or refused (B-916)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: unit, component
+
+**Problem.** The weekly medication sheet (`routes/app/groups/medications/print/week/`: `weeklySheet.ts`, `WeeklyChart.tsx`, `route.tsx`) only leaves room to mark a dose given.
+
+**Build.** Each slot gets three small marks to circle or tick: G (given), S (skipped), R (refused), with a legend on the sheet saying what each means, so the paper matches the app's dose states and an AI can read a photo of it (clear, separate boxes). Drop PrintAllergies and PrintConditions from the weekly sheet (they stay on the medication list print) and use the room for the marks. Keep it on one page at the sizes it fits today.
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`weeklySheet.test.ts`) or component test: each slot has the three marks; the legend is present; the weekly sheet no longer renders allergies or conditions, and the medication list print still does (`print.browser.test.tsx`).
+
+## Wave 17 (written 2026-11-26 by the orchestrator, from B-694 now that the user approved every split)
+
+B-694's notes are the spec; read them all (`pnpm backlog show B-694`). Approved splits: **Medication** Essentials (Name*, Type*, Strength and Dose each time on one row, side by side on phones too, Schedule, Prescriber, Pharmacy) | Details (Form, Directions, Conditions, Why it's taken, Started on) | Refills (Refills left, Rx number, Last filled, Quantity); **Provider** Essentials (Type*, Name*, Specialty, Practice for the types that have one, Phones) | More (Email, Address, Website, Primary, Past); **Condition** no tabs. Other forms unchanged.
+
+Every slice: no migration, no dependency; don't edit `docs/` or `apps/web/test/` (orchestration-split-3 holds them; the orchestrator folds docs at landing: say in the hand-off what the docs should record). If a slice runs past 12 files, hand off what's done and say so.
+
+## Slice 95: One shared tabs component: page tabs as links, form tabs as in-place panels (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Problem.** `components/ui/TabNav.tsx` is route links only; form tabs need the same look but must switch in place without navigating or unmounting fields.
+
+**Build.** One shared tabs piece in `components/ui/` that owns the look (bar, spacing, the whole-section current fill from B-683, icon, count, 320px phone width without horizontal scroll), with two behaviours: page tabs (refactor `TabNav` onto it: same props, links in a nav, `aria-current`, URLs unchanged, so its callers don't change) and form tabs (a tablist with panels switching in place; React Aria Tabs is allowed in `ui/`). Form tabs: every panel stays mounted (hidden ones keep their values and submit); a tab can show a "has content" marker and an error marker; a helper (or built-in behaviour) that, given a field name or element with an error, switches to the panel holding it and focuses the field, for both native validation (`invalid` events) and server issues. Export it from `components/ui/index.ts` and add both variants to the `/dev/ui` gallery (`routes/dev/ui/`).
+
+**Acceptance criteria.**
+
+- [ ] `TabNav.browser.test.tsx` passes unchanged (or with only import changes), including the dark contrast test.
+- [ ] Component test: form tabs switch panels in place with arrow keys and click; hidden panels stay in the DOM and their inputs keep typed values and are included in `FormData`.
+- [ ] Component test: an invalid field on a hidden panel switches to its tab, focuses it, and the tab shows an error marker; the content marker shows when told to.
+- [ ] The gallery test covers the new entry.
+
+## Slice 96: Provider form on two tabs, Essentials and More (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/providers.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 95.
+
+**Build.** `components/providers/ProviderForm.tsx` uses slice 95's form tabs to the approved split. Save (`FormFooter`) stays visible on every tab. Editing opens on Essentials; More shows the content marker when it holds a saved value. A server or native error on More switches there and focuses the field. The sheet's discard prompt (`providerSheetGuard.ts`) still counts fields on every tab.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a new provider saves from Essentials alone; a value typed on More survives switching back and is saved.
+- [ ] Component test: editing a provider with an email opens on Essentials with More marked; an invalid email switches to More and focuses it; the discard prompt fires for a change made only on More.
+
+## Slice 97: Medication form on three tabs, Essentials, Details and Refills (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 95.
+
+**Build.** `components/medications/MedicationForm.tsx` uses slice 95's form tabs to the approved split; Strength and Dose each time share one row, side by side on phones too. The tabs replace the "Prescription details" fold (`hasPrescriptionDetails`, `detailsOpen`, the `data-prescription-details` focus path): every type shows every field on its tab. Save stays visible on every tab; editing opens on Essentials, with the content marker on tabs holding saved values; errors switch tabs and focus the field; the discard prompt counts every tab. Leave the Schedule field as it is (slice 98 changes it). Update `medicationForm.browser.test.tsx` where it tested the fold.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a new medication saves from Essentials alone; values on Details and Refills survive switching and are saved.
+- [ ] Component test: editing one with an Rx number opens on Essentials with Refills marked; an error on Refills switches there and focuses the field; the fold is gone for every type.
+
+## Slice 98: Medication schedule: At set times opens an overlay, the form shows a summary (B-694)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 97.
+
+**Build.** In `ScheduleFields.tsx` (used by the medication form), choosing At set times opens an overlay (the passes or times and their amounts) instead of expanding inline; on closing it the form shows a short summary of the chosen times with a way to edit them, so Essentials stays about one iPhone 16 screen. The overlay's values still submit with the form (keep them in the form, e.g. mounted hidden inputs), errors in them reopen the overlay at the field, and the discard prompt still counts them. Use the kit's sheet or dialog patterns over a sheet (read ui-kit first).
+
+**Acceptance criteria.**
+
+- [ ] Component test (`medicationPassSchedule.browser.test.tsx` or the form test): choosing At set times opens the overlay; after choosing times and closing it, the summary lists them and Edit reopens it; saving sends the chosen times.
+- [ ] Component test: an existing medication on set times shows the summary, not the inline fields; an invalid amount reopens the overlay at that field.
+
+## Wave 18 (written 2026-11-26 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 99, 100 and 101 run in parallel; 102 waits for 99 (both edit `DayHeader.tsx`'s neighbourhood).
+
+## Slice 99: Timeline entry's copy-link moves into the ⋯ menu (B-899)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** Each timeline entry carries its own "get link" icon beside the ⋯ menu, in both the full and easy views, which crowds the row. tags-2's quick tags (B-892) will build on these rows, so this lands first.
+
+**Build.** Drop the per-entry `CopyLinkButton` from `routes/app/groups/timeline/TimelineEntryRow.tsx` (and the easy view's rows or `TimelineEntryCard.tsx`, wherever an entry shows one) and add a "Copy link" item to the entry's ⋯ menu (`components/entry/entryActionItems.ts`, `EntryActions.tsx`), copying the same path `timelineLinks.ts` gives today, with the same confirmation it shows now. Readers who can't write still get the item (copying a link isn't a write); if they have no ⋯ menu today, give them one with just that item. The day header's copy-link button stays as it is. Delete `CopyLinkButton.tsx` only if nothing uses it any more (the day header still does).
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineCopyLink.browser.test.tsx`, updated): an entry row shows no copy-link button; its ⋯ menu has "Copy link", which copies the entry's link, in the full and the easy view.
+- [ ] Component test: a reader (no write role) can open the menu and copy the link.
+- [ ] `entryActionItems.test.ts`: the copy-link item is present for writers and readers.
+
+## Slice 100: Provider specialty suggests common specialties (B-923)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md, docs/domain/ui-kit.md · Tests: component
+
+**Problem.** Specialty is free text in the provider form (Essentials tab), so people type it from scratch and spell it differently.
+
+**Build.** In `components/providers/ProviderForm.tsx`, give the specialty field a native `<datalist>` of suggestions per provider type, beside `SPECIALTY`: for clinicians a fixed list of common specialties (Primary care, Cardiology, Oncology, Neurology, Physical therapy, Dermatology, Gastroenterology, Endocrinology, Psychiatry, Orthopedics, …); for practices, pharmacies and other, a short list matching their label (e.g. Retail, Mail order, Compounding, Specialty for pharmacies). Typed values still save unchanged. Keep the list in a small pure module (e.g. `lib/providers/specialties.ts`) so it's testable. Use the kit combo box only if a datalist can't be made to work with the kit's `Field`; say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: each type has a non-empty, de-duplicated suggestion list.
+- [ ] Component test: the specialty input is linked to a datalist whose options are that type's suggestions, and changing the type changes them.
+- [ ] Component test: a value not in the list still saves.
+
+## Slice 101: Provider page header actions fit on a phone (B-924)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/providers.md · Tests: component
+
+**Problem.** On a phone, the provider page's Copy to another group, Tags and Edit buttons overlap the provider's name and Edit runs off the right edge (user screenshot, a pharmacy, dark theme). `components/ui/DetailHeader.tsx` expects Edit plus a ⋯ menu in a `shrink-0` actions column, but `routes/app/groups/provider/ProviderHeader.tsx` passes three labelled buttons.
+
+**Build.** On the provider page keep Edit and move Copy to another group and Tags into a ⋯ menu, matching the other DetailHeader pages (todo, period, profile, medication). Check those four pages for the same overflow at phone width and fix any that shows it the same way. Change `DetailHeader` itself only if the title can still be overlapped with a well-formed actions column (e.g. it needs `min-w-0` on the title); keep its API.
+
+**Acceptance criteria.**
+
+- [ ] Component test at phone width (375px): on the provider page the actions don't overlap the title and nothing overflows the header; Copy to another group and Tags are in the ⋯ menu and still work.
+- [ ] Component test (or the existing `DetailHeader.browser.test.tsx`): a long title wraps or truncates beside Edit and ⋯ without overlap.
+
+## Slice 102: Today header's Change care period arrows sit 6px from the icon (B-925)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/care-periods.md · Tests: component
+
+**Blocked by:** slice 99.
+
+**Problem.** After B-906, the Change care period arrows sit about 8px from the period's icon, against 6px between the icon and the text. In `routes/app/groups/timeline/DayHeader.tsx` (`DayPeriod`) the row's gap is `gap-1.5`; the Change button is a ghost sm square (32px box, 16px icon, 8px padding a side) pulled in by `-me-1.5`.
+
+**Build.** Change the Change button's `-me-1.5` to `-me-2` so both gaps are 6px; the hit box stays full size. Check both views (easy uses `ICON_LG` on the period icon) and adjust the easy one if its gap differs.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineCarePeriods.browser.test.tsx`): the gap from the arrows' icon to the period icon equals the period icon to text gap, within 1px, in the full and the easy view; the button's box is still 32px.
+
+## Wave 19 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 103–105 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 103: Provider page's linked entries use the timeline's entry row (B-937)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/providers.md · Tests: component
+
+**Problem.** `routes/app/groups/provider/LinkedEntries.tsx` builds its own rows (kind icon, title, day and time), so a linked note or event looks different from the same entry on the timeline: no live dot, no cancelled badge, no open-todos mark.
+
+**Build.** Render each linked entry with the timeline's row (`routes/app/groups/timeline/TimelineEntryRow.tsx`, or the smallest shared piece of it), so it looks the same as on the timeline and opens its entry. Check which of the row's parts need timeline context (the ⋯ menu's actions, filter links, search marks, author, `useCopyLink`): pass what fits on the provider page, leave out what doesn't (no filter links: they'd point at the timeline's filters from another screen; a viewer still gets no Delete). Rows here are not grouped by day, so the row must show the day as well as the time. If reuse needs a prop or a small split in the timeline folder, make it there and keep the timeline's own rows unchanged. Keep the empty state and the live query.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a linked note and a linked event render with the timeline row's markup (the same data attributes or roles the timeline's row tests use), with their day and time, and each opens its entry.
+- [ ] Component test: a cancelled linked event shows the cancelled badge.
+- [ ] The timeline's own row tests still pass unchanged; grep `scripts/browser-checks/` and other tests for `data-linked-entries` and `data-entry-id` and update any that assert the old markup.
+
+## Slice 104: Medication names list brand names in parentheses (B-939)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/assistant.md · Tests: unit
+
+**Problem.** `apps/web/app/lib/medications/medicationNameList.ts` lists about 200 generic names only, so typing "Tylenol" suggests nothing and a family who knows a medication by its brand can't find it.
+
+**Build.** Add the common US brand name(s) in parentheses to each entry that has one, e.g. `Acetaminophen (Tylenol)`, `Atorvastatin (Lipitor)`; at most two brands per name, the best known first; entries without a well-known brand stay as they are. Keep the list alphabetical by generic, one entry per medication, names only, and keep the look-alike rule (each shown in full; a pick is the only way one fills the field). Update the file's header comment. The shared matcher (`lib/core/nameSuggestions.ts`) already matches any word of a name, so "Tylenol" should suggest `Acetaminophen (Tylenol)`; confirm with tests rather than changing it. Then confirm the text matchers find a brand word in a saved name: quick entry's `matchMedication` (`packages/data/src/db/schema/assistant/quickEntry.ts`, which splits names into words) for "gave Tylenol" against a medication saved as `Acetaminophen (Tylenol)`; fix only if a test shows it fails. The connector's dose tools take ids, so no change there. Don't touch medications already saved under a generic name (no data change).
+
+**Acceptance criteria.**
+
+- [ ] Unit test (`medicationNames.test.ts`): typing "tylenol" suggests "Acetaminophen (Tylenol)"; typing "acetamin" suggests it too; a group's own saved "Acetaminophen" still comes first and isn't duplicated by the curated entry only when their folded text is the same (document what happens when it differs).
+- [ ] Unit test (quick entry's tests): "gave Tylenol" matches a group medication named "Acetaminophen (Tylenol)", and "gave acetaminophen" still does.
+- [ ] The list stays alphabetical and free of duplicates (a test checks both).
+
+## Slice 105: Provider rows show the primary phone and address (B-940)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md · Tests: component
+
+**Problem.** `routes/app/groups/providers/ProviderListItem.tsx`'s full row shows no contact details (B-422), so reading a number aloud to a front desk means opening the provider. The condensed row has no provider type icon.
+
+**Build.** Full row: under the details line, print the primary phone number and the address in full as readable text, each a link (`tel:`; the maps link `contactActions.ts` already builds), and an email icon button when there is an email. Use the provider's existing contact helpers in `lib/providers/contactActions.ts` (and tidy the stale comments about directory rows there and in `components/providers/ContactActions.tsx`). The links sit above the row's stretched name link (`relative z-10` or as condensed's `ContactActions` does), each at least 44px tall to tap, and wrap rather than truncate the number; a past provider's stay muted. Condensed row: the same `ProviderTypeIcon` as the full row, before the name. This reverses B-422's no-contact-links rule for the full view: say so in the hand-off (the orchestrator folds it into `docs/domain/providers.md`; loops don't edit docs).
+
+**Acceptance criteria.**
+
+- [ ] Component test: a full row with a phone, address and email shows the number and address as text, with `tel:` and maps links, and an email link with an accessible name; the name link still opens the provider.
+- [ ] Component test: a full row with none of them shows no contact line and no gap.
+- [ ] Component test: a condensed row shows the provider type icon.
+- [ ] Grep tests and `scripts/browser-checks/` for assertions that full rows have no contact links (B-422) and update them.
+
+## Wave 20 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 106 and 107 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 106: First load shows a friendlier loading screen with progress (B-957)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component, unit
+
+**Problem.** From sign-in to the first timeline row takes about 2 s on a 4G phone and 4 s on 3G (B-764). Meanwhile the user sees the mark and "Loading…" (`components/brand/AppLoading.tsx`, root's `HydrateFallback`) and then "Getting your care groups…" (`components/shell/FirstSyncPending.tsx`), with no sense that anything is moving.
+
+**Build.** One shared loading display with a short, friendly step line and a progress bar, used by both screens (extend `LoadingMark`, which `ui/PageLoading` shares, rather than making a second look). The steps, in order: opening the app (route chunks loading), opening your device copy (the local database, `lib/sync/client`), syncing your care groups (PowerSync's first sync: connecting, then `downloadProgress` when it has one, so the bar moves on a big download), and opening the screen. Keep the step state in one small client-only store under `lib/sync/` (or `lib/app-shell/`, whichever owns the startup), that the startup code advances and the display reads (`useSyncExternalStore`); never a server loader. Before scripts run (the server's page and the native SPA's file) the display shows its first step with no bar movement, as today; app.css's 300 ms invisible start and the reduced-motion rule stay (reduced motion: no animated bar, just the step line). The bar never moves backwards; a step that is skipped (a returning device with the copy already synced) is passed over, so a fast start still looks like today. Words: warm and short ("Opening Caretook…", "Getting your notes ready…", "Syncing your care groups… 40%"); no technical words (no "WASM", "database", "sync stream"). It still says nothing about being offline (the frame's banner does). Accessible: the bar is a `<progress>` with a label, the step line a polite live region that announces a step change, not every percent.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the startup store moves forward through the steps, never back, skips steps, and maps download progress to a percentage.
+- [ ] Component test: the loading display shows the current step's words and a labelled progress bar; with no progress it shows the step only.
+- [ ] Component test (`FirstSyncPending.browser.test.tsx`): first sync in progress shows the syncing step with its percentage; done still reruns the loaders.
+- [ ] Grep tests and `scripts/browser-checks/` for "Loading…" and "Getting your care groups…" and update any that assert the old words.
+
+## Slice 107: Live note full screen fills the screen, its title in the note's bar (B-962)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/live-notes.md · Tests: component
+
+**Problem.** The live note full screen (`components/notes/NoteFullScreen.tsx`, B-765) keeps a centred `max-w-3xl` column with padding and its own title row (the entry's heading and the editor avatars) above the editor frame, which keeps its rounded border, so on a phone it wastes width and reads as a card on a page, not full screen.
+
+**Build.** In full screen, the editor frame fills the dialog edge to edge: no max width, padding, border or radius, and safe-area aware (`env(safe-area-inset-*)` padding inside the bar and the text, so nothing sits under a notch). Drop the separate title row. The title (short, truncated, what the note is attached to: the `title` the caller passes today) and the avatars (`aside`) move into the frame's bar (`LiveNotesEditor.tsx`, the `BAR` row with the full screen toggle), left of Exit full screen; the dialog keeps its accessible name. Layout: on a wide screen one row (title, avatars, the writer's toolbar, Exit); on a phone, title + avatars + Exit on the first row and the toolbar on its own row below, so the toolbar never squeezes the title. On the page (not full screen) the bar looks as today: no title in it (the page has its heading). A viewer (no toolbar) still gets the title, avatars and Exit. The text area scrolls inside the frame; the keyboard handling (visual viewport height) and Escape behaviour stay.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in full screen the bar holds the title, the avatars and Exit full screen, and there is no separate heading row; the dialog's accessible name is the title.
+- [ ] Component test: a viewer in full screen sees the title and Exit, and no toolbar.
+- [ ] Component test: not in full screen, the bar has no title.
+- [ ] Existing NoteFullScreen and live notes tests still pass; grep tests and `scripts/browser-checks/` for `data-note-full-screen` and the old heading and update any that assert it.
+
+## Wave 21 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Slices 108 and 109 share no file and run in parallel.
+
+## Slice 108: Marketing home says AI providers will not keep or train on your data (B-975)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: component
+
+**Problem.** The marketing home's "Not for AI training" answer (`apps/web/app/routes/marketing/home/content.ts`, the `noAiTraining` item) ends "If we add AI features, their providers may not keep your data or train on it." "May not" reads as "might not", the opposite of the promise (AGENTS.md _Compliance_: AI vendors that don't retain or train on our data).
+
+**Build.** Change "may not keep your data or train on it" to "will not keep your data or train on it". Grep `apps/web/app/routes/marketing/` for the same "may not keep" wording elsewhere (privacy pages) and fix any match the same way; change nothing else.
+
+**Acceptance criteria.**
+
+- [ ] The home's AI answer says "will not keep your data or train on it"; no "may not keep" remains under `routes/marketing/`.
+- [ ] Existing marketing tests pass (no word-for-word copy test is added).
+
+## Slice 109: A nested todo's add-subtask button sits right-aligned on its title's line (B-980)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** In the nested todo tree, `TodoRow.tsx` renders the `addSubtask` slot (`TodoTree`'s per-row compact `TodoQuickAdd`) under the row's text (around lines 174, 220 and 260, one per look), so it takes its own line below the title.
+
+**Build.** In each `TodoRow` look that renders `addSubtask`, put it at the end of the title's line, right-aligned (the title truncates or wraps before it, never under it), keeping its tap target room from neighbouring controls (the row's own ⋯ or tick). When the quick add opens its input, the input may take the row's width below as it does today; only the closed button moves. Rows without `addSubtask` look exactly as today. Update the doc comment at the top of `TodoRow.tsx` ("under the row's text").
+
+**Acceptance criteria.**
+
+- [ ] Component test: in each look that renders it, the add-subtask button is inside the title's line (the same row container as the title), after the title.
+- [ ] Component test: a row without `addSubtask` renders as before.
+- [ ] Existing TodoRow, TodoTree and planner/todos tests pass; grep tests and `scripts/browser-checks/` for the add-subtask button's label and update any that assert its old place.
+
+## Wave 22 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency, and no edits under `packages/data/src/domain/` (code-health holds it; `dayLabel` stays as is).
+
+## Slice 110: Timeline day headers abbreviate the weekday on phones (B-999)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** A timeline day header that shows a day and date ("Wednesday, Nov 18") wraps on small phones, crowding the period, copy-link and + actions beside it.
+
+**Build.** Below the `sm` breakpoint the heading shows the short weekday ("Wed, Nov 18", "Wed, Nov 18, 2025"); from `sm` up, the full name as today. "Today", "Yesterday" and "Tomorrow" are unchanged. Derive the short form in the app (a small helper in `lib/timeline/`, from the day's key or moment, the viewer's zone and locale, or by passing a short label beside `label` from `groupByDay`), never by editing `dayLabel` in `packages/data`. Render both in `DayHeader.tsx`'s `<h3>` with CSS toggling (`sm:hidden` / `hidden sm:inline`), so there's no layout jump and SSR matches; the heading's accessible name stays the full label (the copy-link and + labels keep using `label`). Easy mode's header follows the same rule if it shows a weekday and date.
+
+**Acceptance criteria.**
+
+- [ ] Unit test for the helper: a past day gives "Wed, Nov 18"-style text, a past year adds the year, and Today/Yesterday/Tomorrow come back unchanged.
+- [ ] Component test (`DayHeader`/timeline): at phone width the visible heading text is the short form, at a wider width the full form, and the heading's accessible name is the full label at both.
+- [ ] Existing timeline tests pass; grep tests and `scripts/browser-checks/` for full weekday heading text they match and update any that break.
+
+## Wave 23 (written 2026-11-28 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency. The three slices run in parallel; slice 113 stays inside `components/tags/` so it doesn't collide with slice 111's entry display.
+
+## Slice 111: One shared timeline entry display with a Full and a Condensed look (B-1015)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** The timeline's two views use two components: `routes/app/groups/timeline/TimelineEntryCard.tsx` (Full, "cards") and `components/entry/TimelineEntryRow.tsx` (Condensed); `TimelineEntryList.tsx` picks one (`view === "cards" ? TimelineEntryCard : TimelineEntryRow`). The user's words (2026-11-28): "I'd like for them to merge and just have a full/condensed view. Full SHOULD have more spacing between items whereas condensed has less. I like the way time is laid out on current full screen more (it leaves more column width for content). Both should use user avatar for user information the same way as the current condensed view."
+
+**Build.** One component in `components/entry/` (keep the name `TimelineEntryRow`, or rename it with every caller updated) taking `EntryViewProps` plus a `look: "full" | "condensed"` prop, modelled on `ProviderCard`'s look (shared-displays, B-961). Both looks use the current Full card's time layout (the one leaving more column width for content) and the current Condensed row's author avatar (`AuthorCircle`) for who wrote it. Full spaces entries further apart, Condensed closer; otherwise the looks match. `TimelineEntryList` passes the look from its view; delete `TimelineEntryCard.tsx`. Other callers of `TimelineEntryRow` (search `EntryResultItem`, provider `LinkedEntries`, `TodoEntryLinks`, `UpcomingEntryCard` if it uses it) keep working on the look they show today's closest match to (condensed by default). Update the doc comments.
+
+**Acceptance criteria.**
+
+- [ ] Component test: both looks render the time in the Full layout's place and the author as the avatar; Full's entries are spaced further apart than Condensed's (a class or data attribute on the list item, not pixel values).
+- [ ] Component test: switching the timeline's view switches the look on the same component; `TimelineEntryCard` is gone.
+- [ ] Existing timeline, search, provider-links and todo-links tests pass; grep tests and `scripts/browser-checks/` for the card's markup or the old author text and update any that break.
+
+## Slice 112: The Done todos show as todo trees, like the open list (B-1016)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** `routes/app/groups/todos/DoneTodos.tsx` lists each done todo as a flat `TodoRow` (newest first, paged with Show more), so a done parent and its done subtasks show as unrelated rows, while the open list uses `TodoTree`. The user's words (2026-11-28): "We should use the tree view for complete todos instead of a weird flat view. It breaks the "unified ux" rule and is confusing."
+
+**Build.** Done renders with the open list's `TodoTree` (the one shared display), same row look and controls (unticking reopens, as today). Page by tree: each page item is a whole done tree (a done top-level todo with its subtasks), newest completion first; Show more keeps working. A done subtask whose parent is still open stays in the open tree as today and doesn't repeat under Done. Keep the paging logic in a small pure helper (in `lib/todos/` or beside `useTodoList.ts`) so it's unit-testable. Update `DoneTodos`'s doc comment.
+
+**Acceptance criteria.**
+
+- [ ] Unit test for the helper: done trees come newest completion first, a page holds whole trees, and a done subtask under an open parent is left out of Done.
+- [ ] Component test: a done parent with done subtasks shows under Done as one tree (subtasks nested under it, the same markup as the open tree), and Show more adds the next trees.
+- [ ] Existing todos, todo-tree and planner tests pass; grep tests and `scripts/browser-checks/` for `data-todo-section="done"` and update any that break.
+
+## Slice 113: The add-tag button lines up with the tag chips beside it (B-1021)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/tags.md · Tests: component
+
+**Problem.** The user (2026-11-28): "add tag icon button doesn't align vertically with the tags next to it like it should". The add-tag control is shared (`components/tags/QuickTags.tsx`, with `TagChips.tsx`) and appears on: timeline row, entry page header, timeline edit; todo row, todo links, todo page header, todo edit; medication list row, MedicationTags, medication header; provider card, directory row, provider medications, provider header and actions; provider edit; search results.
+
+**Build.** Find why the icon button sits off the chips' centre line (height, line-height, baseline alignment or margin) and fix it once in the shared control (`components/tags/`), so the button and chips share one centre line in every place above. Keep its tap target room from its neighbours. Don't edit the callers' row layouts (slice 111 is changing the timeline row); if a caller's own layout causes it, say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`quickTagsRow.browser.test.tsx`): with chips present, the add-tag button's vertical centre matches the chips' within 1px, in a row and in a header placement.
+- [ ] Hand-off names each place checked in the browser and how it looked.
+- [ ] Existing tags tests pass.
+
+## Wave 24 (written 2026-11-28 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency. The two slices run in parallel: slice 115 stays inside `components/tags/`; slice 114 doesn't touch it.
+
+## Slice 114: Todo rows get the shared ⋯ menu (Edit, Reopen, Delete); the todo page's Edit moves into it (B-1022)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** The user (2026-11-28): "The todo items in the planner todos tab should have a hamburger menu to the right of the add subtask icon button that allows direct edit and delete. Edit should move into the hamburger on the todo display page." And: "shared components that go back to the right place for all of that if possible".
+
+**Build.** One shared todo menu (the existing ⋯ look: `components/ui` `Menu` with the `Ellipsis` icon, as `routes/app/groups/todo/TodoActions.tsx` and the timeline's `EntryMenu` use; not a new hamburger icon) with Edit, Reopen (only once done) and Delete, used by `components/todos/TodoRow.tsx` (right of the add-subtask button, so it shows wherever todo rows appear: planner Todos tab, Todos page, Done) and by the todo page header (`TodoHeader`: its actions become ⋯ only). Move what both need (the menu, the delete confirm naming subtasks, `RepeatDeleteDialog`'s skip-or-stop for an open repeating todo, the intents) into `components/todos/` so there's one edit sheet and one delete flow. Each returns to where it was opened: Edit from a row opens the same edit sheet and closes back to that row's list with its scroll kept, not the todo page; Delete from a row stays on the list (the row leaves); from the todo page, Edit comes back to the page and Delete goes back to the list the page was opened from (as today). Writers only: readers see no menu. Keep the row's tap targets spaced from the add-subtask button.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a writer's todo row shows ⋯ right of add-subtask with Edit and Delete (and Reopen when done); a reader's row shows none.
+- [ ] Component test: Edit from a row on the planner Todos tab and on the Todos page opens the edit sheet and saving or closing returns to that list, not the todo page.
+- [ ] Component test: Delete from a row asks the same confirm (subtask count; skip-or-stop for a repeating todo) and the row leaves while the list stays.
+- [ ] Component test: the todo page header has no separate Edit button; ⋯ holds Edit, Reopen and Delete, and they behave as before.
+- [ ] Existing todo, todos, todo-tree and planner tests pass; grep tests and `scripts/browser-checks/` for the old Edit button and update any that break.
+
+## Slice 115: The add-tag button starts flush left when it wraps to its own line (B-1023)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/tags.md · Tests: component
+
+**Problem.** Found by slice 113 (B-1021): the add-tag button is the tags list's last item with `ml-1.5` (`components/tags/TagChips.tsx`); in narrow columns (medication list row ~238px, provider page header ~246px) two chips plus +N fill the line, so the button wraps and starts 6px in from the left.
+
+**Build.** Fix it once in `components/tags/` (e.g. the list's gap spacing the button instead of a left margin), so a wrapped button starts flush with the chips' left edge and an unwrapped one keeps its room from the last chip and its centre line (B-1021). Don't edit callers' layouts.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in a narrow container where the button wraps, its left edge matches the first chip's within 1px; in a wide one it keeps its spacing from the last chip and its vertical centre matches the chips' within 1px.
+- [ ] Existing tags tests pass.

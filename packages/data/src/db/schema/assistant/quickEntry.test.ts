@@ -3,8 +3,8 @@ import type { QuickEntryContext, QuickEntryReading } from "./quickEntry";
 import { describe, expect, test } from "vitest";
 import { assistantActionZSchema } from "./assistantActions";
 import { editDistance, parseQuickEntry, splitQuickEntry } from "./quickEntry";
-import { findTime } from "./quickEntryTime";
-import { QUICK_ENTRY_VOCABULARY } from "./quickEntryVocabulary";
+import { findTime } from "../../../domain/assistant/quickEntryTime";
+import { QUICK_ENTRY_VOCABULARY } from "../../../domain/assistant/quickEntryVocabulary";
 
 // The quick-entry parser, table-driven (in the style of search.test.ts):
 // each row is a line and what its parts should read as. The clock is fixed in
@@ -209,6 +209,97 @@ describe("vitals", () => {
     expect(action(top("bp 130/85 hr 72"))).toMatchObject({ note: null });
   });
 
+  describe("a label after its number still counts (B-976)", () => {
+    test.each([
+      ["97o2", [{ type: "spo2", value: 97 }]],
+      ["97 o2", [{ type: "spo2", value: 97 }]],
+      ["97 spo2", [{ type: "spo2", value: 97 }]],
+      ["97% o2 sat", [{ type: "spo2", value: 97 }]],
+      ["96 pulse ox", [{ type: "spo2", value: 96 }]],
+      ["74 hr", [{ type: "heartRate", value: 74 }]],
+      ["74 pulse", [{ type: "heartRate", value: 74 }]],
+      ["74 bpm hr", [{ type: "heartRate", value: 74 }]],
+      ["74bpm", [{ type: "heartRate", value: 74 }]],
+      ["16 rr", [{ type: "respiratoryRate", value: 16 }]],
+      ["99.1 temp", [{ type: "temperature", value: expect.closeTo(37.28, 2) as number }]],
+      ["120 sugar", [{ type: "bloodGlucose", value: 120 }]],
+      ["140/78 bp", [{ type: "bloodPressure", systolic: 140, diastolic: 78 }]],
+      ["7 hr sleep", [{ type: "sleep", value: 7 }]],
+      [
+        "140/78 74bpm 97 o2",
+        [
+          { type: "spo2", value: 97 },
+          { type: "bloodPressure", systolic: 140, diastolic: 78 },
+          { type: "heartRate", value: 74 },
+        ],
+      ],
+      [
+        "97 o2 hr 74",
+        [
+          { type: "spo2", value: 97 },
+          { type: "heartRate", value: 74 },
+        ],
+      ],
+      [
+        "74 hr 97 o2",
+        [
+          { type: "heartRate", value: 74 },
+          { type: "spo2", value: 97 },
+        ],
+      ],
+      [
+        "bp 140/78 74 hr 97 o2",
+        [
+          { type: "bloodPressure", systolic: 140, diastolic: 78 },
+          { type: "heartRate", value: 74 },
+          { type: "spo2", value: 97 },
+        ],
+      ],
+      [
+        "bp 140/78 pulse 74 o2 97",
+        [
+          { type: "bloodPressure", systolic: 140, diastolic: 78 },
+          { type: "heartRate", value: 74 },
+          { type: "spo2", value: 97 },
+        ],
+      ],
+      [
+        "o2 97 74 hr",
+        [
+          { type: "spo2", value: 97 },
+          { type: "heartRate", value: 74 },
+        ],
+      ],
+    ])("%s", (line, readings) => {
+      const r = top(line);
+      expect(r.kind).toBe("vital");
+      const a = action(r);
+      expect(a).toMatchObject({ type: "logVital", note: null });
+      expect(a.type === "logVital" && a.readings).toEqual(readings);
+      expect(blocking(r)).toEqual([]);
+    });
+
+    test.each([
+      // A number between two labels stays label-first when the first has nothing else.
+      ["hr 74 o2", [{ type: "heartRate", value: 74 }], "o2"],
+      ["hr: 74 o2", [{ type: "heartRate", value: 74 }], "o2"],
+      ["temp 99 hr 74 o2", null, "o2"],
+      // A value the field can't take isn't read backwards.
+      ["7 hr", null, null],
+      ["970 o2", null, null],
+    ] as const)("%s keeps today's reading", (line, readings, note) => {
+      const r = top(line);
+      if (readings === null && note === null) {
+        expect(r.kind).not.toBe("vital");
+        return;
+      }
+      const a = action(r);
+      expect(a.type).toBe("logVital");
+      if (readings) expect(a.type === "logVital" && a.readings).toEqual(readings);
+      expect(a).toMatchObject({ note });
+    });
+  });
+
   test("a bare pair that can't be a blood pressure isn't one", () => {
     expect(top("11/20").kind).toBe("note");
     expect(top("3/10").kind).toBe("note");
@@ -242,6 +333,23 @@ describe("doses", () => {
     expect(r.kind).toBe("dose");
     expect(action(r)).toMatchObject({ type: "logDose", medicationId, status, amount });
     expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+  });
+
+  test("a brand in a saved name's parentheses matches, and so does its generic", () => {
+    const medications = [
+      { id: APAP, name: "Acetaminophen (Tylenol)", strength: "500 mg", dose: "2 tablets" },
+      { id: MET, name: "Metformin", strength: "500 mg", dose: "1 tablet" },
+    ];
+    for (const line of ["gave Tylenol", "gave acetaminophen"]) {
+      const r = top(line, { medications });
+      expect(r.kind).toBe("dose");
+      expect(action(r)).toMatchObject({
+        type: "logDose",
+        medicationId: APAP,
+        status: "given",
+        amount: "2 tablets",
+      });
+    }
   });
 
   test("a partial name that fits two medications offers both, as alternatives", () => {
@@ -1831,6 +1939,56 @@ describe("prefixes", () => {
 
   test("the prefix isn't part of the text", () => {
     expect(action(top("n: bp 130/85"))).toMatchObject({ text: "bp 130/85" });
+  });
+
+  describe("a kind word, with or without its colon, after an 'add' or not (B-902)", () => {
+    test.each([
+      "to-do call the pharmacy",
+      "todo call the pharmacy",
+      "to do call the pharmacy",
+      "task call the pharmacy",
+      "add todo call the pharmacy",
+      "add to-do call the pharmacy",
+      "Add a to do: call the pharmacy",
+    ])("%s is a todo", (line) => {
+      const r = top(line);
+      expect(r.kind).toBe("todo");
+      expect(action(r)).toMatchObject({ type: "addTodo", title: "Call the pharmacy" });
+    });
+
+    test.each([
+      ["add note slept well", "slept well"],
+      ["note slept well", "slept well"],
+      ["Note: ate lunch, then napped", "ate lunch, then napped"],
+    ])("%s is a note, without its cue", (line, text) => {
+      expect(parse(line)).toHaveLength(1);
+      const r = top(line);
+      expect(r.kind).toBe("note");
+      expect(action(r)).toMatchObject({ type: "addNote", text });
+    });
+
+    test("add event dentist friday 3pm is an event", () => {
+      const r = top("add event dentist friday 3pm");
+      expect(r.kind).toBe("event");
+      const a = action(r);
+      if (a.type !== "addEvent") throw new Error(`not an event: ${a.type}`);
+      expect(a.title).toMatch(/^Dentist/);
+      expect(when(r)).toBe("2026-11-20T23:00:00.000Z");
+    });
+
+    test("an 'add' without a kind word keeps its words and picks no kind", () => {
+      const r = top("add salt to diet");
+      expect(r.kind).toBe("note");
+      expect(r.confidence).toBeLessThan(1);
+      expect(action(r)).toMatchObject({ type: "addNote", text: "add salt to diet" });
+    });
+
+    test("a kind word that only starts a word isn't a cue", () => {
+      expect(top("notebook left at the clinic").kind).toBe("note");
+      expect(action(top("notebook left at the clinic"))).toMatchObject({
+        text: "notebook left at the clinic",
+      });
+    });
   });
 });
 

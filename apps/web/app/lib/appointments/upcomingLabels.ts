@@ -1,8 +1,8 @@
 import type { TimedEntry } from "./upcoming";
 
-import { dayLabel } from "../core/format";
 import { isUnnamedEvent } from "../live-notes/liveEntry";
 import { entryTiming } from "./upcoming";
+import { dayLabel } from "@caretook/data/domain";
 
 // The words for appointments: time ranges, "Now · until …",
 // "Cancelled", "Rescheduled to …" and the Next strip. Pure, with `locale`

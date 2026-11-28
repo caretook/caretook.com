@@ -1,20 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import {
-  addDays,
-  buildNoteDoc,
-  dayInZone,
-  doseSlotIdFor,
-  entryTodoId,
-  passRoundId,
-  REPEAT_NEEDS_DAY_ISSUE,
-  zonedInstant,
-} from "../db/schema";
+import { doseSlotIdFor, entryTodoId, passRoundId, REPEAT_NEEDS_DAY_ISSUE } from "../db/schema";
 import { createGroup, createUser, createWorld, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
-  FUTURE_DATE_MESSAGE,
   noteDocumentSchema,
   noteUpdateSchema,
   medicationSchema,
@@ -34,6 +24,9 @@ import {
   todoService,
   timelineEntryService,
 } from ".";
+import { addDays, FUTURE_DATE_MESSAGE } from "../domain/core/entryTiming";
+import { buildNoteDoc } from "../domain/live-notes/noteYjs";
+import { dayInZone, zonedInstant } from "../domain/core/zonedDay";
 
 // The server's assistant runner (connectors PRD): each action writes what
 // quick entry's device runner writes, a refused action writes nothing and

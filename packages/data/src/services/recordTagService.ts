@@ -28,7 +28,6 @@ import { isSystemUser, rejectError } from "../permissions";
 // A link's id is derived from its tag and record (`recordTagId`), so linking
 // is idempotent everywhere: a replay, or two devices tagging one record.
 
-export const serviceName = "recordTag";
 export const schemaName = recordTagModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

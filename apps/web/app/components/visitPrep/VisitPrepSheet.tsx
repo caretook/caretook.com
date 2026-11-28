@@ -1,4 +1,3 @@
-import type { NoteSectionLine } from "@caretook/data/schema";
 import type { VisitPrepTarget } from "./useVisitPrep";
 
 import { useState } from "react";
@@ -9,6 +8,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { dateText } from "~/lib/care-periods/periodDisplay";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { useVisitPrepPreview } from "./useVisitPrepPreview";
+import type { NoteSectionLine } from "@caretook/data/domain";
 
 /**
  * Preparing for a visit: where the window starts (the last visit with the
@@ -20,12 +20,15 @@ export function VisitPrepSheet({
   target,
   groupId,
   openAfter,
+  openState,
   onClose,
 }: {
   target: VisitPrepTarget;
   groupId: string;
   /** Open the appointment's page once it's in. */
   openAfter: boolean;
+  /** The page's history state when it's opened (its opener, for its Back). */
+  openState?: object;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
@@ -43,7 +46,7 @@ export function VisitPrepSheet({
     setBusy(false);
     if (problem) return setError(problem);
     onClose();
-    if (openAfter) void navigate(appUrls.entry(groupId, target.id));
+    if (openAfter) void navigate(appUrls.entry(groupId, target.id), { state: openState });
   };
 
   return (

@@ -1,0 +1,14 @@
+# check-areas: tags (tags PRD). The rules module, the services and the upload
+# have unit and integration tests; two devices adding one tag to a record and
+# a tag and link reaching a second device are roundtrip's (its tag step and
+# the sync matrix, 6b).
+packages/data/src/db/schema/tags/        roundtrip
+apps/web/app/lib/tags/                   roundtrip
+# No browser check reads them; seeds/tags.test.ts checks them.
+packages/data/src/db/seeds/tags.ts       -
+# The chips and the picker sheet (slice 2) are component tests on the screens
+# that use them (timeline/timelineTags, entry/entryTags browser tests).
+apps/web/app/components/tags/            -
+# The Tags page in group settings (tags-3): its component tests
+# (groups/settings/tagsSettings.browser.test.tsx); no browser check reads it.
+apps/web/app/routes/app/groups/settings/tags/  -

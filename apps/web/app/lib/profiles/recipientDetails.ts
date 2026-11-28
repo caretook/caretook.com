@@ -106,10 +106,6 @@ export const toRecipientDetails = (row: RecipientDetailsRow | null | undefined):
       }
     : EMPTY_DETAILS;
 
-/** Whether there's anything in the Contact card. */
-export const hasContact = (details: RecipientDetails) =>
-  details.phones.length > 0 || !!details.email || !!details.address;
-
 export const INSURANCE_RANK_LABELS: Record<InsuranceRank, string> = {
   primary: "Primary",
   secondary: "Secondary",

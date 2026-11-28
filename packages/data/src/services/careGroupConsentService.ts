@@ -3,7 +3,6 @@ import type { ServiceContext, ServiceSelectArgs } from "./types";
 import { DEFAULT_PAGE_SIZE } from "../constants";
 import { careGroupConsentModel } from "../models";
 
-export const serviceName = "careGroupConsent";
 export const schemaName = careGroupConsentModel.schemaName;
 
 type K = typeof schemaName;

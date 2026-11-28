@@ -5,13 +5,14 @@ import type { ActionResult } from "~/lib/core/api";
 import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { newPeriodGuard, parsePeriodPrefill } from "~/lib/care-periods/periodSheets";
 import { sessionContext } from "~/lib/auth/session";
 import { createCarePeriod } from "~/lib/care-periods/carePeriods.sync";
-import { PeriodForm } from "../PeriodForm";
-import { periodFromForm } from "../periodFormData";
-import { loadPlaceRows, useClosePeriodSheet, usePlaceChoices } from "../periodSheet";
+import { PeriodForm } from "~/components/care-periods";
+import { periodFromForm } from "~/lib/care-periods/periodFormData";
+import { loadPlaceRows, usePlaceChoices } from "~/lib/care-periods/placeChoices";
+import { useClosePeriodSheet } from "../periodSheet";
+import { scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `periods/new`: the add sheet, over the periods
 // page. It reads its prefills from the URL (a type, a start, date-only, a

@@ -1,4 +1,5 @@
-import type { ParsedSearch, SearchDocument, SearchItemType } from "@caretook/data/schema";
+import type { ParsedSearch } from "@caretook/data/domain";
+import type { SearchDocument, SearchItemType } from "@caretook/data/schema";
 import type { SyncDb } from "../sync/index";
 import type { SqlRunner } from "./searchTables.sync";
 
@@ -6,19 +7,19 @@ import {
   conditionSearchDocument,
   entrySearchDocument,
   medicationSearchDocument,
-  parseSearch,
+  parseProviderPhones,
   providerSearchDocument,
   SEARCH_ITEM_TYPES,
   TAG_TARGET_COLUMNS,
   TAG_TARGETS,
   todoSearchDocument,
-  toFtsMatch,
 } from "@caretook/data/schema";
+import { toFtsMatch } from "@caretook/data/domain";
 import { previewText } from "../live-notes/notes.sync";
 import { createSearchTables, dropSearchTables, SEARCH_SOURCE_TABLES } from "./searchTables.sync";
 import { toLocalTimestamp } from "../timeline/timeline.sync";
 
-export { parseSearch };
+export { matchingTagIds } from "./tagMatch";
 
 // The device's search index: SQLite FTS5 over every entry, provider,
 // medication, todo and condition of every group on the device, kept current as rows change
@@ -32,7 +33,7 @@ export { parseSearch };
  * search document holds change: devices then rebuild their index on the
  * next open.
  */
-export const SEARCH_INDEX_VERSION = 5;
+export const SEARCH_INDEX_VERSION = 6;
 
 /** bm25 weights for (title, body): a match in a title-like field ranks above one in the text. */
 const WEIGHTS = "4.0, 1.0";
@@ -146,13 +147,14 @@ type ProviderSourceRow = DocumentColumns & {
   name: string | null;
   specialty: string | null;
   practice_name: string | null;
+  phones: string | null;
   deleted_at: string | null;
 };
 
 const readProviders = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
   const filter = idFilter("p.id", ids);
   const rows = await db.getAll<ProviderSourceRow>(
-    `SELECT p.id, p.group_id, p.name, p.specialty, p.deleted_at, pr.name AS practice_name,
+    `SELECT p.id, p.group_id, p.name, p.specialty, p.phones, p.deleted_at, pr.name AS practice_name,
             ${documentColumns("p.id")}
      FROM provider p
      LEFT JOIN provider pr ON pr.id = p.practice_id AND pr.group_id = p.group_id
@@ -168,6 +170,7 @@ const readProviders = async (db: SqlRunner, ids: string[] | null): Promise<Searc
       name: row.name,
       specialty: row.specialty,
       practiceName: row.practice_name,
+      phones: parseProviderPhones(row.phones).map((phone) => phone.number),
       deletedAt: row.deleted_at,
       documentText: row.deleted_at ? null : documentText(row),
     });
@@ -183,6 +186,7 @@ type MedicationSourceRow = DocumentColumns & {
   type: string | null;
   reason: string | null;
   directions: string | null;
+  condition_names: string | null;
   deleted_at: string | null;
 };
 
@@ -191,6 +195,9 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
   const rows = await db.getAll<MedicationSourceRow>(
     `SELECT m.id, m.group_id, m.name, m.strength, m.type, m.reason, m.directions,
             m.deleted_at,
+            (SELECT json_group_array(c.name) FROM medication_condition l
+               JOIN recipient_condition c ON c.id = l.condition_id AND c.group_id = l.group_id AND c.deleted_at IS NULL
+               WHERE l.medication_id = m.id) AS condition_names,
             ${documentColumns("m.id")}
      FROM medication m
      LEFT JOIN note_document d ON d.id = m.id
@@ -207,6 +214,7 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
       type: row.type,
       reason: row.reason,
       directions: row.directions,
+      conditionNames: parseJson<(string | null)[]>(row.condition_names) ?? [],
       deletedAt: row.deleted_at,
       documentText: row.deleted_at ? null : documentText(row),
     });
@@ -334,7 +342,10 @@ const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => 
       `${dirty("'provider', 'note_document', 'note_update'")}
        UNION SELECT p.id FROM provider p WHERE p.practice_id IN (${dirty("'provider'")})`,
     ),
-    tx.getAll<{ id: string | null }>(dirty("'medication', 'note_document', 'note_update'")),
+    tx.getAll<{ id: string | null }>(
+      `${dirty("'medication', 'medication_condition', 'note_document', 'note_update'")}
+       UNION SELECT l.medication_id FROM medication_condition l WHERE l.condition_id IN (${dirty("'recipient_condition'")})`,
+    ),
     tx.getAll<{ id: string | null }>(dirty("'todo', 'note_document', 'note_update'")),
     tx.getAll<{ id: string | null }>(dirty("'recipient_condition'")),
   ]);
@@ -639,32 +650,71 @@ const taggedItemCondition = (tagId: string) => ({
   params: TAG_TARGETS.map(() => tagId),
 });
 
+/** `i.rowid` isn't one of the items an exclusion names: null when the search excludes nothing. */
+const notExcludedCondition = (parsed: ParsedSearch) => {
+  const terms = parsed.exclude.flatMap(
+    (t) => toFtsMatch({ include: [{ ...t, prefix: false }], exclude: [] }) ?? [],
+  );
+  if (!terms.length) return null;
+  return {
+    sql: `i.rowid NOT IN (SELECT rowid FROM search_fts WHERE search_fts MATCH ?)`,
+    params: [terms.join(" OR ")],
+  };
+};
+
+/** The columns of `record_tag` naming a link's target, and its item type. */
+const LINK_TARGET = `coalesce(${TAG_TARGETS.map((t) => `l.${TAG_TARGET_COLUMNS[t]}`).join(", ")})`;
+const LINK_TYPE = `CASE ${TAG_TARGETS.map((t) => `WHEN l.${TAG_TARGET_COLUMNS[t]} IS NOT NULL THEN '${t}'`).join(" ")} END`;
+
 /**
  * The search page's query: every matching item of the group, best first
  * (title matches, rank, newest). With a `range` (a care period's dates),
  * only entries within it: providers, medications, todos and conditions aren't dated by it, so none.
- * With a `tag`, only the items carrying it (no conditions).
+ * With a `tag`, only the items carrying it (no conditions). With
+ * `namedTags` (the tags the text names, `matchingTagIds`), the indexed items
+ * carrying one join in as title matches, whatever their text says, unless an
+ * exclusion names them; the tags stay out of the index, so this joins the links.
  */
 export const searchGroupQuery = (
   groupId: string,
   parsed: ParsedSearch,
   range?: SearchRange | null,
   tag?: string | null,
+  namedTags: readonly string[] = [],
 ) => {
   const match = toFtsMatch(parsed);
   const titleMatch = toFtsMatch(parsed, { columns: ["title"] });
   if (!match || !titleMatch) return null;
   const within = range ? entryRangeCondition("e.occurred_at", range) : null;
   const tagged = tag ? taggedItemCondition(tag) : null;
-  return {
-    sql: `SELECT i.item_id AS id, i.item_type AS type, bm25(search_fts, ${WEIGHTS}) AS rank,
+  const narrow = `${within ? ` AND i.item_type = 'entry' AND ${within.sql}` : ""}${tagged ? ` AND ${tagged.sql}` : ""}`;
+  const narrowParams = [...(within?.params ?? []), ...(tagged?.params ?? [])];
+  const hits = `SELECT i.item_id AS id, i.item_type AS type, bm25(search_fts, ${WEIGHTS}) AS rank,
                  i.rowid IN (SELECT rowid FROM search_fts WHERE search_fts MATCH ?) AS title_match,
                  e.occurred_at
           FROM search_fts JOIN search_item i ON i.rowid = search_fts.rowid
           LEFT JOIN timeline_entry e ON i.item_type = 'entry' AND e.id = i.item_id
-          WHERE search_fts MATCH ? AND i.group_id = ?${within ? ` AND i.item_type = 'entry' AND ${within.sql}` : ""}${tagged ? ` AND ${tagged.sql}` : ""}
-          ORDER BY title_match DESC, rank, e.occurred_at DESC`,
-    params: [titleMatch, match, groupId, ...(within?.params ?? []), ...(tagged?.params ?? [])],
+          WHERE search_fts MATCH ? AND i.group_id = ?${narrow}`;
+  const hitParams = [titleMatch, match, groupId, ...narrowParams];
+  if (!namedTags.length)
+    return {
+      sql: `${hits}\n          ORDER BY title_match DESC, rank, e.occurred_at DESC`,
+      params: hitParams,
+    };
+  // The items carrying a named tag (one row per link: grouped below), from the
+  // links, so a group's other items aren't scanned.
+  const kept = notExcludedCondition(parsed);
+  const carried = `SELECT i.item_id AS id, i.item_type AS type, 0 AS rank, 1 AS title_match, e.occurred_at
+          FROM record_tag l
+          JOIN search_item i ON i.item_id = ${LINK_TARGET} AND i.item_type = ${LINK_TYPE} AND i.group_id = l.group_id
+          LEFT JOIN timeline_entry e ON i.item_type = 'entry' AND e.id = i.item_id
+          WHERE l.group_id = ? AND l.tag_id IN (SELECT value FROM json_each(?))${narrow}${kept ? ` AND ${kept.sql}` : ""}`;
+  return {
+    sql: `SELECT id, type, MIN(rank) AS rank, MAX(title_match) AS title_match, occurred_at
+          FROM (${hits} UNION ALL ${carried})
+          GROUP BY id, type
+          ORDER BY title_match DESC, rank, occurred_at DESC`,
+    params: [...hitParams, groupId, JSON.stringify(namedTags), ...narrowParams, ...(kept?.params ?? [])],
   };
 };
 
@@ -700,7 +750,8 @@ const toResults = (rows: readonly HitRow[], limits: SearchLimits): SearchResults
 /**
  * The group's matches by type, the first few of each (`limits`, default 5)
  * with each type's total; with a `range`, only the entries within it; with
- * a `tag`, only the items carrying it.
+ * a `tag`, only the items carrying it; with `namedTags` (`matchingTagIds`),
+ * the items carrying one of them too, as title matches.
  */
 export const searchGroup = async (
   db: SyncDb,
@@ -709,8 +760,9 @@ export const searchGroup = async (
   limits: SearchLimits = {},
   range: SearchRange | null = null,
   tag: string | null = null,
+  namedTags: readonly string[] = [],
 ): Promise<SearchResults> => {
-  const query = searchGroupQuery(groupId, parsed, range, tag);
+  const query = searchGroupQuery(groupId, parsed, range, tag, namedTags);
   if (!query) return noResults();
   return toResults(await db.powersync.getAll<HitRow>(query.sql, query.params), limits);
 };

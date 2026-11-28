@@ -4,6 +4,7 @@
 // these, so they trust the same origins and key on the same address. Env is
 // read on each call, like the rest of config, so importing needs none.
 
+import { logError } from "@caretook/data";
 import { getAuthConfig } from "./config";
 
 type Env = Record<string, string | undefined>;
@@ -49,4 +50,36 @@ export const clientIpOf = (headers: Headers, env: Env = process.env): string | n
   const header = clientIpHeader(env);
   if (header) return firstEntry(headers.get(header));
   return firstEntry(headers.get("x-forwarded-for")) || headers.get("x-real-ip")?.trim() || null;
+};
+
+/** Every request without a client IP keys on this outside production (dev, tests), so they share one count. */
+export const DEV_CLIENT_IP_KEY = "dev:no-client-ip";
+
+/**
+ * The key every per-IP limiter counts `clientIp` under (the calendar feed,
+ * the public forms, link sign-up, /mcp and /oauth2/register): the address,
+ * trimmed. Without one, production refuses the request (null: the caller
+ * answers 400) and logs it, rather than pooling every such request in one
+ * shared bucket that a single caller could fill for everyone; the host always
+ * sets `CLIENT_IP_HEADER` (checkDeployEnv requires it), so a missing address
+ * is a misrouted request. Elsewhere (`NODE_ENV` not `production`: dev and
+ * tests) it's the fixed `DEV_CLIENT_IP_KEY`. `procedure` names the caller in
+ * the log.
+ */
+export const clientIpKey = (
+  clientIp: string | null | undefined,
+  procedure: string,
+  env: Env = process.env,
+): string | null => {
+  const ip = clientIp?.trim();
+  if (ip) return ip;
+  if (env.NODE_ENV !== "production") return DEV_CLIENT_IP_KEY;
+  logError(
+    "rate limit: no client IP, refused",
+    Object.assign(new Error("no client IP"), { code: "NO_CLIENT_IP" }),
+    {
+      procedure,
+    },
+  );
+  return null;
 };

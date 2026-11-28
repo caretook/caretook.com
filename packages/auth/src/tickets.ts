@@ -1,4 +1,5 @@
 import type { AppError, NewCareGroupInput } from "@caretook/data";
+import type { AuthLimits } from "./limits";
 
 import {
   accessCodeService,
@@ -17,6 +18,8 @@ import {
 } from "@caretook/data";
 import { getAuth } from "./auth";
 import { sendAccessCodeExistingAccount } from "./emails";
+import { clientIpKey } from "./host";
+import { createAuthLimits } from "./limits";
 
 // Caretook is invitation-only: public sign-up stays off (`disableSignUp`),
 // and an account is created only here, with a ticket: an email invite's
@@ -35,6 +38,29 @@ export type SignUpWithTicketInput = {
   password: string;
 };
 
+export type SignUpWithTicketOptions = {
+  /** The caller's address (for the link sign-up limit only; never stored). */
+  clientIp?: string | null;
+  /** The limits to count against; production's by default (tests pass their own, on). */
+  limits?: AuthLimits;
+};
+
+let defaultLimits: AuthLimits | undefined;
+const limitsOf = (opts: SignUpWithTicketOptions) => opts.limits ?? (defaultLimits ??= createAuthLimits());
+
+/**
+ * A link's sign-up limits (B-333): per client IP (`clientIpKey`) and per
+ * link. Past either, or in production without a client IP (logged), the
+ * answer is a used-up link's (`ticket:invalid`).
+ */
+const linkSignUpRefusal = async (inviteId: string, opts: SignUpWithTicketOptions) => {
+  const limits = limitsOf(opts);
+  const ip = clientIpKey(opts.clientIp, "auth.linkSignUp");
+  if (ip === null || !(await limits.hit("linkSignUpIp", ip))) return newError({ code: "ticket:invalid" });
+  if (!(await limits.hit("linkSignUpLink", inviteId))) return newError({ code: "ticket:invalid" });
+  return null;
+};
+
 /**
  * Create an account from a ticket. For an email invite the address must be
  * the invite's, and the account is created verified (the invite's link
@@ -45,16 +71,14 @@ export type SignUpWithTicketInput = {
  * shares first, then accepts (careGroupInviteService.accept).
  * Returns the new user's id, email and whether it's verified, or an AppError
  * (`ticket:*`). Through a link, an address that already has an account
- * creates nothing and returns `id: null`, looking like a new account.
+ * creates nothing and returns `id: null`, looking like a new account; a
+ * link's sign-up is limited per client IP and per link (`opts`), and counts
+ * a use of the link.
  */
-export const signUpWithTicket = async ({
-  ticket,
-  name,
-  email,
-  password,
-}: SignUpWithTicketInput): Promise<
-  { id: string | null; email: string; emailVerified: boolean; groupId?: string } | AppError
-> => {
+export const signUpWithTicket = async (
+  { ticket, name, email, password }: SignUpWithTicketInput,
+  opts: SignUpWithTicketOptions = {},
+): Promise<{ id: string | null; email: string; emailVerified: boolean; groupId?: string } | AppError> => {
   if (ticket.kind === "accessCode") return signUpWithAccessCode({ ticket, name, email, password });
   const invite = await careGroupInviteService.ticketFor(ticket.token);
   if (isError(invite)) return invite;
@@ -67,7 +91,22 @@ export const signUpWithTicket = async ({
     return newError({ code: "ticket:weakPassword" });
   }
 
+  if (!byEmail) {
+    const refused = await linkSignUpRefusal(invite.id, opts);
+    if (refused) return refused;
+  }
+
+  // Hashed before the lookup, for an address with an account too, so both
+  // answers take as long (B-333).
+  const hash = await ctx.password.hash(password);
   const address = normalizeInviteEmail(byEmail && invite.email ? invite.email : email);
+  // A link's sign-up counts a use toward its `max_uses`, for an address with
+  // an account as for a new one (the answers stay alike); the person's join
+  // request then counts none.
+  if (!byEmail) {
+    const used = await careGroupInviteService.useLinkForSignUp(ticket.token, address);
+    if (isError(used)) return used;
+  }
   if (await ctx.internalAdapter.findUserByEmail(address)) {
     // A link says the same for an address with an account as for a new one
     // ("confirm your email"), so it can't be used to find out who has one.
@@ -76,7 +115,6 @@ export const signUpWithTicket = async ({
       : { id: null, email: address, emailVerified: false };
   }
 
-  const hash = await ctx.password.hash(password);
   let created: { id: string; email: string; emailVerified: boolean };
   try {
     const user = await ctx.internalAdapter.createUser(

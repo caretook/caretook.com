@@ -46,8 +46,10 @@ export function FeelingFields({
   const id = useId();
   const max = TIMELINE_LIMITS.severityMax;
   const { id: groupId } = useGroup();
-  // "Feeling" is what an empty answer saves, so it isn't offered.
-  const catalog = useSymptomTypes(groupId).filter((type) => type.name !== FEELING_SYMPTOM_NAME);
+  // "Feeling" is what an empty answer saves, so it isn't offered; nor is an archived name.
+  const catalog = useSymptomTypes(groupId).filter(
+    (type) => !type.archived && type.name !== FEELING_SYMPTOM_NAME,
+  );
   return (
     <div className="space-y-3">
       <div className="fieldset">

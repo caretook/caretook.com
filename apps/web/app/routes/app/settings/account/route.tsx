@@ -4,9 +4,9 @@ import { ExternalLink, LogOut } from "lucide-react";
 import { Form } from "react-router";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { Button } from "~/components/ui";
+import { legalLinks } from "~/lib/auth/legalLinks";
 import { sessionContext } from "~/lib/auth/session";
 import { AvatarCard } from "./AvatarCard";
-import { legalLinks } from "./legalLinks";
 
 // `/app/settings/account`: who's signed in (read-only for now), and Sign out
 // (POST to /sign-out, as the account menu does). Shared by web + native.
@@ -25,9 +25,9 @@ export default function AccountSettings({ loaderData }: Route.ComponentProps) {
       <AvatarCard userId={userId} name={name} email={email} />
       <SettingsCard>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-base-content/70">Name</dt>
+          <dt className="text-muted">Name</dt>
           <dd data-field="name">{name || "Not set"}</dd>
-          <dt className="text-base-content/70">Email</dt>
+          <dt className="text-muted">Email</dt>
           <dd data-field="email" className="break-all">
             {email}
           </dd>

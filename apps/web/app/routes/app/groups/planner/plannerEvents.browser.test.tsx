@@ -129,12 +129,12 @@ describe("cancel and undo", () => {
     const device = await openPlanner({ role: "caretaker" });
     const items = await openMenu(rowActions(CARDIOLOGY.id));
     expect(items).toEqual([
-      "Tags",
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",
       "Remind me",
       "Print",
+      "Copy link",
       "Delete",
     ]);
     await confirmCancel("Office called, doctor out sick");
@@ -230,7 +230,8 @@ describe("cancel and undo", () => {
       const device = await openPlanner({ url: entryUrl(CARDIOLOGY.id) });
       await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
       const items = await openMenu(getByCss(ENTRY_MENU));
-      expect(items).toEqual(["Tags", "Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
+      // No Tags: the entry page tags through its chips (QuickTags).
+      expect(items).toEqual(["Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
       await confirmCancel();
       await device.settle();
       await expect.poll(BANNER).not.toBeNull();
@@ -303,7 +304,7 @@ describe("reschedule", () => {
     await device.screen.unmount();
 
     await openPlanner({ extra: [NOTED_OLD] });
-    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Tags", "Undo cancel", "Print", "Delete"]);
+    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Undo cancel", "Print", "Copy link", "Delete"]);
     await userEvent.keyboard("{Escape}");
   });
 

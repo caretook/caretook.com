@@ -2,10 +2,10 @@ import type { GroupRoleName } from "../constants";
 import type { CareGroupMemberInsert, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
-import { GROUP_MANAGER_ROLES } from "../constants";
+import { GROUP_MANAGER_ROLES, hasGroupRole, isManagerRole, OWNER_ROLES, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import { isError, newError } from "../errors";
-import { careGroupMemberModel } from "../models";
+import { careGroupInviteModel, careGroupMemberModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { getService } from "./baseService";
 import { removeForMember as removeCalendarSettings } from "./calendarSettingService";
@@ -13,7 +13,6 @@ import { revokeForMember } from "./connectorGrantService";
 import { disconnectForMember as disconnectGoogle } from "./googleConnectionService";
 import { releaseAssignee } from "./todoService";
 
-export const serviceName = "careGroupMember";
 export const schemaName = careGroupMemberModel.schemaName;
 
 // Reads come straight from the model (RBAC: any member of the group).
@@ -23,6 +22,8 @@ export const schemaName = careGroupMemberModel.schemaName;
 //   - a member who goes keeps their open todos as a typed-in name
 //   - a member who goes loses their assistants' connections to the group
 //   - a member who goes loses their calendar settings, feed and reminder overrides there
+//   - a member who goes, or drops below manager, loses their waiting invites and
+//     links; an owner who stops being one loses their owner invites
 export const { get, getById, list } = getService(careGroupMemberModel);
 
 /** Whether the actor may touch owner memberships in `groupId`. */
@@ -41,11 +42,43 @@ const ensureAnotherOwner = async (groupId: string, tx: Tx) => {
   return owners > 1 ? null : newError({ code: "careGroupMemberService:lastOwner" });
 };
 
-/** Load a membership the actor can see, inside `tx`. */
+/**
+ * Load a membership the actor can see, inside `tx`, locked first: the role
+ * it returns can't change under the owner-only and last-owner checks.
+ */
 const getTarget = async (ctx: ServiceContext, id: string, tx: Tx) => {
+  const locked = await careGroupMemberModel.lockForChange(id, tx);
+  if (locked) return locked;
   const target = await careGroupMemberModel.getById(id, { ...ctx, tx });
   if (isError(target)) return target;
   return target ?? newError({ code: "careGroupMemberService:notFound" });
+};
+
+/**
+ * Withdraw the waiting invites and links `userId` made in `groupId` (only
+ * their owner invites with `ownersOnly`), in `tx`: a manager's invites end
+ * with the role that let them make them. Staff and system invites (made by
+ * the system) are never theirs.
+ */
+const revokeInvitesOf = async (
+  groupId: string,
+  userId: string,
+  tx: Tx,
+  { ownersOnly = false }: { ownersOnly?: boolean } = {},
+) => {
+  const revoked = await careGroupInviteModel.update({
+    authUser: SYSTEM_USER,
+    tx,
+    filter: {
+      groupId: { type: "eq", value: groupId },
+      createdBy: { type: "eq", value: userId },
+      status: { type: "eq", value: "pending" },
+      ...(ownersOnly ? { role: { type: "inArray", value: [...OWNER_ROLES] } } : {}),
+    },
+    data: { status: "revoked" },
+  });
+  if (isError(revoked) && revoked.code !== "baseModel:update:nothingUpdated") return revoked;
+  return null;
 };
 
 /**
@@ -87,7 +120,18 @@ export const updateRole = (ctx: ServiceContext, { id, role }: { id: string; role
       data: { role },
     });
     if (isError(updated)) return updated;
-    return updated[0] ?? newError({ code: "careGroupMemberService:notFound" });
+    const [changed] = updated;
+    if (!changed) return newError({ code: "careGroupMemberService:notFound" });
+
+    // Their invites end with the role that let them make them.
+    if (!isManagerRole(role)) {
+      const withdrawn = await revokeInvitesOf(target.groupId, target.userId, tx);
+      if (withdrawn) return withdrawn;
+    } else if (hasGroupRole(OWNER_ROLES, target.role) && !hasGroupRole(OWNER_ROLES, role)) {
+      const withdrawn = await revokeInvitesOf(target.groupId, target.userId, tx, { ownersOnly: true });
+      if (withdrawn) return withdrawn;
+    }
+    return changed;
   }, ctx);
 
 /** Remove a member. Owners can only be removed by an owner (or themselves). */
@@ -125,6 +169,9 @@ export const remove = (ctx: ServiceContext, id: string) =>
     // And their Google calendar stops updating (revoked after commit; the calendar stays in Google).
     const unsynced = await disconnectGoogle(tx, target.groupId, target.userId);
     if (unsynced) return unsynced;
+    // The invites and links they made stop working (account-security).
+    const withdrawn = await revokeInvitesOf(target.groupId, target.userId, tx);
+    if (withdrawn) return withdrawn;
     return removed;
   }, ctx);
 

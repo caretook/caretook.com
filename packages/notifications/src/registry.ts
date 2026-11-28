@@ -7,6 +7,7 @@ import { ownerInvite } from "./templates/ownerInvite";
 import { appointmentReminder, todoDue } from "./templates/reminders";
 import { resetPassword } from "./templates/resetPassword";
 import { signInEmail } from "./templates/signInEmail";
+import { staffGroupChange } from "./templates/staffGroupChange";
 import { testMessage } from "./templates/testMessage";
 import { verifyEmail } from "./templates/verifyEmail";
 
@@ -28,6 +29,7 @@ export const NOTIFICATIONS = {
   appointmentReminder,
   todoDue,
   assistantsRequested,
+  staffGroupChange,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;

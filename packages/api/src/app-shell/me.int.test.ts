@@ -17,6 +17,8 @@ const SAVES: UserPreferences[] = [
   { units: { weight: "kg" } },
   { setupDismissed: [GROUP_A] },
   { setupDismissed: [GROUP_B] },
+  { groupSetup: { [GROUP_A]: { opened: true } } },
+  { groupSetup: { [GROUP_A]: { retired: ["help"] } } },
 ];
 
 const expectAllKept = (preferences: UserPreferences) => {
@@ -27,6 +29,7 @@ const expectAllKept = (preferences: UserPreferences) => {
     units: { temperature: "c", weight: "kg" },
   });
   expect([...(preferences.setupDismissed ?? [])].sort()).toEqual([GROUP_A, GROUP_B]);
+  expect(preferences.groupSetup).toEqual({ [GROUP_A]: { opened: true, retired: ["help"] } });
 };
 
 describe("me.setAvatar", () => {
@@ -97,6 +100,40 @@ describe("me.setAvatar", () => {
         "provider",
       ]),
     );
+  });
+});
+
+describe("me.updatePreferences, the setup record", () => {
+  it("returns a saved record from me.get, and a save for another group keeps the first", async () => {
+    const { ctx } = await createUser("group-setup");
+    const api = clientFor(ctx.authUser);
+    expect((await api.me.get()).groupSetup).toEqual({});
+
+    await api.me.updatePreferences({ groupSetup: { [GROUP_A]: { opened: true } } });
+    expect((await api.me.get()).groupSetup).toEqual({ [GROUP_A]: { opened: true } });
+
+    await api.me.updatePreferences({ groupSetup: { [GROUP_B]: { retired: ["entry"] } } });
+    await api.me.updatePreferences({ groupSetup: { [GROUP_A]: { retired: ["help"] } } });
+    await api.me.updatePreferences({ timelineView: "cards" });
+    expect((await api.me.get()).groupSetup).toEqual({
+      [GROUP_A]: { opened: true, retired: ["help"] },
+      [GROUP_B]: { retired: ["entry"] },
+    });
+  });
+
+  it.each([
+    ["an unknown nudge", { [GROUP_A]: { retired: ["tour"] } }],
+    ["a key that isn't a group id", { "not-a-group": { opened: true } }],
+    ["an unset opened", { [GROUP_A]: { opened: false } }],
+    ["an unknown field", { [GROUP_A]: { dismissed: true } }],
+  ])("refuses %s, keeping what was saved", async (name, groupSetup) => {
+    const { ctx } = await createUser(`group-setup-bad-${name.replace(/\W/g, "")}`);
+    const api = clientFor(ctx.authUser);
+    await api.me.updatePreferences({ groupSetup: { [GROUP_B]: { opened: true } } });
+    await expect(api.me.updatePreferences({ groupSetup } as never)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    expect((await api.me.get()).groupSetup).toEqual({ [GROUP_B]: { opened: true } });
   });
 });
 

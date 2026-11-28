@@ -6,6 +6,7 @@ import {
   mailtoHref,
   mapsHref,
   quickActions,
+  rowContact,
   smsHref,
   telHref,
   textAction,
@@ -179,5 +180,32 @@ describe("contactDetails", () => {
         address: null,
       }).map((d) => [d.action.kind, d.caption]),
     ).toEqual([["call", null]]);
+  });
+});
+
+describe("rowContact", () => {
+  it("is the first number and the address as text, and the email", () => {
+    const { call, map, email } = rowContact(alvarez);
+    expect([call?.action.href, call?.text, call?.caption]).toEqual([
+      "tel:5550102200,214",
+      "(555) 010-2200 x214",
+      "Office",
+    ]);
+    expect(map?.text).toBe("1200 Westside Ave, Springfield, CA 90000");
+    expect([email?.href, email?.label]).toEqual([
+      "mailto:e.alvarez@westsidefamily.example",
+      "Email Dr. Elena Alvarez",
+    ]);
+  });
+
+  it("is all null when there's nothing to reach (or the first number can't be dialled)", () => {
+    expect(rowContact({ name: "Aide", phones: [], email: null, address: null })).toEqual({
+      call: null,
+      map: null,
+      email: null,
+    });
+    expect(
+      rowContact({ name: "Aide", phones: [{ label: "", number: "ask" }], email: " ", address: "\n" }).call,
+    ).toBeNull();
   });
 });

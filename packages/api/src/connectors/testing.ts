@@ -33,11 +33,15 @@ export const authForm = (path: string, fields: Record<string, string>) =>
     body: new URLSearchParams(fields).toString(),
   });
 
-/** Register a public client, as Claude and ChatGPT do (dynamic registration, no secret). */
-export const registerClient = async (name = "Test Claude", redirectUri = TEST_REDIRECT_URI) => {
-  const res = await authRequest("/oauth2/register", {
+/** A public client's registration request (dynamic registration, no secret), from `headers`. */
+export const registerRequest = (
+  name = "Test Claude",
+  redirectUri = TEST_REDIRECT_URI,
+  headers: Record<string, string> = {},
+) =>
+  new Request(authUrl("/oauth2/register"), {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify({
       client_name: name,
       redirect_uris: [redirectUri],
@@ -46,6 +50,10 @@ export const registerClient = async (name = "Test Claude", redirectUri = TEST_RE
       response_types: ["code"],
     }),
   });
+
+/** Register a public client, as Claude and ChatGPT do (dynamic registration, no secret). */
+export const registerClient = async (name = "Test Claude", redirectUri = TEST_REDIRECT_URI) => {
+  const res = await getAuth().handler(registerRequest(name, redirectUri));
   if (res.status !== 200 && res.status !== 201)
     throw new Error(`register failed: ${res.status} ${await res.text()}`);
   return (await res.json()) as { client_id: string; client_name: string; scope: string };
@@ -210,8 +218,11 @@ export const rpc = (method: string, params?: unknown) => ({
 export const toolRequest = (name: string, args: Record<string, unknown> = {}) =>
   rpc("tools/call", { name, arguments: args });
 
-/** POST one JSON-RPC message to /mcp, as an assistant's server does (`token` null: none). */
-export const mcpPost = (handler: McpHandler, token: string | null, body: unknown) =>
+/**
+ * POST one JSON-RPC message to /mcp, as an assistant's server does (`token`
+ * null: none), from `clientIp` (none: tests key on the dev key).
+ */
+export const mcpPost = (handler: McpHandler, token: string | null, body: unknown, clientIp?: string) =>
   handler(
     new Request(`${TEST_ORIGIN}/mcp`, {
       method: "POST",
@@ -222,6 +233,7 @@ export const mcpPost = (handler: McpHandler, token: string | null, body: unknown
       },
       body: JSON.stringify(body),
     }),
+    clientIp ? { clientIp } : {},
   );
 
 /** A tool's answer: its text, its structured content, and isError for a refusal the model can fix. */

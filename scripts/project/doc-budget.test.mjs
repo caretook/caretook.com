@@ -56,8 +56,6 @@ beforeAll(() => {
   put("docs/domain/shrinks.md", 12 * KB);
   put("docs/domain/grows.md", 11 * KB + 1);
   put("docs/agents/new.md", 14 * KB);
-  put("scripts/loops/docs/loop.md", 1 * KB);
-  put("scripts/loops/docs/other.md", 1 * KB);
   commit("change");
 });
 afterAll(() => rmSync(repo, { recursive: true, force: true }));
@@ -69,28 +67,10 @@ describe("budgets", () => {
     expect(budgetFor("docs/domain/sub/x.md")).toBeNull();
     expect(budgetFor("README.md")).toBeNull();
   });
-  it("a split role's two halves add up to the role's figure", () => {
-    const roles = [
-      ["hotfix", "docs/agents/hotfix.md", 15 * KB],
-      ["loop", "docs/agents/loop.md", 15 * KB],
-      ["recovery", "docs/agents/recovery.md", 15 * KB],
-      ["orchestrator", "docs/agents/orchestrator.md", 15 * KB],
-      ["planner", "docs/agents/planner.md", 15 * KB],
-      ["backlog", "docs/agents/backlog.md", 15 * KB],
-      ["inbox", "docs/agents/inbox.md", 15 * KB],
-      ["machinery", "docs/agents/machinery.md", 15 * KB],
-      ["project-config", "docs/agents/project-config.md", 15 * KB],
-      ["orchestration", "docs/orchestration.md", 17 * KB],
-    ];
-    for (const [role, additions, figure] of roles)
-      expect(budgetFor(`scripts/loops/docs/${role}.md`) + budgetFor(additions)).toBe(figure);
-  });
   it("measures a file a budget names by its path, outside docs/", () => {
     const sizes = docSizes(repo);
     expect(sizes["AGENTS.md"]).toBe(7 * KB);
-    expect(sizes["scripts/loops/docs/loop.md"]).toBe(1 * KB);
-    expect(sizes).not.toHaveProperty("scripts/loops/docs/other.md");
-    expect(docSizes(repo, "HEAD")["scripts/loops/docs/loop.md"]).toBe(1 * KB);
+    expect(docSizes(repo, "HEAD")["AGENTS.md"]).toBe(7 * KB);
   });
   it("a new doc in docs/agents/ gets 15 KB", () => {
     const [r] = measure({ "docs/agents/n.md": 15 * KB }, {});
@@ -178,6 +158,8 @@ describe("plan status warnings", () => {
           "",
         ].join("\n"),
       );
+      // The hint names the tool's command as this repo's config calls it.
+      write(dir, "risa.json", JSON.stringify({ tool: { prd: "risa", backlog: "risa backlog" } }));
       write(dir, "plans/long-plan.md", status(7 * KB));
       write(dir, "plans/short-plan.md", status(5 * KB));
       write(dir, "plans/old-plan.md", status(9 * KB));
@@ -185,7 +167,7 @@ describe("plan status warnings", () => {
       const out = [];
       expect(run(["warn", "--repo", dir], { out: (s) => out.push(s), err: () => {} })).toBe(0);
       expect(out.join("\n")).toContain("plans/long-plan.md's _Status_ is 7.0 KB, over 6.0 KB");
-      expect(out.join("\n")).toContain("pnpm prd status-trim long");
+      expect(out.join("\n")).toContain("risa status-trim long");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

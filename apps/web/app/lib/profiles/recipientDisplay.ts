@@ -1,6 +1,6 @@
 import type { CodeStatus } from "@caretook/data/schema";
 
-import { dayInZone } from "../core/zonedDay";
+import { dayInZone } from "@caretook/data/domain";
 
 // How a care recipient's profile reads (profiles): the age, the birthday, and
 // the labels for the medical basics. Pure, so web:unit tests it; the profile

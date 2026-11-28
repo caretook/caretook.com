@@ -7,7 +7,7 @@ import type { JoinMailer } from "./joinRequestService";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
 
 import { randomBytes, randomUUID } from "node:crypto";
-import { DEFAULT_PAGE_SIZE, SYSTEM_USER } from "../constants";
+import { DEFAULT_PAGE_SIZE, hasGroupRole, isManagerRole, OWNER_ROLES, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import { CONSENT_VERSION, emailMatches, INVITE_TTL_DAYS, inviteState, linkRoleAllowed } from "../db/schema";
 import { isError, newError } from "../errors";
@@ -19,10 +19,10 @@ import * as careGroupMemberService from "./careGroupMemberService";
 import { groupDisplayName } from "./groupNames";
 import * as joinRequestService from "./joinRequestService";
 import * as legalAcceptanceService from "./legalAcceptanceService";
+import { hasSignUpUse, markSignUpUse } from "./linkSignUpUses";
 
 export { groupDisplayName };
 
-export const serviceName = "careGroupInvite";
 export const schemaName = careGroupInviteModel.schemaName;
 
 type K = typeof schemaName;
@@ -355,16 +355,63 @@ const kindRefusal = async (invite: { kind: string; role: string; createdBy: stri
   isStaffOwnerInvite(invite) ? null : signupRefusal(invite.kind === "link" ? "linkInvites" : "emailInvites");
 
 /**
+ * Whether the invite's maker may still make it: a member's invite or link
+ * works only while they're in the group in a role that may make it (an owner
+ * for an owner invite, else an owner or admin). Leaving, removal and
+ * demotion revoke them (careGroupMemberService); this catches any made
+ * before that, or left behind by a change that skipped the service. Invites
+ * the system made (staff's owner invites) are exempt.
+ */
+const makerMayStill = async (
+  invite: { groupId: string; role: GroupRoleName; createdBy: string },
+  tx?: Tx,
+): Promise<boolean | AppError> => {
+  if (invite.createdBy === SYSTEM_USER.id) return true;
+  const role = await careGroupMemberModel.getRole(invite.groupId, invite.createdBy, { tx });
+  if (isError(role)) return role;
+  return hasGroupRole(OWNER_ROLES, invite.role) ? hasGroupRole(OWNER_ROLES, role) : isManagerRole(role);
+};
+
+/**
+ * The invite's state with its maker rechecked: a usable invite whose maker
+ * may no longer make it reads as revoked, the same answer a withdrawn one gets.
+ */
+const currentState = async (invite: CareGroupInviteModel, tx?: Tx) => {
+  const state = inviteState({ invite });
+  if (state !== "usable") return state;
+  const may = await makerMayStill(invite, tx);
+  if (isError(may)) return may;
+  return may ? state : ("revoked" as const);
+};
+
+/**
  * What a token's holder may know before joining: the invite's state, and
  * while it's usable, the group's display name, the inviter's name, the role
  * and (email invites) the address. Null for a token that matches nothing.
  * `unavailable` while its kind is switched off (admin settings).
+ *
+ * A link its sign-ups used up still reads usable to the one signed-in person
+ * whose own sign-up took a use (`linkStateFor`), so they can go on to ask to
+ * join. `viewerId` gives that person's id, and is called only then; everyone
+ * else gets the same `usedUp`.
  */
-export const preview = async (token: string) => {
+export const preview = async (
+  token: string,
+  opts: { viewerId?: () => Promise<string | null | undefined> } = {},
+) => {
   const invite = await careGroupInviteModel.getByToken(token);
   if (isError(invite)) return invite;
   if (!invite) return null;
-  const state = inviteState({ invite });
+  let state = await currentState(invite);
+  if (isError(state)) return state;
+  if (state === "usedUp" && invite.kind === "link" && opts.viewerId) {
+    const userId = await opts.viewerId();
+    if (userId) {
+      const theirs = await withTransaction((tx) => linkStateFor(invite, userId, tx));
+      if (isError(theirs)) return theirs;
+      state = theirs;
+    }
+  }
   if (state !== "usable") return { state, invite: null, groupName: null, inviterName: null };
   // Its kind switched off (admin settings): say so, and nothing about the group.
   if (await kindRefusal(invite))
@@ -424,7 +471,8 @@ const askWithLink = async (
   });
   if (isError(waiting)) return waiting;
   if (waiting) return requested(waiting.request);
-  const state = inviteState({ invite });
+  const state = await linkStateFor(invite, userId, tx);
+  if (isError(state)) return state;
   const closed = await kindRefusal(invite);
   if (closed) return closed;
   if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
@@ -434,6 +482,24 @@ const askWithLink = async (
   if (isError(asked)) return asked;
   if (!asked) return newError({ code: "careGroupInviteService:notFound" });
   return { ...requested(asked.request), queued: asked.queued };
+};
+
+/**
+ * A link's state for `userId`'s join request. A link used up by sign-ups is
+ * still usable for someone whose own sign-up through it took one of those
+ * uses (`useLinkForSignUp`): their request counts nothing more.
+ */
+const linkStateFor = async (invite: CareGroupInviteModel, userId: string, tx: Tx) => {
+  if (inviteState({ invite }) === "usedUp") {
+    const user = await userModel.getWholeById(userId, system(tx));
+    if (isError(user)) return user;
+    if (user && (await hasSignUpUse(tx, invite.id, user.email))) {
+      const may = await makerMayStill(invite, tx);
+      if (isError(may)) return may;
+      return may ? ("usable" as const) : ("revoked" as const);
+    }
+  }
+  return currentState(invite, tx);
 };
 
 const requested = (request: { id: string; groupId: string; role: GroupRoleName }): AcceptResult => ({
@@ -481,7 +547,8 @@ export const accept = (
     if (invite.status === "accepted" && invite.acceptedBy === userId) {
       return joined(invite.groupId, current ?? invite.role);
     }
-    const state = inviteState({ invite });
+    const state = await currentState(invite, tx);
+    if (isError(state)) return state;
     if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
     const closed = await kindRefusal(invite);
     if (closed) return closed;
@@ -559,9 +626,40 @@ export const decline = (token: string) =>
 export const ticketFor = async (token: string, tx?: Tx) => {
   const invite = await careGroupInviteModel.getByToken(token, { tx });
   if (isError(invite)) return invite;
-  if (!invite || inviteState({ invite }) !== "usable") return newError({ code: "ticket:invalid" });
+  if (!invite) return newError({ code: "ticket:invalid" });
+  const state = await currentState(invite, tx);
+  if (isError(state)) return state;
+  if (state !== "usable") return newError({ code: "ticket:invalid" });
   const closed = await kindRefusal(invite);
   if (closed) return closed;
   if (invite.kind === "email" && !invite.email) return newError({ code: "ticket:invalid" });
   return invite;
 };
+
+/**
+ * A link's sign-up counts a use toward its `max_uses` (B-333), with the
+ * link's row locked so two sign-ups can't both take its last use. An address
+ * whose sign-up through this link already counted counts nothing more (a
+ * second try, or its later join request: `joinRequestService` takes the
+ * marker instead of counting). A link that's no longer usable, or not a
+ * link, is `ticket:invalid`, as `ticketFor` says. Called for a new address
+ * and one with an account alike, so the two answer the same.
+ */
+export const useLinkForSignUp = (token: string, email: string) =>
+  withTransaction(async (tx) => {
+    const invite = await careGroupInviteModel.getByToken(token, { tx, lock: true });
+    if (isError(invite)) return invite;
+    if (!invite || invite.kind !== "link") return newError({ code: "ticket:invalid" });
+    if (await hasSignUpUse(tx, invite.id, email)) return { counted: false };
+    const state = await currentState(invite, tx);
+    if (isError(state)) return state;
+    if (state !== "usable") return newError({ code: "ticket:invalid" });
+    const used = await careGroupInviteModel.update({
+      ...system(tx),
+      filter: byId(invite.id),
+      data: { useCount: invite.useCount + 1 },
+    });
+    if (isError(used)) return used;
+    await markSignUpUse(tx, invite.id, email, invite.expiresAt);
+    return { counted: true };
+  });

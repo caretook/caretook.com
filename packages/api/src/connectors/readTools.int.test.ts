@@ -16,12 +16,15 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  recordTagService,
   SYSTEM_USER,
+  tagService,
   timelineEntryModel,
   todoService,
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
+import { medicationChangeId } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
@@ -369,6 +372,15 @@ describe("read tools", { timeout: 60_000 }, () => {
       },
       { changedAt: "2030-06-12T21:59:00.000Z" },
     );
+    // Keyed by the device's 14:59 there, but dated by the service no later than
+    // the real clock (B-295), before this one: put it at 14:59 through the model.
+    ok(
+      await timelineEntryModel.update({
+        authUser: SYSTEM_USER,
+        filter: { id: { type: "eq", value: medicationChangeId(med.id, "2030-06-12T21:59:00.000Z") } },
+        data: { occurredAt: "2030-06-12T21:59:00.000Z" },
+      }),
+    );
     const token = await w.connect(w.viewer);
     const result = await callTool(handler, token, "todays_doses");
     const out = result.structuredContent as {
@@ -548,6 +560,351 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(pass.structuredContent.entryIds).toHaveLength(1);
   });
 
+  describe("dose_schedule", () => {
+    // 12:00 in Los Angeles (PDT), the group's zone: today is Wednesday 2030-06-12.
+    const clock = new Date("2030-06-12T19:00:00.000Z");
+    type Schedule = {
+      timeZone: string;
+      from: string;
+      days: {
+        day: string;
+        weekday: string;
+        rounds: {
+          name: string;
+          time: string;
+          at: string;
+          medications: { medicationId: string; medication: string; amount: string | null }[];
+        }[];
+      }[];
+      asNeeded: { medicationId: string; medication: string; maxPerDay: number | null }[];
+    };
+    const scheduleWorld = async () => {
+      const w = await world();
+      const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
+      const morning = passes.find((p) => p.name === "Morning")!;
+      const evening = passes.find((p) => p.name === "Evening")!;
+      const metformin = await addMedication(w.caretaker.ctx, w.group.id, {
+        name: "Metformin",
+        strength: "500 mg",
+        schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+      });
+      const vitamin = await addMedication(w.caretaker.ctx, w.group.id, {
+        name: "Vitamin D",
+        strength: null,
+        dose: "1 capsule",
+        schedule: { type: "scheduled", slots: [{ time: "13:00" }] },
+      });
+      const pain = await addMedication(w.caretaker.ctx, w.group.id, {
+        name: "Ibuprofen",
+        strength: null,
+        schedule: { type: "asNeeded", maxPerDay: 3 },
+      });
+      await addMedication(w.owner.ctx, w.second.group.id, { name: "Elsewhere" });
+      return { ...w, metformin, vitamin, pain };
+    };
+
+    it("gives 7 days from today with the group's rounds, in the recipient's offset, to a viewer's read grant", async () => {
+      const handler = handlerAt(clock);
+      const w = await scheduleWorld();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "dose_schedule");
+      expect(result.isError).toBeUndefined();
+      const out = result.structuredContent as Schedule;
+      expect(out.timeZone).toBe("America/Los_Angeles");
+      expect(out.from).toBe("2030-06-12");
+      expect(out.days.map((d) => d.day)).toEqual([
+        "2030-06-12",
+        "2030-06-13",
+        "2030-06-14",
+        "2030-06-15",
+        "2030-06-16",
+        "2030-06-17",
+        "2030-06-18",
+      ]);
+      expect(out.days[0]!.weekday).toBe("Wednesday");
+      for (const d of out.days) {
+        expect(d.rounds.map((r) => [r.name, r.time])).toEqual([
+          ["Morning", "08:00"],
+          ["Vitamin D", "13:00"],
+          ["Evening", "20:00"],
+        ]);
+        expect(d.rounds.map((r) => r.medications.map((m) => m.medicationId))).toEqual([
+          [w.metformin.id],
+          [w.vitamin.id],
+          [w.metformin.id],
+        ]);
+        for (const r of d.rounds) expect(r.at).toBe(`${d.day}T${r.time}:00-07:00`);
+      }
+      expect(out.days[0]!.rounds[0]!.medications[0]).toEqual({
+        medicationId: w.metformin.id,
+        medication: "Metformin 500 mg",
+        amount: "1 tablet",
+      });
+      expect(out.asNeeded).toEqual([{ medicationId: w.pain.id, medication: "Ibuprofen", maxPerDay: 3 }]);
+      const text = result.content[0]!.text;
+      // The same rounds every day: one range.
+      expect(text).toContain("Wednesday 2030-06-12 to Tuesday 2030-06-18:");
+      expect(text).toContain("  Morning (08:00): Metformin 500 mg, 1 tablet");
+      expect(text).toContain("  Vitamin D (13:00): Vitamin D, 1 capsule");
+      expect(text).toContain("As needed: Ibuprofen (at most 3 a day).");
+      expect(JSON.stringify(result)).not.toContain("Elsewhere");
+    });
+
+    it("from tomorrow for one day gives that day only", async () => {
+      const handler = handlerAt(clock);
+      const w = await scheduleWorld();
+      const token = await w.connect(w.caretaker, "readWrite");
+      const result = await callTool(handler, token, "dose_schedule", { from: "2030-06-13", days: 1 });
+      const out = result.structuredContent as Schedule;
+      expect(out.days.map((d) => [d.day, d.weekday, d.rounds.length])).toEqual([
+        ["2030-06-13", "Thursday", 3],
+      ]);
+      expect(result.content[0]!.text).toContain("Thursday 2030-06-13:");
+    });
+
+    it("refuses more than 14 days, and a day before today, naming list_timeline", async () => {
+      const handler = handlerAt(clock);
+      const w = await scheduleWorld();
+      const token = await w.connect(w.viewer);
+      expect((await callTool(handler, token, "dose_schedule", { days: 15 })).isError).toBe(true);
+      const past = await callTool(handler, token, "dose_schedule", { from: "2030-06-11" });
+      expect(past.isError).toBe(true);
+      expect(past.structuredContent).toMatchObject({
+        error: {
+          issues: [
+            {
+              path: "from",
+              message: "The schedule is for today onward. Use list_timeline for doses already logged.",
+            },
+          ],
+        },
+      });
+      expect(past.content[0]!.text).toContain("Use list_timeline for doses already logged.");
+    });
+
+    it("says so for a day with no scheduled doses", async () => {
+      const handler = handlerAt(clock);
+      const w = await world();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "dose_schedule", { days: 2 });
+      expect((result.structuredContent as Schedule).days.map((d) => d.rounds)).toEqual([[], []]);
+      expect(result.content[0]!.text).toContain(
+        "Wednesday 2030-06-12 to Thursday 2030-06-13:\n  No scheduled doses",
+      );
+    });
+  });
+
+  describe("past_doses", () => {
+    // 12:00 in Los Angeles (PDT), the group's zone: today is Wednesday 2030-06-12.
+    const clock = new Date("2030-06-12T19:00:00.000Z");
+    type PastRecord = {
+      timeZone: string;
+      from: string;
+      to: string;
+      days: {
+        day: string;
+        weekday: string;
+        rounds: {
+          passId: string | null;
+          name: string;
+          time: string;
+          slots: {
+            medicationId: string;
+            medication: string;
+            amount: string | null;
+            time: string;
+            at: string;
+            state: string;
+            dose: { entryId: string; status: string; loggedAt: string; loggedBy: string | null } | null;
+          }[];
+        }[];
+      }[];
+    };
+    /** "YYYY-MM-DD" at "HH:MM" Los Angeles (PDT) as an instant. */
+    const atLa = (day: string, time: string) => new Date(`${day}T${time}:00-07:00`).toISOString();
+
+    // Medications started ten days before the clock, so every day read has
+    // their slots, and doses written through the model (the service refuses a
+    // time ahead of the real clock).
+    const recordWorld = async () => {
+      const w = await world();
+      const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
+      const morning = passes.find((p) => p.name === "Morning")!;
+      const evening = passes.find((p) => p.name === "Evening")!;
+      const tenDaysBefore = { changedAt: new Date(clock.getTime() - 10 * 24 * 60 * 60_000).toISOString() };
+      const metformin = await addMedication(
+        w.caretaker.ctx,
+        w.group.id,
+        {
+          name: "Metformin",
+          strength: "500 mg",
+          schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+        },
+        tenDaysBefore,
+      );
+      const vitamin = await addMedication(
+        w.caretaker.ctx,
+        w.group.id,
+        {
+          name: "Vitamin D",
+          strength: null,
+          dose: "1 capsule",
+          schedule: { type: "scheduled", slots: [{ time: "13:00" }] },
+        },
+        tenDaysBefore,
+      );
+      await addMedication(w.owner.ctx, w.second.group.id, { name: "Elsewhere" });
+      const addDose = async (who: Who, occurredAt: string, details: Record<string, unknown>) =>
+        ok(
+          await timelineEntryModel.create({
+            ...who.ctx,
+            data: {
+              groupId: w.group.id,
+              recipientId: w.recipient.id,
+              kind: "dose",
+              occurredAt,
+              timeZone: "America/Los_Angeles",
+              details: details as never,
+            },
+          }),
+        )!;
+      const morningDose = (status: string) => ({
+        medicationId: metformin.id,
+        status,
+        amount: "1 tablet",
+        scheduledFor: "08:00",
+        passId: morning.id,
+      });
+      const given = await addDose(w.caretaker, atLa("2030-06-10", "08:12"), morningDose("given"));
+      const skipped = await addDose(w.owner, atLa("2030-06-11", "08:20"), morningDose("skipped"));
+      const today = await addDose(w.caretaker, atLa("2030-06-12", "08:05"), morningDose("given"));
+      return { ...w, morning, evening, metformin, vitamin, given, skipped, today };
+    };
+
+    it("gives the 7 days ending today with each slot's state and who logged it, to a viewer's read grant", async () => {
+      const handler = handlerAt(clock);
+      const w = await recordWorld();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "past_doses");
+      expect(result.isError).toBeUndefined();
+      const out = result.structuredContent as PastRecord;
+      expect(out.timeZone).toBe("America/Los_Angeles");
+      expect([out.from, out.to]).toEqual(["2030-06-06", "2030-06-12"]);
+      expect(out.days.map((d) => d.day)).toEqual([
+        "2030-06-06",
+        "2030-06-07",
+        "2030-06-08",
+        "2030-06-09",
+        "2030-06-10",
+        "2030-06-11",
+        "2030-06-12",
+      ]);
+      expect(out.days.at(-1)!.weekday).toBe("Wednesday");
+      const states = (day: string) =>
+        out.days
+          .find((d) => d.day === day)!
+          .rounds.map((r) => [r.name, r.time, r.slots.map((s) => s.state).join(",")]);
+      expect(states("2030-06-09")).toEqual([
+        ["Morning", "08:00", "missed"],
+        ["Vitamin D", "13:00", "missed"],
+        ["Evening", "20:00", "missed"],
+      ]);
+      expect(states("2030-06-10")).toEqual([
+        ["Morning", "08:00", "given"],
+        ["Vitamin D", "13:00", "missed"],
+        ["Evening", "20:00", "missed"],
+      ]);
+      expect(states("2030-06-11")[0]).toEqual(["Morning", "08:00", "skipped"]);
+      // Today at 12:00: the later slots are upcoming, not missed.
+      expect(states("2030-06-12")).toEqual([
+        ["Morning", "08:00", "given"],
+        ["Vitamin D", "13:00", "upcoming"],
+        ["Evening", "20:00", "upcoming"],
+      ]);
+
+      const round = (day: string) => out.days.find((d) => d.day === day)!.rounds[0]!;
+      expect(round("2030-06-10").passId).toBe(w.morning.id);
+      expect(round("2030-06-10").slots[0]).toEqual({
+        medicationId: w.metformin.id,
+        medication: "Metformin 500 mg",
+        amount: "1 tablet",
+        time: "08:00",
+        at: "2030-06-10T08:00:00-07:00",
+        state: "given",
+        dose: {
+          entryId: w.given.id,
+          status: "given",
+          loggedAt: "2030-06-10T08:12:00-07:00",
+          loggedBy: "caretaker",
+        },
+      });
+      expect(round("2030-06-11").slots[0]!.dose).toMatchObject({ entryId: w.skipped.id, loggedBy: "owner" });
+      for (const d of out.days)
+        for (const r of d.rounds) for (const sl of r.slots) expect(sl.at).toMatch(OFFSET);
+
+      const text = result.content[0]!.text;
+      expect(text).toContain("Past doses, 2030-06-06 to 2030-06-12 (America/Los_Angeles):");
+      expect(text).toContain(
+        "Monday 2030-06-10:\n  Morning (08:00): Metformin 500 mg, 1 tablet: Given by caretaker at 8:12",
+      );
+      expect(text).toContain("  Morning (08:00): Metformin 500 mg, 1 tablet: Skipped by owner at 8:20");
+      expect(text).toContain("  Vitamin D (13:00): Vitamin D, 1 capsule: Missed");
+      expect(JSON.stringify(result)).not.toContain("Elsewhere");
+    });
+
+    it("from a day for two days gives those two days, and leaves out days after today", async () => {
+      const handler = handlerAt(clock);
+      const w = await recordWorld();
+      const token = await w.connect(w.caretaker, "readWrite");
+      const two = await callTool(handler, token, "past_doses", { from: "2030-06-10", days: 2 });
+      const out = two.structuredContent as PastRecord;
+      expect([out.from, out.to]).toEqual(["2030-06-10", "2030-06-11"]);
+      expect(out.days.map((d) => [d.day, d.weekday])).toEqual([
+        ["2030-06-10", "Monday"],
+        ["2030-06-11", "Tuesday"],
+      ]);
+      const late = await callTool(handler, token, "past_doses", { from: "2030-06-11", days: 14 });
+      expect((late.structuredContent as PastRecord).days.map((d) => d.day)).toEqual([
+        "2030-06-11",
+        "2030-06-12",
+      ]);
+    });
+
+    it("says so for a day with no scheduled doses", async () => {
+      const handler = handlerAt(clock);
+      const w = await world();
+      const token = await w.connect(w.viewer);
+      const result = await callTool(handler, token, "past_doses", { from: "2030-06-12" });
+      expect((result.structuredContent as PastRecord).days).toEqual([
+        { day: "2030-06-12", weekday: "Wednesday", rounds: [] },
+      ]);
+      expect(result.content[0]!.text).toContain("Wednesday 2030-06-12:\n  No scheduled doses");
+    });
+
+    it("refuses a day after today, naming dose_schedule, and more than 90 days back", async () => {
+      const handler = handlerAt(clock);
+      const w = await world();
+      const token = await w.connect(w.viewer);
+      const ahead = await callTool(handler, token, "past_doses", { from: "2030-06-13" });
+      expect(ahead.isError).toBe(true);
+      expect(ahead.structuredContent).toMatchObject({
+        error: {
+          issues: [{ path: "from", message: "Past doses end today. Use dose_schedule for the days ahead." }],
+        },
+      });
+      expect(ahead.content[0]!.text).toContain("dose_schedule");
+      // 2030-03-14 is 90 days before; the day before it is too far.
+      const far = await callTool(handler, token, "past_doses", { from: "2030-03-13" });
+      expect(far.isError).toBe(true);
+      expect(far.structuredContent).toMatchObject({
+        error: { issues: [{ path: "from", message: "At most 90 days back." }] },
+      });
+      const edge = await callTool(handler, token, "past_doses", { from: "2030-03-14", days: 1 });
+      expect(edge.isError).toBeUndefined();
+      expect((await callTool(handler, token, "past_doses", { days: 15 })).isError).toBe(true);
+    });
+  });
+
   it("upcoming: events soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
@@ -682,6 +1039,8 @@ describe("read tools", { timeout: 60_000 }, () => {
     for (const hidden of ["Too far", "No day", "Done already", "Old reminder"])
       expect(JSON.stringify(res)).not.toContain(hidden);
 
+    expect(items.every((i) => i.kind !== "todo" || ("partOf" in i && i.partOf === null))).toBe(true);
+
     const listed = await callTool(handler, token, "list_todos");
     const byTitle = new Map(
       (listed.structuredContent.todos as { title: string; repeats: string | null }[]).map((t) => [
@@ -691,6 +1050,44 @@ describe("read tools", { timeout: 60_000 }, () => {
     );
     expect(byTitle.get("Weekly bins")?.repeats).toMatch(/^Every Mon/);
     expect(byTitle.get("Late call")?.repeats).toBeNull();
+  });
+
+  it("upcoming: a subtask only when assigned or due before its parent, with its parent's title (todo-subtasks-3)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const day = (offset: number) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(
+        new Date(Date.now() + offset * 24 * 60 * 60 * 1000),
+      );
+    const todo = async (title: string, extra: Record<string, unknown> = {}) =>
+      ok(await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
+    const move = await todo("Get ready for the move", { dueOn: day(6) });
+    await todo("Label the boxes", { parentId: move.id, dueOn: day(6) });
+    await todo("Book the van", { parentId: move.id, dueOn: day(6), assigneeId: w.viewer.user.id });
+    await todo("Pack the kitchen", { parentId: move.id, dueOn: day(3) });
+    const someday = await todo("Sort the attic");
+    await todo("Call the charity shop", { parentId: someday.id, dueOn: day(4) });
+    const token = await w.connect(w.viewer);
+
+    const res = await callTool(handler, token, "upcoming");
+    const items = res.structuredContent.items as {
+      title: string;
+      partOf: { id: string; title: string } | null;
+    }[];
+    const listed = items.map((i) => [i.title, i.partOf?.title ?? null]);
+    expect(listed.slice(0, 2)).toEqual([
+      ["Pack the kitchen", "Get ready for the move"],
+      ["Call the charity shop", "Sort the attic"],
+    ]);
+    // The same day, untimed: their order is by id.
+    expect(listed.slice(2).sort()).toEqual([
+      ["Book the van", "Get ready for the move"],
+      ["Get ready for the move", null],
+    ]);
+    expect(items[0]?.partOf?.id).toBe(move.id);
+    const text = res.content.map((c) => c.text).join("\n");
+    expect(text).toMatch(/ todo: Book the van \(part of Get ready for the move\) \(/);
+    expect(JSON.stringify(res)).not.toContain("Label the boxes");
   });
 
   it("list_todos: open by default in the app's order, done on request, paged, mine, never another group's", async () => {
@@ -865,6 +1262,128 @@ describe("read tools", { timeout: 60_000 }, () => {
 
     const clinicians = await callTool(handler, token, "list_providers", { type: "clinician", limit: 1 });
     expect(clinicians.structuredContent.providers).toHaveLength(1);
+  });
+
+  it("tags on records: each list tool gives a record's tag names A to Z, [] when none, never another group's (connectors-5)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const day = (offset: number) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(
+        new Date(Date.now() + offset * 24 * 60 * 60 * 1000),
+      );
+    const tag = async (groupId: string, name: string, by = w.caretaker) =>
+      ok(await tagService.create(by.ctx, { groupId, name }))!;
+    const zephyr = await tag(w.group.id, "Zephyr");
+    const alpha = await tag(w.group.id, "alpha");
+    const tagOn = async (
+      tagId: string,
+      target: Record<string, string>,
+      groupId = w.group.id,
+      by = w.caretaker,
+    ) => ok(await recordTagService.link(by.ctx, { groupId, tagId, ...target }));
+
+    const note = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note", title: "Zeta note" }))!;
+    const plainNote = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note", title: "Zeta plain" }))!;
+    const visit = ok(
+      await addEntry(w.caretaker.ctx, w.group.id, {
+        kind: "event",
+        title: "Zeta visit",
+        occurredAt: hoursAhead(30),
+      }),
+    )!;
+    const todo = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Zeta call", dueOn: day(2) }),
+    )!;
+    const plainTodo = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Zeta chores", dueOn: day(3) }),
+    )!;
+    const provider = ok(
+      await providerService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        type: "clinician",
+        name: "Dr. Zeta",
+      }),
+    )!;
+    const plainProvider = ok(
+      await providerService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        type: "clinician",
+        name: "Dr. Zetaplain",
+      }),
+    )!;
+    const med = await addMedication(w.caretaker.ctx, w.group.id, { name: "Zetamol" });
+    const plainMed = await addMedication(w.caretaker.ctx, w.group.id, { name: "Zetaplain" });
+    await tagOn(zephyr.id, { entryId: note.id });
+    await tagOn(zephyr.id, { entryId: visit.id });
+    await tagOn(zephyr.id, { todoId: todo.id });
+    await tagOn(zephyr.id, { providerId: provider.id });
+    await tagOn(zephyr.id, { medicationId: med.id });
+    await tagOn(alpha.id, { medicationId: med.id });
+    // Another group's tag on its own medication: never in this group's answers.
+    const offgroup = await tag(w.second.group.id, "Offgroup", w.owner);
+    const otherMed = await addMedication(w.owner.ctx, w.second.group.id, { name: "Zetaoff" });
+    await tagOn(offgroup.id, { medicationId: otherMed.id }, w.second.group.id, w.owner);
+
+    const tagged: Record<string, string[]> = {
+      [note.id]: ["Zephyr"],
+      [visit.id]: ["Zephyr"],
+      [todo.id]: ["Zephyr"],
+      [provider.id]: ["Zephyr"],
+      [med.id]: ["alpha", "Zephyr"],
+    };
+    const token = await w.connect(w.viewer);
+    type Tagged = { id: string; tags: string[] };
+    const expectTags = (tool: string, records: Tagged[], want: string[], plain: string[]) => {
+      const byId = new Map(records.map((r) => [r.id, r.tags]));
+      for (const id of want) expect(byId.get(id), `${tool}: ${id}`).toEqual(tagged[id]);
+      for (const id of plain) expect(byId.get(id), `${tool}: ${id}`).toEqual([]);
+      for (const r of records) expect(r.tags, tool).toEqual(tagged[r.id] ?? []);
+    };
+    const lines = (result: { content: { text: string }[] }) => result.content.map((c) => c.text).join("\n");
+
+    const timeline = await callTool(handler, token, "list_timeline");
+    expectTags(
+      "list_timeline",
+      timeline.structuredContent.entries as Tagged[],
+      [note.id, visit.id],
+      [plainNote.id],
+    );
+    expect(lines(timeline)).toMatch(/ note Zeta note \(caretaker\) · tags: Zephyr$/m);
+    expect(lines(timeline)).toMatch(/ note Zeta plain \(caretaker\)$/m);
+
+    const todos = await callTool(handler, token, "list_todos");
+    expectTags("list_todos", todos.structuredContent.todos as Tagged[], [todo.id], [plainTodo.id]);
+    expect(lines(todos)).toMatch(/- Zeta call \[upcoming\] due \S+ · tags: Zephyr$/m);
+
+    const soon = await callTool(handler, token, "upcoming");
+    expectTags("upcoming", soon.structuredContent.items as Tagged[], [visit.id, todo.id], [plainTodo.id]);
+    expect(lines(soon)).toMatch(/ event: Zeta visit · tags: Zephyr$/m);
+    expect(lines(soon)).toMatch(/ todo: Zeta call · tags: Zephyr$/m);
+    expect(lines(soon)).toMatch(/ todo: Zeta chores$/m);
+
+    const providers = await callTool(handler, token, "list_providers");
+    expectTags(
+      "list_providers",
+      providers.structuredContent.providers as Tagged[],
+      [provider.id],
+      [plainProvider.id],
+    );
+    expect(lines(providers)).toMatch(/- Dr\. Zeta \(clinician\) · tags: Zephyr$/m);
+
+    const meds = await callTool(handler, token, "list_medications");
+    expectTags("list_medications", meds.structuredContent.medications as Tagged[], [med.id], [plainMed.id]);
+    expect(lines(meds)).toMatch(/- Zetamol 10 mg .* · tags: alpha, Zephyr$/m);
+
+    const found = await callTool(handler, token, "search", { q: "zeta" });
+    const hits = found.structuredContent as { entries: Tagged[]; providers: Tagged[]; medications: Tagged[] };
+    expectTags("search entries", hits.entries, [note.id, visit.id], [plainNote.id]);
+    expectTags("search providers", hits.providers, [provider.id], [plainProvider.id]);
+    expectTags("search medications", hits.medications, [med.id], [plainMed.id]);
+    expect(lines(found)).toMatch(/- Medication: Zetamol 10 mg.* · tags: alpha, Zephyr$/m);
+    expect(lines(found)).toMatch(/- Provider: Dr\. Zeta.* · tags: Zephyr$/m);
+
+    for (const result of [timeline, todos, soon, providers, meds, found])
+      expect(JSON.stringify(result)).not.toContain("Offgroup");
   });
 
   it("recipient_profile: names, age (not the birthday), basics and allergies", async () => {
@@ -1149,13 +1668,13 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         details: { readings: [{ type: "heartRate", value: 70 }] },
       }),
     );
-    ok(
+    const sweepEvent = ok(
       await addEntry(w.caretaker.ctx, w.group.id, {
         kind: "event",
         title: "Cardiology",
         occurredAt: hoursAhead(40),
       }),
-    );
+    )!;
     ok(
       await addEntry(w.caretaker.ctx, w.group.id, {
         kind: "symptom",
@@ -1168,20 +1687,20 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         details: { medicationId: med.id, status: "given", amount: "1" },
       }),
     );
-    ok(
+    const sweepTodo = ok(
       await todoService.create(w.caretaker.ctx, {
         groupId: w.group.id,
         title: "Call the clinic",
         assigneeId: w.caretaker.user.id,
       }),
-    );
-    ok(
+    )!;
+    const sweepProvider = ok(
       await providerService.create(w.caretaker.ctx, {
         groupId: w.group.id,
         type: "clinician",
         name: "Dr. Example",
       }),
-    );
+    )!;
     ok(
       await recipientAllergyService.create(w.owner.ctx, {
         groupId: w.group.id,
@@ -1196,6 +1715,23 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         sinceYear: 2018,
       }),
     );
+    const sweepTag = ok(await tagService.create(w.caretaker.ctx, { groupId: w.group.id, name: "Sweep" }))!;
+    ok(
+      await recordTagService.link(w.caretaker.ctx, {
+        groupId: w.group.id,
+        tagId: sweepTag.id,
+        medicationId: med.id,
+      }),
+    );
+    // Tags on every kind the list tools read (connectors-5 slice 4).
+    for (const target of [
+      { entryId: sweepEvent.id },
+      { todoId: sweepTodo.id },
+      { providerId: sweepProvider.id },
+    ])
+      ok(
+        await recordTagService.link(w.caretaker.ctx, { groupId: w.group.id, tagId: sweepTag.id, ...target }),
+      );
 
     const reads = CONNECTOR_TOOLS.filter((t) => t.scope === "read");
     expect(reads.map((t) => t.name)).toEqual(
@@ -1206,10 +1742,14 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         "search",
         "list_medications",
         "todays_doses",
+        "dose_schedule",
+        "past_doses",
         "upcoming",
         "list_todos",
         "list_providers",
         "recipient_profile",
+        "list_tags",
+        "tagged_items",
       ]),
     );
     const inputs: Record<string, Record<string, unknown>> = {
@@ -1218,6 +1758,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
       list_todos: { status: "all" },
       list_medications: { includePast: true },
       list_providers: { includePast: true },
+      tagged_items: { tag: "sweep" },
     };
     const secretValues = [
       ...Object.values(secrets),

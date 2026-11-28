@@ -60,6 +60,18 @@ describe("the Avatar card", () => {
     expect(stored()).toEqual({ color: "jade", icon: "bird" });
   });
 
+  test("the shared swatches (tags-3): a Default and one radio per color, one checked, picked by a tap", async () => {
+    const { api } = server({ color: "sky", icon: null });
+    await renderWithDevice({ route: ROUTES, url: "/app/settings/account", api, connected: true });
+    await expect.element(radio("Color", "Sky")).toBeChecked();
+    const colors = page.getByRole("radiogroup", { name: "Color" }).getByRole("radio");
+    expect(colors.elements()).toHaveLength(11);
+    await choose("Color", "Coral");
+    await expect.element(radio("Color", "Coral")).toBeChecked();
+    await expect.element(radio("Color", "Sky")).not.toBeChecked();
+    await expect.element(preview()).toHaveAttribute("data-avatar-color", "coral");
+  });
+
   test("clears back to the default with null", async () => {
     const { calls, api } = server({ color: "sky", icon: "cat" });
     await renderWithDevice({ route: ROUTES, url: "/app/settings/account", api, connected: true });

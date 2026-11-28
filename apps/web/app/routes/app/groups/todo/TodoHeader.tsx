@@ -1,9 +1,9 @@
-import type { TodoState } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
 import { ListTodo } from "lucide-react";
 import { Badge, DetailHeader, STATUS_TONE, ViaTag } from "~/components/ui";
 import { todoBadge } from "./todoPage";
+import type { TodoState } from "@caretook/data/domain";
 
 /**
  * The todo's header (`DetailHeader`): its title with a Done or Overdue badge
@@ -11,8 +11,8 @@ import { todoBadge } from "./todoPage";
  *
  * - `via`: the member's AI assistant it was added through ("via Claude"), when it was.
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Edit (the edit sheet) and ⋯ with Tags, Reopen and Delete, for writers.
- * - `tags`: its tags' chips, under the title (every role; tags PRD).
+ * - `actions`: the shared ⋯ (`TodoMenu`: Edit, Reopen, Delete), for writers.
+ * - `tags`: its tags (`QuickTags`), under the title (chips for every role; tags PRD).
  */
 export function TodoHeader({
   title,

@@ -14,8 +14,9 @@ const TOP_LEVEL: string[] = [];
 
 /**
  * lib/sync/: the client, the device schema, the lazy front door, the page
- * cache, live rows, first sync, the tile cache (remembered live answers), and
- * the uploader (sync-safety: the connector's upload, and what didn't save).
+ * cache, live rows, first sync, the tile cache (remembered live answers), the
+ * startup steps the loading screen shows (B-957), and the uploader
+ * (sync-safety: the connector's upload, and what didn't save).
  */
 const SYNC_PLUMBING = [
   "client.test.ts",
@@ -28,10 +29,13 @@ const SYNC_PLUMBING = [
   "remembered.test.ts",
   "remembered.ts",
   "schema.ts",
+  "startup.test.ts",
+  "startup.ts",
   "useLiveRows.ts",
   "useRememberedQuery.ts",
   "uploader.ts",
   "uploader.browser.test.tsx",
+  "deviceWrites.browser.test.tsx",
   "uploadTries.ts",
   "uploadTries.test.ts",
 ];

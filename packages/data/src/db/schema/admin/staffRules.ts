@@ -27,6 +27,8 @@ export const STAFF_CAPABILITIES = {
   "users.disable": ADMIN,
   /** Make someone support or admin, or remove their staff role. */
   "users.setRole": ADMIN,
+  /** Raise, lower or reset one account's care group limit (free-limits PRD). */
+  "users.limits": BOTH,
   /** Search care groups and open a group's page (never its care data). */
   "groups.read": BOTH,
   /** Owner recovery, role changes and removals in a group. */

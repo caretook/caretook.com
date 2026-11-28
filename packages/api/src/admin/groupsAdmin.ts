@@ -1,19 +1,14 @@
-import type { InviteMailer } from "@caretook/data";
+import type { InviteMailer, StaffGroupMailer } from "@caretook/data";
 
 import { createHash } from "node:crypto";
-import {
-  GROUP_ADMIN_PAGE_SIZE,
-  groupAdminService,
-  inviteEmailZ,
-  STAFF_SETTABLE_GROUP_ROLES,
-  staffReasonZSchema,
-} from "@caretook/data";
-import { deliverSoon, notify } from "@caretook/notifications";
+import { groupAdminService, inviteEmailZ, isError, staffReasonZSchema } from "@caretook/data";
+import { deliverSoon, getSupportEmail, notify } from "@caretook/notifications";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 import { iso } from "../dto";
 import { unwrap } from "../errors";
 import { staffProcedure } from "../procedures";
+import { GROUP_ADMIN_PAGE_SIZE, STAFF_SETTABLE_GROUP_ROLES } from "@caretook/data/domain";
 
 // `admin.groups.*` (admin slice 4): care groups for Caretook staff. Every
 // staff member (`groups.read`) searches groups and opens one: its name, its
@@ -21,7 +16,8 @@ import { staffProcedure } from "../procedures";
 // joined), counts and dates. Never care data: nothing here selects an
 // entry's, document's, provider's or medication's content, or the
 // recipient's profile beyond their names. Admins (`groups.manage`) recover
-// an owner, change a role and remove a member, always with a reason.
+// an owner, change a role and remove a member, always with a reason; each
+// change emails the group's owners (`staffGroupChange`).
 
 const id = z.uuid();
 const reason = staffReasonZSchema;
@@ -41,6 +37,35 @@ const ownerInviteMailer =
       tx,
     });
   };
+
+/**
+ * Queues `staffGroupChange` to each of the group's owners in the service's
+ * transaction: one per audit entry and owner. No staff name goes in it.
+ */
+const staffGroupMailer = (): StaffGroupMailer => async (notice, tx) => {
+  const ids: string[] = [];
+  for (const to of notice.to) {
+    const queued = await notify("staffGroupChange", {
+      to: to.email,
+      data: {
+        groupId: notice.groupId,
+        groupName: notice.groupName,
+        change: notice.change,
+        supportEmail: getSupportEmail(),
+      },
+      idempotencyKey: `staffGroupChange:${notice.auditId}:${to.userId}`,
+      tx,
+    });
+    if (isError(queued)) return queued;
+    ids.push(queued.id);
+  }
+  return ids;
+};
+
+/** Deliver what a change queued, after its commit. */
+const deliverAll = (ids: string[]) => {
+  for (const queued of ids) deliverSoon(queued);
+};
 
 type Person = { id: string; name: string | null; email: string };
 
@@ -106,26 +131,48 @@ export const groupsAdmin = {
   /** Make a member an owner (owner recovery). */
   promoteOwner: staffProcedure("groups.manage")
     .input(z.object({ groupId: id, userId: id, reason }))
-    .handler(async ({ context, input }) => unwrap(await groupAdminService.promoteOwner(context, input))),
+    .handler(async ({ context, input }) => {
+      const { queued, ...done } = unwrap(
+        await groupAdminService.promoteOwner(context, input, { mail: staffGroupMailer() }),
+      );
+      deliverAll(queued);
+      return done;
+    }),
 
   /** Send an owner invite to an address (the `ownerInvite` email). */
   inviteOwner: staffProcedure("groups.manage")
     .input(z.object({ groupId: id, email: inviteEmailZ, reason }))
     .handler(async ({ context, input }) => {
       const sent = unwrap(
-        await groupAdminService.inviteOwner(context, input, { mail: ownerInviteMailer(context.authUser.id) }),
+        await groupAdminService.inviteOwner(context, input, {
+          mail: ownerInviteMailer(context.authUser.id),
+          ownersMail: staffGroupMailer(),
+        }),
       );
       if (sent.queued) deliverSoon(sent.queued);
+      deliverAll(sent.told);
       return { inviteId: sent.inviteId, email: sent.email };
     }),
 
   /** Change a member's role to admin, caretaker or viewer. A group always keeps an owner (a 409). */
   changeRole: staffProcedure("groups.manage")
     .input(z.object({ groupId: id, userId: id, role: z.enum(STAFF_SETTABLE_GROUP_ROLES), reason }))
-    .handler(async ({ context, input }) => unwrap(await groupAdminService.changeRole(context, input))),
+    .handler(async ({ context, input }) => {
+      const { queued, ...done } = unwrap(
+        await groupAdminService.changeRole(context, input, { mail: staffGroupMailer() }),
+      );
+      deliverAll(queued);
+      return done;
+    }),
 
   /** Remove a member. Removing the last owner is refused (a 409). */
   removeMember: staffProcedure("groups.manage")
     .input(z.object({ groupId: id, userId: id, reason }))
-    .handler(async ({ context, input }) => unwrap(await groupAdminService.removeMember(context, input))),
+    .handler(async ({ context, input }) => {
+      const { queued, ...done } = unwrap(
+        await groupAdminService.removeMember(context, input, { mail: staffGroupMailer() }),
+      );
+      deliverAll(queued);
+      return done;
+    }),
 };

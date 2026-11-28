@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { duePasses } from "~/lib/medications/duePasses";
 import { medicationStrip } from "~/lib/medications/medicationStrip";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
+import { duePasses } from "@caretook/data/schema";
 
 /**
  * The Today card's medications row: the pass it shows (`medicationStrip`

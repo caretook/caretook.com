@@ -9,7 +9,8 @@ import { syncedColumns } from "./syncConfig";
 //   the tables it creates.
 // - app: CONNECT, USAGE, SELECT/INSERT/UPDATE/DELETE on every table and
 //   USAGE/SELECT on sequences, no CREATE; default privileges give it the same
-//   on tables the migrations role creates later.
+//   on tables the migrations role creates later. APP_APPEND_ONLY_TABLES (the
+//   audit log) then lose UPDATE and DELETE.
 // - replication: REPLICATION, and SELECT on exactly the columns the sync
 //   config reads (`syncedColumns`), or on the whole table for
 //   REPLICATION_WHOLE_TABLES; nothing on any other table.
@@ -64,6 +65,13 @@ export const REPLICATION_WHOLE_TABLES: readonly string[] = [
   "care_group",
   "care_group_member",
 ];
+
+/**
+ * Tables the app role may INSERT into and SELECT from but never UPDATE or
+ * DELETE (account-security, B-332): the staff audit log. Revoked after the
+ * grant on every table, so each `pnpm db:roles` run restores it.
+ */
+export const APP_APPEND_ONLY_TABLES: readonly string[] = ["admin_audit_log"];
 
 const NAME = /^[a-z_][a-z0-9_]{0,62}$/;
 
@@ -178,6 +186,10 @@ export const rolesSql = ({
     `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${a};`,
     `ALTER DEFAULT PRIVILEGES FOR ROLE ${m} IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${a};`,
     `ALTER DEFAULT PRIVILEGES FOR ROLE ${m} IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${a};`,
+    // ...but append-only tables stay append-only: the app inserts and reads
+    // them, never changes or deletes a row. Their foreign keys' ON DELETE SET
+    // NULL runs as the table owner, so deleting a user or group still works.
+    ...APP_APPEND_ONLY_TABLES.map((table) => `REVOKE UPDATE, DELETE ON TABLE ${ident(table)} FROM ${a};`),
 
     // replication: exactly the synced columns. Revoking table privileges
     // revokes column privileges too, so a column a stream dropped goes.

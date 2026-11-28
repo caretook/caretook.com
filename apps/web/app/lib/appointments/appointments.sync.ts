@@ -3,13 +3,7 @@ import type { Schedule } from "./entrySchedule";
 import type { SyncDb } from "../sync/index";
 import type { EntryRow } from "../timeline/timeline.sync";
 
-import {
-  buildNoteDoc,
-  encodeNoteDoc,
-  entryProviderId,
-  entryTodoId,
-  timelineEntryContentZSchema,
-} from "@caretook/data/schema";
+import { entryProviderId, entryTodoId, timelineEntryContentZSchema } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { cancelPatch, UNCANCEL_PATCH } from "./eventCancel";
 import {
@@ -33,6 +27,7 @@ import {
   updateEntry,
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
+import { buildNoteDoc, encodeNoteDoc } from "@caretook/data/domain";
 
 // Local writes for appointments (events), beside timeline.ts: cancel, undo
 // cancel and reschedule. Cancel and undo are ordinary updates of the cancel

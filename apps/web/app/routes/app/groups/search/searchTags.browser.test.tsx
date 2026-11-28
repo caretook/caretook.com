@@ -1,18 +1,23 @@
 import type { DeviceRoute } from "../../../../../test/device";
+import type { GroupRole } from "../../../../../test/fixtures";
 
+import { TAG_COLORS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import * as searchRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { condition, fx, hoursAgo, recordTag, tag, TEST_GROUP, todo } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
-import { tagRecord } from "~/lib/tags/tags.sync";
+import { deleteTag, recolorTag, renameTag, tagRecord } from "~/lib/tags/tags.sync";
 
 // The search page's tag filter (tags slice 6): `?tag=` narrows every
 // section to the items carrying the tag; with no text it lists each type's
 // tagged live items (entries newest first, the rest A to Z), conditions
 // left out (they can't carry one). Soft-deleted items never show. The
-// device is offline throughout. The URLs are urls.test.ts's.
+// device is offline throughout. The URLs are urls.test.ts's. Tags-3: the
+// tags are colored filter chips, one on at a time; text naming a tag finds
+// what carries it (as a title match, with the tag's chip on the result),
+// exclusions still applied.
 
 const ROUTES: DeviceRoute[] = [{ path: "/app/groups/:groupId/search", module: searchRoute }];
 const BASE = `/app/groups/${TEST_GROUP.id}/search`;
@@ -35,6 +40,10 @@ const NEW_NOTE = fx.note({ occurredAt: hoursAgo(2), text: "Knee better after the
 const UNTAGGED_NOTE = fx.note({ occurredAt: hoursAgo(3), text: "Knee was fine at lunch" });
 const GONE_NOTE = fx.note({ occurredAt: hoursAgo(4), text: "Knee note removed", deletedAt: hoursAgo(1) });
 const KNEE_CONDITION = condition({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7e09", name: "Knee arthritis" });
+const BP = tag("Blood pressure", { color: TAG_COLORS[2] });
+const LUNCH_NOTE = fx.note({ occurredAt: hoursAgo(6), text: "Felt fine after lunch" });
+const GARDEN_NOTE = fx.note({ occurredAt: hoursAgo(7), text: "Sat in the garden for an hour" });
+const BP_TODO = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7e03", title: "Order a new cuff" });
 
 const world = () => [
   URGENT,
@@ -51,6 +60,13 @@ const world = () => [
   UNTAGGED_NOTE,
   GONE_NOTE,
   KNEE_CONDITION,
+  BP,
+  LUNCH_NOTE,
+  GARDEN_NOTE,
+  BP_TODO,
+  recordTag(BP.id, LUNCH_NOTE.id),
+  recordTag(BP.id, GARDEN_NOTE.id),
+  recordTag(BP.id, BP_TODO.id, "todoId"),
   recordTag(URGENT.id, LARK.id, "providerId"),
   recordTag(URGENT.id, BRANDT.id, "providerId"),
   recordTag(URGENT.id, GONE_PROVIDER.id, "providerId"),
@@ -71,7 +87,20 @@ const results = () =>
     (r) => `${r.dataset.result}:${r.dataset.resultId}`,
   );
 const statusLine = () => document.querySelector("[data-search-status]")?.textContent ?? "";
-const tagSelect = () => document.querySelector<HTMLSelectElement>("select[data-search-tag]");
+const tagChips = () =>
+  [...document.querySelectorAll<HTMLAnchorElement>("[data-search-tags] nav a")].map((a) => a.textContent);
+const tagChip = (name: string) =>
+  [...document.querySelectorAll<HTMLAnchorElement>("[data-search-tags] nav a")].find(
+    (a) => a.textContent === name,
+  );
+const currentTag = () =>
+  document.querySelector("[data-search-tags] nav a[aria-current='true']")?.textContent ?? null;
+const resultChip = (id: string) =>
+  document.querySelector<HTMLElement>(`[data-result-id="${id}"] [data-tag-chip]`);
+const resultChips = (id: string) =>
+  [...document.querySelectorAll<HTMLElement>(`[data-result-id="${id}"] [data-tag-chip]`)].map(
+    (c) => c.dataset.tagChip,
+  );
 const timelineLink = () => document.querySelector<HTMLAnchorElement>("[data-see-timeline]");
 
 describe("search: the tag filter", () => {
@@ -88,7 +117,7 @@ describe("search: the tag filter", () => {
         `entry:${OLD_NOTE.id}`,
       ]);
     expect(statusLine()).toBe("2 providers, 1 medication, 1 todo and 2 entries");
-    expect(tagSelect()?.value).toBe(URGENT.id);
+    expect(currentTag()).toBe("Urgent");
     // No recent searches while a tag lists; the timeline link carries the tag.
     expect(document.body.textContent).not.toContain("Recent searches");
     expect(timelineLink()?.getAttribute("href")).toBe(
@@ -127,24 +156,84 @@ describe("search: the tag filter", () => {
     expect(results()).toEqual([]);
   });
 
-  test("the Tag field sets and clears the tag, keeping the text; an unknown tag is no filter", async () => {
+  test("the tags are colored chips: a tap filters, a second tap clears, keeping the text; an unknown tag is no filter", async () => {
     const device = await open("?q=metformin");
     await expect.poll(results).toEqual([`medication:${METFORMIN.id}`]);
-    const select = await found(tagSelect);
-    expect([...select.options].map((o) => o.textContent)).toEqual(["Any tag", "Knee", "Urgent"]);
+    await found(() => tagChip("Urgent"));
+    expect(tagChips()).toEqual(["Blood pressure", "Knee", "Urgent"]);
+    expect(currentTag()).toBeNull();
+    // Each chip shows its tag's color (none: an empty ring).
+    expect(
+      tagChip("Blood pressure")?.querySelector("[data-tag-swatch]")?.getAttribute("data-tag-swatch"),
+    ).toBe(TAG_COLORS[2]);
+    // A dozen tags or fewer: no filter box.
+    expect(document.querySelector("[data-search-tag-filter]")).toBeNull();
 
-    await userEvent.selectOptions(select, URGENT.id);
+    await userEvent.click(await found(() => tagChip("Urgent")));
     await expect.poll(() => device.location()).toBe(`${BASE}?q=metformin&tag=${URGENT.id}`);
     await expect.poll(statusLine).toBe("No matches for “metformin” tagged “Urgent”");
+    expect(currentTag()).toBe("Urgent");
 
-    await userEvent.selectOptions(select, "");
+    // One on at a time: another tap moves it.
+    await userEvent.click(await found(() => tagChip("Knee")));
+    await expect.poll(() => device.location()).toBe(`${BASE}?q=metformin&tag=${KNEE.id}`);
+    await expect.poll(results).toEqual([`medication:${METFORMIN.id}`]);
+    expect(currentTag()).toBe("Knee");
+
+    await userEvent.click(await found(() => tagChip("Knee")));
     await expect.poll(() => device.location()).toBe(`${BASE}?q=metformin`);
+    await expect.poll(currentTag).toBeNull();
     await expect.poll(results).toEqual([`medication:${METFORMIN.id}`]);
     await device.screen.unmount();
 
     await open("?q=metformin&tag=6d1f0b2a-3c4e-4f5a-8b9c-0d1e2f3a4b5c");
     await expect.poll(results).toEqual([`medication:${METFORMIN.id}`]);
-    expect(tagSelect()?.value).toBe("");
+    expect(currentTag()).toBeNull();
+  });
+
+  test("past a dozen tags a filter box narrows the chips, keeping the one that's on", async () => {
+    const more = Array.from({ length: 11 }, (_, i) => tag(`Extra ${String(i + 1).padStart(2, "0")}`));
+    await renderWithDevice({
+      route: ROUTES,
+      url: `${BASE}?tag=${URGENT.id}`,
+      fixtures: [...world(), ...more],
+      search: true,
+    });
+    const filter = await found(() => document.querySelector<HTMLInputElement>("[data-search-tag-filter]"));
+    expect(tagChips()).toHaveLength(14);
+    await userEvent.type(filter, "pres");
+    await expect.poll(tagChips).toEqual(["Blood pressure", "Urgent"]);
+    await userEvent.clear(filter);
+    await userEvent.type(filter, "zzz");
+    await expect.poll(tagChips).toEqual(["Urgent"]);
+  });
+
+  test("typing a tag's name finds what carries it, as title matches, with the tag's chip", async () => {
+    const device = await open("");
+    const field = await found(() => document.querySelector<HTMLInputElement>("[data-search-field]"));
+    await userEvent.type(field, "blood");
+    await expect.poll(() => device.location()).toBe(`${BASE}?q=blood`);
+    // Neither note's text says "blood"; the todo's title doesn't either.
+    await expect
+      .poll(() => results().sort())
+      .toEqual([`todo:${BP_TODO.id}`, `entry:${LUNCH_NOTE.id}`, `entry:${GARDEN_NOTE.id}`].sort());
+    expect(resultChips(LUNCH_NOTE.id)).toEqual([BP.id]);
+    expect(resultChips(BP_TODO.id)).toEqual([BP.id]);
+    // Words in any order, each a prefix of a word in the name.
+    await userEvent.clear(field);
+    await userEvent.type(field, "pressure blo");
+    await expect.poll(() => results().sort()).toContain(`entry:${GARDEN_NOTE.id}`);
+    await userEvent.clear(field);
+    await userEvent.type(field, "bloods");
+    await expect.poll(statusLine).toBe("No matches for “bloods”");
+    expect(results()).toEqual([]);
+  });
+
+  test("-word still drops a tag-matched item containing it", async () => {
+    await open("?q=blood%20-lunch");
+    await expect.poll(results).toContain(`entry:${GARDEN_NOTE.id}`);
+    expect(results()).not.toContain(`entry:${LUNCH_NOTE.id}`);
+    expect(results()).toContain(`todo:${BP_TODO.id}`);
   });
 
   test("a tag put on here shows in the list at once", async () => {
@@ -153,5 +242,128 @@ describe("search: the tag filter", () => {
     expect(await tagRecord(device.db, KNEE.id, "entry", UNTAGGED_NOTE.id)).toEqual({ ok: true });
     await device.settle();
     await expect.poll(results).toEqual([`medication:${METFORMIN.id}`, `entry:${UNTAGGED_NOTE.id}`]);
+  });
+
+  test("a result's tag chip follows a rename or recolor of its tag (B-979)", async () => {
+    const alpha = tag("Alpha");
+    const alpine = tag("Alpine");
+    const walk = fx.note({ occurredAt: hoursAgo(8), text: "Walked round the pond" });
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: `${BASE}?q=alp`,
+      fixtures: [
+        ...world(),
+        alpha,
+        alpine,
+        walk,
+        recordTag(alpha.id, walk.id),
+        recordTag(alpine.id, walk.id),
+      ],
+      search: true,
+    });
+    await expect.poll(results).toEqual([`entry:${walk.id}`]);
+    expect(resultChips(walk.id)).toEqual([alpha.id, alpine.id]);
+    expect(resultChip(walk.id)?.textContent).toBe("Alpha");
+    expect(resultChip(walk.id)?.dataset.tagColor).toBeUndefined();
+
+    // Recolored and renamed (any device's change lands in the local database):
+    // the text still names it, so the result stays and its chip follows.
+    expect(await recolorTag(device.db, alpha.id, TAG_COLORS[3])).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(() => resultChip(walk.id)?.dataset.tagColor).toBe(TAG_COLORS[3]);
+    expect(await renameTag(device.db, alpha.id, "Alphabet")).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(() => resultChip(walk.id)?.textContent).toBe("Alphabet");
+    // The filter chip updates as before.
+    expect(tagChip("Alphabet")?.querySelector("[data-tag-swatch]")?.getAttribute("data-tag-swatch")).toBe(
+      TAG_COLORS[3],
+    );
+
+    // A deleted tag drops off the chips; the result stays for the other.
+    expect(await deleteTag(device.db, alpine.id)).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(() => resultChips(walk.id)).toEqual([alpha.id]);
+
+    // Renamed so the text no longer names it: the result goes; the filter chip shows the new name.
+    expect(await renameTag(device.db, alpha.id, "Beta")).toEqual({ ok: true });
+    await device.settle();
+    await expect.poll(results).toEqual([]);
+    await found(() => tagChip("Beta"));
+  });
+});
+
+// Shared displays slice 2: each result's tags are read live (one query per
+// kind) and shown as the one tag control (`QuickTags`: two chips, then
+// "+N"), the tags the text names first.
+describe("search: tags on a result row", () => {
+  const APPLE = tag("Apple");
+  const BANANA = tag("Banana");
+  const WALNUT = tag("Walnut");
+  const SNACK = fx.note({ occurredAt: hoursAgo(9), text: "A snack by the window" });
+  const snacks = () => [
+    ...world(),
+    APPLE,
+    BANANA,
+    WALNUT,
+    SNACK,
+    recordTag(APPLE.id, SNACK.id),
+    recordTag(BANANA.id, SNACK.id),
+    recordTag(WALNUT.id, SNACK.id),
+  ];
+  const openAs = (query: string, role: GroupRole = "owner") =>
+    renderWithDevice({ route: ROUTES, url: `${BASE}${query}`, role, fixtures: snacks(), search: true });
+  const row = (id: string) => `[data-result-id="${id}"]`;
+  const moreCount = (id: string) =>
+    document.querySelector(`${row(id)} [data-tag-more] [aria-hidden]`)?.textContent ?? null;
+
+  test("the tag the text names is among a result's first two chips, the rest A to Z", async () => {
+    const device = await openAs("?q=walnut");
+    await expect.poll(results).toEqual([`entry:${SNACK.id}`]);
+    await expect.poll(() => resultChips(SNACK.id)).toEqual([WALNUT.id, APPLE.id]);
+    expect(moreCount(SNACK.id)).toBe("+1");
+    await device.screen.unmount();
+
+    await openAs("?q=snack");
+    await expect.poll(() => resultChips(SNACK.id)).toEqual([APPLE.id, BANANA.id]);
+  });
+
+  test("a writer adds a tag from a result row without opening it", async () => {
+    const device = await openAs("?q=lunch");
+    await found(() => document.querySelector(row(UNTAGGED_NOTE.id)));
+    expect(resultChips(UNTAGGED_NOTE.id)).toEqual([]);
+    await userEvent.click(page.getByCss(row(UNTAGGED_NOTE.id)).getByRole("button", { name: "Add tag" }));
+    await found(() => document.querySelector("[data-tag-picker]"));
+    await userEvent.click(page.getByRole("checkbox", { name: "Knee" }));
+    await device.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[data-tag-picker]")).toBeNull();
+    await expect.poll(() => resultChips(UNTAGGED_NOTE.id)).toEqual([KNEE.id]);
+    expect(device.location()).toBe(`${BASE}?q=lunch`);
+    expect(
+      await device.query("SELECT tag_id FROM record_tag WHERE entry_id = ?", [UNTAGGED_NOTE.id]),
+    ).toEqual([{ tag_id: KNEE.id }]);
+  });
+
+  test.each(["viewer", "easy_helper", "easy_viewer"] as const)(
+    "a %s sees a result's chips with no Add tag or ×",
+    async (role) => {
+      await openAs("?q=snack", role);
+      await expect.poll(() => resultChips(SNACK.id)).toEqual([APPLE.id, BANANA.id]);
+      expect(document.querySelector(`${row(SNACK.id)} [data-tag-more]`)).not.toBeNull();
+      expect(
+        document.querySelector(
+          "[data-result] :is([data-quick-tag-add], [data-tag-remove], [data-tag-more-open])",
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a tag added on another device shows on the row", async () => {
+    const device = await openAs("?q=lunch");
+    await found(() => document.querySelector(row(UNTAGGED_NOTE.id)));
+    expect(resultChips(UNTAGGED_NOTE.id)).toEqual([]);
+    await device.sync([recordTag(URGENT.id, UNTAGGED_NOTE.id)]);
+    await device.settle();
+    await expect.poll(() => resultChips(UNTAGGED_NOTE.id)).toEqual([URGENT.id]);
   });
 });

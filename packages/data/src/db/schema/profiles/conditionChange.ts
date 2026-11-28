@@ -1,7 +1,7 @@
 import type { ConditionStatus, RecipientConditionContent } from "./recipientCondition";
 
 import { z } from "zod";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 import { toChangeTime } from "../medications/medication";
 import { CONDITION_STATUSES } from "./recipientCondition";
 

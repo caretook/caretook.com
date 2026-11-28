@@ -291,8 +291,11 @@ describe.each([
   test("the timeline's menus: each row's ⋯, and the + menu (which stays on the timeline)", async () => {
     const device = await open(TIMELINE, layout);
     await expect.poll(rows).toBe(4);
-    await menu(rowActions("note"), { name: /^Actions for note at /, items: "Tags,Print,Delete" });
-    await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Tags,Delete" });
+    await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Copy link,Delete" });
+    await menu(rowActions("symptom"), {
+      name: /^Actions for symptom at /,
+      items: "Edit,Copy link,Delete",
+    });
     await menu(addButton, { name: "Add to Today", count: 5 });
     expect(device.location()).toBe(TIMELINE);
   });
@@ -405,9 +408,10 @@ describe.each([
         trigger().focus();
         await userEvent.keyboard("{Enter}");
         await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
-        // Edit, Tags, then Delete.
+        // Edit, Copy link, then Delete (tags are the row's own, tags-2).
         await userEvent.keyboard("{ArrowDown}");
         await userEvent.keyboard("{ArrowDown}");
+        await expect.poll(() => active()?.textContent?.trim()).toBe("Delete");
         await userEvent.keyboard("{Enter}");
       }
       await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
@@ -432,7 +436,7 @@ describe.each([
         document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for this"]'),
       )
       .not.toBeNull();
-    await menu(pageActions, { name: "Actions for this note", items: "Tags,Print,Delete" });
+    await menu(pageActions, { name: "Actions for this note", items: "Print,Delete" });
     await overlay(TIME_CHIP, { name: "When it happened" });
     await userEvent.click(TIME_CHIP());
     await expect
@@ -451,7 +455,7 @@ describe.each([
     await userEvent.keyboard("{Escape}");
   });
 
-  test("an event's page ⋯: Tags, Reschedule, Cancel event, Delete", async () => {
+  test("an event's page ⋯: Reschedule, Cancel event, Print, Delete", async () => {
     await open(`/app/groups/${TEST_GROUP.id}/entries/${EVENT.id}`, layout);
     await expect
       .poll(() =>
@@ -460,7 +464,7 @@ describe.each([
       .not.toBeNull();
     await menu(() => must('main header [data-region="actions"] button[aria-label^="Actions for this"]'), {
       name: "Actions for this event",
-      items: "Tags,Reschedule,Cancel event,Print,Delete",
+      items: "Reschedule,Cancel event,Print,Delete",
     });
   });
 

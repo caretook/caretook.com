@@ -4,22 +4,17 @@ import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import {
-  canEditRecipient,
-  canReadRecipient,
-  careRecipientDetailsUpdateZSchema,
-  outsideContactsZSchema,
-} from "../db/schema";
+import { careRecipientDetailsUpdateZSchema, outsideContactsZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careRecipientDetailsModel, careRecipientModel } from "../models";
 import { actorRole, renumber } from "./emergencyContactService";
+import { canEditRecipient, canReadRecipient } from "../domain/profiles/profileVisibility";
 
 // The recipient's sensitive details (profiles): phones, email, address and
 // insurance (owners, admins and caretakers), and outside emergency contacts
 // (read by those, written by owners and admins). Viewers get nothing. One
 // row per recipient, its id the recipient's, made on the first save.
 
-export const serviceName = "careRecipientDetails";
 export const schemaName = careRecipientDetailsModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

@@ -1,8 +1,6 @@
 import type { DueDose, DueMedication } from "@caretook/data";
 
 import {
-  addDays,
-  dayInZone,
   doseText,
   dueDoses,
   duePasses,
@@ -13,7 +11,6 @@ import {
   normalizeSchedule,
   passTitle,
   slotStateText,
-  startOfDay,
   timelineEntryService,
 } from "@caretook/data";
 import { z } from "zod";
@@ -21,6 +18,7 @@ import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso } from "../time";
 import { entriesBetween } from "./readSupport";
 import { asMember, loadGroup, loadMembers } from "./shared";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 /** One slot as the assistant sees it, in the recipient's zone. */
 const toSlot = (
@@ -55,7 +53,7 @@ export const todaysDoses = defineTool({
   name: "todays_doses",
   title: "Today's doses",
   description:
-    "Today's medication doses in the care recipient's day, as the app's Today shows them: each med time (such as Morning, with its id for give_pass) or medication's own time with its medications and their state (upcoming, due, overdue, given, skipped, refused), who logged the answered ones, yesterday's missed doses, and as-needed medications with today's count against their maximum.",
+    "Today's medication doses in the care recipient's day, as the app's Today shows them: each med time (such as Morning, with its id for give_pass) or medication's own time with its medications and their state (upcoming, due, overdue, given, skipped, refused), who logged the answered ones, yesterday's missed doses, and as-needed medications with today's count against their maximum. For the days ahead, use dose_schedule.",
   scope: "read",
   input: z.object({}),
   annotations: READ_ANNOTATIONS,

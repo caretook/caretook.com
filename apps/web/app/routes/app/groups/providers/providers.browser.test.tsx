@@ -6,7 +6,7 @@ import { fx, TEST_USER } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
   ADD_PROVIDER,
-  ALVAREZ,
+  CORNERSTONE,
   filterChips,
   chooseFilter,
   CURRENT_NAMES,
@@ -24,12 +24,16 @@ import {
   secondGroup,
   SHEET,
   WESTSIDE,
+  WHITFORD,
 } from "./providerWorld";
 
 // The provider directory on the test device (providers.mjs's list steps):
 // display order with past providers under their label, search and the type
-// chips in the URL (so a reload keeps them), each row as one target with no
-// contact links, nothing wider than a phone, a viewer's view-only list and
+// chips in the URL (so a reload keeps them), Condensed rows by default and
+// Full (the fuller items) from View options, saved as `providersView`
+// (B-909), each row as one target (Full rows with their first number, address
+// and an email button above it, B-940), nothing
+// wider than a phone, a viewer's view-only list and
 // sheet URLs, and a non-member's 404. The device is offline throughout, so
 // all of it is the offline directory too. The order, matching and contact
 // links are pure rules with unit tests (providerDirectory.test.ts,
@@ -38,6 +42,18 @@ import {
 
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: PROVIDER_ROUTES, url: PROVIDERS_URL, fixtures: directory(), ...options });
+
+/** The viewer's saved layout, in the device's settings cache (as a sign-in leaves it). */
+const withView = (providersView: "rows" | "cards") =>
+  localStorage.setItem(`caretook:settings:${TEST_USER.id}`, JSON.stringify({ providersView }));
+const openFull = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) => {
+  withView("cards");
+  return open(options);
+};
+const providerRows = () => [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")];
+const rowOf = (id: string) => providerRows().find((row) => row.dataset.providerId === id)!;
+const layout = () =>
+  document.querySelector<HTMLElement>('main ul[aria-label="Current providers"]')?.dataset.view;
 
 const params = (device: { location: () => string }) =>
   Object.fromEntries(new URLSearchParams(device.location().split("?")[1] ?? ""));
@@ -133,42 +149,181 @@ describe("the directory", () => {
   });
 });
 
-describe("a row is one target (B-422)", () => {
-  test("no row shows contact details or links: its only link is the provider's page", async () => {
+describe("Condensed and Full (B-909)", () => {
+  test("Condensed by default: one line each, the name, specialty and the main contact action; no type or practice line", async () => {
     await open();
     await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
-    const rows = [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")];
-    expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) {
-      expect([...row.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
-        `${PROVIDERS_URL}/${row.dataset.providerId}`,
-      ]);
-    }
-    const alvarez = rows.find((row) => row.dataset.providerId === ALVAREZ.id)!;
-    expect(alvarez.textContent).not.toContain("010-2200");
-    expect(alvarez.textContent).not.toContain("e.alvarez@westsidefamily.example");
-    const westside = rows.find((row) => row.dataset.providerId === WESTSIDE.id)!;
-    expect(westside.textContent).not.toContain("1200 Westside Ave");
+    expect(layout()).toBe("rows");
+    expect(providerRows().every((row) => row.hasAttribute("data-condensed"))).toBe(true);
+    const patel = rowOf(PATEL.id);
+    expect(patel.textContent).toContain("Cardiology");
+    expect(patel.querySelector("p.text-sm")).toBeNull();
+    // Patel's main action is calling his first number; the row's links are his page, then that.
+    const links = [...patel.querySelectorAll("a")].map((a) => [
+      a.getAttribute("href"),
+      a.getAttribute("aria-label"),
+    ]);
+    expect(links).toEqual([
+      [`${PROVIDERS_URL}/${PATEL.id}`, null],
+      ["tel:5550103300", "Call Dr. Samuel Patel, office"],
+    ]);
+    // Each row has at most one contact action.
+    for (const row of providerRows())
+      expect(row.querySelectorAll("[data-contact-actions] a").length).toBeLessThanOrEqual(1);
   });
 
-  test.each(["light", "dark"] as const)(
-    "420 (%s): rows truncate, with no horizontal overflow",
-    async (theme) => {
-      await open({ theme });
-      const page = document.documentElement;
-      await expect.poll(() => page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
-      await expect
-        .poll(() =>
-          [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].filter(
-            (li) => li.scrollWidth > li.clientWidth,
-          ),
-        )
-        .toEqual([]);
-    },
-  );
+  test("choosing Full in View options switches to the fuller items and saves providersView, not the timeline's", async () => {
+    const saved: unknown[] = [];
+    await open({
+      api: {
+        "me.updatePreferences": (input) => {
+          saved.push(input);
+          return {};
+        },
+      },
+    });
+    await expect.poll(layout).toBe("rows");
+    await userEvent.click(
+      await found(() => document.querySelector<HTMLElement>('main button[aria-label="View options"]')),
+    );
+    const radios = await waitUntil(() => {
+      const items = [...document.querySelectorAll<HTMLElement>("[role=menu] [role=menuitemradio]")];
+      return items.length ? items : null;
+    }, "the View options menu");
+    expect(radios.map((r) => r.textContent?.trim())).toEqual(["Condensed", "Full"]);
+    expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual(["true", "false"]);
+    await userEvent.click(await found(() => radios[1]));
+    await expect.poll(layout).toBe("cards");
+    expect(providerRows().some((row) => row.hasAttribute("data-condensed"))).toBe(false);
+    expect(rowOf(PATEL.id).querySelector("p.text-sm")?.textContent).toBe("Clinician · Cardiology");
+    await expect.poll(() => saved).toEqual([{ providersView: "cards" }]);
+  });
+
+  test("a saved Full opens as Full", async () => {
+    await openFull();
+    await expect.poll(layout).toBe("cards");
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+  });
+});
+
+describe("a row is one target, with Full's contact line above it (B-422, B-940)", () => {
+  const OKAFOR = fx.provider({
+    name: "Dr. Nadia Okafor",
+    specialty: "Endocrinology",
+    phones: [
+      { label: "Front desk", number: "(555) 010-9100" },
+      { label: "Fax", number: "(555) 010-9101" },
+    ],
+    address: "77 Lakeview Blvd, Floor 4\nSpringfield, CA 90000",
+    email: "front.desk@lakeviewendo.example",
+  });
+  const RUIZ = fx.provider({ name: "Sam Ruiz", specialty: "Driver", phones: [], email: null, address: null });
+  const contactLinks = (row: HTMLElement) =>
+    [...row.querySelectorAll<HTMLAnchorElement>("[data-row-contact] a")].map((a) => ({
+      action: a.dataset.action,
+      href: a.getAttribute("href"),
+      name: a.getAttribute("aria-label") ?? a.querySelector(".sr-only")?.textContent?.trim(),
+      text: a.textContent.trim(),
+      height: a.getBoundingClientRect().height,
+    }));
+
+  test("in Full, a row shows its first number and the address as text links and an email button; the name still opens the provider", async () => {
+    const device = await openFull({ fixtures: [...directory(), OKAFOR] });
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${OKAFOR.id}"]`),
+    );
+    const links = contactLinks(row);
+    expect(links.map(({ action, href, name }) => [action, href, name])).toEqual([
+      ["call", "tel:5550109100", "Call Dr. Nadia Okafor, front desk:"],
+      [
+        "map",
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("77 Lakeview Blvd, Floor 4, Springfield, CA 90000")}`,
+        "Open Dr. Nadia Okafor's address in maps:",
+      ],
+      ["email", "mailto:front.desk@lakeviewendo.example", "Email Dr. Nadia Okafor"],
+    ]);
+    expect(links[0]?.text).toContain("(555) 010-9100");
+    expect(links[1]?.text).toContain("77 Lakeview Blvd, Floor 4, Springfield, CA 90000");
+    // Only the first number shows; the rest are on the provider's page.
+    expect(row.textContent).not.toContain("010-9101");
+    // Each is a 44px tap target.
+    for (const link of links) expect(link.height).toBeGreaterThanOrEqual(44);
+    await expect
+      .element(page.getByRole("link", { name: "Email Dr. Nadia Okafor" }))
+      .toHaveAttribute("href", "mailto:front.desk@lakeviewendo.example");
+
+    await userEvent.click(await found(() => row.querySelector<HTMLElement>("a[data-provider-name]")));
+    await expect.poll(() => device.location()).toBe(`${PROVIDERS_URL}/${OKAFOR.id}`);
+  });
+
+  test("in Full, a row with no number, address or email has no contact line and no gap", async () => {
+    await openFull({ fixtures: [...directory(), RUIZ] });
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${RUIZ.id}"]`),
+    );
+    expect(row.querySelector("[data-row-contact]")).toBeNull();
+    expect([...row.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
+      `${PROVIDERS_URL}/${RUIZ.id}`,
+    ]);
+    // The body is just the name line, the details line and, for a writer, Add tag (`QuickTags`; tags-3).
+    const body = row.querySelector("[data-provider-name]")?.closest("p")?.parentElement;
+    expect([...(body?.children ?? [])].map((c) => c.tagName)).toEqual(["P", "P", "DIV"]);
+    expect(body?.lastElementChild?.matches("[data-quick-tags]")).toBe(true);
+  });
+
+  test("in Full, a reader's row with no tags has no tag line", async () => {
+    await openFull({ fixtures: [...directory(), RUIZ], role: "viewer" });
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${RUIZ.id}"]`),
+    );
+    const body = row.querySelector("[data-provider-name]")?.closest("p")?.parentElement;
+    expect([...(body?.children ?? [])].map((c) => c.tagName)).toEqual(["P", "P"]);
+  });
+
+  test("a past provider's contact line is muted", async () => {
+    await openFull();
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${WHITFORD.id}"]`),
+    );
+    expect(row.querySelector("[data-row-contact]")?.classList.contains("text-faint")).toBe(true);
+    expect(contactLinks(row).map((l) => l.href)).toEqual(["tel:5550106600"]);
+  });
+
+  test("Condensed rows show the provider type icon before the name", async () => {
+    await open();
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+    for (const row of providerRows()) {
+      const icon = row.firstElementChild;
+      expect(icon?.getAttribute("aria-hidden")).toBe("true");
+      expect(icon?.querySelector("svg")).not.toBeNull();
+    }
+    expect(rowOf(CORNERSTONE.id).firstElementChild?.querySelector("svg")?.getAttribute("class")).toContain(
+      "lucide-pill",
+    );
+  });
+
+  test.each([
+    ["light", "rows"],
+    ["dark", "rows"],
+    ["light", "cards"],
+    ["dark", "cards"],
+  ] as const)("420 (%s, %s): rows truncate, with no horizontal overflow", async (theme, providersView) => {
+    withView(providersView);
+    await open({ theme });
+    await expect.poll(layout).toBe(providersView);
+    const page = document.documentElement;
+    await expect.poll(() => page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
+    await expect
+      .poll(() =>
+        [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].filter(
+          (li) => li.scrollWidth > li.clientWidth,
+        ),
+      )
+      .toEqual([]);
+  });
 
   test("a tap on a row (not only the name) opens the provider's page", async () => {
-    const device = await open();
+    const device = await openFull();
     const row = await found(() =>
       document.querySelector<HTMLElement>(`main li[data-provider-id="${PATEL.id}"] p.text-sm`),
     );

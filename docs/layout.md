@@ -8,14 +8,13 @@ powersync/                service.yaml, sync-config.yaml (Sync Streams)
 docs/                     orchestration.md: the human guide to branches, the inbox and running PRDs (README.md links it)
                           agents/ (the agents' role handbooks; loops.md is a stub), layout.md (this file), domain/<area>.md (AGENTS.md's area index)
 plans/                    inbox.md (the user's list) and backlog.md (the tracker), both only on dev; PRDs and slice plans
-scripts/browser-checks/   Playwright Test specs (<check>.spec.mjs), run by pnpm prd browser
+scripts/browser-checks/   Playwright Test specs (<check>.spec.mjs), run by risa browser
 scripts/build/            build budget, check build and service worker scripts
 scripts/deploy/           deploy env check and smoke checks (pnpm deploy:env, deploy:smoke)
 ops/                      runbook.md (deploys, secrets), break-glass.md, data-copies.md
-scripts/loops/            check-areas.d/<area> (+ scripts/project/check-areas.mjs): which browser checks a changed file needs
-                          pnpm prd (prd.sh) → new/ls/rm/prompt/queue/serve/ready/land/browser (+ lib.sh): worktrees in .loops/, slot and browser leases, a Docker stack each
-                          slice-fields.mjs: a slice's Stack, Reads and Tests from its plan
-scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses and renders)
+scripts/project/          risa's hooks (stack, serve, test-db, check body, landing, doc budget), check-areas.d/<area> (+ check-areas.mjs): which browser checks a changed file needs
+scripts/loops/            three tests of the repo's own config (workspace, lint heap, fixes plans)
+node_modules/risa/        the orchestration tool (interrobangc/risa, pinned): worktrees in .loops/, leases, stacks, the backlog CLI
 .githooks/                protects main, staging and dev; commit-msg checks Conventional Commits (pnpm hooks:install)
 apps/web/                 @caretook/web (React Router 8, Vite 8)
   build-target.ts, react-router.config.ts, vite.config.ts
@@ -27,13 +26,13 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           layout/ (the /app frame: GroupMenu, SectionNav + TabBar, SyncIndicator, UserMenu), home/,
                           settings/ (layout, index, units, timeline, account),
                           groups/layout/ (the group route), groups/index/, groups/timeline/ (useTimelineData, TimelineHeader,
-                          TimelineEntryList, EntryBody, TimelineEntryRow/Card, EntryOpenTarget, TimelineFilters, LatestVitals,
-                          LiveNowBanner, LiveDot, QuickAddMenu, DayHeader, EntryForm, EntryKindPicker, SymptomFields, VitalReadingsFields,
+                          TimelineEntryList, TimelineFilters, LatestVitals,
+                          LiveNowBanner, QuickAddMenu, DayHeader, EntryForm, EntryKindPicker, SymptomFields, VitalReadingsFields,
                           VitalReadingRow, VitalField, VitalTypeMenu, useEntryFormSave, useEntryRemoval, new/, edit/),
                           groups/entry/ (loadEntry, useLiveEntry, EntryPageHeader, EntryHeader, EntryTitleRegion,
                           EntryTimeChip, EventTitleChips, ShareButton, share),
-                          groups/providers/ (DirectoryFilters, DirectoryResults, ProviderListItem, ProviderForm, PhoneFields,
-                          providerSheet, providerFormData, new/, edit/),
+                          groups/providers/ (DirectoryFilters, DirectoryResults, PhoneFields, providerSheet, new/, edit/),
+                          groups/setup/ (layout/: SetupProgress, setupPages; providers/, profile/, medications/, period/, step/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
                           groups/planner/ (the Planner: Upcoming list, past/), groups/medications/, groups/medication/ (a medication's page),
@@ -49,9 +48,13 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/.server/            data.ts, auth.ts, api.ts, notifications.ts, calendarFeed.ts, devUi.ts: the server-only doors
   app/components/         shared by 2+ routes only, imported through each folder's index: brand/ (LogoMark, FullLogo, BRAND),
                           ui/ (the primitives, listed in domain/components.md), ui/date/ (DateTimeField), ui/tooltip/,
-                          ui/plain (the light entry), entry/ (EntryActions, KindIcon),
+                          ui/plain (the light entry), entry/ (EntryBody, EntryActions, KindIcon, TimelineEntryRow,
+                          EntryOpenTarget, LiveDot, OpenTodosMark),
                           groups/ (NewGroupFields),
-                          notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon),
+                          notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon, ProviderForm,
+                          ProviderListItem, ProviderRowContact),
+                          medications/ (MedicationCard, MedicationForm and its fields), care-periods/ (PeriodForm,
+                          PlacePickerField, PeriodList), profiles/ (AllergiesSection, ConditionsSection),
                           settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
                           todos/ (TodoTick, TodoUndoStatus, LinkedTodos)
   app/lib/<area>/         every lib module, in a folder named after its docs/domain/ area (admin, app-shell, appointments, assistant,
@@ -76,7 +79,9 @@ packages/data/            @caretook/data
   src/permissions/        <area>.ts parts (each satisfies a partial Permissions), blocks.ts; permissions.ts spreads them
   src/db/                 client, types, migrate, clear, migrations/, seeds/
   src/db/schema/<area>/   tables + Zod (client-safe) by area, each folder with an index.ts; core/ holds the shared helpers (columns,
-                          uuidV5, timeZone, contactFields, entryTiming, rateLimit); index.ts lists the folders
+                          timeZone, contactFields, rateLimit); index.ts lists the folders; schemaLayout.test.ts keeps pure logic out
+  src/domain/<area>/      @caretook/data/domain: the pure logic (client-safe), same areas, an index.ts each; core/ has uuidV5,
+                          entryTiming, zonedDay, dayLabel
   src/google/             the Google Calendar client seam (client, real, fake), pushPlan, pullPlan
   src/models/, src/services/
 ```

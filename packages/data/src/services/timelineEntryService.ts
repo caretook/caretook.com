@@ -15,16 +15,11 @@ import { and, eq } from "drizzle-orm";
 import { SYSTEM_USER, isOwnRowLogger } from "../constants";
 import { dbMayFail, withTransaction } from "../db";
 import {
-  buildNoteDoc,
   canHaveNoteDocument,
-  canLogEntry,
+  changeTimes,
   doseDuplicateUploadSchema,
-  FUTURE_DATE_MESSAGE,
   isDoseDetails,
   isSymptomDetails,
-  isTooFarAhead,
-  noteText,
-  SERVER_FUTURE_SKEW_MS,
   isSystemWrittenKind,
   symptomTypeId,
   timelineEntryContentZSchema,
@@ -48,9 +43,15 @@ import {
 import { isSystemUser, rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
-import { ensure as ensureSymptomType } from "./symptomTypeService";
+import {
+  ensure as ensureSymptomType,
+  getById as getSymptomType,
+  lockCatalog as lockSymptomCatalog,
+} from "./symptomTypeService";
 import { releaseEvent } from "./todoService";
-export const serviceName = "timelineEntry";
+import { buildNoteDoc, noteText } from "../domain/live-notes/noteYjs";
+import { canLogEntry } from "../domain/timeline/entryRules";
+import { FUTURE_DATE_MESSAGE, isTooFarAhead, SERVER_FUTURE_SKEW_MS } from "../domain/core/entryTiming";
 export const schemaName = timelineEntryModel.schemaName;
 
 type K = typeof schemaName;
@@ -127,9 +128,15 @@ const checkDoseMedication = async (
 /**
  * A symptom's catalog row (symptom-catalog), derived from `details.name` on
  * every write, whatever a device sent: the group's row for the name, added
- * (as the actor, a logger) when the group has none. `current` is the stored
- * pointer: when it's already the derived one, nothing is read or added.
- * Null for every other kind.
+ * (as the actor, a logger) when the group has none. A deleted name (a
+ * tombstone) resolves to its replacement (symptom-catalog-3): its id, and
+ * its name for `details.name`; otherwise the name stays as written. `current`
+ * is the stored pointer: when it's already the derived one and that row isn't
+ * a tombstone, it's kept and nothing is added. Holds the group's catalog lock
+ * shared first (B-992), so a write read before a `replace` and landing after
+ * it sees the tombstone the replace made and follows it, rather than putting
+ * the old name and pointer back. Null for every other kind, which takes no
+ * lock, and then `details` is as given.
  */
 const symptomTypeFor = async (
   ctx: ServiceContext,
@@ -139,11 +146,25 @@ const symptomTypeFor = async (
   details: TimelineEntry["details"] | undefined,
   current?: string | null,
 ) => {
-  if (kind !== "symptom" || !isSymptomDetails(details)) return null;
-  if (current && current === symptomTypeId(groupId, details.name)) return current;
-  const row = await ensureSymptomType({ ...ctx, tx }, groupId, details.name);
+  if (kind !== "symptom" || !isSymptomDetails(details)) return { id: null, details };
+  const locked = await lockSymptomCatalog(tx, groupId, "shared");
+  if (isError(locked)) return locked;
+  const derived = symptomTypeId(groupId, details.name);
+  if (current && current === derived) {
+    const stored = await getSymptomType({ ...ctx, tx }, current);
+    if (isError(stored)) return stored;
+    if (stored && !stored.replacedById) return { id: current, details };
+  }
+  let row = await ensureSymptomType({ ...ctx, tx }, groupId, details.name);
   if (isError(row)) return row;
-  return row ? row.id : rejectError(ctx.authUser);
+  if (!row) return rejectError(ctx.authUser);
+  // Never a tombstone under the lock (a replace repoints older ones); followed if it is.
+  if (row.replacedById) {
+    const next = await getSymptomType({ ...ctx, tx }, row.replacedById);
+    if (isError(next)) return next;
+    if (next) row = next;
+  }
+  return { id: row.id, details: row.id === derived ? details : { ...details, name: row.name } };
 };
 
 /** Postgres timestamptz text → ISO 8601, so stored rows re-validate. */
@@ -183,6 +204,29 @@ const checkRescheduledTo = async (
   return target?.groupId === groupId && target.kind === "event" ? null : refused;
 };
 
+const seriesNotInGroup = () =>
+  newError({
+    code: "timelineEntryService:seriesNotInGroup",
+    meta: { issues: [{ path: "seriesId", message: "Choose a series in this care group" }] },
+  });
+
+const seriesDayTaken = () =>
+  newError({
+    code: "timelineEntryService:seriesDayTaken",
+    meta: { issues: [{ path: "seriesDay", message: "This series already has a visit that day" }] },
+  });
+
+/** A visit's series: one of the entry's kind in the same group, as the actor sees it (a deleted one still counts). */
+const checkSeriesOf = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { groupId, kind, seriesId }: { groupId: string; kind: string; seriesId: string },
+) => {
+  const series = await appointmentSeriesModel.getById(seriesId, { ...ctx, tx, includeDeleted: true });
+  if (isError(series)) return series;
+  return series?.groupId !== groupId || series.kind !== kind ? seriesNotInGroup() : null;
+};
+
 /**
  * A visit's series: one of the entry's kind in the same group, as the actor
  * sees it (a deleted one still counts, so a replayed upload lands), with no
@@ -200,13 +244,8 @@ const checkSeries = async (
   }: { id?: string; groupId: string; kind: string; seriesId?: string | null; seriesDay?: string | null },
 ) => {
   if (!seriesId) return null;
-  const series = await appointmentSeriesModel.getById(seriesId, { ...ctx, tx, includeDeleted: true });
-  if (isError(series)) return series;
-  if (series?.groupId !== groupId || series.kind !== kind)
-    return newError({
-      code: "timelineEntryService:seriesNotInGroup",
-      meta: { issues: [{ path: "seriesId", message: "Choose a series in this care group" }] },
-    });
+  const series = await checkSeriesOf(ctx, tx, { groupId, kind, seriesId });
+  if (series) return series;
   if (!seriesDay) return null;
   const taken = await timelineEntryModel.get({
     authUser: SYSTEM_USER,
@@ -218,12 +257,7 @@ const checkSeries = async (
     },
   });
   if (isError(taken)) return taken;
-  return taken
-    ? newError({
-        code: "timelineEntryService:seriesDayTaken",
-        meta: { issues: [{ path: "seriesDay", message: "This series already has a visit that day" }] },
-      })
-    : null;
+  return taken ? seriesDayTaken() : null;
 };
 
 /**
@@ -473,8 +507,8 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
         ...schedulingColumns(data),
         cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
         recipientId: resolved,
-        details: details ?? null,
-        symptomTypeId: symptomType,
+        details: symptomType.details ?? null,
+        symptomTypeId: symptomType.id,
         ...(opts.via ? { via: opts.via } : {}),
       },
     });
@@ -482,6 +516,119 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
     // Appointments and reminders reach members' Google calendars (appointments-2).
     const queued = await enqueueCalendarPush(tx, { entryId: created.id }, "entry");
     return queued ?? created;
+  }, ctx);
+
+/** One promise per key: a read shared by many entries runs once. */
+const once = <T>(read: (key: string) => Promise<T>) => {
+  const seen = new Map<string, Promise<T>>();
+  return (key: string) => {
+    let value = seen.get(key);
+    if (!value) seen.set(key, (value = read(key)));
+    return value;
+  };
+};
+
+/**
+ * `create` for many entries in one INSERT (a series' visits: B-755). Each
+ * entry gets create's checks, in create's order, with the reads they share
+ * done once: the actor's role and the recipient per group, each series
+ * once, and the series days taken in one read. Then one calendar push per
+ * group with an event. All or nothing. Returns the entries in `inputs`' order.
+ */
+export const createMany = (
+  ctx: ServiceContext,
+  inputs: readonly TimelineEntryCreateInput[],
+  opts: EntryWriteOptions = {},
+) =>
+  withTransaction(async (tx) => {
+    const roleIn = once((groupId) => careGroupMemberModel.getRole(groupId, ctx.authUser?.id ?? "", { tx }));
+    const recipientOf = once((key) => {
+      const [groupId = "", recipientId] = key.split("|");
+      return resolveRecipient(ctx, tx, groupId, recipientId || undefined);
+    });
+    const seriesOf = once((key) => {
+      const [seriesId = "", groupId = "", kind = ""] = key.split("|");
+      return checkSeriesOf(ctx, tx, { seriesId, groupId, kind });
+    });
+
+    const entries = [];
+    for (const input of inputs) {
+      const parsed = timelineEntryCreateZSchema.safeParse(input);
+      if (!parsed.success) return invalid(parsed.error);
+      const { recipientId, details, ...data } = parsed.data;
+
+      const refused = refuseSystemWritten(ctx, data.kind);
+      if (refused) return refused;
+
+      if (ctx.authUser && !isSystemUser(ctx.authUser)) {
+        const role = await roleIn(data.groupId);
+        if (isError(role)) return role;
+        if (isOwnRowLogger(role) && !canLogEntry(role, data.kind, data))
+          return newError({ code: "timelineEntryService:loggerOnly" });
+      }
+
+      const resolved = await recipientOf(`${data.groupId}|${recipientId ?? ""}`);
+      if (isError(resolved)) return resolved;
+
+      const future = refuseFuture(data.kind, data.occurredAt);
+      if (future) return future;
+
+      const medication = await checkDoseMedication(ctx, tx, data.groupId, details);
+      if (medication) return medication;
+
+      const moved = await checkRescheduledTo(ctx, tx, data);
+      if (moved) return moved;
+
+      if (data.seriesId) {
+        const series = await seriesOf(`${data.seriesId}|${data.groupId}|${data.kind}`);
+        if (series) return series;
+      }
+
+      const symptomType = await symptomTypeFor(ctx, tx, data.groupId, data.kind, details);
+      if (isError(symptomType)) return symptomType;
+
+      entries.push({
+        ...data,
+        ...schedulingColumns(data),
+        cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
+        recipientId: resolved,
+        details: symptomType.details ?? null,
+        symptomTypeId: symptomType.id,
+        ...(opts.via ? { via: opts.via } : {}),
+      });
+    }
+
+    // No other live visit on a series' day: one read for every visit, and
+    // none twice in the batch.
+    const visits = entries.filter((e) => e.seriesId && e.seriesDay);
+    if (visits.length) {
+      const live = await timelineEntryModel.list({
+        authUser: SYSTEM_USER,
+        tx,
+        filter: {
+          seriesId: { type: "inArray", value: [...new Set(visits.map((e) => e.seriesId!))] },
+          seriesDay: { type: "inArray", value: [...new Set(visits.map((e) => e.seriesDay!))] },
+        },
+      });
+      if (isError(live)) return live;
+      const held = new Map(live.data.map((row) => [`${row.seriesId}|${row.seriesDay}`, row.id]));
+      for (const entry of visits) {
+        const key = `${entry.seriesId}|${entry.seriesDay}`;
+        const holder = held.get(key);
+        if (holder !== undefined && holder !== entry.id) return seriesDayTaken();
+        held.set(key, entry.id ?? "");
+      }
+    }
+
+    const created = await timelineEntryModel.createMany({ ...ctx, tx, data: entries });
+    if (isError(created)) return created;
+    // Appointments and reminders reach members' Google calendars (appointments-2):
+    // the same job create queues, once per group.
+    for (const groupId of new Set(created.filter((e) => e.kind === "event").map((e) => e.groupId))) {
+      const queued = await enqueueCalendarPush(tx, { groupId }, "entry");
+      if (queued) return queued;
+    }
+    return created;
   }, ctx);
 
 /**
@@ -600,8 +747,8 @@ export const update = (
         ...content,
         ...schedulingColumns(content),
         cancelledBy: cancelledByFor(ctx, existing, content.cancelledAt),
-        details: content.details ?? null,
-        symptomTypeId: symptomType,
+        details: symptomType.details ?? null,
+        symptomTypeId: symptomType.id,
       },
     });
     if (isError(updated)) return updated;
@@ -728,9 +875,10 @@ export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
  *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
- * - A medication change is never created or edited here: one that exists
- *   (written by `medicationService` with the medication) is left as it is,
- *   and one that doesn't is refused.
+ * - A system change entry (medication or condition change) is never edited
+ *   here: one that exists (written by its service with the save) is left as
+ *   it is; one that doesn't is refused for members (`create`). One that does
+ *   create here is dated no later than now, as its service dates it (B-295).
  */
 export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
   withTransaction(async (tx) => {
@@ -770,7 +918,12 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     });
     if (isError(existing)) return existing;
     if (!existing) {
-      const created = await create({ ...ctx, tx }, parsed.data);
+      // A device's copy of a change entry that arrived before its save: dated
+      // no later than now, as the save's own entry would be (B-295).
+      const data = isSystemWrittenKind(kind)
+        ? { ...parsed.data, occurredAt: changeTimes(occurredAt).date }
+        : parsed.data;
+      const created = await create({ ...ctx, tx }, data);
       if (isError(created) || kind !== "dose") return asCreated(created);
       const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
       return noted ?? asCreated(created);

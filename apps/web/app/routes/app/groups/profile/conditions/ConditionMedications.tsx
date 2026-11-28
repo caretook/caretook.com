@@ -3,8 +3,8 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { Link } from "react-router";
 import { LINK, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
+import { medicationTitle } from "@caretook/data/schema";
 
 /**
  * A condition's current medications (conditions slice 4): the live ones the

@@ -3,9 +3,9 @@ import type { ActionResult } from "~/lib/core/api";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
-import { canChangeEntry } from "@caretook/data/schema";
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
+import { QuickTags } from "~/components/tags";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { formString } from "~/lib/core/form";
 import { getGroup } from "~/lib/app-shell/group";
@@ -18,14 +18,17 @@ import { DoseForm } from "../DoseForm";
 import { dosePatchFromForm } from "../doseFormData";
 import { entryUpdateFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
+import { entryLabel } from "~/lib/timeline/entryLabels";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { editSheetGuard } from "../sheetGuard";
+import { canChangeEntry } from "@caretook/data/domain";
 
 // Shared by web + native. `timeline/:entryId/edit`: a symptom's, vital's or
 // dose's edit sheet, over the timeline. A note or event goes to its page; a
 // medication change, a missing, deleted or other group's entry, or a viewer,
-// lands on the timeline.
+// lands on the timeline. Its tags (`QuickTags`, tags-2) sit under the form:
+// each tap is its own local write, never part of Save.
 
 /** The entry as the device has it, in any group and deleted or not: the guard decides. */
 const entrySql = "SELECT * FROM timeline_entry WHERE id = ?";
@@ -108,6 +111,17 @@ export default function EditEntrySheet({ loaderData, params }: Route.ComponentPr
         />
       ) : (
         <EntryForm key={entry.id} entry={entry} units={units} onDone={close} onCancel={close} />
+      )}
+      {!gone && (
+        <div className="border-base-300 mt-4 border-t pt-4" data-entry-edit-tags="">
+          <QuickTags
+            target="entry"
+            recordId={entry.id}
+            label={entryLabel(entry)}
+            createdBy={entry.createdBy}
+            max={null}
+          />
+        </div>
       )}
     </Sheet>
   );

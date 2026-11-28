@@ -1,8 +1,9 @@
 import type { CreateSignInCode } from "./emails";
+import type { AuthLimits } from "./limits";
 
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer, emailOTP, jwt, magicLink } from "better-auth/plugins";
 import {
   accountSchema,
@@ -25,8 +26,10 @@ import {
 } from "./connectors";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
-import { allowedOrigins, clientIpHeader } from "./host";
+import { allowedOrigins, clientIpHeader, clientIpKey, clientIpOf } from "./host";
+import { addressKey, CONNECTOR_IP_LIMIT, createAuthLimits } from "./limits";
 import { readsLiveSession } from "./liveSession";
+import { afterHooks, disconnectAssistants } from "./sessionsEnded";
 
 // The email-OTP plugin's endpoints we don't use: a code only signs in.
 // Resets go through the emailed link, and verification through its own link.
@@ -68,31 +71,83 @@ const refuseDisabledSignIn = async (
   throw wrongPassword();
 };
 
+// Better Auth's own endpoints we don't serve. Name and image change only
+// through our procedures, which validate them (B-335): Better Auth's
+// /update-user takes any name or image, which syncs to co-members and goes
+// into the owners' emails.
+const UNUSED_USER_PATHS = ["/update-user"];
+
+/**
+ * Our per-address limits on the sign-in email and code sign-in (limits.ts).
+ * Past the email's, the answer is the usual one and nothing is sent or
+ * minted (the request stops here, before the link's token exists); past the
+ * code's, it's a wrong code's, even for the right code.
+ */
+const limitSignIn = async (
+  limits: AuthLimits,
+  path: string,
+  body: unknown,
+): Promise<{ status: true } | undefined> => {
+  if (path !== "/sign-in/magic-link" && path !== "/sign-in/email-otp") return;
+  const email = bodyEmail(body);
+  if (!email) return;
+  if (path === "/sign-in/magic-link") {
+    return (await limits.hit("signInEmail", addressKey(email))) ? undefined : { status: true };
+  }
+  if (!(await limits.hit("signInCode", addressKey(email)))) throw wrongCode();
+};
+
+/**
+ * A connector client's registration (`/oauth2/register`, open to anyone) is
+ * limited per client IP (`clientIpKey`), as /mcp is: past it a 429 with
+ * Retry-After, and in production a request without a client IP is a 400.
+ */
+const limitRegistration = async (limits: AuthLimits, path: string, headers: Headers | undefined) => {
+  if (path !== "/oauth2/register") return;
+  const ip = clientIpKey(clientIpOf(headers ?? new Headers()), "auth.oauth2Register");
+  if (ip === null) throw APIError.from("BAD_REQUEST", { code: "BAD_REQUEST", message: "Bad Request" });
+  if (await limits.hit("connectorRegisterIp", ip)) return;
+  throw new APIError(
+    "TOO_MANY_REQUESTS",
+    { code: "TOO_MANY_REQUESTS", message: "Too many requests: wait a minute" },
+    { "retry-after": String(CONNECTOR_IP_LIMIT.windowMs / 1000) },
+  );
+};
+
 /**
  * Before every endpoint. PowerSync's token (`/token`, the jwt plugin)
  * always reads the live session, never the cookie cache, whatever the
  * request's query says (B-140): a revoked session can't open a new sync
- * connection. The path is matched exactly (liveSession.ts). Sign-in
- * refuses a disabled account (above).
+ * connection. The path is matched exactly (liveSession.ts). Sign-in counts
+ * toward our limits and refuses a disabled account (above).
  */
-const beforeHooks = createAuthMiddleware(async (ctx) => {
-  if (readsLiveSession(ctx.path)) return { context: { query: { ...ctx.query, disableCookieCache: true } } };
-  await refuseDisabledSignIn(ctx.path, ctx.body, (password) => ctx.context.password.hash(password));
-});
+const beforeHooks = (limits: AuthLimits) =>
+  createAuthMiddleware(async (ctx) => {
+    if (readsLiveSession(ctx.path)) return { context: { query: { ...ctx.query, disableCookieCache: true } } };
+    await limitRegistration(limits, ctx.path, ctx.headers);
+    const answer = await limitSignIn(limits, ctx.path, ctx.body);
+    if (answer) return ctx.json(answer);
+    await refuseDisabledSignIn(ctx.path, ctx.body, (password) => ctx.context.password.hash(password));
+  });
 
 /**
  * A new Better Auth instance. The app uses `getAuth()`'s one; tests make
  * more (two instances stand for two serverless instances), and
- * `rateLimitEnabled` turns the limits on outside production. `originCheck`
+ * `rateLimitEnabled` turns the limits on outside production: Better Auth's
+ * and our per-address ones (limits.ts). `originCheck`
  * turns on the Origin check Better Auth skips under `NODE_ENV=test`.
+ * `limits` replaces our limits alone (a test's, on, with lower counts).
  */
 export const createAuth = ({
   rateLimitEnabled,
   originCheck,
-}: { rateLimitEnabled?: boolean; originCheck?: boolean } = {}) => {
+  limits: ourLimits,
+}: { rateLimitEnabled?: boolean; originCheck?: boolean; limits?: AuthLimits } = {}) => {
   const { secret, secrets, baseURL, powersyncURL } = getAuthConfig();
   const ipHeader = clientIpHeader();
   if (!secret && !secrets) throw new Error("BETTER_AUTH_SECRET is not set");
+  const limits =
+    ourLimits ?? createAuthLimits(rateLimitEnabled === undefined ? {} : { enabled: rateLimitEnabled });
 
   // Set once the instance exists: the email's code comes from its own
   // email-OTP plugin (typed here, so the instance's type doesn't loop).
@@ -139,8 +194,9 @@ export const createAuth = ({
       ...(ipHeader ? { ipAddress: { ipAddressHeaders: [ipHeader] } } : {}),
       ...(originCheck === undefined ? {} : { disableOriginCheck: !originCheck }),
     },
-    disabledPaths: [...UNUSED_OTP_PATHS, ...CONNECTOR_DISABLED_PATHS],
-    hooks: { before: beforeHooks },
+    disabledPaths: [...UNUSED_OTP_PATHS, ...UNUSED_USER_PATHS, ...CONNECTOR_DISABLED_PATHS],
+    // After: ending other or all sessions ends the account's assistants too (sessionsEnded.ts).
+    hooks: { before: beforeHooks(limits), after: afterHooks },
     // A disabled account never gets a session, by any path (password, link,
     // code, verification's auto sign-in): the answer is a wrong password's.
     databaseHooks: {
@@ -157,15 +213,12 @@ export const createAuth = ({
     // default), which would hide the list from anyone signed in for longer.
     // Nothing else we use checks freshness (deleteUser and unlink-account are off).
     //
-    // ⚠ The cookie cache (B-140): a signed copy of the session in a cookie
-    // stands in for the session table for up to 3 minutes, so ordinary /rpc
-    // calls skip that read. The tradeoff: for up to 3 minutes after a session
-    // is revoked (signed out elsewhere, removed on the Devices page, a
-    // password reset), ordinary /rpc calls carrying its cookie still succeed.
-    // Staff procedures, /token (above) and the app's own session check read
-    // the live session; the account (disabled, role) and its memberships are
-    // read live on every call. See docs/domain/auth.md and
-    // plans/security-review.md; reconsider before launch.
+    // The cookie cache (B-140): a signed copy of the session in a cookie
+    // stands in for Better Auth's own session read for up to 3 minutes.
+    // getAuthUser still joins the live session row by id in its one query
+    // (B-339), so a session revoked elsewhere is refused on the next /rpc
+    // call. Staff procedures, /token (above) and the app's own session check
+    // also bypass the cache. See docs/domain/auth.md.
     session: { freshAge: 0, cookieCache: { enabled: true, maxAge: 180 } },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
@@ -177,6 +230,8 @@ export const createAuth = ({
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
+      // A reset ends every session (above) and every assistant's connection (B-329).
+      onPasswordReset: ({ user }) => disconnectAssistants(user.id),
       sendResetPassword,
     },
     emailVerification: {
@@ -197,8 +252,11 @@ export const createAuth = ({
     // No usage data leaves our servers (see Compliance in AGENTS.md).
     telemetry: { enabled: false },
     plugins: [
-      // `Authorization: Bearer <session token>` for Capacitor, where cookies don't work.
-      bearer(),
+      // `Authorization: Bearer <session token>` for Capacitor, where cookies
+      // don't work. Only the signed token (the `set-auth-token` header) is
+      // accepted, never the raw one stored in the session table (B-330): a
+      // copy of that table is no account takeover without the secret.
+      bearer({ requireSignature: true }),
       // "Send email": one email with the link and a code
       // (B-96), existing accounts only.
       magicLink({

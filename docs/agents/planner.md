@@ -12,9 +12,9 @@ Ask only when a wrong guess is costly to undo or the choice is the user's alone,
 - **A new dependency or paid service.**
 - **Product direction:** removing or renaming a feature users know, or two designs that change what the product does (not how it looks or where a control sits), where you can't pick with confidence.
 
-Never ask about module layout, naming, the slice breakdown, test choices, or **any UX or UI detail**: how a page or component looks, where a control sits, icons or text, wording and labels, colours, spacing, motion, defaults, empty states, which pages get a look first, optional extras. A UX or UI choice is never product direction, however visible. The test: if one slice could change it later with no migration and no lost data, don't ask. Pick the smallest version that fits the item's own words and the existing screens, record it as `assumed`, and the user vetoes from the table. An item's note saying "ask when the PRD is written" doesn't make a question worth asking: this list decides. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. Send no PushNotification, for the question or the report: pushes are only for questions filed with `pnpm prd ask`. A skipped question is no answer: take your recommendation and record it as assumed.
+Never ask about module layout, naming, the slice breakdown, test choices, or **any UX or UI detail**: how a page or component looks, where a control sits, icons or text, wording and labels, colours, spacing, motion, defaults, empty states, which pages get a look first, optional extras. A UX or UI choice is never product direction, however visible. The test: if one slice could change it later with no migration and no lost data, don't ask. Pick the smallest version that fits the item's own words and the existing screens, record it as `assumed`, and the user vetoes from the table. An item's note saying "ask when the PRD is written" doesn't make a question worth asking: this list decides. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. Send no PushNotification, for the question or the report: pushes are only for questions filed with `risa ask`. A skipped question is no answer: take your recommendation and record it as assumed.
 
-**Unattended** (`prompt.sh plan <topic> --auto`, the dispatcher's): no one watches the terminal, so each question is a `pnpm prd ask` with a PushNotification after it, waited on in the background with no timeout: `--defaults` with a recommendation (the tool takes it after 30 minutes, never you), `--waits` for the [never list](preferences.md#planning-and-slices). The report is a `pnpm prd ask --report` (the assumed rows, how to veto; never pushed), filed after landing and before `pnpm prd rm`.
+**Unattended** (`prompt.sh plan <topic> --auto`, the dispatcher's): no one watches the terminal, so each question is a `risa ask` with a PushNotification after it, waited on in the background with no timeout: `--defaults` with a recommendation (the tool takes it after 30 minutes, never you), `--waits` for the [never list](preferences.md#planning-and-slices). The report is a `risa ask --report` (the assumed rows, how to veto; never pushed), filed after landing and before `risa rm`.
 
 ## Slice fields
 
@@ -30,7 +30,7 @@ Stack: no · Reads: docs/agents/loop.md, docs/domain/sync.md · Tests: unit, e2e
 - **`Reads:`** the docs the loop reads besides the core, from the _Area index_ (comma-separated; `none`).
 - **`Tests:`** `unit`, `integration`, `component`, `e2e:<check>` (comma-separated).
 - **`Blocked by:`** `slice 3`, `3`, `1, 2` or `none` (optional; `Blocks:` stays in the body).
-- `·`, `;` or `|` separate fields; names are case-insensitive. A missing field means no stack and nothing extra to read, and `prompt.sh slice` warns. The parser is `scripts/loops/slice-fields.mjs`.
+- `·`, `;` or `|` separate fields; names are case-insensitive. A missing field means no stack and nothing extra to read, and `prompt.sh slice` warns. The parser is Risa's `loops/slice-fields.mjs`.
 
 ## The test budget
 
@@ -40,9 +40,9 @@ Acceptance criteria name the tests. Screens get component tests ([components](..
 
 A `plan/<topic>` branch touches no code, so its agent lands it whenever the PRD or plan is ready, without a go-ahead:
 
-1. Commit both files (`docs(<topic>): …`). Through `pnpm backlog`, set the items' `prd=<topic> status=triaged` with a note, and the topic's row: `prd set <topic> after=… hot=…` (path prefixes; never a hand edit), after `pnpm backlog prd add <topic>` only when `prd list` has no row yet. After `pnpm prd rm plan-<topic>` and the report, `cd` to the main checkout and `pnpm prd end`.
+1. Commit both files (`docs(<topic>): …`). Through `risa backlog`, set the items' `prd=<topic> status=triaged` with a note, and the topic's row: `prd set <topic> after=… hot=…` (path prefixes; never a hand edit), after `risa backlog prd add <topic>` only when `prd list` has no row yet. After `risa rm plan-<topic>` and the report, `cd` to the main checkout and `risa end`.
 2. Check `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it isn't a planning branch: ask first.
-3. `pnpm prd sync` if `dev` moved, then `pnpm prd land plan/<topic> -m "docs(<topic>): PRD and plan for … (B-<n>, …)"` (plain: no check gate applies, so never `--force`) then the report, and `pnpm prd rm plan-<topic>` from the worktree as the last step (it ends the session; if it refuses, run the line it prints).
-4. **Report:** the _Decisions_ table's `assumed` rows (the top five, the costliest first), what the skeptic changed, and how to start it: `pnpm prd start <topic>` or `pnpm prd queue <topic>`. A veto is a docs edit until its slice starts: the user tells any planning or backlog session.
+3. `risa sync` if `dev` moved, then `risa land plan/<topic> -m "docs(<topic>): PRD and plan for … (B-<n>, …)"` (plain: no check gate applies, so never `--force`) then the report, and `risa rm plan-<topic>` from the worktree as the last step (it ends the session; if it refuses, run the line it prints).
+4. **Report:** the _Decisions_ table's `assumed` rows (the top five, the costliest first), what the skeptic changed, and how to start it: `risa start <topic>` or `risa queue <topic>`. A veto is a docs edit until its slice starts: the user tells any planning or backlog session.
 
-**Bye:** a message of just 'bye' runs `pnpm prd bye` after your own checks: the plan landed (or the user keeps it out), the report filed.
+**Bye:** a message of just 'bye' runs `risa bye` after your own checks: the plan landed (or the user keeps it out), the report filed.

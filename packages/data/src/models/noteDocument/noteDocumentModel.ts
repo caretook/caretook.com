@@ -16,6 +16,9 @@ export const { create, get, getById, list, update, remove } = baseModel.getFunct
   dbToModel,
 });
 
+/** Many documents in one INSERT (a series' visits: B-755). */
+export const createMany = baseModel.createMany({ schemaName, dbToModel });
+
 // ---------------------------------------------------------------------------
 // Compaction helpers. Internal: no permission scope, so only services
 // running as the system call them.

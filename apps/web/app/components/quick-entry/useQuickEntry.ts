@@ -1,17 +1,15 @@
-import type { QuickEntryReading, UnitChoices } from "@caretook/data/schema";
+import type { QuickEntryReading, UnitChoices, DuePass } from "@caretook/data/schema";
 import type { QuickEntryCard, SymptomChoice } from "./quickEntryCards";
-import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { parseQuickEntry, readGoTo, symptomKey } from "@caretook/data/schema";
+import { parseQuickEntry, symptomKey } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { offerUndo } from "~/lib/medications/passUndo";
 import { eventDraftFor, QUICK_ENTRY_DRAFT } from "~/lib/assistant/quickEntryDraft";
-import { actionPreview } from "~/lib/assistant/quickEntryPreview";
 import { recentLineFor, recordLine } from "~/lib/assistant/recentLines";
 import { getSync } from "~/lib/sync";
 import { setDay } from "~/lib/timeline/timelineFilters";
@@ -41,6 +39,8 @@ import {
 import { GO_TO_AHEAD } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
+import { readGoTo } from "@caretook/data/domain";
+import { actionPreview } from "@caretook/data/schema";
 
 /** Where quick entry's Undo is shown (`PassUndoStatus`'s `place`): in the box, under what was saved. */
 export const QUICK_ENTRY_UNDO = "quickEntry";
@@ -174,8 +174,8 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   /** A symptom card's answer: the catalog's name to use, or null to add the name as typed. */
   const chooseSymptom = (card: QuickEntryCard, use: string | null) => {
-    if (!card.symptomGate) return;
-    const answer = { key: symptomKey(card.symptomGate.name), use };
+    if (!card.symptomDefault) return;
+    const answer = { key: symptomKey(card.symptomDefault.typed), use };
     setSymptomChoices((m) => new Map(m).set(card.key, answer));
   };
 

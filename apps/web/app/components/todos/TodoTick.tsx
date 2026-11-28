@@ -18,6 +18,7 @@ export function TodoTick({
   disabled,
   onChange,
   progress,
+  showCount = true,
   large = false,
 }: {
   title: string;
@@ -26,6 +27,8 @@ export function TodoTick({
   onChange: (done: boolean) => void;
   /** Its subtasks' progress, when it has any. */
   progress?: TodoTickProgress;
+  /** Whether a waiting tick shows "n of m" beside it (a list row says it in its own mark). */
+  showCount?: boolean;
   /** Easy mode's size: a much bigger box and hit area. */
   large?: boolean;
 }) {
@@ -49,7 +52,7 @@ export function TodoTick({
         onChange={(e) => onChange(e.currentTarget.checked)}
         data-todo-tick
       />
-      {waiting && (
+      {waiting && showCount && (
         <span
           className="text-muted text-xs whitespace-nowrap tabular-nums"
           aria-hidden="true"

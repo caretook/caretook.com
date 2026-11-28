@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { chipSplit, exactTag, matchingTags, newTagName } from "./tagPicker";
+import { chipSplit, exactTag, matchingTags, namedFirst, newTagName } from "./tagPicker";
 
-const tag = (name: string) => ({ name, name_key: name.toLowerCase() });
+const tag = (name: string) => ({ id: `id-${name}`, name, name_key: name.toLowerCase() });
 const URGENT = tag("Urgent");
 const MOVE = tag("Care home move");
 const KNEE = tag("Knee surgery");
@@ -42,5 +42,18 @@ describe("a row's chips (chipSplit)", () => {
     expect(chipSplit(TAGS)).toEqual({ shown: [MOVE, KNEE], more: 1 });
     expect(chipSplit([URGENT])).toEqual({ shown: [URGENT], more: 0 });
     expect(chipSplit([])).toEqual({ shown: [], more: 0 });
+  });
+});
+
+describe("a search result's chips (namedFirst)", () => {
+  it("puts the tags the text names first, then the rest A to Z", () => {
+    expect(namedFirst(TAGS, [URGENT.id])).toEqual([URGENT, MOVE, KNEE]);
+    expect(namedFirst([URGENT, KNEE, MOVE], [URGENT.id, KNEE.id])).toEqual([KNEE, URGENT, MOVE]);
+  });
+
+  it("leaves a list with none named A to Z", () => {
+    expect(namedFirst([URGENT, KNEE, MOVE], [])).toEqual([MOVE, KNEE, URGENT]);
+    expect(namedFirst([URGENT, MOVE], ["not-a-tag"])).toEqual([MOVE, URGENT]);
+    expect(namedFirst([], [URGENT.id])).toEqual([]);
   });
 });

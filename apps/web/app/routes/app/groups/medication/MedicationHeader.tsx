@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Pill } from "lucide-react";
-import { TagChips, useRecordTags } from "~/components/tags";
+import { canTagRecord, FORM_LABELS, medicationTitle, STATUS_LABELS } from "@caretook/data/schema";
+import { QuickTags, useRecordTags } from "~/components/tags";
 import { Badge, DetailHeader, STATUS_TONE } from "~/components/ui";
-import { FORM_LABELS, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { useGroup } from "~/lib/app-shell/group";
 
 /**
  * The medication's header (`DetailHeader`): its name and strength, a
@@ -13,8 +14,8 @@ import { FORM_LABELS, medicationTitle, STATUS_LABELS } from "~/lib/medications/m
  * - `editors`: who is editing the notes now (avatars).
  * - `actions`: Edit (the edit sheet) and the status actions' ⋯ menu, for
  *   writers.
- * - `showTags`: its tag chips under the details, live, for every role (tags
- *   PRD; tagging is in the edit sheet).
+ * - `showTags`: its tags under the details, live (`QuickTags`, tags-2): chips
+ *   for every role, × and Add tag for whoever may tag it.
  */
 export function MedicationHeader({
   medication,
@@ -27,7 +28,9 @@ export function MedicationHeader({
   actions?: ReactNode;
   showTags?: boolean;
 }) {
+  const { role, userId } = useGroup();
   const tags = useRecordTags("medication", medication.id);
+  const mayTag = canTagRecord(role, { target: "medication", createdBy: medication.createdBy }, userId);
   const stopped = medication.status !== "current";
   const details = [
     medication.form ? FORM_LABELS[medication.form] : null,
@@ -41,10 +44,18 @@ export function MedicationHeader({
       titleProps={{ "data-medication-name": "" }}
       badges={stopped && <Badge tone={STATUS_TONE.past}>{STATUS_LABELS[medication.status]}</Badge>}
       details={
-        showTags && tags.length > 0 ? (
+        showTags && (mayTag || tags.length > 0) ? (
           <>
             {details.join(" · ")}
-            <TagChips tags={tags} max={null} className="mt-1" />
+            <QuickTags
+              target="medication"
+              recordId={medication.id}
+              label={medicationTitle(medication)}
+              createdBy={medication.createdBy}
+              max={null}
+              tags={tags}
+              className="mt-1"
+            />
           </>
         ) : (
           details.join(" · ")

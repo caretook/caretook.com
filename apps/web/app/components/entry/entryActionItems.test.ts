@@ -122,25 +122,30 @@ describe("entryActionItems, Remind me", () => {
   });
 });
 
-describe("entryActionItems, Tags", () => {
-  it("follows Edit for every kind the caller may tag, before the rest", () => {
-    expect(entryActionItems("symptom", { canEdit: true, canTag: true })).toEqual(["edit", "tags", "delete"]);
-    expect(entryActionItems("dose", { canEdit: true, canTag: true })).toEqual(["edit", "tags", "delete"]);
-    expect(entryActionItems("note", { canEdit: false, canTag: true, canPrint: true })).toEqual([
-      "tags",
-      "print",
+describe("entryActionItems, Copy link", () => {
+  it("comes before Delete for writers, every kind", () => {
+    expect(entryActionItems("symptom", { canEdit: true, canCopyLink: true })).toEqual([
+      "edit",
+      "copyLink",
       "delete",
     ]);
-    expect(
-      entryActionItems("event", { canEdit: false, canTag: true, canReschedule: true, canCancel: true }),
-    ).toEqual(["tags", "reschedule", "cancel", "delete"]);
-    expect(entryActionItems("medicationChange", { canEdit: false, canTag: true })).toEqual([
-      "tags",
+    expect(entryActionItems("note", { canEdit: false, canPrint: true, canCopyLink: true })).toEqual([
+      "print",
+      "copyLink",
       "delete",
     ]);
   });
 
-  it("is never offered unless asked (viewers)", () => {
-    expect(entryActionItems("note", { canEdit: false, canPrint: true, canDelete: false })).toEqual(["print"]);
+  it("is a reader's too: after Print, or alone where their menu had nothing", () => {
+    expect(
+      entryActionItems("note", { canEdit: false, canPrint: true, canDelete: false, canCopyLink: true }),
+    ).toEqual(["print", "copyLink"]);
+    expect(entryActionItems("symptom", { canEdit: false, canDelete: false, canCopyLink: true })).toEqual([
+      "copyLink",
+    ]);
+  });
+
+  it("is never offered unless asked (Upcoming and the entry page)", () => {
+    expect(entryActionItems("event", { canEdit: false, canPrint: true })).not.toContain("copyLink");
   });
 });

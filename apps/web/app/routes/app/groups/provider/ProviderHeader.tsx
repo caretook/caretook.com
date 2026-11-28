@@ -16,8 +16,8 @@ const NO_ROWS: ProviderRow[] = [];
  * Primary or Past badge, and its type, specialty and practice (a link).
  *
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Copy to another group, Tags and Edit, for writers.
- * - `tags`: its tag chips, under the details (tags PRD).
+ * - `actions`: Edit and a ⋯ menu (`ProviderActions`), for writers.
+ * - `tags`: its tags (`QuickTags`), under the details (chips for every role; tags PRD).
  */
 export function ProviderHeader({
   provider,

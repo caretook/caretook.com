@@ -1,6 +1,6 @@
-import { periodSpans } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { periodMarkers } from "./periodMarkers";
+import { periodSpans } from "@caretook/data/domain";
 
 const period = (id: string, startedAt: string, createdAt = startedAt, deletedAt: string | null = null) => ({
   id,

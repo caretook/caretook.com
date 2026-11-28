@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import type { SyncDb } from "~/lib/sync";
+import { recentlyViewed } from "~/lib/core/recentlyViewed";
 import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { found, waitUntil } from "../../../../../test/found";
@@ -174,13 +175,16 @@ describe("the page", () => {
 
   test("the linked entries, newest first; a tap opens the entry", async () => {
     const device = await open(providerUrl(CORNERSTONE.id));
+    // The timeline's rows (B-937): each opens by its stretched open link.
     const links = () =>
-      [...document.querySelectorAll<HTMLAnchorElement>("main [data-linked-entries] a[data-entry-id]")].map(
-        (a) => a.dataset.entryId,
-      );
+      [
+        ...document.querySelectorAll<HTMLAnchorElement>(
+          'main [data-linked-entries] li a[aria-label^="Open "]',
+        ),
+      ].map((a) => a.getAttribute("href"));
     await waitUntil(() => links().length === 2, "the linked entries");
-    expect(links()).toEqual([PICKUP.id, PICKUP_2.id]);
-    await userEvent.click(getByCss(`main [data-linked-entries] a[data-entry-id="${PICKUP.id}"]`));
+    expect(links()).toEqual([entryUrl(PICKUP.id), entryUrl(PICKUP_2.id)]);
+    await userEvent.click(getByCss(`main [data-linked-entries] li a[href="${entryUrl(PICKUP.id)}"]`));
     await expect.poll(() => device.location()).toBe(entryUrl(PICKUP.id));
   });
 
@@ -304,8 +308,47 @@ describe("mentions in the notes", () => {
   });
 });
 
+/** The header's ⋯ (Copy to another group) and its items' names, once open. */
+const ACTIONS = () => document.querySelector<HTMLButtonElement>("main header [data-provider-actions]");
+const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
+const openActions = async () => {
+  await userEvent.click(await found(ACTIONS));
+  await waitUntil(() => menuItems().length > 0, "the ⋯ menu");
+};
+const rect = (el: Element | null | undefined) => {
+  if (!el) throw new Error("missing element");
+  return el.getBoundingClientRect();
+};
+
+describe("the header on a phone (375px)", () => {
+  test("a pharmacy's Edit and ⋯ sit beside its name, inside the header; Copy to another group is in the ⋯", async () => {
+    await open(providerUrl(CORNERSTONE.id), { role: "caretaker", width: 375 });
+    await waitUntil(() => !!ACTIONS(), "the ⋯");
+    const header = document.querySelector<HTMLElement>("main header")!;
+    const title = rect(header.querySelector('[data-region="title"]'));
+    const h1 = rect(header.querySelector("h1"));
+    const actions = rect(header.querySelector('[data-region="actions"]'));
+    const box = rect(header);
+    // Nothing overlaps the name, and nothing runs off the header.
+    expect(actions.left).toBeGreaterThanOrEqual(title.right);
+    expect(h1.right).toBeLessThanOrEqual(actions.left);
+    expect(actions.right).toBeLessThanOrEqual(box.right);
+    expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(375);
+    // The name keeps room to be read (not squeezed to a letter a line).
+    expect(h1.width).toBeGreaterThan(100);
+    expect(
+      [...header.querySelectorAll('[data-region="actions"] > :is(a, button)')].map((b) =>
+        b.textContent?.trim(),
+      ),
+    ).toEqual(["Edit", ""]);
+    await openActions();
+    expect(menuItems()).toEqual(["Copy to another group"]);
+  });
+});
+
 describe("Copy to another group", () => {
-  const COPY = () => document.querySelector<HTMLButtonElement>("main header [data-copy-provider]");
+  const COPY = () => page.getByRole("menuitem", { name: "Copy to another group" });
   const STATUS = () =>
     document.querySelector<HTMLElement>("main [data-copy-status]")?.textContent?.trim() ?? "";
   const DIALOG = () => document.querySelector<HTMLDialogElement>("dialog.modal[open]");
@@ -318,8 +361,8 @@ describe("Copy to another group", () => {
 
   test("a writer who writes in another group sees it; the dialog names the rule and the group, and copying adds the provider there, with its practice", async () => {
     const device = await open(providerUrl(ALVAREZ.id), { role: "caretaker" });
-    await waitUntil(() => !!COPY(), "the Copy action");
-    await userEvent.click(await found(COPY));
+    await openActions();
+    await userEvent.click(COPY());
     await waitUntil(() => !!DIALOG(), "the dialog");
     await expect.poll(() => DIALOG()?.textContent).toContain("Copy Dr. Elena Alvarez");
     await expect.poll(() => DIALOG()?.textContent).toContain("Provider notes stay in Grandma June.");
@@ -342,8 +385,8 @@ describe("Copy to another group", () => {
       role: "caretaker",
       fixtures: [directory(), SAM, secondGroup(), SAME],
     });
-    await waitUntil(() => !!COPY(), "the Copy action");
-    await userEvent.click(await found(COPY));
+    await openActions();
+    await userEvent.click(COPY());
     await waitUntil(() => !!DIALOG(), "the dialog");
     await userEvent.click(await found(() => dialogButton("Copy")));
     await expect.poll(STATUS).toBe("Already in Lou Lindqvist. Nothing was copied.");
@@ -353,8 +396,8 @@ describe("Copy to another group", () => {
 
   test("Cancel copies nothing", async () => {
     const device = await open(providerUrl(PATEL.id), { role: "caretaker" });
-    await waitUntil(() => !!COPY(), "the Copy action");
-    await userEvent.click(await found(COPY));
+    await openActions();
+    await userEvent.click(COPY());
     await waitUntil(() => !!DIALOG(), "the dialog");
     await userEvent.click(await found(() => dialogButton("Cancel")));
     await waitUntil(() => !DIALOG(), "the dialog closing");
@@ -365,13 +408,15 @@ describe("Copy to another group", () => {
   test("hidden for a viewer here, with no other group, and when every other group is a viewer role", async () => {
     let device = await open(providerUrl(PATEL.id), { role: "viewer" });
     await waitUntil(() => !!NOTES(), "the page");
-    expect(COPY()).toBeNull();
+    expect(ACTIONS()).toBeNull();
     await device.screen.unmount();
 
     device = await open(providerUrl(PATEL.id), { role: "caretaker", fixtures: [directory(), SAM] });
     await waitUntil(() => !!NOTES(), "the page");
     await device.settle();
-    expect(COPY()).toBeNull();
+    // No copy target and no Tags in the ⋯ (tags-2's `QuickTags`): no ⋯ at all, Edit still there.
+    expect(ACTIONS()).toBeNull();
+    expect(document.querySelector("main header [data-edit-provider]")).not.toBeNull();
     await device.screen.unmount();
 
     device = await open(providerUrl(PATEL.id), {
@@ -380,7 +425,32 @@ describe("Copy to another group", () => {
     });
     await waitUntil(() => !!NOTES(), "the page");
     await device.settle();
-    expect(COPY()).toBeNull();
+    expect(ACTIONS()).toBeNull();
+  });
+});
+
+describe("recently viewed (B-947)", () => {
+  test("opening a provider records it for this user, newest first; opening it again moves it up", async () => {
+    let device = await open(providerUrl(WESTSIDE.id));
+    await expect
+      .element(page.getByRole("heading", { level: 1, name: "Westside Family Medicine" }))
+      .toBeVisible();
+    await expect.poll(() => recentlyViewed(TEST_USER.id)).toEqual([{ type: "provider", id: WESTSIDE.id }]);
+    await device.screen.unmount();
+
+    device = await open(providerUrl(ALVAREZ.id));
+    await expect.poll(() => recentlyViewed(TEST_USER.id).map((r) => r.id)).toEqual([ALVAREZ.id, WESTSIDE.id]);
+    await device.screen.unmount();
+
+    await open(providerUrl(WESTSIDE.id));
+    await expect.poll(() => recentlyViewed(TEST_USER.id).map((r) => r.id)).toEqual([WESTSIDE.id, ALVAREZ.id]);
+  });
+
+  test("a deleted provider isn't recorded", async () => {
+    const GONE = fx.provider({ name: "Dr. Gone Away", deletedAt: at() });
+    await open(providerUrl(GONE.id), { fixtures: [directory(), GONE] });
+    await expect.element(notFound()).toBeVisible();
+    expect(recentlyViewed(TEST_USER.id)).toEqual([]);
   });
 });
 

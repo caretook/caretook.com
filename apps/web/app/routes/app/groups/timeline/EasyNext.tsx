@@ -11,8 +11,8 @@ import {
   upcomingTitle,
   upcomingWhen,
 } from "~/lib/appointments/upcomingLabels";
-import { isPlannerTodo } from "~/lib/todos/plannerTodos";
-import { dueText } from "~/lib/todos/todoDisplay";
+import { TodoTree } from "~/components/todos";
+import { isPlannerTree } from "~/lib/todos/plannerTodos";
 import { useEasyUpcoming } from "./useEasyUpcoming";
 
 const ITEM_LINK = "hover:bg-base-content/5 rounded-box -mx-2 block px-2 py-2";
@@ -23,8 +23,19 @@ const ITEM_LINK = "hover:bg-base-content/5 rounded-box -mx-2 block px-2 py-2";
  * its page, then "See all" to the Planner; another tap closes it. Closed on
  * every visit. The list mounts on the first open (its query waits until then)
  * and stays mounted, so closing can slide. Nothing when nothing is ahead.
+ * A todo is its day's tree (todo-subtasks-3) in the shared `TodoTree`'s easy
+ * look with no ticks: the list only shows what's next.
  */
-export function EasyNext({ next, now }: { next: TimelineData["next"]; now: Date }) {
+export function EasyNext({
+  next,
+  now,
+  nameOf,
+}: {
+  next: TimelineData["next"];
+  now: Date;
+  /** A member's name, for a context row's assignee and a done step's line. */
+  nameOf: (userId: string) => string;
+}) {
   const group = useGroup();
   const [open, setOpen] = useState(false);
   const [opened, setOpened] = useState(false);
@@ -49,14 +60,16 @@ export function EasyNext({ next, now }: { next: TimelineData["next"]; now: Date 
         </button>
       </p>
       <Collapse open={open} id={listId} data-easy-upcoming="">
-        <div className="mt-2 space-y-2">{opened && <EasyUpcomingList groupId={group.id} />}</div>
+        <div className="mt-2 space-y-2">
+          {opened && <EasyUpcomingList groupId={group.id} nameOf={nameOf} />}
+        </div>
       </Collapse>
     </div>
   );
 }
 
 /** The opened list: the next five, then See all. A skeleton until the device answers. */
-function EasyUpcomingList({ groupId }: { groupId: string }) {
+function EasyUpcomingList({ groupId, nameOf }: { groupId: string; nameOf: (userId: string) => string }) {
   const { items, ready, now, todoZone } = useEasyUpcoming(groupId);
   if (!ready)
     return (
@@ -68,22 +81,23 @@ function EasyUpcomingList({ groupId }: { groupId: string }) {
     <>
       <ul aria-label="Next upcoming">
         {items.map((item) =>
-          isPlannerTodo(item) ? (
+          isPlannerTree(item) ? (
             <li key={item.key} data-easy-upcoming-item={item.key}>
-              <Link to={appUrls.todo(groupId, item.todo.id)} className={ITEM_LINK}>
-                <span className="block text-xl font-medium break-words">{item.todo.title}</span>
-                <span
-                  className={`block text-base ${item.state === "overdue" ? "text-error-ink" : "text-muted"}`}
-                >
-                  {dueText(item.todo, now, todoZone)}
-                </span>
-              </Link>
+              <TodoTree
+                trees={[item.tree]}
+                look="easy"
+                nameOf={nameOf}
+                now={now.getTime()}
+                timeZone={todoZone}
+                busy={false}
+              />
             </li>
           ) : (
             <li key={item.id} data-easy-upcoming-item={item.id}>
               <Link to={appUrls.entry(groupId, item.id)} className={ITEM_LINK}>
                 <span
                   className={`block text-xl font-medium break-words ${item.cancelledAt ? "line-through" : ""}`}
+                  data-easy-upcoming-title
                 >
                   {upcomingTitle(item)}
                 </span>

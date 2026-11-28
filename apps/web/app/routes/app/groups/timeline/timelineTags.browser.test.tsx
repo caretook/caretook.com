@@ -8,11 +8,13 @@ import { rescheduleEvent } from "~/lib/appointments/appointments.sync";
 import { historyWindow } from "~/lib/timeline/timeline.sync";
 import { openTimeline, rows, rowWith, SAM, setView } from "./timelineWorld";
 
-// Tags on timeline entries (tags slice 2): the ⋯ menu's Tags opens the
-// picker sheet for whoever may tag the entry (writers any kind, an Easy
-// helper their own); toggles and a typed new name are local writes, and the
-// row's chips (two, then "+N") follow live, for every role and in the easy
-// view. The pure matching is tagPicker.test.ts's; the rule tagRules.test.ts's.
+// Tags on timeline entries (tags slice 2; quick tags on rows in tags-2 slice
+// 6): every row and card shows its chips (two, then "+N") for every role and
+// in the easy view; for whoever may tag the entry (writers any kind, an Easy
+// helper their own) each chip has an × that untags it and "Add tag" opens the
+// picker (`QuickTags`), all without opening the entry; rows' ⋯ has no Tags.
+// Toggles and a typed new name are local writes. The pure matching is
+// tagPicker.test.ts's; the rule tagRules.test.ts's.
 
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
 const LISINOPRIL = fx.medication({ name: "Lisinopril", strength: "10 mg" });
@@ -34,6 +36,15 @@ const chipsOf = (text: string) =>
   [...(rowWith(text)?.querySelectorAll("[data-tag-chip]") ?? [])].map((c) => c.textContent?.trim()).join(",");
 const moreOf = (text: string) =>
   rowWith(text)?.querySelector("[data-tag-more] [aria-hidden]")?.textContent ?? null;
+/** A row's tag buttons: each chip's × and "Add tag" (none for chips only). */
+const tagButtonsOf = (text: string) =>
+  [...(rowWith(text)?.querySelectorAll("[data-tag-remove], [data-quick-tag-add]") ?? [])].map((b) =>
+    b.getAttribute("aria-label"),
+  );
+const addOf = (text: string) =>
+  rowWith(text)?.querySelector<HTMLButtonElement>("[data-quick-tag-add]") ?? null;
+const removeOf = (text: string, name: string) =>
+  rowWith(text)?.querySelector<HTMLButtonElement>(`button[aria-label="Remove tag ${name}"]`) ?? null;
 const PICKER = () => document.querySelector<HTMLFormElement>("[data-tag-picker]");
 const FILTER = () => PICKER()?.querySelector<HTMLInputElement>("[data-tag-filter]") ?? null;
 const ADD = () => PICKER()?.querySelector<HTMLButtonElement>("[data-tag-add]") ?? null;
@@ -41,14 +52,18 @@ const listed = () =>
   [...(PICKER()?.querySelectorAll("[data-tag-list] label") ?? [])]
     .map((l) => l.textContent?.trim())
     .join(",");
+/** Nothing opened: no entry page (the stand-in's heading) and no edit sheet. */
+const stayed = () => {
+  expect(document.querySelector("h1")?.textContent ?? "").not.toContain("Entry page");
+  expect(document.querySelector("[data-entry-edit-tags]")).toBeNull();
+};
 
 const openMenu = async (text: string) => {
   await userEvent.click(await found(() => actionsOf(text)));
   await waitUntil(() => menuItems().length > 0, "the menu");
 };
 const openPicker = async (text: string) => {
-  await openMenu(text);
-  await userEvent.click(page.getByRole("menuitem", { name: "Tags" }));
+  await userEvent.click(await found(() => addOf(text)));
   await found(PICKER);
 };
 const toggle = (name: string) => userEvent.click(page.getByRole("checkbox", { name }));
@@ -60,11 +75,12 @@ const open = (role: GroupRole = "owner", extra: Parameters<typeof openTimeline>[
   openTimeline({ role, fixtures: [...base, recordTag(KNEE.id, SAMS_NOTE.id)], ...extra });
 const ready = () => waitUntil(() => rows().length >= 5, "the rows");
 
-describe("tagging an entry", () => {
-  test("a writer applies, removes and adds a tag on a note, a symptom and a dose; the chips follow live", async () => {
+describe("quick tags on rows", () => {
+  test("a writer adds, removes and adds new tags on a note, a symptom and a dose from the row; nothing opens; ⋯ has no Tags", async () => {
     const device = await open();
     await ready();
     for (const [i, text] of ["Walked to the mailbox", "Sore knee", "Lisinopril"].entries()) {
+      expect(tagButtonsOf(text)).toEqual(["Add tag"]);
       await openPicker(text);
       // The group's tags, A to Z (those added for earlier rows too), none on it yet.
       const earlier = Array.from({ length: i }, (_, n) => `Follow up ${n}`);
@@ -89,14 +105,15 @@ describe("tagging an entry", () => {
       await device.settle();
       await expect.poll(() => FILTER()?.value).toBe("");
       await expect.poll(() => chipsOf(text)).toBe(`${name},Knee`);
-      expect(moreOf(text)).toBe("+1");
-
-      // Off again.
-      await toggle("Urgent");
-      await device.settle();
-      await expect.poll(() => chipsOf(text)).toBe(`${name},Knee`);
-      expect(moreOf(text)).toBeNull();
+      await expect.poll(() => moreOf(text)).toBe("+1");
       await closePicker();
+
+      // One tap on a chip's × untags it, on the row, and the hidden third shows.
+      await userEvent.click(await found(() => removeOf(text, "Knee")));
+      await device.settle();
+      await expect.poll(() => chipsOf(text)).toBe(`${name},Urgent`);
+      await expect.poll(() => moreOf(text)).toBeNull();
+      stayed();
     }
     // One tag per name, each new one once; the links queued for upload.
     const names = await device.query<{ name: string }>("SELECT name FROM tag ORDER BY name_key");
@@ -110,40 +127,103 @@ describe("tagging an entry", () => {
     ]);
     const links = await device.query<{ n: number }>("SELECT count(*) AS n FROM record_tag");
     expect(links[0]?.n).toBe(7);
+    expect((await device.queued()).some((w) => w.type === "record_tag" && w.op === "DELETE")).toBe(true);
+
+    // ⋯ keeps its other items and has no Tags.
+    await openMenu("Walked to the mailbox");
+    expect(menuItems()).not.toContain("Tags");
+    expect(menuItems()).toContain("Copy link");
+    await userEvent.keyboard("{Escape}");
   });
 
-  test("an Easy helper gets Tags on their own entries only; the chips show in the easy view", async () => {
-    await open("easy_helper");
+  test("on a full card a caretaker adds and removes a tag, and +N opens the picker", async () => {
+    const device = await openTimeline({
+      role: "caretaker",
+      fixtures: [
+        ...base,
+        recordTag(URGENT.id, NOTE.id),
+        recordTag(KNEE.id, NOTE.id),
+        recordTag(MOVE.id, NOTE.id),
+      ],
+    });
+    await ready();
+    await setView("Full");
+    await expect.poll(() => chipsOf("Walked to the mailbox")).toBe("Care home move,Knee");
+    expect(tagButtonsOf("Walked to the mailbox")).toEqual([
+      "Remove tag Care home move",
+      "Remove tag Knee",
+      "Add tag",
+    ]);
+
+    // "+1" is a button: it opens the picker, with all three on.
+    await userEvent.click(
+      await found(() => rowWith("Walked to the mailbox")?.querySelector<HTMLElement>("[data-tag-more-open]")),
+    );
+    await found(PICKER);
+    await toggle("Urgent");
+    await device.settle();
+    await expect.poll(() => chipsOf("Walked to the mailbox")).toBe("Care home move,Knee");
+    await expect.poll(() => moreOf("Walked to the mailbox")).toBeNull();
+    await closePicker();
+
+    await userEvent.click(await found(() => removeOf("Walked to the mailbox", "Care home move")));
+    await device.settle();
+    await expect.poll(() => chipsOf("Walked to the mailbox")).toBe("Knee");
+    await openPicker("Sore knee");
+    await toggle("Urgent");
+    await device.settle();
+    await expect.poll(() => chipsOf("Sore knee")).toBe("Urgent");
+    await closePicker();
+    stayed();
+    await openMenu("Sore knee");
+    expect(menuItems()).not.toContain("Tags");
+  });
+
+  test("an Easy helper gets the buttons on their own entries only, in the easy view", async () => {
+    const device = await open("easy_helper");
     await waitUntil(() => !!document.querySelector("[data-easy-list]"), "the easy view");
     await ready();
-    await openMenu("Walked to the mailbox");
-    expect(menuItems()).toContain("Tags");
+    expect(tagButtonsOf("Walked to the mailbox")).toEqual(["Add tag"]);
+    expect(tagButtonsOf("Sore knee")).toEqual(["Add tag"]);
+    // Sam's: chips only, no × and no Add tag; a note's ⋯ keeps Print, a symptom's Copy link alone.
+    expect(chipsOf("Sam's visit notes")).toBe("Knee");
+    expect(tagButtonsOf("Sam's visit notes")).toEqual([]);
+    expect(tagButtonsOf("Tired")).toEqual([]);
+    await openMenu("Sam's visit notes");
+    expect(menuItems()).toEqual(["Print", "Copy link"]);
     await userEvent.keyboard("{Escape}");
     await openMenu("Sore knee");
-    expect(menuItems()).toContain("Tags");
+    expect(menuItems()).not.toContain("Tags");
     await userEvent.keyboard("{Escape}");
-    // Sam's: a note keeps Print and no Tags; a symptom has no ⋯ at all.
-    await openMenu("Sam's visit notes");
-    expect(menuItems()).toEqual(["Print"]);
-    await userEvent.keyboard("{Escape}");
-    expect(actionsOf("Tired")).toBeNull();
-    expect(chipsOf("Sam's visit notes")).toBe("Knee");
 
     await openPicker("Sore knee");
     await toggle("Urgent");
+    await device.settle();
+    await closePicker();
     await expect.poll(() => chipsOf("Sore knee")).toBe("Urgent");
+    await userEvent.click(await found(() => removeOf("Sore knee", "Urgent")));
+    await device.settle();
+    await expect.poll(() => chipsOf("Sore knee")).toBe("");
+    stayed();
   });
 
   for (const role of ["viewer", "easy_viewer"] as const)
-    test(`a${role === "viewer" ? " viewer" : "n Easy viewer"} sees the chips and no Tags`, async () => {
+    test(`a${role === "viewer" ? " viewer" : "n Easy viewer"} sees the chips only, and no Tags`, async () => {
       await open(role);
       await ready();
       expect(chipsOf("Sam's visit notes")).toBe("Knee");
+      expect(document.querySelectorAll("[data-quick-tags]")).toHaveLength(0);
+      expect(
+        document.querySelector("[data-quick-tag-add], [data-tag-remove], [data-tag-more-open]"),
+      ).toBeNull();
       await openMenu("Walked to the mailbox");
-      expect(menuItems()).toEqual(["Print"]);
+      expect(menuItems()).toEqual(["Print", "Copy link"]);
       await userEvent.keyboard("{Escape}");
-      expect(actionsOf("Sore knee")).toBeNull();
-      expect(actionsOf("Lisinopril")).toBeNull();
+      for (const text of ["Sore knee", "Lisinopril"]) {
+        await openMenu(text);
+        expect(menuItems()).toEqual(["Copy link"]);
+        await userEvent.keyboard("{Escape}");
+      }
     });
 });
 

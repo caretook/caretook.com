@@ -1,13 +1,11 @@
-import type { DueDoses } from "~/lib/medications/dueDoses";
-
 import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { offerUndoToast, useUndoToast } from "~/components/medications";
 import { Button, ConfirmDialog } from "~/components/ui";
-import { doseWarnings } from "~/lib/medications/dueDoses";
-import { doseWarningText, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { doseUndoLabel } from "~/lib/medications/passUndo";
 import { useLogDose } from "./useLogDose";
+import type { DueDoses } from "@caretook/data/schema";
+import { doseWarnings, doseWarningText, medicationTitle } from "@caretook/data/schema";
 
 type Medication = { id: string; name: string; strength: string | null; dose: string | null };
 

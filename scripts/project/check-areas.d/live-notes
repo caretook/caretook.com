@@ -1,0 +1,10 @@
+# check-areas: the entry page and live notes. The page (its header, the With
+# row, suggestions, the place, the care period suggestion) is component tests
+# (entry/*.browser.test.tsx); what it writes, and so uploads, is live-notes.
+apps/web/app/routes/app/groups/entry/    -
+apps/web/app/routes/app/groups/entry/useLiveEntry.ts live-notes
+apps/web/app/components/notes/           live-notes
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/live-notes/             live-notes
+packages/data/src/db/schema/live-notes/  live-notes
+packages/data/src/domain/live-notes/     live-notes

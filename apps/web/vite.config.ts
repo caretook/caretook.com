@@ -1,6 +1,8 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type Rolldown } from "vite";
+
+import { clientChunks as lucideChunks } from "../../scripts/build/chunks.mjs";
 
 // Server-side env for dev and builds: apps/web/.env (auth), then
 // packages/data/.env (DATABASE_URL), so there's one copy of each value. Real
@@ -33,6 +35,13 @@ const chunkModules = (): Plugin => ({
   },
 });
 
+// Client chunk groups (B-960, B-966): React, lucide-react's own code, the
+// icons only the app reaches in one `icons` chunk (the public pages never load
+// it), and the public pages' icons by page. The plugin reads which icons each
+// module imports. The rules and why: scripts/build/chunks.mjs; `pnpm build:budget`
+// checks the shape.
+const clientChunks = lucideChunks<Plugin, Rolldown.CodeSplittingOptions>();
+
 export default defineConfig({
   // VITE_* as usual, plus APP_ENV (staging | production): it's public, and
   // prerendered pages and every page's noindex read it at build (lib/marketing/noindex.ts).
@@ -45,9 +54,13 @@ export default defineConfig({
   // Component tests (Vitest's `web:components` project) load this config for
   // `~/`, Tailwind, daisyUI and the dedupes, but render routes in React
   // Router's test stub: the framework plugin isn't for tests.
-  plugins: [tailwindcss(), !process.env.VITEST && reactRouter(), chunkModules()],
+  plugins: [tailwindcss(), !process.env.VITEST && reactRouter(), chunkModules(), clientChunks.plugin],
   // The bundle budget reads .vite/manifest.json from the web client build.
   build: { manifest: true },
+  // Both targets' client builds (the server build keeps its default split).
+  environments: {
+    client: { build: { rolldownOptions: { output: { codeSplitting: clientChunks.codeSplitting } } } },
+  },
   // One copy each of yjs (Yjs breaks with two: its `instanceof` checks fail),
   // React, and ProseMirror's packages.
   resolve: {

@@ -2,23 +2,27 @@ import type { SearchPageData } from "./loadSearch";
 import type { UnitChoices } from "@caretook/data/schema";
 import type { ResultSection } from "~/lib/search/searchResults";
 import type { EasyOpenedRef } from "./useEasyOpened";
+import type { GroupTagRow } from "~/lib/tags/tags.sync";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { parseSearch } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { useGroupRecordTags } from "~/components/tags";
 import { LINK, TITLE_SECTION } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { resultCountText } from "~/lib/search/searchResults";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { useLiveQuery } from "~/lib/sync";
+import { namedFirst } from "~/lib/tags/tagPicker";
+import { membersQuery, toMember } from "~/lib/timeline/timeline.sync";
 import { EasyResultSheet } from "./EasyResultSheet";
-import {
-  ConditionResultItem,
-  EntryResultItem,
-  MedicationResultItem,
-  ProviderResultItem,
-  TodoResultItem,
-} from "./ResultItems";
+import { ConditionResultItem } from "./ConditionResultItem";
+import { EntryResultItem } from "./EntryResultItem";
+import { MedicationResultItem } from "./MedicationResultItem";
+import { ProviderResultItem } from "./ProviderResultItem";
+import { TodoResultItem } from "./TodoResultItem";
+import { parseSearch } from "@caretook/data/domain";
 
 /**
  * Everything under the field: one polite status line (the count, "No
@@ -27,6 +31,12 @@ import {
  * a provider, medication or condition opens a read-only sheet here
  * (`EasyResultSheet`) rather than its section, and entries have no "See all
  * in timeline" (the easy view has no search to show it).
+ *
+ * Each result's tags are read live here, one query per kind
+ * (`useGroupRecordTags`), never one per row, and shown as `QuickTags` (two
+ * chips, then "+N"), the ones the text names first (`namedFirst`); the
+ * easy roles see chips only, as on the Planner. The group's members are
+ * read once too, for authors' and assignees' names and pictures.
  */
 export function SearchResults({
   data,
@@ -54,6 +64,17 @@ export function SearchResults({
   const group = useGroup();
   // Todos' due days are the recipient's.
   const timeZone = group.recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const entryTags = useGroupRecordTags(groupId, "entry");
+  const providerTags = useGroupRecordTags(groupId, "provider");
+  const medicationTags = useGroupRecordTags(groupId, "medication");
+  const todoTags = useGroupRecordTags(groupId, "todo");
+  // A result's tags, the ones its text names first (`loadSearch`'s `namedTags`).
+  const tagsOf = (byRecord: Map<string, GroupTagRow[]>, id: string) =>
+    namedFirst(byRecord.get(id) ?? NO_TAGS, data.namedTags[id]?.map((t) => t.id) ?? NO_IDS);
+  const members = useMembers(groupId);
+  const nameOf = (userId: string) => members.get(userId)?.name ?? "Former member";
+  const imageOf = (userId: string) => members.get(userId)?.image ?? null;
+  const tagsReadOnly = group.easyRole;
   // The easy roles' read-only sheet, when one is open.
   // Only which one: the sheet reads the row as it is now, so synced edits and deletes show (B-469).
   const [opened, setOpened] = useState<EasyOpenedRef | null>(null);
@@ -81,7 +102,10 @@ export function SearchResults({
             <span className={TITLE_SECTION}>{section.label}</span>
             <span className="text-faint text-sm">{section.total}</span>
           </h2>
-          <ul className="divide-base-300 border-base-300 divide-y rounded-box border">
+          {/* Todos are the Todos page's rows, which leave the sides to their list. */}
+          <ul
+            className={`divide-base-300 border-base-300 divide-y rounded-box border ${section.type === "todo" ? "px-3" : ""}`}
+          >
             {section.hits.map((hit) => {
               if (section.type === "entry") {
                 const entry = data.entries[hit.id];
@@ -93,8 +117,11 @@ export function SearchResults({
                       groupId={groupId}
                       canWrite={canWrite}
                       units={units}
-                      now={now}
                       search={search}
+                      tags={tagsOf(entryTags, entry.id)}
+                      tagsReadOnly={tagsReadOnly}
+                      nameOf={nameOf}
+                      imageOf={imageOf}
                     />
                   )
                 );
@@ -109,6 +136,8 @@ export function SearchResults({
                       notes={data.notes[hit.id]}
                       search={search}
                       onOpen={open({ type: "provider", id: provider.id })}
+                      tags={tagsOf(providerTags, provider.id)}
+                      tagsReadOnly={tagsReadOnly}
                     />
                   )
                 );
@@ -137,6 +166,9 @@ export function SearchResults({
                       now={now}
                       timeZone={timeZone}
                       search={search}
+                      tags={tagsOf(todoTags, todo.id)}
+                      tagsReadOnly={tagsReadOnly}
+                      nameOf={nameOf}
                     />
                   )
                 );
@@ -151,6 +183,8 @@ export function SearchResults({
                     notes={data.notes[hit.id]}
                     search={search}
                     onOpen={open({ type: "medication", id: medication.id })}
+                    tags={tagsOf(medicationTags, medication.id)}
+                    tagsReadOnly={tagsReadOnly}
                   />
                 )
               );
@@ -177,6 +211,17 @@ export function SearchResults({
       )}
     </>
   );
+}
+
+const NO_TAGS: GroupTagRow[] = [];
+const NO_IDS: string[] = [];
+const NO_MEMBERS: MemberRow[] = [];
+
+/** The group's members by user id, live, read once for the whole list. */
+function useMembers(groupId: string) {
+  const q = membersQuery(groupId);
+  const rows = useLiveQuery<MemberRow>(q.sql, q.params, NO_MEMBERS);
+  return useMemo(() => new Map(rows.map((row) => [row.user_id, toMember(row)])), [rows]);
 }
 
 /**

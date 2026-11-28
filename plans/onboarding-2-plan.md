@@ -4,16 +4,28 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/onboarding-2` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------------- |
-| 1     | 1    | planned |                                               |
-| 2     | 2    | planned |                                               |
-| 3     | 3    | planned |                                               |
-| 4     | 3    | planned |                                               |
-| 5     | 4    | planned |                                               |
-| 6     | 5    | planned |                                               |
+| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits)                           |
+| ----- | ---- | ------------- | ----------------------------------------------------------------------- |
+| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                                                   |
+| 2     | 2    | landed (opus) | ab0722574 (f26ce5101)                                                   |
+| 3     | 3    | landed (opus) | 52d9b39e1 (51bcd45a6)                                                   |
+| 4     | 3    | landed (opus) | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef)                         |
+| 5     | 4    | landed (opus) | bd843f2b7, fixes 68eb76e09, a49f8226b (1cac719b7, f7c7c9517, 3a05759d7) |
+| 6     | 5    | merged (opus) | d3516f714 (cf8263de4)                                                   |
 
-**Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
+**Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Wave 4 landed (2026-11-28)** in dev through PR #318 (tier components: run 46121843970 green on b24e28b after two fix rounds on `settings.browser.test.tsx`; Codex clean on 83cd775 after one finding filed as B-1010; landed unsynced over 4 dev commits sharing no file). Slice 5 worktree removed. Report filed. Docs: the redirect and `settingsKnown` (answered **and** cached) in app-shell.md, trimmed to its budget. session-end's local failure was stale stack data (`pnpm datastore:reset` fixed it).
+
+**What slice 5 did:** `layout/setupRedirect.ts` in the group middleware sends the setter's first open of any group page to the first unfinished step; `settingsKnown` (`me.ts`) needs a cached copy, so without storage the redirect and nudges stay quiet (slice 4's nudge-once-without-storage no longer shows).
+
+**Codex follow-ups (prd=onboarding-2, triaged):** B-1008 (a nudge toast outlives its group or a setup page opening), B-1009 (Back from a medication opened on the setup medications step goes to the Medications list), B-1010 (the redirect decides on defaults captured before `readSetupFacts`' await when settings arrive meanwhile: re-read `cachedSettings` in the known branch). Small; can ride with slice 6 if the planner agrees, else a fixes slice.
+
+**Wave 5 (last) green, landing (2026-11-28):** slice 6 merged as d3516f714; components run 46123644164 green on 099073b; `risa sync` then merged dev (186a2f9); run 46124345248 on it: flake (only `search.sync.browser.test.tsx`'s speed test, on the brake list, a file this wave doesn't touch). Codex clean on 186a2f9 (PR #320). Tier: components, not the proposed full (full only for `component-durations.json` key renames). Docs folded: the welcome in app-shell.md and timeline.md. B-670 ready; B-1008..1010 moved to `fixes-bug` (triaged, the user reviews). Last step: `risa rm onboarding-2` (and `onboarding-2-6`).
+
+**Overlap with shared-displays:** onboarding-2 edits none of `components/providers/ProviderForm`, `ProviderListItem`, `ProviderRowContact` again (a promise). Planning note: slice 2 touched 24 files and slice 3 55 (it moved the medication, period and profile form pieces into `components/` and `lib/` so no route imports another's folder).
+
+**Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work). B-1007 landed.
 
 ## Architectural decisions
 

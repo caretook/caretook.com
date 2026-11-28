@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { closeSync, installTestDatabase } from "./index";
 import { UploadFailedError, uploadQueued } from "./uploader";
 import { SET_ASIDE_SPAN_MS, tryCounter } from "./uploadTries";
+import { SYNC_WRITE_LIMIT } from "@caretook/data/domain";
 import { openTestDatabase, queuedWrites, syncDown } from "../../../test/database";
 import { flattenFixtures, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../test/fixtures";
 
@@ -19,6 +20,8 @@ import { flattenFixtures, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../.
 // acknowledged until it has failed often enough, then it is set aside.
 // Then a 400 for the whole request (test-health-2, B-374): the batch is sent
 // again one op per request, so one malformed op can't hold the queue.
+// Then whole writes (sync-safety-3, B-294): a batch ends at a whole write,
+// each op carries its write, and every rule above works per write.
 
 let db: SyncDb | null = null;
 
@@ -473,5 +476,270 @@ describe("uploadQueued: a request refused as a whole with a 400 (B-374)", () => 
     expect(sent).toHaveLength(1);
     expect(await queuedIds(d)).toEqual(NOTES.map((n) => n.id));
     expect(await recorded(d)).toEqual([]);
+  });
+});
+
+describe("uploadQueued: whole writes (B-294)", () => {
+  /** The `i`th note of write `w`. */
+  const noteId = (w: number, i: number) =>
+    `0b6f3c1e-5d1a-4c2e-9a77-${(w * 10_000 + i).toString(16).padStart(12, "0")}`;
+
+  /** Write `w`: `count` new notes in one local transaction (one save). */
+  const queueWrite = async (d: SyncDb, w: number, count: number, title = (i: number) => `Note ${i}`) => {
+    await d.powersync.writeTransaction(async (tx) => {
+      for (let i = 0; i < count; i++)
+        await tx.execute(
+          `INSERT INTO timeline_entry (id, group_id, recipient_id, kind, occurred_at, title)
+           VALUES (?, ?, ?, 'note', '2027-06-09T12:00:00.000000Z', ?)`,
+          [noteId(w, i), TEST_GROUP.id, TEST_RECIPIENT.id, title(i)],
+        );
+    });
+  };
+
+  type Op = UploadInput["ops"][number];
+
+  /** The request's writes as the server reads them: consecutive ops sharing `write`; none, its own. */
+  const writesIn = (ops: Op[]) => {
+    const writes: Op[][] = [];
+    for (const [i, op] of ops.entries()) {
+      const last = writes.at(-1);
+      if (last && op.write != null && op.write === ops[i - 1]?.write) last.push(op);
+      else writes.push([op]);
+    }
+    return writes;
+  };
+
+  /**
+   * A server that applies a write whole, as sync.upload does: `refuse(op)`
+   * names an op's refusal code (its write answers `sync:writeRefused`), and
+   * `fail(op)` a write it can't process (`failed` at its first op, then stop).
+   */
+  const writeServer = ({
+    refuse = () => null,
+    fail = () => false,
+  }: { refuse?: (op: Op) => string | null; fail?: (op: Op) => boolean } = {}) => {
+    const sent: UploadInput[] = [];
+    const call: UploadCall = (input) => {
+      sent.push(input);
+      const results: UploadResult[] = [];
+      for (const write of writesIn(input.ops)) {
+        if (write.some(fail)) {
+          results.push({ id: write[0]!.id, status: "failed", code: "sync:failed" });
+          break;
+        }
+        const refused = write.find((op) => refuse(op));
+        for (const op of write)
+          results.push(
+            !refused
+              ? { id: op.id, status: "applied" }
+              : op === refused
+                ? { id: op.id, status: "rejected", code: refuse(op)! }
+                : { id: op.id, status: "rejected", code: "sync:writeRefused", refusedId: refused.id },
+          );
+      }
+      return Promise.resolve({ results });
+    };
+    return { call, sent };
+  };
+
+  const recordedWrites = (d: SyncDb) =>
+    d.powersync.getAll<{
+      row_id: string;
+      code: string;
+      outcome: string;
+      line_key: string;
+      write_id: number | null;
+    }>("SELECT row_id, code, outcome, line_key, write_id FROM unsaved_change ORDER BY row_id");
+
+  const queuedIds = async (d: SyncDb) => (await queuedWrites(d)).map((w) => w.id);
+
+  /** The write every op of a request carries; fails when they differ or one has none. */
+  const oneWrite = (input: UploadInput | undefined) => {
+    const writes = new Set(input?.ops.map((op) => op.write));
+    expect(writes.size).toBe(1);
+    const [write] = writes;
+    expect(write).toEqual(expect.any(Number));
+    return write!;
+  };
+
+  test("a 60-op write then a 60-op write go as two requests, each whole, every op with its write", async () => {
+    const d = await open();
+    await queueWrite(d, 1, 60);
+    await queueWrite(d, 2, 60);
+    const { call, sent } = writeServer();
+    await uploadQueued(d.powersync, call);
+    expect(await queuedWrites(d)).toHaveLength(60);
+    await uploadQueued(d.powersync, call);
+
+    expect(sent.map((input) => input.ops.map((op) => op.id))).toEqual([
+      Array.from({ length: 60 }, (_, i) => noteId(1, i)),
+      Array.from({ length: 60 }, (_, i) => noteId(2, i)),
+    ]);
+    expect(oneWrite(sent[0])).not.toBe(oneWrite(sent[1]));
+    expect(await queuedWrites(d)).toEqual([]);
+  });
+
+  test("a refused write records every op with its write id on one line, and acknowledges the batch", async () => {
+    const d = await open();
+    await queueWrite(d, 1, 3);
+    await queueWrite(d, 2, 1);
+    const { call, sent } = writeServer({
+      refuse: (op) => (op.id === noteId(1, 1) ? "permissions:unauthorized" : null),
+    });
+    await uploadQueued(d.powersync, call);
+
+    expect(sent).toHaveLength(1);
+    const write = sent[0]!.ops[0]!.write;
+    expect(write).toEqual(expect.any(Number));
+    expect(await queuedWrites(d)).toEqual([]);
+    expect(await recordedWrites(d)).toEqual([
+      {
+        row_id: noteId(1, 0),
+        code: "sync:writeRefused",
+        outcome: "refused",
+        line_key: `write:${write}`,
+        write_id: write,
+      },
+      {
+        row_id: noteId(1, 1),
+        code: "permissions:unauthorized",
+        outcome: "refused",
+        line_key: `write:${write}`,
+        write_id: write,
+      },
+      {
+        row_id: noteId(1, 2),
+        code: "sync:writeRefused",
+        outcome: "refused",
+        line_key: `write:${write}`,
+        write_id: write,
+      },
+    ]);
+  });
+
+  test("a failed write acknowledges what came before it, counts one try, then is set aside whole", async () => {
+    const d = await open();
+    await queueWrite(d, 1, 1);
+    await queueWrite(d, 2, 3);
+    await queueWrite(d, 3, 1);
+    const { call, sent } = writeServer({ fail: (op) => op.id === noteId(2, 2) });
+    let value: string | null = null;
+    const tries = tryCounter({ read: () => value, write: (v) => void (value = v) });
+    let clock = Date.UTC(2027, 5, 9, 12);
+    const now = () => clock;
+
+    await expect(uploadQueued(d.powersync, call, { tries, now })).rejects.toBeInstanceOf(UploadFailedError);
+    const failing = [0, 1, 2].map((i) => noteId(2, i));
+    expect(await queuedIds(d)).toEqual([...failing, noteId(3, 0)]);
+    // One try, on the write's first entry.
+    const record = JSON.parse(value ?? "null") as { count: number; key: string } | null;
+    expect(record?.count).toBe(1);
+    expect(record?.key).toContain(failing[0]);
+    expect(await recordedWrites(d)).toEqual([]);
+
+    for (let i = 0; i < 4; i++) {
+      clock += SET_ASIDE_SPAN_MS / 2;
+      if (i < 3)
+        await expect(uploadQueued(d.powersync, call, { tries, now })).rejects.toBeInstanceOf(
+          UploadFailedError,
+        );
+      else await uploadQueued(d.powersync, call, { tries, now });
+    }
+    // The fifth try set the whole write aside; the next write waits for the next upload.
+    expect(await queuedIds(d)).toEqual([noteId(3, 0)]);
+    const write = sent.at(-1)!.ops[0]!.write;
+    expect(await recordedWrites(d)).toEqual(
+      failing.map((id) => ({
+        row_id: id,
+        code: "sync:failed",
+        outcome: "set_aside",
+        line_key: `write:${write}`,
+        write_id: write,
+      })),
+    );
+    expect(value).toBeNull();
+  });
+
+  test("a 400 for the whole request resends write by write; a write refused alone is recorded whole", async () => {
+    const d = await open();
+    const MALFORMED = "x".repeat(600);
+    await queueWrite(d, 1, 2);
+    await queueWrite(d, 2, 2, (i) => (i === 1 ? MALFORMED : `Note ${i}`));
+    await queueWrite(d, 3, 1);
+    const sent: UploadInput[] = [];
+    const applied: string[] = [];
+    // An input schema that refuses a request holding a malformed op with a 400, as oRPC does.
+    const call: UploadCall = (input) => {
+      sent.push(input);
+      const malformed = input.ops.findIndex((op) => op.data?.title === MALFORMED);
+      if (malformed >= 0)
+        return Promise.reject(
+          new ORPCError("BAD_REQUEST", {
+            message: "Input validation failed",
+            data: { issues: [{ path: ["ops", malformed, "data", "title"], message: "Too long" }] },
+          }),
+        );
+      applied.push(...input.ops.map((op) => op.id));
+      return Promise.resolve({ results: input.ops.map((op) => ({ id: op.id, status: "applied" as const })) });
+    };
+    await uploadQueued(d.powersync, call);
+
+    expect(sent.map((input) => input.ops.map((op) => op.id))).toEqual([
+      [noteId(1, 0), noteId(1, 1), noteId(2, 0), noteId(2, 1), noteId(3, 0)],
+      [noteId(1, 0), noteId(1, 1)],
+      [noteId(2, 0), noteId(2, 1)],
+      [noteId(3, 0)],
+    ]);
+    oneWrite(sent[2]);
+    expect(applied).toEqual([noteId(1, 0), noteId(1, 1), noteId(3, 0)]);
+    expect(await queuedWrites(d)).toEqual([]);
+    const write = sent[2]!.ops[0]!.write;
+    expect(await recordedWrites(d)).toEqual([
+      {
+        row_id: noteId(2, 0),
+        code: "sync:writeRefused",
+        outcome: "refused",
+        line_key: `write:${write}`,
+        write_id: write,
+      },
+      {
+        row_id: noteId(2, 1),
+        code: "sync:invalid",
+        outcome: "refused",
+        line_key: `write:${write}`,
+        write_id: write,
+      },
+    ]);
+    const issues = await d.powersync.get<{ issues: string }>(
+      "SELECT issues FROM unsaved_change WHERE row_id = ?",
+      [noteId(2, 1)],
+    );
+    expect(JSON.parse(issues.issues)).toEqual([{ path: "data.title", message: "Too long" }]);
+  });
+
+  test("a write over the limit is sent with no write id, a batch at a time", async () => {
+    const d = await open();
+    await queueWrite(d, 1, SYNC_WRITE_LIMIT + 1);
+    const { call, sent } = writeServer();
+    await uploadQueued(d.powersync, call);
+
+    expect(sent).toHaveLength(1);
+    const ops = sent[0]?.ops ?? [];
+    expect(ops.map((op) => op.id)).toEqual(Array.from({ length: 100 }, (_, i) => noteId(1, i)));
+    expect(ops.every((op) => op.write === undefined)).toBe(true);
+    expect(await queuedWrites(d)).toHaveLength(SYNC_WRITE_LIMIT + 1 - 100);
+  });
+
+  test("a write over the batch but within the limit goes whole in one request", async () => {
+    const d = await open();
+    await queueWrite(d, 1, 1);
+    await queueWrite(d, 2, 250);
+    const { call, sent } = writeServer();
+    await uploadQueued(d.powersync, call);
+    await uploadQueued(d.powersync, call);
+
+    expect(sent.map((input) => input.ops.length)).toEqual([1, 250]);
+    oneWrite(sent[1]);
+    expect(await queuedWrites(d)).toEqual([]);
   });
 });

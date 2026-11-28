@@ -2,12 +2,12 @@ import type {
   AssistantAction,
   ConditionAction,
   DoseDetails,
+  DoseRecord,
   DoseSlot,
   DueDose,
   DueMedication,
   EntryEditAction,
-  NoteMention,
-  NoteSectionLine,
+  SheetDoseOutcome,
   TimelineEntryCreateInput,
   TimelineEntryUpdateInput,
   Tx,
@@ -18,29 +18,25 @@ import type { ServiceContext } from "./types";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import {
-  appendNoteSection,
   assistantActionZSchema,
   BAD_TODO_LINK_ISSUES,
   conditionActionZSchema,
   canHaveNoteDocument,
   entryEditActionZSchema,
-  DEVICE_FUTURE_SKEW_MS,
+  doseRecord,
   doseSlotIdFor,
   dueDoses,
   duePasses,
-  encodeNoteDoc,
   FALLBACK_TIME_ZONE,
-  FUTURE_DATE_MESSAGE,
   givenAllWrites,
   isDoseDetails,
   isSymptomDetails,
-  isTooFarAhead,
-  noteDocFromText,
-  addDays,
-  dayInZone,
-  startOfDay,
+  normalizeSchedule,
+  passRoundId,
+  SHEET_DOSE_MARKS_MAX,
+  sheetDoseMarkZSchema,
+  sheetDoseOutcomes,
   timelineEntryContentZSchema,
-  toBase64,
 } from "../db/schema";
 import { SYSTEM_USER, isWriterRole } from "../constants";
 import { isError, newError } from "../errors";
@@ -61,6 +57,15 @@ import * as recipientConditionService from "./recipientConditionService";
 import * as symptomTypeService from "./symptomTypeService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
+import { appendNoteSection, encodeNoteDoc, noteDocFromText, toBase64 } from "../domain/live-notes/noteYjs";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  isTooFarAhead,
+  addDays,
+} from "../domain/core/entryTiming";
+import { dayInZone, startOfDay } from "../domain/core/zonedDay";
+import type { NoteMention, NoteSectionLine } from "../domain/live-notes/noteYjs";
 
 // Carrying out assistant actions on the server (connectors PRD): the twin of
 // the device's `runActions` (lib/assistant/quickEntry.sync.ts), for a
@@ -85,8 +90,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // and `resolveCondition` go through `recipientConditionService` (its rules,
 // refusals and condition change entries; the change entry carries `via`).
 // Another group's condition id reads as not found.
-
-export const serviceName = "assistantAction";
 
 export type RunOptions = {
   /** The assistant the batch came through ("Claude"): stored on every entry and todo. */
@@ -260,8 +263,9 @@ const passDoses = async (
   if (!pass || pass.groupId !== groupId) return newError({ code: "assistantActionService:passGone" });
 
   const [medications, passes] = await Promise.all([
-    medicationModel.list({ ...ctx, tx, filter, paginate: { page: 1, limit: 500 } }),
-    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true, paginate: { page: 1, limit: 100 } }),
+    // Every row: a page stops at 100 (B-986).
+    medicationModel.list({ ...ctx, tx, filter }),
+    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true }),
   ]);
   if (isError(medications)) return medications;
   if (isError(passes)) return passes;
@@ -389,12 +393,12 @@ const scheduledDose = async (
   if (medication.schedule.type !== "scheduled") return null;
   const when = new Date(action.occurredAt);
   const filter = { groupId: { type: "eq" as const, value: groupId } };
+  // Every row: a page stops at 100, deleted passes counted (B-987).
   const passes = await medicationPassModel.list({
     ...ctx,
     tx,
     filter,
     includeDeleted: true,
-    paginate: { page: 1, limit: 100 },
   });
   if (isError(passes)) return passes;
   const today = dayInZone(when, timeZone);
@@ -648,10 +652,11 @@ const planAction = async (
   if (refused) return refused;
 
   // A symptom named like a catalog row (any case or spacing) takes its
-  // spelling; a new name is added as it is when the entry is written
-  // (`timelineEntryService`), with no similar-name question: nobody is there to answer it.
+  // spelling, and a deleted one its replacement's (symptom-catalog-3); a new
+  // name is added as it is when the entry is written (`timelineEntryService`),
+  // with no similar-name question: nobody is there to answer it.
   if (content.data.kind === "symptom" && isSymptomDetails(content.data.details)) {
-    const type = await symptomTypeService.getByName({ ...ctx, tx }, groupId, content.data.details.name);
+    const type = await symptomTypeService.getResolved({ ...ctx, tx }, groupId, content.data.details.name);
     if (isError(type)) return type;
     if (type) content.data.details = { ...content.data.details, name: type.name };
   }
@@ -739,6 +744,37 @@ const writeEntry = async (ctx: ServiceContext, plan: EntryPlan, via: string) => 
 };
 
 /**
+ * A batch's opening, `run`'s and `logPastDoses`'s: the member must be a
+ * writer in the group, and the group must have a recipient (its zone dates
+ * every entry). A refusal names the whole batch (`meta.index` null).
+ */
+const openBatch = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  now: Date,
+): Promise<Setting | AppError> => {
+  if (!ctx.authUser) return at(rejectError(ctx.authUser), null);
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  if (isError(role)) return role;
+  if (!isWriterRole(role)) return at(rejectError(ctx.authUser), null);
+  const recipient = await careRecipientModel.get({
+    ...ctx,
+    tx,
+    filter: { groupId: { type: "eq", value: groupId } },
+  });
+  if (isError(recipient)) return recipient;
+  if (!recipient) return at(newError({ code: "timelineEntryService:noRecipient" }), null);
+  return {
+    groupId,
+    recipientId: recipient.id,
+    timeZone: recipient.timeZone || FALLBACK_TIME_ZONE,
+    now,
+    usedDoseIds: new Set(),
+  };
+};
+
+/**
  * Carry out `actions` in the group as the member in `ctx`, in order, in one
  * transaction, each entry and todo carrying `via`. Returns the ids written,
  * or the first refusal (an AppError whose `meta.index` is the action
@@ -754,25 +790,9 @@ export const run = (
 ): Promise<RunResult | AppError> =>
   withTransaction(async (tx): Promise<RunResult | AppError> => {
     const inTx = { ...ctx, tx };
-    if (!ctx.authUser) return at(rejectError(ctx.authUser), null);
-    const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
-    if (isError(role)) return role;
-    if (!isWriterRole(role)) return at(rejectError(ctx.authUser), null);
-    const recipient = await careRecipientModel.get({
-      ...inTx,
-      filter: { groupId: { type: "eq", value: groupId } },
-    });
-    if (isError(recipient)) return recipient;
-    if (!recipient) return at(newError({ code: "timelineEntryService:noRecipient" }), null);
+    const setting = await openBatch(ctx, tx, groupId, now);
+    if (isError(setting)) return setting;
     if (!actions.length) return { ids: [], byAction: [], alreadyLogged: [] };
-
-    const setting: Setting = {
-      groupId,
-      recipientId: recipient.id,
-      timeZone: recipient.timeZone || FALLBACK_TIME_ZONE,
-      now,
-      usedDoseIds: new Set(),
-    };
     const plans: Plan[] = [];
     for (const [index, input] of actions.entries()) {
       const planned = await planAction(inTx, tx, setting, input);
@@ -830,3 +850,214 @@ export const run = (
     }
     return { ids: byAction.flat(), byAction, alreadyLogged };
   }, ctx);
+
+// ---------------------------------------------------------------------------
+// A dose sheet at once (connectors-3, `log_past_doses`)
+// ---------------------------------------------------------------------------
+
+/** How many days back a sheet's marks reach, today included. */
+const SHEET_REACH_DAYS = 14;
+
+export type PastDoseResult = {
+  outcome: SheetDoseOutcome["outcome"];
+  /** The dose written (`add`), or the one there (`alreadyLogged`, `conflict`). */
+  entryId?: string;
+  /** A conflict's recorded dose: its answer and who logged it (a user id). */
+  recorded?: { status: DoseDetails["status"]; loggedBy: string | null };
+  /** The slot's pass when the mark found a slot (null: a medication's own time). */
+  passId?: string | null;
+};
+
+export type LogPastDosesResult = { results: PastDoseResult[] };
+
+const sheetMarksZSchema = z.array(sheetDoseMarkZSchema).min(1).max(SHEET_DOSE_MARKS_MAX);
+
+/** Whole days from `a` to `b`, both "YYYY-MM-DD". */
+const daysFrom = (a: string, b: string) =>
+  Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+
+/**
+ * Log a paper dose sheet's marks in the group as the member in `ctx`, in one
+ * transaction: each open scheduled slot a mark names is written as a dose at
+ * the slot's moment, with its amount, its pass and time, its round
+ * (`passLogId`: one the pass's day already has, else `passRoundId`) and the
+ * mark's note, carrying `via`; every other mark is reported, never written
+ * (`sheetDoseOutcomes`: already logged, a conflict, no slot, not yet, too
+ * old, repeated). The slots come from the dose record (`doseRecord`, the
+ * due-dose core), the same `past_doses` reads. Each slot (any answer), then
+ * its id (`doseSlotIdFor`, as `log_dose` gives it), is locked in sorted order
+ * before the doses are read, so two simultaneous sheets add each slot once. A
+ * malformed batch, a viewer or a group without a recipient writes nothing.
+ */
+export const logPastDoses = (
+  ctx: ServiceContext,
+  groupId: string,
+  marks: unknown,
+  { via, now = new Date() }: RunOptions,
+): Promise<LogPastDosesResult | AppError> =>
+  withTransaction(async (tx): Promise<LogPastDosesResult | AppError> => {
+    const inTx = { ...ctx, tx };
+    const setting = await openBatch(ctx, tx, groupId, now);
+    if (isError(setting)) return setting;
+    const parsed = sheetMarksZSchema.safeParse(marks);
+    if (!parsed.success) return at(invalid(issuesOf(parsed.error)), null);
+    const sheet = parsed.data;
+    const { timeZone, recipientId } = setting;
+    const today = dayInZone(now, timeZone);
+    const earliestDay = addDays(today, -(SHEET_REACH_DAYS - 1));
+
+    // The record covers the marks' days within the reach (through today).
+    const days = sheet
+      .map((m) => m.day)
+      .filter((d) => d >= earliestDay && d <= today)
+      .sort();
+    const from = days[0];
+    const last = days.at(-1);
+    let record: DoseRecord = { days: [] };
+    const slotIdOf = (slot: DoseSlot, status: DoseDetails["status"], passTime: string | undefined) =>
+      doseSlotIdFor(
+        {
+          medicationId: slot.medication.id,
+          status,
+          occurredAt: slot.at,
+          passId: slot.passId,
+          scheduledFor: slot.time,
+        },
+        { timeZone, passTime },
+      );
+    let passTimeOf = (_passId: string | null): string | undefined => undefined;
+
+    if (from && last) {
+      const filter = { groupId: { type: "eq" as const, value: groupId } };
+      const [medications, passes] = await Promise.all([
+        // Every row: a page stops at 100 (B-986).
+        medicationModel.list({ ...inTx, filter }),
+        medicationPassModel.list({ ...inTx, filter, includeDeleted: true }),
+      ]);
+      if (isError(medications)) return medications;
+      if (isError(passes)) return passes;
+      const changes = await timelineEntryService.scheduleChanges(inTx, {
+        groupId,
+        from: startOfDay(addDays(from, -2), timeZone).toISOString(),
+      });
+      if (isError(changes)) return changes;
+      const live = new Map(passes.data.filter((p) => !p.deletedAt).map((p) => [p.id, p.time]));
+      passTimeOf = (passId) => (passId ? live.get(passId) : undefined);
+      const recordOf = (doses: readonly DueDose[]) =>
+        doseRecord({
+          medications: medications.data.flatMap((m): DueMedication[] => {
+            const schedule = normalizeSchedule(m.schedule);
+            return schedule ? [{ ...m, schedule, createdAt: m.createdAt ? toIso(m.createdAt) : null }] : [];
+          }),
+          passes: passes.data,
+          doses,
+          changes,
+          from,
+          days: daysFrom(from, last) + 1,
+          now,
+          timeZone,
+        });
+
+      // The slots the sheet would add, from the schedule alone; locked before the doses are read:
+      // each slot whatever its answer (another sheet's refused for it waits), then each id (an upload of it waits).
+      const planned = sheetDoseOutcomes({ record: recordOf([]), marks: sheet, now, earliestDay });
+      const slotKeys = new Set<string>();
+      const ids = new Set<string>();
+      planned.forEach((o, i) => {
+        if (o.outcome !== "add") return;
+        slotKeys.add(`${o.slot.medication.id}:${o.slot.day}:${o.slot.passId ?? o.slot.time}`);
+        const id = slotIdOf(o.slot, sheet[i]!.status, passTimeOf(o.slot.passId));
+        if (id) ids.add(id);
+      });
+      for (const key of [...slotKeys].sort()) {
+        const locked = await timelineEntryModel.lockDoseSlot(key, tx);
+        if (isError(locked)) return locked;
+      }
+      for (const id of [...ids].sort()) {
+        const locked = await timelineEntryModel.lockId(id, tx);
+        if (isError(locked)) return locked;
+      }
+
+      const doses = await dosesSince(ctx, tx, groupId, startOfDay(addDays(from, -1), timeZone).toISOString());
+      if (isError(doses)) return doses;
+      record = recordOf(doses);
+    }
+
+    const outcomes = sheetDoseOutcomes({ record, marks: sheet, now, earliestDay });
+    /** Each pass's round on a day: one a dose there already has, else the one its key and day derive. */
+    const rounds = new Map<string, string>();
+    const roundOf = (slot: DoseSlot & { passId: string }) => {
+      const key = `${slot.passId}|${slot.day}`;
+      const known = rounds.get(key);
+      if (known) return known;
+      const started = record.days
+        .find((d) => d.day === slot.day)
+        ?.rounds.find((r) => r.passId === slot.passId)
+        ?.slots.map((s) => s.dose?.details.passLogId)
+        .find((id) => !!id);
+      const round = started ?? passRoundId(`pass:${slot.passId}`, slot.day);
+      rounds.set(key, round);
+      return round;
+    };
+
+    const results: PastDoseResult[] = [];
+    for (const [i, outcome] of outcomes.entries()) {
+      const mark = sheet[i]!;
+      if (!("slot" in outcome)) {
+        results.push({ outcome: outcome.outcome });
+        continue;
+      }
+      const { slot } = outcome;
+      if (outcome.outcome === "alreadyLogged" || outcome.outcome === "conflict") {
+        results.push({
+          outcome: outcome.outcome,
+          entryId: outcome.dose.id,
+          passId: slot.passId,
+          ...(outcome.outcome === "conflict" && {
+            recorded: { status: outcome.dose.details.status, loggedBy: outcome.dose.createdBy ?? null },
+          }),
+        });
+        continue;
+      }
+      if (outcome.outcome !== "add") {
+        results.push({ outcome: outcome.outcome, passId: slot.passId });
+        continue;
+      }
+      const id = await sheetDoseId(tx, setting, slotIdOf(slot, mark.status, passTimeOf(slot.passId)));
+      if (isError(id)) return id;
+      const details: DoseDetails = {
+        medicationId: slot.medication.id,
+        status: mark.status,
+        ...(slot.amount && { amount: slot.amount }),
+        scheduledFor: slot.time,
+        ...(slot.passId && { passId: slot.passId, passLogId: roundOf({ ...slot, passId: slot.passId }) }),
+        ...(mark.note && { note: mark.note }),
+      };
+      const written = await writeEntry(
+        inTx,
+        {
+          type: "entry",
+          input: { id, groupId, recipientId, kind: "dose", occurredAt: slot.at, timeZone, details },
+          providerIds: [],
+        },
+        via,
+      );
+      if (isError(written)) return at(written, i);
+      results.push({ outcome: "add", entryId: written, passId: slot.passId });
+    }
+    return { results };
+  }, ctx);
+
+/**
+ * The id a sheet's dose takes: its slot's, locked above, unless a row has it
+ * (live or deleted: a dose logged again after an Undo is a new row) or this
+ * batch used it; then a random one.
+ */
+const sheetDoseId = async (tx: Tx, { usedDoseIds }: Setting, slotId: string | null) => {
+  if (!slotId || usedDoseIds.has(slotId)) return crypto.randomUUID();
+  const taken = await timelineEntryModel.getById(slotId, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  if (isError(taken)) return taken;
+  if (taken) return crypto.randomUUID();
+  usedDoseIds.add(slotId);
+  return slotId;
+};

@@ -10,16 +10,7 @@ import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
-  canCompleteTodo,
-  canHaveSubtask,
-  completionOnly,
-  isTodoCompleter,
-  isTodoWriter,
-  localDate,
-  MAX_TODO_DEPTH,
   REPEAT_WITH_SUBTASKS_ISSUE,
-  repeatColumnsFor,
-  rollupOf,
   TODO_LIMITS,
   todoContentOf,
   todoContentZSchema,
@@ -47,6 +38,15 @@ import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { linkIn, unlinkIn } from "./entryTodoService";
 import { copyLinks } from "./recordTagService";
+import {
+  canCompleteTodo,
+  completionOnly,
+  isTodoCompleter,
+  isTodoWriter,
+  repeatColumnsFor,
+} from "../domain/todos/todoRules";
+import { canHaveSubtask, clampDue, inheritedDue, MAX_TODO_DEPTH, rollupOf } from "../domain/todos/todoTree";
+import { localDate } from "../domain/core/entryTiming";
 
 // Todos: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,
@@ -54,7 +54,6 @@ import { copyLinks } from "./recordTagService";
 // them (the permissions map lets every member update; this narrows it).
 // State and order are derived, never stored: todoRules.ts.
 
-export const serviceName = "todo";
 export const schemaName = todoModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>
@@ -199,22 +198,69 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
     ? await todoModel.restore(id, content, tx)
     : await todoModel.create({ ...system(tx), data: next });
   if (isError(written)) return written;
+  // Made after `todo`, even in the transaction that made `todo` (`laterInChain`).
+  const stamped = await todoModel.stampMadeAfter(id, todo.id, tx);
+  if (stamped) return stamped;
   // Its tags come along (tags PRD), with the ids the device's twin writes.
   const tagged = await copyLinks(tx, "todo", todo.id, id);
   if (tagged) return tagged;
   return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? next.id;
 };
 
-/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+/**
+ * What ticking `todo` made (its successor): the live row of its chain, other
+ * than it, made at or after its `done_at` and after `todo` itself, the
+ * earliest first (then id), whatever its due day now, so one moved to the
+ * same day or earlier is still found (B-383). After `todo`: an offline tick's
+ * `done_at` is the device's, earlier than the rows the upload makes, so it
+ * alone would let an earlier occurrence made at upload pass; `created_at`s
+ * are all this clock's, and a successor is made after its predecessor. As
+ * the device's `laterInChain` in `reopenTodo`. Relies on `complete` clamping
+ * `done_at` to at most the transaction's now (`tickTime`), and on a restored
+ * next being made again (`todoModel.restore`).
+ *
+ * None found, the rule before B-383: the next row made after `todo` by due
+ * day (then id). A tick from before B-383 took `done_at` from the app clock
+ * after the transaction's now, so its successor can look made a few ms
+ * before it (B-1002). For a chain ticked since, a row this misses was made
+ * before the tick, and the chain has only `todo`'s predecessors (made before
+ * it, so passed over here) and what its tick and later ones made (made after
+ * `done_at`, found above): a chain keeps one open row, so no other is made
+ * while `todo` is open.
+ */
 const laterInChain = async (tx: Tx, todo: Todo) => {
-  if (!todo.repeatId || !todo.dueOn) return null;
-  const rows = await todoModel.list({
+  if (!todo.repeatId || !todo.doneAt) return null;
+  const chain = {
+    groupId: { type: "eq", value: todo.groupId },
+    repeatId: { type: "eq", value: todo.repeatId },
+    id: { type: "ne", value: todo.id },
+  } as const;
+  const made = await todoModel.list({
     ...system(tx),
     filter: {
-      groupId: { type: "eq", value: todo.groupId },
-      repeatId: { type: "eq", value: todo.repeatId },
-      id: { type: "ne", value: todo.id },
+      ...chain,
+      createdAt: {
+        type: "and",
+        value: [
+          { type: "gte", value: todo.doneAt },
+          { type: "gt", value: todo.createdAt },
+        ],
+      },
+    },
+    orderBy: [
+      { field: "createdAt", direction: "asc" },
+      { field: "id", direction: "asc" },
+    ],
+    paginate: { limit: 1, page: 1 },
+  });
+  if (isError(made)) return made;
+  if (made.data[0] || !todo.dueOn) return made.data[0] ?? null;
+  const byDay = await todoModel.list({
+    ...system(tx),
+    filter: {
+      ...chain,
       dueOn: { type: "gt", value: todo.dueOn },
+      createdAt: { type: "gt", value: todo.createdAt },
     },
     orderBy: [
       { field: "dueOn", direction: "asc" },
@@ -222,8 +268,8 @@ const laterInChain = async (tx: Tx, todo: Todo) => {
     ],
     paginate: { limit: 1, page: 1 },
   });
-  if (isError(rows)) return rows;
-  return rows.data[0] ?? null;
+  if (isError(byDay)) return byDay;
+  return byDay.data[0] ?? null;
 };
 
 const hasNotes = async (tx: Tx, todoId: string) => {
@@ -308,6 +354,38 @@ const checkRepeatInTree = async (tx: Tx, todo: Todo) => {
   return hasSubtasks ? repeatWithSubtasks() : null;
 };
 
+/** A subtask's parent, live, read as the system (its due caps the subtask's); null for a top-level todo. */
+const liveParentOf = async (tx: Tx, parentId: string | null) =>
+  parentId ? todoModel.getById(parentId, system(tx)) : null;
+
+/**
+ * A todo's due day just changed (todo-subtasks-3): its open live
+ * descendants, all levels, are clamped (`clampDue`), each under its own
+ * parent's due as clamped here. Each goes through `write`, so each queues
+ * its calendar push. Done ones are left as they are.
+ */
+const clampDescendants = async (ctx: ServiceContext, tx: Tx, todo: Todo) => {
+  const dueOf = new Map([[todo.id, { dueOn: todo.dueOn, dueTime: todo.dueTime }]]);
+  let level = [todo.id];
+  for (let depth = 1; level.length && depth < MAX_TODO_DEPTH + 1; depth++) {
+    const rows = await todoModel.list({
+      ...system(tx),
+      filter: { groupId: { type: "eq", value: todo.groupId }, parentId: { type: "inArray", value: level } },
+    });
+    if (isError(rows)) return rows;
+    for (const child of rows.data) {
+      const own = { dueOn: child.dueOn, dueTime: child.dueTime };
+      const due = child.doneAt ? own : clampDue(own, child.parentId ? dueOf.get(child.parentId) : null);
+      dueOf.set(child.id, due);
+      if (due.dueOn === own.dueOn && due.dueTime === own.dueTime) continue;
+      const written = await write(ctx, tx, child.id, due);
+      if (isError(written)) return written;
+    }
+    level = rows.data.map((r) => r.id);
+  }
+  return null;
+};
+
 const openSubtasks = () => newError({ code: "todoService:openSubtasks" });
 
 /** Whether the todo has a live subtask still open: then only its subtasks tick it. */
@@ -385,11 +463,26 @@ export const rollUp = async (tx: Tx, parentId: string | null, actorId: string, a
 
 const actorIdOf = (ctx: ServiceContext) => ctx.authUser?.id ?? SYSTEM_USER.id;
 
-/** When a tick happened: a device's time (offline), else now, and never in the future. */
-const tickTime = (doneAt?: string | null) => {
-  const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
+/** When a tick happened: a device's time (offline), else `now`, and never after `now`. */
+const tickTime = (doneAt?: string | null, now: Date = new Date()) => {
+  const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : now;
   // A device clock ahead of the server's.
-  return at.getTime() > Date.now() ? new Date() : at;
+  return at.getTime() > now.getTime() ? now : at;
+};
+
+/**
+ * Lock the todo (`todoModel.lockById`) and return the locked row when the
+ * actor can see it, else null; a deleted one only with `includeDeleted`.
+ * The tick, reopen, skip, Undo and restore take it first and decide from
+ * it, so two at once on one todo run one after the other (B-384).
+ */
+const lockVisible = async (ctx: ServiceContext, tx: Tx, id: string, opts: IncludeDeleted = {}) => {
+  const locked = await todoModel.lockById(id, tx);
+  if (isError(locked) || !locked) return locked;
+  const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+  if (isError(visible)) return visible;
+  if (!visible || (locked.deletedAt && !opts.includeDeleted)) return null;
+  return locked;
 };
 
 /**
@@ -505,6 +598,10 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
     const parent = await checkParent(ctx, tx, data.groupId, data.parentId);
     if (parent) return parent;
     if (data.parentId && data.repeatRule) return repeatWithSubtasks();
+    // A subtask with no due takes its parent's; any due is never after the parent's day (clamped).
+    const parentRow = await liveParentOf(tx, data.parentId);
+    if (isError(parentRow)) return parentRow;
+    const due = parentRow ? clampDue(data.dueOn ? data : inheritedDue(parentRow), parentRow) : null;
 
     const id = data.id ?? randomUUID();
     const created = await todoModel.create({
@@ -512,6 +609,7 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
       tx,
       data: {
         ...data,
+        ...(due ? { dueOn: due.dueOn, dueTime: due.dueTime } : {}),
         id,
         recipientId: recipient.id,
         ...repeatColumnsFor(id, null, data),
@@ -573,12 +671,25 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
       if (tree) return tree;
     }
 
-    const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
+    const { doneAt: _doneAt, doneBy: _doneBy, ...edited } = merged.data;
+    // A writer's edit keeps a subtask's due on or before its parent's day (clamped,
+    // never refused). Not a completer's: theirs changes no due (`completionOnly`).
+    const writer = isTodoWriter(role);
+    const parent = writer ? await liveParentOf(tx, existing.parentId) : null;
+    if (isError(parent)) return parent;
+    const content = parent ? { ...edited, ...clampDue(edited, parent) } : edited;
     // An old client's changed event moves its link row (the mirror).
     const mirrored = await mirrorEvent(ctx, tx, existing, existing.eventId, content.eventId);
     if (mirrored) return mirrored;
     // A new rule or due day moves the anchor; no rule clears all three.
-    return write(ctx, tx, id, { ...content, ...repeatColumnsFor(id, existing, content) });
+    const written = await write(ctx, tx, id, { ...content, ...repeatColumnsFor(id, existing, content) });
+    if (isError(written) || !written) return written;
+    // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
+    if (writer && content.dueOn && content.dueOn !== existing.dueOn) {
+      const clamped = await clampDescendants(ctx, tx, written);
+      if (clamped) return clamped;
+    }
+    return written;
   }, ctx);
 
 /**
@@ -589,7 +700,7 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
  */
 export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?: string | null } = {}) =>
   withTransaction(async (tx) => {
-    const existing = await todoModel.getById(id, { ...ctx, tx });
+    const existing = await lockVisible(ctx, tx, id);
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
@@ -603,7 +714,13 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     if (isError(open)) return open;
     if (open) return openSubtasks();
 
-    const when = tickTime(doneAt);
+    const now = await todoModel.transactionNow(tx);
+    if (isError(now)) return now;
+    // Never after the transaction's now, which the next occurrence's
+    // `created_at` is: `reopen` finds the successor as the row made at or
+    // after `done_at` (`laterInChain`), so this clamp keeps that true. (On
+    // the device, both times come from its clock.)
+    const when = tickTime(doneAt, now);
     const done = await write(ctx, tx, id, { doneAt: when.toISOString(), doneBy: actorIdOf(ctx) });
     if (isError(done)) return done;
     if (existing.parentId) {
@@ -623,7 +740,7 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
 /** Reopen a done todo: clears who finished it and when. The same people as `complete`. */
 export const reopen = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const existing = await todoModel.getById(id, { ...ctx, tx });
+    const existing = await lockVisible(ctx, tx, id);
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
@@ -693,7 +810,7 @@ const openBeforeInChain = async (tx: Tx, next: Todo) => {
  */
 export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const next = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    const next = await lockVisible(ctx, tx, id, { includeDeleted: true });
     if (isError(next)) return next;
     if (!next) return notFound();
 
@@ -728,7 +845,7 @@ export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
  */
 export const skip = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const existing = await todoModel.getById(id, { ...ctx, tx });
+    const existing = await lockVisible(ctx, tx, id);
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
@@ -753,12 +870,19 @@ export const skip = (ctx: ServiceContext, id: string) =>
  * null): its tick or skip remade one an Undo had taken away. A tick's is
  * already back (`complete` restores it); a skip's comes back here when the
  * chain has no other open todo, for writers. A stale one changes nothing,
- * and a todo that isn't a later occurrence is never undeleted. Returns the
- * row as it now is.
+ * and a todo that isn't a later occurrence is never undeleted. A tick's
+ * (`fromTick`, the upload's `TICK_NEXT_METADATA`) never restores: with no
+ * open row the chain was stopped since that tick, so it stays stopped and
+ * null says nothing was written, for any role (B-1003). Returns the row as
+ * it now is, or null.
  */
-export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
+export const restoreOccurrence = (
+  ctx: ServiceContext,
+  id: string,
+  { fromTick = false }: { fromTick?: boolean } = {},
+) =>
   withTransaction(async (tx) => {
-    const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    const visible = await lockVisible(ctx, tx, id, { includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return notFound();
     if (!visible.deletedAt || !visible.repeatId || visible.repeatId === id) return visible;
@@ -773,12 +897,14 @@ export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
     });
     if (isError(open)) return open;
     if (open) return visible;
+    if (fromTick) return null;
 
     const role = await roleIn(ctx, tx, visible.groupId);
     if (isError(role)) return role;
     if (!isTodoWriter(role)) return rejectError(ctx.authUser);
     const restored = await todoModel.restore(id, {}, tx);
-    if (isError(restored) || !restored) return restored;
+    if (isError(restored)) return restored;
+    if (!restored) return visible;
     return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? restored;
   }, ctx);
 
@@ -789,10 +915,16 @@ export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
  * whatever the uploader's role: it changes nothing. When the chain already
  * has another open todo (two devices ticked it on different days), it's a
  * stale twin: nothing is written. Otherwise it's a skip the device made: a
- * writer's create. Says whether it created (`Upserted`), or null when
- * nothing was written.
+ * writer's create. A tick's twin (`fromTick`, the upload's
+ * `TICK_NEXT_METADATA`) never creates: the tick made its row here, so with
+ * none it's a stale tick's, and a chain stopped since stays stopped (B-387).
+ * Says whether it created (`Upserted`), or null when nothing was written.
  */
-export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput) =>
+export const upsertOccurrence = (
+  ctx: ServiceContext,
+  input: TodoOccurrenceInput,
+  { fromTick = false }: { fromTick?: boolean } = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = todoOccurrenceZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -812,6 +944,7 @@ export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput
     const role = await roleIn(ctx, tx, groupId);
     if (isError(role)) return role;
     if (!role) return rejectError(ctx.authUser);
+    if (fromTick) return null;
     const open = await todoModel.get({
       ...system(tx),
       filter: {

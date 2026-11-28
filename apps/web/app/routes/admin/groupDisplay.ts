@@ -1,6 +1,5 @@
-import type { StaffSettableGroupRole } from "@caretook/data/schema";
-
-import { STAFF_SETTABLE_GROUP_ROLES } from "@caretook/data/schema";
+import type { StaffSettableGroupRole } from "@caretook/data/domain";
+import { STAFF_SETTABLE_GROUP_ROLES } from "@caretook/data/domain";
 
 // How care groups read in /admin (admin slice 4): the Groups list and a
 // group's page. Pure, tested.

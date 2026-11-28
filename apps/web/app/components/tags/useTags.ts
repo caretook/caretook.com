@@ -1,12 +1,13 @@
 import type { TagTarget } from "@caretook/data/schema";
-import type { GroupTagRow, TagRow } from "~/lib/tags/tags.sync";
+import type { GroupTagRow, TagRow, TagUseRow } from "~/lib/tags/tags.sync";
 
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
-import { groupRecordTagsQuery, recordTagsQuery, tagsQuery } from "~/lib/tags/tags.sync";
+import { groupRecordTagsQuery, groupTagUsesQuery, recordTagsQuery, tagsQuery } from "~/lib/tags/tags.sync";
 
 const NO_TAGS: TagRow[] = [];
 const NO_LINKS: GroupTagRow[] = [];
+const NO_USES: TagUseRow[] = [];
 
 /** The group's tags, A to Z, live; `initial` is a loader's first rows. */
 export function useGroupTags(groupId: string, initial: TagRow[] = NO_TAGS) {
@@ -36,4 +37,14 @@ export function useGroupRecordTags(groupId: string, target: TagTarget, initial: 
     }
     return byRecord;
   }, [rows]);
+}
+
+/**
+ * How many live records carry each group tag, by tag id, live (a tag on none
+ * is missing: 0). One query for the whole list. `initial`: a loader's rows.
+ */
+export function useGroupTagUses(groupId: string, initial: TagUseRow[] = NO_USES) {
+  const q = groupTagUsesQuery(groupId);
+  const rows = useLiveQuery<TagUseRow>(q.sql, q.params, initial);
+  return useMemo(() => new Map(rows.map((r) => [r.tag_id, Number(r.uses)])), [rows]);
 }

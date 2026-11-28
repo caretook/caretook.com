@@ -1,12 +1,12 @@
 import type { GroupRoleName } from "../constants";
 import type { AuthUser } from "../permissions";
-import type { CalendarItem, ShareLevel, TimelineEntry, TimelineEntryKind, Tx } from "../db";
+import type { ShareLevel, TimelineEntry, TimelineEntryKind, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
 import { randomBytes } from "node:crypto";
 import { MAX_PAGE_SIZE, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { calendarItems, calendarWindow, hasDetailsConsent, shareLevel } from "../db/schema";
+import { hasDetailsConsent, shareLevel } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
   careGroupMemberModel,
@@ -20,6 +20,8 @@ import {
   userModel,
 } from "../models";
 import { hashFeedToken } from "../models/memberCalendarSetting/memberCalendarSettingModel";
+import { calendarItems, calendarWindow } from "../domain/calendars/calendarItems";
+import type { CalendarItem } from "../domain/calendars/calendarItems";
 
 // A member's calendar feed for one care group (appointments-2, slice 5): a
 // secret URL that Apple, Google or Outlook calendars subscribe to. The token
@@ -30,7 +32,6 @@ import { hashFeedToken } from "../models/memberCalendarSetting/memberCalendarSet
 // request that the member is still in the group and their account is on,
 // and the feed is read as that member (RBAC in SQL) at their share level.
 
-export const serviceName = "calendarFeed";
 export const schemaName = memberCalendarSettingModel.schemaName;
 
 /** A token is 32 bytes in base64url: 43 characters. Anything else can't be one. */
@@ -153,7 +154,7 @@ const DAY_MS = 86_400_000;
 
 /**
  * The feed behind `token` at `now`: the group's appointments and
- * open todos with a due day, 90 days back to 90 days ahead (`calendarItems`),
+ * top-level open todos with a due day, 90 days back to 90 days ahead (`calendarItems`),
  * read as the member. Provider names are read only at the details level.
  * Null when the token resolves to no one.
  */
@@ -191,7 +192,11 @@ export const load = async (token: string, { now, appUrl }: { now: Date; appUrl: 
     cursor = page.nextCursor;
   } while (cursor);
 
-  const todos = await todoModel.list({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });
+  // Top-level todos only (todo-subtasks-3): a subtask shows in its tree in the app, never on a calendar.
+  const todos = await todoModel.list({
+    ...ctx,
+    filter: { groupId: { type: "eq", value: groupId }, parentId: { type: "isNull" } },
+  });
   if (isError(todos)) return todos;
 
   let providers = new Map<string, string[]>();

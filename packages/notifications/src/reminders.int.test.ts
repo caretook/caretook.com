@@ -15,13 +15,7 @@ import {
   timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import {
-  addDays,
-  dayInZone,
-  DETAILS_CONSENT_VERSION,
-  memberCalendarSettingSchema,
-  zonedInstant,
-} from "@caretook/data/schema";
+import { DETAILS_CONSENT_VERSION, memberCalendarSettingSchema } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -29,6 +23,7 @@ import { createGroup, createUser, ok, system } from "../../data/test/fixtures";
 import { deliverDue } from "./outbox";
 import { handleReminderUnsubscribe, sweepReminders } from "./reminders";
 import { createMemorySender } from "./senders";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // The reminder sweep (appointments-2 slice 6) on the test database, with the
 // memory sender: a send goes once however often the cron runs, a moved
@@ -303,6 +298,33 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     expect(rows.filter((r) => r.recipient === cy.user.email).map((r) => [r.status, r.lastError])).toEqual([
       ["skipped", "suppressed"],
     ]);
+  });
+
+  it("reminds a subtask's assignee: subtasks leave calendars, not reminders", async () => {
+    const { ana, ben, group, remindersOn } = await setup();
+    await remindersOn(ben, { reminderLeads: [60] });
+    const parent = ok(
+      await todoService.create(ana.ctx, {
+        groupId: group.id,
+        title: "Get the house ready",
+        assigneeId: ana.user.id,
+        dueOn: addDays(DAY, 1),
+      }),
+    )!;
+    const step = ok(
+      await todoService.create(ana.ctx, {
+        groupId: group.id,
+        parentId: parent.id,
+        title: "Fit the grab bar",
+        assigneeId: ben.user.id,
+        dueOn: DAY,
+        dueTime: "09:00",
+      }),
+    )!;
+
+    const mine = to((await sweep(HOUR_BEFORE)).sent, ben.user.email);
+    expect(mine.map((m) => m.name)).toEqual(["todoDue"]);
+    expect(mine[0]!.text).toContain(`/app/groups/${group.id}/todos/${step.id}`);
   });
 
   it("turns reminders off from the email's unsubscribe link", async () => {

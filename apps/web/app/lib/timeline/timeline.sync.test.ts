@@ -1,6 +1,7 @@
 import { symptomTypeRow } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { timelineLinksQuery } from "../providers/providers.sync";
+import { symptomTypeFor } from "./symptomTypes.sync";
 import {
   entriesQuery,
   entryWindow,
@@ -9,6 +10,7 @@ import {
   symptomTypeColumn,
   upcomingQuery,
   upcomingWindow,
+  withSymptomName,
 } from "./timeline.sync";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -137,5 +139,64 @@ describe("symptomTypeColumn (a local write's symptom type)", () => {
     expect(
       symptomTypeColumn(GROUP, { kind: "vital", details: { readings: [{ type: "heartRate", value: 70 }] } }),
     ).toEqual({ symptomTypeId: null });
+  });
+});
+
+describe("a symptom write over the local catalog (symptom-catalog-3)", () => {
+  const id = (name: string) => symptomTypeRow(GROUP, name).id;
+  const row = (name: string, replacedBy: string | null = null) => ({
+    id: id(name),
+    name,
+    replacedById: replacedBy && id(replacedBy),
+  });
+  const CATALOG = [row("Nausea"), row("Upset tummy", "Nausea"), row("Knee pain")];
+  /** What a create, or a rename to `name`, stores (`createEntry`, `updateEntry`, quick entry). */
+  const stores = (name: string, catalog = CATALOG) => {
+    const symptom = symptomTypeFor(GROUP, name, catalog);
+    const content = withSymptomName({ kind: "symptom", details: { name, severity: 2 } }, symptom);
+    return {
+      ...content.details,
+      ...symptomTypeColumn(GROUP, content, symptom),
+      add: symptom.add?.name ?? null,
+    };
+  };
+
+  it("stores a deleted name as its replacement's name and id, adding nothing", () => {
+    for (const name of ["Upset tummy", "  UPSET   tummy "])
+      expect(stores(name), name).toEqual({
+        name: "Nausea",
+        severity: 2,
+        symptomTypeId: id("Nausea"),
+        add: null,
+      });
+  });
+
+  it("keeps a deleted name whose replacement hasn't synced, on its own row", () => {
+    expect(stores("Upset tummy", [row("Upset tummy", "Nausea")])).toEqual({
+      name: "Upset tummy",
+      severity: 2,
+      symptomTypeId: id("Upset tummy"),
+      add: null,
+    });
+  });
+
+  it("keeps a live name as written, and adds a new one on its derived id", () => {
+    expect(stores("knee pain")).toEqual({
+      name: "knee pain",
+      severity: 2,
+      symptomTypeId: id("Knee pain"),
+      add: null,
+    });
+    expect(stores("Hiccups")).toEqual({
+      name: "Hiccups",
+      severity: 2,
+      symptomTypeId: id("Hiccups"),
+      add: "Hiccups",
+    });
+  });
+
+  it("leaves every other kind as it is", () => {
+    const note = { kind: "note", details: null };
+    expect(withSymptomName(note, { name: "Nausea" })).toBe(note);
   });
 });

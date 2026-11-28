@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Form, useActionData, useLoaderData, useLocation } from "react-router";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { parseSearch } from "@caretook/data/schema";
 import { searchEntryIds, searchIndexStatus } from "~/lib/search/search.sync";
 import { createEntry, removeEntry } from "~/lib/timeline/timeline.sync";
 import { renderWithDevice } from "./device";
@@ -10,6 +9,7 @@ import { found, WAIT_TIMEOUT } from "./found";
 import { getByCss } from "./locators";
 import { fx, TEST_GROUP } from "./fixtures";
 import { PROBE } from "./probe";
+import { parseSearch } from "@caretook/data/domain";
 
 // The test device's own tests: what every component test leans on, on the
 // probe route (test/probe.tsx), never a real screen.

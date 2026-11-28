@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The shared test Postgres (docker-compose.shared-test.yml): one server, one
-# database per worktree, for integration tests. (pnpm prd test-db …)
+# database per worktree, for integration tests. (risa test-db …)
 #
 #   test-db.sh status            running or not, its port and databases
 #   test-db.sh up                start it if it isn't running (never recreates it)
@@ -15,7 +15,7 @@
 #                                copies, caretook_tw_<stem>_<hash>_w<n> (nothing
 #                                when it isn't running)
 #   test-db.sh drop-db <database>   the same by database name, for one whose
-#                                worktree is gone (pnpm prd tidy)
+#                                worktree is gone (risa tidy)
 #   test-db.sh list              the worktree databases on it, with their worker copies
 #   test-db.sh use [worktree]    point a worktree's integration tests at its
 #                                database here (packages/data/.env.test.local);
@@ -63,7 +63,7 @@ write_test_env() {
   mkdir -p "$1/packages/data"
   cat > "$1/packages/data/.env.test.local" <<ENV
 # Integration tests: this worktree's own database on the shared test Postgres
-# (scripts/project/test-db.sh). Created on first use; dropped by pnpm prd rm.
+# (scripts/project/test-db.sh). Created on first use; dropped by risa rm.
 DATABASE_URL="postgresql://caretook:password@localhost:$shared_test_port/$(test_db_name "$2")"
 PG_TEST_PORT=$shared_test_port
 SHARED_TEST_DB=1
@@ -83,7 +83,7 @@ psql_c() { docker exec "$1" psql -U caretook -d postgres -Atqc "$2"; }
 # (workerDatabaseName in packages/data/src/db/testDatabase.ts; tidy.mjs too).
 # No worktree database starts caretook_tw_, so a copy is never another
 # worktree's database. Copies named the old way, <database cut to 59>_w<n>,
-# list as databases and are left to pnpm prd tidy (an orphan once their
+# list as databases and are left to risa tidy (an orphan once their
 # worktree is gone): by name alone one can be a worktree's own database.
 worker_re='_w([1-9]|1[0-6])$'
 
@@ -137,7 +137,8 @@ case $cmd in
   status)
     c=$(container)
     if [[ -z $c ]]; then
-      echo "shared test Postgres: not running (started on first integration run, or pnpm prd test-db up)"
+      prd=$(node "$(dirname "$0")/risa.mjs" tool prd) || prd=prd
+      echo "shared test Postgres: not running (started on first integration run, or $prd test-db up)"
     else
       n=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_test\_%'" 2>/dev/null || echo '?')
       w=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_tw\_%'" 2>/dev/null || echo '?')

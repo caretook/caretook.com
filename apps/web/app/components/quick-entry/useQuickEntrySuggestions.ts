@@ -11,8 +11,8 @@ import { reduceRecentLines, useRecentLines } from "~/lib/assistant/recentLines";
 import { useLiveQuery } from "~/lib/sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { predictionEntriesQuery, toPredictionEntries } from "~/lib/assistant/quickEntrySuggestions.sync";
-import { addDays, dayInZone, startOfDay } from "~/lib/core/zonedDay";
 import { useQuickEntryData } from "./useQuickEntryData";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 /** "Around now" moves on with the clock: recheck every few minutes. */
 const USUAL_TICK_MS = 5 * 60_000;

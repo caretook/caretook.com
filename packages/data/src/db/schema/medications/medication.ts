@@ -18,7 +18,8 @@ import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
 import { providerSchema } from "../providers/provider";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
+import { MEDICATION_TYPES } from "../../../domain/medications/medicationTypeDisplay";
 
 // A care group's medication list: what the recipient takes, how and when,
 // who prescribed it and which pharmacy fills it. Each belongs to one group.
@@ -47,11 +48,6 @@ export type MedicationForm = (typeof MEDICATION_FORMS)[number];
 export const MEDICATION_STATUSES = ["current", "completed", "discontinued"] as const;
 export type MedicationStatus = (typeof MEDICATION_STATUSES)[number];
 
-/**
- * What kind of thing a medication is. Null on medications added before types
- * existed ("Type not set"); the forms that ask require one.
- */
-export const MEDICATION_TYPES = ["prescription", "otc", "supplement", "other"] as const;
 export type MedicationType = (typeof MEDICATION_TYPES)[number];
 
 export const MEDICATION_STOP_REASONS = ["sideEffects", "ineffective", "prescriberStopped", "other"] as const;
@@ -683,6 +679,23 @@ export const toChangeTime = (value: string | Date): string | null => {
   const offset = /^[+-]\d{2}$/.test(m[3] ?? "") ? `${m[3]}:00` : (m[3] ?? "Z");
   const date = new Date(`${m[1]}.${ms}${offset}`);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+/**
+ * A change's two times, from the device's `changedAt` (B-295):
+ * - `key`: the device's time, unchanged (`toChangeTime`), for the entry's
+ *   derived id, so a replay and the device's own copy land on one row;
+ * - `date`: the earlier of that and `now`, for the entry's `occurredAt`, so a
+ *   clock running ahead never puts it in the future.
+ * With no `changedAt`, or one that isn't a time, both are now.
+ */
+export type ChangeTimes = { key: string; date: string };
+
+export const changeTimes = (changedAt?: string | Date | null, now: Date = new Date()): ChangeTimes => {
+  const nowTime = now.toISOString();
+  const key = changedAt ? toChangeTime(changedAt) : null;
+  if (!key) return { key: nowTime, date: nowTime };
+  return { key, date: key > nowTime ? nowTime : key };
 };
 
 /**

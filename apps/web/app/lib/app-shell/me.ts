@@ -4,9 +4,11 @@ import { ORPCError } from "@orpc/client";
 import {
   DEFAULT_DAY_SUMMARY_MODE,
   DEFAULT_EASY_MODE_SETTING,
+  DEFAULT_PROVIDERS_VIEW,
   DEFAULT_TIMELINE_VIEW,
   DEFAULT_UNITS,
   EASY_MODE_SETTINGS,
+  mergeGroupSetup,
   mergeSetupDismissed,
 } from "@caretook/data/schema";
 import { useSyncExternalStore } from "react";
@@ -15,7 +17,7 @@ import { load } from "../core/api";
 import { rpc } from "../core/rpc";
 import { settingsPlan } from "./settingsPlan";
 
-// The signed-in user's settings (units, timeline layout, easy mode, day summaries). They live on
+// The signed-in user's settings (units, timeline and providers layouts, easy mode, day summaries). They live on
 // `user.preferences`, which isn't synced, so the last copy is cached on the
 // device: screens still show the right units offline.
 //
@@ -30,26 +32,41 @@ import { settingsPlan } from "./settingsPlan";
 // Every change to what this device knows (a refresh, a save, a load) is
 // published to the settings store, so screens that read `useMySettings`
 // re-render when a refresh brings different values.
+//
+// Settings are *known* once the server has answered on this device (now, or
+// on an earlier visit: `settingsKnown`); until then they're defaults with any
+// pending change on top. A cache written only by a change saved offline on a
+// new device isn't known. What acts on what the account has already done
+// (the group setup redirect and nudges) waits for known settings, so a new or
+// wiped device never repeats it.
 
 export type MySettings = Pick<
   ApiOutputs["me"]["get"],
-  "units" | "timelineView" | "easyMode" | "daySummary" | "setupDismissed"
+  "units" | "timelineView" | "providersView" | "easyMode" | "daySummary" | "setupDismissed" | "groupSetup"
 >;
-/** A change to some settings. `units` may name only some measures; `setupDismissed` adds to the list. */
+/**
+ * A change to some settings. `units` may name only some measures;
+ * `setupDismissed` adds to the list, and `groupSetup` names only the groups
+ * it changes and adds to each (`mergeGroupSetup`).
+ */
 export type SettingsChange = Partial<Omit<MySettings, "units">> & { units?: Partial<MySettings["units"]> };
 
 const DEFAULTS: MySettings = {
   units: DEFAULT_UNITS,
   timelineView: DEFAULT_TIMELINE_VIEW,
+  providersView: DEFAULT_PROVIDERS_VIEW,
   easyMode: DEFAULT_EASY_MODE_SETTING,
   daySummary: DEFAULT_DAY_SUMMARY_MODE,
   setupDismissed: [],
+  groupSetup: {},
 };
 
 const PREFIX = "caretook:settings:";
 const PENDING_PREFIX = "caretook:settings-pending:";
 const cacheKey = (userId: string) => `${PREFIX}${userId}`;
 const pendingKey = (userId: string) => `${PENDING_PREFIX}${userId}`;
+/** Set once the server has answered on this device; under `PREFIX`, so `forgetSettings` clears it. */
+const knownKey = (userId: string) => `${PREFIX}${userId}:known`;
 
 const readJson = <T>(key: string): T | null => {
   try {
@@ -74,6 +91,8 @@ const merge = <T extends SettingsChange>(base: T, change: SettingsChange): T => 
   if (base.units || change.units) next.units = { ...base.units, ...change.units };
   if (base.setupDismissed || change.setupDismissed)
     next.setupDismissed = mergeSetupDismissed(base.setupDismissed, change.setupDismissed);
+  if (base.groupSetup || change.groupSetup)
+    next.groupSetup = mergeGroupSetup(base.groupSetup, change.groupSetup);
   return next;
 };
 
@@ -110,12 +129,27 @@ const clearPending = (userId: string, sent: SettingsChange) => {
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   const left: SettingsChange = { ...pending };
   if ("timelineView" in sent && same(left.timelineView, sent.timelineView)) delete left.timelineView;
+  if ("providersView" in sent && same(left.providersView, sent.providersView)) delete left.providersView;
   if ("easyMode" in sent && same(left.easyMode, sent.easyMode)) delete left.easyMode;
   if ("daySummary" in sent && same(left.daySummary, sent.daySummary)) delete left.daySummary;
   if (left.setupDismissed && sent.setupDismissed) {
     const sentIds = new Set(sent.setupDismissed);
     left.setupDismissed = left.setupDismissed.filter((id) => !sentIds.has(id));
     if (left.setupDismissed.length === 0) delete left.setupDismissed;
+  }
+  if (left.groupSetup && sent.groupSetup) {
+    const groups: NonNullable<SettingsChange["groupSetup"]> = {};
+    for (const [groupId, entry] of Object.entries(left.groupSetup)) {
+      const gone = sent.groupSetup[groupId];
+      const retired = (entry.retired ?? []).filter((nudge) => !gone?.retired?.includes(nudge));
+      const kept = {
+        ...(entry.opened && !gone?.opened && { opened: true as const }),
+        ...(retired.length > 0 && { retired }),
+      };
+      if (Object.keys(kept).length > 0) groups[groupId] = kept;
+    }
+    left.groupSetup = groups;
+    if (Object.keys(groups).length === 0) delete left.groupSetup;
   }
   if (left.units && sent.units) {
     const units: Record<string, unknown> = { ...left.units };
@@ -147,6 +181,27 @@ const publish = (userId: string): MySettings => {
   return settings;
 };
 
+/** Users whose settings the server answered for in this session (for storage that can't keep `knownKey`). */
+const answered = new Set<string>();
+
+/**
+ * Whether this device knows the user's settings: the server has answered
+ * here, now or on an earlier visit, and its copy is in the cache. Until then
+ * `cachedSettings` is defaults with this device's pending changes on top. An
+ * answer this page heard but couldn't cache (storage refusing writes, or
+ * cleared since) isn't known: what `cachedSettings` gives is still defaults.
+ */
+export const settingsKnown = (userId: string): boolean =>
+  (answered.has(userId) || readJson<boolean>(knownKey(userId)) === true) && readCache(userId) !== null;
+
+/** The server answered: remember it, and tell listeners when that's news. */
+const markKnown = (userId: string) => {
+  const news = !settingsKnown(userId);
+  answered.add(userId);
+  writeJson(knownKey(userId), true);
+  if (news) for (const listener of listeners) listener();
+};
+
 /** Hear about every published change to anyone's settings. Returns the unsubscribe. */
 export const subscribeSettings = (listener: () => void) => {
   listeners.add(listener);
@@ -165,6 +220,14 @@ export const useMySettings = (userId: string, initial: MySettings): MySettings =
     subscribeSettings,
     () => published.get(userId)?.settings ?? initial,
     () => initial,
+  );
+
+/** `settingsKnown`, live: it turns true when a refresh answers. */
+export const useSettingsKnown = (userId: string): boolean =>
+  useSyncExternalStore(
+    subscribeSettings,
+    () => settingsKnown(userId),
+    () => false,
   );
 
 /** Remember settings on this device (after loading them, or after a change). */
@@ -224,7 +287,9 @@ const refresh = async (request: Request, userId: string, send: SettingsChange | 
       easyMode: me.easyMode,
       daySummary: me.daySummary,
       setupDismissed: me.setupDismissed,
+      groupSetup: me.groupSetup,
     });
+    markKnown(userId);
     return "refreshed";
   } catch (e) {
     // Anything but a lost connection (a sign-in redirect, an API error) is real.
@@ -249,6 +314,33 @@ const sharedRefresh = (request: Request, userId: string, send: SettingsChange | 
 };
 
 /**
+ * When each user's early refresh (`startSettings`) last brought the server's
+ * copy. A loader within `NETWORK_ANSWER_MS` of it answers from that copy
+ * without asking the server again.
+ */
+const earlyAt = new Map<string, number>();
+
+/**
+ * Start the settings fetch before any loader asks (B-958): the /app
+ * middleware calls it once the session is known, so on a new device the
+ * fetch runs while the screen's routes load, not after. Only with no cache
+ * (a cached answer wins, and its loaders refresh in the background); the
+ * loaders' `loadSettings` then shares the request in flight, or uses what
+ * it brought. A failure here is left to `loadSettings`, which asks again.
+ */
+export const startSettings = (request: Request, userId: string) => {
+  if (readCache(userId) !== null) return;
+  const plan = settingsPlan({ cached: false, pending: readPending(userId) });
+  const since = forgotten;
+  sharedRefresh(request, userId, plan.send).then(
+    (outcome) => {
+      if (outcome === "refreshed" && since === forgotten) earlyAt.set(userId, Date.now());
+    },
+    () => undefined,
+  );
+};
+
+/**
  * Settings for a clientLoader (`settingsPlan`): with a cache, the cached copy
  * with pending changes on top, at once, while a background refresh sends
  * what's pending, reads the server's copy and publishes it (a lost session
@@ -258,6 +350,9 @@ const sharedRefresh = (request: Request, userId: string, send: SettingsChange | 
  */
 export const loadSettings = async (request: Request, userId: string): Promise<MySettings> => {
   const plan = settingsPlan({ cached: readCache(userId) !== null, pending: readPending(userId) });
+  const early = earlyAt.get(userId);
+  if (plan.answer === "cache" && !plan.send && early !== undefined && Date.now() - early < NETWORK_ANSWER_MS)
+    return publish(userId);
   const refreshed = sharedRefresh(request, userId, plan.send);
   if (plan.answer === "cache") {
     refreshed.catch(() => undefined);
@@ -305,6 +400,8 @@ export const useCachedSettings = (userId: string): MySettings =>
 export const forgetSettings = () => {
   forgotten++;
   refreshing.clear();
+  earlyAt.clear();
+  answered.clear();
   published.clear();
   snapshots.clear();
   try {

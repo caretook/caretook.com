@@ -4,17 +4,16 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 ## Status
 
-Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-nit-history.md`](fixes-nit-history.md) (`pnpm prd status-trim`).
 
-Wave 1: slices 1–3, all done 2026-11-21. Synced with dev (profiles.md docs conflict resolved: dev's text, our check name). Full check passed on 2cdca857; no browser checks (no app code changed). Next: PR, Codex review, land.
+Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"; the dispatcher's run-through start again 2026-11-26). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-| Slice | Item  | State  | Merge               |
-| ----- | ----- | ------ | ------------------- |
-| 1     | B-326 | merged | 72298bc8            |
-| 2     | B-379 | done   | none (empty branch) |
-| 3     | B-380 | done   | none (empty branch) |
+Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-Models: all three slices on sonnet (no coding). Slice 2 filed B-455–B-457 (topic contract-migrations; no PRD row yet: for the backlog session). Slice 3 verified every claim; the items are archived and refuse edits, so the edits moved to B-458 and B-459 (fixes-tooling).
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
+
+Idle hand-over, no slice in flight. Wave 5 (slice 10, B-950, opus; merge 0775cdcca) landed 2026-11-27 as b0025a31f through PR #300: CI `components` green (run 46095301864), browser `--changed` roundtrip 1/1, Codex clean; report filed; `docs/layout.md` folded (the timeline doc stayed as is: it sits at its budget). The first run failed only on the plan's own Prettier format (the orchestrator's _Status_ edit): format the plan before each CI run. Slice worktree removed. The quarantined `timelineJumpPaging.browser.test.tsx` failed in the landing's listing (quarantined, not blocking). **2026-11-27 (fixes-nit-34, after a restart):** reconciled, nothing in flight. B-995 waits: code-health (running) holds `routes/app/groups/settings/calendar/`; asked code-health-fd to message on landing, and a background check watches `risa backlog prd list`. When it lands: `risa sync`, then write wave 6. Earlier note: B-995 (move `reminderChoices` out of the settings calendar route so `components/entry/RemindMeSheet` stops importing a route), triaged for fixes-nit; check `risa backlog prd list` for `routes/app/groups/settings/calendar/` or `lib/calendars/` hot (push-notifications holds both while it runs), then write it as wave 6, slice 11 (opus). Lessons: a sonnet docs trim drops rules as "wording"; diff it line by line. A move slice past 12 files trips the hook's warning: fine for import-only churn.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
@@ -48,7 +47,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md, docs/agents
 
 **Build.** **Track only; no migration** (the user's choice).
 
-- Find each contract step: read those PRDs' plans and migrations (`plans/`, `packages/data/…/migrations`, `pnpm log --grep`) for the columns still in the schema but no longer read or written, and for the backfill. List them with evidence (file and line, or the migration).
+- Find each contract step: read those PRDs' plans and migrations (`plans/`, `packages/data/src/db/migrations/`, `pnpm log --grep`) for the columns still in the schema but no longer read or written, and for the backfill. List them with evidence (file and line, or the migration).
 - File one backlog item per contract step with `pnpm backlog add chore "<plain title>" --prd <topic> --status triaged --note "<the columns, where they're still referenced, what must ship first>"`. Pick the topic the backlog doc gives for later migrations (ask the orchestrator if none fits); never a `fixes-*` topic for a migration.
 - Add a `note` on B-379 listing the new ids. Change no code.
 
@@ -76,5 +75,129 @@ Stack: no · Reads: plans/fixes-rules.md, docs/agents/backlog.md · Tests: none 
 
 - [ ] Each claim is fixed, or noted as stale or out of reach in the hand-off.
 - [ ] No hand edits to backlog files; `pnpm backlog doctor` reports nothing new.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 2 (written 2026-11-26 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 4: The vitest worker-database comment names today's names (B-544)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: none (a comment)
+
+**Problem.** `vitest.config.ts` (about line 346) says each worker's database is `<name>_w<VITEST_POOL_ID>`; since B-405 they're `caretook_tw_<stem>_<hash>_w<n>`.
+
+**Build.** Find where the name is really built (search for `caretook_tw_`) and make the comment say what it builds, in one line, naming that file. Change nothing else in `vitest.config.ts`.
+
+**Acceptance criteria.**
+
+- [ ] The comment matches the code that names the databases; no other line changes.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes (`vitest.config.ts` may make it full: let it).
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 5: One helper builds the legal page links (B-630)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/layout.md · Tests: unit
+
+**Problem.** `apps/web/app/lib/auth/legalLinks.ts` (`legalHref`, used by `routes/account/LegalAgreement.tsx`) and `apps/web/app/routes/app/settings/account/legalLinks.ts` (`legalLinks`, used by the account settings route and `settings.browser.test.tsx`) both build links to the legal pages, each handling `VITE_API_ORIGIN` on native.
+
+**Build.** Fold them into one module in `lib/auth/legalLinks.ts`: keep the list of pages and the href rule in one place, and have both callers use it. Delete the settings copy and move its test cases into `lib/auth/legalLinks.test.ts` (no case lost). Behaviour doesn't change: same labels, same hrefs on web and native.
+
+**Acceptance criteria.**
+
+- [ ] One legal-links module; `settings/account/legalLinks.ts` and its test are gone; both callers and the settings browser test import from `~/lib/auth/legalLinks`.
+- [ ] Unit test: `lib/auth/legalLinks.test.ts` covers both the web (relative) and native (`VITE_API_ORIGIN`) hrefs and the page list.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** slice 7. **Blocked by:** none.
+
+## Slice 6: Settings calendar, assistants, details and providers use the UI kit's text tones (B-637)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** These files still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `routes/app/groups/settings/calendar/{FeedCard,RemindersCard,DetailsCard,GoogleCard}.tsx`, `settings/assistants/route.tsx`, `settings/details/{DetailsOutsideCard,EasyTilesCard}.tsx`, `routes/app/groups/providers/providerWorld.tsx`.
+
+**Build.** In those eight files only: `text-base-content/70` becomes `text-muted`; `/60` and `/50` become `text-faint` (ui-kit, _Tokens_). Keep any variant prefix (`hover:`, `group-hover:` …). Don't touch other classes or files. If a component test asserts the old class, update it.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the eight files; nothing else changed.
+- [ ] The existing component tests for those screens pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 7: Members settings and account settings use the UI kit's text tones (B-930)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** As slice 6, in `routes/app/groups/settings/members/{MemberItem,InviteLinks,YourSharing,SharingForm,PendingInvites,JoinRequests,InviteSheet}.tsx` and `routes/app/settings/{account,contact,units,devices,timeline}/route.tsx`.
+
+**Build.** The same mapping as slice 6 in those twelve files only.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the twelve files; nothing else changed.
+- [ ] The existing component tests for those screens pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** slice 5.
+
+## Wave 3 (written 2026-11-26 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 8: The UI kit's own primitives use its text tones (B-931)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
+
+**Problem.** Three `ui/` primitives still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `components/ui/ChipList.tsx` (`/50`, muted chips), `components/ui/tabLook.tsx` (`/80`, a tab that isn't current), and `components/ui/date/DateTimeField.tsx` (`/60`, the weekday header cells; `/40`, days outside the month).
+
+**Build.** In those three files only, per ui-kit _Tokens_ (`text-muted` 70%, `text-faint` 62%): `/50` and `/60` become `text-faint`; `/80` becomes `text-muted` (the orchestrator's pick: the nearest token; a tab that isn't current is secondary); `/40` becomes `text-faint` (the orchestrator's pick: outside-month days lift to 4.5:1 and stay quieter than the month's days). Keep any variant prefix. Don't touch other classes or files. If a component test asserts the old class, update it.
+
+**Acceptance criteria.**
+
+- [ ] No `text-base-content/` left in the three files; nothing else changed.
+- [ ] The existing component tests for `ChipList`, `TabNav`/`FormTabs` and `DateTimeField` pass; `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 4 (written 2026-11-27 by the orchestrator, from the triaged fixes-nit items)
+
+B-950 (move TimelineEntryRow out of the timeline route) waits for a later wave: it touches `routes/app/groups/timeline/`, a hot path of the running todo-subtasks-3.
+
+## Slice 9: The components doc fits its budget again (B-973)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: none (Markdown)
+
+**Problem.** `docs/domain/components.md` is 10513 B on `dev`, over its 10240 B budget (`pnpm docs:budget`); it made fixes-ui's land need `risa sync --force`.
+
+**Build.** This slice is the exception to "loops never edit `docs/`": the fix is the doc.
+
+- Trim `docs/domain/components.md` to at most about 10 000 B (some room for the next fold-in) by tightening wording: drop repetition, stale lines (check a claim against the code before dropping it as stale) and examples the rule already makes plain. Keep every rule and every link; move nothing to other docs.
+- Change no other file.
+
+**Acceptance criteria.**
+
+- [ ] `pnpm docs:budget` shows `docs/domain/components.md` under budget; no rule or link lost (say in the hand-off what was cut).
+- [ ] `pnpm exec prettier --check docs/domain/components.md` and `pnpm test:tooling` pass.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 5 (written 2026-11-27 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 10: The timeline entry row lives in components/entry (B-950)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/layout.md · Tests: component (existing)
+
+**Problem.** `routes/app/groups/provider/LinkedEntries.tsx` (and its browser test) import `../timeline/TimelineEntryRow` and `../timeline/useOpenTodoCounts`, against components.md's rule that a route never imports another route's folder.
+
+**Build.** A move, no behaviour change.
+
+- Move `TimelineEntryRow.tsx`, `useOpenTodoCounts.ts` and `OpenTodosMark.tsx` from `routes/app/groups/timeline/` into `components/entry/`, and export them from `components/entry/index.ts`.
+- `components/entry/` must not import from `routes/`. `TimelineEntryRow` uses timeline-local helpers (`CopyLinkButton`'s `useCopyLink`, `entryLabels`, `EntryOpenTarget`, `LiveDot`, `layout`'s `ASIDE_CLASS`, `timelineLinks`' `entryLinkPath`): move each one it needs into `components/entry/` (or `lib/timeline/` for a pure helper) and point the timeline route's other files at the new place. Move a helper's own test with it. Don't re-export from the old paths; no shims.
+- Rewire every importer (timeline's list and card, the provider page and its test, anything else a repo-wide search finds) to `~/components/entry`.
+- Keep `git mv` so history follows; change no logic or markup.
+
+**Acceptance criteria.**
+
+- [ ] No file outside `routes/app/groups/timeline/` imports from it; `components/entry/` imports nothing from `routes/`.
+- [ ] The existing timeline, provider and entry component tests pass; `risa check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** none.

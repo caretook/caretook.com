@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { GROUP_ROLE_NAMES } from "../../../constants/roles";
+import { AVATAR_COLORS } from "../app-shell/avatar";
 import { recordTagLinkZSchema } from "./recordTag";
 import { tagCreateZSchema } from "./tag";
 import {
   RECORD_TAG_NAMESPACE,
+  TAG_COLORS,
   TAG_NAMESPACE,
   TAG_TARGETS,
   activeTag,
@@ -14,7 +16,9 @@ import {
   canTagRecord,
   isTagIdFor,
   nextTagId,
+  pickTagColor,
   recordTagId,
+  tagColorZSchema,
   tagFromParams,
   tagId,
   tagKey,
@@ -245,5 +249,53 @@ describe("?tag=", () => {
     expect(activeTag(tag, tags)).toEqual(tags[0]);
     expect(activeTag(randomUUID(), tags)).toBeNull();
     expect(activeTag(null, tags)).toBeNull();
+  });
+});
+
+describe("tag colors (tags-2)", () => {
+  /** A random source that returns `values` in turn. */
+  const seq = (...values: number[]) => {
+    let i = 0;
+    return () => values[i++ % values.length]!;
+  };
+
+  it("are the avatar colors, and only those parse", () => {
+    expect(TAG_COLORS).toEqual(AVATAR_COLORS);
+    expect(tagColorZSchema.safeParse("jade").success).toBe(true);
+    expect(tagColorZSchema.safeParse("teal").success).toBe(false);
+    expect(tagColorZSchema.safeParse(null).success).toBe(false);
+  });
+
+  it("pickTagColor never returns a used color while one is free", () => {
+    for (let free = 0; free < TAG_COLORS.length; free++) {
+      const used = TAG_COLORS.filter((_, i) => i !== free);
+      for (const r of [0, 0.5, 0.999_999]) expect(pickTagColor(used, () => r)).toBe(TAG_COLORS[free]);
+    }
+    const used = ["coral", "ochre", "moss", null, undefined, "teal"];
+    for (let i = 0; i < 50; i++) expect(used).not.toContain(pickTagColor(used));
+  });
+
+  it("pickTagColor returns a palette color when all are used", () => {
+    for (const r of [0, 0.42, 0.999_999]) expect(TAG_COLORS).toContain(pickTagColor(TAG_COLORS, () => r));
+    expect(pickTagColor([...TAG_COLORS, ...TAG_COLORS], () => 0)).toBe(TAG_COLORS[0]);
+  });
+
+  it("pickTagColor follows the given random source", () => {
+    expect(pickTagColor([], () => 0)).toBe("coral");
+    expect(pickTagColor([], () => 0.999_999)).toBe("rose");
+    expect(pickTagColor([], () => 0.55)).toBe(TAG_COLORS[5]);
+    // Over the free ones, in palette order: coral and moss used leaves ochre first.
+    expect(pickTagColor(["coral", "moss"], () => 0)).toBe("ochre");
+    expect(pickTagColor(["coral", "moss"], () => 0.15)).toBe("fern");
+    const random = seq(0.1, 0.85);
+    expect([pickTagColor([], random), pickTagColor([], random)]).toEqual(["ochre", "orchid"]);
+  });
+
+  it("a new tag's input takes an optional palette color", () => {
+    const input = { id: tagId(GROUP, "Urgent"), groupId: GROUP, name: "Urgent" };
+    expect(tagCreateZSchema.safeParse(input).success).toBe(true);
+    expect(tagCreateZSchema.safeParse({ ...input, color: null }).success).toBe(true);
+    expect(tagCreateZSchema.parse({ ...input, color: "sky" })).toMatchObject({ color: "sky" });
+    expect(tagCreateZSchema.safeParse({ ...input, color: "teal" }).success).toBe(false);
   });
 });

@@ -1,0 +1,14 @@
+# check-areas: the data layer. Services, models, permissions and errors have
+# integration tests; the browser reaches them only through the upload switch
+# (sync), so the area files name only the schemas and seeds screens read.
+packages/data/src/                       -
+packages/data/scripts/                   -
+packages/data/src/db/schema/core/timeZone.ts  roundtrip
+# Seeds: the screens that read them.
+packages/data/src/db/seeds/              app-shell
+# The seed guard (hosting slice 1): unit and integration tests.
+packages/data/src/db/seeds/guard.ts      -
+# A schema folder's index re-exports its tables: no check of its own.
+packages/data/src/db/schema/*/index.ts   -
+# So does a domain folder's index.
+packages/data/src/domain/*/index.ts      -

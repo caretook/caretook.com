@@ -1,4 +1,4 @@
-import type { ProviderType } from "@caretook/data/schema";
+import type { ProvidersView, ProviderType } from "@caretook/data/schema";
 import type { DirectoryList, TagsByRecord } from "~/lib/providers/providerDirectory";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
@@ -6,7 +6,7 @@ import { EmptyState, List, TITLE_SUB } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
-import { ProviderListItem } from "./ProviderListItem";
+import { ProviderListItem } from "~/components/providers";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "provider" : "providers"}`;
 
@@ -15,20 +15,23 @@ function ProviderList({
   practiceNames,
   label,
   recordTags,
+  view,
 }: {
   providers: LocalProvider[];
   practiceNames: Map<string, string>;
   label: string;
   recordTags?: TagsByRecord;
+  view: ProvidersView;
 }) {
   return (
-    <List label={label}>
+    <List label={label} data-view={view}>
       {providers.map((p) => (
         <ProviderListItem
           key={p.id}
           provider={p}
           practiceName={p.practiceId ? (practiceNames.get(p.practiceId) ?? null) : null}
           tags={recordTags?.get(p.id)}
+          condensed={view === "rows"}
         />
       ))}
     </List>
@@ -48,6 +51,7 @@ export function DirectoryResults({
   type,
   tagged = false,
   recordTags,
+  view = "rows",
 }: {
   /** Every provider in the group, before filtering. */
   total: number;
@@ -60,6 +64,8 @@ export function DirectoryResults({
   tagged?: boolean;
   /** Each provider's tags, for the rows' chips. */
   recordTags?: TagsByRecord;
+  /** Condensed rows (the default) or the fuller items (`useProvidersView`). */
+  view?: ProvidersView;
 }) {
   const shown = list.current.length + list.past.length;
   const kind = type ? PROVIDER_TYPE_META[type].plural.toLowerCase() : "providers";
@@ -93,6 +99,7 @@ export function DirectoryResults({
             practiceNames={practiceNames}
             label="Current providers"
             recordTags={recordTags}
+            view={view}
           />
         )}
 
@@ -106,6 +113,7 @@ export function DirectoryResults({
               practiceNames={practiceNames}
               label="Past providers"
               recordTags={recordTags}
+              view={view}
             />
           </section>
         )}

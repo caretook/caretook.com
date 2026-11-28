@@ -9,6 +9,7 @@ import { activeTag } from "@caretook/data/schema";
 import { Import } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router";
+import { LayoutMenu } from "~/components/settings";
 import { useGroupRecordTags, useGroupTags } from "~/components/tags";
 import { Button, Page, PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -24,6 +25,7 @@ import { myGroupsQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { DirectoryFilterRow } from "./DirectoryFilters";
 import { DirectoryResults } from "./DirectoryResults";
 import { onlyProviderSheetChanged } from "./providerSheetGuard";
+import { useProvidersView } from "./useProvidersView";
 
 // Shared by web + native. The group's provider directory, read from the
 // device's local copy (live, so it works offline and follows other members'
@@ -83,6 +85,8 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
   const tags = useGroupTags(groupId);
   const recordTags = useGroupRecordTags(groupId, "provider");
   const tag = activeTag(filters.tag ?? null, tags)?.id ?? null;
+  // Condensed rows or the fuller items: the viewer's own setting (B-909).
+  const [view, setView] = useProvidersView(group.userId);
 
   // The box filters as you type; the URL follows (see `SearchFilterBar`).
   const [text, setText] = useState(filters.q);
@@ -97,18 +101,21 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         title="Providers"
         {...sectionAccent("providers", { easy: group.easyRole })}
         actions={
-          canImport && (
-            <Button
-              size="sm"
-              icon={Import}
-              label={IMPORT_ACTION}
-              to={appUrls.importProviders(groupId, search)}
-              state={PROVIDER_SHEET_STATE}
-              prefetch="render"
-              preventScrollReset
-              data-import-providers=""
-            />
-          )
+          <>
+            <LayoutMenu view={view} onChange={setView} />
+            {canImport && (
+              <Button
+                size="sm"
+                icon={Import}
+                label={IMPORT_ACTION}
+                to={appUrls.importProviders(groupId, search)}
+                state={PROVIDER_SHEET_STATE}
+                prefetch="render"
+                preventScrollReset
+                data-import-providers=""
+              />
+            )}
+          </>
         }
         add={
           group.canWrite && {
@@ -140,6 +147,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         type={filters.type}
         tagged={!!tag}
         recordTags={recordTags}
+        view={view}
       />
 
       <Outlet context={{ providers } satisfies ProvidersOutlet} />

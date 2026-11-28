@@ -94,8 +94,8 @@ const body = (args, fail = "", extra = {}) => {
       STUB_TIMES: "",
       STUB_UNHANDLED: "",
       STUB_TITLE: "",
-      CARETOOK_CHECK_STATE: state,
-      CARETOOK_CHECK_COUNTS: "",
+      RISA_CHECK_STATE: state,
+      RISA_CHECK_COUNTS: "",
       ...extra,
     },
   });
@@ -119,8 +119,8 @@ const TSC = "--filter ./apps/* --filter ./packages/* exec tsc";
 const ESLINT = "exec eslint .";
 const PRETTIER = "exec prettier --check --cache .";
 const UNIT =
-  "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit";
-const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser --project !project:tooling";
+  "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project project:unit";
+const ALL = "exec vitest run --project !tooling:browser --project !project:tooling";
 const runs = (r) => r.ran.filter((c) => !c.startsWith("exec vitest list"));
 // The three static tools run side by side, so their order is free.
 const afterStatic = (r) => {
@@ -175,9 +175,7 @@ describe("check-body.sh", () => {
     expect(pkg.scripts.check).toBe(
       "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:budget",
     );
-    expect(pkg.scripts.test).toBe(
-      "vitest run --project '!tooling:unit' --project '!tooling:browser' --project '!project:tooling'",
-    );
+    expect(pkg.scripts.test).toBe("vitest run --project '!tooling:browser' --project '!project:tooling'");
   });
 
   it("fails a full check at a failing test and names the step", () => {
@@ -269,7 +267,7 @@ describe("check-body.sh step times and slowest files", () => {
 
 describe("check-body.sh reruns a failed test file", () => {
   const rerun = (...files) =>
-    `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project core:unit --project project:unit ${files.join(" ")}`;
+    `exec vitest run --no-file-parallelism --project data:unit --project web:unit --project notifications:unit --project server:unit --project project:unit ${files.join(" ")}`;
 
   it("a file that passes alone passes the check and is reported as a flake", () => {
     const r = body(["slice", "base"], "", { STUB_TESTS: "a.test.ts:1,ok.test.ts:0" });

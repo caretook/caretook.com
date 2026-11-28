@@ -1,8 +1,7 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { todoOrder } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { todoStrip, todoStripText, todoStripWho } from "./todoStrip";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { todoOrder } from "@caretook/data/domain";
 
 const LA = "America/Los_Angeles";
 // Wednesday, Nov 18, 2026, 10:00 AM in Los Angeles.
@@ -124,5 +123,59 @@ describe("todoStripText and todoStripWho", () => {
   it("opens the list on Mine for my todo, else Everyone", () => {
     expect(todoStripWho({ mine: true })).toBe("mine");
     expect(todoStripWho({ mine: false })).toBe("everyone");
+  });
+});
+
+describe("todoStrip and the tree (todo-subtasks-3)", () => {
+  const step = (title: string, dueOn: string | null, extra: Partial<TodoRuleFields> = {}) => ({
+    ...todo(title, dueOn, extra),
+    parentId: "Parent",
+  });
+
+  it("names and counts a step due today like any todo", () => {
+    const s = todoStrip(
+      todoOrder([todo("Parent", "2026-11-20"), step("Book the ride", "2026-11-18")], NOW, LA),
+      NOW,
+      LA,
+      ME,
+    );
+    expect(s && { state: s.state, more: s.more, ...todoStripText(s) }).toMatchObject({
+      state: "today",
+      title: "Book the ride",
+      more: 0,
+      text: "Today: Book the ride",
+    });
+  });
+
+  it("puts my step first today, counting the others", () => {
+    const s = todoStrip(
+      todoOrder(
+        [
+          todo("Pick up walker", "2026-11-18"),
+          step("Plain step", "2026-11-18"),
+          step("My step", "2026-11-18", { dueTime: "17:00", assigneeId: ME }),
+        ],
+        NOW,
+        LA,
+      ),
+      NOW,
+      LA,
+      ME,
+    );
+    expect(s && { state: s.state, title: s.todo.title, mine: s.mine, more: s.more }).toEqual({
+      state: "today",
+      title: "My step",
+      mine: true,
+      more: 2,
+    });
+  });
+
+  it("names an overdue step before today's", () => {
+    const s = todoStrip([todo("Pick up walker", "2026-11-18"), step("Late step", "2026-11-17")], NOW, LA, ME);
+    expect(s && { state: s.state, title: s.todo.title, overdue: s.overdue }).toEqual({
+      state: "overdue",
+      title: "Late step",
+      overdue: 1,
+    });
   });
 });

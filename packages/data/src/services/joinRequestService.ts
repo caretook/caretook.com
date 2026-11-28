@@ -18,6 +18,7 @@ import {
 import { isSystemUser } from "../permissions";
 import * as careGroupMemberService from "./careGroupMemberService";
 import { groupDisplayName } from "./groupNames";
+import { takeSignUpUse } from "./linkSignUpUses";
 
 // Requests to join a care group from an invite link (invites slice 4).
 // Using a link (careGroupInviteService.accept) makes a pending request;
@@ -26,8 +27,15 @@ import { groupDisplayName } from "./groupNames";
 // write is the system's, inside these functions, after checking the actor.
 // Each step emails through an injected `JoinMailer`, in the same transaction.
 
-export const serviceName = "joinRequest";
 export const schemaName = careGroupJoinRequestModel.schemaName;
+
+/**
+ * After a request is declined or withdrawn, asking again within this many
+ * days gets the answer a waiting request gets ("requested"), with no new
+ * request and no email, so a refused person can't fill managers' inboxes.
+ */
+export const REASK_COOLDOWN_DAYS = 7;
+const DAY_MS = 24 * 60 * 60_000;
 
 type K = typeof schemaName;
 
@@ -120,7 +128,11 @@ const send = async (mail: JoinMailer | undefined, notice: JoinNotice, tx: Tx) =>
 /**
  * Ask to join with link `invite` as `userId`, who agreed to CONSENT_TEXT.
  * Returns their pending request: the one already waiting (asking again
- * changes nothing), or a new one, which counts a use of the link, records
+ * changes nothing); within REASK_COOLDOWN_DAYS of their last request being
+ * declined or withdrawn, that one, as if waiting (no new row, use or
+ * email; the caller answers "requested" either way); or a new one, which
+ * counts a use of the link (unless
+ * their sign-up through it already did: linkSignUpUses.ts), records
  * consent and emails the group's owners and admins. With `existingOnly`, only
  * the waiting one (or null). Runs as the system in
  * the caller's transaction, with the invite's row locked and its state checked.
@@ -143,6 +155,19 @@ export const requestWithLink = async (
   if (waiting) return { request: waiting, created: false, queued: [] as string[] };
   if (opts.existingOnly) return null;
 
+  const cutoff = new Date(Date.now() - REASK_COOLDOWN_DAYS * DAY_MS).toISOString();
+  const refused = await careGroupJoinRequestModel.get({
+    ...system(tx),
+    filter: {
+      groupId: { type: "eq", value: invite.groupId },
+      userId: { type: "eq", value: userId },
+      status: { type: "inArray", value: ["declined", "withdrawn"] },
+      decidedAt: { type: "gte", value: cutoff },
+    },
+  });
+  if (isError(refused)) return refused;
+  if (refused) return { request: refused, created: false, queued: [] as string[] };
+
   if (!linkRoleAllowed(invite.role)) return newError({ code: "careGroupInviteService:linkRole" });
   const role = invite.role as LinkRole;
 
@@ -153,12 +178,17 @@ export const requestWithLink = async (
   if (isError(request)) return request;
   if (!request) return newError({ code: "joinRequestService:notFound" });
 
-  const used = await careGroupInviteModel.update({
-    ...system(tx),
-    filter: byId(invite.id),
-    data: { useCount: invite.useCount + 1 },
-  });
-  if (isError(used)) return used;
+  // Their sign-up through this link already counted their use (B-333).
+  const requester = await userOf(userId, tx);
+  if (isError(requester)) return requester;
+  if (!(await takeSignUpUse(tx, invite.id, requester.email))) {
+    const used = await careGroupInviteModel.update({
+      ...system(tx),
+      filter: byId(invite.id),
+      data: { useCount: invite.useCount + 1 },
+    });
+    if (isError(used)) return used;
+  }
 
   const consented = await careGroupConsentModel.create({
     ...system(tx),
@@ -172,12 +202,7 @@ export const requestWithLink = async (
   });
   if (isError(consented)) return consented;
 
-  const [requester, groupName, to] = [
-    await userOf(userId, tx),
-    await nameOfGroup(invite.groupId, tx),
-    await managersOf(invite.groupId, tx),
-  ];
-  if (isError(requester)) return requester;
+  const [groupName, to] = [await nameOfGroup(invite.groupId, tx), await managersOf(invite.groupId, tx)];
   if (isError(groupName)) return groupName;
   if (isError(to)) return to;
   const queued = await send(

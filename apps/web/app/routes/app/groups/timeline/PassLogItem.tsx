@@ -3,18 +3,18 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useId, useState } from "react";
 import { Link } from "react-router";
-import { AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
+import { ASIDE_CLASS, AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
 import { Chevron, Collapse } from "~/components/ui";
 import { formatTime } from "~/lib/core/format";
-import { passLogText } from "~/lib/medications/medicationDisplay";
 import { medicationEntryText } from "~/lib/medications/medicationEntries";
 import { passLogCounts } from "~/lib/medications/passLogs";
-import { ASIDE_CLASS } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
+import { passLogText } from "@caretook/data/schema";
 
 /**
  * A pass log on the timeline: the doses logged in one round as one row or
- * card ("Morning: 3 given, 1 refused") at its earliest dose's time, with a
+ * card ("Morning: 3 given, 1 refused") at its earliest dose's time (beside
+ * the text, the author's avatar at the end, as on the entries), with a
  * toggle that lists each medication and what happened. Writers' taps open
  * the pass sheet (`sheetTo`); viewers get the toggle only.
  */
@@ -79,9 +79,10 @@ export function PassLogItem({
     <li
       className={
         cards
-          ? "rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3"
+          ? "rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 shadow-sm"
           : "relative isolate flex items-start gap-2.5 px-3 py-2"
       }
+      data-look={cards ? "full" : "condensed"}
       data-pass-log={passLogId}
     >
       {sheetTo && (
@@ -94,38 +95,22 @@ export function PassLogItem({
         />
       )}
       <KindFilterLink kind="dose" size={cards ? "md" : "sm"} />
-      {!cards && (
-        <time
-          dateTime={occurredAt}
-          className="text-muted w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
-        >
-          {time}
-        </time>
-      )}
       <div className={`min-w-0 flex-1 ${cards ? "space-y-0.5" : "pt-0.5"}`}>
-        <div className="flex items-start justify-between gap-2">
+        {/* The time beside the first line, as on the entries (`TimelineEntryRow`). */}
+        <div className="flex items-baseline justify-between gap-2">
           <p className="font-semibold break-words" data-pass-log-text>
             {text}
           </p>
-          {cards && (
-            <time dateTime={occurredAt} className="text-muted text-sm tabular-nums">
-              {time}
-            </time>
-          )}
+          <time dateTime={occurredAt} className="text-muted shrink-0 text-sm whitespace-nowrap tabular-nums">
+            {time}
+          </time>
         </div>
         {toggle}
         {list}
-        {cards && (
-          <p className="text-faint text-xs">
-            <AuthorFilterLink userId={author} name={authorName} />
-          </p>
-        )}
       </div>
-      {!cards && (
-        <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
-          <AuthorFilterLink userId={author} name={authorName} image={authorImage} circle />
-        </div>
-      )}
+      <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
+        <AuthorFilterLink userId={author} name={authorName} image={authorImage} circle />
+      </div>
     </li>
   );
 }

@@ -3,7 +3,13 @@ import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { DbQueryWith, DbSchemaName, DbSelect, Tx } from "../../db";
 import type { AppError } from "../../errors";
 import type { AuthUser, PermissionScope } from "../../permissions";
-import type { Filter, QueryCreateArgs, QuerySelectArgs, QueryUpdateArgs } from "./queryHelpers";
+import type {
+  Filter,
+  QueryCommonArgs,
+  QueryCreateArgs,
+  QuerySelectArgs,
+  QueryUpdateArgs,
+} from "./queryHelpers";
 
 import { count, eq, or, sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
@@ -217,6 +223,63 @@ export const create =
 
     // Re-read through `get` so the result has relations and read permissions applied.
     return getById(model)(String(created.id), args);
+  };
+
+/**
+ * `create` for many rows in one INSERT (B-755): the same scope, field and
+ * scope-landing checks on every row (one scope query per distinct set of
+ * scoped values), then one re-read through `list`. All or nothing: a refused
+ * row refuses the lot. Returns the rows in `data`'s order.
+ */
+export const createMany =
+  <K extends DbSchemaName, TRow, TModel extends { id: string }>(model: BaseModelArgs<K, TRow, TModel>) =>
+  async (args: QueryCommonArgs & { data: QueryCreateArgs<K>["data"][] }) => {
+    const { schemaName } = model;
+    const { authUser } = args;
+    if (!args.data.length) return [] as TModel[];
+
+    const scope = getPermissionScope(schemaName, "create", authUser);
+    if (isError(scope)) return scope;
+
+    const rows = args.data.map((row) => omitFields(row, PROTECTED_FIELDS));
+    const checked = new Map<string, boolean>();
+    for (const data of rows) {
+      const unauthorizedFields = getUnauthorizedFields({ schemaName, permission: "create", authUser, data });
+      if (unauthorizedFields.length) {
+        return newError({ code: "permissions:fieldUnauthorized", meta: { fields: unauthorizedFields } });
+      }
+      const key = scope.type === "all" ? "" : JSON.stringify(scope.rules.map((rule) => data[rule.field]));
+      let inScope = checked.get(key);
+      if (inScope === undefined) {
+        const res = await dataInScope(scope, data, args.tx);
+        if (isError(res)) return res;
+        checked.set(key, (inScope = res));
+      }
+      if (!inScope) return rejectError(authUser);
+    }
+
+    const table = getTable(schemaName);
+    const actor = actorId(authUser);
+    const res = await dbMayFail(
+      () =>
+        txOrDb(args.tx)
+          .insert(table)
+          .values(rows.map((data) => ({ ...data, createdBy: actor, updatedBy: actor })))
+          .returning({ id: table.id }),
+      "baseModel:create",
+      { schemaName },
+    );
+    if (isError(res)) return res;
+    if (res.length !== rows.length) return newError({ code: "baseModel:create:nothingCreated" });
+
+    const created = await list(model)({
+      authUser,
+      tx: args.tx,
+      filter: idsFilter<K>(res.map((r) => String(r.id))),
+    });
+    if (isError(created)) return created;
+    const byId = new Map(created.data.map((row) => [row.id, row]));
+    return res.flatMap((r) => byId.get(String(r.id)) ?? []);
   };
 
 export const update =

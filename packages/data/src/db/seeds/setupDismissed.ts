@@ -1,29 +1,57 @@
+import type { GroupSetup } from "../schema";
+
 import { eq, inArray, like, or } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
-import { careGroupMemberSchema, careGroupSchema, mergeSetupDismissed, userSchema } from "../schema";
+import {
+  careGroupMemberSchema,
+  careGroupSchema,
+  mergeGroupSetup,
+  mergeSetupDismissed,
+  SETUP_NUDGES,
+  userSchema,
+} from "../schema";
 import { SEEDED_DOMAIN } from "./accounts";
 
-type Membership = { userId: string; groupId: string; dismissed: readonly string[] | undefined };
+type Membership = {
+  userId: string;
+  groupId: string;
+  dismissed: readonly string[] | undefined;
+  groupSetup?: Readonly<GroupSetup> | undefined;
+};
 
-/** Each member whose list lacks one of their seeded groups, with the list to store. */
+/** A seeded group's setup, done: opened, every nudge retired. */
+const DONE = { opened: true, retired: [...SETUP_NUDGES] } as const;
+
+/** Each member whose setup card or setup record lacks one of their seeded groups, with both to store. */
 export const dismissalsToAdd = (memberships: readonly Membership[]) => {
-  const byUser = new Map<string, { base: readonly string[]; groups: string[] }>();
-  for (const { userId, groupId, dismissed } of memberships) {
-    const entry = byUser.get(userId) ?? { base: dismissed ?? [], groups: [] };
+  const byUser = new Map<
+    string,
+    { base: readonly string[]; baseSetup: Readonly<GroupSetup>; groups: string[] }
+  >();
+  for (const { userId, groupId, dismissed, groupSetup } of memberships) {
+    const entry = byUser.get(userId) ?? { base: dismissed ?? [], baseSetup: groupSetup ?? {}, groups: [] };
     entry.groups.push(groupId);
     byUser.set(userId, entry);
   }
-  return [...byUser].flatMap(([userId, { base, groups }]) => {
+  return [...byUser].flatMap(([userId, { base, baseSetup, groups }]) => {
     const setupDismissed = mergeSetupDismissed(base, groups);
-    return setupDismissed.length === base.length ? [] : [{ userId, setupDismissed }];
+    const groupSetup = mergeGroupSetup(
+      baseSetup,
+      Object.fromEntries(groups.map((id) => [id, { ...DONE, retired: [...DONE.retired] }])),
+    );
+    const unchanged =
+      setupDismissed.length === base.length && JSON.stringify(groupSetup) === JSON.stringify(baseSetup);
+    return unchanged ? [] : [{ userId, setupDismissed, groupSetup }];
   });
 };
 
 /**
  * Every member of a seeded group (one the system or a seeded account created)
- * starts with its setup card dismissed, so the card doesn't appear across
- * every check. A group a real account made is left alone. Idempotent.
+ * starts with its setup card dismissed and its setup done (opened, every
+ * nudge retired), so neither the card, the setup redirect nor a nudge
+ * appears across every check. A group a real account made is left alone.
+ * Idempotent.
  */
 export const seed = async () => {
   const db = getDb();
@@ -48,11 +76,16 @@ export const seed = async () => {
     .where(inArray(careGroupMemberSchema.groupId, groups));
   const prefsOf = new Map(rows.map((r) => [r.userId, r.preferences]));
   const changes = dismissalsToAdd(
-    rows.map((r) => ({ userId: r.userId, groupId: r.groupId, dismissed: r.preferences.setupDismissed })),
+    rows.map((r) => ({
+      userId: r.userId,
+      groupId: r.groupId,
+      dismissed: r.preferences.setupDismissed,
+      groupSetup: r.preferences.groupSetup,
+    })),
   );
-  for (const { userId, setupDismissed } of changes)
+  for (const { userId, setupDismissed, groupSetup } of changes)
     await db
       .update(userSchema)
-      .set({ preferences: { ...prefsOf.get(userId), setupDismissed } })
+      .set({ preferences: { ...prefsOf.get(userId), setupDismissed, groupSetup } })
       .where(eq(userSchema.id, userId));
 };

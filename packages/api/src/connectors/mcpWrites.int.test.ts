@@ -14,7 +14,7 @@ import {
   todoService,
   timelineEntryService,
 } from "@caretook/data";
-import { doseSlotIdFor, fromBase64, MENTION_NODE, symptomTypeId } from "@caretook/data/schema";
+import { doseSlotIdFor, symptomTypeId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -27,6 +27,7 @@ import {
   TEST_ORIGIN,
   toolRequest,
 } from "./testing";
+import { fromBase64, MENTION_NODE } from "@caretook/data/domain";
 
 // The write tools through /mcp's HTTP handler, with tokens from the real
 // OAuth dance: each tool writes through the server runner with "via" the
@@ -403,7 +404,7 @@ describe("/mcp write tools", () => {
     });
   });
 
-  it("add_todo takes no repeat: a repeatRule sent is ignored (B-253)", async () => {
+  it("add_todo takes no RRULE text: a raw repeatRule without repeat makes a todo that doesn't repeat (B-253)", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
 
@@ -419,6 +420,111 @@ describe("/mcp write tools", () => {
       repeatRule: null,
       repeatStartsOn: null,
       repeatId: null,
+    });
+  });
+
+  describe("add_todo with a repeat (B-253)", () => {
+    // Wednesday 18 Nov 2026, 11:00 in Los Angeles (the recipient's zone): the next Monday is the 23rd.
+    const NOW = new Date("2026-11-18T19:00:00.000Z");
+    const pinned = mcpHandler({ now: () => NOW });
+    const call = (token: string, name: string, args: Record<string, unknown> = {}) =>
+      callTool(pinned, token, name, args);
+    const groupTodos = async (w: Awaited<ReturnType<typeof world>>) =>
+      ok(await todoService.list(w.owner.ctx, { groupId: w.group.id })).data;
+
+    it("makes a weekly todo due the next listed day, listed with its repeat, that goes on when done", async () => {
+      const w = await world();
+      const token = w.writer.tokens.access_token;
+
+      const todo = await call(token, "add_todo", {
+        title: "Put the bins out",
+        repeat: { every: "week", weekdays: ["MO"] },
+      });
+      expect(todo.isError).toBeUndefined();
+      const { todoId, repeats, dueOn } = todo.structuredContent as {
+        todoId: string;
+        repeats: string;
+        dueOn: string;
+      };
+      expect(dueOn).toBe("2026-11-23");
+      expect(repeats).toMatch(/Mon/);
+      // The preview's due line already says the repeat: once, not twice.
+      expect(textOf(todo)).toMatch(/^Added todo: Put the bins out · .*Repeats weekly on Monday/);
+      expect(textOf(todo).match(/Repeats/g)).toHaveLength(1);
+      const row = ok(await todoService.getById(w.owner.ctx, todoId));
+      expect(row).toMatchObject({
+        dueOn: "2026-11-23",
+        repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
+        repeatStartsOn: "2026-11-23",
+        repeatId: todoId,
+        via: CLIENT,
+      });
+
+      const listed = await call(token, "list_todos");
+      const todos = (listed.structuredContent as { todos: { id: string; repeats: string | null }[] }).todos;
+      expect(todos.find((t) => t.id === todoId)).toMatchObject({ repeats });
+
+      ok(await todoService.complete(w.caretaker.ctx, todoId));
+      const next = (await groupTodos(w)).find((t) => t.id !== todoId && t.repeatId === todoId);
+      expect(next).toMatchObject({ title: "Put the bins out", repeatRule: row!.repeatRule, doneAt: null });
+      expect(next!.dueOn! > "2026-11-23").toBe(true);
+      expect(new Date(`${next!.dueOn}T12:00:00Z`).getUTCDay()).toBe(1);
+    });
+
+    it("keeps a due time, and refuses a due day off the repeat's days, making nothing", async () => {
+      const w = await world();
+      const token = w.writer.tokens.access_token;
+
+      const daily = await call(token, "add_todo", {
+        title: "Check blood sugar",
+        dueTime: "08:00",
+        repeat: { every: "day", interval: 2 },
+      });
+      expect(daily.isError).toBeUndefined();
+      expect(ok(await todoService.getById(w.owner.ctx, daily.structuredContent.todoId!))).toMatchObject({
+        dueOn: "2026-11-18",
+        dueTime: "08:00",
+        repeatRule: "FREQ=DAILY;INTERVAL=2",
+      });
+
+      const before = (await groupTodos(w)).length;
+      const refused = await call(token, "add_todo", {
+        title: "Put the bins out",
+        dueOn: "2026-11-24",
+        repeat: { every: "week", weekdays: ["MO"] },
+      });
+      expect(refused).toMatchObject({
+        isError: true,
+        structuredContent: {
+          error: {
+            code: "assistantActionService:invalid",
+            issues: [
+              {
+                path: "repeat",
+                message: "The due day isn't one of the repeat's days. The next one is 2026-11-30.",
+              },
+            ],
+          },
+        },
+      });
+      expect((await groupTodos(w)).length).toBe(before);
+    });
+
+    it("can't be called on a read grant", async () => {
+      const w = await world();
+      const reader = await connectAssistant({
+        email: w.caretaker.user.email,
+        groupId: w.group.id,
+        scope: "read",
+        clientName: "Reader",
+      });
+      const res = await mcpPost(
+        pinned,
+        reader.tokens.access_token,
+        toolRequest("add_todo", { title: "Put the bins out", repeat: { every: "day" } }),
+      );
+      expect(res.status).toBe(403);
+      expect(await groupTodos(w)).toHaveLength(0);
     });
   });
 

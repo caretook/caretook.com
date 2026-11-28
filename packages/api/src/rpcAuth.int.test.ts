@@ -1,18 +1,19 @@
 import type { AuthUserLookup } from "./procedures";
 
 import { getAuth, getAuthConfig, getAuthUser } from "@caretook/auth";
-import { accountSchema, getDb, MIN_FORM_MS, newError } from "@caretook/data";
+import { accountSchema, getDb, newError } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createGroup, createUser } from "../../data/test/fixtures";
 import { createRpcHandler } from "./handler";
+import { MIN_FORM_MS } from "@caretook/data/domain";
 
 // /rpc's session lookup (B-140): lazy (public procedures never look one
-// up), one query for the account and its memberships, and Better Auth's
-// 3-minute session cookie cache, bypassed by staff procedures and /token.
+// up), one query for the account, its memberships and the live session row
+// (B-339), and Better Auth's 3-minute session cookie cache, bypassed by
+// staff procedures and /token.
 
 const PASSWORD = "correct horse battery staple";
-const CACHE_AGE_MS = 180_000;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -184,18 +185,31 @@ describe("the session cookie cache", () => {
     expect(cookies.names().some((name) => name.endsWith("session_data"))).toBe(true);
   });
 
-  // ⚠ The tradeoff, pinned: a revoked session keeps working for ordinary
-  // calls until the cache expires (docs/domain/auth.md).
-  it("a revoked session still serves ordinary calls for up to 3 minutes, then stops", async () => {
-    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() });
+  // The cache no longer stands in for the session's row (B-339): the
+  // one-query lookup joins it, so a session revoked elsewhere is refused on
+  // the next ordinary call, its fresh cache cookie notwithstanding.
+  it("a session revoked elsewhere is refused on the next ordinary call, despite a fresh cache cookie", async () => {
     const login = await createLogin();
     const cookies = await signIn(login.user.email);
-    await revokeSessions(login.user.id);
-
-    vi.setSystemTime(Date.now() + CACHE_AGE_MS - 10_000);
+    const other = await signIn(login.user.email);
     expect((await call(cookies.headers(), "me/get")).status).toBe(200);
 
-    vi.setSystemTime(Date.now() + 20_000);
+    // Signed out from the other device (the Devices page's "sign out everywhere").
+    const res = await getAuth().api.revokeOtherSessions({ headers: other.headers(), asResponse: true });
+    expect(res.status).toBe(200);
+    expect(cookies.names().some((name) => name.endsWith("session_data"))).toBe(true);
+
+    expect((await call(cookies.headers(), "me/get")).status).toBe(401);
+    expect(await getAuthUser(cookies.headers())).toBeNull();
+    // The device that asked keeps its session.
+    expect((await call(other.headers(), "me/get")).status).toBe(200);
+  });
+
+  it("a session deleted from the table stops ordinary calls at once, not after 3 minutes", async () => {
+    const login = await createLogin();
+    const cookies = await signIn(login.user.email);
+    expect((await call(cookies.headers(), "me/get")).status).toBe(200);
+    await revokeSessions(login.user.id);
     expect((await call(cookies.headers(), "me/get")).status).toBe(401);
   });
 
@@ -207,7 +221,7 @@ describe("the session cookie cache", () => {
 
     await revokeSessions(staff.user.id);
 
-    expect((await call(cookies.headers(), "me/get")).status).toBe(200);
+    expect((await call(cookies.headers(), "me/get")).status).toBe(401);
     expect((await call(cookies.headers(), "admin/accessCode/list")).status).toBe(401);
     expect((await token(cookies.headers())).status).toBe(401);
     // Whatever the client asks for.

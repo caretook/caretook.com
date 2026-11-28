@@ -3,7 +3,6 @@ import {
   medicationPassService,
   medicationService,
   medicationTitle,
-  medicationTypeLabel,
   normalizeSchedule,
   providerService,
   scheduleText,
@@ -13,6 +12,8 @@ import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { LIST_PAGE_MAX, pageOf, pagingInput } from "./readSupport";
 import { asMember, loadGroup } from "./shared";
+import { tagsByRecord, tagsOf, tagsSuffix } from "./tagSupport";
+import { medicationTypeLabel } from "@caretook/data/domain";
 
 const input = z.object({
   includePast: z
@@ -26,7 +27,7 @@ const input = z.object({
 export const listMedications = defineTool({
   name: "list_medications",
   title: "List medications",
-  description: `The care recipient's medications by name: strength, form, type (prescription, otc, supplement, other, or null when not set), dose, directions, why, the schedule as it reads ("Morning and Evening", "As needed, up to 4 a day"), prescriber and pharmacy. Current ones by default; includePast adds completed and discontinued. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `The care recipient's medications by name: strength, form, type (prescription, otc, supplement, other, or null when not set), dose, directions, why, the schedule as it reads ("Morning and Evening", "As needed, up to 4 a day"), prescriber, pharmacy and tags. Current ones by default; includePast adds completed and discontinued. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -58,6 +59,8 @@ export const listMedications = defineTool({
           a.id.localeCompare(b.id),
       );
     const page = pageOf(wanted, args);
+    const byRecord = await tagsByRecord(ctx);
+    if (isError(byRecord)) return byRecord;
 
     const medications = page.items.map((m) => {
       const schedule = normalizeSchedule(m.schedule);
@@ -84,11 +87,12 @@ export const listMedications = defineTool({
         pharmacy: providerName(m.pharmacyId),
         lastFilledOn: m.lastFilledOn,
         refillsLeft: m.refillsLeft,
+        tags: tagsOf(byRecord, m.id),
       };
     });
 
     const line = (m: (typeof medications)[number]) =>
-      `- ${[m.title, m.type ? medicationTypeLabel(m.type) : null, m.dose, m.schedule, m.stopped].filter(Boolean).join(" · ")}${m.reason ? ` (for ${m.reason})` : ""}`;
+      `- ${[m.title, m.type ? medicationTypeLabel(m.type) : null, m.dose, m.schedule, m.stopped].filter(Boolean).join(" · ")}${m.reason ? ` (for ${m.reason})` : ""}${tagsSuffix(m.tags)}`;
     const text = medications.length
       ? [
           `${medications.length} medication${medications.length === 1 ? "" : "s"}:`,

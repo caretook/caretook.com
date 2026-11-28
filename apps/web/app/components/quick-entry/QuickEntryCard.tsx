@@ -1,5 +1,4 @@
-import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
-import type { QuickEntryKind } from "@caretook/data/schema";
+import type { QuickEntryKind, ActionPreview } from "@caretook/data/schema";
 import type { LucideIcon } from "lucide-react";
 import type { KindChip } from "~/lib/timeline/entryDisplay";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
@@ -7,7 +6,7 @@ import type { QuickEntryCard as Card } from "./quickEntryCards";
 import { ListTodo, PillBottle, Stethoscope, X } from "lucide-react";
 import { Badge, Button, ChipGroup, IconButton, IconChip } from "~/components/ui";
 import { KIND_META, TODO_CHIP } from "~/lib/timeline/entryDisplay";
-import { SymptomGate } from "~/routes/app/groups/timeline/SymptomGate";
+import { QuickEntrySymptomDefault } from "./QuickEntrySymptomDefault";
 
 /**
  * The chip of a card that isn't a timeline entry: a todo (the Todos
@@ -48,7 +47,7 @@ export function QuickEntryCard({
   draftLine?: string | null;
   error?: string;
   onChoose: (index: number) => void;
-  /** A symptom card's answer (`card.symptomGate`): the catalog's name, or null for "Add new". */
+  /** A symptom card's answer (`card.symptomDefault`): the catalog's name, or null for "Add new". */
   onSymptomChoice?: (use: string | null) => void;
   onEdit: () => void;
   onRemove: () => void;
@@ -111,15 +110,8 @@ export function QuickEntryCard({
           ))}
         </ul>
       )}
-      {card.symptomGate && onSymptomChoice && (
-        <div className="mt-2">
-          <SymptomGate
-            gate={card.symptomGate}
-            onUse={(name) => onSymptomChoice(name)}
-            onAddNew={() => onSymptomChoice(null)}
-            takeFocus={false}
-          />
-        </div>
+      {card.symptomDefault && onSymptomChoice && (
+        <QuickEntrySymptomDefault symptom={card.symptomDefault} onChoose={onSymptomChoice} />
       )}
       {card.notices.length > 0 && (
         <ul className="border-warning mt-2 space-y-0.5 border-s-4 ps-2 text-sm" data-quick-notice>

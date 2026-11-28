@@ -1,11 +1,13 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { todoState } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { todoState } from "@caretook/data/domain";
 
 // The timeline's todo strip: one line, there while the group has open todos
 // overdue or due today. Which todo it names (`todoStrip`) and what it says
 // (`todoStripText`). It counts the whole group's todos; mine come first in
-// the wording. Pure; web:unit tests it.
+// the wording. A subtask (a step) counts and is named like any todo: one line
+// has no room for its tree, so the strip names the due step itself and its
+// link opens the Todos page, where the tree shows (todo-subtasks-3; the one
+// exception to trees everywhere). Pure; web:unit tests it.
 
 /** `overdue`: red, something is late; `today`: amber, due today and nothing late. */
 export type TodoStripState = "overdue" | "today";
@@ -25,7 +27,8 @@ export type TodoStrip<T extends TodoRuleFields = TodoRuleFields> = {
 /**
  * The todo the strip names, from the group's open todos in `todoOrder`: the
  * first overdue one (mine first), else the first due today (mine first).
- * Null when nothing is overdue or due today.
+ * Null when nothing is overdue or due today. Every open todo counts, a step
+ * of a tree included.
  */
 export function todoStrip<T extends TodoRuleFields>(
   todos: readonly T[],

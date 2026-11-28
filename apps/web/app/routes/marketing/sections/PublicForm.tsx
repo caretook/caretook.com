@@ -3,10 +3,10 @@ import type { FieldControl, FieldKind } from "~/components/ui/plain";
 import type { FieldCopy, FormThanksContent } from "./types";
 import type { FormFailure } from "./forms";
 
-import { HONEYPOT_FIELD } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { Button, Field, Notice } from "~/components/ui/plain";
 import { formFailure } from "./forms";
+import { HONEYPOT_FIELD } from "@caretook/data/domain";
 
 // The marketing site's public forms' shared parts: the submit state (with
 // the time on the page and the honeypot), fields with labels and linked

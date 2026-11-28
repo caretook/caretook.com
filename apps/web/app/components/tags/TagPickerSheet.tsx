@@ -9,6 +9,7 @@ import { getSync } from "~/lib/sync";
 import { exactTag, matchingTags, newTagName } from "~/lib/tags/tagPicker";
 import { createTag, tagRecord, untagRecord } from "~/lib/tags/tags.sync";
 import { TagEditor } from "./TagEditor";
+import { TagSwatch } from "./TagSwatch";
 import { useGroupTags, useRecordTags } from "./useTags";
 
 /** What the picker tags: a record, and its name for the sheet's title. */
@@ -22,7 +23,8 @@ export type TagPickerTarget = { target: TagTarget; recordId: string; label: stri
  * spacing, is reused, never added twice (`exactTag`). A tag the person may
  * rename (`canRenameTag`) has a Rename button that edits it in place, with
  * Delete for an owner (`TagEditor`). Who may open it is the caller's
- * (`canTagRecord`); the writes check it again.
+ * (`canTagRecord`); the writes check it again. Each toggle shows its tag's
+ * color as a dot (`tagColorClass`; an empty ring for none).
  */
 export function TagPickerSheet({
   target,
@@ -103,7 +105,12 @@ export function TagPickerSheet({
                 ) : (
                   <div className="flex items-center justify-between gap-2">
                     <CheckField
-                      label={t.name}
+                      label={
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                          <TagSwatch color={t.color} />
+                          <span className="min-w-0 break-words">{t.name}</span>
+                        </span>
+                      }
                       checked={on.has(t.id)}
                       onChange={(e) => toggle(t.id, e.target.checked)}
                       data-tag-toggle={t.id}

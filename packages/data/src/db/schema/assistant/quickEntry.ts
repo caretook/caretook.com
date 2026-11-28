@@ -2,18 +2,24 @@ import type { ActionKind, AssistantAction } from "./assistantActions";
 import type { DoseStatus } from "../medications/medication";
 import type { ProviderType } from "../providers/provider";
 import type { NewItemDraft } from "./quickEntryNewItem";
-import type { ResolvedTime, TimeDirection, TimeSpec } from "./quickEntryTime";
-import type { VocabularyMatch, VocabularyRole } from "./quickEntryVocabulary";
+import type { ResolvedTime, TimeDirection, TimeSpec } from "../../../domain/assistant/quickEntryTime";
+import type { VocabularyMatch, VocabularyRole } from "../../../domain/assistant/quickEntryVocabulary";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
 
-import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
-import { findTime, periodUnderway, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
-import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
-import { readRepeat } from "./quickEntryRepeat";
+import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../../../domain/core/entryTiming";
+import {
+  findTime,
+  periodUnderway,
+  resolveTime,
+  saysFuture,
+  wallTime,
+} from "../../../domain/assistant/quickEntryTime";
+import { findVocabulary, vocabularyWord } from "../../../domain/assistant/quickEntryVocabulary";
+import { readRepeat } from "../../../domain/assistant/quickEntryRepeat";
 import { keepsNewItemLine, readNewItem } from "./quickEntryNewItem";
-import { foldSearchText } from "../search/search";
+import { foldSearchText } from "../../../domain/search/search";
 import { TODO_LIMITS } from "../todos/todo";
-import { localTime } from "../todos/todoRules";
+import { localTime } from "../../../domain/todos/todoRules";
 import { TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import { similarSymptoms } from "../timeline/symptomCatalog";
 import {
@@ -30,8 +36,8 @@ import {
 // each with its readings ranked best first. Pure and client-safe; nothing is
 // saved here. English only.
 //
-// Rules, in order, per part: a kind prefix (`n:` `e:` `s:` `v:` `d:`) forces
-// a kind; otherwise vitals (a keyword and a number, or a bare `n/n`), doses
+// Rules, in order, per part: a kind prefix (`n:` `e:` `s:` `v:` `d:`, or a
+// kind word: "note", "add event") forces a kind; otherwise vitals (a keyword and a number, or a bare `n/n`), doses
 // (give/gave/skip/refuse and a medication), symptoms (a phrase and 0–10 or
 // `n/10`, a symptom word, or an incident: "fell"), events (`appt`, a named
 // provider, or a time ahead), then a note. The words that pick a kind live
@@ -41,7 +47,7 @@ import {
 // part's time, in the recipient's zone; which way an ambiguous one reads is
 // the reading's: ahead for events and todos (back after a visit verb:
 // "saw Dr. Lee friday"), back for the rest, notes included. A todo is asked
-// for (`t:`, `task:`, `todo:`: its "for Sam" or "@Sam" names a member, and
+// for (`t:`, `task:`, `todo`, "add to-do": its "for Sam" or "@Sam" names a member, and
 // its time phrase is the due day), or is what a note that says a time ahead
 // becomes ("call the pharmacy tomorrow"): notes are past-only.
 
@@ -135,11 +141,38 @@ export const KIND_LABELS: Record<QuickEntryKind, string> = {
   provider: "New provider",
 };
 
-/** Kind prefixes: `v: …` is always a vital. */
-const PREFIXES: Record<string, ActionKind> = { n: "note", e: "event", s: "symptom", v: "vital", d: "dose" };
+/** Kind prefixes: `v: …` is always a vital, `t: …` a todo. */
+const PREFIXES: Record<string, ActionKind> = {
+  n: "note",
+  e: "event",
+  s: "symptom",
+  v: "vital",
+  d: "dose",
+  t: "todo",
+  note: "note",
+  event: "event",
+  task: "todo",
+  todo: "todo",
+  "to-do": "todo",
+  "to do": "todo",
+};
 
-/** A todo's prefix: `t:`, `task:`, `todo:` (or `todo` alone, `to-do:`). */
-const TODO_PREFIX = /^\s*(?:(?:t|task|todo|to-do|to do)\s*:|todo\b)\s*/i;
+/**
+ * A kind cue at the start of a line: a letter prefix (`n:`, `t:`), or a kind
+ * word with or without its colon (`todo`, `to-do`, `to do`, `task`, `note`,
+ * `event`), after an `add` or not ("add todo call the pharmacy", "add an event
+ * dentist friday"). An `add` without a kind word isn't one ("add salt to diet").
+ */
+const KIND_CUE =
+  /^\s*(?:(?:add\s+(?:an?\s+)?)?(task|todo|to-do|to\s+do|note|event)(?=\s|:|$)\s*:?|([nesvdt])\s*:)\s*/i;
+
+/** The kind a line's cue asks for, and the cue's length (its words leave the text). */
+const kindCue = (text: string): { kind: ActionKind; length: number } | null => {
+  const m = KIND_CUE.exec(text);
+  if (!m) return null;
+  const word = (m[1] ?? m[2]!).toLowerCase().replace(/\s+/g, " ");
+  return { kind: PREFIXES[word]!, length: m[0].length };
+};
 
 // ---------------------------------------------------------------------------
 // Words
@@ -522,6 +555,13 @@ const tokenize = (text: string): Token[] => {
       tokens.push({ raw: raw.slice(joined[1]!.length), w: joined[2]! });
       continue;
     }
+    // "97o2", "97spo2": a number joined to its keyword after it (not a unit: "7hr" stays hours).
+    const trailing = /^(\d+(?:\.\d+)?)([a-z][a-z0-9]*)$/.exec(w);
+    if (trailing && VITAL_SINGLE_WORDS.has(trailing[2]!) && !(trailing[2]! in UNIT_WORDS)) {
+      tokens.push({ raw: raw.slice(0, trailing[1]!.length), w: trailing[1]! });
+      tokens.push({ raw: raw.slice(trailing[1]!.length), w: trailing[2]! });
+      continue;
+    }
     tokens.push({ raw, w });
   }
   return tokens;
@@ -707,30 +747,106 @@ const readVitalValue = (
   return { reading: { value: n.value }, units: readUnits, used };
 };
 
+/**
+ * The reading typed just before a label ("97 o2", "74 bpm hr", "140/78 bp"),
+ * ending right at it. Less sure than a label-first one, so only a value the
+ * field accepts counts ("7 hr sleep" isn't a heart rate of 7).
+ */
+const readValueBefore = (
+  type: VitalType,
+  tokens: readonly Token[],
+  label: number,
+  free: (i: number) => boolean,
+  units: UnitChoices,
+): Omit<FoundVital, "type"> | null => {
+  for (const start of [label - 1, label - 2]) {
+    if (start < 0) continue;
+    const value = readVitalValue(type, tokens, start, (i) => i >= start && i < label && free(i), units);
+    if (!value || value.used[0] !== start || Math.max(...value.used) !== label - 1) continue;
+    if (toReading({ type, ...value }).warnings.some((w) => w.blocking)) continue;
+    return value;
+  }
+  return null;
+};
+
+type LabelledVital = FoundVital & { label: number[]; value: number[] };
+
+/**
+ * Vitals by their keywords. A keyword reads the number after it ("o2 97"), or,
+ * with none after it, the number before it ("97 o2", "74 hr"). A number between
+ * two keywords stays the first's ("hr 74 o2"), unless the first has its own
+ * number before it and the second has no other ("74 hr 97 o2").
+ */
 const findVitals = (tokens: readonly Token[], taken: ReadonlySet<number>, units: UnitChoices) => {
   const used = new Set<number>();
   const free = (i: number) => !taken.has(i) && !used.has(i);
-  const found: FoundVital[] = [];
+  const found: LabelledVital[] = [];
   const seen = new Set<VitalType>();
-  const add = (v: FoundVital) => {
+  const add = (v: LabelledVital) => {
     if (seen.has(v.type)) return;
     seen.add(v.type);
     found.push(v);
     for (const i of v.used) used.add(i);
   };
+  const labelled = (type: VitalType, label: number[], value: Omit<FoundVital, "type">): LabelledVital => ({
+    type,
+    ...value,
+    label,
+    value: value.used,
+    used: [...label, ...value.used],
+  });
 
+  // Keywords with no number after them, to read the number before them.
+  const orphans: { type: VitalType; label: number[] }[] = [];
   for (let i = 0; i < tokens.length; i++) {
     if (!free(i)) continue;
+    let orphan: { type: VitalType; label: number[] } | undefined;
     for (const [words, type] of VITAL_WORDS) {
       if (seen.has(type)) continue;
       if (!words.every((word, k) => free(i + k) && tokens[i + k]?.w === word)) continue;
+      const label = words.map((_, k) => i + k);
       const value = readVitalValue(type, tokens, i + words.length, free, units);
-      if (!value) continue;
-      add({ type, ...value, used: [...words.map((_, k) => i + k), ...value.used] });
+      if (!value) {
+        orphan ??= { type, label };
+        continue;
+      }
+      add(labelled(type, label, value));
+      orphan = undefined;
       break;
     }
+    if (orphan) orphans.push(orphan);
   }
-  return { found, used };
+
+  for (const o of orphans) {
+    if (seen.has(o.type) || !o.label.every(free)) continue;
+    const start = o.label[0]!;
+    const before = readValueBefore(o.type, tokens, start, free, units);
+    if (before) {
+      add(labelled(o.type, o.label, before));
+      continue;
+    }
+    // "74 hr 97 o2": the keyword before took this number, but has its own before it.
+    const prev = found.findIndex((f) => f.value.length && Math.max(...f.value) === start - 1);
+    if (prev < 0) continue;
+    const p = found[prev]!;
+    p.value.forEach((i) => used.delete(i));
+    const mine = readValueBefore(o.type, tokens, start, free, units);
+    const theirs =
+      mine && readValueBefore(p.type, tokens, p.label[0]!, (i) => free(i) && !mine.used.includes(i), units);
+    if (!mine || !theirs) {
+      p.value.forEach((i) => used.add(i));
+      continue;
+    }
+    found[prev] = labelled(p.type, p.label, theirs);
+    theirs.used.forEach((i) => used.add(i));
+    add(labelled(o.type, o.label, mine));
+  }
+
+  found.sort((a, b) => a.label[0]! - b.label[0]!);
+  return {
+    found: found.map(({ type, reading, units, used }): FoundVital => ({ type, reading, units, used })),
+    used,
+  };
 };
 
 /** Numbers whose unit says which vital they are, and bare blood pressures, with no keyword. */
@@ -2223,10 +2339,9 @@ const parsePart = (
   context: QuickEntryContext,
   previousDose: DoseStatus | null,
 ): QuickEntryPart => {
-  const todoPrefix = TODO_PREFIX.exec(text);
-  const prefix = todoPrefix ?? /^\s*([nesvd]):\s*/i.exec(text);
-  const forced = todoPrefix ? "todo" : prefix ? PREFIXES[prefix[1]!.toLowerCase()]! : null;
-  const body = prefix ? text.slice(prefix[0].length).trim() : text.trim();
+  const cue = kindCue(text);
+  const forced = cue?.kind ?? null;
+  const body = text.slice(cue?.length ?? 0).trim();
   const tokens = tokenize(body);
   // A fraction that is a dose's amount is hidden from the date finder; a line forced to another kind keeps it.
   const readsAmounts = forced === null || forced === "dose";
@@ -2364,8 +2479,8 @@ const parsePart = (
 
 /**
  * A line's parts: split on commas, semicolons, new lines and "and" (not a
- * comma inside a number, "1,000"). A line that starts with `n:` or `e:` is
- * one note or event, whatever it says. A todo keeps its "and" ("todo: pick
+ * comma inside a number, "1,000"). A line that starts with `n:` or `e:` (or
+ * "note", "add event") is one note or event, whatever it says. A todo keeps its "and" ("todo: pick
  * up milk and bread") up to the next comma, semicolon or line, and a repeat
  * its weekdays ("every mon, wed and fri").
  */
@@ -2399,13 +2514,14 @@ const unmask = (text: string) =>
 export const splitQuickEntry = (text: string): string[] => {
   const line = text.trim();
   if (!line) return [];
-  if (/^[ne]:/i.test(line) || keepsNewItemLine(line)) return [line];
+  const cue = kindCue(line)?.kind;
+  if (cue === "note" || cue === "event" || keepsNewItemLine(line)) return [line];
   const masked = line.replace(REPEAT_DAYS, maskList);
   return masked
     .split(/\s*(?:;|\n|(?<!\d),|,(?!\d))\s*/)
     .flatMap((piece) => {
       // From a todo's prefix on, the piece is the todo.
-      const todo = TODO_PREFIX.test(piece) ? 0 : piece.search(TODO_AFTER_SOFT);
+      const todo = kindCue(piece)?.kind === "todo" ? 0 : piece.search(TODO_AFTER_SOFT);
       const head = todo < 0 ? piece : piece.slice(0, todo);
       const tail = todo < 0 ? [] : [piece.slice(todo).replace(SOFT_SPLIT_START, "")];
       return [...(head ? head.split(SOFT_SPLIT) : []), ...tail];

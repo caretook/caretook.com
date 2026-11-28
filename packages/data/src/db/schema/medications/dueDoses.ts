@@ -2,8 +2,8 @@ import type { DoseDetails, MedicationSchedule, MedicationStatus } from "./medica
 import type { PassLike, TimedSlot } from "./medicationPass";
 import type { DoseSlotName, ScheduleChange } from "./scheduleHistory";
 
-import { addDays } from "../core/entryTiming";
-import { dayInZone, zonedInstant } from "../core/zonedDay";
+import { addDays } from "../../../domain/core/entryTiming";
+import { dayInZone, zonedInstant } from "../../../domain/core/zonedDay";
 import { slotAmount } from "./medication";
 import { scheduleHistory } from "./scheduleHistory";
 
@@ -57,7 +57,7 @@ export type DoseSlot = {
   time: string;
   /** The pass the slot is in, or null for a time of its own. */
   passId: string | null;
-  /** What's given: the slot's amount, else the medication's dose (`slotAmount`). */
+  /** What's given: the slot's amount, else the medication's dose at the slot's time (`slotAmount`, `doseAt`). */
   amount: string | null;
   /** The moment it falls (ISO 8601). */
   at: string;
@@ -164,6 +164,7 @@ const expandSlots = (
   days: readonly string[],
   timeZone: string,
   slotsOn: (m: DueMedication, day: string) => readonly TimedSlot[],
+  doseAt: (m: DueMedication, ms: number) => string | null,
 ): Working[] => {
   const working: Working[] = [];
   for (const medication of medications) {
@@ -177,7 +178,7 @@ const expandSlots = (
             day: d,
             time,
             passId,
-            amount: slotAmount(medication, { amount }),
+            amount: slotAmount({ dose: doseAt(medication, at.getTime()) }, { amount }),
             at: at.toISOString(),
           },
           ms: at.getTime(),
@@ -270,6 +271,7 @@ const historiesOf = (
   );
   return {
     slotsOn: (m: DueMedication, day: string) => histories.get(m.id)?.slotsOn(day) ?? [],
+    doseAt: (m: DueMedication, ms: number) => histories.get(m.id)?.doseAt(ms) ?? m.dose,
     nameOf: (dose: DueDose) =>
       histories.get(dose.details.medicationId)?.doseName(dose, windowMinutes) ?? dose.details,
   };
@@ -376,7 +378,7 @@ export function dueDoses({
   const active = medications.filter(isActive).sort(byName);
   const reach = [addDays(day, -2), yesterdayDay, day, addDays(day, 1)];
   const history = historiesOf(active, { passes, changes, timeZone, windowMinutes });
-  const working = expandSlots(active, reach, timeZone, history.slotsOn);
+  const working = expandSlots(active, reach, timeZone, history.slotsOn, history.doseAt);
   // Over all four days, before `settle`: a dose near midnight keeps its own slot.
   answerSlots(working, doses, windowMinutes, timeZone, history.nameOf);
   const slots = settle(working, { now, today: day, overdueAfterMinutes });
@@ -428,6 +430,12 @@ export type DoseSlotsBetweenInput = Omit<DueDosesInput, "now" | "changes"> & {
    * Left out: every day reads the schedule as it is now.
    */
   changes?: readonly ScheduleChange[];
+  /**
+   * ISO 8601 or a Date: when to settle the states (today is its day). Slots
+   * are still kept up to `to`, so a range ending after it shows its later
+   * slots as upcoming. Left out: settled at `to`.
+   */
+  now?: string | Date;
 };
 
 /**
@@ -450,6 +458,7 @@ export function doseSlotsBetween({
   from,
   to,
   changes = [],
+  now,
   timeZone,
   overdueAfterMinutes = OVERDUE_AFTER_MINUTES,
   windowMinutes = 120,
@@ -465,11 +474,13 @@ export function doseSlotsBetween({
     .filter((m) => !m.deletedAt && (m.status === "current" || !!m.stoppedOn))
     .sort(byName);
   const history = historiesOf(taken, { passes, changes, timeZone, windowMinutes });
-  const working = expandSlots(taken, days, timeZone, history.slotsOn);
+  const working = expandSlots(taken, days, timeZone, history.slotsOn, history.doseAt);
   // Answered before trimming to the range, so a dose near its edge keeps its own slot.
   answerSlots(working, doses, windowMinutes, timeZone, history.nameOf);
   const inRange = working.filter((w) => w.ms >= start.getTime() && w.ms <= end.getTime());
-  return settle(inRange, { now: end, today: lastDay, overdueAfterMinutes });
+  const at = now === undefined ? end : new Date(now);
+  if (Number.isNaN(at.getTime())) return [];
+  return settle(inRange, { now: at, today: dayInZone(at, timeZone), overdueAfterMinutes });
 }
 
 /** Per medication, the slots in `slots` that were missed, skipped or refused, most first; none when all were given. */

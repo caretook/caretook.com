@@ -1,9 +1,9 @@
 import type { CarePeriodType } from "@caretook/data/schema";
 
-import { periodSpans } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { suggestionText } from "./periodDisplay";
 import { suggestedType, suggestPeriod } from "./periodSuggestions";
+import { periodSpans } from "@caretook/data/domain";
 
 const NOW = Date.parse("2026-11-19T18:00:00Z");
 const EVENT_AT = "2026-11-15T14:20:00.000Z";

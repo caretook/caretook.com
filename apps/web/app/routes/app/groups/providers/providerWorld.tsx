@@ -235,13 +235,20 @@ export const confirmButton = (text: string) =>
 
 /** The provider page's editor (its live notes). */
 export const NOTES = () => document.querySelector<HTMLElement>(".ProseMirror");
+/** The header's details line, without its tags (`QuickTags`: tags' own tests read those). */
+const headerDetails = () => {
+  const details = document.querySelector<HTMLElement>('main header [data-region="details"]');
+  if (!details) return null;
+  const copy = details.cloneNode(true) as HTMLElement;
+  copy.querySelectorAll("[data-quick-tags], [data-tag-chips]").forEach((t) => t.remove());
+  return copy.textContent.trim();
+};
 export const pageHeader = () => ({
   h1: document.querySelector<HTMLElement>("main h1")?.textContent?.trim() ?? null,
   badges: [...document.querySelectorAll<HTMLElement>('main header [data-region="title"] .badge')].map((b) =>
     b.textContent.trim(),
   ),
-  details:
-    document.querySelector<HTMLElement>('main header [data-region="details"]')?.textContent?.trim() ?? null,
+  details: headerDetails(),
   practice: document.querySelector<HTMLElement>("main header [data-practice]")?.getAttribute("href") ?? null,
 });
 export const contactLinks = () =>
@@ -263,7 +270,7 @@ export const chips = () =>
     id: li.dataset.chip!,
     text: li.textContent.trim(),
     href: li.querySelector("a")?.getAttribute("href") ?? null,
-    muted: li.className.includes("text-base-content/50"),
+    muted: /\btext-(faint|base-content\/50)\b/.test(li.className),
     remove: !!li.querySelector("button"),
   }));
 export const SUGGESTIONS = () => WITH()?.querySelector<HTMLElement>("[data-provider-suggestions]") ?? null;
