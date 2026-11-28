@@ -7,13 +7,15 @@ const typingIn = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || !!target.closest("input, textarea, select"));
 
 /**
- * Inside another layer (a sheet, a dialog, a menu, a list box): its own keys
+ * Inside another layer (a sheet, a dialog, a native `<dialog>` confirm, a menu, a list box): its own keys
  * stay its own, and a second sheet never opens over it. The quick entry
  * sheet itself is let through, so Cmd/Ctrl+K there brings focus back to the box.
  */
 const inOtherLayer = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
-  const layer = target.closest('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]');
+  const layer = target.closest(
+    'dialog, [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]',
+  );
   return !!layer && !layer.querySelector("[data-quick-entry]");
 };
 

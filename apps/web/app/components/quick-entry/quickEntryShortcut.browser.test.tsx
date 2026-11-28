@@ -38,9 +38,23 @@ const settledOpen = async () => {
   return sheetOpen();
 };
 
+/** A native `<dialog>` confirm, open and holding focus (B-1058). */
+const aNativeDialog = () => {
+  const dialog = document.createElement("dialog");
+  dialog.setAttribute("aria-label", "A native confirm");
+  const button = document.createElement("button");
+  button.textContent = "Keep it";
+  dialog.append(button);
+  document.body.append(dialog);
+  dialog.showModal();
+  button.focus();
+  return button;
+};
+
 afterEach(() => {
   closeQuickEntry();
   for (const input of document.querySelectorAll('input[aria-label="Somewhere else"]')) input.remove();
+  for (const dialog of document.querySelectorAll('dialog[aria-label="A native confirm"]')) dialog.remove();
 });
 
 describe("the quick entry keys", () => {
@@ -79,6 +93,19 @@ describe("the quick entry keys", () => {
     await expect.element(sheet()).toBeVisible();
     await waitUntil(boxFocused, "the box to have focus");
     expect(input.value).toBe("");
+  });
+
+  test("nothing opens over an open native dialog holding focus", async () => {
+    await open();
+    await expect.element(searchLink()).toBeVisible();
+    const button = aNativeDialog();
+    expect(document.activeElement).toBe(button);
+    await userEvent.keyboard("/");
+    expect(await settledOpen()).toBe(false);
+    await userEvent.keyboard("{Meta>}k{/Meta}");
+    expect(await settledOpen()).toBe(false);
+    await userEvent.keyboard("{Control>}k{/Control}");
+    expect(await settledOpen()).toBe(false);
   });
 
   test("nothing opens in the easy frame", async () => {
