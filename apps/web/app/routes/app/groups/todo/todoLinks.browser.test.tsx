@@ -248,6 +248,20 @@ describe("the todo page's linked entries", () => {
     expect(row("note")?.querySelector("[data-row-day]")).not.toBeNull();
   });
 
+  test("an all-day event in another zone shows its own calendar day", async () => {
+    // Jun 20 in Tokyo starts at 15:00 UTC on Jun 19: still Jun 19 on the test's Los Angeles clock.
+    const tokyo = fx.event({
+      id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9b04",
+      title: "Family visit in Tokyo",
+      occurredAt: at(new Date("2027-06-19T15:00:00Z")),
+      allDay: 1,
+      timeZone: "Asia/Tokyo",
+    });
+    await open(REFILL.id, [tokyo, REFILL, entryTodo(tokyo.id, REFILL.id)]);
+    await expect.poll(() => row("event")?.querySelector("[data-row-day]")?.textContent).toBe("Jun 20");
+    expect(timeIn("event")).toContain("All day");
+  });
+
   test("a deleted entry drops out", async () => {
     const device = await open(REFILL.id, TWO_LINKED);
     await expect.poll(linkNames).toHaveLength(2);

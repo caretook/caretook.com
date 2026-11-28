@@ -150,7 +150,8 @@ export function TimelineEntryRow({
       >
         {elsewhere && (
           <span className="block" data-row-day="">
-            {rowDayLabel(entry.occurredAt, localTimeZone(), new Date())}
+            {/* An all-day entry's day is its own zone's date, not the device's. */}
+            {rowDayLabel(entry.occurredAt, entry.allDay ? entry.timeZone : localTimeZone(), new Date())}
           </span>
         )}
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
