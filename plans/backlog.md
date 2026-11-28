@@ -185,8 +185,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-362 | change | triaged | code-health-2 |  | A soft-delete model factory and a shared upsert helper: nine models are the same file, twelve upserts repeat the exists-as-system, visible-as-actor sequence, 'invalid' is defined 18 times |
 | B-363 | change | triaged | code-health-2 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
 | B-364 | change | triaged | code-health-3 |  | Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere |
-| B-365 | chore | ready | code-health | prd/code-health | Remove unused scaffolding and dead exports: serviceName (45 exports, 0 reads), the services registry, getService, isServiceName, initClient, isUserRoleName, isGroupRoleName, primaryContactName, hasContact, CALENDAR_CARDS, COMING_SOON |
-| B-366 | chore | ready | code-health | prd/code-health | Pin dependencies exactly: 47 caret ranges remain (react-router, drizzle-orm, zod, vite among them) against AGENTS.md's rule |
+| B-365 | chore | landed | code-health | prd/code-health | Remove unused scaffolding and dead exports: serviceName (45 exports, 0 reads), the services registry, getService, isServiceName, initClient, isUserRoleName, isGroupRoleName, primaryContactName, hasContact, CALENDAR_CARDS, COMING_SOON |
+| B-366 | chore | landed | code-health | prd/code-health | Pin dependencies exactly: 47 caret ranges remain (react-router, drizzle-orm, zod, vite among them) against AGENTS.md's rule |
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
 | B-375 | chore | triaged | fixes-tooling |  | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
@@ -266,6 +266,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-997 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
 | B-998 | bug | triaged | fixes-tooling |  | search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440) |
 | B-999 | change | triaged | fixes-ui |  | Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens |
+| B-1000 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 
 ## Items
 
@@ -785,7 +786,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-365 · chore · Remove unused scaffolding and dead exports: serviceName (45 exports, 0 reads), the services registry, getService, isServiceName, initClient, isUserRoleName, isGroupRoleName, primaryContactName, hasContact, CALENDAR_CARDS, COMING_SOON
 
-- status: ready
+- status: landed
 - prd: code-health
 - owner: prd/code-health
 - commit: be48a4aec
@@ -795,7 +796,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-366 · chore · Pin dependencies exactly: 47 caret ranges remain (react-router, drizzle-orm, zod, vite among them) against AGENTS.md's rule
 
-- status: ready
+- status: landed
 - prd: code-health
 - owner: prd/code-health
 - commit: be48a4aec
@@ -1617,3 +1618,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27, triaged to fixes-ui (layout). Standard short weekday names (Intl weekday: "short"), mobile breakpoint only; desktop keeps the full name. The timeline's day label likely comes from dayFormat in apps/web/app/lib/core/format.ts (weekday and month long); check every day header that uses it so they stay one shared display. EasyTimeline.tsx has its own long format too.
+
+### B-1000 · bug · CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a …
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): [ci-key 19f35fba4fff] Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/code-health. First failure: AssertionError: {"knee":17.5,"short of breath":12.200000000011642,"\"short of breath\"":16.900000000023283,"walk -cane":9.299999999988358,"pres":5.699999999953434,"the":66.90000000002328}: expected 66.90000000002328 to be less than 50 at http://127.0.0.1:40387/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:273:68 at async http://127.0.0.1:40387/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e…
