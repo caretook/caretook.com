@@ -4,8 +4,9 @@ import { medicationUrls } from "./urls";
 
 // Where a medication's page was opened from, for its Back link: a link
 // that opens the page (Schedule, the list, Passes, a provider, a todo,
-// search, a condition, a timeline entry, the setup flow's medications step) carries the screen it was on, with
-// its search and filters, in history state (`medicationPageState`). The
+// search, a condition, a timeline entry, the setup flow's medications
+// step) carries the screen it was on, with its search and filters, in
+// history state (`medicationPageState`). The
 // page reads it back (`medicationOriginFromState`) and names that screen;
 // without it (a direct load, a reload with no state, a shared link) Back is
 // the Medications list. History state, not a step back: it survives sheets
