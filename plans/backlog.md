@@ -14,7 +14,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | --- | ----- | ----- | --------- | ------------- |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
-| `marketing-3` | — | — | — | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
+| `marketing-3` | hold | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `free-limits` | done | — | `packages/data/src/services/careGroupService.ts`, `packages/data/src/services/groupLimitService.ts`, `packages/data/src/db/schema/admin/appSettings.ts`, `packages/data/src/db/schema/admin/staffRules.ts`, `packages/data/src/db/schema/admin/adminAudit.ts`, `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/db/migrations/`, `packages/data/src/permissions/auth.ts`, `packages/api/src/admin/usersAdmin.ts`, `apps/web/app/routes/admin/user/` | — |
 | `onboarding-2` | done | — | `apps/web/app/routes/app/groups/setup/`, `apps/web/app/lib/app-shell/groupSetup`, `apps/web/app/lib/app-shell/setupNudges`, `apps/web/app/lib/app-shell/gettingStarted`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/components/ui/toastQueue.ts`, `apps/web/app/routes/app/groups/timeline/GettingStartedCard.tsx`, `apps/web/app/routes/app/groups/timeline/WelcomeCard.tsx`, `apps/web/test/device.tsx`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `packages/data/src/services/userService.ts`, `packages/data/src/db/seeds/setupDismissed`, `packages/api/src/app-shell/me.ts`, `scripts/browser-checks/first-sync.spec.mjs`, `scripts/browser-checks/invites.spec.mjs`, `apps/web/app/components/providers/` | — |
@@ -308,6 +308,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
 | B-1051 | bug | triaged | fixes-tooling |  | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
+| B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 
 ## Items
 
@@ -910,6 +911,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22); out of scope for onboarding.
 - 2026-11-22 (Robert Bo Davis): Triage: marketing, a public page beside the privacy policy and terms (B-54).
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
+- 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
 
 ### B-564 · change · App-store prerequisites for the Capacitor apps
 
@@ -1122,6 +1124,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-24 (Robert Bo Davis): [ci-key c4d6cc19d31a] Flaked (passed on its rerun); found by 65529f69 in https://github.com/caretook/caretook.com/actions/runs/45501768335.
 - 2026-11-24 (prd/fixes-ui): fixes-ui orchestrator 2026-11-24: in quarantine it passed on CI run 45539558339 (14363355) and failed on 45542165290 (b951e50b), both after fixes-ui slice 71 (B-801) renamed EmergencyForm's labels (an outside contact's Name and Phone now required, label text 'Name*'). Check the failure isn't that rename before calling it the old flake.
+- 2026-11-28 (prd/fixes-tooling): 2026-11-28: failed again in quarantine on fixes-tooling's full run 46174655374 (517e978c). Waits on data-rights (profile routes are its hot files).
 
 ### B-795 · chore · Clean Caretook's history of the orchestration tooling and its bloat
 
@@ -1163,6 +1166,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (prd/orchestration-split): From the inbox: Review feature sets and identify overlap, places where we can surpass them, and places where we already do.
 - 2026-11-25 (Robert Bo Davis): Triage: competitor research (Care Book vs Caring Village) to feed positioning
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
+- 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
 
 ### B-831 · feature · Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically
 
@@ -1183,6 +1187,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (plan/marketing-2): Split from B-417 when marketing-2 took its copy part (2026-11-25): the visual refresh B-417 also asked for, left for a later marketing topic.
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
+- 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
 
 ### B-837 · change · Time limit gates for component tests, unit tests and the local quick check
 
@@ -1255,6 +1260,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-26: 'way too much marketing speak in that hero'; the hotfix removes the 'Keep track of someone's care, together.' heading, the rest of the trim is this item
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
+- 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
 
 ### B-858 · feature · Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants
 
@@ -1300,6 +1306,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): From the user, 2026-11-28: retitle the section around how quickly you can enter information by typing or speaking. With that title, the dictation bullet doesn't need to move up in the list. Moving the section to first after the timeline still stands.
 - 2026-11-28 (Robert Bo Davis): From the user, 2026-11-28: the section title is "Log it in seconds, typed or spoken" (replaces "Type it the way you'd say it").
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
+- 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
 
 ### B-888 · change · Features page should highlight easy mode
 
@@ -1310,6 +1317,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): Triage: Features page copy; marketing topic (held), beside the visual refresh B-836.
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
+- 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
 
 ### B-896 · feature · Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch
 
@@ -1999,3 +2007,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the shared toast overlay; move it to the shared toast like other done actions
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'they sould appear in a small overlay'. The shared toast exists (B-669, ui/Toast, toast({ message, undo })) but todo ticks still use their own TodoUndoStatus region (components/todos/TodoUndoStatus.tsx, used in ~10 places: todos, planner, timeline EasyTodos, entry, todo page, linked todos). Replace it with toast(); keep B-192 (several quick ticks: one Undo covering all of them, e.g. 'Done: 3 to-dos · Undo') and the screen-reader announcement. B-1050 (ask before marking the parent done) builds on this.
+
+### B-1053 · bug · A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content
+
+- status: triaged
+- prd: data-rights
+- owner:
+- commit:
+
+- 2026-11-28 (prd/data-rights): Codex on PR #341 (thread PRRT_kwDOVx-WLM69Gy4E, 0051_scrub_deleted.sql:60): noteDocumentService.appendUpdate checks visibleDocument/mayWriteOwner without locking the owner, so an in-flight append can land after the scrub trigger cleared the document and deleted its updates; the stream replicates it and compaction can write it back. Fix: lock the owner row (FOR SHARE) in appendUpdate and recheck deleted_at under the lock, refusing the append when deleted.
