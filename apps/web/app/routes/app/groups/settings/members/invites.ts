@@ -1,5 +1,6 @@
 import type { ActionResult } from "~/lib/core/api";
 
+import { isManagerRole } from "@caretook/data/permissions";
 import { invitableRoles, inviteEmailZ } from "@caretook/data/schema";
 
 // The pure parts of inviting from the Members page: who may invite, what an
@@ -27,7 +28,7 @@ export const mayResend = (myRole: string | null, invite: { role: string; status:
 
 /** Managers withdraw any waiting invite. */
 export const mayRevoke = (myRole: string | null, invite: { status: string }) =>
-  invite.status === "pending" && (myRole === "owner" || myRole === "admin");
+  invite.status === "pending" && isManagerRole(myRole);
 
 export const shortDate = (iso: string, locale?: string) =>
   new Date(iso).toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
