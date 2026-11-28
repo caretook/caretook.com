@@ -11,7 +11,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`risa status-trim`).
 
 - **Wave 11 landed** (2026-11-26) as c99c452 (PR #227). Since then the Risa split landed: the loop tooling is Risa's (`risa …` replaces `pnpm prd …`/`pnpm backlog …`); Caretook keeps `scripts/project/` and `scripts/browser-checks/`.
-- **Wave 12 started 2026-11-28** (dev synced: ebf948dc). Slices 94–101 (CI/browser-check flakes and check-area mapping), all opus. Fold at landing: docs/domain/search.md's "Queries take 2–15 ms" (slice 94 now bounds queries at 5× a measured baseline, best of 7). Hot files: free-limits holds the admin services and routes, so B-778/B-782 (admin int-test flakes) wait.
+- **Wave 12 started 2026-11-28** (dev synced: ebf948dc). Slices 94–101 (CI/browser-check flakes and check-area mapping), all opus. All eight merged; the wave's CI run is next. Slice 97 fixed a real bug in NewerEntries.tsx (reaching today from a jump threw the reader ~2000 px on Chrome). Fold at landing: docs/domain/search.md's "Queries take 2–15 ms" (slice 94 now bounds queries at 5× a measured baseline, best of 7). Hot files: free-limits holds the admin services and routes, so B-778/B-782 (admin int-test flakes) wait.
 - **Waiting triaged items for later waves:** B-375 (less its timelineScroll part, in 97), B-667, B-750 and B-752 (parked, not runnable), B-757, B-778, B-782, B-791, B-802, B-852, B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
@@ -21,11 +21,11 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 94    | B-619, B-839, B-998, B-1000 | merged | 4d663e36 |
 | 95    | B-808, B-922, B-983         | merged | 454097ee |
 | 96    | B-1004, B-1005              | merged | 8a9da3db |
-| 97    | B-785, B-790                | working (opus, spawned 2026-11-28) |       |
-| 98    | B-949                       | working (opus, spawned 2026-11-28) |       |
-| 99    | B-967                       | handed off a76b8656, reviewed; merge after 94-98 |       |
-| 100   | B-776                       | handed off 4d1e043e, reviewed (quarantine line left for risa ci) |       |
-| 101   | B-749, B-851                | handed off f6fcf6f1 (test dropped after send-back), reviewed |       |
+| 97    | B-785, B-790                | merged | 930a420c |
+| 98    | B-949                       | merged | 4ebe9b3f |
+| 99    | B-967                       | merged | 110895a3 |
+| 100   | B-776                       | merged | 221080e9 |
+| 101   | B-749, B-851                | merged | 01fe040c |
 
 ## Wave 1
 
