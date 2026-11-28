@@ -231,7 +231,7 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/marketing.md, docs/domain
 
 - [ ] The hand-off has, before and after: JS bytes (gz) and chunk count on `/`, `/sign-in` and the first `/app` timeline load, the `pnpm build:budget` output, and a Lighthouse performance score on `/` and `/sign-in`.
 - [ ] Unit test (beside the build config or the budget script): no public route's chunks include the app icons chunk; `/app` icons still land in one shared chunk.
-- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+- [ ] `risa check --quick "slice hand-off"` passes.
 
 **Blocks:** slice 14. **Blocked by:** none.
 
@@ -241,12 +241,12 @@ Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: un
 
 **Problem.** After the icons group, the first `/app` load still fetches ~74 shared app chunks under 2 KB (`lib/`, `components/`, `packages/data` schema helpers) plus ~22 tiny React Router route-chunk stubs. A plain codeSplitting group over app code fails: a group takes its modules' dependencies, so an entries-aware group dragged rrule and yjs into the `/app` shell (entry 209 KB gz); `includeDependenciesRecursively: false` needs `preserveEntrySignatures` `allow-extension` or `false`, which React Router's client build overrides to `exports-only` (INVALID_OPTION).
 
-**Build.** Measure first. Then try, in this order: a small Vite plugin hook that sets `preserveEntrySignatures` for the client build (check React Router's route exports still hold, with `strictExecutionOrder`) so a group over small app helpers can skip dependencies; else Rolldown's `experimentalInlineCommonChunks`. Keep route chunks lazy and heavy libraries (rrule, yjs, Tiptap, PowerSync) out of the entry. No new dependency. Within a config change, a plugin hook and a test; if it needs more, or neither pays (fewer chunks without a bigger entry, and a faster throttled HTTP/1.1 load), change no app code and file what you found with `pnpm backlog note B-965 …`.
+**Build.** Measure first. Then try, in this order: a small Vite plugin hook that sets `preserveEntrySignatures` for the client build (check React Router's route exports still hold, with `strictExecutionOrder`) so a group over small app helpers can skip dependencies; else Rolldown's `experimentalInlineCommonChunks`. Keep route chunks lazy and heavy libraries (rrule, yjs, Tiptap, PowerSync) out of the entry. No new dependency. Within a config change, a plugin hook and a test; if it needs more, or neither pays (fewer chunks without a bigger entry, and a faster throttled HTTP/1.1 load), change no app code and file what you found with `risa backlog note B-965 …`.
 
 **Acceptance criteria.**
 
 - [ ] The hand-off has before and after chunk counts, bytes and the throttled HTTP/1.1 time to the first timeline row, and `pnpm build:budget` output.
 - [ ] Unit test: the small helpers land in the group, no route's own chunk is merged into the entry, and rrule and yjs stay out of the entry.
-- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+- [ ] `risa check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** slice 13.
