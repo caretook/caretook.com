@@ -20,7 +20,8 @@ import { useUpcomingData } from "./useUpcomingData";
 // copy (live, so it works offline and follows other members' changes). What
 // counts as upcoming is worked out from the clock (`lib/appointments/upcoming`), never
 // stored. `?kind=event` (events only), `?show=todos` (todos only), `?author=`,
-// `?tag=` (events and todos; tags PRD) and the search box's `?q=` filter it.
+// `?tag=` (events and todos; tags PRD) and the search box's `?q=` filter it;
+// `?subtasks=own` lists each dated todo on its own row (todo-links-2).
 // For the easy roles it's the list alone, read-only: no Add, tabs, filters
 // or row menus (they tick only their own todos).
 
@@ -47,7 +48,7 @@ export function shouldRevalidate({
 }
 
 export default function Planner({ loaderData, params }: Route.ComponentProps) {
-  const { kind, author, show, todosOnly, tag } = loaderData;
+  const { kind, author, show, todosOnly, tag, view } = loaderData;
   const { groupId } = params;
   const { easyRole } = useGroup();
   // The box filters as you type; the URL follows (see `SearchFilterBar`). The easy roles have no box.
@@ -58,6 +59,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
     groupId,
     filters: { kind, author, tag },
     todosOnly,
+    view,
     q: text,
     initial: loaderData,
   });
@@ -75,6 +77,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
             show,
             author && authorName ? { userId: author, name: authorName, image: data.imageOf(author) } : null,
             data.tags,
+            view,
           )}
         />
       )}
