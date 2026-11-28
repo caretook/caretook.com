@@ -4,7 +4,7 @@ import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import { found, stopsMoving, waitUntil } from "../../../../../test/found";
 import { historyQuery, newerEdgeQuery } from "~/lib/timeline/timeline.sync";
 import { jumpBound } from "~/lib/timeline/timelineJump";
-import { dayKeyIn } from "./timelineDays";
+import { dayKeyIn } from "~/lib/timeline/timelineDays";
 import { button, frames, openTimeline, rows, rowWith, tapAt, TIMELINE_URL, world } from "./timelineWorld";
 
 // Paging newer from a jumped-to day: the newer-edge query on a real local

@@ -1,29 +1,25 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, entryTodoId, localDate } from "@caretook/data/schema";
+import { entryTodoId } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { found, waitUntil } from "../../../../../test/found";
 import { at, entryTodo, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import * as newTodoSheet from "../todos/new/route";
-import * as todosRoute from "../todos/route";
 import * as entryRoute from "./route";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The entry page's Todos (planner-3, slice 3) on a stored note and event:
 // open todos in list order with ticks and Undo, done ones with who and
-// when; writers' Add todo (the sheet, linked on save), Link a todo (the
-// picker) and Remove; a viewer ticks only their own and gets no actions;
+// when; writers' quick add (todo-links-6: a linked todo, and each open
+// row's linked subtask), Link a todo (the picker) and Remove; a viewer ticks only their own and gets no actions;
 // no section on a vital, symptom or dose; one todo on two entries. The
 // device is offline throughout, so every write here is the offline one
 // (queued for upload). The picker's options are entryTodoPicker.test.ts's.
 
 const G = "/app/groups/:groupId";
-const ROUTES: DeviceRoute[] = [
-  { path: `${G}/entries/:entryId`, module: entryRoute },
-  { path: `${G}/todos`, module: todosRoute, children: [{ path: `${G}/todos/new`, module: newTodoSheet }] },
-];
+const ROUTES: DeviceRoute[] = [{ path: `${G}/entries/:entryId`, module: entryRoute }];
 const url = (path: string) => `/app/groups/${TEST_GROUP.id}/${path}`;
 
 const today = localDate(new Date(), TEST_TIME_ZONE);
@@ -138,39 +134,44 @@ describe("an entry's Todos", () => {
     expect(row?.done_at).toBeNull();
   });
 
-  test("Add todo on a note opens the sheet with the note's link; saving links the new todo and comes back", async () => {
-    const device = await open(`entries/${NOTE.id}`);
-    const add = region().getByRole("link", { name: "Add todo" });
-    await expect.element(add).toHaveAttribute("href", url(`todos/new?entryId=${NOTE.id}`));
-    await userEvent.click(add);
-    const dialog = page.getByRole("dialog", { name: "Add a todo" });
-    await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Pick up the refill Thursday");
-    await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
-    await expect.poll(() => device.location()).toBe(url(`entries/${NOTE.id}`));
-    await expect.poll(openTitles).toContain("Pick up the refill Thursday");
+  test("the quick add on an event adds a linked todo (queued, todo first); Enter keeps the field for the next", async () => {
+    const device = await open(`entries/${VISIT.id}`);
+    await waitUntil(() => openTitles().length === 2, "the open todos");
+    const field = region().getByRole("textbox", { name: "New todo" });
+    await userEvent.click(field);
+    await userEvent.keyboard("Bring the insurance card{Enter}");
+    await expect.poll(openTitles).toContain("Bring the insurance card");
+    await expect.element(field).toHaveValue("");
+    await expect.element(field).toHaveFocus();
     const [made] = await device.query<{ id: string }>("SELECT id FROM todo WHERE title = ?", [
-      "Pick up the refill Thursday",
+      "Bring the insurance card",
     ]);
-    expect(await linkedTo(device, NOTE.id)).toEqual([made!.id, MINE.id].sort());
+    expect(await linkedTo(device, VISIT.id)).toContain(made!.id);
     // Offline: the todo and its link wait for upload, the todo first.
-    const queued = (await device.queued()).map((w) => `${w.op} ${w.type} ${w.id}`);
-    expect(queued).toEqual([
+    expect((await device.queued()).map((w) => `${w.op} ${w.type} ${w.id}`)).toEqual([
       `PUT todo ${made!.id}`,
-      `PUT timeline_entry_todo ${entryTodoId(NOTE.id, made!.id)}`,
+      `PUT timeline_entry_todo ${entryTodoId(VISIT.id, made!.id)}`,
     ]);
+
+    await userEvent.keyboard("Ask for a parking pass{Enter}");
+    await expect.poll(openTitles).toContain("Ask for a parking pass");
+    expect(device.location()).toBe(url(`entries/${VISIT.id}`));
   });
 
-  test("Add todo on an event opens the sheet with the event chosen", async () => {
-    const device = await open(`entries/${VISIT.id}`);
-    const add = region().getByRole("link", { name: "Add todo" });
-    await expect.element(add).toHaveAttribute("href", url(`todos/new?entryId=${VISIT.id}`));
-    await userEvent.click(add);
-    const dialog = page.getByRole("dialog", { name: "Add a todo" });
-    await expect.element(dialog.getByText(/^Cardiology follow-up · /)).toBeInTheDocument();
-    await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Bring the insurance card");
-    await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
-    await expect.poll(() => device.location()).toBe(url(`entries/${VISIT.id}`));
-    await expect.poll(openTitles).toContain("Bring the insurance card");
+  test("a row's quick add on a note adds a subtask linked to the note", async () => {
+    const device = await open(`entries/${NOTE.id}`);
+    await waitUntil(() => openTitles().length === 1, "the note's todo");
+    await userEvent.click(region().getByRole("button", { name: "Add subtask to Call the pharmacy back" }));
+    await userEvent.keyboard("Ask which store has it{Enter}");
+    await expect.poll(openTitles).toContain("Ask which store has it");
+    const [sub] = await device.query<{ id: string; parent_id: string }>(
+      "SELECT id, parent_id FROM todo WHERE title = ?",
+      ["Ask which store has it"],
+    );
+    expect(sub?.parent_id).toBe(MINE.id);
+    expect(await linkedTo(device, NOTE.id)).toEqual([sub!.id, MINE.id].sort());
+    // A done row has no quick add.
+    expect(document.querySelector(`[data-todo="${DONE.id}"] [data-todo-quick-add]`)).toBeNull();
   });
 
   test("Link a todo: the picker offers open todos not linked here; picking links it (queued), focus back", async () => {
@@ -217,22 +218,22 @@ describe("an entry's Todos", () => {
       `DELETE timeline_entry_todo ${entryTodoId(NOTE.id, MINE.id)}`,
     ]);
     // A writer keeps the section, to add or link again.
-    await expect.element(region().getByRole("link", { name: "Add todo" })).toBeInTheDocument();
+    await expect.element(region().getByRole("textbox", { name: "New todo" })).toBeInTheDocument();
   });
 
   test("a writer sees the section on a note with none, with its actions", async () => {
     await open(`entries/${EMPTY_NOTE.id}`);
     await expect.element(region().getByText("No todos linked to this note.")).toBeInTheDocument();
     await expect.element(region().getByRole("button", { name: "Link a todo" })).toBeInTheDocument();
-    await expect.element(region().getByRole("link", { name: "Add todo" })).toBeInTheDocument();
+    await expect.element(region().getByRole("textbox", { name: "New todo" })).toBeInTheDocument();
   });
 
-  test("a viewer ticks only their own todo and gets no Add, Link or Remove", async () => {
+  test("a viewer ticks only their own todo and gets no quick add, Link or Remove", async () => {
     const device = await open(`entries/${VISIT.id}`, "viewer");
     await waitUntil(() => openTitles().length === 2, "the open todos");
     expect(ticks()).toEqual(["Mark “Call the pharmacy back” done"]);
     expect(
-      SECTION()?.querySelector("[data-entry-todos-add], [data-entry-todos-link], [data-entry-todo-remove]"),
+      SECTION()?.querySelector("[data-todo-quick-add], [data-entry-todos-link], [data-entry-todo-remove]"),
     ).toBeNull();
     await userEvent.click(page.getByRole("checkbox", { name: "Mark “Call the pharmacy back” done" }));
     await expect.poll(doneTitles).toEqual(["Call the pharmacy back", "Fax the referral"]);

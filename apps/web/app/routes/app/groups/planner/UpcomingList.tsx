@@ -8,13 +8,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   CancelEventDialog,
-  EntryActions,
+  UpcomingEntryCard,
   useEventCancel,
   useEventReschedule,
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { QuickTags } from "~/components/tags";
 import { TodoTree, useTodoTick } from "~/components/todos";
 import { ConfirmDialog, EmptyState, Message, TITLE_SECTION } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
@@ -28,14 +27,13 @@ import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { isUpcoming } from "~/lib/appointments/upcoming";
 import { isPlannerTree } from "~/lib/todos/plannerTodos";
-import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
-import { UpcomingRow } from "./UpcomingRow";
+import { rescheduledLabel, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { placeLine, placeOf, upcomingActions } from "./upcomingContact";
+import { UpcomingRowActions } from "./UpcomingRowParts";
 import { usePlannerOpener } from "./usePlannerOpener";
 
 // The Planner tab lists notes and events only, which show no vital readings: the default units do.
 const UNITS = resolveUnits(null);
-
-const NO_TAGS: readonly { id: string; name: string }[] = [];
 
 const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border";
 
@@ -43,18 +41,22 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Upcoming's (or the Past tab's) items, a section per day under a sticky
  * heading ("Now", "Today", "Tomorrow", "Friday, Nov 27"), with `empty`
  * when there are none. `children` comes after the last section (the Past
- * tab's paging). Each item shows its tags (`QuickTags`, tags-3: two chips,
+ * tab's paging). Each event is the entry display's Planner look
+ * (`UpcomingEntryCard`): this list works out its place, Call and Directions
+ * (the footer), rescheduled link and return state, and passes its ⋯
+ * callbacks. Each shows its tags (`RowTags`, tags-3: two chips,
  * then "+N", and Add tag for whoever may tag it). Each has a ⋯ menu: for
  * writers, Prepare for an
  * upcoming appointment, Reschedule, then Cancel or Undo cancel for events,
- * Print, then Delete, with one Cancel and one Delete confirm for the list;
- * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
+ * Print, Copy link, then Delete, with one Cancel and one Delete confirm for the list;
+ * for viewers, Print and Copy link. A series visit's Edit, Reschedule, Cancel and Delete
  * ask Only this visit or This and later visits first (`useSeriesScope`).
  * The Planner tab's sections can also hold todo trees, one per day
  * (`plannerDayTrees`; todo-subtasks-3): the shared `TodoTree`, its top row
  * in the `card` look (lined up with the day's events) and its steps
  * indented under it; a step due before its top-level todo shows under its
- * dimmed ancestors. Writers get each row's quick add. One tick for the list
+ * dimmed ancestors. With subtasks on their own (`data.parentOf`, todo-links-2)
+ * each tree is one todo, a subtask's card with its "Part of" line. Writers get each row's quick add. One tick for the list
  * (Undo in the route's `TodoUndoStatus`).
  * `readOnly` (the easy roles' Planner): no ⋯ menus, no filter links, and tags as chips only.
  */
@@ -95,51 +97,66 @@ export function UpcomingList({
   const prep = useVisitPrep(groupId, canWrite, { openAfter: true, openState: plannerReturnState(opener) });
   const preparable = (entry: TimelineEntry) =>
     entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
-  const menuOf = (entry: TimelineEntry) => (
-    <EntryActions
-      kind={entry.kind}
-      label={`Actions for ${upcomingTitle(entry)}`}
-      onEdit={
-        canWrite && asksScope(entry, data.now)
-          ? () =>
-              scope.ask(entry, "edit", {
-                only: () =>
-                  void navigate(appUrls.entry(groupId, entry.id), {
-                    state: plannerReturnState(opener, ONLY_THIS_VISIT_STATE),
-                  }),
-              })
-          : undefined
-      }
-      onPrepare={canWrite && preparable(entry) ? () => prep.ask(entry) : undefined}
-      onRemind={
-        canRemind(entry, data.now)
-          ? () => remind.ask({ id: entry.id, title: upcomingTitle(entry) })
-          : undefined
-      }
-      printHref={appUrls.printEntry(groupId, entry.id)}
-      cancel={
-        canWrite && entry.kind === "event"
-          ? {
-              cancelled: !!entry.cancelledAt,
-              onCancel: () => scope.ask(entry, "cancel", { only: () => cancelling.ask(entry.id) }),
-              onUncancel: () => cancelling.undo(entry.id),
-              onReschedule: canReschedule(entry)
-                ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
-                : undefined,
-            }
-          : undefined
-      }
-      onDelete={
-        canWrite
-          ? () =>
-              scope.ask(entry, "delete", {
-                only: () => setDeleting(entry.id),
-                onlyChosen: () => remove(entry.id),
-              })
-          : undefined
-      }
-    />
-  );
+  const openState = plannerReturnState(opener);
+  // What a writer's ⋯ does (Print and Copy link are the menu's own, for every role).
+  const callbacksOf = (entry: TimelineEntry) => ({
+    onEdit:
+      canWrite && asksScope(entry, data.now)
+        ? () =>
+            scope.ask(entry, "edit", {
+              only: () =>
+                void navigate(appUrls.entry(groupId, entry.id), {
+                  state: plannerReturnState(opener, ONLY_THIS_VISIT_STATE),
+                }),
+            })
+        : undefined,
+    onPrepare: canWrite && preparable(entry) ? () => prep.ask(entry) : undefined,
+    onRemind: canRemind(entry, data.now)
+      ? () => remind.ask({ id: entry.id, title: upcomingTitle(entry) })
+      : undefined,
+    cancel:
+      canWrite && entry.kind === "event"
+        ? {
+            cancelled: !!entry.cancelledAt,
+            onCancel: () => scope.ask(entry, "cancel", { only: () => cancelling.ask(entry.id) }),
+            onUncancel: () => cancelling.undo(entry.id),
+            onReschedule: canReschedule(entry)
+              ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
+              : undefined,
+          }
+        : undefined,
+    onDelete: canWrite
+      ? () =>
+          scope.ask(entry, "delete", {
+            only: () => setDeleting(entry.id),
+            onlyChosen: () => remove(entry.id),
+          })
+      : undefined,
+  });
+  const cardOf = (entry: TimelineEntry) => {
+    const contacts = data.contactsOf(entry.id);
+    const place = placeOf(entry, contacts);
+    const actions = upcomingActions(entry, contacts);
+    const rescheduled = data.rescheduledOf(entry);
+    return (
+      <UpcomingEntryCard
+        key={entry.id}
+        entry={entry}
+        now={data.now}
+        units={UNITS}
+        authorName={data.nameOf(entry.createdBy)}
+        authorImage={data.imageOf(entry.createdBy)}
+        providers={contacts}
+        place={place && { text: placeLine(place.text), from: place.from }}
+        rescheduledTo={rescheduled && { id: rescheduled.id, label: rescheduledLabel(rescheduled) }}
+        tags={data.tagsOf("entry", entry.id)}
+        openState={openState}
+        footer={actions.length > 0 ? <UpcomingRowActions actions={actions} /> : undefined}
+        readOnly={readOnly}
+        {...(readOnly ? {} : callbacksOf(entry))}
+      />
+    );
+  };
 
   return (
     <section aria-labelledby="upcoming-list-heading" className="space-y-4" data-upcoming-list>
@@ -178,34 +195,11 @@ export function UpcomingList({
                     busy={tick.busy}
                     tagsOf={(id) => data.tagsOf("todo", id)}
                     progressOf={data.progressOf}
+                    parentOf={data.parentOf}
                   />
                 </li>
               ) : (
-                <UpcomingRow
-                  key={entry.id}
-                  entry={entry}
-                  groupId={groupId}
-                  now={data.now}
-                  units={UNITS}
-                  authorName={data.nameOf(entry.createdBy)}
-                  authorImage={data.imageOf(entry.createdBy)}
-                  contacts={data.contactsOf(entry.id)}
-                  rescheduledTo={data.rescheduledOf(entry)}
-                  tags={
-                    <QuickTags
-                      target="entry"
-                      recordId={entry.id}
-                      label={upcomingTitle(entry)}
-                      createdBy={entry.createdBy}
-                      max={2}
-                      tags={data.tagsOf("entry", entry.id) ?? NO_TAGS}
-                      readOnly={readOnly}
-                      className="mt-0.5"
-                    />
-                  }
-                  menu={readOnly ? undefined : menuOf(entry)}
-                  readOnly={readOnly}
-                />
+                cardOf(entry)
               ),
             )}
           </ol>

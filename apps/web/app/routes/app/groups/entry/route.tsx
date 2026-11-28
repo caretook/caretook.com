@@ -11,6 +11,7 @@ import { START_AT_PARAM } from "~/lib/timeline/urls";
 import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { useRecordView } from "~/lib/core/recentlyViewed";
 import { NEW_ENTRY } from "~/lib/live-notes/liveEntry";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
@@ -81,7 +82,10 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   const loaderData = useMemo(() => withEventDraft(loaded, eventDraft), [loaded, eventDraft]);
   const live = useLiveEntry(loaderData, groupId);
   const { entry, canWrite, deleted, saveError } = live;
-  const { easyRole } = useGroup();
+  const { easyRole, userId } = useGroup();
+  // Recently viewed (B-947): a saved, live note or event; the todo link box suggests it.
+  const viewable = live.stored && !deleted && canHaveNoteDocument(entry.kind);
+  useRecordView(userId, entry.kind === "event" ? "event" : "note", viewable ? entry.id : null);
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const editor = useRef<LiveNotesEditorHandle>(null);

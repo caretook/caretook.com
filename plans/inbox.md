@@ -13,7 +13,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation (B-887)
   Move this section so it's the first item after the timeline on the features page.
 - Features page should highlight easy mode (B-888)
-- Quick entry should use the similar symptom by default on Enter, with an option to add new instead, rather than waiting for a button click to confirm (B-898)
+- Rate-limit audit: list every public, signed-in, sync, connector and email-sending call with its limit, and give each one a reasonable per-user and per-IP limit (B-1011)
+  Builds on B-334 (no signed-in oRPC procedure is rate limited) and B-337 (/mcp limits, shared unknown IP bucket) in account-security. Output: a table in docs/domain/api.md and tests that each call is limited.
 
 ## Feature requests
 
@@ -22,10 +23,14 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - privacy policy and terms of service. (B-54)
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
-- Connector: tags and tagging (list tags, filter by a tag, add and remove tags on records) for groups that have turned on sharing medical information with connectors (B-861)
-  The user's word 2026-11-25: connectors DO need tags when the group shares medical information; the tags PRD (B-548) keeps them out, so this follows it.
 - Tags tab on the planner: a unified view listing all tags and the items tagged with each (B-972)
   Has the common search/filter bar. Where possible, uses the shared component to display items in the list. Has condensed and full views, defaulting to condensed.
+- Free plan: cap how many care groups one user can create (owner of), with a clear message at the cap; staff can lift it per user (B-1012)
+  Part of 'reasonable limits on free'. Count groups the user created or owns, not ones they were invited to. Pick a default (e.g. 3) in the plan.
+- Free plan: limit account creation per address, so one person can't make many free accounts to get past the per-user limits (sign-ups per email domain/alias, IP and device per window) (B-1013)
+  The user's 'household' limit means accounts per address. Normalize email aliases (plus-addressing, dots for Gmail). Overlaps B-333 (link sign-up unlimited unverified accounts) in account-security.
+- Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked before upload, with usage shown in settings (B-1014)
+  For B-56 (document uploads, not built yet). Also a per-file size cap. Deletions free their bytes.
 
 ## Big plans
 

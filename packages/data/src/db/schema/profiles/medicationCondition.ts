@@ -4,7 +4,7 @@ import type { ProtectedField } from "../core/columns";
 import { foreignKey, index, pgTable, unique, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { audits, timestamps } from "../core/columns";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 import { medicationSchema } from "../medications/medication";
 import { recipientConditionSchema } from "./recipientCondition";
 

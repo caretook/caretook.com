@@ -12,7 +12,6 @@ import { staffRefusal } from "./staffAccess";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
 import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
-export const serviceName = "staffGroup";
 export const schemaName = careGroupModel.schemaName;
 
 // Staff onboarding a family by hand (invites slice 5, /admin's New group):

@@ -1,5 +1,4 @@
 import type { MenuEntry } from "~/components/ui";
-import type { DuePass } from "~/lib/medications/duePasses";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
@@ -22,15 +21,16 @@ import {
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
+import { PASS_FIELD } from "./passActions";
+import type { DuePass } from "@caretook/data/schema";
 import {
   clockTime,
   givenAllLabel,
   medicationTitle,
   passLoggedText,
   passStateText,
-} from "~/lib/medications/medicationDisplay";
-import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
-import { PASS_FIELD } from "./passActions";
+} from "@caretook/data/schema";
 
 export type PassWithMedications = { pass: LocalPass; medications: LocalMedication[] };
 

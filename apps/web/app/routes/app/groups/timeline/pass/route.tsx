@@ -6,7 +6,7 @@ import type { PassLogDose } from "./PassLogForm";
 
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
-import { canChangeEntry, doseDetailsZSchema } from "@caretook/data/schema";
+import { doseDetailsZSchema } from "@caretook/data/schema";
 import { Sheet } from "~/components/ui";
 import { formString } from "~/lib/core/form";
 import { getGroup } from "~/lib/app-shell/group";
@@ -19,6 +19,7 @@ import { fromLocalTimestamp, readRows } from "~/lib/timeline/timeline.sync";
 import { useCloseSheet } from "../sheet";
 import { PassLogForm } from "./PassLogForm";
 import { passLogJoin, passLogPatchesFromForm, passSheetGuard } from "./passSheet";
+import { canChangeEntry } from "@caretook/data/domain";
 
 // Shared by web + native. `timeline/pass/:passLogId/edit`: the pass sheet,
 // over the timeline. One pass log's doses (the doses logged in one round),

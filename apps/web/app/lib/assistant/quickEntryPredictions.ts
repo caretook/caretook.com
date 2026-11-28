@@ -1,7 +1,7 @@
 import type { VitalType } from "@caretook/data/schema";
 
 import { symptomKey, VITAL_TYPES } from "@caretook/data/schema";
-import { addDays, dayInZone, timeInZone, zonedInstant } from "../core/zonedDay";
+import { addDays, dayInZone, timeInZone, zonedInstant } from "@caretook/data/domain";
 
 // Quick entry's predictions: what the group usually logs around this hour,
 // offered under the box as chips that fill it with a keyword and wait for

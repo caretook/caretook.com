@@ -11,8 +11,8 @@ import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { createProvider } from "~/lib/providers/providers.sync";
 import { Sheet } from "~/components/ui";
-import { ProviderForm } from "../ProviderForm";
-import { issuesForRows, providerFromForm } from "../providerFormData";
+import { ProviderForm } from "~/components/providers";
+import { issuesForRows, providerFromForm } from "~/lib/providers/providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
 import { newProviderGuard } from "../providerSheetGuard";
 

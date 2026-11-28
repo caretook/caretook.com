@@ -9,11 +9,11 @@ import { DEFAULT_UNITS } from "@caretook/data/schema";
 import { QuickEntryBox } from "~/components/quick-entry";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
-import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as newDose from "./new-dose/route";
 import * as timeline from "./route";
 import { TIMELINE_URL } from "./timelineWorld";
 import { found, waitUntil } from "../../../../../test/found";
+import { dayInZone, timeInZone } from "@caretook/data/domain";
 
 // Passes in quick entry, on the test device (offline throughout): "gave
 // evening meds" and "gave meds" carried out as Given all (one round, the

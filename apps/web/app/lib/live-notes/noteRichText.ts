@@ -1,5 +1,5 @@
-import { MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/schema";
 import * as Y from "yjs";
+import { MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/domain";
 
 // A live document's formatting, read straight from its Yjs tree (the
 // editor's ProseMirror nodes, as Tiptap's Collaboration stores them), for

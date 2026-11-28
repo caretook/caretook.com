@@ -4,8 +4,6 @@ import type { EntryRow } from "../timeline/timeline.sync";
 import { medicationChangeId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import {
-  dayBounds,
-  dayInZone,
   groupDosesQuery,
   medicationEntriesQuery,
   medicationNamesQuery,
@@ -16,6 +14,7 @@ import {
   toMedicationEntry,
   toMedications,
 } from "./medications.sync";
+import { dayBounds, dayInZone } from "@caretook/data/domain";
 import { entriesQuery } from "../timeline/timeline.sync";
 
 const MEDICATION_ID = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9a1001";

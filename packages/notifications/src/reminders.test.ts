@@ -1,8 +1,7 @@
-import type { ReminderItem } from "@caretook/data/schema";
-
 import { describe, expect, it } from "vitest";
 import { reminderEmailData } from "./reminders";
 import { renderNotification } from "./render";
+import type { ReminderItem } from "@caretook/data/domain";
 
 // The two reminder emails (appointments-2 slice 6), rendered from a send the
 // way the sweep builds them: generic says only the kind, whose it is, the

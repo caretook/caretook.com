@@ -1,10 +1,10 @@
 import type * as Y from "yjs";
 
-import { noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { shouldMaterialize } from "~/lib/live-notes/liveEntry";
 import { getSync } from "~/lib/sync";
 import { createMedicationDocument } from "~/lib/medications/medications.sync";
+import { noteText } from "@caretook/data/domain";
 
 /**
  * The medication's notes document, made on the first real change (text),

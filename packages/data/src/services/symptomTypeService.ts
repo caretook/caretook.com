@@ -2,12 +2,13 @@ import type { SymptomTypeAddInput, Tx } from "../db";
 import type { AppError } from "../errors";
 import type { ServiceContext } from "./types";
 
-import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
-import { isLoggerRole, isWriterRole, SYSTEM_USER } from "../constants";
+import { and, asc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
+import { hasGroupRole, isLoggerRole, isWriterRole, OWNER_ROLES, SYSTEM_USER } from "../constants";
 import { dbMayFail, getDb, txOrDb, withTransaction } from "../db";
 import {
   careGroupSchema,
   DEFAULT_SYMPTOMS,
+  resolveSymptom,
   SYMPTOM_NAME_MAX,
   symptomKey,
   symptomName,
@@ -31,13 +32,35 @@ import { isSystemUser, rejectError } from "../permissions";
 // logs a name, and `backfill` (the migrate command and the seed's last step)
 // for groups and entries from before the catalog.
 
-export const serviceName = "symptomType";
 export const schemaName = symptomTypeModel.schemaName;
 
 const invalid = (issues: { path: string; message: string }[]) =>
   newError({ code: "symptomTypeService:invalid", meta: { issues } });
 
 const audits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
+
+/**
+ * The group's catalog lock (B-992), held to the end of `tx`: `replace` takes
+ * it exclusive, and every symptom entry write (through `ensure`, or the entry
+ * service's own check) takes it shared before it reads which row a name logs
+ * under. So a write can't resolve a name, or keep a stored pointer, from the
+ * catalog as it was before a replace and land after it, on the tombstone the
+ * replace just made. Taken before any name's lock, so the order is always
+ * catalog, then name.
+ */
+export const lockCatalog = (tx: Tx, groupId: string, mode: "shared" | "exclusive") => {
+  const key = `symptom_catalog:${groupId.toLowerCase()}`;
+  return dbMayFail(
+    () =>
+      tx.execute(
+        mode === "shared"
+          ? sql`SELECT pg_advisory_xact_lock_shared(hashtextextended(${key}, 0))`
+          : sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
+      ),
+    "baseModel:update",
+    { schemaName },
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -56,6 +79,19 @@ export const getByName = (ctx: ServiceContext, groupId: string, name: string) =>
     filter: { groupId: { type: "eq", value: groupId }, nameKey: { type: "eq", value: symptomKey(name) } },
   });
 
+/**
+ * The row `name` logs under (symptom-catalog-3): the group's row for it, or
+ * a deleted name's replacement (`resolveSymptom`); null when the group has
+ * no row for it. Adds nothing.
+ */
+export const getResolved = async (ctx: ServiceContext, groupId: string, name: string) => {
+  const row = await getByName(ctx, groupId, name);
+  if (isError(row) || !row?.replacedById) return row;
+  const replacement = await getById(ctx, row.replacedById);
+  if (isError(replacement)) return replacement;
+  return resolveSymptom(name, replacement ? [row, replacement] : [row]);
+};
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
@@ -65,7 +101,10 @@ export const getByName = (ctx: ServiceContext, groupId: string, name: string) =>
  * be able to log: `LOGGERS`), inside the caller's transaction when there is
  * one. Idempotent: any case or spacing of a name returns its one row, and two
  * transactions adding the same name at once wait for each other (an
- * advisory lock on the derived id) instead of colliding.
+ * advisory lock on the derived id) instead of colliding. A deleted name (a
+ * tombstone) returns its replacement (`resolveSymptom`), and adds nothing.
+ * Holds the catalog lock shared (`lockCatalog`) first, so it never answers
+ * with a row a running `replace` is retiring.
  */
 export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
   withTransaction(async (tx) => {
@@ -74,6 +113,8 @@ export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
       return invalid(parsed.error.issues.map(({ message }) => ({ path: "name", message })));
     const row = symptomTypeRow(groupId, parsed.data);
 
+    const catalog = await lockCatalog(tx, groupId, "shared");
+    if (isError(catalog)) return catalog;
     const lock = await dbMayFail(
       () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${row.id}, 0))`),
       "baseModel:create",
@@ -81,7 +122,7 @@ export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
     );
     if (isError(lock)) return lock;
 
-    const existing = await getByName({ ...ctx, tx }, groupId, row.name);
+    const existing = await getResolved({ ...ctx, tx }, groupId, row.name);
     if (isError(existing) || existing) return existing;
     return symptomTypeModel.create({ ...ctx, tx, data: row });
   }, ctx);
@@ -149,6 +190,97 @@ export const archive = (ctx: ServiceContext, input: { groupId: string; id: strin
 export const unarchive = (ctx: ServiceContext, input: { groupId: string; id: string }) =>
   setArchived(ctx, input, false);
 
+/**
+ * Delete symptom `id` into `replacementId` (symptom-catalog-3), as an owner
+ * (`OWNER_ROLES`): online only (oRPC), one transaction. Every entry pointing
+ * at `id`, soft-deleted ones too, moves to the replacement (its pointer and
+ * `details.name`, with `updated_at` now and the actor in `updated_by`);
+ * tombstones that pointed at `id` now point at the replacement, so there's
+ * never a chain; and `id` becomes a tombstone (`replaced_by_id`, archived
+ * when it wasn't), kept so its derived id can't come back as a new row.
+ * Takes the catalog lock exclusive first (`lockCatalog`: every symptom entry
+ * write in the group waits, and then sees the tombstone), then the rows.
+ * Refuses the same id (`sameSymptom`), a
+ * missing or another group's row (`notFound`) or replacement
+ * (`replacementNotFound`), and a tombstone as either (`merged`,
+ * `replacementMerged`): a rerun is refused and changes nothing. Returns how
+ * many entries moved.
+ */
+export const replace = (
+  ctx: ServiceContext,
+  { groupId, id, replacementId }: { groupId: string; id: string; replacementId: string },
+) =>
+  withTransaction(async (tx) => {
+    if (!ctx.authUser) return rejectError(null);
+    if (!isSystemUser(ctx.authUser)) {
+      const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+      if (isError(role)) return role;
+      if (!hasGroupRole(OWNER_ROLES, role)) return rejectError(ctx.authUser);
+    }
+    const from = id.toLowerCase();
+    const to = replacementId.toLowerCase();
+    if (from === to) return newError({ code: "symptomTypeService:sameSymptom" });
+
+    const lock = await lockCatalog(tx, groupId, "exclusive");
+    if (isError(lock)) return lock;
+    const ids = [from, to].sort();
+    const t = symptomTypeSchema;
+    const rows = await dbMayFail(
+      () => tx.select().from(t).where(inArray(t.id, ids)).orderBy(asc(t.id)).for("update"),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(rows)) return rows;
+    const row = rows.find((r) => r.id === from);
+    const replacement = rows.find((r) => r.id === to);
+    if (!row || row.groupId !== groupId) return newError({ code: "symptomTypeService:notFound" });
+    if (row.replacedById) return newError({ code: "symptomTypeService:merged" });
+    if (!replacement || replacement.groupId !== groupId)
+      return newError({ code: "symptomTypeService:replacementNotFound" });
+    if (replacement.replacedById) return newError({ code: "symptomTypeService:replacementMerged" });
+
+    const actorId = ctx.authUser.id;
+    // Raw SQL: one statement for every entry, deleted ones too, with
+    // `details.name` set inside the JSON.
+    const moved = await dbMayFail(
+      () =>
+        tx.execute(sql`
+          UPDATE timeline_entry SET
+            symptom_type_id = ${to}::uuid,
+            details = jsonb_set(COALESCE(details, '{}'::jsonb), '{name}', to_jsonb(${replacement.name}::text)),
+            updated_at = now(),
+            updated_by = ${actorId}::uuid
+          WHERE group_id = ${groupId}::uuid AND symptom_type_id = ${from}::uuid`),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(moved)) return moved;
+
+    const repointed = await dbMayFail(
+      () =>
+        tx
+          .update(t)
+          .set({ replacedById: to, updatedBy: actorId })
+          .where(and(eq(t.groupId, groupId), eq(t.replacedById, from))),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(repointed)) return repointed;
+
+    const marked = await dbMayFail(
+      () =>
+        tx
+          .update(t)
+          .set({ replacedById: to, archivedAt: sql`COALESCE(${t.archivedAt}, now())`, updatedBy: actorId })
+          .where(and(eq(t.groupId, groupId), eq(t.id, from))),
+      "baseModel:update",
+      { schemaName },
+    );
+    if (isError(marked)) return marked;
+
+    return { moved: moved.rowCount ?? 0 };
+  }, ctx);
+
 /** Insert catalog rows as the system, leaving any the group already has. Returns how many were added. */
 const insertRows = async (tx: Tx | undefined, rows: ReturnType<typeof symptomTypeRow>[]) => {
   if (!rows.length) return 0;
@@ -178,15 +310,18 @@ export const addDefaults = async (tx: Tx, groupId: string) => {
 };
 
 /**
- * Point entries at their types, only where the pointer is still null. Raw
+ * Point entries at their types, only where the pointer is still null: at a
+ * deleted name's replacement (`resolveSymptom`) when its row is a tombstone. Raw
  * SQL, so Drizzle's `$onUpdate` doesn't bump `updated_at`, and `updated_by`
  * is never named: an edit made on a device since still wins, and
  * `details.name` is left as written. Returns how many were filled.
  */
 const fillPointers = async (pointers: { entryId: string; typeId: string }[]) => {
   if (!pointers.length) return 0;
+  const resolved = await resolvedIds([...new Set(pointers.map((p) => p.typeId))]);
+  if (isError(resolved)) return resolved;
   const values = sql.join(
-    pointers.map((p) => sql`(${p.entryId}::uuid, ${p.typeId}::uuid)`),
+    pointers.map((p) => sql`(${p.entryId}::uuid, ${resolved.get(p.typeId) ?? p.typeId}::uuid)`),
     sql`, `,
   );
   const filled = await dbMayFail(
@@ -198,6 +333,39 @@ const fillPointers = async (pointers: { entryId: string; typeId: string }[]) => 
     "symptomTypeService:backfill",
   );
   return isError(filled) ? filled : (filled.rowCount ?? 0);
+};
+
+/**
+ * Each of `ids` (catalog rows, all present) to the id its name logs under:
+ * itself, or a tombstone's replacement. Reads the rows and their
+ * replacements, then lets `resolveSymptom` decide.
+ */
+const resolvedIds = async (ids: string[]) => {
+  const t = symptomTypeSchema;
+  const cols = { id: t.id, groupId: t.groupId, name: t.name, replacedById: t.replacedById };
+  const rows = await dbMayFail(
+    () => getDb().select(cols).from(t).where(inArray(t.id, ids)),
+    "symptomTypeService:backfill",
+  );
+  if (isError(rows)) return rows;
+  const targets = [...new Set(rows.flatMap((r) => (r.replacedById ? [r.replacedById] : [])))];
+  const replacements = targets.length
+    ? await dbMayFail(
+        () => getDb().select(cols).from(t).where(inArray(t.id, targets)),
+        "symptomTypeService:backfill",
+      )
+    : [];
+  if (isError(replacements)) return replacements;
+  const resolved = new Map<string, string>();
+  for (const row of rows) {
+    if (!row.replacedById) continue;
+    const to = resolveSymptom(
+      row.name,
+      [row, ...replacements].filter((r) => r.groupId === row.groupId),
+    );
+    if (to) resolved.set(row.id, to.id);
+  }
+  return resolved;
 };
 
 /** Rows per batch: groups for the defaults, entries for their names. */

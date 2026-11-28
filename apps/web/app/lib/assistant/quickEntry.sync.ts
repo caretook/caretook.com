@@ -1,4 +1,4 @@
-import type { AssistantAction, NoteMention } from "@caretook/data/schema";
+import type { AssistantAction, TimelineEntryContent } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { PassRow } from "../medications/medicationPasses.sync";
@@ -10,14 +10,11 @@ import { isLoggerRole, isWriterRole } from "@caretook/data/permissions";
 import { eq } from "drizzle-orm";
 import {
   assistantActionZSchema,
-  encodeNoteDoc,
   entryProviderId,
   isSymptomDetails,
-  noteDocFromText,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { scheduleChangesQuery } from "../appointments/visitPrep.sync";
-import { duePasses, givenAllWrites } from "../medications/duePasses";
 import {
   dosesSinceQuery,
   dueMedicationsQuery,
@@ -55,7 +52,11 @@ import {
   nowTimestamp,
   readRows,
   symptomTypeColumn,
+  withSymptomName,
 } from "../timeline/timeline.sync";
+import type { NoteMention } from "@caretook/data/domain";
+import { encodeNoteDoc, noteDocFromText } from "@caretook/data/domain";
+import { duePasses, givenAllWrites } from "@caretook/data/schema";
 
 // Carrying out assistant actions (quick entry's cards) on this device: every
 // action in ONE local transaction, so a line is saved whole or not at all,
@@ -69,7 +70,7 @@ import {
 // `createTodo` checks it (`plannedTodo`) and written in the same transaction;
 // it isn't an entry. Its `eventId` is written as a link row
 // (`timeline_entry_todo`), never `todo.event_id`. A symptom adds its name's catalog row when the group
-// has none (`addSymptomTypeIn`). A refused action refuses the batch, naming
+// has none, and a deleted name saves as its replacement (`addSymptomTypeIn`). A refused action refuses the batch, naming
 // the action it was.
 
 export type RunActionsResult =
@@ -96,8 +97,8 @@ type EntryRows = {
   /** A note's or event's live document: a note's text, with its providers mentioned. */
   document?: { text: string | null; mentions: NoteMention[] };
   providerIds?: string[];
-  /** A symptom's name, whose catalog row is added with it when the group has none. */
-  symptomName?: string;
+  /** A symptom's content: its name is resolved over the catalog in the write (`addSymptomTypeIn`). */
+  symptom?: TimelineEntryContent;
 };
 
 const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -258,7 +259,7 @@ export const runActions = async (
       // An Easy helper's note keeps its mentions in the text, unlinked.
       providerIds: writer ? providerIds : [],
       ...(content.data.kind === "symptom" &&
-        isSymptomDetails(content.data.details) && { symptomName: content.data.details.name }),
+        isSymptomDetails(content.data.details) && { symptom: content.data }),
     });
   }
 
@@ -269,10 +270,25 @@ export const runActions = async (
         if (rows.link) await tx.insert(timelineEntryTodos).values(rows.link);
         continue;
       }
-      const { entry, more, document, providerIds, symptomName } = rows;
+      const { more, document, providerIds, symptom } = rows;
+      let { entry } = rows;
       if (entry.kind === "dose") await claimDoseIds(tx, [entry, ...(more ?? [])]);
-      // A symptom's name joins the catalog in the same write, when it's new (as `createEntry`).
-      if (symptomName) await addSymptomTypeIn(tx, { groupId, name: symptomName, userId: db.userId, now });
+      // A symptom's name joins the catalog in the same write, when it's new;
+      // a deleted name saves as its replacement (as `createEntry`).
+      if (symptom && isSymptomDetails(symptom.details)) {
+        const row = await addSymptomTypeIn(tx, {
+          groupId,
+          name: symptom.details.name,
+          userId: db.userId,
+          now,
+        });
+        const resolved = withSymptomName(symptom, row);
+        entry = {
+          ...entry,
+          details: contentColumns(resolved).details,
+          ...symptomTypeColumn(groupId, resolved, row),
+        };
+      }
       await tx.insert(timelineEntries).values(entry);
       for (const row of more ?? []) await tx.insert(timelineEntries).values(row);
       if (document) {

@@ -3,13 +3,13 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { Printer } from "lucide-react";
 import { Navigate, redirect } from "react-router";
-import { canReadRecipient } from "@caretook/data/schema";
 import { BackLink, Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { EmergencySheet } from "./EmergencySheet";
 import { loadEmergencySheetRows, useEmergencySheet } from "./useEmergencySheet";
+import { canReadRecipient } from "@caretook/data/domain";
 
 // Shared by web + native. `…/profile/print`: the printable emergency sheet
 // (profiles slice 6), for writers (owners, admins, caretakers: the members

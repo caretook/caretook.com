@@ -51,7 +51,7 @@ const bareGroup = async (name = "Pre-catalog Family") => {
 const symptomEntry = (
   g: { groupId: string; recipientId: string },
   details: unknown,
-  extra: { deletedAt?: string; createdAt?: string } = {},
+  extra: { deletedAt?: string; createdAt?: string; symptomTypeId?: string } = {},
 ) =>
   getDb()
     .insert(timelineEntrySchema)
@@ -347,6 +347,120 @@ describe("archive and unarchive (symptom-catalog-2 slice 1)", () => {
     ok(await symptomTypeService.backfill());
     expect(await rowOf(id)).toEqual(archived);
     expect((await catalogOf(groupId)).filter((r) => r.nameKey === "nausea")).toHaveLength(1);
+  });
+});
+
+describe("replace (symptom-catalog-3 slice 2)", () => {
+  const typeOf = async (id: string) =>
+    (await getDb().select().from(symptomTypeSchema).where(eq(symptomTypeSchema.id, id)))[0]!;
+  const entryOf = async (id: string) =>
+    (await getDb().select().from(timelineEntrySchema).where(eq(timelineEntrySchema.id, id)))[0]!;
+  const entriesOf = async (groupId: string) =>
+    getDb()
+      .select()
+      .from(timelineEntrySchema)
+      .where(eq(timelineEntrySchema.groupId, groupId))
+      .orderBy(timelineEntrySchema.id);
+
+  /** A group with "Nauseous" (two entries, one soft-deleted) and an older tombstone "Queasy" pointing at it. */
+  const nauseousWorld = async () => {
+    const world = await createWorld({ members: ["admin", "caretaker"] });
+    const { u, groupId, recipient } = world;
+    const g = { groupId, recipientId: recipient.id };
+    const nauseous = ok(await symptomTypeService.ensure(u.owner.ctx, groupId, "Nauseous"))!;
+    const [queasy] = await getDb()
+      .insert(symptomTypeSchema)
+      .values({ ...symptomTypeRow(groupId, "Queasy"), replacedById: nauseous.id, ...audits })
+      .returning();
+    const [live] = await symptomEntry(g, { name: "nauseous", severity: 4 }, { symptomTypeId: nauseous.id });
+    const [deleted] = await symptomEntry(
+      g,
+      { name: "Nauseous", severity: 2 },
+      { symptomTypeId: nauseous.id, deletedAt: "2026-11-21T10:00:00.000Z" },
+    );
+    const [other] = await symptomEntry(
+      g,
+      { name: "Pain", severity: 5 },
+      { symptomTypeId: symptomTypeId(groupId, "Pain") },
+    );
+    return { ...world, nauseous, queasy: queasy!, live: live!, deleted: deleted!, other: other! };
+  };
+
+  it("lets an owner move live and deleted entries, repoint an older tombstone, and returns the count", async () => {
+    const { u, groupId, nauseous, queasy, live, deleted, other } = await nauseousWorld();
+    const nausea = symptomTypeId(groupId, "Nausea");
+    expect(
+      ok(await symptomTypeService.replace(u.owner.ctx, { groupId, id: nauseous.id, replacementId: nausea })),
+    ).toEqual({ moved: 2 });
+
+    for (const before of [live, deleted]) {
+      const after = await entryOf(before.id);
+      expect(after).toMatchObject({
+        symptomTypeId: nausea,
+        details: { ...(before.details as object), name: "Nausea" },
+        updatedBy: u.owner.user.id,
+        deletedAt: before.deletedAt,
+      });
+      expect(new Date(after.updatedAt).getTime()).toBeGreaterThan(new Date(before.updatedAt).getTime());
+    }
+    expect(await entryOf(other.id)).toEqual(other);
+    expect(await typeOf(queasy.id)).toMatchObject({ replacedById: nausea, updatedBy: u.owner.user.id });
+    const tombstone = await typeOf(nauseous.id);
+    expect(tombstone).toMatchObject({ replacedById: nausea, updatedBy: u.owner.user.id });
+    expect(tombstone.archivedAt).toEqual(expect.any(String));
+    expect((await typeOf(nausea)).replacedById).toBeNull();
+  });
+
+  it("refuses an admin and a caretaker, changing nothing", async () => {
+    const { u, groupId, nauseous } = await nauseousWorld();
+    const before = { types: await catalogOf(groupId), entries: await entriesOf(groupId) };
+    for (const role of ["admin", "caretaker"] as const)
+      expect(
+        codeOf(
+          await symptomTypeService.replace(u[role].ctx, {
+            groupId,
+            id: nauseous.id,
+            replacementId: symptomTypeId(groupId, "Nausea"),
+          }),
+        ),
+        role,
+      ).toBe("permissions:unauthorized");
+    expect({ types: await catalogOf(groupId), entries: await entriesOf(groupId) }).toEqual(before);
+  });
+
+  it("refuses the same id, another group's replacement and a tombstone replacement", async () => {
+    const { u, groupId, nauseous, queasy } = await nauseousWorld();
+    const other = await createWorld({ members: [] });
+    const before = { types: await catalogOf(groupId), entries: await entriesOf(groupId) };
+    const tried = (replacementId: string) =>
+      symptomTypeService.replace(u.owner.ctx, { groupId, id: nauseous.id, replacementId });
+    expect(codeOf(await tried(nauseous.id.toUpperCase()))).toBe("symptomTypeService:sameSymptom");
+    expect(codeOf(await tried(symptomTypeId(other.groupId, "Nausea")))).toBe(
+      "symptomTypeService:replacementNotFound",
+    );
+    expect(codeOf(await tried(queasy.id))).toBe("symptomTypeService:replacementMerged");
+    expect({ types: await catalogOf(groupId), entries: await entriesOf(groupId) }).toEqual(before);
+  });
+
+  it("refuses a rerun on a tombstone and changes nothing; an archived row keeps its archived_at", async () => {
+    const { u, groupId, nauseous } = await nauseousWorld();
+    ok(await symptomTypeService.archive(u.owner.ctx, { groupId, id: nauseous.id }));
+    const archivedAt = (await typeOf(nauseous.id)).archivedAt;
+    const input = { groupId, id: nauseous.id, replacementId: symptomTypeId(groupId, "Nausea") };
+    ok(await symptomTypeService.replace(u.owner.ctx, input));
+    expect((await typeOf(nauseous.id)).archivedAt).toBe(archivedAt);
+
+    const before = { types: await catalogOf(groupId), entries: await entriesOf(groupId) };
+    expect(codeOf(await symptomTypeService.replace(u.owner.ctx, input))).toBe("symptomTypeService:merged");
+    expect(
+      codeOf(
+        await symptomTypeService.replace(u.owner.ctx, {
+          ...input,
+          replacementId: symptomTypeId(groupId, "Fever"),
+        }),
+      ),
+    ).toBe("symptomTypeService:merged");
+    expect({ types: await catalogOf(groupId), entries: await entriesOf(groupId) }).toEqual(before);
   });
 });
 

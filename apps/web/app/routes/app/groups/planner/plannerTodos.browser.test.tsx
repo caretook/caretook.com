@@ -1,13 +1,13 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { useParams } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as plannerRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Todos on the Planner tab (todos slice 4): open dated todos under their day
 // (overdue first under Today), a tick for whoever may complete them, a link
@@ -273,5 +273,73 @@ describe("trees by day on the Planner tab (todo-subtasks-3)", () => {
     await expect.poll(() => rowsOn(day(2)).length).toBe(4);
     expect(document.querySelectorAll("[data-todo-quick-add]")).toHaveLength(0);
     expect(page.getByRole("button", { name: /^Add subtask to / }).query()).toBeNull();
+  });
+});
+
+// Subtasks on their own (todo-links-2 slice 2): `?subtasks=own` lists each
+// dated todo as its own card on its own day, a subtask's with "Part of <parent>";
+// the tabs carry the view; a todo at MAX_TODO_DEPTH has no quick add (B-994).
+describe("subtasks on their own on the Planner tab", () => {
+  const PARENT = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0101";
+  const STEP = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0102";
+  const KEYS = "5b2e8c10-4d7a-4f1e-9c3b-1a6f0e2f0103";
+  const PARENT_TITLE = "Get ready for the hospital stay";
+  const STEP_TITLE = "Arrange the dog sitter";
+  const world = () => [
+    todo({ id: PARENT, title: PARENT_TITLE, dueOn: day(2) }),
+    todo({ id: STEP, title: STEP_TITLE, parentId: PARENT, dueOn: day(1) }),
+    todo({ id: KEYS, title: "Leave the keys with the sitter", parentId: STEP, dueOn: day(1) }),
+    todo({ title: "Pack the bag", parentId: PARENT }),
+  ];
+  const openOwn = (role: GroupRole = "owner") =>
+    renderWithDevice({ route: ROUTES, url: `${PLANNER}?subtasks=own`, role, fixtures: world() });
+  const cardsOn = (key: string) =>
+    [...document.querySelectorAll<HTMLElement>(`[data-day="${key}"] [data-planner-todo]`)]
+      .map((r) => r.dataset.plannerTodo)
+      .sort();
+  const partOf = (todoId: string) => rowOf({ id: todoId })?.querySelector("[data-todo-part-of]");
+  const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+  const tabHref = (label: string) =>
+    [...document.querySelectorAll<HTMLAnchorElement>('main nav[aria-label="Upcoming, past or todos"] a')]
+      .find((a) => a.textContent?.trim() === label)
+      ?.getAttribute("href");
+
+  test("a step is its own card on its day, Part of its parent; the tabs carry the view; the deepest todo has no quick add", async () => {
+    await openOwn();
+    await expect.poll(() => cardsOn(day(1))).toEqual([STEP, KEYS].sort());
+    // The parent alone on its own day: no steps under it, no dimmed rows anywhere.
+    expect(cardsOn(day(2))).toEqual([PARENT]);
+    expect(document.querySelector('[data-todo-look="context"], [data-todo-look="list"]')).toBeNull();
+    expect(rowOf({ id: STEP })?.dataset.todoLook).toBe("card");
+
+    expect(partOf(STEP)?.textContent).toBe(`Part of ${PARENT_TITLE}`);
+    expect(partOf(STEP)?.querySelector("a")?.getAttribute("href")).toBe(
+      `/app/groups/${TEST_GROUP.id}/todos/${PARENT}`,
+    );
+    expect(partOf(KEYS)?.textContent).toBe(`Part of ${STEP_TITLE}`);
+    expect(partOf(PARENT)).toBeNull();
+
+    // B-994: the step may take a subtask; its own subtask, at MAX_TODO_DEPTH, may not.
+    await expect
+      .element(page.getByRole("button", { name: `Add subtask to ${STEP_TITLE}` }))
+      .toBeInTheDocument();
+    expect(rowOf({ id: PARENT })?.querySelector("[data-todo-quick-add]")).toBeTruthy();
+    expect(rowOf({ id: KEYS })?.querySelector("[data-todo-quick-add]")).toBeNull();
+
+    // The view's chip, and the tabs carry it (Past too, for the way back).
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    expect(tabHref("Todos")).toBe(`/app/groups/${TEST_GROUP.id}/todos?subtasks=own`);
+    expect(tabHref("Past")).toBe(`${PLANNER}/past?subtasks=own`);
+  });
+
+  test("Clear filters puts the trees back", async () => {
+    const device = await openOwn();
+    await expect.poll(() => cardsOn(day(1))).toEqual([STEP, KEYS].sort());
+    await userEvent.click(filterButton());
+    await userEvent.click(page.getByRole("menuitem", { name: "Clear filters" }));
+    await expect.poll(() => device.location()).toBe(PLANNER);
+    // Tomorrow: the step's branch under its dimmed parent again, no card of its own.
+    await expect.poll(() => cardsOn(day(1))).toEqual([]);
+    expect(cardsOn(day(2))).toEqual([PARENT]);
   });
 });

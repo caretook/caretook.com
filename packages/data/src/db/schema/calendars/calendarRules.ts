@@ -1,16 +1,11 @@
 import { z } from "zod";
+import { REMINDER_LEADS } from "../../../domain/calendars/reminderPlan";
 
 // The calendars area's shared rules (appointments-2), client-safe: the lead
 // times a reminder can use, what a member's sharing level is, and the
 // consent a member gives before details leave Caretook. The settings page,
 // the services and the feed, reminders and Google all use them.
 
-/**
- * When a reminder goes, before an item starts: the evening before (18:00),
- * the morning of (7:00), or 120, 60 or 30 minutes before. Worked out in the
- * member's own zone.
- */
-export const REMINDER_LEADS = ["eveningBefore", "morningOf", 120, 60, 30] as const;
 export type ReminderLead = (typeof REMINDER_LEADS)[number];
 
 /** A member picks at most this many leads. */

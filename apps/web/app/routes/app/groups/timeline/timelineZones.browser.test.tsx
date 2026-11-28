@@ -1,10 +1,10 @@
-import { zonedInstant } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_TIME_ZONE } from "../../../../../test/fixtures";
 import { fixClock, waitUntil } from "../../../../../test/found";
 import { deviceZone, recipientTime, SECOND_ZONE } from "../../../../../test/zone";
 import { rows, rowWith, TIMELINE_ROUTES, TIMELINE_URL } from "./timelineWorld";
+import { zonedInstant } from "@caretook/data/domain";
 
 // Doses across midnight with the device and the recipient in different zones
 // (B-372). The recipient is in Los Angeles; `web:components` runs the device

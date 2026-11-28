@@ -1,6 +1,5 @@
 import type { Fixture } from "../../../test/fixtures";
 
-import { buildNoteDoc, NOTE_FRAGMENT, toBase64 } from "@caretook/data/schema";
 import { describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../test/found";
@@ -13,6 +12,7 @@ import * as providerRoute from "../../routes/app/groups/provider/route";
 import * as plannerRoute from "../../routes/app/groups/planner/route";
 import { loadVisitPrepData } from "../../lib/appointments/visitPrep.sync";
 import { resolveUnits } from "@caretook/data/schema";
+import { buildNoteDoc, NOTE_FRAGMENT, toBase64 } from "@caretook/data/domain";
 
 // Visit prep on the test device: "Prepare for this visit" on an upcoming
 // appointment's page, "Prepare for a visit" on a provider's page (their next
@@ -418,6 +418,7 @@ describe("in the Planner", () => {
       "Cancel event",
       "Remind me",
       "Print",
+      "Copy link",
       "Delete",
     ]);
     await userEvent.click(menuItem("Prepare for this visit"));
@@ -429,13 +430,14 @@ describe("in the Planner", () => {
     await expect.poll(() => device.location()).toBe(`/app/groups/${GROUP}/planner`);
   });
 
-  test("a viewer's ⋯ is Remind me and Print", async () => {
+  test("a viewer's ⋯ is Remind me, Print and Copy link", async () => {
     await open(`/app/groups/${GROUP}/planner`, { role: "viewer" });
     await userEvent.click(actionsOf(APPT.id));
     await expect.element(menuItem("Print")).toBeInTheDocument();
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
       "Remind me",
       "Print",
+      "Copy link",
     ]);
   });
 });

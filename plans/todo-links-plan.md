@@ -6,14 +6,30 @@
 
 **Planned 2026-11-27** by the dispatcher's planner. Six slices, three waves; each small (B-947's suggestions are split from the recently viewed store so neither passes about eight files; B-964, unrelated to links, went to `todo-links-2`). Skeptic s74's go added `searchTables.sync.ts` to slice 3 and `updateTodo`'s no-`entryIds` rule to slice 2. Reworked after skeptic s71's send-back: med conditions indexed (B-946), slice 5 blocked by 2, `chosenLinkChip` stays put, B-964 cut.
 
-| Slice | Wave | State   | Merge into `prd/todo-links` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------- |
-| 1     | 1    | planned |                                             |
-| 2     | 2    | planned |                                             |
-| 3     | 2    | planned |                                             |
-| 4     | 1    | planned |                                             |
-| 5     | 3    | planned |                                             |
-| 6     | 1    | planned |                                             |
+**Landing mode: run everything through** (dispatcher start, 2026-11-27): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Wave 1 landed 2026-11-27** in dev through PR #280 (dev 2b82fa9; components run 46072898158 green on the synced tip c105ba7d1; Codex clean). The user said to land without waiting for Codex; its two P2s came in first and were filed as B-988 (entry hits capped before the kind filter) and B-989 (tag changes don't refresh the box), both `prd=todo-links` triaged: fold them into slice 3 if they fit its files (linkSearch.sync.ts, useLinkSearch.ts), else a later slice. Report a342; to-test/2026-11-27-1658-todo-links.md. B-948 done; B-944, B-947 continue.
+
+**Wave 2 landed 2026-11-27** in dev through PR #288 (dev 3da5039; components run 46080875098 green on c261a994c; Codex clean on 187323e). Slices 2 and 3 (opus) merged; slice 3's CI fix (test queries past the chips; a type word that finds nothing searches the whole text) merged as b04d9d146. Docs folded (todos, search, ui-kit). Report a349; to-test/2026-11-27-1825-todo-links.md. B-944, B-945, B-946, B-988, B-989 done. Slice worktrees 2, 3 removed.
+
+**Wave 3 started 2026-11-27 (this session):** slice 5 worktree todo-links-5 made, agent spawned on opus, with **B-990** (send only the sheet's own entry adds and removes, not a first snapshot) and **B-991** (`chosenEntriesQuery` uses `previewText` with pending note updates) and slice 3's nit (the type-word fallback leaves the typed type's chip on) folded in. B-947, B-990, B-991 claimed. **Slice 5 merged** as 347fd297a (14 files, over 12: B-990, B-991 widened it). It changed shared `ui/ComboBox.tsx`: in focus mode a pick closes the list until typing, a tap, an arrow key or leaving; the components run checks the other focus-mode boxes. Sync skipped (no shared files). Browser `ui` check passed (`--changed`; the lean `--suite` needs the user's word). Docs folded (todos, ui-kit). Components run 46084141293 green on ff1b06d8. Worktree todo-links-5 removed. PR #290: Codex's one P2 filed as B-993 (fixes-bug), replied, resolved; clean on d7ada72. Landing now; then land (the last wave), then `risa rm todo-links`. Anchors warn on `cameFrom` (a new prop, expected). Server `searchService` doesn't match phones or condition names (parity: maybe a backlog item). Never `--by-user` without the user's word this landing (the classifier refused it).
+
+**From slice 2:** the form always sends an empty `entryIds` marker (present-empty unlinks all, absent leaves links). Cleanup leftovers: `todoSheet.ts` `useLinkChoices` still reads recent events (unused); `todos/new/route.tsx`'s top comment is stale.
+
+**From slice 3:** `useLinkSearch(groupId, text, linked, type = null)`; a type word alone finds nothing (slice 5: show that type's suggestions); `ComboBox` gained `reopenOn`; tests find chips by text inside `[aria-label="Link type"]` (React Aria hides them while the list is open).
+
+**From slice 1:** `ComboBoxOption` gained `icon`; `LinkToBox` uses `opensOn="typing"` (focus mode reopened an empty list after a pick): slice 5 needs focus mode and a fix. `entryLinkOptions` and `linkableEntriesQuery` are now unused (left for slice 2 or a cleanup). Mouse clicks on options in a standalone component test detach; tests pick with the keyboard.
+
+**For slice 5 (from slice 4's hand-off):** the hook is `useRecordView(userId, type, id | null)` (`null`: don't record); records are `{ type: provider|medication|note|event, id }` with no group id: map note and event to search's `entry`, resolve against the current group's live rows and drop the rest.
+
+| Slice | Wave | Model | State  | Merge into `prd/todo-links` (slice commits)      |
+| ----- | ---- | ----- | ------ | ------------------------------------------------ |
+| 1     | 1    | opus  | landed | c3c95a1aa (d7e688c6a), fix ac83828e8 (92a6baa3b) |
+| 2     | 2    | opus  | landed | e1bee6730 (ded397686)                            |
+| 3     | 2    | opus  | landed | 70982ff9e (3bd80f9eb, 87e6426ce)                 |
+| 4     | 1    | opus  | landed | 755f9b1e4 (db2656198)                            |
+| 5     | 3    | opus  | merged | 347fd297a (816d6e347)                            |
+| 6     | 1    | opus  | landed | b7fb8d218 (14dfb3f7f)                            |
 
 ## Architectural decisions
 

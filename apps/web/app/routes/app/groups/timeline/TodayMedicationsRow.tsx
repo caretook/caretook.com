@@ -5,10 +5,10 @@ import { Link, useLocation } from "react-router";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
 import { Button, LINK, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { givenAllLabel, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { medicationStripText } from "~/lib/medications/medicationStrip";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TodayRow, TodayRowSkeleton } from "./TodayRow";
+import { givenAllLabel, scheduleZoneNote } from "@caretook/data/schema";
 
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 

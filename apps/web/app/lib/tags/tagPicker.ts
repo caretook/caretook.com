@@ -37,3 +37,17 @@ export const chipSplit = <T>(tags: readonly T[], max = ROW_CHIPS) => ({
   shown: tags.slice(0, max),
   more: Math.max(0, tags.length - max),
 });
+
+/**
+ * A search result's chips in order: the tags its text names (`named`, their
+ * ids) first, then the rest, each part A to Z by key, so a row's first two
+ * chips show why it matched.
+ */
+export const namedFirst = <T extends Named & { id: string }>(
+  tags: readonly T[],
+  named: readonly string[],
+): T[] => {
+  const ids = new Set(named);
+  const az = [...tags].sort((a, b) => (a.name_key < b.name_key ? -1 : a.name_key > b.name_key ? 1 : 0));
+  return [...az.filter((t) => ids.has(t.id)), ...az.filter((t) => !ids.has(t.id))];
+};

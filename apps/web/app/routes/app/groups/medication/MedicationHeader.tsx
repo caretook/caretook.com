@@ -2,11 +2,10 @@ import type { ReactNode } from "react";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Pill } from "lucide-react";
-import { canTagRecord } from "@caretook/data/schema";
+import { canTagRecord, FORM_LABELS, medicationTitle, STATUS_LABELS } from "@caretook/data/schema";
 import { QuickTags, useRecordTags } from "~/components/tags";
 import { Badge, DetailHeader, STATUS_TONE } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
-import { FORM_LABELS, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 
 /**
  * The medication's header (`DetailHeader`): its name and strength, a

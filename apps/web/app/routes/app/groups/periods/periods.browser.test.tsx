@@ -1,7 +1,6 @@
 import type { Route } from "./+types/route";
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { dayInZone, startOfDay, timeInZone } from "@caretook/data/schema";
 import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
@@ -35,6 +34,7 @@ import {
   TRACK_SQL,
   typeRadio,
 } from "./periodWorld";
+import { dayInZone, startOfDay, timeInZone } from "@caretook/data/domain";
 
 // The periods page and its add sheet (care-periods.mjs's list, add, earlier,
 // offline, tie and viewer steps): the track newest first with Now, adding

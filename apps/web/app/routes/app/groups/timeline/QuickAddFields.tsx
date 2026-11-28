@@ -3,12 +3,12 @@ import type { FieldIssue } from "~/lib/core/api";
 import type { MedicationNameRow } from "~/lib/medications/medications.sync";
 
 import { useState } from "react";
-import { MEDICATION_LIMITS, MEDICATION_TYPES } from "@caretook/data/schema";
+import { MEDICATION_LIMITS } from "@caretook/data/schema";
 import { NameField } from "~/components/medications";
 import { ChoiceGroup, Field } from "~/components/ui";
-import { MEDICATION_TYPE_LABELS } from "~/lib/medications/medicationDisplay";
 import { QUICK_ADD_FIELD } from "./doseFormData";
 import { issueFor } from "./formIssues";
+import { MEDICATION_TYPES, MEDICATION_TYPE_LABELS } from "@caretook/data/domain";
 
 const TYPE_OPTIONS = MEDICATION_TYPES.map((type) => ({ value: type, label: MEDICATION_TYPE_LABELS[type] }));
 

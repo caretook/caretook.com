@@ -18,7 +18,7 @@ import {
   useAllergies,
 } from "~/lib/medications/allergies.sync";
 import { useCloseProfileSheet } from "../profileSheet";
-import { allergyActionFromForm } from "./allergyActions";
+import { allergyActionFromForm } from "~/lib/medications/allergyActions";
 import { AllergyForm } from "./AllergyForm";
 import { AllergyList } from "./AllergyList";
 

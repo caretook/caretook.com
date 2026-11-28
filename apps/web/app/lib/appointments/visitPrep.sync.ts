@@ -1,4 +1,4 @@
-import type { NoteSectionLine, UnitChoices } from "@caretook/data/schema";
+import type { UnitChoices } from "@caretook/data/schema";
 import type { ActionResult } from "../core/api";
 import type { VisitEvent, VisitPrepData, VisitWindow } from "./visitPrep";
 import type { SyncDb } from "../sync/index";
@@ -8,13 +8,7 @@ import type { MedicationRow } from "../medications/medications.sync";
 import type { ProviderRow } from "../providers/providers.sync";
 import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 
-import {
-  buildNoteDoc,
-  canHaveNoteDocument,
-  noteText,
-  prependNoteSection,
-  toBase64,
-} from "@caretook/data/schema";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { localTimeZone } from "../core/format";
 import { visitWindow } from "./visitPrep";
 import { carePeriodsQuery, toPeriodSpans } from "../care-periods/carePeriods.sync";
@@ -40,6 +34,8 @@ import {
   toTimelineEntry,
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
+import type { NoteSectionLine } from "@caretook/data/domain";
+import { buildNoteDoc, noteText, prependNoteSection, toBase64 } from "@caretook/data/domain";
 
 // Visit prep on the device: the window and the data for an appointment's
 // "Since your last visit" section (lib/appointments/visitPrep.ts words it), all read from

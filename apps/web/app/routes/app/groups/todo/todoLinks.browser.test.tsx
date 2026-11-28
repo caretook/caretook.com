@@ -9,12 +9,13 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, entryTodo, fx, todo, TEST_GROUP } from "../../../../../test/fixtures";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 
-// The todo page's link rows (todos slice 3): the provider with its call and
-// map actions, the appointment with its time (struck through when
-// cancelled), the medication, each opening its page; a deleted provider or
-// medication greyed "(removed)"; a deleted event's link gone. Its events
-// are link rows (planner-3): the fixtures are a backfilled todo, its
-// `event_id` with the row the migration made for it.
+// The todo page's link rows (todos slice 3), each its kind's shared display
+// (shared-displays slice 6): the provider's `ProviderCard` with its call and
+// map actions, the event as the timeline's row with its time (struck
+// through when cancelled), the medication's `MedicationCard`, each opening
+// its page; a deleted provider or medication greyed "(removed)"; a deleted
+// event's link gone. Its events are link rows (planner-3): the fixtures are
+// a backfilled todo, its `event_id` with the row the migration made for it.
 
 /** Stands in for an entry's page. */
 function EntryProbe() {
@@ -60,10 +61,17 @@ const open = (
   id: string,
   fixtures: Parameters<typeof renderWithDevice>[0]["fixtures"],
   role: GroupRole = "owner",
-) => renderWithDevice({ route: ROUTES, url: pageOf(id), role, fixtures });
+  search = false,
+) => renderWithDevice({ route: ROUTES, url: pageOf(id), role, fixtures, search });
 
 const row = (kind: string) => document.querySelector<HTMLElement>(`[data-todo-link="${kind}"]`);
-const nameIn = (kind: string) => row(kind)?.querySelector("[data-todo-link-name]");
+/** What a link row shows as its name: a provider's or medication's, an entry's heading or first line. */
+const shownName = (el: Element | null | undefined) =>
+  el?.querySelector("[data-provider-name], [data-medication-name]")?.textContent ??
+  el?.querySelector("time + div p")?.textContent?.split("\n")[0];
+const nameIn = (kind: string) => shownName(row(kind));
+const TIME = / ?\d{1,2}:\d\d [AP]M$/;
+const timeIn = (kind: string) => row(kind)?.querySelector("time")?.textContent;
 
 describe("the todo page's links", () => {
   test("lists the provider with its actions, the appointment with its time, and the medication, each a link", async () => {
@@ -81,11 +89,9 @@ describe("the todo page's links", () => {
       .toBeInTheDocument();
 
     await expect
-      .element(links.getByRole("link", { name: "Cardiology follow-up" }))
+      .element(links.getByRole("link", { name: /^Open Cardiology follow-up at / }))
       .toHaveAttribute("href", `/app/groups/${TEST_GROUP.id}/entries/${VISIT.id}`);
-    expect(row("event")?.querySelector("[data-todo-link-when]")?.textContent).toMatch(
-      / · \d{1,2}:\d\d [AP]M$/,
-    );
+    expect(timeIn("event")).toMatch(TIME);
     expect(row("event")?.hasAttribute("data-cancelled")).toBe(false);
 
     await expect
@@ -102,15 +108,14 @@ describe("the todo page's links", () => {
       LINKED,
       LINKED_ROW,
     ]);
-    await expect.poll(() => nameIn("provider")?.textContent).toBe("Dr. Mira Lark (removed)");
-    expect(nameIn("provider")?.tagName).toBe("P");
+    await expect.poll(() => nameIn("provider")).toBe("Dr. Mira Lark (removed)");
     expect(row("provider")?.querySelector("a")).toBeNull();
-    expect(nameIn("medication")?.textContent).toBe("Metformin 500 mg (removed)");
+    expect(nameIn("medication")).toBe("Metformin 500 mg (removed)");
     expect(row("medication")?.querySelector("a")).toBeNull();
 
     expect(row("event")?.hasAttribute("data-cancelled")).toBe(true);
-    expect(nameIn("event")?.className).toContain("line-through");
-    expect(row("event")?.textContent).toContain("Cancelled");
+    expect(row("event")?.querySelector(".line-through")?.textContent).toContain("Cardiology follow-up");
+    expect(row("event")?.querySelector("[data-cancelled-label]")?.textContent).toBe("Cancelled");
   });
 
   test("a deleted appointment's link goes quietly; offline, removeEntry keeps the todo and its link row", async () => {
@@ -152,11 +157,10 @@ describe("the todo page's links", () => {
       entryTodo(later.id, LINKED.id),
     ]);
     await expect.poll(() => document.querySelectorAll('[data-todo-link="event"]').length).toBe(2);
-    expect(
-      [...document.querySelectorAll('[data-todo-link="event"] [data-todo-link-name]')].map(
-        (el) => el.textContent,
-      ),
-    ).toEqual(["Echo scan", "Cardiology follow-up"]);
+    expect([...document.querySelectorAll('[data-todo-link="event"]')].map(shownName)).toEqual([
+      "Echo scan",
+      "Cardiology follow-up",
+    ]);
   });
 
   test("shows a reader no links region for a todo without links", async () => {
@@ -185,7 +189,8 @@ const OTHER_NOTE = fx.note({
   text: "Sleep was better this week",
 });
 const SYMPTOM = fx.symptom({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9e03", name: "Sore knee" });
-const REFILL = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d03", title: "Chase the refill" });
+const REFILL_FIELDS = { id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d03", title: "Chase the refill" };
+const REFILL = todo(REFILL_FIELDS);
 const TWO_LINKED = [
   VISIT,
   CALL_NOTE,
@@ -197,23 +202,64 @@ const TWO_LINKED = [
   // No kind check in the table: the screen shows notes and events only.
   entryTodo(SYMPTOM.id, REFILL.id),
 ];
-const linkNames = () =>
-  [...document.querySelectorAll("[data-todo-links] [data-todo-link-name]")].map((el) => el.textContent);
+const linkNames = () => [...document.querySelectorAll("[data-todo-links] [data-todo-link]")].map(shownName);
 
 describe("the todo page's linked entries", () => {
   test("lists a note and an event, newest first, and opens them", async () => {
     const device = await open(REFILL.id, TWO_LINKED);
     await expect.poll(linkNames).toEqual(["Cardiology follow-up", "Pharmacy said the refill is late"]);
-    expect(row("note")?.querySelector("[data-todo-link-when]")?.textContent).toMatch(
-      / · \d{1,2}:\d\d [AP]M$/,
-    );
+    expect(timeIn("note")).toMatch(TIME);
     const links = page.getByRole("region", { name: "Linked to" });
     await expect
-      .element(links.getByRole("link", { name: "Cardiology follow-up" }))
+      .element(links.getByRole("link", { name: /^Open Cardiology follow-up at / }))
       .toHaveAttribute("href", `/app/groups/${TEST_GROUP.id}/entries/${VISIT.id}`);
-    await userEvent.click(links.getByRole("link", { name: "Pharmacy said the refill is late" }));
+    await userEvent.click(links.getByRole("link", { name: /^Open note at / }));
     await expect.element(page.getByRole("heading", { name: "Entry page" })).toBeInTheDocument();
     expect(device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${NOTE_ID}`);
+  });
+
+  test("shows each as its kind's shared display: the provider's and medication's cards, the entries' timeline rows", async () => {
+    await open(REFILL.id, [
+      ...TWO_LINKED.filter((f) => f !== REFILL),
+      LARK,
+      METFORMIN,
+      todo({ ...REFILL_FIELDS, providerId: LARK.id, medicationId: METFORMIN.id }),
+    ]);
+    await expect
+      .poll(() => linkNames())
+      .toEqual([
+        "Dr. Mira Lark",
+        "Cardiology follow-up",
+        "Pharmacy said the refill is late",
+        "Metformin 500 mg",
+      ]);
+    expect(row("provider")?.querySelector("[data-provider-name]")?.tagName).toBe("A");
+    expect(row("provider")?.textContent).toContain("Provider");
+    expect(row("medication")?.querySelector("[data-medication-name]")?.tagName).toBe("A");
+    expect(row("medication")?.querySelector("[data-medication-label]")?.textContent).toBe("Medication");
+    expect(row("medication")?.getAttribute("data-medication-id")).toBe(METFORMIN.id);
+    // The timeline's kind icons, and the author.
+    expect(
+      row("event")?.querySelector('[data-icon-chip] svg[class*="lucide-calendar-check"]'),
+    ).not.toBeNull();
+    expect(row("note")?.querySelector('[data-icon-chip] svg[class*="lucide-notebook-pen"]')).not.toBeNull();
+    for (const kind of ["event", "note"])
+      expect(row(kind)?.querySelector("[data-author]")?.textContent).toContain("By Alex Moreno");
+    expect(row("note")?.querySelector("[data-row-day]")).not.toBeNull();
+  });
+
+  test("an all-day event in another zone shows its own calendar day", async () => {
+    // Jun 20 in Tokyo starts at 15:00 UTC on Jun 19: still Jun 19 on the test's Los Angeles clock.
+    const tokyo = fx.event({
+      id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9b04",
+      title: "Family visit in Tokyo",
+      occurredAt: at(new Date("2027-06-19T15:00:00Z")),
+      allDay: 1,
+      timeZone: "Asia/Tokyo",
+    });
+    await open(REFILL.id, [tokyo, REFILL, entryTodo(tokyo.id, REFILL.id)]);
+    await expect.poll(() => row("event")?.querySelector("[data-row-day]")?.textContent).toBe("Jun 20");
+    expect(timeIn("event")).toContain("All day");
   });
 
   test("a deleted entry drops out", async () => {
@@ -231,11 +277,12 @@ describe("the todo page's linked entries", () => {
     await expect.poll(linkNames).toEqual(["Cardiology follow-up"]);
   });
 
-  test("a reader sees no Remove and no Link an entry", async () => {
-    await open(REFILL.id, TWO_LINKED, "viewer");
-    await expect.poll(linkNames).toHaveLength(2);
+  test("a reader sees no Remove and no Link to box", async () => {
+    await open(LINKED.id, [LARK, VISIT, METFORMIN, LINKED, LINKED_ROW], "viewer");
+    await expect.poll(() => row("medication")).not.toBeNull();
+    expect(row("provider")).not.toBeNull();
     expect(document.querySelector("[data-todo-link-remove]")).toBeNull();
-    expect(document.querySelector("[data-todo-link-add]")).toBeNull();
+    expect(document.querySelector("[data-link-to-box]")).toBeNull();
   });
 
   test("a writer removes a link: the entry and the todo stay, the link row goes", async () => {
@@ -257,32 +304,86 @@ describe("the todo page's linked entries", () => {
     ]);
   });
 
-  test("a writer links another note from the search, offline", async () => {
-    const device = await open(REFILL.id, TWO_LINKED);
-    await expect.poll(linkNames).toHaveLength(2);
-    await userEvent.click(page.getByRole("button", { name: "Link an entry" }));
-    const search = page.getByRole("combobox", { name: "Link an entry" });
-    await expect.element(search).toHaveFocus();
-    // Linked ones aren't offered.
-    await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBe(1);
-    await userEvent.keyboard("sleep");
-    await userEvent.click(page.getByRole("option", { name: /^Sleep was better this week/ }));
-    await device.settle();
-    await expect
-      .poll(linkNames)
-      .toEqual(["Cardiology follow-up", "Sleep was better this week", "Pharmacy said the refill is late"]);
-    await expect.element(page.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
-    expect((await device.queued()).map((w) => `${w.op} ${w.id}`)).toEqual([
-      `PUT ${entryTodo(OTHER_NOTE.id, REFILL.id).id}`,
-    ]);
-  });
-
-  test("a writer sees Linked to with Link an entry on a todo without links", async () => {
+  test("a writer sees Linked to with the Link to box on a todo without links", async () => {
     const plain = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d04", title: "Water the plants" });
     await open(plain.id, [plain]);
     const links = page.getByRole("region", { name: "Linked to" });
-    await expect.element(links.getByRole("button", { name: "Link an entry" })).toBeInTheDocument();
-    expect(links.element().querySelector("ul")).toBeNull();
+    await expect.element(links.getByRole("combobox", { name: "Link to" })).toBeInTheDocument();
+    // No link rows (the box's type chips are a list too).
+    expect(links.element().querySelector("[data-todo-link]")).toBeNull();
+  });
+});
+
+// The shared "Link to" box on the page (todo-links slice 1): a pick links at
+// once, offline: a note or event adds a link row, a provider or medication
+// fills its slot (a second provider replaces the first); Remove unlinks each.
+
+const FINCH = fx.provider({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9a02", name: "Dr. Ana Finch" });
+const PLAIN = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f9d05", title: "Sort the paperwork" });
+const BOX = () => page.getByRole("combobox", { name: "Link to" });
+
+/** Type into the box and pick the option starting with `name`. */
+const pick = async (device: Awaited<ReturnType<typeof open>>, text: string, name: RegExp) => {
+  await userEvent.click(BOX());
+  await userEvent.keyboard(text);
+  await userEvent.click(page.getByRole("option", { name }));
+  await device.settle();
+};
+
+const slots = async (device: Awaited<ReturnType<typeof open>>) =>
+  (
+    await device.query<{ provider_id: string | null; medication_id: string | null }>(
+      "SELECT provider_id, medication_id FROM todo WHERE id = ?",
+      [PLAIN.id],
+    )
+  )[0];
+
+describe("linking from the todo page", () => {
+  test("a writer links a provider, a medication and a note; a second provider replaces the first; Remove unlinks each", async () => {
+    const device = await open(PLAIN.id, [PLAIN, LARK, FINCH, METFORMIN, OTHER_NOTE], "owner", true);
+    await expect.element(BOX()).toBeInTheDocument();
+
+    await pick(device, "lark", /^Dr\. Mira Lark/);
+    await expect.poll(() => nameIn("provider")).toBe("Dr. Mira Lark");
+    await pick(device, "metformin", /^Metformin/);
+    await expect.poll(() => nameIn("medication")).toBe("Metformin 500 mg");
+    await pick(device, "sleep", /^Sleep was better this week/);
+    await expect.poll(() => nameIn("note")).toBe("Sleep was better this week");
+    expect(await slots(device)).toEqual({ provider_id: LARK.id, medication_id: METFORMIN.id });
+
+    await pick(device, "finch", /^Dr\. Ana Finch/);
+    await expect.poll(() => nameIn("provider")).toBe("Dr. Ana Finch");
+    expect(document.querySelectorAll('[data-todo-link="provider"]')).toHaveLength(1);
+    expect(await slots(device)).toEqual({ provider_id: FINCH.id, medication_id: METFORMIN.id });
+
+    for (const name of ["Dr. Ana Finch", "Metformin 500 mg", "Sleep was better this week"]) {
+      await userEvent.click(page.getByRole("button", { name: `Remove link to ${name}` }));
+      await device.settle();
+    }
+    await expect.poll(() => document.querySelector("[data-todo-links] [data-todo-link]")).toBeNull();
+    expect(await slots(device)).toEqual({ provider_id: null, medication_id: null });
+    expect(await device.query("SELECT id FROM timeline_entry_todo WHERE todo_id = ?", [PLAIN.id])).toEqual(
+      [],
+    );
+    // Unlinking leaves every record.
+    for (const table of ["provider", "medication", "timeline_entry"])
+      expect(
+        await device.query(`SELECT deleted_at FROM ${table} WHERE id IN (?, ?, ?, ?)`, [
+          LARK.id,
+          FINCH.id,
+          METFORMIN.id,
+          OTHER_NOTE.id,
+        ]),
+      ).not.toContainEqual({ deleted_at: expect.anything() as unknown });
+  });
+
+  test("the Link to box's event option has the timeline's event icon", async () => {
+    await open(PLAIN.id, [PLAIN, VISIT], "owner", true);
+    await userEvent.click(BOX());
+    await userEvent.keyboard("cardiology");
+    const option = page.getByRole("option", { name: /^Cardiology follow-up/ });
+    await expect.element(option).toBeInTheDocument();
+    expect(option.element().querySelector('svg[class*="lucide-calendar-check"]')).not.toBeNull();
   });
 });
 
@@ -296,7 +397,9 @@ describe("back from a linked entry", () => {
       fixtures: [LARK, VISIT, METFORMIN, LINKED, LINKED_ROW],
     });
     await userEvent.click(
-      page.getByRole("region", { name: "Linked to" }).getByRole("link", { name: "Cardiology follow-up" }),
+      page
+        .getByRole("region", { name: "Linked to" })
+        .getByRole("link", { name: /^Open Cardiology follow-up at / }),
     );
     await expect.poll(() => device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${VISIT.id}`);
     const back = page.getByRole("main").getByRole("link", { name: "Todo", exact: true });

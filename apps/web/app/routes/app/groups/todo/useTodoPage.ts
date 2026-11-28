@@ -2,14 +2,14 @@ import type { MemberRow } from "~/lib/timeline/timeline.sync";
 import type { TodoRow } from "~/lib/todos/todos.sync";
 import type { loadTodo } from "./loadTodo";
 
-import { todoState } from "@caretook/data/schema";
 import { useCallback, useMemo } from "react";
 import { useGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { todoQuery, toTodo } from "~/lib/todos/todos.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
+import { todoState } from "@caretook/data/domain";
+import { scheduleZoneNote } from "@caretook/data/schema";
 
 /**
  * The todo page's data, live: the todo (other members' edits, ticks and

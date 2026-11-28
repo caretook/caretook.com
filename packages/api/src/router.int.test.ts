@@ -65,6 +65,7 @@ describe("auth", () => {
       easyMode: "full",
       daySummary: "highlights",
       setupDismissed: [],
+      groupSetup: {},
     });
   });
 });

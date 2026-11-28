@@ -1,4 +1,3 @@
-import { HONEYPOT_FIELD, MIN_FORM_MS } from "@caretook/data/schema";
 import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { apiCalls } from "../../../../test/api";
@@ -6,6 +5,7 @@ import { fixClock } from "../../../../test/found";
 import { openMarketing } from "../marketingWorld";
 import { content } from "./content";
 import { labelled } from "../../../../test/required";
+import { HONEYPOT_FIELD, MIN_FORM_MS } from "@caretook/data/domain";
 
 // The contact page's form on one device (moved down from marketing.spec.mjs):
 // every field a person can reach has a label (the honeypot is out of the tab

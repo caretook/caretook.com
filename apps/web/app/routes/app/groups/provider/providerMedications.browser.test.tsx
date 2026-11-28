@@ -28,14 +28,14 @@ const providerUrl = (id: string) => `/app/groups/${GROUP}/providers/${id}`;
 const open = (id: string) => renderWithDevice({ route: ROUTES, url: providerUrl(id), fixtures: world() });
 
 const region = () =>
-  [...document.querySelectorAll<HTMLElement>("main [data-provider-medications] a[data-medication-id]")].map(
-    (a) => [
-      a.querySelector("[data-medication-name]")?.textContent?.trim(),
-      a.querySelector("[data-medication-role]")?.textContent?.trim(),
+  [...document.querySelectorAll<HTMLElement>("main [data-provider-medications] [data-medication-id]")].map(
+    (row) => [
+      row.querySelector("[data-medication-name]")?.textContent?.trim(),
+      row.querySelector("[data-medication-role]")?.textContent?.trim(),
     ],
   );
 const ready = () =>
-  !!document.querySelector<HTMLElement>("main [data-provider-medications] a[data-medication-id]");
+  !!document.querySelector<HTMLElement>("main [data-provider-medications] [data-medication-id] a");
 
 describe("the provider page's medications", () => {
   test("a prescriber's page lists the current medications they prescribe, not the stopped ones", async () => {
@@ -56,7 +56,9 @@ describe("the provider page's medications", () => {
       ["Metformin 500 mg", "Fills"],
     ]);
     await userEvent.click(
-      getByCss(`main [data-provider-medications] a[data-medication-id="${LATANOPROST.id}"]`),
+      getByCss(
+        `main [data-provider-medications] [data-medication-id="${LATANOPROST.id}"] a[data-medication-name]`,
+      ),
     );
     await expect.poll(device.location).toBe(medicationUrl(LATANOPROST.id));
   });

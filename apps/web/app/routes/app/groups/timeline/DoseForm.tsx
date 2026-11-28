@@ -1,6 +1,5 @@
-import type { DoseDetails, DoseStatus } from "@caretook/data/schema";
+import type { DoseDetails, DoseStatus, PlannedDose } from "@caretook/data/schema";
 import type { FormEvent } from "react";
-import type { PlannedDose } from "~/lib/medications/dueDoses";
 import type { DoseDraft } from "~/lib/assistant/quickEntryDraft";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { MedicationNameRow } from "~/lib/medications/medications.sync";

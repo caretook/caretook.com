@@ -1,4 +1,7 @@
-import { HOME, searchString } from "../core/urls";
+import type { GroupSetupStep } from "./groupSetup";
+
+import { groupHome, HOME, searchString } from "../core/urls";
+import { GROUP_SETUP_STEPS, isGroupSetupStep } from "./groupSetup";
 
 /** `/app?groups=1`: show the list of groups rather than going on to one. */
 export const GROUP_LIST_PARAM = "groups";
@@ -27,4 +30,7 @@ export const appShellUrls = {
     `${HOME}/settings${isAccountSettingsPage(page) ? `/${page}` : ""}`,
   /** `/app`'s list of groups, even when it would go on to one (easy mode's way to another group). */
   groupList: () => `${HOME}${searchString({ [GROUP_LIST_PARAM]: "1" })}`,
+  /** A group's setup pages: one step, by default (or for an unknown one) the first. */
+  setup: (groupId: string, step?: GroupSetupStep) =>
+    `${groupHome(groupId)}/setup/${isGroupSetupStep(step) ? step : GROUP_SETUP_STEPS[0]}`,
 } as const;

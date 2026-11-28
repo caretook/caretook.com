@@ -7,8 +7,6 @@ import type {
   DueDose,
   DueMedication,
   EntryEditAction,
-  NoteMention,
-  NoteSectionLine,
   SheetDoseOutcome,
   TimelineEntryCreateInput,
   TimelineEntryUpdateInput,
@@ -20,35 +18,25 @@ import type { ServiceContext } from "./types";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import {
-  appendNoteSection,
   assistantActionZSchema,
   BAD_TODO_LINK_ISSUES,
   conditionActionZSchema,
   canHaveNoteDocument,
   entryEditActionZSchema,
-  DEVICE_FUTURE_SKEW_MS,
   doseRecord,
   doseSlotIdFor,
   dueDoses,
   duePasses,
-  encodeNoteDoc,
   FALLBACK_TIME_ZONE,
-  FUTURE_DATE_MESSAGE,
   givenAllWrites,
   isDoseDetails,
   isSymptomDetails,
-  isTooFarAhead,
   normalizeSchedule,
-  noteDocFromText,
   passRoundId,
   SHEET_DOSE_MARKS_MAX,
   sheetDoseMarkZSchema,
   sheetDoseOutcomes,
-  addDays,
-  dayInZone,
-  startOfDay,
   timelineEntryContentZSchema,
-  toBase64,
 } from "../db/schema";
 import { SYSTEM_USER, isWriterRole } from "../constants";
 import { isError, newError } from "../errors";
@@ -69,6 +57,15 @@ import * as recipientConditionService from "./recipientConditionService";
 import * as symptomTypeService from "./symptomTypeService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
+import { appendNoteSection, encodeNoteDoc, noteDocFromText, toBase64 } from "../domain/live-notes/noteYjs";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  isTooFarAhead,
+  addDays,
+} from "../domain/core/entryTiming";
+import { dayInZone, startOfDay } from "../domain/core/zonedDay";
+import type { NoteMention, NoteSectionLine } from "../domain/live-notes/noteYjs";
 
 // Carrying out assistant actions on the server (connectors PRD): the twin of
 // the device's `runActions` (lib/assistant/quickEntry.sync.ts), for a
@@ -93,8 +90,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // and `resolveCondition` go through `recipientConditionService` (its rules,
 // refusals and condition change entries; the change entry carries `via`).
 // Another group's condition id reads as not found.
-
-export const serviceName = "assistantAction";
 
 export type RunOptions = {
   /** The assistant the batch came through ("Claude"): stored on every entry and todo. */
@@ -268,8 +263,9 @@ const passDoses = async (
   if (!pass || pass.groupId !== groupId) return newError({ code: "assistantActionService:passGone" });
 
   const [medications, passes] = await Promise.all([
-    medicationModel.list({ ...ctx, tx, filter, paginate: { page: 1, limit: 500 } }),
-    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true, paginate: { page: 1, limit: 100 } }),
+    // Every row: a page stops at 100 (B-986).
+    medicationModel.list({ ...ctx, tx, filter }),
+    medicationPassModel.list({ ...ctx, tx, filter, includeDeleted: true }),
   ]);
   if (isError(medications)) return medications;
   if (isError(passes)) return passes;
@@ -397,12 +393,12 @@ const scheduledDose = async (
   if (medication.schedule.type !== "scheduled") return null;
   const when = new Date(action.occurredAt);
   const filter = { groupId: { type: "eq" as const, value: groupId } };
+  // Every row: a page stops at 100, deleted passes counted (B-987).
   const passes = await medicationPassModel.list({
     ...ctx,
     tx,
     filter,
     includeDeleted: true,
-    paginate: { page: 1, limit: 100 },
   });
   if (isError(passes)) return passes;
   const today = dayInZone(when, timeZone);
@@ -656,10 +652,11 @@ const planAction = async (
   if (refused) return refused;
 
   // A symptom named like a catalog row (any case or spacing) takes its
-  // spelling; a new name is added as it is when the entry is written
-  // (`timelineEntryService`), with no similar-name question: nobody is there to answer it.
+  // spelling, and a deleted one its replacement's (symptom-catalog-3); a new
+  // name is added as it is when the entry is written (`timelineEntryService`),
+  // with no similar-name question: nobody is there to answer it.
   if (content.data.kind === "symptom" && isSymptomDetails(content.data.details)) {
-    const type = await symptomTypeService.getByName({ ...ctx, tx }, groupId, content.data.details.name);
+    const type = await symptomTypeService.getResolved({ ...ctx, tx }, groupId, content.data.details.name);
     if (isError(type)) return type;
     if (type) content.data.details = { ...content.data.details, name: type.name };
   }
@@ -887,9 +884,9 @@ const daysFrom = (a: string, b: string) =>
  * mark's note, carrying `via`; every other mark is reported, never written
  * (`sheetDoseOutcomes`: already logged, a conflict, no slot, not yet, too
  * old, repeated). The slots come from the dose record (`doseRecord`, the
- * due-dose core), the same `past_doses` reads. Each slot's id
- * (`doseSlotIdFor`, as `log_dose` gives it) is locked in sorted order before
- * the doses are read, so two simultaneous sheets add each dose once. A
+ * due-dose core), the same `past_doses` reads. Each slot (any answer), then
+ * its id (`doseSlotIdFor`, as `log_dose` gives it), is locked in sorted order
+ * before the doses are read, so two simultaneous sheets add each slot once. A
  * malformed batch, a viewer or a group without a recipient writes nothing.
  */
 export const logPastDoses = (
@@ -933,13 +930,9 @@ export const logPastDoses = (
     if (from && last) {
       const filter = { groupId: { type: "eq" as const, value: groupId } };
       const [medications, passes] = await Promise.all([
-        medicationModel.list({ ...inTx, filter, paginate: { page: 1, limit: 500 } }),
-        medicationPassModel.list({
-          ...inTx,
-          filter,
-          includeDeleted: true,
-          paginate: { page: 1, limit: 100 },
-        }),
+        // Every row: a page stops at 100 (B-986).
+        medicationModel.list({ ...inTx, filter }),
+        medicationPassModel.list({ ...inTx, filter, includeDeleted: true }),
       ]);
       if (isError(medications)) return medications;
       if (isError(passes)) return passes;
@@ -965,14 +958,21 @@ export const logPastDoses = (
           timeZone,
         });
 
-      // The slots the sheet would add, from the schedule alone; their ids locked before the doses are read.
+      // The slots the sheet would add, from the schedule alone; locked before the doses are read:
+      // each slot whatever its answer (another sheet's refused for it waits), then each id (an upload of it waits).
       const planned = sheetDoseOutcomes({ record: recordOf([]), marks: sheet, now, earliestDay });
+      const slotKeys = new Set<string>();
       const ids = new Set<string>();
       planned.forEach((o, i) => {
         if (o.outcome !== "add") return;
+        slotKeys.add(`${o.slot.medication.id}:${o.slot.day}:${o.slot.passId ?? o.slot.time}`);
         const id = slotIdOf(o.slot, sheet[i]!.status, passTimeOf(o.slot.passId));
         if (id) ids.add(id);
       });
+      for (const key of [...slotKeys].sort()) {
+        const locked = await timelineEntryModel.lockDoseSlot(key, tx);
+        if (isError(locked)) return locked;
+      }
       for (const id of [...ids].sort()) {
         const locked = await timelineEntryModel.lockId(id, tx);
         if (isError(locked)) return locked;

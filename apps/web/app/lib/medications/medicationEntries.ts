@@ -1,12 +1,17 @@
-import type { TimelineEntryDetails, TimelineEntryKind } from "@caretook/data/schema";
-import type { SchedulePass } from "./medicationDisplay";
+import type { TimelineEntryDetails, TimelineEntryKind, SchedulePass } from "@caretook/data/schema";
 
-import { isDoseDetails, isMedicationChangeDetails, isPassMovedDetails } from "@caretook/data/schema";
-import { changeText, doseText, passMovedText } from "./medicationDisplay";
+import {
+  isDoseDetails,
+  isMedicationChangeDetails,
+  isPassMovedDetails,
+  changeText,
+  doseText,
+  passMovedText,
+} from "@caretook/data/schema";
 
 // The dose, schedule and change wording is `medicationDisplay`'s, shared with
 // the medication page; re-exported so the timeline imports one module.
-export { changeText, doseText, passMovedText, scheduleText } from "./medicationDisplay";
+export { changeText, doseText, passMovedText, scheduleText } from "@caretook/data/schema";
 
 // What doses and medication changes say on the timeline: "Lisinopril 10 mg"
 // beside "Given 1 tablet", or "Changed dose 1 tablet → 2 tablets". No React or

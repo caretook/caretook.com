@@ -1,4 +1,4 @@
-import { ALLERGY_LIMITS, foldSearchText } from "@caretook/data/schema";
+import { ALLERGY_LIMITS } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import {
   ALLERGY_REACTIONS,
@@ -6,6 +6,7 @@ import {
   reactionSuggestions,
   substanceSuggestions,
 } from "./allergySuggestions";
+import { foldSearchText } from "@caretook/data/domain";
 
 describe("substanceSuggestions", () => {
   it("matches word prefixes, ignoring case and accents", () => {

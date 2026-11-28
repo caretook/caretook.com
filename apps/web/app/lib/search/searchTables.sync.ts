@@ -31,6 +31,8 @@ const SOURCES = [
   { table: "user", id: "ROW.id" },
   { table: "todo", id: "ROW.id" },
   { table: "recipient_condition", id: "ROW.id" },
+  // A medication's linked conditions are in its document (by name): a link added or removed re-indexes it.
+  { table: "medication_condition", id: "json_extract(ROW.data, '$.medication_id')" },
 ] as const;
 
 export type SearchSource = (typeof SOURCES)[number]["table"];

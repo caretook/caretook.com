@@ -1,7 +1,6 @@
 import type { Fixture } from "../../../test/fixtures";
 import type { MentionAddResult } from "./useMentionPopup";
 
-import { fromBase64, NOTE_FRAGMENT, toBase64 } from "@caretook/data/schema";
 import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -15,6 +14,7 @@ import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { getSync } from "~/lib/sync";
 import { directory, PATEL } from "../../routes/app/groups/providers/providerWorld";
 import { LiveNotesEditor } from "./LiveNotesEditor";
+import { fromBase64, NOTE_FRAGMENT, toBase64 } from "@caretook/data/domain";
 
 // A slow add from the `@` popup (the add row, or a "From <group>" copy,
 // which share the path): the mention lands on the `@` that started it,

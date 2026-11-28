@@ -7,10 +7,15 @@
 //
 // Groups: `entry` (the client entry), `root` (entry + the root route) and `app`
 // (root + the /app layout and its ancestors): what a first visit to /app loads.
+// Then the public pages (B-966): `home` (/) and `sign-in`, each with its
+// ancestors, and `public`: what any public page loads (every route
+// chunks.mjs's routeKind doesn't count as the app's, with its ancestors).
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
+
+import { routeKind } from "./chunks.mjs";
 
 /** The route manifest's `window.__reactRouterManifest = {…}` assignment, evaluated. */
 export function parseRouteManifest(source) {
@@ -33,16 +38,30 @@ const unique = (list) => [...new Set(list)];
  * `appRoute` is the id of the /app layout.
  */
 export function buildListing({ routeManifest, chunkModules, gzipOf, appRoute = "app" }) {
+  const { routes } = routeManifest;
   const entry = routeManifest.entry;
   const entryChunks = [entry.module, ...entry.imports].map(file);
-  const rootChunks = unique([...entryChunks, ...routeChunks(routeManifest.routes.root)]);
-  const appChain = [];
-  for (let r = routeManifest.routes[appRoute]; r; r = routeManifest.routes[r.parentId]) appChain.push(r);
-  const appChunks = unique([...rootChunks, ...appChain.flatMap(routeChunks)]);
+  const chain = (id) => {
+    const list = [];
+    for (let r = routes[id]; r; r = routes[r.parentId]) list.push(r);
+    return list;
+  };
+  // What a first visit to the route loads: the entry, then the route and its ancestors.
+  const load = (id) => unique([...entryChunks, ...chain(id).reverse().flatMap(routeChunks)]);
+  // A layout with an id of its own (`app`, `admin`) isn't a route file: its children tell.
+  const isApp = (id) => chain(id).some((r) => r.id === appRoute || r.id === "admin" || routeKind(r.id) === "app");
+  const publicRoutes = Object.keys(routes).filter((id) => !isApp(id));
 
-  const groups = { entry: entryChunks, root: rootChunks, app: appChunks };
+  const groups = {
+    entry: entryChunks,
+    root: load("root"),
+    app: load(appRoute),
+    home: routes["routes/marketing/home/route"] ? load("routes/marketing/home/route") : [],
+    "sign-in": routes["routes/sign-in"] ? load("routes/sign-in") : [],
+    public: unique(publicRoutes.flatMap(load)),
+  };
   const chunks = {};
-  for (const chunk of appChunks) {
+  for (const chunk of unique(Object.values(groups).flat())) {
     // A chunk with no module list could hide a forbidden module: refuse it.
     if (!(chunk in chunkModules)) throw new Error(`${chunk} has no module list in .vite/chunk-modules.json`);
     chunks[chunk] = { gzip: gzipOf(chunk), modules: chunkModules[chunk] };

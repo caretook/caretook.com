@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { ruleText } from "@caretook/data/schema";
 import {
   choiceOfRule,
   choiceRule,
@@ -11,6 +10,7 @@ import {
   toggleWeekday,
   weekdayOf,
 } from "./repeatChoice";
+import { ruleText } from "@caretook/data/domain";
 
 // The appointments area's clock: Wed 2026-11-18, in Los Angeles.
 const WED = "2026-11-18";

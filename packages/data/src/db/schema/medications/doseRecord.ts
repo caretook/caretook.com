@@ -3,8 +3,8 @@ import type { PassLike } from "./medicationPass";
 import type { ScheduleChange } from "./scheduleHistory";
 
 import { z } from "zod";
-import { addDays } from "../core/entryTiming";
-import { startOfDay } from "../core/zonedDay";
+import { addDays } from "../../../domain/core/entryTiming";
+import { startOfDay } from "../../../domain/core/zonedDay";
 import { doseSlotsBetween } from "./dueDoses";
 import { duePasses } from "./duePasses";
 import { DOSE_STATUSES, MEDICATION_LIMITS, scheduleTimeZSchema } from "./medication";

@@ -9,15 +9,12 @@ import type {
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
 import {
-  encodeNoteDoc,
   medicationChange,
   medicationChangeId,
   medicationContentZSchema,
   medicationSchema,
-  noteDocFromText,
   noteDocumentSchema,
   normalizeSchedule,
-  noteText,
   slotTimes,
   timelineEntrySchema,
   userSchema,
@@ -27,6 +24,7 @@ import { DEV_FAMILY_PASS_IDS, seedPassRows } from "./medicationPasses";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 import { occurredAtOf } from "./timelineEntries";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 // Fictional medication lists for both seeded groups: Grandma Pat's (four
 // current, one completed course, one discontinued for side effects), about

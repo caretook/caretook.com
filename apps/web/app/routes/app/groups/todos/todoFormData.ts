@@ -1,8 +1,8 @@
 import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
 import type { TodoInput } from "~/lib/todos/todos.sync";
 
-import { parseRule, ruleText } from "@caretook/data/schema";
 import { choiceOfRule, choiceRule } from "../../../../lib/appointments/repeatChoice";
+import { parseRule, ruleText } from "@caretook/data/domain";
 
 // The todo sheet's form (pure; web:unit tests it): its field names, and the
 // posted form as a write's input. Empty fields mean none.
@@ -14,11 +14,18 @@ export const FIELD = {
   dueOn: "dueOn",
   dueTime: "dueTime",
   providerId: "providerId",
-  eventId: "eventId",
   medicationId: "medicationId",
   repeatRule: "repeatRule",
-  /** A new todo's note or event to link (`todos/new?entryId=`), a hidden field. */
-  entryId: "entryId",
+  /**
+   * The notes and events the todo links (todo-links), repeated hidden
+   * fields; the form sends one empty one with the list, so the field
+   * present means "these and no others".
+   */
+  entryIds: "entryIds",
+  /** An edited todo's notes and events this sheet linked (B-990), repeated; none sent, none. */
+  addEntryIds: "addEntryIds",
+  /** An edited todo's notes and events this sheet unlinked (B-990), repeated. */
+  removeEntryIds: "removeEntryIds",
 } as const;
 
 /** The fields the form shows issues on; anything else is the form's general message. */
@@ -29,7 +36,17 @@ const value = (form: FormData, name: string) => {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 };
 
-/** The form as a create or update. A time without a day is kept, so the schema can say so. */
+/** The posted ids in the repeated field `name`, once each, empty ones left out. */
+const idsOf = (form: FormData, name: string) => [
+  ...new Set(form.getAll(name).flatMap((v) => (typeof v === "string" && v.trim() ? [v.trim()] : []))),
+];
+
+/**
+ * The form as a create or update. A time without a day is kept, so the
+ * schema can say so. `entryIds` (a new todo's) only when the form sent the
+ * list; `addEntryIds` and `removeEntryIds` (an edit's own changes) only
+ * when there are some.
+ */
 export const todoFromForm = (form: FormData): TodoInput => ({
   title: typeof form.get(FIELD.title) === "string" ? (form.get(FIELD.title) as string) : "",
   assigneeId: value(form, FIELD.assigneeId),
@@ -38,9 +55,11 @@ export const todoFromForm = (form: FormData): TodoInput => ({
   dueTime: value(form, FIELD.dueTime),
   providerId: value(form, FIELD.providerId),
   medicationId: value(form, FIELD.medicationId),
-  eventId: value(form, FIELD.eventId),
   repeatRule: value(form, FIELD.repeatRule),
-  entryId: value(form, FIELD.entryId),
+  // No field at all: none given, so an edit leaves the links alone.
+  ...(form.has(FIELD.entryIds) ? { entryIds: idsOf(form, FIELD.entryIds) } : {}),
+  ...(idsOf(form, FIELD.addEntryIds).length ? { addEntryIds: idsOf(form, FIELD.addEntryIds) } : {}),
+  ...(idsOf(form, FIELD.removeEntryIds).length ? { removeEntryIds: idsOf(form, FIELD.removeEntryIds) } : {}),
 });
 
 // --- The repeat (planner-2) --------------------------------------------------

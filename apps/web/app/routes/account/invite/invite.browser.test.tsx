@@ -1,11 +1,6 @@
 import type { DeviceRoute } from "../../../../test/device";
 
-import {
-  ATTESTATION_TEXT,
-  CONSENT_TEXT,
-  LEGAL_REQUIRED_MESSAGE,
-  SHARED_WITH_MEMBERS,
-} from "@caretook/data/schema";
+import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { apiCalls, refusal } from "../../../../test/api";
@@ -13,6 +8,7 @@ import { renderWithDevice } from "../../../../test/device";
 import { found } from "../../../../test/found";
 import * as invite from "./route";
 import { labelled } from "../../../../test/required";
+import { LEGAL_REQUIRED_MESSAGE } from "@caretook/data/domain";
 
 // `/invite/:token` (invites.mjs's screen steps 5 to 8, 10 and 11, on the test
 // device): what each invite state says (and that an unusable one names

@@ -6,6 +6,8 @@ import {
   careGroupService,
   getDb,
   noteDocumentService,
+  recordTagService,
+  tagService,
   timelineEntrySchema,
   timelineEntryService,
 } from "@caretook/data";
@@ -405,11 +407,19 @@ describe("/mcp", () => {
   it("never returns an email or a phone number", async () => {
     const handler = handlerWith();
     const w = await world();
-    await addNote(w.caretaker.ctx, w.group.id, "Called the pharmacy", hoursAgo(3));
+    const note = await addNote(w.caretaker.ctx, w.group.id, "Called the pharmacy", hoursAgo(3));
+    const tag = ok(await tagService.create(w.caretaker.ctx, { groupId: w.group.id, name: "Pharmacy" }))!;
+    ok(
+      await recordTagService.link(w.caretaker.ctx, { groupId: w.group.id, tagId: tag.id, entryId: note.id }),
+    );
     const { tokens } = await connectAssistant({ email: w.caretaker.user.email, groupId: w.group.id });
     const answers = [
       await (await mcpPost(handler, tokens.access_token, toolRequest("group_overview"))).text(),
       await (await mcpPost(handler, tokens.access_token, toolRequest("list_timeline"))).text(),
+      await (await mcpPost(handler, tokens.access_token, toolRequest("list_tags"))).text(),
+      await (
+        await mcpPost(handler, tokens.access_token, toolRequest("tagged_items", { tag: "pharmacy" }))
+      ).text(),
     ].join("\n");
     // tools/list names add_provider's phones and address inputs: no fields of data, but no emails either.
     const outputs = [

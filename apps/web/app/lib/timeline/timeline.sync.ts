@@ -11,14 +11,8 @@ import type { SyncDb } from "../sync/index";
 
 import { WRITERS, isLoggerRole } from "@caretook/data/permissions";
 import {
-  DEVICE_FUTURE_SKEW_MS,
-  FUTURE_DATE_MESSAGE,
-  FUTURE_KINDS,
-  canChangeEntry,
-  canLogEntry,
   isKnownReading,
   isSymptomDetails,
-  isTooFarAhead,
   symptomTypeId,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
@@ -28,6 +22,14 @@ import { isEntryKind } from "./entryDisplay";
 import { addSymptomTypeIn } from "./symptomTypes.sync";
 import { TIMELINE_KINDS } from "./timelineFilters";
 import { timelineEntries } from "../sync/schema";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  FUTURE_KINDS,
+  canChangeEntry,
+  canLogEntry,
+  isTooFarAhead,
+} from "@caretook/data/domain";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the
@@ -547,19 +549,37 @@ export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => (
 });
 
 /**
- * A symptom's catalog row, derived from its name as the server derives it
- * (`symptomTypeId`), so the local copy points where the server's will; null
+ * A symptom's catalog row: `symptom`, the row `addSymptomTypeIn` resolved,
+ * when given; else derived from its name as the server derives it
+ * (`symptomTypeId`), so the local copy points where the server's will. Null
  * for every other kind. The server ignores the device's value (serverSet).
  */
 export const symptomTypeColumn = (
   groupId: string,
   content: { kind: string; details?: TimelineEntryContent["details"] },
+  symptom?: { id: string } | null,
 ) => ({
   symptomTypeId:
     content.kind === "symptom" && isSymptomDetails(content.details)
-      ? symptomTypeId(groupId, content.details.name)
+      ? (symptom?.id ?? symptomTypeId(groupId, content.details.name))
       : null,
 });
+
+/**
+ * A symptom's content with the name `addSymptomTypeIn` resolved it to (a
+ * deleted name's replacement, symptom-catalog-3), as the server stores it;
+ * any other content, or no `symptom`, as it is.
+ */
+export const withSymptomName = <C extends { kind: string; details?: TimelineEntryContent["details"] }>(
+  content: C,
+  symptom: { name: string } | null,
+): C =>
+  symptom &&
+  content.kind === "symptom" &&
+  isSymptomDetails(content.details) &&
+  content.details.name !== symptom.name
+    ? { ...content, details: { ...content.details, name: symptom.name } }
+    : content;
 
 /** The refusal when an entry of this kind is dated past now plus the device's skew (5 minutes). */
 export const futureRefusal = (kind: string, occurredAt: string, now = new Date()): ActionResult | null =>
@@ -583,17 +603,21 @@ export const createEntry = async (db: SyncDb, groupId: string, input: unknown): 
   const now = nowTimestamp();
   const content = parsed.data;
   const recipientId = group.recipient.id;
-  // A symptom's name joins the catalog in the same write, when it's new.
+  // A symptom's name joins the catalog in the same write, when it's new; a
+  // deleted name saves as its replacement.
   await db.drizzle.transaction(async (tx) => {
-    if (content.kind === "symptom" && isSymptomDetails(content.details))
-      await addSymptomTypeIn(tx, { groupId, name: content.details.name, userId: db.userId, now });
+    const symptom =
+      content.kind === "symptom" && isSymptomDetails(content.details)
+        ? await addSymptomTypeIn(tx, { groupId, name: content.details.name, userId: db.userId, now })
+        : null;
+    const stored = withSymptomName(content, symptom);
     await tx.insert(timelineEntries).values({
       id: crypto.randomUUID(),
       groupId,
       recipientId,
       kind: content.kind,
-      ...contentColumns(content),
-      ...symptomTypeColumn(groupId, content),
+      ...contentColumns(stored),
+      ...symptomTypeColumn(groupId, stored, symptom),
       cancelledBy: content.cancelledAt ? db.userId : null,
       deletedAt: null,
       createdAt: now,
@@ -663,25 +687,32 @@ export const updateEntry = async (
 
   // Only what changed: the details rewritten unchanged would be re-sent and
   // overwrite a co-member's newer ones on the server.
-  const changed = changedColumns(
-    { ...contentColumns(stored), cancelledBy: entry.cancelledBy, symptomTypeId: entry.symptomTypeId },
-    { ...contentColumns(merged.data), cancelledBy, ...symptomTypeColumn(entry.groupId, merged.data) },
-    ["details"],
-  );
+  const changedTo = (content: typeof merged.data, symptom: { id: string } | null = null) =>
+    changedColumns(
+      { ...contentColumns(stored), cancelledBy: entry.cancelledBy, symptomTypeId: entry.symptomTypeId },
+      { ...contentColumns(content), cancelledBy, ...symptomTypeColumn(entry.groupId, content, symptom) },
+      ["details"],
+    );
+  const changed = changedTo(merged.data);
   if (!Object.keys(changed).length) return { ok: true };
   const now = nowTimestamp();
-  // A symptom renamed to a new name adds it to the catalog in the same write.
+  // A symptom renamed to a new name adds it to the catalog in the same
+  // write; to a deleted one, it saves as the replacement (maybe no change).
   await db.drizzle.transaction(async (tx) => {
-    if (changed.symptomTypeId && isSymptomDetails(merged.data.details))
-      await addSymptomTypeIn(tx, {
-        groupId: entry.groupId,
-        name: merged.data.details.name,
-        userId: db.userId,
-        now,
-      });
+    const symptom =
+      changed.symptomTypeId && isSymptomDetails(merged.data.details)
+        ? await addSymptomTypeIn(tx, {
+            groupId: entry.groupId,
+            name: merged.data.details.name,
+            userId: db.userId,
+            now,
+          })
+        : null;
+    const write = symptom ? changedTo(withSymptomName(merged.data, symptom), symptom) : changed;
+    if (!Object.keys(write).length) return;
     await tx
       .update(timelineEntries)
-      .set({ ...changed, updatedAt: now, updatedBy: db.userId })
+      .set({ ...write, updatedAt: now, updatedBy: db.userId })
       .where(eq(timelineEntries.id, id));
   });
   return { ok: true };

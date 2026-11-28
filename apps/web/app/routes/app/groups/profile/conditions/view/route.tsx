@@ -20,7 +20,7 @@ import {
 import { loadConditionMedications, useConditionMedications } from "~/lib/profiles/medicationConditions.sync";
 import { loadConditionProviders, useConditionProviders } from "~/lib/profiles/conditionProviders.sync";
 import { useCloseProfileSheet } from "../../profileSheet";
-import { CONDITION_FIELD, conditionActionFromForm } from "../conditionActions";
+import { CONDITION_FIELD, conditionActionFromForm } from "~/lib/profiles/conditionActions";
 import { ConditionDetails } from "../ConditionDetails";
 import { ConditionGone } from "../ConditionGone";
 import { ConditionMedications } from "../ConditionMedications";

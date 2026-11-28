@@ -1,7 +1,6 @@
 import type { NewProviderDraft } from "@caretook/data";
 
 import {
-  foldSearchText,
   isError,
   newError,
   newItemPreview,
@@ -14,6 +13,7 @@ import { z } from "zod";
 import { linkTo, providerPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { asMember } from "./shared";
+import { foldSearchText } from "@caretook/data/domain";
 
 // add_provider (connectors-3): a member's assistant adds a clinician,
 // practice, pharmacy or other contact to the group's directory with the Add

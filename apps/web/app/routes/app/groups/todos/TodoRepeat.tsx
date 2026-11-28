@@ -5,8 +5,8 @@ import { lazy, Suspense, useId, useState } from "react";
 import { Button } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { defaultChoice } from "~/lib/appointments/repeatChoice";
-import { todoRepeatLine } from "~/lib/todos/todoDisplay";
 import { FIELD } from "./todoFormData";
+import { todoRepeatLine } from "@caretook/data/domain";
 
 // The sheet's preview needs rrule: its folder loads only when Repeat opens.
 const RepeatSheet = lazy(() => import("~/components/repeat").then((m) => ({ default: m.RepeatSheet })));

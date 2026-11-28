@@ -1,11 +1,6 @@
 import type { GroupRoleName } from "../constants/roles";
 import type { Tx } from "../db";
-import type {
-  CalendarItem,
-  GoogleCalendarConnection,
-  GoogleConnectionError,
-  GoogleEventLink,
-} from "../db/schema";
+import type { GoogleCalendarConnection, GoogleConnectionError, GoogleEventLink } from "../db/schema";
 import type { AppError } from "../errors";
 import type { GoogleCalendarClient, GoogleCalendarSession, GoogleChangeAction, GoogleEvent } from "../google";
 import type { ServiceContext } from "./types";
@@ -18,7 +13,6 @@ import {
   careRecipientSchema,
   googleCalendarConnectionSchema as connection,
   googleEventLinkSchema as link,
-  googleWindow,
 } from "../db/schema";
 import { ERRORS } from "../errors/constants";
 import { isError } from "../errors";
@@ -30,8 +24,8 @@ import * as calendarSyncService from "./calendarSyncService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
-
-export const serviceName = "calendarPull";
+import type { CalendarItem } from "../domain/calendars/calendarItems";
+import { googleWindow } from "../domain/calendars/calendarItems";
 
 // Pulling members' changes back from Google Calendar (appointments-2, slice
 // 9). The calendar cron's `googlePull` step (`pullDue`) takes each live

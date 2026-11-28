@@ -4,9 +4,9 @@ import type { AuthUser } from "../src/permissions";
 import { randomUUID } from "node:crypto";
 import * as Y from "yjs";
 import { SYSTEM_USER } from "../src/constants";
-import { NOTE_FRAGMENT, toBase64 } from "../src/db/schema";
 import { isError } from "../src/errors";
 import { careGroupMemberService, careGroupService, userService } from "../src/services";
+import { NOTE_FRAGMENT, toBase64 } from "../src/domain/live-notes/noteYjs";
 
 export const system = { authUser: SYSTEM_USER };
 

@@ -4,7 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { activeTag, dayInZone } from "@caretook/data/schema";
+import { activeTag } from "@caretook/data/schema";
 import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { Page } from "~/components/ui";
@@ -22,7 +22,7 @@ import { parseFilters, readDay } from "~/lib/timeline/timelineFilters";
 import { jumpBound } from "~/lib/timeline/timelineJump";
 import { localTimeZone } from "~/lib/core/format";
 import { AddedMedicationToast } from "./AddedMedicationToast";
-import { focusAfterSetup, GettingStartedCard } from "./GettingStartedCard";
+import { focusAfterWelcome, TimelineWelcome } from "./TimelineWelcome";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
@@ -40,6 +40,7 @@ import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useEasyMode } from "~/lib/assistant/useEasyMode";
 import { EasyTimeline } from "./EasyTimeline";
+import { dayInZone } from "@caretook/data/domain";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -181,9 +182,9 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     el?.scrollIntoView({ block: "center" });
     el?.focus({ preventScroll: true });
   };
-  // A dismissed setup card's focus: the quick-entry box, else the "Timeline" heading.
+  // A dismissed welcome's focus: the quick-entry box, else the "Timeline" heading.
   const header = useRef<HTMLDivElement>(null);
-  const afterSetup = () => focusAfterSetup(quickField.current, header.current?.querySelector("h1"));
+  const afterWelcome = () => focusAfterWelcome(quickField.current, header.current?.querySelector("h1"));
 
   const sheets = (
     <>
@@ -242,7 +243,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <div className={COLUMN_CAP} ref={header}>
         <TimelineHeader easyMode={mode} />
       </div>
-      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} onDismissed={afterSetup} />
+      <TimelineWelcome className={COLUMN_CAP} onDismissed={afterWelcome} />
       <TodayCard
         groupId={groupId}
         canWrite={canWrite}

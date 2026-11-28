@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canHaveSubtask, rollupOf, todoContentZSchema, todoState } from "../schema";
-import { nextOccurrence } from "../schema/appointments/todoRepeat";
+import { todoContentZSchema } from "../schema";
+import { nextOccurrence } from "../../domain/appointments/todoRepeat";
 import { seedRows } from "./todos";
+import { canHaveSubtask, rollupOf } from "../../domain/todos/todoTree";
+import { todoState } from "../../domain/todos/todoRules";
 
 // Seeds write straight to the table, skipping the service's validation, so
 // check them against the same rules the API enforces.

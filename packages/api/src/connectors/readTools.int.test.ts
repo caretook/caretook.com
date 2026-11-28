@@ -16,12 +16,15 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  recordTagService,
   SYSTEM_USER,
+  tagService,
   timelineEntryModel,
   todoService,
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
+import { medicationChangeId } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
@@ -368,6 +371,15 @@ describe("read tools", { timeout: 60_000 }, () => {
         schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       },
       { changedAt: "2030-06-12T21:59:00.000Z" },
+    );
+    // Keyed by the device's 14:59 there, but dated by the service no later than
+    // the real clock (B-295), before this one: put it at 14:59 through the model.
+    ok(
+      await timelineEntryModel.update({
+        authUser: SYSTEM_USER,
+        filter: { id: { type: "eq", value: medicationChangeId(med.id, "2030-06-12T21:59:00.000Z") } },
+        data: { occurredAt: "2030-06-12T21:59:00.000Z" },
+      }),
     );
     const token = await w.connect(w.viewer);
     const result = await callTool(handler, token, "todays_doses");
@@ -1252,6 +1264,128 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(clinicians.structuredContent.providers).toHaveLength(1);
   });
 
+  it("tags on records: each list tool gives a record's tag names A to Z, [] when none, never another group's (connectors-5)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const day = (offset: number) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(
+        new Date(Date.now() + offset * 24 * 60 * 60 * 1000),
+      );
+    const tag = async (groupId: string, name: string, by = w.caretaker) =>
+      ok(await tagService.create(by.ctx, { groupId, name }))!;
+    const zephyr = await tag(w.group.id, "Zephyr");
+    const alpha = await tag(w.group.id, "alpha");
+    const tagOn = async (
+      tagId: string,
+      target: Record<string, string>,
+      groupId = w.group.id,
+      by = w.caretaker,
+    ) => ok(await recordTagService.link(by.ctx, { groupId, tagId, ...target }));
+
+    const note = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note", title: "Zeta note" }))!;
+    const plainNote = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note", title: "Zeta plain" }))!;
+    const visit = ok(
+      await addEntry(w.caretaker.ctx, w.group.id, {
+        kind: "event",
+        title: "Zeta visit",
+        occurredAt: hoursAhead(30),
+      }),
+    )!;
+    const todo = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Zeta call", dueOn: day(2) }),
+    )!;
+    const plainTodo = ok(
+      await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title: "Zeta chores", dueOn: day(3) }),
+    )!;
+    const provider = ok(
+      await providerService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        type: "clinician",
+        name: "Dr. Zeta",
+      }),
+    )!;
+    const plainProvider = ok(
+      await providerService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        type: "clinician",
+        name: "Dr. Zetaplain",
+      }),
+    )!;
+    const med = await addMedication(w.caretaker.ctx, w.group.id, { name: "Zetamol" });
+    const plainMed = await addMedication(w.caretaker.ctx, w.group.id, { name: "Zetaplain" });
+    await tagOn(zephyr.id, { entryId: note.id });
+    await tagOn(zephyr.id, { entryId: visit.id });
+    await tagOn(zephyr.id, { todoId: todo.id });
+    await tagOn(zephyr.id, { providerId: provider.id });
+    await tagOn(zephyr.id, { medicationId: med.id });
+    await tagOn(alpha.id, { medicationId: med.id });
+    // Another group's tag on its own medication: never in this group's answers.
+    const offgroup = await tag(w.second.group.id, "Offgroup", w.owner);
+    const otherMed = await addMedication(w.owner.ctx, w.second.group.id, { name: "Zetaoff" });
+    await tagOn(offgroup.id, { medicationId: otherMed.id }, w.second.group.id, w.owner);
+
+    const tagged: Record<string, string[]> = {
+      [note.id]: ["Zephyr"],
+      [visit.id]: ["Zephyr"],
+      [todo.id]: ["Zephyr"],
+      [provider.id]: ["Zephyr"],
+      [med.id]: ["alpha", "Zephyr"],
+    };
+    const token = await w.connect(w.viewer);
+    type Tagged = { id: string; tags: string[] };
+    const expectTags = (tool: string, records: Tagged[], want: string[], plain: string[]) => {
+      const byId = new Map(records.map((r) => [r.id, r.tags]));
+      for (const id of want) expect(byId.get(id), `${tool}: ${id}`).toEqual(tagged[id]);
+      for (const id of plain) expect(byId.get(id), `${tool}: ${id}`).toEqual([]);
+      for (const r of records) expect(r.tags, tool).toEqual(tagged[r.id] ?? []);
+    };
+    const lines = (result: { content: { text: string }[] }) => result.content.map((c) => c.text).join("\n");
+
+    const timeline = await callTool(handler, token, "list_timeline");
+    expectTags(
+      "list_timeline",
+      timeline.structuredContent.entries as Tagged[],
+      [note.id, visit.id],
+      [plainNote.id],
+    );
+    expect(lines(timeline)).toMatch(/ note Zeta note \(caretaker\) · tags: Zephyr$/m);
+    expect(lines(timeline)).toMatch(/ note Zeta plain \(caretaker\)$/m);
+
+    const todos = await callTool(handler, token, "list_todos");
+    expectTags("list_todos", todos.structuredContent.todos as Tagged[], [todo.id], [plainTodo.id]);
+    expect(lines(todos)).toMatch(/- Zeta call \[upcoming\] due \S+ · tags: Zephyr$/m);
+
+    const soon = await callTool(handler, token, "upcoming");
+    expectTags("upcoming", soon.structuredContent.items as Tagged[], [visit.id, todo.id], [plainTodo.id]);
+    expect(lines(soon)).toMatch(/ event: Zeta visit · tags: Zephyr$/m);
+    expect(lines(soon)).toMatch(/ todo: Zeta call · tags: Zephyr$/m);
+    expect(lines(soon)).toMatch(/ todo: Zeta chores$/m);
+
+    const providers = await callTool(handler, token, "list_providers");
+    expectTags(
+      "list_providers",
+      providers.structuredContent.providers as Tagged[],
+      [provider.id],
+      [plainProvider.id],
+    );
+    expect(lines(providers)).toMatch(/- Dr\. Zeta \(clinician\) · tags: Zephyr$/m);
+
+    const meds = await callTool(handler, token, "list_medications");
+    expectTags("list_medications", meds.structuredContent.medications as Tagged[], [med.id], [plainMed.id]);
+    expect(lines(meds)).toMatch(/- Zetamol 10 mg .* · tags: alpha, Zephyr$/m);
+
+    const found = await callTool(handler, token, "search", { q: "zeta" });
+    const hits = found.structuredContent as { entries: Tagged[]; providers: Tagged[]; medications: Tagged[] };
+    expectTags("search entries", hits.entries, [note.id, visit.id], [plainNote.id]);
+    expectTags("search providers", hits.providers, [provider.id], [plainProvider.id]);
+    expectTags("search medications", hits.medications, [med.id], [plainMed.id]);
+    expect(lines(found)).toMatch(/- Medication: Zetamol 10 mg.* · tags: alpha, Zephyr$/m);
+    expect(lines(found)).toMatch(/- Provider: Dr\. Zeta.* · tags: Zephyr$/m);
+
+    for (const result of [timeline, todos, soon, providers, meds, found])
+      expect(JSON.stringify(result)).not.toContain("Offgroup");
+  });
+
   it("recipient_profile: names, age (not the birthday), basics and allergies", async () => {
     const now = new Date();
     const handler = handlerAt(now);
@@ -1534,13 +1668,13 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         details: { readings: [{ type: "heartRate", value: 70 }] },
       }),
     );
-    ok(
+    const sweepEvent = ok(
       await addEntry(w.caretaker.ctx, w.group.id, {
         kind: "event",
         title: "Cardiology",
         occurredAt: hoursAhead(40),
       }),
-    );
+    )!;
     ok(
       await addEntry(w.caretaker.ctx, w.group.id, {
         kind: "symptom",
@@ -1553,20 +1687,20 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         details: { medicationId: med.id, status: "given", amount: "1" },
       }),
     );
-    ok(
+    const sweepTodo = ok(
       await todoService.create(w.caretaker.ctx, {
         groupId: w.group.id,
         title: "Call the clinic",
         assigneeId: w.caretaker.user.id,
       }),
-    );
-    ok(
+    )!;
+    const sweepProvider = ok(
       await providerService.create(w.caretaker.ctx, {
         groupId: w.group.id,
         type: "clinician",
         name: "Dr. Example",
       }),
-    );
+    )!;
     ok(
       await recipientAllergyService.create(w.owner.ctx, {
         groupId: w.group.id,
@@ -1581,6 +1715,23 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         sinceYear: 2018,
       }),
     );
+    const sweepTag = ok(await tagService.create(w.caretaker.ctx, { groupId: w.group.id, name: "Sweep" }))!;
+    ok(
+      await recordTagService.link(w.caretaker.ctx, {
+        groupId: w.group.id,
+        tagId: sweepTag.id,
+        medicationId: med.id,
+      }),
+    );
+    // Tags on every kind the list tools read (connectors-5 slice 4).
+    for (const target of [
+      { entryId: sweepEvent.id },
+      { todoId: sweepTodo.id },
+      { providerId: sweepProvider.id },
+    ])
+      ok(
+        await recordTagService.link(w.caretaker.ctx, { groupId: w.group.id, tagId: sweepTag.id, ...target }),
+      );
 
     const reads = CONNECTOR_TOOLS.filter((t) => t.scope === "read");
     expect(reads.map((t) => t.name)).toEqual(
@@ -1597,6 +1748,8 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         "list_todos",
         "list_providers",
         "recipient_profile",
+        "list_tags",
+        "tagged_items",
       ]),
     );
     const inputs: Record<string, Record<string, unknown>> = {
@@ -1605,6 +1758,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
       list_todos: { status: "all" },
       list_medications: { includePast: true },
       list_providers: { includePast: true },
+      tagged_items: { tag: "sweep" },
     };
     const secretValues = [
       ...Object.values(secrets),

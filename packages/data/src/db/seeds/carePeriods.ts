@@ -2,19 +2,11 @@ import type { CarePeriodType } from "../schema";
 
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import {
-  addDays,
-  carePeriodSchema,
-  dayStart,
-  encodeNoteDoc,
-  localDate,
-  noteDocFromText,
-  noteDocumentSchema,
-  noteText,
-  userSchema,
-} from "../schema";
+import { carePeriodSchema, noteDocumentSchema, userSchema } from "../schema";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
+import { addDays, dayStart, localDate } from "../../domain/core/entryTiming";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 // Fictional care periods for Grandma Pat (Dev Family): at home from eight
 // weeks ago, a night in the emergency room, then the hospital (Mercy General,

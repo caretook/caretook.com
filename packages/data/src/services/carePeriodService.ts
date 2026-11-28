@@ -14,19 +14,18 @@ import {
   carePeriodUpdateZSchema,
   carePeriodUpsertZSchema,
   FUTURE_START_ISSUE,
-  SERVER_FUTURE_SKEW_MS,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { carePeriodModel, careGroupModel, careRecipientModel, providerModel } from "../models";
 import { rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
+import { SERVER_FUTURE_SKEW_MS } from "../domain/core/entryTiming";
 
 // Care periods: where the recipient's care happens, over time. Write through
 // here, not the model: this is where content is validated, the place is
 // checked and starts in the future are refused. The track itself (ends,
 // ties, the current period) is derived, never stored: carePeriodTrack.ts.
 
-export const serviceName = "carePeriod";
 export const schemaName = carePeriodModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

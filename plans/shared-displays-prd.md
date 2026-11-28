@@ -1,0 +1,77 @@
+# PRD: Shared displays (B-961)
+
+| Decision                                                                                                                                                                                                                                     | Why                                                                                                                          | Source  | Cost to change later                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------- |
+| One display per record kind: entries `TimelineEntryRow` (looks: row, card, and a new Planner look), todos `TodoRow` (its looks), providers a new `ProviderCard` (from the directory's row: full and condensed), medications `MedicationCard` | the existing displays most screens already use; the rest merge into them                                                     | assumed | medium: every later screen builds on them |
+| Kept as exceptions, written down: pass logs, a medication's History, the Today card and easy mode's summaries, easy roles' read-only result sheets, the "Link to" picker's options, quick-entry cards, record pages' headers                 | each is not one record's row (a pass groups doses; summaries are status), a ComboBox option, or already one per kind (pages) | assumed | low: one slice each later                 |
+| Search results show each record's own tags (`QuickTags`, two chips then "+N", the tags the text names first), replacing the named-tags line                                                                                                  | the shared display shows tags everywhere; named-first keeps why a result is there                                            | assumed | low                                       |
+| Easy roles see search results' and Planner cards' tags as chips only (no Add or ×)                                                                                                                                                           | as the Planner does today                                                                                                    | assumed | low                                       |
+| Search rows don't tick, edit or delete: a todo there has no tick, an entry's ⋯ menu has Copy link and Print only                                                                                                                             | search reads a loader snapshot, not live rows; acting there risks a stale row                                                | assumed | low                                       |
+| The Planner's cards take the shared entry menu (gaining Copy link) and the timeline's author avatar                                                                                                                                          | one menu, one avatar per entry                                                                                               | assumed | low                                       |
+| Rows on cross pages (a provider's medications, a medication's prescriber and pharmacy, a todo's links) show the record's tags like everywhere else                                                                                           | one display, everywhere                                                                                                      | assumed | low                                       |
+| An event's icon is `KIND_META`'s everywhere (the todo page's links and the "Link to" picker used another)                                                                                                                                    | one icon per kind                                                                                                            | assumed | low                                       |
+| Nothing under `routes/app/groups/medications/` changes: the medication list keeps passing its tags as a child of `MedicationCard`                                                                                                            | med-intervals (planned) owns that folder; it already uses the shared card                                                    | assumed | low                                       |
+| No schema, permission, sync or API change                                                                                                                                                                                                    | displays only                                                                                                                | assumed | low                                       |
+
+Skeptic (two passes): the first sent it back (slice 1 too big, search's members, the rows' `data-*` passthrough, the Planner's route helpers, unmarked anchors); all fixed by splitting slice 1 into a move and a tags-and-members slice (seven slices now). The second said go; its points taken: the Planner keeps its menu label, easy roles' tags stay read-only, Edit only on series events. None declined.
+
+## Problem
+
+The same record looks and behaves differently depending on where a caretaker meets it. A medication is a card with its type badge and tags on the Medications tab, a plain link with a different icon on its provider's page, another row in search, and a fourth on a todo's page. A provider has five renderings; a note or event appears as a timeline row, a timeline card, a Planner card, a search result and a todo's link row, each with its own menu, icon and author. People have to relearn each one, and fixes made in one place (tags, contact actions, a stopped or past marker) don't reach the others.
+
+## Solution
+
+Each record kind (timeline entry, event, medication, provider, todo) shows through one shared display, used on rows, cards, pages' lists and sheets alike, varied only slightly by place (a compact row, a condensed line, a card). Search results, cross-page lists and a todo's links switch to those displays; the few that stay separate are written down with their reason.
+
+### Inventory (today)
+
+| Kind                                        | Shared display                                                                                                               | Variants that merge into it                                                                                                     | Exceptions (kept)                                                                                                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Timeline entry (note, symptom, vital, dose) | `TimelineEntryRow`, `TimelineEntryCard` (one `EntryViewProps`; a provider's linked entries already use the row, `elsewhere`) | search's `EntryResultItem`; the todo page's `EntryLinkRow`                                                                      | `PassLogItem` (a pass, not one entry); `MedicationHistory` (the medication's own log: lines leave out the name the page shows); quick-entry cards (drafts) |
+| Event                                       | the same, plus the Planner's `UpcomingRow`                                                                                   | `UpcomingRow` becomes the entry display's Planner look in `components/entry`, with `EntryMenu`, `RowTags` and the shared author | the Today card's rows and easy mode's Now/Next (status summaries)                                                                                          |
+| Medication                                  | `MedicationCard` (the list, Today's dose slots, as-needed rows, passes)                                                      | search's `MedicationResultItem`; the provider page's `ProviderMedications` rows; the todo page's `MedicationLink`               | the easy roles' read-only result sheet; dose-slot rows keep their own actions inside the card                                                              |
+| Provider                                    | `ProviderListItem` (directory; full and condensed), moved to `components/providers` as `ProviderCard`                        | search's `ProviderResultItem`; the medication page's `ProviderRowItem`; the todo page's `ProviderLink`                          | the easy roles' read-only result sheet; an entry's "With" chips (a chip control, not a row)                                                                |
+| Todo                                        | `TodoRow` (looks `list`, `card`, `easy`, `context`)                                                                          | search's `TodoResultItem`                                                                                                       | —                                                                                                                                                          |
+
+Icons: entry kinds through `KindIcon`/`KIND_META`, providers through `ProviderTypeIcon`, medications and todos through one icon each, exported beside their display; the "Link to" picker's options take the same icons.
+
+## User stories
+
+1. As a caretaker, I want a medication to look the same on its list, in search, on its provider's page and on a todo's page, so that I recognise it at once.
+2. As a caretaker, I want a provider to look the same in the directory, in search, on a medication's page and on a todo's page, with the same contact actions, so that calling them is one habit.
+3. As a caretaker, I want a note or event found in search, or linked from a todo, to look like it does on the timeline, so that I know what I'm opening.
+4. As a caretaker, I want a todo found in search to look like it does on the Todos page, so that its due line and assignee read the same.
+5. As a caretaker, I want the Planner's event cards to have the same ⋯ menu and author as the timeline's, so that Copy link and the rest are where I expect.
+6. As a caretaker, I want every record to show its tags wherever it shows, with the tags my search named first, so that I see why a result matched and can tag it in place.
+7. As a viewer or easy role, I want the shared displays to show me no controls I can't use, and easy roles' results to keep opening their read-only sheets, so that nothing changes for what I can do.
+8. As a maintainer, I want each kind's display and its exceptions written down in the components doc, so that the next screen reuses them.
+
+## Implementation decisions
+
+- **Medication display:** `MedicationCard` grows what the other places need, keeping its current contract for existing callers: a title override (search's highlighted name), how it opens (its page, a callback for easy roles' sheets, or not at all: a plain name), `removed` (greyed "<name> (removed)", no link or actions), an optional quiet label above the name ("Medication", "Prescribes and fills"), and a trailing slot above the stretched link (a todo link's Remove). A `MedicationIcon` exported beside it replaces the hand-made pill circles.
+- **Provider display:** a new `ProviderCard` in `components/providers`, the directory row's markup moved there with `full` and `condensed` looks, and the same additions as the medication card (title override, open as page, callback or none, `removed`, quiet label, trailing slot, contact lines as a slot so the directory keeps `ProviderRowContact`). `ProviderListItem` becomes a thin caller.
+- **Entry display:** search's entries and a todo's linked notes and events render `TimelineEntryRow` with `elsewhere` (day over time, plain icon and author). The row gains a trailing slot for a todo link's Remove. The Planner's `UpcomingRow` moves to `components/entry` as the display's Planner look, taking `EntryViewProps` plus its extras (time range, place, contact actions, rescheduled link); its menu is `EntryMenu`, which gains an `onPrepare` passthrough (series-scoped Edit is the caller's `onEdit`); the Planner's helpers (place, contact actions, return state) stay in its route and are passed in as plain props; tags are `RowTags`; its author is the timeline's.
+- **Todo display:** search's todos render `TodoRow` (`list`, no tick), which gains the search's highlight on its title and a footer slot for search's notes snippet.
+- **Search:** results are split one file per kind (thin wrappers from a result to its kind's display) so the kinds change apart. Search reads every shown result's tags live, one query per kind (`useGroupRecordTags`), and the group's members once (authors' pictures, assignees' names), tags ordered with the named ones first by a pure helper beside the tag picker's.
+- **Data hooks** (`data-result`, `data-result-id`, `data-provider-id`, `data-medication-id`, `data-todo-link`, `data-upcoming-item` …) stay on the shared displays through a data-attribute passthrough (`MedicationCard` has one; `ProviderCard`, `TimelineEntryRow` and `TodoRow` gain one), so existing tests keep finding them.
+- **Permissions** stay where they are: `QuickTags` decides tagging, callers pass `onDelete`/`onEdit`/Remove only to people who may act.
+- No schema, sync, API, route or URL change.
+
+## Testing decisions
+
+- **Component tests** (`web:components`, `renderWithDevice` with `fx` fixtures), one file per slice: each renders the places a kind shows (its list, search, the cross page) and asserts the same structure (the shared data hooks, the name link, the tags' chips, the marker for stopped/past/removed/cancelled), and the role rules (a viewer sees no Remove; an easy role's result opens its sheet). Prior art: `routes/app/groups/provider/LinkedEntries` tests, `searchTags.browser.test.tsx`, `todoLinks.browser.test.tsx`.
+- **Unit test** for the named-first tag order (`lib/tags/tagPicker.test.ts`).
+- Existing screen tests (search, providers, medications, planner, todo) keep passing unchanged except where markup they asserted moved; no word-for-word copy assertions.
+- No browser checks: nothing crosses the server or sync.
+
+## Out of scope
+
+- Record pages' layouts (each kind already has one page) and edit sheets (forms).
+- The exceptions in the inventory.
+- Anything under `routes/app/groups/medications/` (med-intervals' hot folder).
+- Shared controls (adding, removing, quick add): tags-3 and todo-subtasks-3 did those; this topic only reuses them.
+
+## Notes
+
+- B-955 made tags one control; B-942/B-948 made quick add one; this topic finishes the rule for displays.
+- The orchestrator writes the inventory's final form into [components](../docs/domain/components.md) _Rules_ (a "Shared displays" line per kind and the exceptions) at landing.

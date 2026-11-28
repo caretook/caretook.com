@@ -26,13 +26,13 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           layout/ (the /app frame: GroupMenu, SectionNav + TabBar, SyncIndicator, UserMenu), home/,
                           settings/ (layout, index, units, timeline, account),
                           groups/layout/ (the group route), groups/index/, groups/timeline/ (useTimelineData, TimelineHeader,
-                          TimelineEntryList, EntryBody, TimelineEntryRow/Card, EntryOpenTarget, TimelineFilters, LatestVitals,
-                          LiveNowBanner, LiveDot, QuickAddMenu, DayHeader, EntryForm, EntryKindPicker, SymptomFields, VitalReadingsFields,
+                          TimelineEntryList, TimelineEntryCard, TimelineFilters, LatestVitals,
+                          LiveNowBanner, QuickAddMenu, DayHeader, EntryForm, EntryKindPicker, SymptomFields, VitalReadingsFields,
                           VitalReadingRow, VitalField, VitalTypeMenu, useEntryFormSave, useEntryRemoval, new/, edit/),
                           groups/entry/ (loadEntry, useLiveEntry, EntryPageHeader, EntryHeader, EntryTitleRegion,
                           EntryTimeChip, EventTitleChips, ShareButton, share),
-                          groups/providers/ (DirectoryFilters, DirectoryResults, ProviderListItem, ProviderForm, PhoneFields,
-                          providerSheet, providerFormData, new/, edit/),
+                          groups/providers/ (DirectoryFilters, DirectoryResults, PhoneFields, providerSheet, new/, edit/),
+                          groups/setup/ (layout/: SetupProgress, setupPages; providers/, profile/, medications/, period/, step/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
                           groups/planner/ (the Planner: Upcoming list, past/), groups/medications/, groups/medication/ (a medication's page),
@@ -48,9 +48,13 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/.server/            data.ts, auth.ts, api.ts, notifications.ts, calendarFeed.ts, devUi.ts: the server-only doors
   app/components/         shared by 2+ routes only, imported through each folder's index: brand/ (LogoMark, FullLogo, BRAND),
                           ui/ (the primitives, listed in domain/components.md), ui/date/ (DateTimeField), ui/tooltip/,
-                          ui/plain (the light entry), entry/ (EntryActions, KindIcon),
+                          ui/plain (the light entry), entry/ (EntryBody, EntryActions, KindIcon, TimelineEntryRow,
+                          EntryOpenTarget, LiveDot, OpenTodosMark),
                           groups/ (NewGroupFields),
-                          notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon),
+                          notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon, ProviderForm,
+                          ProviderListItem, ProviderRowContact),
+                          medications/ (MedicationCard, MedicationForm and its fields), care-periods/ (PeriodForm,
+                          PlacePickerField, PeriodList), profiles/ (AllergiesSection, ConditionsSection),
                           settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
                           todos/ (TodoTick, TodoUndoStatus, LinkedTodos)
   app/lib/<area>/         every lib module, in a folder named after its docs/domain/ area (admin, app-shell, appointments, assistant,
@@ -75,7 +79,9 @@ packages/data/            @caretook/data
   src/permissions/        <area>.ts parts (each satisfies a partial Permissions), blocks.ts; permissions.ts spreads them
   src/db/                 client, types, migrate, clear, migrations/, seeds/
   src/db/schema/<area>/   tables + Zod (client-safe) by area, each folder with an index.ts; core/ holds the shared helpers (columns,
-                          uuidV5, timeZone, contactFields, entryTiming, rateLimit); index.ts lists the folders
+                          timeZone, contactFields, rateLimit); index.ts lists the folders; schemaLayout.test.ts keeps pure logic out
+  src/domain/<area>/      @caretook/data/domain: the pure logic (client-safe), same areas, an index.ts each; core/ has uuidV5,
+                          entryTiming, zonedDay, dayLabel
   src/google/             the Google Calendar client seam (client, real, fake), pushPlan, pullPlan
   src/models/, src/services/
 ```

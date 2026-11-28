@@ -17,8 +17,6 @@ import { isError, newError } from "../errors";
 import * as adminAuditService from "./adminAuditService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 
-export const serviceName = "emailSuppression";
-
 // Suppressed email addresses (hosting PRD, slice 4). Resend's webhook
 // suppresses an address after a hard bounce or a complaint; the outbox's
 // delivery asks `suppressedAmong` before each send. Staff list the active

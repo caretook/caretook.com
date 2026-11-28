@@ -1,7 +1,6 @@
 import type { MedicationChangeDetails } from "@caretook/data/schema";
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { zonedInstant } from "@caretook/data/schema";
 import { userEvent } from "vitest/browser";
 import { at, fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
@@ -18,6 +17,7 @@ import * as printSheet from "./print/route";
 import * as listTab from "./list/route";
 import * as medications from "./route";
 import * as scheduleTab from "./schedule/route";
+import { zonedInstant } from "@caretook/data/domain";
 
 // The medications' component tests share one fictional world, like the
 // seeds' (medications.mjs used them): Grandma June's six medications on the

@@ -1,8 +1,9 @@
 import type { SearchItemType } from "@caretook/data/schema";
 
-import { SEARCH_MAX_LENGTH, tagFromParams } from "@caretook/data/schema";
+import { tagFromParams } from "@caretook/data/schema";
 import { isSearchItemType, SEARCH_ALL_PARAM, SEARCH_PERIOD_PARAM, SEARCH_QUERY_PARAM } from "./urls";
 import { isRowId } from "../timeline/timelineFilters";
+import { SEARCH_MAX_LENGTH } from "@caretook/data/domain";
 
 // The search page's results: what its URL asks for, which sections it shows
 // in what order, the order of results inside each, how many each shows, and

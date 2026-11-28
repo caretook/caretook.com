@@ -24,6 +24,7 @@ export function ProviderTypeIcon({
   return (
     <span
       aria-hidden="true"
+      data-provider-type={type}
       className={`bg-base-200 text-base-content grid shrink-0 place-items-center rounded-full ${className} ${past ? "opacity-60" : ""}`}
     >
       <Icon className="size-4" />

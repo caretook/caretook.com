@@ -4,17 +4,17 @@ import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { canBeEmergencyContact, memberSharingZSchema, sharedContact, sharesAnything } from "../db/schema";
+import { memberSharingZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupMemberModel, memberContactShareModel, userContactModel } from "../models";
 import { dropMember } from "./emergencyContactService";
+import { canBeEmergencyContact, sharedContact, sharesAnything } from "../domain/profiles/profileVisibility";
 
 // What a member shares with each of their care groups (profiles): their
 // choices on the membership (`shared_fields`, `relationship`), and the
 // `member_contact_share` projection the group reads. The projection is only
 // ever written here, in the same transaction as the change that moves it.
 
-export const serviceName = "memberSharing";
 export const schemaName = memberContactShareModel.schemaName;
 
 const system = (tx: Tx) => ({ authUser: SYSTEM_USER, tx });

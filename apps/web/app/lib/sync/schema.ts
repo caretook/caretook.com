@@ -646,13 +646,15 @@ export const drizzleSchema = {
  * The tables as PowerSync gets them (`DrizzleAppSchema`): `drizzleSchema`,
  * with per-table options. `todo` tracks metadata, so a write can flag itself
  * for the upload through its `_metadata` column (an Undo's delete of the
- * next occurrence, B-382). Drizzle queries keep `drizzleSchema`.
+ * next occurrence, B-382); so does `medication` (a pass delete's schedule
+ * rewrite, B-1006). Drizzle queries keep `drizzleSchema`.
  * `unsaved_change` is local only: no stream, no upload, no sync-matrix row
  * (`LOCAL_ONLY_TABLES`, which the agreement tests skip).
  */
 export const powerSyncSchema = {
   ...drizzleSchema,
   todos: { tableDefinition: todos, options: { trackMetadata: true } },
+  medications: { tableDefinition: medications, options: { trackMetadata: true } },
   unsavedChanges: { tableDefinition: unsavedChanges, options: { localOnly: true } },
 };
 

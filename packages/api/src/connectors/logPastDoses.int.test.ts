@@ -11,7 +11,7 @@ import {
   timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import { addDays, dayInZone, passRoundId, zonedInstant } from "@caretook/data/schema";
+import { passRoundId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -20,8 +20,10 @@ import {
   enablePasswordSignIn,
   mcpHandler,
   mcpPost,
+  textOf,
   toolRequest,
 } from "./testing";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // log_past_doses through /mcp with real tokens: a fictional week of the
 // paper sheet, seeded through the services. The clock is pinned to noon
@@ -297,6 +299,74 @@ describe("log_past_doses", { timeout: 60_000 }, () => {
     const added = [a, b].map((r) => (r.structuredContent as unknown as Structured).added);
     expect(added.sort()).toEqual([0, marks.length]);
     expect((await w.doses()).length).toBe(marks.length);
+  });
+
+  // B-984: one slot answered two ways at once. Each pair must end as one of its two calls ran first.
+  describe("one slot, two answers at once (B-984)", () => {
+    const sheetMark = (w: World, status: string) => ({
+      medicationId: w.metformin.id,
+      day: day(-3),
+      time: "08:00",
+      status,
+    });
+
+    it("two sheets, given and refused: one dose, the other sheet told of the conflict", async () => {
+      const w = await world();
+      const token = await w.connect(w.caretaker);
+      const results = await Promise.all(
+        ["given", "refused"].map((status) =>
+          callTool(handler, token, "log_past_doses", { marks: [sheetMark(w, status)] }),
+        ),
+      );
+      const outs = results.map((r) => (r.structuredContent as unknown as Structured).results[0]!);
+      const added = outs.find((o) => o.outcome === "add")!;
+      const other = outs.find((o) => o !== added);
+      // As a repeat today: the later sheet's mark is a conflict naming the dose there.
+      expect(other).toMatchObject({ outcome: "conflict", entryId: added.entryId });
+      const doses = await w.doses();
+      expect(doses.map((d) => d.id)).toEqual([added.entryId]);
+    });
+
+    it("log_dose twice, given and refused: two doses, as one after the other gives", async () => {
+      const w = await world();
+      const token = await w.connect(w.caretaker);
+      const occurredAt = at(day(-3), "08:00");
+      const results = await Promise.all(
+        ["given", "refused"].map((status) =>
+          callTool(handler, token, "log_dose", { medicationId: w.metformin.id, status, occurredAt }),
+        ),
+      );
+      for (const r of results) expect(textOf(r)).toMatch(/^Logged: /);
+      const doses = await w.doses();
+      expect(doses.map((d) => (d.details as { status: string }).status).sort()).toEqual(["given", "refused"]);
+    });
+
+    it("a sheet's refused against log_dose's given: as whichever ran first", async () => {
+      const w = await world();
+      const token = await w.connect(w.caretaker);
+      const [sheet, logged] = await Promise.all([
+        callTool(handler, token, "log_past_doses", { marks: [sheetMark(w, "refused")] }),
+        callTool(handler, token, "log_dose", {
+          medicationId: w.metformin.id,
+          status: "given",
+          occurredAt: at(day(-3), "08:00"),
+        }),
+      ]);
+      expect(sheet.isError).toBeUndefined();
+      expect(logged.isError).toBeUndefined();
+      const mark = (sheet.structuredContent as unknown as Structured).results[0]!;
+      const loggedId = (logged.structuredContent as { entryIds: string[] }).entryIds[0];
+      const doses = await w.doses();
+      if (mark.outcome === "conflict") {
+        // log_dose first: the sheet reports its dose and adds none.
+        expect(mark).toMatchObject({ entryId: loggedId, recorded: { status: "given" } });
+        expect(doses.map((d) => d.id)).toEqual([loggedId]);
+      } else {
+        // The sheet first: log_dose's different answer is its own dose, as it is one after the other.
+        expect(mark.outcome).toBe("add");
+        expect(doses.map((d) => d.id).sort()).toEqual([mark.entryId, loggedId].sort());
+      }
+    });
   });
 
   it("refuses a sheet of 201 marks or one with a bad status whole, writing nothing", async () => {

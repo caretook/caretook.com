@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  canBeEmergencyContact,
   careRecipientDetailsUpdateZSchema,
   careRecipientProfileZSchema,
   emergencyOrder,
   memberSharingZSchema,
   outsideContactsZSchema,
-  sharedContact,
   userContactUpdateZSchema,
 } from "../schema";
 import { OUTSIDE_CONTACTS, RECIPIENT_BASICS, RECIPIENT_DETAILS, SEED_MEMBERS } from "./profiles";
+import { canBeEmergencyContact, sharedContact } from "../../domain/profiles/profileVisibility";
 
 // Seeds write straight to the tables, skipping the services' validation, so
 // check them against the same rules the API enforces.

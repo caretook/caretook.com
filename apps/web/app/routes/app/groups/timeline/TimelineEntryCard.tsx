@@ -1,13 +1,21 @@
-import type { EntryViewProps } from "./TimelineEntryRow";
+import type { EntryViewProps } from "~/components/entry";
 
-import { AuthorFilterLink, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import {
+  AuthorFilterLink,
+  CANCELLED_TEXT,
+  CancelledBadge,
+  EntryBody,
+  EntryMenu,
+  EntryOpenTarget,
+  KindFilterLink,
+  LiveDot,
+  OpenTodosMark,
+  RepeatMark,
+  RowTags,
+} from "~/components/entry";
 import { ViaTag } from "~/components/ui";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
-import { EntryOpenTarget } from "./EntryOpenTarget";
-import { LiveDot } from "./LiveDot";
-import { OpenTodosMark } from "./OpenTodosMark";
-import { CANCELLED_TEXT, CancelledBadge, EntryMenu, RowTags } from "./TimelineEntryRow";
 
 /** One entry as a compact card: the body's first line beside the time, all its text (a note's or event's formatted), then who wrote it. */
 export function TimelineEntryCard({

@@ -11,7 +11,6 @@ import { rebuildShares } from "./memberSharingService";
 // address, entered once on their account. Only they read or write them; each
 // group sees what they share with it, rebuilt here in the same transaction.
 
-export const serviceName = "userContact";
 export const schemaName = userContactModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

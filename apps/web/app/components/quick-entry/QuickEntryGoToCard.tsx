@@ -1,9 +1,8 @@
-import type { GoToDay } from "@caretook/data/schema";
-
 import { CalendarDays } from "lucide-react";
 import { Badge, IconChip } from "~/components/ui";
 import { jumpDayText } from "~/lib/timeline/timelineJump";
 import { GO_TO_AHEAD } from "./quickEntryCopy";
+import type { GoToDay } from "@caretook/data/domain";
 
 /** A line that asks for a day: where Go leads. It saves nothing; a day ahead is blocked. */
 export function QuickEntryGoToCard({ goTo }: { goTo: GoToDay }) {

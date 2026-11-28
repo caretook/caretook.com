@@ -38,6 +38,8 @@ apps/web/app/routes/app/settings/routes.ts first-sync layout-offline
 apps/web/app/routes/dev/routes.ts        first-sync layout-offline
 apps/web/app/routes/marketing/routes.ts  first-sync layout-offline
 apps/web/app/routes/app/groups/layout/   app-shell first-sync
+# The creator's first-open redirect to the setup pages (onboarding-2): new groups and /join.
+apps/web/app/routes/app/groups/layout/setupRedirect.ts first-sync invites
 apps/web/app/routes/app/groups/index/    -
 apps/web/app/lib/app-shell/group.tsx     first-sync
 
@@ -58,3 +60,6 @@ apps/web/app/lib/app-shell/serviceWorker* @suite
 apps/web/public/offline.html             layout-offline
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/app-shell/              -
+# The setup pages (onboarding-2): component tests (setup/setup.browser.test.tsx).
+apps/web/app/routes/app/groups/setup/routes.ts first-sync layout-offline
+apps/web/app/routes/app/groups/setup/    -

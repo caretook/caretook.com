@@ -6,11 +6,11 @@ import { parseSearchPage } from "~/lib/search/searchResults";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import {
   matchingTagIds,
-  parseSearch,
   searchIndexStatus,
   subscribeSearchIndexChanges,
   subscribeSearchIndexStatus,
 } from "~/lib/search/search.sync";
+import { parseSearch } from "@caretook/data/domain";
 import { loadSearch } from "./loadSearch";
 
 const serverStatus = () => "preparing" as const;

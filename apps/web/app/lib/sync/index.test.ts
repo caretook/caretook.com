@@ -10,8 +10,11 @@ vi.mock("./client", () => ({
     opened(userId);
     return Promise.resolve({ userId, powersync: { watch } });
   },
-  clear: () => Promise.resolve(),
+  clear: () => cleared(),
+  closeHandle: (db: { userId: string } | null) => closedHandle(db?.userId),
 }));
+const cleared = vi.fn(() => Promise.resolve());
+const closedHandle = vi.fn((_userId?: string) => Promise.resolve());
 
 const KEY = JSON.stringify(["SELECT * FROM provider WHERE group_id = ?", ["g1"]]);
 const OTHER = JSON.stringify(["SELECT * FROM medication WHERE group_id = ?", ["g1"]]);
@@ -350,6 +353,23 @@ describe("sign-out", () => {
     remember("u1", { groupId: "g1", name: "dueTodos" }, [{ id: "t1" }]);
     await openSync("u2");
     expect(recall("u1", { groupId: "g1", name: "dueTodos" })).toBeUndefined();
+    await closeSync();
+  });
+
+  it("hands over to another user's session without clearing: only the tab's handle closes (B-296)", async () => {
+    await openSync("u1");
+    const stop = watchLiveQuery(KEY, vi.fn());
+    const options = watchCall(watch.mock.calls.length - 1)[3];
+    cleared.mockClear();
+    closedHandle.mockClear();
+    opened.mockClear();
+    await openSync("u2");
+    expect(closedHandle).toHaveBeenCalledExactlyOnceWith("u1");
+    expect(cleared).not.toHaveBeenCalled();
+    expect(opened).toHaveBeenCalledExactlyOnceWith("u2");
+    expect(options.signal.aborted).toBe(true);
+    expect(syncUserId()).toBe("u2");
+    stop();
     await closeSync();
   });
 });

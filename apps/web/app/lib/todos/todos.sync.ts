@@ -1,12 +1,21 @@
 import type { TodoContent, TodoUpdateInput } from "@caretook/data/schema";
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
-import type { LocalQuery } from "../timeline/timeline.sync";
+import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
+  entryTodoId,
+  NOTE_DOCUMENT_KINDS,
+  REPEAT_WITH_SUBTASKS_ISSUE,
+  todoContentOf,
+  todoContentZSchema,
+  todoCreateZSchema,
+  todoUpdateZSchema,
+} from "@caretook/data/schema";
+import {
   canCompleteTodo,
   canHaveSubtask,
   clampDue,
@@ -16,19 +25,14 @@ import {
   isTodoCompleter,
   isTodoWriter,
   MAX_TODO_DEPTH,
-  NOTE_DOCUMENT_KINDS,
-  REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
   ROLLUP_METADATA,
   rollupOf,
   SIBLING_ORDER_SQL,
-  todoContentOf,
-  todoContentZSchema,
-  todoCreateZSchema,
-  todoUpdateZSchema,
+  TICK_NEXT_METADATA,
   UNDO_NEXT_METADATA,
-} from "@caretook/data/schema";
-import { eq, inArray, sql } from "drizzle-orm";
+} from "@caretook/data/domain";
+import { eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { noteDocuments, recordTags, timelineEntryTodos, todos } from "../sync/schema";
 import { recordTagRow } from "../tags/tags.sync";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
@@ -386,13 +390,25 @@ export type TodoInput = {
   dueTime?: string | null;
   providerId?: string | null;
   medicationId?: string | null;
-  /** An event to link (the form's picker): `createTodo` writes it as a link row. */
+  /** `createTodo` only (old callers, quick entry): an event to link, written as a link row. */
   eventId?: string | null;
   /**
-   * `createTodo` only: a live note or event to link (`todos/new?entryId=`).
-   * One that isn't live in the group is ignored.
+   * `createTodo` only (old callers): a live note or event to link. One that
+   * isn't live in the group is ignored.
    */
   entryId?: string | null;
+  /**
+   * `createTodo` only: the notes and events the todo links (the add sheet,
+   * todo-links); each live one in the group is linked (others are ignored).
+   */
+  entryIds?: readonly string[];
+  /**
+   * `updateTodo` only (the edit sheet's own changes, B-990): notes and
+   * events to link (each live one in the group) and to unlink. Other link
+   * rows are left as they are, whoever made them.
+   */
+  addEntryIds?: readonly string[];
+  removeEntryIds?: readonly string[];
   /** RRULE text (`ruleText`) to repeat; it needs a due day. */
   repeatRule?: string | null;
   /** `createTodo` only: the todo this is a subtask of (`canHaveSubtask`; it never repeats). */
@@ -414,7 +430,13 @@ export const plannedTodo = async (
   const recipientId = await recipientOf(db, groupId);
   if (!recipientId) return refuse("This care group has no care recipient yet");
 
-  const { entryId: _entryId, ...fields } = input;
+  const {
+    entryId: _entryId,
+    entryIds: _entryIds,
+    addEntryIds: _addEntryIds,
+    removeEntryIds: _removeEntryIds,
+    ...fields
+  } = input;
   const parsed = todoCreateZSchema.safeParse({ groupId, ...fields });
   if (!parsed.success) return invalid(parsed.error);
   const { groupId: _g, recipientId: _r, id: _id, ...content } = parsed.data;
@@ -511,29 +533,44 @@ const planRollup = async (db: SyncDb, change: TreeChange, at: string) => {
   };
 };
 
-/** A live note or event in the group (what `entryId` may link), else null. */
-const linkableEntry = async (db: SyncDb, groupId: string, entryId: string | null | undefined) => {
-  if (!entryId) return null;
-  const [row] = await readRows<{ id: string }>(db, {
-    sql: `SELECT id FROM timeline_entry WHERE id = ? AND group_id = ? AND deleted_at IS NULL
-            AND kind IN (${NOTE_DOCUMENT_KINDS.map(() => "?").join(", ")})`,
-    params: [entryId, groupId, ...NOTE_DOCUMENT_KINDS],
+const KIND_LIST = NOTE_DOCUMENT_KINDS.map(() => "?").join(", ");
+
+/** Which of `ids` are live notes or events in the group (what a todo may link), in their order. */
+const linkableEntries = async (db: SyncDb, groupId: string, ids: readonly (string | null | undefined)[]) => {
+  const wanted = [...new Set(ids.filter((id): id is string => !!id))];
+  if (wanted.length === 0) return [];
+  const rows = await readRows<{ id: string }>(db, {
+    sql: `SELECT id FROM timeline_entry WHERE id IN (SELECT value FROM json_each(?)) AND group_id = ?
+            AND deleted_at IS NULL AND kind IN (${KIND_LIST})`,
+    params: [JSON.stringify(wanted), groupId, ...NOTE_DOCUMENT_KINDS],
   });
-  return row?.id ?? null;
+  const live = new Set(rows.map((r) => r.id));
+  return wanted.filter((id) => live.has(id));
 };
+
+/** The notes and events a todo links that are live (what the sheet shows and may unlink). */
+const linkedLiveEntries = async (db: SyncDb, todoId: string) =>
+  (
+    await readRows<{ entry_id: string }>(db, {
+      sql: `SELECT l.entry_id FROM timeline_entry_todo l
+            JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
+            WHERE l.todo_id = ? AND e.deleted_at IS NULL AND e.kind IN (${KIND_LIST})`,
+      params: [todoId, ...NOTE_DOCUMENT_KINDS],
+    })
+  ).map((r) => r.entry_id);
 
 /**
  * Add a todo on this device (writers). It syncs when the device is online.
- * Its event (the picker's, checked live) and `entryId` (a live note or
- * event, else ignored) become link rows in the same local transaction; the
- * todo's `event_id` stays empty.
+ * Its `entryIds` and an old caller's `entryId` (each a live note or event in
+ * the group, else ignored) and `eventId` (checked live) become link rows in
+ * the same local transaction; the todo's `event_id` stays empty.
  */
 export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput): Promise<TodoWriteResult> => {
   const planned = await plannedTodo(db, groupId, input);
   if (!planned.ok) return planned;
   const { eventId, ...row } = planned.row;
-  const entry = await linkableEntry(db, groupId, input.entryId);
-  const linked = [...new Set([eventId, entry].filter((id): id is string => !!id))];
+  const entries = await linkableEntries(db, groupId, [input.entryId, ...(input.entryIds ?? [])]);
+  const linked = [...new Set([eventId, ...entries].filter((id): id is string => !!id))];
   // A new open subtask reopens a done parent (and those above it).
   const rollup = row.parentId
     ? await planRollup(
@@ -556,14 +593,25 @@ export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput):
 /**
  * Edit a todo's title, assignee, due, repeat or provider and medication
  * links (writers). The merged todo must be valid; a changed assignee must be
- * a member and a changed link live. Its events are link rows, which an edit
- * leaves alone: a patch's `eventId` (and a form's `entryId`) is ignored, and
+ * a member and a changed link live. Its notes and events are link rows,
+ * changed only as the edit sheet changed them (B-990), in the same
+ * transaction: each live note or event in `addEntryIds` it doesn't link yet
+ * is linked, each it links in `removeEntryIds` unlinked; the rest stay, so
+ * a link another member made or removed meanwhile is kept as they made it.
+ * A patch's `eventId`, `entryId` and `entryIds` are ignored, and
  * `event_id` isn't written.
  */
 export const updateTodo = async (
   db: SyncDb,
   id: string,
-  { eventId: _eventId, entryId: _entryId, ...patch }: TodoUpdateInput & { entryId?: string | null },
+  {
+    eventId: _eventId,
+    entryId: _entryId,
+    entryIds: _entryIds,
+    addEntryIds = [],
+    removeEntryIds = [],
+    ...patch
+  }: TodoUpdateInput & Pick<TodoInput, "entryId" | "entryIds" | "addEntryIds" | "removeEntryIds">,
 ): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
@@ -602,6 +650,10 @@ export const updateTodo = async (
   // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
   const clamps =
     content.dueOn && content.dueOn !== existing.dueOn ? await descendantClamps(db, id, content) : [];
+  const entryLinks =
+    addEntryIds.length || removeEntryIds.length
+      ? await linkChanges(db, existing.groupId, id, addEntryIds, removeEntryIds)
+      : null;
   const now = nowTimestamp();
   // A new rule or due day moves the anchor; no rule clears all three (as todoService).
   await db.drizzle.transaction(async (tx) => {
@@ -620,8 +672,38 @@ export const updateTodo = async (
         .set({ dueOn: clamp.dueOn, dueTime: clamp.dueTime, updatedAt: now, updatedBy: db.userId })
         .where(eq(todos.id, clamp.id));
     }
+    for (const entryId of entryLinks?.link ?? []) {
+      await tx.insert(timelineEntryTodos).values(entryTodoRow(db, existing.groupId, entryId, id));
+    }
+    for (const entryId of entryLinks?.unlink ?? []) {
+      await tx.delete(timelineEntryTodos).where(eq(timelineEntryTodos.id, entryTodoId(entryId, id)));
+    }
   });
   return { ok: true, id };
+};
+
+/**
+ * What adding `add` and removing `remove` takes: the live notes and events
+ * in `add` (in the group) the todo doesn't link yet, and the live ones it
+ * links that are in `remove` (one in both is removed).
+ */
+const linkChanges = async (
+  db: SyncDb,
+  groupId: string,
+  todoId: string,
+  add: readonly string[],
+  remove: readonly string[],
+) => {
+  const [wanted, linked] = await Promise.all([
+    linkableEntries(db, groupId, add),
+    linkedLiveEntries(db, todoId),
+  ]);
+  const drop = new Set(remove);
+  const has = new Set(linked);
+  return {
+    link: wanted.filter((e) => !has.has(e) && !drop.has(e)),
+    unlink: linked.filter((e) => drop.has(e)),
+  };
 };
 
 /**
@@ -676,15 +758,67 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
   return localDate(new Date(), row?.time_zone ?? "UTC");
 };
 
+/** The todo columns `row` sets, with their values (undefined ones left out). */
+const todoColumns = (row: Partial<typeof todos.$inferInsert>) => {
+  const columns = getTableColumns(todos);
+  return Object.entries(row).flatMap(([key, value]) => {
+    const column = columns[key as keyof typeof columns];
+    return column && value !== undefined ? [{ column, value }] : [];
+  });
+};
+
+/**
+ * Insert a todo row, its upload flagged with `metadata` when given.
+ * `_metadata` is PowerSync's, outside the Drizzle table, so a flagged insert
+ * names the columns itself (a later UPDATE of it alone would upload a second op).
+ */
+const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: string | null) => {
+  if (!metadata) return tx.insert(todos).values(row);
+  const set = todoColumns(row);
+  return tx.run(
+    sql`INSERT INTO ${todos} (${sql.join(
+      set.map(({ column }) => sql.identifier(column.name)),
+      sql`, `,
+    )}, _metadata) VALUES (${sql.join(
+      set.map(({ column, value }) => sql.param(value, column)),
+      sql`, `,
+    )}, ${metadata})`,
+  );
+};
+
+/** Update todo `id` with `row`, its upload flagged with `metadata` when given (as `insertTodo`). */
+const updateTodoRow = async (
+  tx: Tx,
+  id: string,
+  row: Partial<typeof todos.$inferInsert>,
+  metadata: string | null,
+) => {
+  if (!metadata) return tx.update(todos).set(row).where(eq(todos.id, id));
+  const set = todoColumns(row).map(
+    ({ column, value }) => sql`${sql.identifier(column.name)} = ${sql.param(value, column)}`,
+  );
+  return tx.run(sql`UPDATE ${todos} SET ${sql.join(set, sql`, `)}, _metadata = ${metadata} WHERE id = ${id}`);
+};
+
 /**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
  * unless a live open row with its id exists; a live done one, like `todo`
  * itself, is passed over for the rule's following day (B-386), and a
  * soft-deleted one (an Undo took it away) comes back as new. As
- * `todoService`'s `insertNext`, so both write the same row.
+ * `todoService`'s `insertNext`, so both write the same row. `now` is the
+ * tick's time: the next is made then (and after `todo`, whose `created_at`
+ * may be the server's, ahead of this clock), so `reopenTodo` finds it.
+ * `metadata` flags the next's upload, new or made again (a tick's: `TICK_NEXT_METADATA`).
  */
-const planNext = async (db: SyncDb, todo: LocalTodo) => {
+const planNext = async (
+  db: SyncDb,
+  todo: LocalTodo,
+  { tickedAt = nowTimestamp(), metadata = null }: { tickedAt?: string; metadata?: string | null } = {},
+) => {
   if (!todo.repeatRule) return null;
+  const made = todo.createdAt ? new Date(todo.createdAt).getTime() + 1 : 0;
+  const now =
+    new Date(fromLocalTimestamp(tickedAt)).getTime() >= made ? tickedAt : toLocalTimestamp(new Date(made));
   const { nextOccurrence } = await import("@caretook/data/series");
   const today = await recipientToday(db, todo.recipientId);
   const passOver = new Set<string>();
@@ -697,7 +831,6 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   }
   if (!next) return null;
   if (row && !row.deleted_at) return null;
-  const now = nowTimestamp();
   // The group and recipient never change; `event_id` isn't this device's to write.
   const { id, groupId, recipientId, eventId: _e, ...content } = next;
   // The ticked todo's tags go on the next (tags PRD), with the link ids the
@@ -711,21 +844,31 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   });
   return async (tx: Tx) => {
     if (row) {
-      await tx
-        .update(todos)
-        .set({ ...content, updatedAt: now, updatedBy: db.userId })
-        .where(eq(todos.id, id));
-    } else {
-      await tx.insert(todos).values({
+      // Made again: `created_at` is now, so `reopenTodo` finds it as the
+      // occurrence made after this tick (`laterInChain`), as the server's
+      // restore. A tick's is flagged too, so a stale one never brings a
+      // stopped chain back on the server (B-1003).
+      await updateTodoRow(
+        tx,
         id,
-        groupId,
-        recipientId,
-        ...content,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: db.userId,
-        updatedBy: db.userId,
-      });
+        { ...content, createdAt: now, updatedAt: now, updatedBy: db.userId },
+        metadata,
+      );
+    } else {
+      await insertTodo(
+        tx,
+        {
+          id,
+          groupId,
+          recipientId,
+          ...content,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: db.userId,
+          updatedBy: db.userId,
+        },
+        metadata,
+      );
     }
     for (const { tag_id: tagId } of tagLinks) {
       await tx.insert(recordTags).values(recordTagRow(db, groupId, tagId, "todo", id));
@@ -750,8 +893,10 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   const refusal = await doneRefusal(db, existing);
   if (refusal) return refusal;
   if (existing.doneAt) return { ok: true, id };
-  const next = await planNext(db, existing);
+  // The tick's time is the next's `created_at` too: `laterInChain` finds it as
+  // made at or after `done_at`. A new next is flagged as the tick's (B-387).
   const now = nowTimestamp();
+  const next = await planNext(db, existing, { tickedAt: now, metadata: TICK_NEXT_METADATA });
   const rollup = await planRollup(db, { id, parentId: existing.parentId, doneAt: now, deletedAt: null }, now);
   await db.drizzle.transaction(async (tx) => {
     // Only the done columns change, so the upload maps it to complete.
@@ -762,15 +907,35 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   return { ok: true, id };
 };
 
-/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+/**
+ * What ticking `todo` made (its successor): the live row of its chain, other
+ * than it, made at or after its `done_at` and after `todo` itself, the
+ * earliest first (then id), whatever its due day now (B-383), as
+ * todoService's `laterInChain` (which says why both). The tick writes both
+ * times from this device's clock, the next made after `todo` (`planNext`);
+ * synced rows carry the server's. `julianday` compares the device's and
+ * PowerSync's timestamp texts alike. None found, the rule before B-383: the
+ * next row made after `todo` by due day, for a tick from before it whose
+ * successor looks made a few ms earlier (B-1002), as todoService's.
+ */
 const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
-  if (!todo.repeatId || !todo.dueOn) return null;
-  const [row] = await readRows<TodoRow>(db, {
-    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ? AND due_on > ?
-            AND deleted_at IS NULL
-          ORDER BY due_on, id LIMIT 1`,
-    params: [todo.groupId, todo.repeatId, todo.id, todo.dueOn],
+  if (!todo.repeatId || !todo.doneAt) return null;
+  const chain = `group_id = ? AND repeat_id = ? AND id != ? AND deleted_at IS NULL`;
+  const [made] = await readRows<TodoRow>(db, {
+    sql: `SELECT * FROM todo WHERE ${chain}
+            AND julianday(created_at) >= julianday(?) AND julianday(created_at) > julianday(?)
+          ORDER BY julianday(created_at), id LIMIT 1`,
+    params: [todo.groupId, todo.repeatId, todo.id, todo.doneAt, todo.createdAt],
   });
+  const [byDay] =
+    made || !todo.dueOn
+      ? []
+      : await readRows<TodoRow>(db, {
+          sql: `SELECT * FROM todo WHERE ${chain} AND due_on > ? AND julianday(created_at) > julianday(?)
+                ORDER BY due_on, id LIMIT 1`,
+          params: [todo.groupId, todo.repeatId, todo.id, todo.dueOn, todo.createdAt],
+        });
+  const row = made ?? byDay;
   return row ? toTodo(row) : null;
 };
 
@@ -938,7 +1103,7 @@ export const createTodoDocument = async (db: SyncDb, todoId: string): Promise<Ac
 
 // Kept with this block (not at the top) so parallel slices' additions merge
 // as separate hunks; imports are hoisted either way.
-import { addDays, localDate, todoOrder } from "@caretook/data/schema";
+import { addDays, localDate, todoOrder } from "@caretook/data/domain";
 import { useMemo } from "react";
 import { useNow } from "../live-notes/editors.sync";
 import { useRememberedQuery } from "../sync/useRememberedQuery";
@@ -1042,6 +1207,32 @@ export const todoEventChoicesQuery = (
   params: [groupId, toLocalTimestamp(from), chosenId ?? ""],
 });
 
+/**
+ * A chosen entry's row with its document (an untitled note's first line
+ * names it): the server's text and snapshot, and this device's pending
+ * updates as a JSON array of base64 (`previewText` reads all three, B-991).
+ */
+export type ChosenEntryRow = EntryRow & {
+  document_text: string | null;
+  document_snapshot: string | null;
+  document_updates: string;
+};
+
+/**
+ * The todo sheet's chosen notes and events (todo-links), for their chips:
+ * those of `ids` that are live notes or events in the group, with their
+ * documents and pending updates.
+ */
+export const chosenEntriesQuery = (groupId: string, ids: readonly string[]): LocalQuery => ({
+  sql: `SELECT e.*, d.text AS document_text, d.snapshot AS document_snapshot,
+               (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = e.id) AS document_updates
+        FROM timeline_entry e
+        LEFT JOIN note_document d ON d.id = e.id
+        WHERE e.id IN (SELECT value FROM json_each(?)) AND e.group_id = ? AND e.deleted_at IS NULL
+          AND e.kind IN (${KIND_LIST})`,
+  params: [JSON.stringify(ids), groupId, ...NOTE_DOCUMENT_KINDS],
+});
+
 import { toLocalTimestamp } from "../timeline/timeline.sync";
 
 // ---------------------------------------------------------------------------
@@ -1052,6 +1243,16 @@ import { toLocalTimestamp } from "../timeline/timeline.sync";
 export const subtasksQuery = (todoId: string): LocalQuery => ({
   sql: `SELECT * FROM todo WHERE parent_id = ? AND deleted_at IS NULL ORDER BY ${SIBLING_ORDER_SQL}`,
   params: [todoId],
+});
+
+/**
+ * The parents of `parentIds`' todos, deleted ones too (they count for
+ * depth): each one's own parent, for a flat list's quick adds
+ * (`useQuickAddChains`).
+ */
+export const todoParentLinksQuery = (parentIds: readonly string[]): LocalQuery => ({
+  sql: `SELECT id, parent_id FROM todo WHERE id IN (${parentIds.map(() => "?").join(", ") || "NULL"})`,
+  params: [...parentIds],
 });
 
 /** One row per parent with live subtasks: how many, how many are done (`subtaskProgress`), and its title. */

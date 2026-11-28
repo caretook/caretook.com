@@ -18,7 +18,7 @@ import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, id, timestamps } from "../core/columns";
 import { isPassSlot, medicationScheduleZSchema, scheduleTimeZSchema, toChangeTime } from "./medication";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // A care group's medication passes: the rounds medications are given in
 // ("Morning · 08:00", "Evening · 20:00"). A medication's schedule names the
@@ -197,6 +197,15 @@ export const withoutPass = (
   ];
   return medicationScheduleZSchema.parse({ type: "scheduled", slots });
 };
+
+/**
+ * The upload's flag on a pass delete's schedule rewrite (the device's
+ * `_metadata` on each medication `removePass` rewrites, B-1006): the server's
+ * own delete rewrites every schedule naming the pass, so it drops a flagged
+ * PATCH's `schedule` (the device's copy may be stale) and applies the rest.
+ * A medication's own schedule edit is unflagged.
+ */
+export const PASS_REWRITE_METADATA = "medication:passRewrite";
 
 /** One slot of a schedule at its time of day. */
 export type TimedSlot = {

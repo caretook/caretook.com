@@ -3,7 +3,6 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 
 import { redirect } from "react-router";
-import { canEditRecipient } from "@caretook/data/schema";
 import { Sheet } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -17,6 +16,7 @@ import {
 import { basicsValues, parseBasics } from "../basicsFormData";
 import { BasicsForm } from "../BasicsForm";
 import { failedProfileSave, useCloseProfileSheet } from "../profileSheet";
+import { canEditRecipient } from "@caretook/data/domain";
 
 // Shared by web + native. `…/profile/basics`: the sheet over the profile
 // where writers edit the name, preferred name, birthday, the medical basics

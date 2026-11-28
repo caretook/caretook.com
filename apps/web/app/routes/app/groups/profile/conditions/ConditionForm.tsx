@@ -9,7 +9,7 @@ import { ProviderPickerField, ProvidersPickerField } from "~/components/provider
 import { ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
 import { MONTH_NAMES } from "~/lib/profiles/conditions";
 import { fitsCondition } from "~/lib/providers/providerPicker";
-import { CONDITION_FIELD } from "./conditionActions";
+import { CONDITION_FIELD } from "~/lib/profiles/conditionActions";
 import { ConditionNameField } from "./ConditionNameField";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;

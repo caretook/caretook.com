@@ -4,24 +4,17 @@ import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import {
-  canBeEmergencyContact,
-  canManageEmergencyContacts,
-  emergencyOrder,
-  emergencyOrderZSchema,
-  emergencyRanks,
-  emergencyRefKey,
-} from "../db/schema";
+import { emergencyOrder, emergencyOrderZSchema, emergencyRanks, emergencyRefKey } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupMemberModel, careRecipientDetailsModel, memberContactShareModel } from "../models";
 import { isSystemUser } from "../permissions";
+import { canBeEmergencyContact, canManageEmergencyContacts } from "../domain/profiles/profileVisibility";
 
 // The group's emergency list (profiles): one order across members and
 // outside contacts, and one member marked as the primary contact. Owners and
 // admins set both; only members who share a phone with the group can be on
 // the list or be the primary contact. Every write renumbers the list 1…n.
 
-export const serviceName = "emergencyContact";
 export const schemaName = careGroupMemberModel.schemaName;
 
 const system = (tx: Tx) => ({ authUser: SYSTEM_USER, tx });

@@ -7,3 +7,4 @@ apps/web/app/components/notes/           live-notes
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/live-notes/             live-notes
 packages/data/src/db/schema/live-notes/  live-notes
+packages/data/src/domain/live-notes/     live-notes

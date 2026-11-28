@@ -10,6 +10,7 @@ import type { TodoTickProgress } from "~/components/todos";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { PastTextRow, RescheduledTargetRow } from "./upcomingQueries";
 import type { GroupTagRow, TagRow } from "~/lib/tags/tags.sync";
+import type { TodoView } from "~/lib/todos/todoView";
 
 import { activeTag } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
@@ -28,7 +29,7 @@ import {
   todoTreesQuery,
   toTodos,
 } from "~/lib/todos/todos.sync";
-import { todoTrees } from "~/lib/todos/todoTreeView";
+import { splitTrees, todoTrees } from "~/lib/todos/todoTreeView";
 import { toPreviews } from "~/lib/live-notes/notes.sync";
 import {
   fromLocalTimestamp,
@@ -84,6 +85,8 @@ export type UpcomingListData = {
   tagsOf: (target: "entry" | "todo", id: string) => GroupTagRow[] | undefined;
   /** A parent todo's subtask progress (Upcoming only; the list's one progress query). */
   progressOf?: (todoId: string) => TodoTickProgress | undefined;
+  /** With subtasks on their own (Upcoming only): a subtask's parent among the rows read, for "Part of". */
+  parentOf?: (parentId: string) => LocalTodo | undefined;
 };
 
 type TagRows = { tagRows: TagRow[]; entryTagRows: GroupTagRow[]; todoTagRows: GroupTagRow[] };
@@ -169,12 +172,15 @@ function useListSupport(
  * whose title, place or text and the todos whose title or assignee has every
  * word typed; Upcoming isn't paged, so it filters what it has. `filters.tag`
  * (`?tag=`) narrows events in their queries and todos here, once the group
- * is known to have it.
+ * is known to have it. `view` (the route's, from `?subtasks=`; todo-links-2)
+ * `own` lists each dated todo on its own (`splitTrees`), placed by its own
+ * due, with a `parentOf` for its "Part of" from the tree rows.
  */
 export function useUpcomingData({
   groupId,
   filters: asked,
   todosOnly = false,
+  view = "tree",
   q = "",
   initial,
 }: {
@@ -182,6 +188,8 @@ export function useUpcomingData({
   filters: EntryFilters;
   /** Todos only (`?show=todos`): no entries. */
   todosOnly?: boolean;
+  /** The todos in their tree (the default) or on their own. */
+  view?: TodoView;
   q?: string;
   initial: UpcomingRows;
 }): UpcomingListData {
@@ -223,11 +231,17 @@ export function useUpcomingData({
           (!tag || !!todoTags.get(t.id)?.some((l) => l.id === tag.id)) &&
           matchesText(tokens, t.title, t.assigneeName, t.assigneeId ? support.nameOf(t.assigneeId) : null)
       : undefined;
+  const own = view === "own";
   const todos = showsTodos(filters)
-    ? plannerDayTrees(todoTrees(treeTodos, { now: at, timeZone: todoZone, matches }), at, todoZone, {
-        through: dueTodosThrough(at, todoZone, UPCOMING_HORIZON_DAYS),
-      })
+    ? plannerDayTrees(
+        (own ? splitTrees : todoTrees)(treeTodos, { now: at, timeZone: todoZone, matches }),
+        at,
+        todoZone,
+        { through: dueTodosThrough(at, todoZone, UPCOMING_HORIZON_DAYS) },
+      )
     : [];
+  // On their own, a subtask's "Part of" (and its quick add's chain): its parent among the tree rows.
+  const byId = useMemo(() => (own ? new Map(treeTodos.map((t) => [t.id, t])) : null), [own, treeTodos]);
   const tree = useSubtaskProgress(groupId, initial.progressRows);
   return {
     sections: withDueTodos(sections, todos, at, zone, todoZone),
@@ -242,6 +256,7 @@ export function useUpcomingData({
     tag: tagging.tag,
     tagsOf: tagging.tagsOf,
     progressOf: tree.progressOf,
+    parentOf: byId ? (parentId: string) => byId.get(parentId) : undefined,
   };
 }
 

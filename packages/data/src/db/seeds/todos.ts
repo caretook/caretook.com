@@ -1,12 +1,13 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import { addDays, entryTodoId, localDate, timelineEntryTodoSchema, todoSchema, userSchema } from "../schema";
-import { nextTodoId } from "../schema/appointments/todoRepeat";
+import { entryTodoId, timelineEntryTodoSchema, todoSchema, userSchema } from "../schema";
+import { nextTodoId } from "../../domain/appointments/todoRepeat";
 import { appointmentIdIn } from "./appointments";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as MEDICATION_GROUPS } from "./medications";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
+import { addDays, localDate } from "../../domain/core/entryTiming";
 
 // Fictional todos: about eight for Dev Family (assigned to member@,
 // caretaker@ and viewer@, one to a typed-in "Aunt May", some unassigned;

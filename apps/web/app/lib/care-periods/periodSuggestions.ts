@@ -1,7 +1,8 @@
-import type { CarePeriodType, PeriodSpan, ProviderType, TrackPeriod } from "@caretook/data/schema";
+import type { CarePeriodType, ProviderType } from "@caretook/data/schema";
 
-import { periodAt } from "@caretook/data/schema";
 import { fold } from "../providers/providerDirectory";
+import type { PeriodSpan, TrackPeriod } from "@caretook/data/domain";
+import { periodAt } from "@caretook/data/domain";
 
 // Period suggestions: an event whose title says the recipient moved
 // ("Admitted to Mercy General", "Discharged home", "Hospice intake") offers

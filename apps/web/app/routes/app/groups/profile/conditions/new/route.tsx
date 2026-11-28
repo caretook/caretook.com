@@ -10,7 +10,7 @@ import { sessionContext } from "~/lib/auth/session";
 import { loadFormProviders, useFormProviders } from "~/lib/profiles/conditionProviders.sync";
 import { addCondition, loadConditionNames, useConditionNames } from "~/lib/profiles/conditions.sync";
 import { useCloseProfileSheet } from "../../profileSheet";
-import { conditionActionFromForm } from "../conditionActions";
+import { conditionActionFromForm } from "~/lib/profiles/conditionActions";
 import { ConditionForm } from "../ConditionForm";
 
 // Shared by web + native. `…/profile/conditions/new`: the sheet over the

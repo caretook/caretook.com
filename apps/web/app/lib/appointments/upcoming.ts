@@ -1,4 +1,4 @@
-import { endOfDay, localDate } from "@caretook/data/schema";
+import { endOfDay, localDate } from "@caretook/data/domain";
 
 // The time rules for appointments (future events).
 // Every screen that splits the past from what's coming (the history, the

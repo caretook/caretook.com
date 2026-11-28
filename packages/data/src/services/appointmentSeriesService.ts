@@ -7,25 +7,20 @@ import type {
   TimelineEntryCreateInput,
   Tx,
 } from "../db";
-import type { SeriesVisit } from "../db/schema/appointments/seriesVisits";
+import type { SeriesVisit } from "../domain/appointments/seriesVisits";
 import type { IncludeDeleted } from "../models/appointmentSeries";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER, isWriterRole } from "../constants";
 import { withTransaction } from "../db";
 import {
-  addDays,
   appointmentSeriesContentOf,
   appointmentSeriesContentZSchema,
   appointmentSeriesCreateZSchema,
   appointmentSeriesUpdateZSchema,
   appointmentSeriesUpsertZSchema,
-  dayInZone,
-  SERIES_AHEAD_DAYS,
-  seriesVisitFallbackId,
-  seriesVisitId,
 } from "../db/schema";
-import { firstDayFrom, seriesVisits } from "../db/schema/appointments/seriesVisits";
+import { firstDayFrom, seriesVisits } from "../domain/appointments/seriesVisits";
 import { isError, newError } from "../errors";
 import { logError } from "../logging";
 import {
@@ -41,6 +36,9 @@ import { asCreated, unchanged } from "./upserted";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as timelineEntryService from "./timelineEntryService";
+import { addDays } from "../domain/core/entryTiming";
+import { dayInZone } from "../domain/core/zonedDay";
+import { SERIES_AHEAD_DAYS, seriesVisitFallbackId, seriesVisitId } from "../domain/appointments/repeatRule";
 
 // Repeating appointments and reminders (appointments-2). Write through here,
 // not the model: this is where the rule and template are validated, the
@@ -58,7 +56,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // own visit uploads follow. One without it (an API caller, a seed) gets its
 // visits from today (or its first day) through today + 90.
 
-export const serviceName = "appointmentSeries";
 export const schemaName = appointmentSeriesModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

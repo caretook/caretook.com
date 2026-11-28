@@ -3,12 +3,11 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 import type { SyncDb } from "~/lib/sync";
 
-import { NOTE_DOCUMENT_KINDS } from "@caretook/data/schema";
+import { NOTE_DOCUMENT_KINDS, scheduleZoneNote } from "@caretook/data/schema";
 import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
 import { TODO_PREFILL_PARAMS } from "~/lib/todos/urls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { sessionContext } from "~/lib/auth/session";
 import { createTodo } from "~/lib/todos/todos.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";

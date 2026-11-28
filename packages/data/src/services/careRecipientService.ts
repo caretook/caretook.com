@@ -9,7 +9,6 @@ import { careRecipientModel } from "../models";
 import { rejectError } from "../permissions";
 import { getService } from "./baseService";
 
-export const serviceName = "careRecipient";
 export const schemaName = careRecipientModel.schemaName;
 
 type K = typeof schemaName;
