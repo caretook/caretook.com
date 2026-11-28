@@ -210,8 +210,10 @@ describe("infinite scroll", () => {
 });
 
 // Off-screen rows cost little (B-139, `offscreenRows.ts`): days before the
-// newest page skip drawing their rows while off screen, every row remembers
-// its size, and nothing about paging or coming back to the list changes.
+// newest page (and before Today: B-1046) skip drawing their rows while off
+// screen, every row remembers its size, and nothing about paging or coming
+// back to the list changes. The test device is Chromium; WebKit skips none
+// (`webkit.ts`, unit-tested).
 describe("off-screen rows", () => {
   const threePages = async () => {
     const device = await openTimeline({ fixtures: world(130) });
@@ -224,19 +226,22 @@ describe("off-screen rows", () => {
   };
   const cv = (li: Element) => getComputedStyle(li).contentVisibility;
 
-  test("rows carry content-visibility: auto, except the days holding the newest page; every row remembers its size; all stay in the DOM and the accessibility tree", async () => {
+  const dayLists = () => [
+    ...document.querySelectorAll<HTMLOListElement>('section[aria-labelledby="timeline-heading"] ol'),
+  ];
+
+  test("rows carry content-visibility: auto, except Today's and the days holding the newest page; every row remembers its size; all stay in the DOM and the accessibility tree", async () => {
     const device = await threePages();
     const all = rows();
-    const lists = [
-      ...document.querySelectorAll<HTMLOListElement>('section[aria-labelledby="timeline-heading"] ol'),
-    ];
+    const lists = dayLists();
     const skipping = lists.filter((ol) => [...ol.children].every((li) => cv(li) === "auto"));
     const drawn = lists.filter((ol) => [...ol.children].every((li) => cv(li) === "visible"));
-    // Every day is one or the other; the settled ones come first, the newest page's days last.
+    // Every day is one or the other: Today first (drawn), then the settled ones, the newest page's days last.
     expect(skipping.length + drawn.length).toBe(lists.length);
     expect(skipping.length).toBeGreaterThan(0);
-    expect(lists.slice(0, skipping.length)).toEqual(skipping);
-    const drawnRows = drawn.reduce((n, ol) => n + ol.children.length, 0);
+    expect(drawn[0]).toBe(lists[0]);
+    expect(lists.slice(1, 1 + skipping.length)).toEqual(skipping);
+    const drawnRows = drawn.slice(1).reduce((n, ol) => n + ol.children.length, 0);
     expect(drawnRows).toBeGreaterThanOrEqual(30);
     expect(all.every((li) => getComputedStyle(li).containIntrinsicSize.startsWith("auto"))).toBe(true);
     // The headers and the sentinel aren't contained.
@@ -255,6 +260,20 @@ describe("off-screen rows", () => {
       .element(device.screen.getByRole("link", { name: link.getAttribute("aria-label") ?? "" }).first())
       .toBeInTheDocument();
     expect(rows().length).toBe(all.length);
+  });
+
+  test("Today's rows carry no content-visibility after an older page loads in (B-1046)", async () => {
+    await openTimeline({ fixtures: world(130) });
+    await waitUntil(() => rows().length > 0);
+    const today = dayLists()[0]!;
+    expect(today.children.length).toBe(TODAY_COUNT);
+    await loadRows(60);
+    await waitUntil(() => status()?.textContent !== LOADING, "the second page");
+    await frames();
+    // Today is past the newest page now, and an older day is settled: Today's rows still aren't.
+    expect(dayLists().some((ol) => [...ol.children].every((li) => cv(li) === "auto"))).toBe(true);
+    expect(dayLists()[0]).toBe(today);
+    expect([...today.children].map(cv)).toEqual(Array(TODAY_COUNT).fill("visible"));
   });
 
   test("three pages down, a row's sheet and back: the same scroll position and pages, then the next page still loads", async () => {
