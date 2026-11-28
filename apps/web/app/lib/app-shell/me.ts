@@ -8,6 +8,7 @@ import {
   DEFAULT_TIMELINE_VIEW,
   DEFAULT_UNITS,
   EASY_MODE_SETTINGS,
+  mergeGroupSetup,
   mergeSetupDismissed,
 } from "@caretook/data/schema";
 import { useSyncExternalStore } from "react";
@@ -31,12 +32,23 @@ import { settingsPlan } from "./settingsPlan";
 // Every change to what this device knows (a refresh, a save, a load) is
 // published to the settings store, so screens that read `useMySettings`
 // re-render when a refresh brings different values.
+//
+// Settings are *known* once the server has answered on this device (now, or
+// on an earlier visit: `settingsKnown`); until then they're defaults with any
+// pending change on top. A cache written only by a change saved offline on a
+// new device isn't known. What acts on what the account has already done
+// (the group setup redirect and nudges) waits for known settings, so a new or
+// wiped device never repeats it.
 
 export type MySettings = Pick<
   ApiOutputs["me"]["get"],
-  "units" | "timelineView" | "providersView" | "easyMode" | "daySummary" | "setupDismissed"
+  "units" | "timelineView" | "providersView" | "easyMode" | "daySummary" | "setupDismissed" | "groupSetup"
 >;
-/** A change to some settings. `units` may name only some measures; `setupDismissed` adds to the list. */
+/**
+ * A change to some settings. `units` may name only some measures;
+ * `setupDismissed` adds to the list, and `groupSetup` names only the groups
+ * it changes and adds to each (`mergeGroupSetup`).
+ */
 export type SettingsChange = Partial<Omit<MySettings, "units">> & { units?: Partial<MySettings["units"]> };
 
 const DEFAULTS: MySettings = {
@@ -46,12 +58,15 @@ const DEFAULTS: MySettings = {
   easyMode: DEFAULT_EASY_MODE_SETTING,
   daySummary: DEFAULT_DAY_SUMMARY_MODE,
   setupDismissed: [],
+  groupSetup: {},
 };
 
 const PREFIX = "caretook:settings:";
 const PENDING_PREFIX = "caretook:settings-pending:";
 const cacheKey = (userId: string) => `${PREFIX}${userId}`;
 const pendingKey = (userId: string) => `${PENDING_PREFIX}${userId}`;
+/** Set once the server has answered on this device; under `PREFIX`, so `forgetSettings` clears it. */
+const knownKey = (userId: string) => `${PREFIX}${userId}:known`;
 
 const readJson = <T>(key: string): T | null => {
   try {
@@ -76,6 +91,8 @@ const merge = <T extends SettingsChange>(base: T, change: SettingsChange): T => 
   if (base.units || change.units) next.units = { ...base.units, ...change.units };
   if (base.setupDismissed || change.setupDismissed)
     next.setupDismissed = mergeSetupDismissed(base.setupDismissed, change.setupDismissed);
+  if (base.groupSetup || change.groupSetup)
+    next.groupSetup = mergeGroupSetup(base.groupSetup, change.groupSetup);
   return next;
 };
 
@@ -120,6 +137,20 @@ const clearPending = (userId: string, sent: SettingsChange) => {
     left.setupDismissed = left.setupDismissed.filter((id) => !sentIds.has(id));
     if (left.setupDismissed.length === 0) delete left.setupDismissed;
   }
+  if (left.groupSetup && sent.groupSetup) {
+    const groups: NonNullable<SettingsChange["groupSetup"]> = {};
+    for (const [groupId, entry] of Object.entries(left.groupSetup)) {
+      const gone = sent.groupSetup[groupId];
+      const retired = (entry.retired ?? []).filter((nudge) => !gone?.retired?.includes(nudge));
+      const kept = {
+        ...(entry.opened && !gone?.opened && { opened: true as const }),
+        ...(retired.length > 0 && { retired }),
+      };
+      if (Object.keys(kept).length > 0) groups[groupId] = kept;
+    }
+    left.groupSetup = groups;
+    if (Object.keys(groups).length === 0) delete left.groupSetup;
+  }
   if (left.units && sent.units) {
     const units: Record<string, unknown> = { ...left.units };
     for (const [measure, unit] of Object.entries(sent.units))
@@ -150,6 +181,25 @@ const publish = (userId: string): MySettings => {
   return settings;
 };
 
+/** Users whose settings the server answered for in this session (for storage that can't keep `knownKey`). */
+const answered = new Set<string>();
+
+/**
+ * Whether this device knows the user's settings: the server has answered
+ * here, now or on an earlier visit. Until then `cachedSettings` is defaults
+ * with this device's pending changes on top.
+ */
+export const settingsKnown = (userId: string): boolean =>
+  answered.has(userId) || readJson<boolean>(knownKey(userId)) === true;
+
+/** The server answered: remember it, and tell listeners when that's news. */
+const markKnown = (userId: string) => {
+  const news = !settingsKnown(userId);
+  answered.add(userId);
+  writeJson(knownKey(userId), true);
+  if (news) for (const listener of listeners) listener();
+};
+
 /** Hear about every published change to anyone's settings. Returns the unsubscribe. */
 export const subscribeSettings = (listener: () => void) => {
   listeners.add(listener);
@@ -168,6 +218,14 @@ export const useMySettings = (userId: string, initial: MySettings): MySettings =
     subscribeSettings,
     () => published.get(userId)?.settings ?? initial,
     () => initial,
+  );
+
+/** `settingsKnown`, live: it turns true when a refresh answers. */
+export const useSettingsKnown = (userId: string): boolean =>
+  useSyncExternalStore(
+    subscribeSettings,
+    () => settingsKnown(userId),
+    () => false,
   );
 
 /** Remember settings on this device (after loading them, or after a change). */
@@ -227,7 +285,9 @@ const refresh = async (request: Request, userId: string, send: SettingsChange | 
       easyMode: me.easyMode,
       daySummary: me.daySummary,
       setupDismissed: me.setupDismissed,
+      groupSetup: me.groupSetup,
     });
+    markKnown(userId);
     return "refreshed";
   } catch (e) {
     // Anything but a lost connection (a sign-in redirect, an API error) is real.
@@ -339,6 +399,7 @@ export const forgetSettings = () => {
   forgotten++;
   refreshing.clear();
   earlyAt.clear();
+  answered.clear();
   published.clear();
   snapshots.clear();
   try {

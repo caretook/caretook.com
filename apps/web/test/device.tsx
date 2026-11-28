@@ -4,6 +4,7 @@ import type { SessionUser } from "~/lib/auth/session";
 import type { SyncDb } from "~/lib/sync";
 import type { Fixture, Fixtures, GroupRole } from "./fixtures";
 
+import { mergeGroupSetup, SETUP_NUDGES } from "@caretook/data/schema";
 import { useLayoutEffect } from "react";
 import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
 import { page } from "vitest/browser";
@@ -155,6 +156,13 @@ export type DeviceOptions = {
    * with `settle: false`.
    */
   starting?: { until: Promise<unknown>; fallback: ComponentType };
+  /**
+   * Start with no setup record for `TEST_GROUP`. By default the account has
+   * set it up (opened, every nudge retired), as the seeds leave seeded
+   * members, so no setup redirect or nudge appears: the record is added to a
+   * settings cache the test stored and to every `me.get` answer.
+   */
+  noSetupRecord?: boolean;
 };
 
 export type Device = {
@@ -343,13 +351,47 @@ const deviceBasics = (user: SessionUser, role: GroupRole | null, bare: boolean):
   !bare && [fx.group(), fx.recipient(), role && fx.member({ userId: user.id, role })],
 ];
 
+/** `TEST_GROUP` set up, as a seeded member's account has it. */
+const SETUP_DONE = { [TEST_GROUP.id]: { opened: true as const, retired: [...SETUP_NUDGES] } };
+
+/**
+ * Give the account `SETUP_DONE`: in a settings cache the test stored (none
+ * is added: no cache stays no cache), and in every `me.get` answer.
+ */
+const withSetupRecord = (userId: string, api: DeviceOptions["api"] = {}): DeviceOptions["api"] => {
+  const key = `caretook:settings:${userId}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const cached = JSON.parse(raw) as { groupSetup?: Parameters<typeof mergeGroupSetup>[0] };
+      localStorage.setItem(
+        key,
+        JSON.stringify({ ...cached, groupSetup: mergeGroupSetup(SETUP_DONE, cached.groupSetup) }),
+      );
+    }
+  } catch {
+    // No storage: nothing cached.
+  }
+  const get = api["me.get"];
+  if (!get) return api;
+  return {
+    ...api,
+    "me.get": async (input) => {
+      const me: unknown = await get(input);
+      if (me instanceof Response || typeof me !== "object" || me === null) return me;
+      const { groupSetup } = me as { groupSetup?: Parameters<typeof mergeGroupSetup>[0] };
+      return { ...me, groupSetup: mergeGroupSetup(SETUP_DONE, groupSetup) };
+    },
+  };
+};
+
 /** Open a test device on a screen. See the top of this file. */
 export const renderWithDevice = async (options: DeviceOptions): Promise<Device> => {
   const user: SessionUser = options.user ?? { ...TEST_USER };
   const role = options.role === undefined ? "owner" : options.role;
   const url = options.url ?? `/app/groups/${TEST_GROUP.id}`;
 
-  window.fetch = deviceFetch(options.api);
+  window.fetch = deviceFetch(options.noSetupRecord ? options.api : withSetupRecord(user.id, options.api));
   const db = await openTestDatabase(user.id);
   open.add(db);
   await syncDown(db, flattenFixtures([deviceBasics(user, role, !!options.bareDevice), options.fixtures]));
