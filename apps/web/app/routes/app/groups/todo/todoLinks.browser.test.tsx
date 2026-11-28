@@ -68,7 +68,8 @@ const row = (kind: string) => document.querySelector<HTMLElement>(`[data-todo-li
 /** What a link row shows as its name: a provider's or medication's, an entry's heading or first line. */
 const shownName = (el: Element | null | undefined) =>
   el?.querySelector("[data-provider-name], [data-medication-name]")?.textContent ??
-  el?.querySelector("time + div p")?.textContent?.split("\n")[0];
+  // The body's first line (the time sits beside it, B-1015).
+  el?.querySelector("div.flex-1 p:not(time p)")?.textContent?.split("\n")[0];
 const nameIn = (kind: string) => shownName(row(kind));
 const TIME = / ?\d{1,2}:\d\d [AP]M$/;
 const timeIn = (kind: string) => row(kind)?.querySelector("time")?.textContent;

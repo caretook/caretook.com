@@ -115,14 +115,18 @@ describe("on the Timeline", () => {
     await userEvent.unhover(link);
   });
 
-  test("cards keep the author's name as the filter link", async () => {
+  test("cards show the author's look too, as the same filter link (B-1015)", async () => {
     await openTimeline({ fixtures: [PEOPLE, NOTES] });
     await found(() => rowWith("Rosa's walk note"));
     await setView("Full");
     const link = await found(() =>
-      rowWith("Rosa's walk note")?.querySelector<HTMLAnchorElement>(`a[data-author="${ROSA_ID}"]`),
+      rowWith("Rosa's walk note")?.querySelector<HTMLAnchorElement>(
+        `[data-entry-aside] a[data-author="${ROSA_ID}"]`,
+      ),
     );
-    expect(link.textContent).toBe("Rosa Delgado");
+    expect(link.getAttribute("aria-label")).toBe("Show only Rosa Delgado's entries");
+    await waitUntil(() => avatarIn(link)?.dataset.avatarIcon === "bird", "Rosa's look");
+    expectRosa(avatarIn(link));
   });
 });
 
