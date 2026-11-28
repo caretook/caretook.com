@@ -14,7 +14,7 @@ export { useEventCancel } from "./useEventCancel";
 export type { RescheduleTarget } from "./useEventReschedule";
 export { useEventReschedule } from "./useEventReschedule";
 export { MedicationHeading } from "./MedicationEntryText";
-export type { EntryViewProps } from "./TimelineEntryRow";
+export type { EntryLook, EntryViewProps } from "./TimelineEntryRow";
 export { CANCELLED_TEXT, CancelledBadge, EntryMenu, RowTags, TimelineEntryRow } from "./TimelineEntryRow";
 export type { UpcomingCardExtras, UpcomingPlace } from "./UpcomingEntryCard";
 export { UpcomingEntryCard } from "./UpcomingEntryCard";

@@ -32,15 +32,16 @@ describe("the via tag", () => {
     expect(rowWith("71")?.querySelector("a[data-author]")?.getAttribute("data-author")).toBe(SAM.id);
   });
 
-  test("cards: beside the author, and not on others", async () => {
+  test("cards: under the text as on rows, and not on others", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => rows().length === 3, "three rows");
     await setView("Full");
     await waitUntil(() => !!tagOf("Walked to the mailbox"), "the card's tag");
     const card = rowWith("Walked to the mailbox")!;
     expect(card.querySelector("[data-via]")?.textContent).toBe("via Claude");
-    // In the footer, after who wrote it.
-    expect(card.querySelector("a[data-author] ~ [data-via]")).not.toBeNull();
+    // Under the text, as on rows (B-1015); the author is the avatar in the right column.
+    expect(card.querySelector("[data-entry-aside] [data-via]")).toBeNull();
+    expect(card.querySelector("[data-entry-aside] a[data-author]")).not.toBeNull();
     expect(tagOf("Sore knee")).toBeNull();
   });
 });
