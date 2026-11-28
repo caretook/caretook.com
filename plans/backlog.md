@@ -262,8 +262,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
 | B-995 | change | triaged | fixes-nit |  | RemindMeSheet in components/entry imports reminderChoices from the settings calendar route; move reminderChoices into lib/calendars |
-| B-996 | bug | triaged | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d… |
-| B-997 | bug | triaged | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
+| B-996 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d… |
+| B-997 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
 | B-998 | bug | triaged | fixes-tooling |  | search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440) |
 
 ## Items
@@ -1579,21 +1579,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-996 · bug · CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d…
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
 - owner:
-- commit:
+- commit: b978e0d7d
 
 - 2026-11-27 (prd/code-health): [ci-key 943795992e9d] Fails on dev too; found by prd/code-health in https://github.com/caretook/caretook.com/actions/runs/46097107440. First failure: AssertionError: the check's lines: expected 'scripts/project/prompt-golden.txt:12:…' to contain 'project-check: ok' at /home/runner/work/caretook.com/caretook.com/scripts/project/project-data.test.mjs:27:59 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35 at file:///home/runner/work/ca…
+- 2026-11-27 (Robert Bo Davis): Fixed on dev by b978e0d7d: Risa pin back to v0.1.2 (v0.1.7 broke this check). Repin once Risa fixes the machinery doc seam, with a fresh prompt-golden.txt.
 
 ### B-997 · bug · CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the …
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
 - owner:
-- commit:
+- commit: b978e0d7d
 
 - 2026-11-27 (prd/code-health): [ci-key e0b35c0c068a] Fails on dev too; found by prd/code-health in https://github.com/caretook/caretook.com/actions/runs/46097107440. First failure: AssertionError: machinery's Worktrees and leases: expected '## Worktrees and leases\n\n- **`risa …' to match /\*\*`risa tidy`\*\*[\s\S]*- `new\.sh …/ at /home/runner/work/caretook.com/caretook.com/scripts/project/project-data.test.mjs:109:44 at Array.forEach (<anonymous>) at /home/runner/work/caretook.com/caretook.com/scripts/project/project-data.test.mjs:107:11 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///home/runner/work/c…
+- 2026-11-27 (Robert Bo Davis): Fixed on dev by b978e0d7d: Risa pin back to v0.1.2 (v0.1.7 broke this check). Repin once Risa fixes the machinery doc seam, with a fresh prompt-golden.txt.
 
 ### B-998 · bug · search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440)
 
