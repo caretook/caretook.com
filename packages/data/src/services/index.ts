@@ -93,6 +93,7 @@ export { accountAdminService };
 export type { AccountMailer, AccountMailUser } from "./accountAdminService";
 
 import * as groupAdminService from "./groupAdminService";
+export type { StaffGroupChange, StaffGroupMailer, StaffGroupNotice } from "./groupAdminService";
 export { groupAdminService };
 import * as appSettingService from "./appSettingService";
 export { appSettingService };
