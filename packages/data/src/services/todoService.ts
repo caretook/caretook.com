@@ -879,10 +879,16 @@ export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
  * whatever the uploader's role: it changes nothing. When the chain already
  * has another open todo (two devices ticked it on different days), it's a
  * stale twin: nothing is written. Otherwise it's a skip the device made: a
- * writer's create. Says whether it created (`Upserted`), or null when
- * nothing was written.
+ * writer's create. A tick's twin (`fromTick`, the upload's
+ * `TICK_NEXT_METADATA`) never creates: the tick made its row here, so with
+ * none it's a stale tick's, and a chain stopped since stays stopped (B-387).
+ * Says whether it created (`Upserted`), or null when nothing was written.
  */
-export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput) =>
+export const upsertOccurrence = (
+  ctx: ServiceContext,
+  input: TodoOccurrenceInput,
+  { fromTick = false }: { fromTick?: boolean } = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = todoOccurrenceZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -902,6 +908,7 @@ export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput
     const role = await roleIn(ctx, tx, groupId);
     if (isError(role)) return role;
     if (!role) return rejectError(ctx.authUser);
+    if (fromTick) return null;
     const open = await todoModel.get({
       ...system(tx),
       filter: {
