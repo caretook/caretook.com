@@ -401,7 +401,9 @@ describe("leaving and removal", () => {
     await withRows(s, "owner");
     await s.api("owner").careGroup.removeMember({ groupId: s.group.id, userId: s.id("owner2") });
     const refused = s.api("owner").careGroup.removeMember({ groupId: s.group.id, userId: s.id("owner") });
-    expect((await rejection(refused)).code).toBeTruthy();
+    const error = await rejection(refused);
+    expect(error.code).toBe("CONFLICT");
+    expect(error.data?.code).toBe("careGroupMemberService:lastOwner");
     expect(await rowsOf(s.group.id, s.id("owner"))).toEqual({ settings: 1, overrides: 1 });
   });
 });

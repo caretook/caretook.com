@@ -31,12 +31,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `todo-subtasks-3` | done | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | done | `todo-subtasks-3` | `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/entry/EntryTodos.tsx`, `apps/web/app/routes/app/groups/entry/route.tsx`, `apps/web/app/routes/app/groups/provider/route.tsx`, `apps/web/app/routes/app/groups/medication/route.tsx`, `apps/web/app/lib/core/recentlyViewed.ts`, `apps/web/app/lib/auth/forgetUserData.ts`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/lib/search/searchTables.sync.ts`, `packages/data/src/db/schema/search/searchDocument.ts` | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
-| `fixes-tooling` | standing | `test-gates` | `packages/data/src/services/accountAdmin.int.test.ts`, `packages/api/src/admin/usersAdmin`, `scripts/browser-checks/invites.spec.mjs`, `packages/api/src/calendars/calendars.int.test.ts`, `scripts/project/check-areas.d/`, `vitest.config.ts`, `apps/web/app/routes/marketing/site/claims.test.ts`, `scripts/project/check-body.sh`, `packages/data/src/db/seeds/`, `packages/data/package.json` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
+| `fixes-tooling` | standing | `test-gates` | `packages/data/src/services/assistantActionManyMedications.int.test.ts`, `packages/data/src/services/assistantActionService.ts` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | done | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
 | `data-rights` | — | — | `packages/data/src/db/schema/core/scrub`, `packages/data/src/db/migrations/`, `packages/data/src/services/careGroupService`, `packages/data/src/services/careGroupInviteService`, `packages/data/src/services/joinRequestService`, `packages/data/src/services/todoService.ts`, `packages/data/src/db/schema/care-groups/careGroupConsent`, `packages/data/src/db/schema/auth/legalAcceptance`, `packages/data/src/db/schema/admin/adminAudit`, `packages/api/src/care-groups/`, `apps/web/app/lib/providers/`, `apps/web/app/lib/medications/`, `apps/web/app/lib/profiles/`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/entryDisplay`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/components/entry/`, `apps/web/app/components/providers/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/pass/`, `apps/web/app/routes/app/groups/settings/details/`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/app-shell.spec.mjs` | plans/data-rights-prd.md; held after two plan send-backs (s49, s51), user chose the carve-out (a243) |
 | `data-rights-2` | — | `data-rights` | — | Follow-on of data-rights: ownership hand-over and account deletion (B-565, B-53's account half; the user answered a239: block a last owner until hand-over or group delete), export, staff tooling, legal text and change notice, inactive-group scrub, retention sweep, Google calendar removal on delete |
-| `account-security-2` | — | `account-security` | `packages/auth/` | — |
+| `account-security-2` | — | `account-security` | `packages/data/src/models/careGroupMember/`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/inviteMaker.ts`, `packages/auth/src/limits.ts`, `packages/auth/src/emails.ts`, `packages/auth/src/auth.ts`, `packages/api/src/procedures.ts`, `packages/api/src/rateLimit.ts`, `packages/api/src/callLimits`, `docs/domain/api.md` | — |
 | `tags-3` | done | `tags-2` | `apps/web/app/components/tags/`, `apps/web/app/components/todos/TodoRow.tsx`, `apps/web/app/routes/app/groups/planner/UpcomingList.tsx`, `apps/web/app/routes/app/groups/providers/ProviderListItem.tsx`, `apps/web/app/routes/app/groups/medications/MedicationListItem.tsx`, `apps/web/app/components/entry/EntryActions.tsx`, `apps/web/app/lib/care-groups/urls.ts`, `apps/web/app/routes/app/groups/settings/`, `apps/web/app/routes/app/settings/account/AvatarCard.tsx`, `apps/web/app/lib/tags/`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/routes/app/groups/search/` | — |
 | `symptom-catalog-2` | done | `tags-3` | `packages/data/src/db/schema/timeline/symptomType.ts`, `packages/data/src/models/symptomType/`, `packages/data/src/services/symptomTypeService.ts`, `packages/api/src/timeline/`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/symptomTypes.sync.ts`, `apps/web/app/lib/timeline/symptomCatalogPage.sync.ts`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/settings/`, `apps/web/app/lib/care-groups/urls.ts` | — |
 | `symptom-catalog-3` | done | `symptom-catalog-2` | `packages/data/src/db/schema/timeline/symptomCatalog.ts`, `packages/data/src/services/symptomTypeService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/timeline/`, `apps/web/app/lib/timeline/symptomTypes.sync.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/settings/symptoms/` | — |
@@ -137,6 +137,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `quick-entry-find` | — | `quick-entry-3` | — | — |
 | `undo-first` | — | `quick-entry-find` | — | — |
 | `quick-entry-4` | — | `undo-first` | — | — |
+| `account-security-3` | — | `account-security-2` | — | — |
+| `account-security-4` | — | `account-security-3` | — | — |
+| `connectors-6` | — | `account-security-2` | — | — |
 
 ## Summary
 
@@ -151,7 +154,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-84 | feature | in-progress | data-rights | prd/data-rights | Deleting an entry, provider or medication scrubs its content everywhere |
-| B-85 | feature | triaged | account-security-2 |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
+| B-85 | feature | triaged | account-security-4 |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-196 | feature | triaged | connectors-4 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
@@ -169,9 +172,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-335 | bug | landed | account-security | prd/account-security | Better Auth's /update-user is live and unvalidated: a name or image of any length syncs to co-members and into owner emails |
 | B-336 | bug | landed | account-security | prd/account-security | A role change reads its target unlocked: an admin's demote racing an owner's promotion of the same member can skip the owner-only and last-owner checks |
 | B-337 | bug | landed | account-security | prd/account-security | /mcp verifies a token (several database reads) before any rate limit, and rate-limit keys fall back to one shared 'unknown' bucket when the IP header is missing |
-| B-338 | feature | triaged | account-security-2 |  | Account settings: change name, email and password (today the page is read-only; password only via reset) |
+| B-338 | feature | triaged | account-security-3 |  | Account settings: change name, email and password (today the page is read-only; password only via reset) |
 | B-339 | question | landed | account-security | prd/account-security | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
-| B-340 | change | triaged | account-security-2 |  | A member in two groups can connect a given assistant to only one (one grant per user and client) |
+| B-340 | change | triaged | connectors-6 |  | A member in two groups can connect a given assistant to only one (one grant per user and client) |
 | B-343 | bug | triaged | hosting |  | The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting |
 | B-344 | bug | triaged | hosting |  | The migrator can silently skip a migration whose journal timestamp is older than the last applied one; nothing guards it |
 | B-345 | bug | triaged | hosting |  | No lock_timeout, statement_timeout or idle_in_transaction_session_timeout anywhere: a migration queued behind a PowerSync snapshot blocks every query on that table |
@@ -193,7 +196,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-364 | change | triaged | code-health-3 |  | Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere |
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
-| B-375 | chore | ready | fixes-tooling | prd/fixes-tooling | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
+| B-375 | chore | landed | fixes-tooling | prd/fixes-tooling | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
 | B-377 | feature | in-progress | push-notifications | prd/push-notifications | Push notifications for appointment reminders (B-61 shipped email only) |
 | B-378 | chore | triaged | i18n |  | File the translations PRD's promised follow-ups: Spanish quick entry, language-aware search, a human review of the Spanish; and note 48 hard-coded 'en-US' formatters and English messages in schemas and the errors catalogue |
 | B-455 | chore | triaged | contract-migrations |  | Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them |
@@ -207,21 +210,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-619 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
-| B-667 | chore | ready | fixes-tooling | prd/fixes-tooling | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
+| B-667 | chore | landed | fixes-tooling | prd/fixes-tooling | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-749 | chore | landed | fixes-tooling | prd/fixes-tooling | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-tooling |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-752 | bug | triaged | fixes-tooling | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
-| B-757 | chore | ready | fixes-tooling | prd/fixes-tooling | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
+| B-757 | chore | landed | fixes-tooling | prd/fixes-tooling | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-772 | chore | landed | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
-| B-778 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
-| B-782 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
+| B-778 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
+| B-782 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-785 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
 | B-790 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
 | B-795 | chore | triaged |  |  | Clean Caretook's history of the orchestration tooling and its bloat |
-| B-802 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
+| B-802 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
 | B-808 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
 | B-829 | question | triaged | marketing-3 |  | Research: compare Care Book to Caring Village |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
@@ -229,7 +232,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-837 | change | landed | test-time-gates-2 | prd/test-time-gates-2 | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | landed | fixes-tooling | prd/fixes-tooling | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-851 | chore | landed | fixes-tooling | prd/fixes-tooling | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
-| B-852 | bug | ready | fixes-tooling | prd/fixes-tooling | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
+| B-852 | bug | landed | fixes-tooling | prd/fixes-tooling | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing-3 |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
@@ -306,7 +309,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
 | B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
-| B-1051 | bug | triaged | fixes-tooling |  | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
+| B-1051 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 
@@ -400,12 +403,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-85 · feature · Two-factor sign-in, required for owners, admins and staff; breached-password check
 
 - status: triaged
-- prd: account-security-2
+- prd: account-security-4
 - owner:
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-9 (later): Better Auth's twoFactor and haveIBeenPwned plugins (built in). Required for owners, admins and global staff, optional for others (decided 2026-11-19). The PRD settles group creation, promotion, a grace period for existing owners, and recovery.
 - 2026-11-25 (plan/account-security): Cut from account-security by its planner (2026-11-25) to keep that PRD at seven slices: two-factor and the breached-password check, editable account settings, one assistant in several groups go to account-security-2 (to write, after account-security). Note for its planner: Better Auth's twoFactor gates only password sign-in, so the email link and code need the second factor too.
+- 2026-11-28 (plan/account-security-2): Cut from account-security-2 by its planner (2026-11-28; the user kept the five follow-ups there, a397): B-338 to account-security-3 (after account-security-2), B-85 to account-security-4 (after account-security-3: enrollment on the settings page, breached check on its password change), B-340 to connectors-6 (after account-security-2; needs a product question: one connection over several groups vs one per group, since verify finds the grant by user and client). Better Auth 1.7.25 notes in plans/account-security-2-prd.md, Notes.
 
 ### B-145 · question · Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for…
 
@@ -594,12 +598,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-338 · feature · Account settings: change name, email and password (today the page is read-only; password only via reset)
 
 - status: triaged
-- prd: account-security-2
+- prd: account-security-3
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. routes/app/settings/account/route.tsx. Staff cannot edit them either. Tracked nowhere before this review.
 - 2026-11-25 (plan/account-security): Cut from account-security by its planner (2026-11-25) to keep that PRD at seven slices: two-factor and the breached-password check, editable account settings, one assistant in several groups go to account-security-2 (to write, after account-security). Note for its planner: Better Auth's twoFactor gates only password sign-in, so the email link and code need the second factor too.
+- 2026-11-28 (plan/account-security-2): Cut from account-security-2 by its planner (2026-11-28; the user kept the five follow-ups there, a397): B-338 to account-security-3 (after account-security-2), B-85 to account-security-4 (after account-security-3: enrollment on the settings page, breached check on its password change), B-340 to connectors-6 (after account-security-2; needs a product question: one connection over several groups vs one per group, since verify finds the grant by user and client). Better Auth 1.7.25 notes in plans/account-security-2-prd.md, Notes.
 
 ### B-339 · question · Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked
 
@@ -614,12 +619,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-340 · change · A member in two groups can connect a given assistant to only one (one grant per user and client)
 
 - status: triaged
-- prd: account-security-2
+- prd: connectors-6
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Design finding from the connector review.
 - 2026-11-25 (plan/account-security): Cut from account-security by its planner (2026-11-25) to keep that PRD at seven slices: two-factor and the breached-password check, editable account settings, one assistant in several groups go to account-security-2 (to write, after account-security). Note for its planner: Better Auth's twoFactor gates only password sign-in, so the email link and code need the second factor too.
+- 2026-11-28 (plan/account-security-2): Cut from account-security-2 by its planner (2026-11-28; the user kept the five follow-ups there, a397): B-338 to account-security-3 (after account-security-2), B-85 to account-security-4 (after account-security-3: enrollment on the settings page, breached check on its password change), B-340 to connectors-6 (after account-security-2; needs a product question: one connection over several groups vs one per group, since verify finds the grant by user and client). Better Auth 1.7.25 notes in plans/account-security-2-prd.md, Notes.
 
 ### B-343 · bug · The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting
 
@@ -822,7 +828,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-375 · chore · Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports)
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3428db815
@@ -987,7 +993,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-667 · chore · Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3428db815
@@ -1032,7 +1038,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-757 · chore · Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3428db815
@@ -1075,7 +1081,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-778 · bug · CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad…
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3428db815
@@ -1085,7 +1091,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-782 · bug · CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma…
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 2a28cbe32
@@ -1138,7 +1144,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-802 · bug · CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3428db815
@@ -1226,7 +1232,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-852 · bug · Marketing banned-phrase test misses competitor names and the contact, header and footer strings
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3428db815
@@ -1612,6 +1618,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Rate-limit audit: list every public, signed-in, sync, connector and email-sending call with its limit, and give each one a reasonable per-user and per-IP limit / Builds on B-334 (no signed-in oRPC procedure is rate limited) and B-337 (/mcp limits, shared unknown IP bucket) in account-security. Output: a table in docs/domain/api.md and tests that each call is limited.
 - 2026-11-28 (prd/account-security): Not in the account-security plan (slices 1-7 cover B-327..B-337, B-339). Builds on slices 6 and 7; needs a planner slice after slice 7, or a move to account-security-2. Orchestrator's proposal: keep prd=account-security for a planned wave 4 once slice 7 lands; user to confirm.
+- 2026-11-28 (plan/account-security-2): Planned in plans/account-security-2-plan.md (2026-11-28): slice 1 B-1020, 2 B-1019, 3 B-1017+B-1018, 4-6 B-1011.
 
 ### B-1012 · feature · Free plan: cap how many care groups one user can create (owner of), with a clear message at the…
 
@@ -1670,6 +1677,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/account-security): Found by account-security slice 1 (B-327): accept, askWithLink, preview and ticketFor recheck the maker; approve of an already-waiting request doesn't. Small follow-up.
+- 2026-11-28 (plan/account-security-2): Planned in plans/account-security-2-plan.md (2026-11-28): slice 1 B-1020, 2 B-1019, 3 B-1017+B-1018, 4-6 B-1011.
 
 ### B-1018 · bug · Within the 7-day re-ask cooldown a join request answers 'requested' with the old declined or withdrawn request's id: joinRequest.mine doesn't list it and withdrawing it gives notFound
 
@@ -1679,6 +1687,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/account-security): From account-security slice 6 (B-334). The answer should stay innocent (no hint of the decline) but the screen's request should behave as a waiting one, or the answer carry no withdrawable id.
+- 2026-11-28 (plan/account-security-2): Planned in plans/account-security-2-plan.md (2026-11-28): slice 1 B-1020, 2 B-1019, 3 B-1017+B-1018, 4-6 B-1011.
 
 ### B-1019 · bug · Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role
 
@@ -1688,6 +1697,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/account-security): Codex on PR #327 (wave 1, slice 3): groupAdminService membershipOf reads unlocked; lock and re-read before building the notice. https://github.com/caretook/caretook.com/pull/327#discussion_r4727344930
+- 2026-11-28 (plan/account-security-2): Planned in plans/account-security-2-plan.md (2026-11-28): slice 1 B-1020, 2 B-1019, 3 B-1017+B-1018, 4-6 B-1011.
 
 ### B-1020 · bug · Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one
 
@@ -1697,6 +1707,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/account-security): Codex on PR #327 (wave 1, slice 1): use one deterministic order in both helpers. https://github.com/caretook/caretook.com/pull/327#discussion_r4727344931
+- 2026-11-28 (plan/account-security-2): Planned in plans/account-security-2-plan.md (2026-11-28): slice 1 B-1020, 2 B-1019, 3 B-1017+B-1018, 4-6 B-1011.
 
 ### B-1021 · bug · The add-tag icon button doesn't line up vertically with the tag chips beside it
 
@@ -1991,9 +2002,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1051 · bug · CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load
 
-- status: triaged
+- status: in-progress
 - prd: fixes-tooling
-- owner:
+- owner: prd/fixes-tooling
 - commit:
 
 - 2026-11-28 (prd/fixes-tooling): 2026-11-28 (fixes-tooling slice 102): timed out at 5000 ms once in 10 runs of packages/data integration at machine load 20-27; the earlier fix is archived B-986.
