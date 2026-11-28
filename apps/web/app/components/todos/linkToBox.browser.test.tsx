@@ -130,7 +130,7 @@ describe("the Link to box", () => {
       expect(option(name).element().querySelector(`svg[class*="lucide-${icon}"]`)).not.toBeNull();
     iconIn(/^Dr\. Mira Lark/, "stethoscope");
     iconIn(/^Metformin/, "pill");
-    iconIn(/^Lark follow-up/, "calendar-clock");
+    iconIn(/^Lark follow-up/, "calendar-check");
     iconIn(/^Asked Dr\. Lark/, "notebook-pen");
     const line = (name: RegExp) => option(name).element().textContent;
     expect(line(/^Dr\. Mira Lark/)).toBe("Dr. Mira LarkCardiology");

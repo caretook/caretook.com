@@ -149,7 +149,7 @@ describe("the easy roles' todo pages", () => {
     await open("easy_helper", `${base}/todos/${linked.id}`, [lark, pills, linked]);
     await waitUntil(() => document.querySelectorAll("[data-todo-link]").length === 2, "the links");
     expect(deadLinks()).toEqual([]);
-    expect(document.querySelector('[data-todo-link="provider"] [data-todo-link-name]')?.textContent).toBe(
+    expect(document.querySelector('[data-todo-link="provider"] [data-provider-name]')?.textContent).toBe(
       "Dr. Mira Lark",
     );
   });

@@ -4,6 +4,7 @@ import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { EntryCancelActions } from "./EntryActions";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { NoteBlock } from "~/lib/live-notes/noteRichText";
+import type { ReactNode } from "react";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorCircle, AuthorFilterLink, KindFilterLink, KindIcon } from "./KindIcon";
@@ -105,7 +106,8 @@ export function RowTags({
  * to two lines, with "More"), then a right-hand column with the ⋯ menu
  * (Copy link for every role) and, under it, the author's avatar (a filter).
  * `tagsReadOnly` shows its tags as chips only (search's easy roles, as on
- * the Planner); `data-*` props go on the row's `<li>`.
+ * the Planner); `trailing` (a todo link's Remove) sits at the row's end,
+ * above the open target; `data-*` props go on the row's `<li>`.
  */
 export function TimelineEntryRow({
   entry,
@@ -126,8 +128,9 @@ export function TimelineEntryRow({
   openTodos,
   tags,
   tagsReadOnly,
+  trailing,
   ...data
-}: EntryViewProps & { tagsReadOnly?: boolean } & DataHooks) {
+}: EntryViewProps & { tagsReadOnly?: boolean; trailing?: ReactNode } & DataHooks) {
   const otherZone = formatTimeInZone(entry.occurredAt, entry.timeZone);
   // Plain icon and author: easy mode, and away from the timeline.
   const plain = easy || elsewhere;
@@ -147,7 +150,8 @@ export function TimelineEntryRow({
       >
         {elsewhere && (
           <span className="block" data-row-day="">
-            {rowDayLabel(entry.occurredAt, localTimeZone(), new Date())}
+            {/* An all-day entry's day is its own zone's date, not the device's. */}
+            {rowDayLabel(entry.occurredAt, entry.allDay ? entry.timeZone : localTimeZone(), new Date())}
           </span>
         )}
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
@@ -190,6 +194,11 @@ export function TimelineEntryRow({
           <AuthorFilterLink userId={entry.createdBy} name={authorName} image={authorImage} circle />
         )}
       </div>
+      {trailing && (
+        <div className="relative z-10 flex shrink-0 items-center gap-1 self-center" data-entry-trailing="">
+          {trailing}
+        </div>
+      )}
     </li>
   );
 }
