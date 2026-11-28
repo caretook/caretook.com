@@ -24,6 +24,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Todos page: show the Done section as todo trees (the open list's TodoTree) instead of a flat list of rows (B-1016)
   The user's words (2026-11-28): 'We should use the tree view for complete todos instead of a weird flat view. It breaks the "unified ux" rule and is confusing.' Today routes/app/groups/todos/DoneTodos.tsx lists each done todo as a flat TodoRow (newest first, paged with More), so a done parent and its done subtasks show as unrelated rows, while the open list uses TodoTree. Use the same tree display for Done (one shared display, the user's rule). To settle in the slice: page by tree (a whole done tree per item, newest completion first), and where a done subtask whose parent is still open appears (in the open tree, as today's tree does).
 - Finishing a todo's last subtask silently completes the parent and it vanishes from the list; instead the action message asks 'Mark <parent> done too?' with Undo there (alpha tester) (B-1050)
+- Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the shared toast overlay; move it to the shared toast like other done actions
 
 ## Feature requests
 
