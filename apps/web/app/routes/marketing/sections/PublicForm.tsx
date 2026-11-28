@@ -6,6 +6,7 @@ import type { FormFailure } from "./forms";
 import { useEffect, useRef, useState } from "react";
 import { Button, Field, Notice } from "~/components/ui/plain";
 import { formFailure } from "./forms";
+import { FORM_SURFACE } from "./look";
 import { HONEYPOT_FIELD } from "@caretook/data/domain";
 
 // The marketing site's public forms' shared parts: the submit state (with
@@ -180,7 +181,7 @@ export function PublicFormFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="relative rounded-box bg-base-100 p-5 text-base-content shadow-sm sm:p-7">
+    <div className={`relative ${FORM_SURFACE}`}>
       <div role="status" aria-live="polite" data-form-thanks>
         {form.sent && (
           <>

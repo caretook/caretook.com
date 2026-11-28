@@ -1,5 +1,6 @@
 import type { Route } from "./+types/route";
 
+import { BAND_ALT, CONTAINER, H1, H3, LEAD, SECTION } from "../sections/look";
 import { marketingMeta, siteUrlFrom } from "../site/meta";
 import { pagePath } from "../site/pages";
 import { ContactForm } from "./ContactForm";
@@ -11,16 +12,16 @@ export function meta({ matches }: Route.MetaArgs) {
 
 export default function Page() {
   return (
-    <section aria-labelledby="page-heading" className="bg-base-200">
-      <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-14 sm:px-6 sm:py-20 md:grid-cols-[2fr_3fr]">
+    <section aria-labelledby="page-heading" className={BAND_ALT}>
+      <div className={`${CONTAINER} ${SECTION} grid gap-10 md:grid-cols-[2fr_3fr] md:gap-14`}>
         <div>
-          <h1 id="page-heading" className="text-4xl font-bold tracking-tight">
+          <h1 id="page-heading" className={H1}>
             {content.heading}
           </h1>
-          <p className="mt-4 leading-relaxed text-base-content/80">{content.lead}</p>
+          <p className={`mt-5 ${LEAD}`}>{content.lead}</p>
           {content.notes.map((note) => (
             <div key={note.heading} className="mt-8">
-              <h2 className="text-xl font-semibold">{note.heading}</h2>
+              <h2 className={H3}>{note.heading}</h2>
               <p className="mt-2 leading-relaxed text-base-content/80">{note.body}</p>
             </div>
           ))}

@@ -4,6 +4,21 @@ import { FullLogo } from "~/components/brand";
 import { Button } from "~/components/ui/plain";
 import { MARKETING_LINKS } from "../site/pages";
 import { MarketingIcon } from "./icons";
+import {
+  BAND_ACCENT,
+  BAND_ALT,
+  BAND_PAGE,
+  CARD,
+  CONTAINER,
+  H1,
+  H2,
+  H3,
+  ICON_TILE,
+  INTRO,
+  LEAD,
+  OPENING,
+  SECTION,
+} from "./look";
 import type {
   Cta,
   CtaBandContent,
@@ -17,8 +32,6 @@ import type {
  * The marketing site's section components: each renders one shape from
  * `types.ts`, so pages are a list of sections filled from their content module.
  */
-
-const CONTAINER = "mx-auto w-full max-w-5xl px-4 sm:px-6";
 
 /**
  * A call to action. `/join` belongs to another part of the site (access
@@ -53,8 +66,8 @@ const HERO_CTA = "whitespace-nowrap max-sm:h-11 max-sm:min-h-0 max-sm:px-3 max-s
 
 export function Hero({ content }: { content: HeroContent }) {
   return (
-    <section aria-labelledby="hero-heading" className="bg-base-200">
-      <div className={`${CONTAINER} py-14 sm:py-20`}>
+    <section aria-labelledby="hero-heading" className={OPENING}>
+      <div className={`${CONTAINER} ${SECTION}`}>
         {content.eyebrow && (
           <p className="badge badge-soft badge-primary badge-lg mb-5 font-medium">{content.eyebrow}</p>
         )}
@@ -71,16 +84,11 @@ export function Hero({ content }: { content: HeroContent }) {
             </p>
           </>
         ) : (
-          <h1
-            id="hero-heading"
-            className="max-w-3xl text-4xl leading-tight font-bold tracking-tight text-balance sm:text-5xl"
-          >
+          <h1 id="hero-heading" className={`max-w-3xl ${H1}`}>
             {content.heading}
           </h1>
         )}
-        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-base-content/80 sm:text-xl">
-          {content.lead}
-        </p>
+        <p className={`mt-5 max-w-2xl ${LEAD}`}>{content.lead}</p>
         <div className="mt-8 flex flex-nowrap gap-3">
           <CtaLink cta={content.primary} variant="primary" className={HERO_CTA} />
           {content.secondary && <CtaLink cta={content.secondary} variant="ghost" className={HERO_CTA} />}
@@ -93,41 +101,43 @@ export function Hero({ content }: { content: HeroContent }) {
 function SectionHeading({ id, heading, intro }: { id: string; heading: string; intro?: string }) {
   return (
     <header className="max-w-2xl">
-      <h2 id={`${id}-heading`} className="text-2xl font-semibold tracking-tight sm:text-3xl">
+      <h2 id={`${id}-heading`} className={H2}>
         {heading}
       </h2>
-      {intro && <p className="mt-3 text-base-content/80">{intro}</p>}
+      {intro && <p className={`mt-4 ${INTRO}`}>{intro}</p>}
     </header>
   );
 }
 
 export function FeatureGrid({ content }: { content: FeatureGridContent }) {
   return (
-    <section id={content.id} aria-labelledby={`${content.id}-heading`} className={`${CONTAINER} py-14`}>
-      <SectionHeading id={content.id} heading={content.heading} intro={content.intro} />
-      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-        {content.items.map((item) => (
-          <li key={item.title} className="card bg-base-200">
-            <div className="card-body gap-3 text-lg">
-              <span className="flex size-11 items-center justify-center rounded-box bg-primary/10 text-primary">
-                <MarketingIcon name={item.icon} className="size-6" />
-              </span>
-              <h3 className="text-xl font-semibold">{item.title}</h3>
-              <p className="leading-relaxed text-base-content/80">{item.body}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+    <section id={content.id} aria-labelledby={`${content.id}-heading`} className={BAND_ALT}>
+      <div className={`${CONTAINER} ${SECTION}`}>
+        <SectionHeading id={content.id} heading={content.heading} intro={content.intro} />
+        <ul className="mt-10 grid gap-5 sm:grid-cols-2">
+          {content.items.map((item) => (
+            <li key={item.title} className={CARD}>
+              <div className="card-body gap-3 p-6 text-lg sm:p-8">
+                <span className={ICON_TILE}>
+                  <MarketingIcon name={item.icon} className="size-6" />
+                </span>
+                <h3 className={`mt-1 ${H3}`}>{item.title}</h3>
+                <p className="leading-relaxed text-base-content/80">{item.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
 
 export function Steps({ content }: { content: StepsContent }) {
   return (
-    <section id={content.id} aria-labelledby={`${content.id}-heading`} className="bg-base-200">
-      <div className={`${CONTAINER} py-14`}>
+    <section id={content.id} aria-labelledby={`${content.id}-heading`} className={BAND_ALT}>
+      <div className={`${CONTAINER} ${SECTION}`}>
         <SectionHeading id={content.id} heading={content.heading} intro={content.intro} />
-        <ol className="mt-8 grid gap-6 sm:grid-cols-3">
+        <ol className="mt-10 grid gap-8 sm:grid-cols-3">
           {content.items.map((step, i) => (
             <li key={step.title} className="flex gap-4 sm:flex-col">
               <span
@@ -137,8 +147,8 @@ export function Steps({ content }: { content: StepsContent }) {
                 {i + 1}
               </span>
               <div>
-                <h3 className="text-xl font-semibold">{step.title}</h3>
-                <p className="mt-1 leading-relaxed text-base-content/80">{step.body}</p>
+                <h3 className={H3}>{step.title}</h3>
+                <p className="mt-2 leading-relaxed text-base-content/80">{step.body}</p>
               </div>
             </li>
           ))}
@@ -150,19 +160,23 @@ export function Steps({ content }: { content: StepsContent }) {
 
 export function PromiseSection({ content }: { content: PromiseContent }) {
   return (
-    <section id={content.id} aria-labelledby={`${content.id}-heading`} className={`${CONTAINER} py-14`}>
-      <SectionHeading id={content.id} heading={content.heading} intro={content.lead} />
-      <ul className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-        {content.items.map((item) => (
-          <li key={item.title} className="flex gap-3">
-            <MarketingIcon name={item.icon} className="mt-1 size-6 shrink-0 text-primary" />
-            <div>
-              <h3 className="font-semibold">{item.title}</h3>
-              <p className="leading-relaxed text-base-content/80">{item.body}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+    <section id={content.id} aria-labelledby={`${content.id}-heading`} className={BAND_PAGE}>
+      <div className={`${CONTAINER} ${SECTION}`}>
+        <SectionHeading id={content.id} heading={content.heading} intro={content.lead} />
+        <ul className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          {content.items.map((item) => (
+            <li key={item.title} className="flex gap-4">
+              <span className={`shrink-0 ${ICON_TILE}`}>
+                <MarketingIcon name={item.icon} className="size-6" />
+              </span>
+              <div>
+                <h3 className="text-lg font-semibold">{item.title}</h3>
+                <p className="mt-1 leading-relaxed text-base-content/80">{item.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -173,13 +187,13 @@ export function CtaBand({ content, tone = "plain" }: { content: CtaBandContent; 
     <section
       id={content.id}
       aria-labelledby={`${content.id}-heading`}
-      className={`scroll-mt-20 ${accent ? "bg-primary text-primary-content" : "bg-base-200"}`}
+      className={`scroll-mt-20 ${accent ? BAND_ACCENT : BAND_ALT}`}
     >
-      <div className={`${CONTAINER} py-14`}>
-        <h2 id={`${content.id}-heading`} className="text-2xl font-semibold tracking-tight sm:text-3xl">
+      <div className={`${CONTAINER} ${SECTION}`}>
+        <h2 id={`${content.id}-heading`} className={`max-w-3xl ${H2}`}>
           {content.heading}
         </h2>
-        <p className={`mt-3 max-w-2xl leading-relaxed ${accent ? "" : "text-base-content/80"}`}>
+        <p className={`mt-4 max-w-2xl text-lg leading-relaxed ${accent ? "" : "text-base-content/80"}`}>
           {content.body}
         </p>
         {content.note && (
@@ -188,7 +202,7 @@ export function CtaBand({ content, tone = "plain" }: { content: CtaBandContent; 
           </p>
         )}
         {content.actions.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             {content.actions.map((cta) => (
               <CtaLink
                 key={cta.href}

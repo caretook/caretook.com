@@ -33,6 +33,15 @@ describe("features content", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  // The quick entry and easy mode blocks lead, right after the timeline (B-887, B-888).
+  it("opens with the timeline, then quick entry, then easy mode", () => {
+    expect(content.showcases.slice(0, 3).map((s) => s.id)).toEqual(["timeline", "quick-entry", "easy-mode"]);
+    const easy = content.showcases.find((s) => s.id === "easy-mode");
+    expect(easy?.paragraphs.length).toBeGreaterThan(0);
+    expect(easy?.points?.length ?? 0).toBeGreaterThan(0);
+    expect(MARKETING_ICONS).toHaveProperty(easy?.icon ?? "");
+  });
+
   it("gives every section a heading, text and a known icon", () => {
     for (const s of content.showcases) {
       expect(s.id).toMatch(/^[a-z][a-z-]*$/);

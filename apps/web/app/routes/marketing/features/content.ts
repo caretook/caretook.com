@@ -15,7 +15,7 @@ export const content = {
   meta: {
     title: "Features",
     description:
-      "What's in Caretook, the free care notebook for families: a shared timeline, notes written together, medications, todos and a planner, providers, and sharing with the right access.",
+      "What's in Caretook, the free care notebook for families: a shared timeline, logging in seconds, an easy mode, notes written together, medications, todos, providers and sharing.",
   } satisfies PageMeta,
 
   intro: {
@@ -42,6 +42,35 @@ export const content = {
         name: "timeline-rows",
         alt: "Grandma Pat's timeline on a phone: today's entries, with a note about lunch and blood pressure readings, and buttons to add a note, symptom, event or vitals.",
       },
+    },
+    {
+      id: "quick-entry",
+      icon: "quickEntry",
+      heading: "Log it in seconds, typed or spoken",
+      paragraphs: [
+        "On a hard day, one line is all it takes. Type it, or say it with your phone's dictation, like “bp 130/85 hr 72, gave metformin, pain 4 left knee”, and Caretook turns it into separate entries: the readings, a dose and a symptom.",
+        "Each part shows as a card before anything is saved, so you can check it, change what kind of entry it is, or remove it. One Save writes them all, with a few seconds to undo.",
+      ],
+      points: [
+        "Readings, symptoms, doses, notes, events and todos",
+        "Understands times like “last night” or “Friday 2pm”",
+        "Runs on your phone: what you type isn't sent to an AI service",
+        "Speak it with your keyboard's dictation",
+      ],
+    },
+    {
+      id: "easy-mode",
+      icon: "easyMode",
+      heading: "An easy mode, for anyone who finds apps hard",
+      paragraphs: [
+        "Easy mode is a simpler timeline: what's coming up, with the doses due now given in one tap, the todos that are yours, and four big tiles for what gets logged most.",
+        "Anyone can switch it on from the Timeline page. For a family member who'd rather keep things simple, give them one of the easier roles, and Caretook always opens in easy mode for them.",
+      ],
+      points: [
+        "Easy helpers log care, and change only their own entries",
+        "Easy viewers follow along and tick off the todos assigned to them",
+        "Owners and admins can choose the four tiles for the group",
+      ],
     },
     {
       id: "notes-together",
@@ -72,21 +101,6 @@ export const content = {
         name: "live-now",
         alt: "The timeline in dark mode with a banner saying Dev Caretaker is writing Cardiology follow-up, a Join button, and the note at the top of today's entries.",
       },
-    },
-    {
-      id: "quick-entry",
-      icon: "quickEntry",
-      heading: "Type it the way you'd say it",
-      paragraphs: [
-        "A box on the timeline takes a plain line, like “bp 130/85 hr 72, gave metformin, pain 4 left knee”, and turns it into separate entries: the readings, a dose and a symptom.",
-        "Each part shows as a card before anything is saved, so you can check it, change what kind of entry it is, or remove it. One Save writes them all, with a few seconds to undo.",
-      ],
-      points: [
-        "Readings, symptoms, doses, notes, events and todos",
-        "Understands times like “last night” or “Friday 2pm”",
-        "Runs on your phone: what you type isn't sent to an AI service",
-        "Speak it with your keyboard's dictation",
-      ],
     },
     {
       id: "vitals",

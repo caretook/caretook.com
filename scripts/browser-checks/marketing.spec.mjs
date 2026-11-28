@@ -24,7 +24,17 @@ import { BASE, expect, psql, test as checks, waitFor } from "./fixtures.mjs";
 const RUN = `mkt${Date.now().toString(36)}`;
 const tagged = (who) => `${who}+${RUN}@example.com`;
 const MIN_FORM_MS = 3000;
-const PAGES = ["/", "/features", "/faq", "/about", "/contact", "/privacy", "/terms", "/health-data-privacy"];
+const PAGES = [
+  "/",
+  "/features",
+  "/faq",
+  "/about",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/health-data-privacy",
+  "/accessibility",
+];
 // Modules that only the app needs: none may load on a marketing page.
 const APP_CHUNK =
   /\/app\/routes\/app\/|\/app\/lib\/sync\/|\/app\/lib\/session|powersync|wa-sqlite|yjs|tiptap|prosemirror/i;
