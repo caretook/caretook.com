@@ -121,7 +121,7 @@ describe("the easy roles' todo pages", () => {
     await expect.element(page.getByRole("heading", { name: "Water the plants" })).toBeVisible();
     // Back goes to the timeline, not the Todos list; no edit or delete.
     expect(page.getByRole("link", { name: /Timeline/ }).elements().length).toBeGreaterThan(0);
-    expect(document.querySelector("[data-edit-todo]")).toBeNull();
+    expect(document.querySelector("[data-todo-menu]")).toBeNull();
     expect(deadLinks()).toEqual([]);
 
     await userEvent.click(page.getByRole("button", { name: "Mark “Water the plants” done" }));
