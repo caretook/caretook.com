@@ -152,19 +152,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-294 | bug | ready | sync-safety-3 | prd/sync-safety-3 | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-325 | change | triaged | hosting |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
-| B-327 | bug | ready | account-security | prd/account-security | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
-| B-328 | bug | ready | account-security | prd/account-security | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
-| B-329 | bug | in-progress | account-security | prd/account-security | Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive |
-| B-330 | bug | in-progress | account-security | prd/account-security | Session tokens are stored in plain text and the bearer plugin accepts them unsigned; ops/data-copies.md says they are hashed |
-| B-331 | bug | ready | account-security | prd/account-security | Staff admin can invite any address as owner of any group: not limited to ownerless groups, existing owners aren't told |
-| B-332 | bug | in-progress | account-security | prd/account-security | Staff page-view audit rows are fired without waiting and can be lost on Vercel; user search isn't audited |
-| B-333 | bug | ready | account-security | prd/account-security | Link sign-up leaks whether an address has an account (timing), has no rate limit, and one link creates unlimited unverified accounts |
-| B-334 | bug | in-progress | account-security | prd/account-security | A declined or withdrawn join requester can ask again forever, emailing every owner and admin each time; no signed-in oRPC procedure is rate limited (sync.upload, invite.resend) |
-| B-335 | bug | ready | account-security | prd/account-security | Better Auth's /update-user is live and unvalidated: a name or image of any length syncs to co-members and into owner emails |
-| B-336 | bug | ready | account-security | prd/account-security | A role change reads its target unlocked: an admin's demote racing an owner's promotion of the same member can skip the owner-only and last-owner checks |
+| B-327 | bug | landed | account-security | prd/account-security | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
+| B-328 | bug | landed | account-security | prd/account-security | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
+| B-329 | bug | ready | account-security | prd/account-security | Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive |
+| B-330 | bug | ready | account-security | prd/account-security | Session tokens are stored in plain text and the bearer plugin accepts them unsigned; ops/data-copies.md says they are hashed |
+| B-331 | bug | landed | account-security | prd/account-security | Staff admin can invite any address as owner of any group: not limited to ownerless groups, existing owners aren't told |
+| B-332 | bug | ready | account-security | prd/account-security | Staff page-view audit rows are fired without waiting and can be lost on Vercel; user search isn't audited |
+| B-333 | bug | landed | account-security | prd/account-security | Link sign-up leaks whether an address has an account (timing), has no rate limit, and one link creates unlimited unverified accounts |
+| B-334 | bug | ready | account-security | prd/account-security | A declined or withdrawn join requester can ask again forever, emailing every owner and admin each time; no signed-in oRPC procedure is rate limited (sync.upload, invite.resend) |
+| B-335 | bug | landed | account-security | prd/account-security | Better Auth's /update-user is live and unvalidated: a name or image of any length syncs to co-members and into owner emails |
+| B-336 | bug | landed | account-security | prd/account-security | A role change reads its target unlocked: an admin's demote racing an owner's promotion of the same member can skip the owner-only and last-owner checks |
 | B-337 | bug | triaged | account-security |  | /mcp verifies a token (several database reads) before any rate limit, and rate-limit keys fall back to one shared 'unknown' bucket when the IP header is missing |
 | B-338 | feature | triaged | account-security-2 |  | Account settings: change name, email and password (today the page is read-only; password only via reset) |
-| B-339 | question | in-progress | account-security | prd/account-security | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
+| B-339 | question | ready | account-security | prd/account-security | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
 | B-340 | change | triaged | account-security-2 |  | A member in two groups can connect a given assistant to only one (one grant per user and client) |
 | B-343 | bug | triaged | hosting |  | The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting |
 | B-344 | bug | triaged | hosting |  | The migrator can silently skip a migration whose journal timestamp is older than the last applied one; nothing guards it |
@@ -442,7 +442,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-327 · bug · A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: 7dc6937a2
@@ -452,7 +452,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-328 · bug · The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: 25ab484aa
@@ -462,27 +462,27 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-329 · bug · Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive
 
-- status: in-progress
+- status: ready
 - prd: account-security
 - owner: prd/account-security
-- commit:
+- commit: e75ed6950
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. auth.ts:179, accountAdminService.ts:334, db/schema/auth/oauth.ts:123,158. Staff session deletes are raw SQL, so the plugin's revoke hook never runs. Fix idea: revoke the user's grants on password reset and revoke-all, or prompt.
 - 2026-11-25 (plan/account-security): Planned in plans/account-security-plan.md (plan/account-security, 2026-11-25): slices 1 B-327/B-336, 2 B-328/B-333/B-335, 3 B-331, 4 B-332, 5 B-329/B-330/B-339, 6 B-334, 7 B-337.
 
 ### B-330 · bug · Session tokens are stored in plain text and the bearer plugin accepts them unsigned; ops/data-copies.md says they are hashed
 
-- status: in-progress
+- status: ready
 - prd: account-security
 - owner: prd/account-security
-- commit:
+- commit: e75ed6950
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/auth/src/auth.ts:201 bearer() without requireSignature. Anyone who can read the session table can act as that user without BETTER_AUTH_SECRET. There is no native client using bearer yet. Fix: bearer({ requireSignature: true }) and correct the register.
 - 2026-11-25 (plan/account-security): Planned in plans/account-security-plan.md (plan/account-security, 2026-11-25): slices 1 B-327/B-336, 2 B-328/B-333/B-335, 3 B-331, 4 B-332, 5 B-329/B-330/B-339, 6 B-334, 7 B-337.
 
 ### B-331 · bug · Staff admin can invite any address as owner of any group: not limited to ownerless groups, existing owners aren't told
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: 25ab484aa
@@ -492,17 +492,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-332 · bug · Staff page-view audit rows are fired without waiting and can be lost on Vercel; user search isn't audited
 
-- status: in-progress
+- status: ready
 - prd: account-security
 - owner: prd/account-security
-- commit:
+- commit: e75ed6950
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. adminAuditService.ts:50-57 recordSoon is a bare void promise with no waitUntil; called from accountAdminService.ts:216 and groupAdminService.ts:73. Also from the database review: caretook_app has UPDATE and DELETE on admin_audit_log.
 - 2026-11-25 (plan/account-security): Planned in plans/account-security-plan.md (plan/account-security, 2026-11-25): slices 1 B-327/B-336, 2 B-328/B-333/B-335, 3 B-331, 4 B-332, 5 B-329/B-330/B-339, 6 B-334, 7 B-337.
 
 ### B-333 · bug · Link sign-up leaks whether an address has an account (timing), has no rate limit, and one link creates unlimited unverified accounts
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: 25ab484aa
@@ -512,17 +512,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-334 · bug · A declined or withdrawn join requester can ask again forever, emailing every owner and admin each time; no signed-in oRPC procedure is rate limited (sync.upload, invite.resend)
 
-- status: in-progress
+- status: ready
 - prd: account-security
 - owner: prd/account-security
-- commit:
+- commit: e75ed6950
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. joinRequestService.ts:127-160, 306-320. Two reviewers. A cooldown, one counted use per user per link, and limits on authed procedures.
 - 2026-11-25 (plan/account-security): Planned in plans/account-security-plan.md (plan/account-security, 2026-11-25): slices 1 B-327/B-336, 2 B-328/B-333/B-335, 3 B-331, 4 B-332, 5 B-329/B-330/B-339, 6 B-334, 7 B-337.
 
 ### B-335 · bug · Better Auth's /update-user is live and unvalidated: a name or image of any length syncs to co-members and into owner emails
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: 25ab484aa
@@ -533,7 +533,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-336 · bug · A role change reads its target unlocked: an admin's demote racing an owner's promotion of the same member can skip the owner-only and last-owner checks
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: 7dc6937a2
@@ -564,10 +564,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-339 · question · Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked
 
-- status: in-progress
+- status: ready
 - prd: account-security
 - owner: prd/account-security
-- commit:
+- commit: e75ed6950
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. docs/domain/auth.md says 'Reconsider before launch'; no item tracked it.
 - 2026-11-25 (plan/account-security): Planned in plans/account-security-plan.md (plan/account-security, 2026-11-25): slices 1 B-327/B-336, 2 B-328/B-333/B-335, 3 B-331, 4 B-332, 5 B-329/B-330/B-339, 6 B-334, 7 B-337.
