@@ -38,6 +38,8 @@ apps/web/app/routes/app/settings/routes.ts first-sync layout-offline
 apps/web/app/routes/dev/routes.ts        first-sync layout-offline
 apps/web/app/routes/marketing/routes.ts  first-sync layout-offline
 apps/web/app/routes/app/groups/layout/   app-shell first-sync
+# The creator's first-open redirect to the setup pages (onboarding-2): new groups and /join.
+apps/web/app/routes/app/groups/layout/setupRedirect.ts first-sync invites
 apps/web/app/routes/app/groups/index/    -
 apps/web/app/lib/app-shell/group.tsx     first-sync
 
