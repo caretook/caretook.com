@@ -6,7 +6,7 @@
 
 | Slice | Wave | State          | Merge into `prd/sync-safety-3` (slice commits) |
 | ----- | ---- | -------------- | ---------------------------------------------- |
-| 1     | 1    | running (opus) |                                                |
+| 1     | 1    | merged (opus)  | 98f9114db (e46c7c7c7, 96dc47533)               |
 | 2     | 2    | planned        |                                                |
 | 3     | 3    | planned        |                                                |
 | 4     | 1    | running (opus) |                                                |
@@ -15,6 +15,8 @@
 **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
 - 2026-11-28: wave 1 started. B-294 claimed. Worktrees `sync-safety-3-1` and `sync-safety-3-4` made from prd at the plan's anchor fix; one opus agent each. Start conditions clear (onboarding-2 and code-health-2 not running).
+
+- Slice 1 handed off (quick check green on 96dc47533), merged 98f9114db. No upload-path service needed changing; only the registry's softDelete PUT now passes `ctx`. For slice 2: PATCH/DELETE paths in the registry (softDelete remove/update, timeline_entry and todo PATCH) run without `tx` today; slice 2's whole-PUT `tx` makes them join. A nested throw now returns `db:transaction` instead of propagating. B-294 stays open until slice 5.
 
 ## Durable decisions
 
