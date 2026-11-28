@@ -20,13 +20,15 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 **Wave 1 landed** in dev as 0f4e593cf through PR #336 (tier full, 2026-11-28); report filed; to-test/2026-11-28-1122-test-time-gates-2.md.
 
+**Slice 3 (merged 32336c272, 2026-11-28):** table refreshed from `full` 46164085462 (262 entries: 256 components, 6 `ny`, the six `test/zone.ts` files). Requested `components` run 46165126670 on 48ac9bc6, green: shards 303 s (warn), 216, 204, 199; 262 files, 2580 tests (unchanged). Shard 1's files ran ~20% over table times: `components` left unarmed; filed B-1037 (fixes-perf: shard 1 under 275 s, names the slowest files). Per the plan, B-859, B-837, B-772 close at landing with a note pointing to B-1037. Next: wave 2's `full` run on the tip, PR, review, land, docs, `risa rm`.
+
 **Wave 2 (started 2026-11-28):** sync skipped (up to date with dev); slice 3 worktree made, its opus agent spawned (prompt adds the unset of `RISA_*` and the run ids). Was the brief: start slice 3 (opus) on prd/test-time-gates-2: refresh `scripts/ci/component-durations.json` from run 46162250609 (four shards; or a later green four-shard run), then one requested `components` run; arm `components` if its slowest shard is ≤ 275 s. Then the wave's `full` run, land, fold docs (components doc: the table refreshed from run N; machinery: armed list), close B-859, B-837, B-772 (or an unarmed measure's `fixes-perf` item), `risa rm test-time-gates-2`. Unset `RISA_CONFIG`, `RISA_CONFIG_FOUND`, `RISA_SESSION_*` in the slice prompt. Slice worktrees 1 and 2 removed.
 
-| Slice                                        | Wave | State   | Merge     |
-| -------------------------------------------- | ---- | ------- | --------- |
-| 1. Four component shards                     | 1    | merged  | cd093268c |
-| 2. The quick gate armed                      | 1    | merged  | 340667590 |
-| 3. The durations refreshed; components armed | 2    | running | —         |
+| Slice                                        | Wave | State  | Merge     |
+| -------------------------------------------- | ---- | ------ | --------- |
+| 1. Four component shards                     | 1    | merged | cd093268c |
+| 2. The quick gate armed                      | 1    | merged | 340667590 |
+| 3. The durations refreshed; components armed | 2    | merged | 32336c272 |
 
 ## Architectural decisions
 
