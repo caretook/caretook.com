@@ -46,7 +46,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `code-health-3` | — | `code-health-2`, `data-rights` | `apps/web/app/lib/`, `apps/web/app/libLayout.test.ts`, `packages/data/src/models/base/`, `packages/api/src/sync` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-364, B-368, B-369), cut from code-health by its planner, 2026-11-21: device row types derived from the device schema and the layout guard refusing SQL outside *.sync.ts (17 files today), the list count only on request and the sync PATCH's round trips (that slice after sync-safety-2), plan-pointing comments (a count that may only fall, then a sweep) |
 | `code-health-4` | — | `simple-mode` | `packages/data/src/constants/roles.ts`, `packages/data/src/constants/roleCopies.test.ts`, `packages/data/src/domain/todos/todoRules.ts`, `packages/data/scripts/googleSmoke.ts`, `packages/notifications/src/templates/groupInvite.tsx`, `packages/notifications/src/templates/joinRequests.tsx`, `packages/notifications/src/templates/staffGroupChange.tsx`, `apps/web/app/lib/app-shell/groupSetup.ts`, `apps/web/app/routes/app/groups/layout/setupRedirect.ts`, `apps/web/app/routes/app/groups/settings/assistants/assistants.ts`, `apps/web/app/routes/app/groups/settings/groupSettings.ts`, `apps/web/app/routes/app/groups/settings/members/invites.ts`, `apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx`, `apps/web/app/routes/admin/group/`, `apps/web/app/routes/connectors/connect/ConnectConsent.tsx`, `scripts/eslint/`, `eslint.config.js` | to write (B-363), cut from code-health-2 by its planner, 2026-11-28; the planner's findings are in plans/code-health-2-prd.md Notes. The call-site sweep touches data-rights' and account-security-2's hot files: that part waits for both. |
 | `code-health-5` | — | `code-health-4`, `data-rights`, `account-security-2` | — | The services' and API's role-name sweep (B-1060), cut from code-health-4 |
-| `contract-migrations` | hold (2026-11-28: plan sent back twice by its skeptics; waits on the user) | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
+| `contract-migrations` | hold (2026-11-28: plan sent back twice by its skeptics; waits on the user) | `data-rights` | `packages/data/src/db/migrations/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/appointmentSeriesService.ts`, `packages/data/src/db/schema/appointments/appointmentSeries.ts`, `packages/data/src/db/schema/care-groups/`, `packages/data/src/permissions/care-groups.ts`, `packages/data/src/db/roles/rolesSql.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
+| `contract-migrations-2` | hold (2026-11-28: starts only once contract-migrations is on origin/staging (a column drop waits a deploy)) | `contract-migrations`, `code-health-4` | — | — |
+| `contract-migrations-3` | hold (2026-11-28: starts only once contract-migrations-2 is on origin/staging) | `contract-migrations-2` | — | — |
 | `marketing-2` | done | — | `apps/web/app/routes/marketing/`, `apps/web/public/og-default.png` | Light copy wave before sharing the link (B-417) |
 | `planner-3` | done | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
@@ -292,6 +294,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1058 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 | B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
+| B-1061 | chore | triaged | contract-migrations-2 |  | Drop the simple-mode columns (care_group_member.simple_mode, simple_mode_locked, care_group.simple_tiles) and strip the user.preferences simpleMode key, after contract-migrations takes them out of the Drizzle schema |
+| B-1062 | chore | triaged | contract-migrations-2 |  | Take todo.event_id out of the Drizzle schema, the device schema, todoRules.ts and the test fixtures, after contract-migrations stops every write and sync of it |
+| B-1063 | chore | triaged | contract-migrations-3 |  | Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES |
 
 ## Items
 
@@ -713,6 +718,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (slice/fixes-nit/2): Contract step for simple-mode (plans/simple-mode-plan.md line 121: slice 3 moves locked caretakers to easy_helper, locked viewers to easy_viewer and takes the two columns out of Drizzle reads and writes, sync, device schema and grants, leaving them for a later contract migration). Columns: care_group_member.simple_mode and simple_mode_locked (migration 0021_simple_mode.sql; schema packages/data/src/db/schema/care-groups/careGroupMember.ts:64-65). Today (2026-11-21) still read and written: packages/api/src/care-groups/careGroup.ts:194-223 (setMemberMode), packages/data/src/permissions/care-groups.ts:48-49, careGroupMemberService. Precondition: simple-mode slices 1-3 landed in dev and the conversion has run on staging and production; then a drop migration (expand/contract, adds a migration: run it alone). Also check care_group.simple_tiles stays (still used by group settings) and the user_preferences simpleMode key.
 - 2026-11-21 (prd/simple-mode): 2026-11-21 (prd/simple-mode landed, PR #44, bd13f73): the conversion is migration 0036. Retired and now unread everywhere: care_group_member.simple_mode, simple_mode_locked AND care_group.simple_tiles (replaced by easy_tiles, 0034) and the user.preferences.simpleMode key (copied to easyMode). setMemberMode/setMode are deleted. care_group and care_group_member are in REPLICATION_WHOLE_TABLES only because of these retired columns: drop them from that list in the contract migration.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-456 · chore · Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series
 
@@ -722,6 +728,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (slice/fixes-nit/2): Contract step for planner-2 (plans/planner-2-plan.md line 48: nothing dropped; no data migration; stored future notes and note series left, hidden from upcoming readers and never topped up). Still in schema: appointment_series.kind with check appointment_series_kind_check (packages/data/src/db/schema/appointments/appointmentSeries.ts:43-86; new series are events only via the z.literal at line 177) and note series rows; timeline_entry.all_day and series columns and reminder_override / member_calendar_setting are NOT dead: events and appointment reminders still use them (timelineEntry.ts:121-142, reminderOverrideService in packages/api/src/calendars/overrideProcedures.ts, calendarFeedService), so do not drop those. Decide: delete or convert the stored note series and future-dated notes (a data migration; staging only has test data), then drop the kind column and its check or narrow the check to event. Precondition: planner-2 landed (it is) and no reader of kind=note remains (grep sync.ts, seriesVisits, appointmentSeriesService); migration, run it alone.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-457 · chore · Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes
 
@@ -731,6 +738,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (slice/fixes-nit/2): medications-2 (plans/medications-2-plan.md line 38) creates the default passes for every new group through one helper (careGroupService.create, accessCodeService, staffGroupService) and says: no backfill for existing rows (dev data only). Staging has been live since 2026-11-20, so any group created before that change has no passes and medications moved to passes have no pass. Check staging with a query on medication_pass per care_group; if groups lack them, add a data migration (or one-off script) that inserts the two defaults per group with none, idempotent, and moves medications without a pass onto them. Precondition: confirm count of groups without passes on staging; production has none yet, so only staging needs it.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-561 · feature · Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites
 
@@ -820,6 +828,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): From planner-3 (B-245): link rows in timeline_entry_todo replace the column. Contract step: remove the column, the todoService mirror, the releaseEvent and unlink clears, and eventId on old upload paths.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-665 · change · Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps
 
@@ -1774,3 +1783,30 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (plan/code-health-4): Cut from code-health-4 (B-363) by its planner, 2026-11-28: the six-slice cap, and careGroupInviteService, careGroupService and the details and profile routes are data-rights' hot files, groupAdminService account-security-2's. Uses code-health-4's isOwnerRole and the guard's exempt list (scripts/eslint/role-guard.mjs). Plan: plans/code-health-4-prd.md Out of scope.
+
+### B-1061 · chore · Drop the simple-mode columns (care_group_member.simple_mode, simple_mode_locked, care_group.simple_tiles) and strip the user.preferences simpleMode key, after contract-migrations takes them out of the Drizzle schema
+
+- status: triaged
+- prd: contract-migrations-2
+- owner:
+- commit:
+
+- 2026-11-28 (plan/contract-migrations): B-455 step two (contract-migrations plan). Precondition: contract-migrations on origin/staging. Hand-written custom migration; care_group and care_group_member leave REPLICATION_WHOLE_TABLES.
+
+### B-1062 · chore · Take todo.event_id out of the Drizzle schema, the device schema, todoRules.ts and the test fixtures, after contract-migrations stops every write and sync of it
+
+- status: triaged
+- prd: contract-migrations-2
+- owner:
+- commit:
+
+- 2026-11-28 (plan/contract-migrations): B-625 step two (contract-migrations plan). Precondition: contract-migrations on origin/staging. Plain generate with its DROP replaced by a comment (--custom keeps the old snapshot). Also the releaseEvent comment in apps/web/app/lib/timeline/timeline.sync.ts.
+
+### B-1063 · chore · Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES
+
+- status: triaged
+- prd: contract-migrations-3
+- owner:
+- commit:
+
+- 2026-11-28 (plan/contract-migrations): B-625 step three. Precondition: contract-migrations-2 on origin/staging. Hand-written custom migration.
