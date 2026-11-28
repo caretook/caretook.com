@@ -19,14 +19,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-- **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
+- **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. Fold at landing: slice 105 gave `web:unit` the `~/` alias; fix any doc saying web:unit uses relative imports only. Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
 
 | Slice | Item  | State                                                                                             | Merge |
 | ----- | ----- | ------------------------------------------------------------------------------------------------- | ----- |
 | 102   | B-778 | agent spawned (opus)                                                                              |       |
 | 103   | B-782 | no change: already fixed by 273ba77a0 (B-332); item done; its quarantine line stays for `risa ci` | —     |
 | 104   | B-802 | agent spawned (opus)                                                                              |       |
-| 105   | B-375 | agent spawned (opus)                                                                              |       |
+| 105   | B-375 | handed off (a7a968442)                                                                            |       |
 | 106   | B-852 | handed off (d9cedc667)                                                                            |       |
 | 107   | B-757 | handed off (08ea23f63)                                                                            |       |
 | 108   | B-667 | agent spawned (opus)                                                                              |       |
