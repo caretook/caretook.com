@@ -4,18 +4,21 @@
 
 ## Status
 
-| Slice | Wave | State                  | Merge into `prd/connectors-5` (slice commits) |
-| ----- | ---- | ---------------------- | --------------------------------------------- |
-| 1     | 1    | merged                 | 29d34f5fb (512c7c211, 58b08840f)              |
-| 2     | 1    | merged                 | 204b120de (b8c2c3f97)                         |
-| 3     | 2    | handed off (4382ca75e) |                                               |
-| 4     | 2    | running                |                                               |
+| Slice | Wave | State                       | Merge into `prd/connectors-5` (slice commits) |
+| ----- | ---- | --------------------------- | --------------------------------------------- |
+| 1     | 1    | landed (249d8281a, PR #307) | 29d34f5fb (512c7c211, 58b08840f)              |
+| 2     | 1    | landed (249d8281a, PR #307) | 204b120de (b8c2c3f97)                         |
+| 3     | 2    | merged                      | 1d9918386 (4382ca75e)                         |
+| 4     | 2    | merged                      | 49b163e76 (cfead6e83, 09c7f2ecb)              |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave without asking; real questions via `risa ask`).
 
-**Backlog:** B-861 claimed 2026-11-27 (prd/connectors-5); `risa backlog done B-861` when the last slice merges. No other items for this topic.
+**Backlog:** B-861 done (all four slices merged). No other items for this topic.
 
-**Now (2026-11-27):** wave 1 merged (slices 1, 2 on opus); its CI gate (`components`) is out. Wave 2 started: slices 3 and 4 (opus) in `.loops/connectors-5-3`, `-4`. Slice 3 handed off 4382ca75e (reviewed). Hold wave-2 merges until wave 1 lands. At landing: tags.md _Limits_ line saying no connector tool reads tags is stale. B-861 stays open until slice 4 merges. Slice 1 notes: use `tagsSuffix` for text lines; tool prose never says "pass" (B-695) except "pass nextCursor".
+**Now (2026-11-27), the brief for the next session:** wave 1 landed in dev as 249d8281a (PR #307, CI components green run 46104945199, Codex clean, report a369); its docs are folded (connectors _Tools_ "Tags" line and consent version rule; tags _Limits_). Worktrees `-1`, `-2` removed. Wave 2 is merged (slices 3, 4 on opus). `risa rotate` refused (slice worktrees kept until green), so this session carries on: CI integration run out on 8c9164142; green (run 46105892965); no sync needed; no browser checks apply; PR #309 open, Codex review out; then `risa sync`, `risa serve connectors-5 --restart`, `risa browser --changed --base dev`, `risa pr connectors-5`, `risa review connectors-5 --wait`, land (the last landing), fold docs, `risa rm connectors-5-3`, `-4`, then `risa rm connectors-5`. Failures go to a fresh fix agent in `.loops/connectors-5-3` or `-4` (the old agents ended with this session).
+
+- **Wave 2 docs folded** (before Codex's review); were: connectors _Tools_: `tag_record`, `untag_record` (`tagWrites.ts`; check live, in group, `canTagRecord` before any write, for untag too; new names folded by `tagKey`, made by `tagService.create`; untag never deletes a tag) and `tags` on records of list_timeline, list_todos, upcoming, list_providers, list_medications, search (one `tagsByRecord` per call, text ends ` · tags: …`). Tags _Limits_: connectors read and write tags. connectors.md is at its 10 KB budget: trim what you add.
+- **Notes:** tool prose never says "pass" except "pass nextCursor" (registry test, B-695). A test seeding another group's tag makes it as that group's owner.
 
 ## Architectural decisions
 
