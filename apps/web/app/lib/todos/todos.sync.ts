@@ -762,9 +762,10 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
  * unless a live open row with its id exists; a live done one, like `todo`
  * itself, is passed over for the rule's following day (B-386), and a
  * soft-deleted one (an Undo took it away) comes back as new. As
- * `todoService`'s `insertNext`, so both write the same row.
+ * `todoService`'s `insertNext`, so both write the same row. `now` is the
+ * tick's time: the next is made then, so `reopenTodo` finds it.
  */
-const planNext = async (db: SyncDb, todo: LocalTodo) => {
+const planNext = async (db: SyncDb, todo: LocalTodo, now = nowTimestamp()) => {
   if (!todo.repeatRule) return null;
   const { nextOccurrence } = await import("@caretook/data/series");
   const today = await recipientToday(db, todo.recipientId);
@@ -778,7 +779,6 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   }
   if (!next) return null;
   if (row && !row.deleted_at) return null;
-  const now = nowTimestamp();
   // The group and recipient never change; `event_id` isn't this device's to write.
   const { id, groupId, recipientId, eventId: _e, ...content } = next;
   // The ticked todo's tags go on the next (tags PRD), with the link ids the
@@ -833,8 +833,9 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   const refusal = await doneRefusal(db, existing);
   if (refusal) return refusal;
   if (existing.doneAt) return { ok: true, id };
-  const next = await planNext(db, existing);
+  // The tick's time is the next's `created_at` too: `laterInChain` finds it as made at or after `done_at`.
   const now = nowTimestamp();
+  const next = await planNext(db, existing, now);
   const rollup = await planRollup(db, { id, parentId: existing.parentId, doneAt: now, deletedAt: null }, now);
   await db.drizzle.transaction(async (tx) => {
     // Only the done columns change, so the upload maps it to complete.
