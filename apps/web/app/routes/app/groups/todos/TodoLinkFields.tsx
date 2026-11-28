@@ -4,14 +4,13 @@ import type { LinkPick } from "~/lib/todos/linkOptions";
 import type { ChosenEntryRow } from "~/lib/todos/todos.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
-import { canHaveNoteDocument } from "@caretook/data/schema";
+import { canHaveNoteDocument, medicationTitle } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { LinkToBox } from "~/components/todos";
 import { ChipList, Message } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { previewText } from "~/lib/live-notes/notes.sync";
-import { medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
 import { linkedEntryName } from "~/lib/todos/entryTodoDisplay";
 import { todoEntriesQuery } from "~/lib/todos/entryTodos.sync";

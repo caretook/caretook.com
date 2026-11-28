@@ -1,7 +1,6 @@
-import type { CalendarItem } from "@caretook/data/schema";
-
 import { describe, expect, it } from "vitest";
 import { renderIcs } from "./renderIcs";
+import type { CalendarItem } from "@caretook/data/domain";
 
 // The feed's rendering against golden files (renderIcs.golden/): generic and
 // details, all-day, cancelled, and a series visit. Fictional people. The

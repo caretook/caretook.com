@@ -1,18 +1,18 @@
-import type { DueDoses } from "./dueDoses";
 import type { SyncDb } from "../sync/index";
 import type { PassRow } from "./medicationPasses.sync";
 import type { MedicationRow, RecipientRow } from "./medications.sync";
 import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 
 import { useMemo } from "react";
-import { dueDoses } from "./dueDoses";
-import { addDays, dayInZone, startOfDay } from "../core/zonedDay";
 import { scheduleChangesQuery } from "../appointments/visitPrep.sync";
 import { useNow } from "../live-notes/editors.sync";
 import { useRememberedQuery } from "../sync/useRememberedQuery";
 import { passesQuery, toPasses } from "./medicationPasses.sync";
 import { isDoseEntry, recipientQuery, toMedicationEntries, toMedications } from "./medications.sync";
 import { readRows, toLocalTimestamp, toTimelineEntries } from "../timeline/timeline.sync";
+import type { DueDoses } from "@caretook/data/schema";
+import { dueDoses } from "@caretook/data/schema";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 // What's due today on this device: the group's current medications, its
 // doses since yesterday began, and the recipient's zone, read locally (so it

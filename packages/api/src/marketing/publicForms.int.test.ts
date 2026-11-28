@@ -2,7 +2,6 @@ import {
   contactMessageService,
   getDb,
   isError,
-  MIN_FORM_MS,
   newError,
   SYSTEM_USER,
   waitlistService,
@@ -15,6 +14,7 @@ import { createUser } from "../../../data/test/fixtures";
 import { PUBLIC_FORM_LIMIT, resetPublicFormLimits } from "./publicForms";
 import { createRateLimiter } from "../rateLimit";
 import { clientFor, codeOf } from "../testing";
+import { MIN_FORM_MS } from "@caretook/data/domain";
 
 // The marketing site's public forms (marketing slice 4) through the router,
 // as an anonymous visitor, with the memory sender.

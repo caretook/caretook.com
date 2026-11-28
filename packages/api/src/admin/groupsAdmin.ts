@@ -1,19 +1,14 @@
 import type { InviteMailer } from "@caretook/data";
 
 import { createHash } from "node:crypto";
-import {
-  GROUP_ADMIN_PAGE_SIZE,
-  groupAdminService,
-  inviteEmailZ,
-  STAFF_SETTABLE_GROUP_ROLES,
-  staffReasonZSchema,
-} from "@caretook/data";
+import { groupAdminService, inviteEmailZ, staffReasonZSchema } from "@caretook/data";
 import { deliverSoon, notify } from "@caretook/notifications";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 import { iso } from "../dto";
 import { unwrap } from "../errors";
 import { staffProcedure } from "../procedures";
+import { GROUP_ADMIN_PAGE_SIZE, STAFF_SETTABLE_GROUP_ROLES } from "@caretook/data/domain";
 
 // `admin.groups.*` (admin slice 4): care groups for Caretook staff. Every
 // staff member (`groups.read`) searches groups and opens one: its name, its

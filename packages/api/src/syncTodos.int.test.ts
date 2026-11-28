@@ -1,11 +1,12 @@
 import type { AuthUser } from "@caretook/data";
 
-import { ROLLUP_METADATA, todoService, UNDO_NEXT_METADATA } from "@caretook/data";
+import { todoService } from "@caretook/data";
 import { nextTodoId } from "@caretook/data/series";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor, outcomes, upload } from "./testing";
+import { ROLLUP_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // sync.upload for todos: rows as a device's SQLite holds them (snake_case,
 // PowerSync's timestamps). Each test makes its own users and group.

@@ -6,7 +6,6 @@ import type { ImportSource } from "~/lib/providers/providerImport";
 import type { NoteFullScreenOptions } from "./NoteFullScreen";
 import type { MentionAddResult } from "./useMentionPopup";
 
-import { NOTE_FRAGMENT } from "@caretook/data/schema";
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -20,6 +19,7 @@ import { MentionTargets } from "./MentionChip";
 import { MentionPopup, mentionOptionId } from "./MentionPopup";
 import { NoteFullScreen } from "./NoteFullScreen";
 import { ProviderMention, useMentionPopup } from "./useMentionPopup";
+import { NOTE_FRAGMENT } from "@caretook/data/domain";
 
 /** The bar above the text: the toolbar, and the full-screen button. */
 const BAR = "border-base-300 bg-(--color-field)/95 sticky top-0 z-10 border-b p-1 backdrop-blur";

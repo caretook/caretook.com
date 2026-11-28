@@ -1,4 +1,4 @@
-import type { PeriodSpan, TrackPeriod } from "@caretook/data/schema";
+import type { PeriodSpan, TrackPeriod } from "@caretook/data/domain";
 
 // The timeline's boundary markers: one "From → to" row where each care
 // period starts, drawn from the track (never written as entries). This

@@ -1,5 +1,4 @@
-import type { DoseStatus } from "@caretook/data/schema";
-import type { DoseSlot, DueDoses } from "../../../../lib/medications/dueDoses";
+import type { DoseStatus, DoseSlot, DueDoses } from "@caretook/data/schema";
 import type { DoseChoice } from "../../../../lib/medications/medicationTimeline.sync";
 import type {
   DoseInput,
@@ -8,10 +7,8 @@ import type {
   QuickAddMedication,
 } from "../../../../lib/medications/medications.sync";
 
-import { DOSE_STATUSES } from "@caretook/data/schema";
-import { isDueNow } from "../../../../lib/medications/dueDoses";
+import { DOSE_STATUSES, isDueNow, dueSlotLabel } from "@caretook/data/schema";
 import { formString } from "../../../../lib/core/form";
-import { dueSlotLabel } from "../../../../lib/medications/medicationDisplay";
 import { medicationLabel } from "../../../../lib/medications/medicationEntries";
 import { parseOccurredAt } from "./entryFormData";
 

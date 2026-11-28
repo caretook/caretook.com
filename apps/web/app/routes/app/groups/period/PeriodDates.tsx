@@ -1,9 +1,9 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
-import { periodDay, periodLengthDays } from "@caretook/data/schema";
 import { Section } from "~/components/ui";
 import { dayText, lengthText, startText } from "~/lib/care-periods/periodDisplay";
+import type { PeriodSpan } from "@caretook/data/domain";
+import { periodDay, periodLengthDays } from "@caretook/data/domain";
 
 /**
  * When the period started, until when (the next period's start, as that one

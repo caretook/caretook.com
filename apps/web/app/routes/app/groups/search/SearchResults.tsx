@@ -3,7 +3,6 @@ import type { UnitChoices } from "@caretook/data/schema";
 import type { ResultSection } from "~/lib/search/searchResults";
 import type { EasyOpenedRef } from "./useEasyOpened";
 
-import { parseSearch } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { LINK, TITLE_SECTION } from "~/components/ui";
@@ -19,6 +18,7 @@ import {
   ProviderResultItem,
   TodoResultItem,
 } from "./ResultItems";
+import { parseSearch } from "@caretook/data/domain";
 
 /**
  * Everything under the field: one polite status line (the count, "No

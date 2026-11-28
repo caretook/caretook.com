@@ -9,7 +9,6 @@ import { redirect } from "react-router";
 import { MedicationStatusActions } from "~/components/medications";
 import { Sheet } from "~/components/ui";
 import { getGroup } from "~/lib/app-shell/group";
-import { medicationTitle, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { editMedicationGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
 import { sessionContext } from "~/lib/auth/session";
@@ -32,6 +31,7 @@ import { MedicationForm } from "../MedicationForm";
 import { MedicationTags } from "../MedicationTags";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
+import { medicationTitle, scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `medications/<tab>/:medicationId/edit`: the edit
 // sheet, over Schedule or the list (opened from a tab or from the

@@ -6,18 +6,12 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createWorld, ok, system, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
-import {
-  buildNoteDoc,
-  MENTION_NODE,
-  NOTE_FRAGMENT,
-  noteText,
-  noteUpdateSchema,
-  toBase64,
-} from "../db/schema";
+import { noteUpdateSchema } from "../db/schema";
 import { isError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
 import { COMPACT_AFTER_UPDATES } from "./noteDocumentService";
 import { noteDocumentService, providerService, timelineEntryService } from ".";
+import { buildNoteDoc, MENTION_NODE, NOTE_FRAGMENT, noteText, toBase64 } from "../domain/live-notes/noteYjs";
 
 // Every test builds its own group and users, so tests never depend on each other.
 

@@ -1,13 +1,13 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { useParams } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as plannerRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Todos on the Planner tab (todos slice 4): open dated todos under their day
 // (overdue first under Today), a tick for whoever may complete them, a link

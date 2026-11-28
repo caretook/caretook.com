@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as todosRoute from "./route";
@@ -9,6 +8,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The Todos tab shows trees (todo-subtasks-3 slice 5): a subtask only inside
 // its tree, indented, a done one struck in place (and not in Done); a parent

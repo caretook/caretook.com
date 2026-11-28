@@ -5,7 +5,6 @@ import {
   appSettingService,
   getDb,
   isError,
-  MIN_FORM_MS,
   SYSTEM_USER,
   userModel,
 } from "@caretook/data";
@@ -16,6 +15,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
 import { resetPublicFormLimits } from "../marketing/publicForms";
 import { clientFor, codesOf } from "../testing";
+import { MIN_FORM_MS } from "@caretook/data/domain";
 
 // The app settings (admin slice 5) through the router: admin.settings.list
 // and set (admins change, support reads, each change audited), and the

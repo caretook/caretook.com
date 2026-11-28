@@ -1,4 +1,4 @@
-import type { RecentEditor } from "@caretook/data/schema";
+import type { RecentEditor } from "@caretook/data/domain";
 
 // The timeline's "being written now" signals (the Live now banner and the
 // live dot), as pure functions over each document's recent editors (from

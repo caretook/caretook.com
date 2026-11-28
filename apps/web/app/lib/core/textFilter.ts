@@ -1,4 +1,4 @@
-import { foldSearchText } from "@caretook/data/schema";
+import { foldSearchText } from "@caretook/data/domain";
 
 // A list's quick text filter (the search box of `SearchFilterBar`): every
 // word typed must appear somewhere in the item's text, case and accents

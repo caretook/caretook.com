@@ -1,8 +1,8 @@
 import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
 import type { TodoInput } from "~/lib/todos/todos.sync";
 
-import { parseRule, ruleText } from "@caretook/data/schema";
 import { choiceOfRule, choiceRule } from "../../../../lib/appointments/repeatChoice";
+import { parseRule, ruleText } from "@caretook/data/domain";
 
 // The todo sheet's form (pure; web:unit tests it): its field names, and the
 // posted form as a write's input. Empty fields mean none.

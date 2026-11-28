@@ -11,14 +11,8 @@ import type { SyncDb } from "../sync/index";
 
 import { WRITERS, isLoggerRole } from "@caretook/data/permissions";
 import {
-  DEVICE_FUTURE_SKEW_MS,
-  FUTURE_DATE_MESSAGE,
-  FUTURE_KINDS,
-  canChangeEntry,
-  canLogEntry,
   isKnownReading,
   isSymptomDetails,
-  isTooFarAhead,
   symptomTypeId,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
@@ -28,6 +22,14 @@ import { isEntryKind } from "./entryDisplay";
 import { addSymptomTypeIn } from "./symptomTypes.sync";
 import { TIMELINE_KINDS } from "./timelineFilters";
 import { timelineEntries } from "../sync/schema";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  FUTURE_KINDS,
+  canChangeEntry,
+  canLogEntry,
+  isTooFarAhead,
+} from "@caretook/data/domain";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the

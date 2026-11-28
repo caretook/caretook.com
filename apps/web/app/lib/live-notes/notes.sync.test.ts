@@ -1,9 +1,9 @@
 import type { SyncDb } from "../sync/index";
 
-import { buildNoteDoc, fromBase64 } from "@caretook/data/schema";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { bindNoteDoc } from "./notes.sync";
+import { buildNoteDoc, fromBase64 } from "@caretook/data/domain";
 
 type Row = { id: string; data: string };
 

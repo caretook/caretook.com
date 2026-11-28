@@ -1,11 +1,11 @@
 import type { WaitlistBandContent } from "../sections/types";
 
-import { CARING_FOR, CARING_FOR_LABELS, HEARD_FROM_MAX, NAME_MAX } from "@caretook/data/schema";
 import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
 import { waitlistSource } from "../sections/forms";
 import { PublicFormFrame, SelectField, SubmitButton, TextField, usePublicForm } from "../sections/PublicForm";
 import { CTA_ON_ACCENT, CtaLink } from "../sections/Sections";
+import { CARING_FOR, CARING_FOR_LABELS, HEARD_FROM_MAX, NAME_MAX } from "@caretook/data/domain";
 
 const CARING_FOR_OPTIONS = CARING_FOR.map((value) => ({ value, label: CARING_FOR_LABELS[value] }));
 

@@ -1,7 +1,6 @@
 import { BackLink, EmptyState, LINK, Notice } from "~/components/ui";
 import { AdminCard } from "../AdminCard";
 import type { Route } from "./+types/route";
-import type { StaffSettableGroupRole } from "@caretook/data/schema";
 import type { AdminActionResult } from "../adminForms";
 
 import { ORPCError } from "@orpc/client";
@@ -16,6 +15,7 @@ import { groupRoleLabel } from "@caretook/data/permissions";
 import { countText, dayText, recipientLabel } from "../groupDisplay";
 import { InviteOwnerForm } from "./InviteOwnerForm";
 import { MemberList } from "./MemberList";
+import type { StaffSettableGroupRole } from "@caretook/data/domain";
 
 // /admin/groups/:groupId (admin slice 4): one care group as staff see it:
 // its name and recipient's name, members (role, who invited them, when they

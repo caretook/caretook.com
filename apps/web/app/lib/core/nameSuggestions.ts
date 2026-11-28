@@ -1,4 +1,4 @@
-import { foldSearchText } from "@caretook/data/schema";
+import { foldSearchText } from "@caretook/data/domain";
 
 // The shared matcher behind every free-text name field with suggestions (a
 // condition, a medication, an allergy's substance and reaction): the group's

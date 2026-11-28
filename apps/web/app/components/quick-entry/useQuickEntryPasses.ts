@@ -1,9 +1,7 @@
-import type { QuickEntryPass } from "@caretook/data/schema";
-import type { DuePass } from "~/lib/medications/duePasses";
+import type { QuickEntryPass, DuePass } from "@caretook/data/schema";
 
 import { useMemo } from "react";
-import { sortPasses } from "@caretook/data/schema";
-import { duePasses, isNamedPass, isPassDueNow } from "~/lib/medications/duePasses";
+import { sortPasses, duePasses, isNamedPass, isPassDueNow } from "@caretook/data/schema";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 
 const NONE: never[] = [];

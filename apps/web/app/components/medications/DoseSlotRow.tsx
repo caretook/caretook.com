@@ -1,14 +1,12 @@
-import type { DoseStatus } from "@caretook/data/schema";
+import type { DoseStatus, DoseSlot, SlotState } from "@caretook/data/schema";
 import type { BadgeTone } from "~/components/ui";
-import type { DoseSlot, SlotState } from "~/lib/medications/dueDoses";
 
 import { Check, Ellipsis } from "lucide-react";
 import { Badge, Button, Menu, Message, STATUS_TONE } from "~/components/ui";
-import { isOpen } from "~/lib/medications/dueDoses";
-import { extraDoseText, medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
 import { ExtraDoseWarning } from "./ExtraDoseWarning";
 import { MedicationCard } from "./MedicationCard";
 import { usePassLog } from "./usePassLog";
+import { isOpen, extraDoseText, medicationTitle, slotStateText } from "@caretook/data/schema";
 
 const TONE: Record<SlotState, BadgeTone> = {
   upcoming: "neutral",

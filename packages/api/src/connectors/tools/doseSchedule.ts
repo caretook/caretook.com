@@ -1,7 +1,6 @@
 import type { DueMedication } from "@caretook/data";
 
 import {
-  dayInZone,
   doseSchedule as planAhead,
   isError,
   medicationPassService,
@@ -14,6 +13,7 @@ import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso } from "../time";
 import { asMember, loadGroup } from "./shared";
+import { dayInZone } from "@caretook/data/domain";
 
 /** `dose_schedule` reads this many days by default, and at most MAX. */
 export const DOSE_SCHEDULE_DEFAULT_DAYS = 7;

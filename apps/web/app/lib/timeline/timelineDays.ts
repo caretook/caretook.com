@@ -1,4 +1,4 @@
-import { dayLabel } from "../core/format";
+import { dayLabel } from "@caretook/data/domain";
 
 // The timeline's day sections. Pure, so web:unit tests it.
 

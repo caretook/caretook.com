@@ -1,11 +1,13 @@
 import type { MarkStatus } from "./DoseSlotRow";
-import type { DoseSlot } from "~/lib/medications/dueDoses";
-import type { DuePass, PassState } from "~/lib/medications/duePasses";
 import type { BadgeTone } from "~/components/ui";
 
 import { CheckCheck } from "lucide-react";
 import { useId, useState } from "react";
 import { Badge, Button, Chevron, Collapse, Message, STATUS_TONE, TITLE_SECTION } from "~/components/ui";
+import { DoseSlotRow } from "./DoseSlotRow";
+import { PassExtraDoseWarnings } from "./ExtraDoseWarning";
+import { usePassLog } from "./usePassLog";
+import type { DoseSlot, DuePass, PassState } from "@caretook/data/schema";
 import {
   clockTime,
   givenAllLabel,
@@ -14,11 +16,8 @@ import {
   passLoggedText,
   passStateText,
   passTitle,
-} from "~/lib/medications/medicationDisplay";
-import { passLogIdFor } from "~/lib/medications/duePasses";
-import { DoseSlotRow } from "./DoseSlotRow";
-import { PassExtraDoseWarnings } from "./ExtraDoseWarning";
-import { usePassLog } from "./usePassLog";
+  passLogIdFor,
+} from "@caretook/data/schema";
 
 /** A pass state's badge tone (here and on the Passes tab). */
 export const PASS_TONE: Record<PassState, BadgeTone> = {

@@ -1,7 +1,7 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { PeriodWords } from "../../../../lib/care-periods/periodDisplay";
 
 import { dateText, periodName, startText } from "../../../../lib/care-periods/periodDisplay";
+import type { PeriodSpan } from "@caretook/data/domain";
 
 // A care period's page, its pure parts: what deleting it does to the track
 // (said in the confirm), and how the previous and next periods read. The

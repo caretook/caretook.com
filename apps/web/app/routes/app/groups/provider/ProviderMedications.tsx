@@ -5,11 +5,11 @@ import { useMemo } from "react";
 import { Link } from "react-router";
 import { IconChip, List, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { medicationSummaryLine, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { useLiveQuery } from "~/lib/sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { providerMedicationsQuery, toMedications } from "~/lib/medications/medications.sync";
+import { medicationSummaryLine, medicationTitle } from "@caretook/data/schema";
 
 const NO_ROWS: MedicationRow[] = [];
 

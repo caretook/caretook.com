@@ -1,9 +1,7 @@
 import type { DoseSlot, DueDose, DueMedication } from "@caretook/data";
 
 import {
-  addDays,
   clockAt,
-  dayInZone,
   doseRecord,
   isError,
   medicationPassService,
@@ -12,7 +10,6 @@ import {
   newError,
   normalizeSchedule,
   slotStateText,
-  startOfDay,
   timelineEntryService,
 } from "@caretook/data";
 import { z } from "zod";
@@ -20,6 +17,7 @@ import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso } from "../time";
 import { DAY_MS, entriesBetween, LIST_PAGE_MAX } from "./readSupport";
 import { asMember, loadGroup, loadMembers } from "./shared";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 /** `past_doses` reads this many days by default (ending today), and at most MAX. */
 export const PAST_DOSES_DEFAULT_DAYS = 7;

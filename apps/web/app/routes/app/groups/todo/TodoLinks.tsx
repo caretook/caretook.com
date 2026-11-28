@@ -3,7 +3,6 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { loadTodo } from "./loadTodo";
 
-import { isTodoWriter } from "@caretook/data/schema";
 import { Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
@@ -12,15 +11,15 @@ import { LinkToBox } from "~/components/todos";
 import { Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
-import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
 import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
-import { linkLabel } from "~/lib/todos/todoDisplay";
 import { EntryLinkRow, IconDot, LINK_ROW, RemoveLink, STRETCHED } from "./TodoEntryLinks";
 import { useEntryLinking, useTodoEntries } from "./useTodoEntryLinks";
+import { isTodoWriter, linkLabel } from "@caretook/data/domain";
+import { formatDate, medicationTitle } from "@caretook/data/schema";
 
 type Loaded = Awaited<ReturnType<typeof loadTodo>>["linkRows"];
 

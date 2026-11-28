@@ -1,4 +1,3 @@
-import { localDate } from "@caretook/data/schema";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE, todo } from "../../../../../test/fixtures";
@@ -34,6 +33,7 @@ import * as todosRoute from "../todos/route";
 import * as pastRoute from "./past/route";
 import * as plannerRoute from "./route";
 import { UPCOMING_TICK_MS } from "./useUpcomingData";
+import { localDate } from "@caretook/data/domain";
 
 // The Planner on the test device (from upcoming.mjs; the section current in
 // the tab bar and the header is frame.browser.test.tsx's): the shared header on its three tabs (the heading,

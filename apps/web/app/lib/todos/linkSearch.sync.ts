@@ -9,16 +9,16 @@ import type { TagRow } from "~/lib/tags/tags.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { LinkCandidate, LinkPick, LinkType } from "./linkOptions";
 
-import { isEmptySearch } from "@caretook/data/schema";
 import { isUpcoming, upcomingItems } from "~/lib/appointments/upcoming";
 import { previewText } from "~/lib/live-notes/notes.sync";
 import { toMedication } from "~/lib/medications/medications.sync";
 import { toProvider } from "~/lib/providers/providers.sync";
-import { matchingTagIds, parseSearch, searchGroup } from "~/lib/search/search.sync";
+import { matchingTagIds, searchGroup } from "~/lib/search/search.sync";
 import { compareHits } from "~/lib/search/searchResults";
 import { tagsQuery } from "~/lib/tags/tags.sync";
 import { readRows, toLocalTimestamp, toTimelineEntry } from "~/lib/timeline/timeline.sync";
 import { linkSuggestions, linkTypeWord, SUGGESTED_UPCOMING } from "./linkOptions";
+import { isEmptySearch, parseSearch } from "@caretook/data/domain";
 
 // The "Link to…" box's search (todo-links): what a todo can link to (its
 // provider and medication slots, live notes and events) that matches the

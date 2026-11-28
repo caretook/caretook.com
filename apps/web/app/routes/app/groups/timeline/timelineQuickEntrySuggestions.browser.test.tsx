@@ -8,10 +8,10 @@ import { at, fx, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../te
 import { clearUndo } from "~/lib/medications/passUndo";
 import { QUICK_ENTRY_PLACEHOLDER } from "~/components/quick-entry/quickEntryCopy";
 import { forgetRecentLines, recentLines, recordLine } from "~/lib/assistant/recentLines";
-import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { rowWith, TIMELINE_URL } from "./timelineWorld";
 import { waitUntil } from "../../../../../test/found";
+import { addDays, dayInZone, timeInZone, zonedInstant } from "@caretook/data/domain";
 
 // Quick entry's suggestions on the timeline, on the test device (offline
 // throughout, so they all work offline): name autocomplete floating above

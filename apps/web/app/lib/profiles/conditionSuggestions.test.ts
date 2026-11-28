@@ -1,7 +1,7 @@
-import { foldSearchText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { CONDITION_NAMES } from "./conditionNames";
 import { CONDITION_SUGGESTION_LIMIT, conditionSuggestions } from "./conditionSuggestions";
+import { foldSearchText } from "@caretook/data/domain";
 
 describe("conditionSuggestions", () => {
   it("matches every typed word against the start of a word, in any order", () => {

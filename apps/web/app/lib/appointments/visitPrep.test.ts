@@ -1,4 +1,3 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type {
   PrepEntry,
   PrepMedication,
@@ -11,6 +10,7 @@ import type {
 import { resolveUnits } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { hasVisitPrep, visitPrepHeading, visitPrepSection, visitWindow } from "./visitPrep";
+import type { PeriodSpan } from "@caretook/data/domain";
 
 // Times are fixed in the recipient's zone, Los Angeles. Daylight saving
 // ended on Sunday, Nov 1, 2026, inside most windows here.

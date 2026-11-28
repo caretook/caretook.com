@@ -1,12 +1,12 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as searchRoute from "./route";
 import * as todoRoute from "../todo/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Todos on the search page (todos slice 5): a todo is found by its title
 // and by its notes, sits after medications and before entries, is marked
