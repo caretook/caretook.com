@@ -36,6 +36,8 @@ Notes for every wave:
 
 **Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
 
+**Wave 21:** slices 108 and 109 merged; CI components green on 771c2172 (run 46091445854). Synced dev as 6f0b5ccea (todo-links-2's TodoTree `chain` conflicted with our `inline`; kept both). Recheck of the synced tip running.
+
 | Slice | Item  | State           | Merge     |
 | ----- | ----- | --------------- | --------- |
 | 108   | B-975 | merged (sonnet) | 1689bd40d |
