@@ -5,7 +5,7 @@ import { useId, useMemo, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
 import { Button, Field, Message } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
-import { QuickEntryGoToCard } from "./QuickEntryGoToCard";
+import { QuickEntryCommandCard } from "./QuickEntryCommandCard";
 import { QuickEntryCompletions, useCompletionsOverlay } from "./QuickEntryCompletions";
 import { QuickEntrySuggestButton, SUGGEST_ROOM } from "./QuickEntrySuggestButton";
 import { QuickEntryTips, useQuickEntryTips } from "./QuickEntryTips";
@@ -66,7 +66,7 @@ export function QuickEntryBox({
   const due = passChips ? q.dueNow : [];
   const suggest = empty && (due.length > 0 || usual.length > 0 || recent.length > 0);
   const showNames = !empty && completions.length > 0 && names.open;
-  const tips = useQuickEntryTips(field, count === 0 && !q.goTo && !showNames);
+  const tips = useQuickEntryTips(field, count === 0 && !q.command && !showNames);
   const examples = useMemo(
     () => quickEntryExamples({ providers: q.providers, medications: q.medications }),
     [q.providers, q.medications],
@@ -158,7 +158,7 @@ export function QuickEntryBox({
         <p id={rulesId} className="sr-only">
           {quickEntryRules(examples)}
         </p>
-        {q.goTo && <QuickEntryGoToCard goTo={q.goTo} />}
+        {q.command && <QuickEntryCommandCard command={q.command} />}
         {count > 0 && (
           <ul aria-label="To save" className="space-y-2" data-quick-cards>
             {q.cards.map((card) => (
@@ -181,8 +181,13 @@ export function QuickEntryBox({
         )}
         {!empty && (
           <div className="flex items-center gap-2">
-            {q.goTo && (
-              <Button type="submit" variant="primary" size={size} disabled={q.goTo.ahead}>
+            {q.command && (
+              <Button
+                type="submit"
+                variant="primary"
+                size={size}
+                disabled={q.command.kind === "day" && q.command.ahead}
+              >
                 Go
               </Button>
             )}

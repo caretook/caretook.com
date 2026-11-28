@@ -12,9 +12,7 @@ import { offerUndo } from "~/lib/medications/passUndo";
 import { eventDraftFor, QUICK_ENTRY_DRAFT } from "~/lib/assistant/quickEntryDraft";
 import { recentLineFor, recordLine } from "~/lib/assistant/recentLines";
 import { getSync } from "~/lib/sync";
-import { setDay } from "~/lib/timeline/timelineFilters";
-import { JUMP_LINK_STATE, jumpDayText } from "~/lib/timeline/timelineJump";
-import { withoutSheetParams } from "~/lib/timeline/urls";
+import { inNewTab, runCommand } from "~/lib/assistant/runCommand";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import { useSymptomTypes } from "~/lib/timeline/symptomTypes.sync";
 import {
@@ -36,10 +34,11 @@ import {
   savedText,
   withSymptomGates,
 } from "./quickEntryCards";
-import { GO_TO_AHEAD, READER_REFUSAL } from "./quickEntryCopy";
+import { commandTarget, GO_TO_AHEAD, IN_NEW_TAB, READER_REFUSAL } from "./quickEntryCopy";
+import { closeQuickEntry } from "./QuickEntrySheet";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
-import { pageContextFor, readGoTo } from "@caretook/data/domain";
+import { pageContextFor, readCommand } from "@caretook/data/domain";
 import { actionPreview } from "@caretook/data/schema";
 
 /** Where quick entry's Undo is shown (`PassUndoStatus`'s `place`): in the box, under what was saved. */
@@ -62,7 +61,7 @@ const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 export function useQuickEntry({ groupId, units }: { groupId: string; units: UnitChoices }) {
   const group = useGroup();
   const navigate = useNavigate();
-  const { search } = useLocation();
+  const { pathname, search } = useLocation();
   const { medications, providers, members } = useQuickEntryData(groupId);
   const { passes, dueNow } = useQuickEntryPasses(groupId);
   const symptoms = useSymptomTypes(groupId);
@@ -99,9 +98,9 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     [text, timeZone, units, medications, providers, passes, members, symptoms, page, group.canWrite],
   );
 
-  // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
-  const goTo = readGoTo(text, { now: new Date(), timeZone: localTimeZone() });
-  const isGoTo = goTo !== null;
+  // A whole line opening a page or a day is a command: it has no save cards, so nothing can reach the runner.
+  const command = readCommand(text, { now: new Date(), timeZone: localTimeZone() });
+  const isCommand = command !== null;
 
   // Forget a card's state as soon as its part of the line is gone (adjusted while rendering, so no stale frame).
   const kept = pruneCardState(parts, { chosen, removed, errors, symptoms: symptomChoices });
@@ -132,20 +131,20 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const reader = !group.canLog;
   const cards = useMemo(
     () =>
-      isGoTo || reader
+      isCommand || reader
         ? []
         : markDraft(
             withSymptomGates(buildCards(parts, { chosen, removed }, titleOf), symptoms, symptomChoices),
           ),
-    [isGoTo, reader, parts, chosen, removed, titleOf, symptoms, symptomChoices],
+    [isCommand, reader, parts, chosen, removed, titleOf, symptoms, symptomChoices],
   );
 
   /** Why a reader's line has no Save. */
-  const refusal = reader && !isGoTo && parts.length > 0 ? READER_REFUSAL : "";
+  const refusal = reader && !isCommand && parts.length > 0 ? READER_REFUSAL : "";
 
   // Announce the cards once typing settles, not on every keystroke.
-  const spoken = goTo
-    ? `Go to ${jumpDayText(goTo.day)}${goTo.ahead ? `. ${GO_TO_AHEAD}` : ""}`
+  const spoken = command
+    ? `Go to ${commandTarget(command)}${inNewTab(command) ? `. ${IN_NEW_TAB}` : ""}${command.kind === "day" && command.ahead ? `. ${GO_TO_AHEAD}` : ""}`
     : refusal || cardsAnnouncement(cards, titleOf);
   useEffect(() => {
     const timer = setTimeout(() => setAnnouncement(spoken), ANNOUNCE_DELAY_MS);
@@ -238,23 +237,22 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     });
   };
 
-  /** Open the timeline on the line's day (read again, in case midnight passed): saves and records nothing. */
+  /**
+   * Run the line's command (read again, in case midnight passed): open its
+   * page or the timeline on its day, here or in a new tab, then close the
+   * sheet. Saves and records nothing.
+   */
   const go = async () => {
-    const target = readGoTo(text, { now: new Date(), timeZone: localTimeZone() });
-    if (!target || target.ahead) return;
+    const target = readCommand(text, { now: new Date(), timeZone: localTimeZone() });
+    if (!target || (target.kind === "day" && target.ahead)) return;
     reset();
     setStatus("");
-    await navigate(
-      appUrls.timeline(groupId, setDay(`?${withoutSheetParams(search).toString()}`, target.day)),
-      {
-        state: JUMP_LINK_STATE,
-        preventScrollReset: true,
-      },
-    );
+    await runCommand(target, { groupId, pathname, search, navigate });
+    closeQuickEntry();
   };
 
   const save = async () => {
-    if (isGoTo) return go();
+    if (isCommand) return go();
     if (busy || !canSaveCards(cards)) return;
     setBusy(true);
     try {
@@ -316,7 +314,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     text,
     setText,
     cards,
-    goTo,
+    command,
     preview,
     draftLine,
     errors,
