@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { waitUntil } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { openTimeline, rowOf, rows, setView, view } from "./timelineWorld";
 
 // One entry display, two looks (B-1015): the timeline's Full and Condensed
@@ -74,7 +74,8 @@ describe("the two looks", () => {
     await waitUntil(() => view() === "cards" && looks().has("full"), "cards");
     expect(rows().length).toBe(count);
     expect(looks()).toEqual(new Set(["full"]));
-    expect(shape(rowOf("Note")!)).toEqual(before);
+    const after = shape(await found(() => rowOf("Note")));
+    expect(after).toEqual(before);
 
     await setView("Condensed");
     await waitUntil(() => view() === "rows" && looks().has("condensed"), "rows");
