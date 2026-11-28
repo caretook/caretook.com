@@ -262,6 +262,24 @@ export const lockId = (id: string, tx: Tx) =>
   );
 
 /**
+ * `lockId` for many ids in one statement, taken in sorted order (as every
+ * caller locking several takes them), so a Given all's slots cost one round
+ * trip instead of one each (B-1051).
+ */
+export const lockIds = (ids: readonly string[], tx: Tx) => {
+  const keys = [...new Set(ids)].sort().map((id) => `timeline_entry:${id}`);
+  return dbMayFail(
+    () =>
+      tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(k.key, 0))
+              FROM json_array_elements_text(${JSON.stringify(keys)}::json) WITH ORDINALITY AS k(key, n)
+             ORDER BY k.n`,
+      ),
+    "timelineEntryModel:lock",
+  );
+};
+
+/**
  * Hold one dose slot (`medicationId:day:slot`, whatever the answer) until the
  * transaction ends, so a sheet's given and another's refused for it take
  * turns: a dose's id includes its answer, so `lockId` alone lets both in (B-984).

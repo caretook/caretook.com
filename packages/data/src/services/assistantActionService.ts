@@ -307,10 +307,11 @@ const passDoses = async (
       message: `Nothing is left to give in ${pass.name} today.`,
     });
   const seen = new Set(doses.map((dose) => dose.id));
+  const ids = await slotDoseIds(tx, setting, writes, pass.time, seen);
+  if (isError(ids)) return ids;
   const rows: EntryPlan[] = [];
-  for (const { occurredAt, ...details } of writes) {
-    const id = await slotDoseId(tx, setting, { ...details, occurredAt }, pass.time, seen);
-    if (isError(id)) return id;
+  for (const [i, { occurredAt, ...details }] of writes.entries()) {
+    const id = ids[i];
     if (!id) continue;
     rows.push({
       type: "entry",
@@ -327,34 +328,44 @@ const passDoses = async (
 };
 
 /**
- * The id a planned dose takes: its slot's (`doseSlotIdFor`), unless a row in
- * Postgres has it, live or deleted, or this batch already used it; then a
- * random one, so a dose logged again after an Undo is a new row. Null when
- * another run or upload logged this slot's dose after this plan read the doses
- * (`seen`): it is already given. The id's lock is held to the end of the
- * transaction, so a simultaneous first write waits instead of hitting the key.
+ * The ids a Given all's doses take, in `doses`' order: each its slot's
+ * (`doseSlotIdFor`), unless a row in Postgres has it, live or deleted, or this
+ * batch already used it (an earlier dose in `doses` included); then a random
+ * one, so a dose logged again after an Undo is a new row. Null when another run
+ * or upload logged this slot's dose after this plan read the doses (`seen`): it
+ * is already given. The ids' locks are held to the end of the transaction, so
+ * a simultaneous first write waits instead of hitting the key. Set-based
+ * (B-1051): every lock in one statement, then one read of the rows holding the
+ * ids, never a lock and a read per medication.
  */
-const slotDoseId = async (
+const slotDoseIds = async (
   tx: Tx,
   { timeZone, usedDoseIds }: Setting,
-  dose: Parameters<typeof doseSlotIdFor>[0],
+  doses: readonly Parameters<typeof doseSlotIdFor>[0][],
   passTime: string,
   seen: ReadonlySet<string>,
-) => {
-  const slotId = doseSlotIdFor(dose, { timeZone, passTime });
-  if (!slotId || usedDoseIds.has(slotId)) return crypto.randomUUID();
-  const locked = await timelineEntryModel.lockId(slotId, tx);
+): Promise<(string | null)[] | AppError> => {
+  const slotIds = doses.map((dose) => doseSlotIdFor(dose, { timeZone, passTime }));
+  const wanted = [...new Set(slotIds.filter((id): id is string => !!id && !usedDoseIds.has(id)))];
+  if (!wanted.length) return slotIds.map(() => crypto.randomUUID());
+  const locked = await timelineEntryModel.lockIds(wanted, tx);
   if (isError(locked)) return locked;
-  const taken = await timelineEntryModel.getById(slotId, {
+  const taken = await timelineEntryModel.list({
     authUser: SYSTEM_USER,
     tx,
     includeDeleted: true,
+    filter: { id: { type: "inArray", value: wanted } },
   });
   if (isError(taken)) return taken;
-  if (taken && !taken.deletedAt && !seen.has(slotId)) return null;
-  if (taken) return crypto.randomUUID();
-  usedDoseIds.add(slotId);
-  return slotId;
+  const rows = new Map(taken.data.map((row) => [row.id, row]));
+  return slotIds.map((slotId) => {
+    if (!slotId || usedDoseIds.has(slotId)) return crypto.randomUUID();
+    const row = rows.get(slotId);
+    if (row && !row.deletedAt && !seen.has(slotId)) return null;
+    if (row) return crypto.randomUUID();
+    usedDoseIds.add(slotId);
+    return slotId;
+  });
 };
 
 type SlotName = { passId: string | null; scheduledFor: string };
@@ -833,6 +844,21 @@ export const run = (
           if (isError(linked)) return at(linked, plan.index);
         }
         byAction.push([todo.id]);
+        continue;
+      }
+      // A Given all's doses (no document, no providers) go in one INSERT (B-1051).
+      const plain = plan.rows.filter(
+        (row) => row.type === "entry" && !row.document && !row.providerIds.length,
+      );
+      if (plain.length > 1 && plain.length === plan.rows.length) {
+        const created = await timelineEntryService.createMany(
+          inTx,
+          plain.map((row) => (row as EntryPlan).input),
+          { via },
+        );
+        if (isError(created)) return at(created, plan.index);
+        if (created.length !== plain.length) return at(rejectError(ctx.authUser), plan.index);
+        byAction.push(created.map((entry) => entry.id));
         continue;
       }
       const ids: string[] = [];
