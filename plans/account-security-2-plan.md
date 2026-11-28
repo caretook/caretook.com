@@ -29,10 +29,10 @@
 ## How to run this plan
 
 - **Wave 1:** slices 1, 2, 4 and 5, independent. Slice 1 owns `careGroupMemberModel`'s lock helpers; slice 2 only calls `lockForChange`. Slice 4 owns `packages/auth/`; slice 5 owns `packages/api/src/procedures.ts` and `rateLimit.ts`.
-- **Wave 2:** slice 3 (`joinRequestService`, a hot file of the running `data-rights`: start it only once `data-rights` no longer lists it, else hold it for a later wave) and slice 6 (after slices 4 and 5: the manifest names their limits).
+- **Wave 2:** slice 3 (`joinRequestService` and `careGroupInviteService`, both hot files of the running `data-rights`: start it only once `data-rights` lists neither, else hold it for a later wave) and slice 6 (after slices 4 and 5: the manifest names their limits).
 - **Gates:** each slice hands off on `pnpm prd check --quick "slice hand-off"`. No browser check: nothing crosses the server and sync.
 
-**Hot files:** `packages/data/src/models/careGroupMember/`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/auth/src/limits.ts`, `packages/auth/src/emails.ts`, `packages/auth/src/auth.ts`, `packages/api/src/procedures.ts`, `packages/api/src/rateLimit.ts`, `packages/api/src/callLimits`, `docs/domain/api.md`.
+**Hot files:** `packages/data/src/models/careGroupMember/`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/inviteMaker.ts`, `packages/auth/src/limits.ts`, `packages/auth/src/emails.ts`, `packages/auth/src/auth.ts`, `packages/api/src/procedures.ts`, `packages/api/src/rateLimit.ts`, `packages/api/src/callLimits`, `docs/domain/api.md`.
 
 ## Slice 1: One membership lock order
 
@@ -43,7 +43,7 @@ Stack: no · Reads: docs/domain/care-groups.md, docs/domain/data-layer.md · Tes
 **Build:** _Memberships and staff changes_ (PRD, _Implementation decisions_), its first point.
 
 - `packages/data/src/models/careGroupMember/careGroupMemberModel.ts` `lockGroupMembers`: order by `id`, not `createdAt` (callers that need creation order sort the returned rows themselves: check `emergencyContactService`'s three callers).
-- Search `packages/data/src/models/` and `services/` for other `FOR UPDATE` reads of `care_group_member` and give each the same order. One comment above `lockForChange` states the rule.
+- `careGroupMemberModel.lockOwners`: add the same `orderBy(id)` (it has none). `assistantRequestModel.lockMembership` locks one row and stays. One comment above `lockForChange` states the rule.
 
 **Acceptance criteria:**
 
@@ -77,8 +77,10 @@ Stack: no · Reads: docs/domain/care-groups.md · Tests: integration · Blocked 
 
 **Build:** _Join requests_ (PRD).
 
-- `packages/data/src/services/joinRequestService.ts` `approve`: after `lockForManager`, load the request's invite and run the maker check `careGroupInviteService.accept` uses (reuse it: move it to a shared helper in the service that owns it if it's private), plus "not revoked". A failure returns the revoked-invite error before any membership is created.
-- `requestWithLink`: the cooldown branch returns `{ request: null, created: false, queued: [] }`; fix the callers' types (`careGroupInviteService.accept` reads only `status`).
+- `packages/data/src/services/inviteMaker.ts` (new): move `makerMayStill` there from `careGroupInviteService.ts` (it's private today; `careGroupInviteService` already imports `joinRequestService`, so the check needs a neutral home, beside the link sign-up helper). `careGroupInviteService` imports it from there.
+- `packages/data/src/services/joinRequestService.ts` `approve`: after `lockForManager`, load the request's invite and refuse when it's revoked or `makerMayStill` fails (`system` exempt), with the revoked-invite error, before any membership is created.
+- `requestWithLink`: the cooldown branch returns `{ request: null, created: false, queued: [] }`.
+- `packages/data/src/services/careGroupInviteService.ts` `askWithLink`: treat `request: null` as "requested", not `notFound` (only a null answer is `notFound`); `requested()` takes the group and role from the invite, not the request; `AcceptResult.requestId` is dropped (no caller reads it: the oRPC answer returns status, groupId and role).
 
 **Acceptance criteria:**
 
@@ -88,7 +90,7 @@ Stack: no · Reads: docs/domain/care-groups.md · Tests: integration · Blocked 
   - a request through a `system` link still approves;
   - a re-ask within the cooldown returns no request and creates nothing; `mine` lists nothing for it.
 
-**Blocks:** nothing. Starts only when `data-rights` no longer lists `joinRequestService` among its hot files.
+**Blocks:** nothing. Starts only when `data-rights` lists neither `joinRequestService` nor `careGroupInviteService` among its hot files.
 
 ## Slice 4: Account email and session limits
 
@@ -100,7 +102,7 @@ Stack: no · Reads: docs/domain/auth.md, docs/domain/notifications.md · Tests: 
 
 - `packages/auth/src/limits.ts` `AUTH_LIMITS`: `resetEmail` and `verificationEmail` (5 an hour, per `addressKey`), `session` (300 a minute, per session-token hash).
 - `packages/auth/src/emails.ts` `sendResetPassword`, `sendVerificationEmail`: take the limits (as `sendSignInEmail` takes its code maker) and queue nothing past the limit.
-- `packages/auth/src/auth.ts`: pass the limits to the senders; in `beforeHooks`, count `session` for signed-in Better Auth paths (those with a session cookie or bearer header, except sign-in and sign-out), past it a 429 with `retry-after`.
+- `packages/auth/src/auth.ts`: pass the limits to the senders; in `beforeHooks`, count `session` for every Better Auth path that carries a session cookie or bearer header (sign-out included; the sign-in paths carry none), past it a 429 with `retry-after`.
 
 **Acceptance criteria:**
 
@@ -117,11 +119,11 @@ Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md · Tests: integratio
 **Build:** _Per-IP limits on `/rpc`_ (PRD).
 
 - `packages/api/src/rateLimit.ts`: new `IP_LIMITS` and new `createIpLimits`: `public` 120 a minute, `signedInCeiling` 6,000 a minute,, shaped like `createUserLimits` (scope `ip.<name>`).
-- `packages/api/src/procedures.ts`: a `perIp(name)` middleware keyed through `clientIpKey`; `publicProcedure` uses `perIp("public")`, `signedIn` uses `perIp("signedInCeiling")` before `perUser`. It counts only `/rpc` calls (no `authUser` given), and in production a `/rpc` call with no client IP is a 400. Context gains `ipLimits` (tests pass their own).
+- `packages/api/src/procedures.ts`: a `perIp(name)` middleware keyed through `clientIpKey`. Split out a base builder holding only `logFailures`: `publicProcedure` is the base plus `perIp("public")`; `signedIn` (so `authedProcedure` and `limitedProcedure`) and `staffProcedure` build on the base plus `perIp("signedInCeiling")` before their own checks, never on `publicProcedure`, so a signed-in call never counts against the public limit. It counts only `/rpc` calls (no `authUser` given), and in production a `/rpc` call with no client IP is a 400. Context gains `ipLimits` (tests pass their own).
 
 **Acceptance criteria:**
 
-- Integration (`rateLimit.int.test.ts`): a public procedure past its per-IP count answers 429 with `retry-after`, another IP doesn't; a signed-in call past the ceiling answers 429 even for a user under their own limit; an in-process call (`authUser` given) never counts; no client IP with the production setting is a 400.
+- Integration (`rateLimit.int.test.ts`): a public procedure past its per-IP count answers 429 with `retry-after`, another IP doesn't; a signed-in call past the ceiling answers 429 even for a user under their own limit, and 200 signed-in calls from one IP never hit the public limit; a staff call counts the ceiling; an in-process call (`authUser` given) never counts; no client IP with the production setting is a 400.
 - `procedureSweep.int.test.ts` stays green.
 
 **Blocks:** slice 6.
