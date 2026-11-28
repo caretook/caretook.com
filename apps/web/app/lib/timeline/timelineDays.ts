@@ -2,8 +2,11 @@ import { dayLabel } from "../core/format";
 
 // The timeline's day sections. Pure, so web:unit tests it.
 
-/** One day's section: its key (`day-<key>` ids), heading and entries, in list order. */
-export type TimelineDay<T> = { key: string; label: string; entries: T[] };
+/**
+ * One day's section: its key (`day-<key>` ids), heading, the heading's phone
+ * form (`shortDayLabel`) and entries, in list order.
+ */
+export type TimelineDay<T> = { key: string; label: string; short: string; entries: T[] };
 
 // One formatter per zone: `toLocaleDateString` with options builds a new one on
 // every call, and the timeline keys every row on each render (B-793: on a slow
@@ -18,6 +21,44 @@ export const dayKeyIn = (iso: string, timeZone: string) => {
     dayKeyFormats.set(timeZone, format);
   }
   return format.format(new Date(iso));
+};
+
+const DAY_MS = 86_400_000;
+const shortFormats = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * A day heading's phone form (B-999), for `dayKey` (as `dayKeyIn` keys it in
+ * `timeZone`, the viewer's): "Today", "Yesterday" and "Tomorrow" as `dayLabel`
+ * gives them, else the short weekday ("Wed, Nov 18"), with the year when it
+ * isn't `now`'s ("Wed, Nov 18, 2025"). `dayLabel` (in `@caretook/data`) keeps
+ * the full form, which shows from `sm` up and stays the heading's name.
+ */
+export const shortDayLabel = (dayKey: string, timeZone: string, now: Date, locale?: string) => {
+  const [y, m, d] = dayKey.split("-").map(Number) as [number, number, number];
+  const [ty, tm, td] = dayKeyIn(now.toISOString(), timeZone).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  const daysAgo = Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(y, m - 1, d)) / DAY_MS);
+  if (daysAgo === 0) return "Today";
+  if (daysAgo === 1) return "Yesterday";
+  if (daysAgo === -1) return "Tomorrow";
+  const withYear = y !== ty;
+  const formatKey = `${locale ?? ""}|${withYear}`;
+  let format = shortFormats.get(formatKey);
+  if (!format) {
+    // The key is already the viewer's calendar day: read it as that date in UTC.
+    format = new Intl.DateTimeFormat(locale, {
+      timeZone: "UTC",
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: withYear ? "numeric" : undefined,
+    });
+    shortFormats.set(formatKey, format);
+  }
+  return format.format(Date.UTC(y, m - 1, d, 12));
 };
 
 /** The hour a past day's adds start at (the + on its heading): midday. */
@@ -64,7 +105,8 @@ export const dayStartAt = (dayKey: string, timeZone: string, now: Date): string 
 
 /**
  * Consecutive entries grouped by calendar day in `timeZone` (the viewer's),
- * labelled by `dayLabel` ("Today", "Yesterday", "Monday, Nov 16"). The list
+ * labelled by `dayLabel` ("Today", "Yesterday", "Monday, Nov 16") and, for
+ * phones, `shortDayLabel` ("Mon, Nov 16"). The list
  * is already in time order, so a day that comes back later (an entry out of
  * order) starts a new section rather than reordering anything.
  */
@@ -79,7 +121,13 @@ export const groupByDay = <T extends { occurredAt: string }>(
     const key = dayKeyIn(entry.occurredAt, timeZone);
     const last = days.at(-1);
     if (last?.key === key) last.entries.push(entry);
-    else days.push({ key, label: dayLabel(entry.occurredAt, timeZone, now, locale), entries: [entry] });
+    else
+      days.push({
+        key,
+        label: dayLabel(entry.occurredAt, timeZone, now, locale),
+        short: shortDayLabel(key, timeZone, now, locale),
+        entries: [entry],
+      });
   }
   return days;
 };

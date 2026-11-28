@@ -49,7 +49,7 @@ import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
-import { dayKeyIn, withMarkers } from "~/lib/timeline/timelineDays";
+import { dayKeyIn, shortDayLabel, withMarkers } from "~/lib/timeline/timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
@@ -218,7 +218,15 @@ export function TimelineEntryList({
       : undefined;
   const sections =
     adding && reachesToday && days[0]?.key !== todayKey
-      ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
+      ? [
+          {
+            key: todayKey,
+            label: dayLabel(now.toISOString(), timeZone, now),
+            short: shortDayLabel(todayKey, timeZone, now),
+            entries: [],
+          },
+          ...days,
+        ]
       : days;
   // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
   // A restored window's rows (Back to it, `timelinePaging.ts`) are new elements with no
@@ -368,6 +376,7 @@ export function TimelineEntryList({
             <DayHeader
               dayKey={day.key}
               label={day.label}
+              short={day.short}
               newestAt={day.entries[0]?.occurredAt}
               groupId={groupId}
               periods={data.periods}
