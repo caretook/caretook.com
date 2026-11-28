@@ -27,7 +27,7 @@ Durable decisions every slice follows:
 
 - **Wave 1: slices 1 and 2 at once.** Slice 1 owns `tagSupport.ts`, the two read tools, the tools list and the new tag read test; slice 2 owns the consent and privacy text. They share no file.
 - **Wave 2: slices 3 and 4 at once,** after slice 1 merges. Slice 3 owns `tagWrites.ts`, its test and its lines in the tools list; slice 4 owns the six list tools' files and its test. They share no file.
-- **Start condition:** `tags` in `dev` (done). The consent question (`risa ask` a366) must be answered before slice 2 starts; slices 1, 3 and 4 don't depend on it, but the PRD lands only with slice 2.
+- **Start condition:** `tags` in `dev` (done). The consent question (a366) is answered: tags join the consent under a new version, existing connections get the tools at once. The PRD lands only with slice 2.
 - **Beside other PRDs:** `med-intervals` (planned) edits connector tools, likely `list_medications` and the tools list; both are additive, so a sync keeps both. `sync-safety-2` (running) shares no file.
 - **Checks:** stackless slices hand off on `pnpm prd check --quick`. The landing runs the full check once and `pnpm prd browser --changed --base dev` (no flows change; the consent screen's own component test covers slice 2).
 - **Docs at landing:** fold into [connectors](../docs/domain/connectors.md) (_Tools_: the four tools, `tags` on records; consent version; near its budget, trim what you add) and [tags](../docs/domain/tags.md) (_Limits_: connectors now read and write tags).
@@ -59,7 +59,7 @@ Stack: no · Reads: docs/domain/connectors.md, docs/domain/marketing.md · Tests
 
 User stories: 11.
 
-What to build (PRD _Consent and privacy_), as the answer to ask a366 says:
+What to build (PRD _Consent and privacy_), as the user chose (a366):
 
 - `packages/data/src/db/schema/connectors/connectorRules.ts`: `CONNECTOR_CONSENT_TEXT` names tags in its list; `CONNECTOR_CONSENT_VERSION` moves to the slice's date.
 - `apps/web/app/routes/marketing/privacy/content.ts`: the assistant section's list names tags. Leave `lastUpdated` and `LEGAL_VERSIONS` alone, as the conditions change (B-181) did; if a test demands otherwise, move both together.
