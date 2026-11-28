@@ -8,6 +8,7 @@ import { isError, newError } from "../errors";
 import { careGroupMemberModel, careGroupModel, careRecipientModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { revokeForGroup } from "./connectorGrantService";
+import { refusal as groupLimitRefusal } from "./groupLimitService";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
 import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
@@ -22,10 +23,16 @@ export type CareGroupCreateData = CareGroupInsert & {
 
 /**
  * Start a care group. The actor becomes its first owner; the recipient
- * profile, when given, is created with it. All or nothing.
+ * profile, when given, is created with it. All or nothing. A member at the
+ * free plan's limit is refused first (`groupLimitService:atLimit`).
  */
 export const create = (ctx: ServiceContext, { recipient, ...data }: CareGroupCreateData) =>
   withTransaction(async (tx) => {
+    // The free plan's cap (free-limits): checked first, the user's row locked until commit.
+    if (ctx.authUser && !isSystemUser(ctx.authUser)) {
+      const atLimit = await groupLimitRefusal(tx, ctx.authUser.id);
+      if (atLimit) return atLimit;
+    }
     const group = await careGroupModel.create({ ...ctx, tx, data });
     if (isError(group)) return group;
     if (!group) return { group: null, recipient: null };

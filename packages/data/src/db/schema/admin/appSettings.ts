@@ -133,6 +133,14 @@ export const APP_SETTINGS = {
     help: "Waitlist and contact submissions allowed per IP address per form in any minute.",
     defaultText: "10",
   }),
+  "limits.groupsStarted": define({
+    schema: wholeNumber(1, 100),
+    default: 3,
+    public: false,
+    label: "Care groups one account can start",
+    help: "How many care groups one account may start and still own. Groups they were invited to don't count.",
+    defaultText: "3",
+  }),
 } as const;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;

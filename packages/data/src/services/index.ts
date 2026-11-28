@@ -191,3 +191,6 @@ import * as tagService from "./tagService";
 export { tagService };
 import * as recordTagService from "./recordTagService";
 export { recordTagService };
+
+import * as groupLimitService from "./groupLimitService";
+export { groupLimitService };
