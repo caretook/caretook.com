@@ -82,8 +82,8 @@ describe("on a provider's page", () => {
   });
 
   test("the event reads as the same line naming the provider does", () => {
-    const { occurredAt, ...named } = action(top("follow up with dr lee next tuesday"));
-    expect(action(top("follow up next tuesday", LEE_PAGE))).toMatchObject({ ...named, occurredAt });
+    const named = action(top("follow up with dr lee next tuesday"));
+    expect(action(top("follow up next tuesday", LEE_PAGE))).toEqual(named);
   });
 
   test("an appointment word alone is an event with the page's provider", () => {
