@@ -6,7 +6,7 @@ import { authClient } from "./auth-client";
 import { forgetUserData } from "./forgetUserData";
 import { expireKeptCopy } from "./keptCopy";
 import { localCopyFate } from "./localCopyRules";
-import { finishPendingSignOut, signOutPending } from "./pendingSignOut";
+import { finishPendingSignOut, rememberSessionId, signOutPending } from "./pendingSignOut";
 import { signInUrl } from "../core/redirect";
 import { sessionEpoch } from "./sessionEpoch";
 import { askSession, sessionFreshness, shouldRecheck, withoutAnswer } from "./sessionRules";
@@ -94,6 +94,7 @@ const forgetSessionUser = () => {
   } catch {
     // Nothing cached.
   }
+  rememberSessionId(null);
 };
 
 /** The user's global role: an additional field the client's types don't know about. */
@@ -175,19 +176,23 @@ const getSession = async () => {
  * session, the device's copy is wiped, or kept for its owner when changes
  * wait to upload (`endSession`). A sign-out still owed to the server
  * (`pendingSignOut.ts`) is finished first, and the answer is signed out
- * without asking.
+ * without asking, unless the cookie holds a newer session than the one
+ * being signed out (a magic-link or invite sign-in, B-730): that one is asked
+ * about as usual.
  */
 const resolveUser = async (): Promise<Resolved> => {
   if (signOutPending()) {
-    await finishPendingSignOut();
-    return "signedOut";
+    const finished = await finishPendingSignOut();
+    if (finished === "pending" || finished === "signedOut") return "signedOut";
   }
   const answer = await askSession(getSession);
   if (answer.kind === "ok") {
-    const { user } = answer.data;
+    const { user, session } = answer.data;
     // Better Auth doesn't sign in an unconfirmed address; this guards the rest.
     if (!user.emailVerified) return "unverified";
     confirmNow(user.id);
+    // Beside the confirmation: an offline sign-out names this session (B-730).
+    rememberSessionId(session.id);
     return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: roleOf(user) };
   }
   if (answer.kind === "signedOut") {
