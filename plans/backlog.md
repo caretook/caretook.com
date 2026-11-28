@@ -284,10 +284,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1051 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
-| B-1054 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
+| B-1054 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
 | B-1056 | bug | triaged | quick-entry-3 |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
-| B-1057 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
+| B-1057 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
+| B-1058 | bug | triaged | quick-entry-3 |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 
 ## Items
 
@@ -1700,10 +1701,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1054 · bug · Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view)
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 78010f59b
 
 - 2026-11-28 (prd/quick-entry-3): Seen 3/3 on prd/quick-entry-3 synced with dev 0578f2ae6, 2026-11-28 (error-context: today's rows show doses, notes, events, vitals; no symptom link). quick-entry-3 touches no timeline, entry or seed code. Fix: pick a row the seed guarantees (or seed a symptom today), or scroll to one, rather than assume.
 
@@ -1727,10 +1728,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1057 · bug · CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: b6745f1b4
 
 - 2026-11-28 (Robert Bo Davis): [ci-key aa45ec31a387] Flaked (passed on its rerun); found by prd/quick-entry-3. First failure: AssertionError: expected [ 'Knee', 'Urgent' ] to deeply equal [ 'Knee' ] at http://127.0.0.1:42045/home/runner/work/caretook.com/caretook.com/apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx?import&browserv=1812567600000:254:23 at async http://127.0.0.1:42045/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq--D.js?v=93fe4de7:5247:20
 - 2026-11-28 (prd/quick-entry-3): Flaked (passed on its rerun); found by prd/quick-entry-3. First failure: AssertionError: expected [ 'Knee', 'Urgent' ] to deeply equal [ 'Knee' ] at http://127.0.0.1:42045/home/runner/work/caretook.com/caretook.com/apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx?import&browserv=1812567600000:254:23 at async http://127.0.0.1:42045/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/plugins.DPQHVT0p-BV8Vq--D.js?v=93fe4de7:5247:20
+- 2026-11-28 (slice/fixes-tooling/111): Race: settle ran right after the confirm click, but mergeTags does five plain reads (untracked by settle) before its transaction, so settle could go quiet before the write; the list was polled but the note's chips (QuickTags' own recordTagsQuery watch) were a plain expect, read before that watch reran. Fix (slice 111): poll the dialog closed (close() follows the write), then settle, and poll noteChips. 20/20 locally.
+
+### B-1058 · bug · Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements)
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345 (thread PRRT_kwDOVx-WLM69HOQZ): add 'dialog' to inOtherLayer's selector in useQuickEntryShortcut.ts, with a row in quickEntryShortcut.browser.test.tsx
