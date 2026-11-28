@@ -147,8 +147,8 @@ function Readings({ readings, marks }: { readings: string[]; marks: Marks }) {
 }
 
 /**
- * "with Dr. A, Dr. B +1": up to two names, a removed provider greyed with
- * "(removed)". Text only (no links), so a tap still reaches the row's open
+ * "with Dr. A, Dr. B +1": up to two names, a removed provider greyed
+ * "Removed provider". Text only (no links), so a tap still reaches the row's open
  * target; screen readers get the sentence ("… and 1 more").
  */
 function WithLine({ providers, marks }: { providers: readonly LinkedProviderName[]; marks: Marks }) {

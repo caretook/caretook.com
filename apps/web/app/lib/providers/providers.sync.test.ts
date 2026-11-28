@@ -61,6 +61,14 @@ describe("toProvider", () => {
       toProviders([row(), row({ id: "p2", type: "dentist" }), row({ id: "p3", name: null })]),
     ).toHaveLength(1);
   });
+
+  it("keeps a deleted one whose name a delete scrubbed", () => {
+    expect(toProvider(row({ name: "", deleted_at: "2026-11-18T08:00:00.000000Z" }))).toMatchObject({
+      name: "",
+      deletedAt: "2026-11-18T08:00:00.000Z",
+    });
+    expect(toProvider(row({ name: "" }))).toBeNull();
+  });
 });
 
 describe("practiceInUseRefusal", () => {
