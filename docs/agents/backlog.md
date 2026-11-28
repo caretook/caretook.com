@@ -1,3 +1,5 @@
+Standing priorities:
+
 1. Write the PRDs the table marks "to write" (`risa plan <topic>`), then run them.
 2. Tests: cover every role against every table.
 3. Hosting: go live by working through [`ops/runbook.md`](../../ops/runbook.md) with the user, staging first.

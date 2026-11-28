@@ -12,11 +12,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 | Slice | Item   | State         | Merge     |
 | ----- | ------ | ------------- | --------- |
-| 90    | B-1002 | merged (opus) | 8340445bf |
-| 91    | B-1003 | merged (opus) | e7e35e32d |
-| 92    | B-1006 | merged (opus) | 514da289a |
+| 93    | B-1008 | merged (opus) | a7ea28d9d |
+| 94    | B-1009 | merged (opus) | 548aa3f37 |
+| 95    | B-1010 | merged (opus) | 14c5dd7ed |
 
-**Wave 26 green, PR #321 open, Codex review out** (2026-11-28): all three slices opus, merged; CI components green on 8e910fee (run 46125201506); synced with dev, recheck green on 3c0c67ff (run 46125961686); browser `--changed --base dev` 3/3 (phase2, roundtrip, live-notes); docs folded (af12c4b56, todos.md + medications.md, under budget); slice worktrees removed. Next: triage Codex, land `--tier components`, report, status-trim, rotate (context past the soft limit). B-1002's note keeps the mixed-chain edge case. Held: B-750, B-752.
+**Wave 27: merged, CI green, paused for a reboot** (2026-11-28). Slices 93-95 merged (all opus); CI components green, run 46129305490, on dda2392 (per the backlog session; my `--wait` output was lost to a full disk, ENOSPC). Not yet synced: a `risa sync` hung (Docker hung machine-wide) and was stopped with the tree clean, no merge started. **Next, after the reboot:** `risa recover`, `risa sync`, the synced tip's CI recheck if sync merged, `risa serve --restart`, browser checks, `risa pr fixes-bug`, `risa review fixes-bug --wait`, then land (run-through). Then `risa rm fixes-bug-93/94/95`. Landed wave 26: PR #321 (dev 56424f1), report a385. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -984,3 +984,34 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domai
 
 - The device keeps rewriting its local medication rows (screens stay right offline) but flags those schedule PATCHes with op metadata, as B-387's `TICK_NEXT_METADATA` does; the server's medication case in `syncRegistry.ts` drops the `schedule` field of a flagged op (and accepts the op, so the queue drains), since the pass delete rewrites the schedules itself. Other fields in the op, and unflagged schedule edits, apply as today. (Revised after the first hand-off: no local-only write path fits a synced table.)
 - Component test: deleting a pass queues the pass delete and flagged medication ops, and the local medications drop the pass. Integration test: a flagged stale schedule PATCH after the pass delete leaves another member's edit in place. Integration test: the server's pass delete rewrites a medication's schedule and keeps another member's concurrent schedule edit.
+
+## Wave 27
+
+Three onboarding-2 follow-ups (Codex findings on PRs #314 and #318), run in parallel: each touches different files. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional. No migration.
+
+### Slice 93: a setup nudge toast goes away with its group and its eligibility (B-1008)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: component · Check: apps/web/app/routes/app/groups/layout/setupNudges.browser.test.tsx
+
+`useSetupNudges` (`apps/web/app/routes/app/groups/layout/useSetupNudges.ts`, about line 114) shows a nudge toast and forgets it, so after switching groups or opening a setup page the toast stays, and its Open goes to the old group's setup or new note.
+
+- Track the active nudge's toast id; dismiss it when its group's layout unmounts (switching groups) or the nudge stops being eligible (a setup page is open). Use the shared toast queue's own dismiss (`components/ui/toastQueue.ts`), no new toast path.
+- Component tests: a shown nudge is gone after switching to another group; a shown nudge is gone after opening a setup page.
+
+### Slice 94: a medication opened from the setup step goes Back to the setup step (B-1009)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md · Tests: unit · Check: apps/web/app/lib/medications/medicationOrigin.test.ts
+
+`labelFor` in `apps/web/app/lib/medications/medicationOrigin.ts` doesn't know the setup medications route (`routes/app/groups/setup/medications/`), so a medication opened there goes Back to the Medications list.
+
+- Recognise the setup medications path as an origin, with a label that names the setup step (match the step's own heading), so Back returns there.
+- Unit test: an origin of the setup medications path gives that label and that URL back.
+
+### Slice 95: the setup redirect uses the settings that arrive while it reads (B-1010)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: component · Check: apps/web/app/routes/app/groups/layout/setupRedirect.browser.test.tsx
+
+In `apps/web/app/routes/app/groups/layout/setupRedirect.ts` (about line 56), settings that arrive during `readSetupFacts` count as known, but the decision uses the defaults captured before the await, so a creator on a new device can be sent back to setup.
+
+- In the known-settings branch, re-read `cachedSettings(userId)` after the await and decide from it.
+- Component test: settings that arrive (setup dismissed) while `readSetupFacts` is pending: no redirect to setup.

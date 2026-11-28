@@ -613,6 +613,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-666 | bug | staging | fixes-bug | prd/fixes-bug | Signing up at the join link doesn't prompt the password manager to save the new password |
 | B-668 | change | staging | fixes-ui | prd/fixes-ui | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | staging | fixes-ui | prd/fixes-ui | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
+| B-670 | feature | landed | onboarding-2 | prd/onboarding-2 | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-671 | change | dropped | onboarding-2 |  | New groups default to No known allergies |
 | B-672 | feature | staging | fixes-ui | prd/fixes-ui | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | staging | fixes-ui | prd/fixes-ui | Add a medication: suggest common medication names as you type, like conditions |
@@ -863,6 +864,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-958 | change | landed | fixes-perf | prd/fixes-perf | After sign-in, the settings fetch (/rpc/me/get) waits in line before the first timeline |
 | B-959 | change | landed | fixes-perf | prd/fixes-perf | On slow links the sync client and SQLite WASM queue behind the preloaded route chunks |
 | B-960 | change | landed | fixes-perf | prd/fixes-perf | First /app load fetches about 205 JS files, many of them tiny |
+| B-961 | change | landed | shared-displays | prd/shared-displays | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-962 | change | landed | fixes-ui | prd/fixes-ui | Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen |
 | B-963 | change | landed | fixes-perf | prd/fixes-perf | Easy mode's Upcoming reruns its local query every minute because its window is rounded to the useNow tick |
 | B-964 | feature | landed | todo-links-2 | prd/todo-links-2 | View option to split todo trees into individual due todos (trees stay the default) |
@@ -893,6 +895,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-996 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d… |
 | B-997 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
 | B-999 | change | landed | fixes-ui | prd/fixes-ui | Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens |
+| B-1007 | bug | landed | onboarding-2 | slice/onboarding-2/3 | The setup page's providers step never shows a row's tags: Add tag saves, but no tags are passed to ProviderListItem, so QuickTags gets none |
 
 ## Items
 
@@ -7554,6 +7557,26 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: wants to make heavy use of toasts; agreed no new dependency. First slice of onboarding-2; B-665 (Invite someone toast) builds on it. Use react-aria-components 1.22.1's toast (UNSTABLE_ToastRegion, UNSTABLE_ToastList, UNSTABLE_Toast, UNSTABLE_ToastQueue) only inside ui/, wrapped by the existing ui/Toast, with daisyUI styling. The UNSTABLE_ exports may change on upgrade, so screens must never import them. Needs: a queue so toasts don't overlap, optional action, dismiss, Undo, caller-set timing, reduced motion. Migrate UpdateNotice and AddedMedicationToast. Prove it first on a real phone, above the tab bar and with the keyboard open (see B-664); if it falls short, extend our own component rather than add a library. Usage rules for components.md: toasts for finished actions, Undo, background news and one-time nudges. Not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes. Don't sweep the inline Message uses; move one only where a toast is clearly better.
 - 2026-11-24 (Robert Bo Davis): 2026-11-24, the user: moved from onboarding-2 into fixes-ui so B-693 (saved toast on new events and notes) and B-697 (dose-logged toast) can run; build it first in its own slice, then B-693 and B-697. onboarding-2's B-665 (Invite someone toast) builds on the landed system.
 
+### B-670 · feature · Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast
+
+- status: landed
+- prd: onboarding-2
+- owner: prd/onboarding-2
+- commit: 099073b7c
+
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23. Move onboarding off the Timeline card onto its own pages, with forms to do each action inline. Dismissable with 'Later, take me to caretook!'. If items are still missing, the user gets a 'Want help onboarding?' toast on login, and periodically while their attention is on the app. First step is providers, because the other items link to them. Code read: providers are linked from medications (prescriber_id), condition managers, entries (entry_provider), notes, todos, care periods (place_provider_id) and event series (provider_ids). Today's steps are profile, medication, entry, invite (managers), plus a connect pointer (gettingStarted.ts); there is no provider step or hasProvider fact, so both are new. ProviderForm and MedicationForm take onDone/onCancel and look reusable inline; confirm. Routes must be shared-route safe (clientLoader, local database, no server loader) and work offline. Nothing in the app tracks page visibility or focus yet, so the attention check is new. Depends on B-669 (shared toast system). Replaces GettingStartedCard on both timelines, including Easy view; update its tests and app-shell.md, timeline.md.
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: first login takes them directly to the onboarding forms flow page, not the Timeline. The redirect must work offline and on the native target (clientLoader or client navigation, no server redirect), and must happen only once, so 'Later' is never undone by the next login.
+- 2026-11-23 (Robert Bo Davis): User decisions, 2026-11-23. Who: group creators only get the flow, the first-login redirect and the toast. Invited members land on the Timeline with a short welcome and no steps. Toast: on login, then hourly while the app has attention, with no end date, until setup is finished or they choose 'Don't ask again' (a stored, per-user-per-group choice that must follow them across devices). This drops the 14-day window for creators. Invite is a step in the flow (B-665 folded in). Testing: /join/CARE-DEMO-0001 makes an invited member, so it will no longer show onboarding; B-667 (resettable test user) must become a group creator.
+- 2026-11-23 (Robert Bo Davis): Correction, 2026-11-23: /join/CARE-DEMO-0001 is a staff access code. One call creates the account and a new care group with that person as owner, so it IS the group-creator path and will show the new onboarding: use it to test. Ignore the earlier line saying it makes an invited member. Invited members come through the invite link (routes/account/invite). A /join sign-up already has its group when the email is confirmed and /app opens, so the first-login redirect fits there. Still open: whether a signed-in user who creates a group at /app/groups/new also enters the flow.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: this is GROUP onboarding, not new-user onboarding. It runs every time a new group is created, for that group's creator, through /join and /app/groups/new alike, including someone who already has other groups. So the trigger is the creator's first open of a new group (for /join, after the email is confirmed), once per group, replacing the earlier 'first login' wording. All state is per group: steps done, Later, Don't ask again. The toast is about the group being viewed, and only for a group this person created and hasn't finished. Still open: the step order after providers (proposed: profile basics, medications, first entry, invite).
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: the page flow has three steps, in order: providers, profile basics (conditions and allergies), medications. First entry and invite are NOT pages: they are toast nudges. 'Want help onboarding?' covers only the three page steps. This replaces the earlier 'invite is a step in the flow'. Open: when the two nudges show and how often (proposed: one at a time, first entry then invite, each with its own Don't ask again, on the same login-plus-hourly rhythm, starting once the page flow is finished or left with Later).
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23, settles the nudge timing. The nudges start once the creator finishes the page flow or picks Later. One toast at a time, at most one per hour on login-plus-hourly while the app has attention, in this order: Want help onboarding?, first entry, invite. 'Don't ask again' retires that toast for this group and moves to the next one after a small wait, rather than at the next hourly slot (default 30 seconds, a named constant; the user said only 'a small wait'). Once all three are finished or retired, no more onboarding toasts for the group.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: connect an AI assistant is the final toast nudge. Order is now: Want help onboarding?, first entry, invite, connect assistant. Same rules: one at a time, login plus hourly, Don't ask again moves on after the small wait. Its action opens group settings, Assistants (appUrls.groupSettings(id, 'assistants')). It only points there: the switch stays off by default and the /connect consent stays as is, because connecting shares health data with an outside AI. Finished needs new work: today's connect step is never ticked, and connector_grant is not in the PowerSync sync config, so the device can't see a live grant. The planner should choose how to tell (an online oRPC read of this member's grants for the group, or a synced fact); when it can't be known, as offline, skip the nudge rather than ask someone already connected. Show it only if the creator can still reach the switch (still owner).
+- 2026-11-23 (Robert Bo Davis): 2026-11-23: if B-594 (manage allergies on the Profile page) isn't done when this PRD starts, pull it into onboarding-2 ahead of the pages. The profile basics step should reuse that section, so the allergy form isn't moved twice.
+- 2026-11-23 (Robert Bo Davis): User, 2026-11-23: the care period must be part of the onboarding flow, before the first entry nudge. Default placement, stated to the user: a fourth page step after medications, so the page flow is providers, profile basics, medications, care period, and it comes after providers because a period's place can link to one. 'Want help onboarding?' now covers these four page steps; the nudge order is unchanged and first entry still starts only after the page flow is finished or left with Later. Code read: a new group has no care period (only the period form and seeds create one), so this needs a new hasCarePeriod fact in gettingStarted.ts; care_period is already synced, so it works offline. PeriodForm takes onDone/onCancel but submits through a fetcher to the periods/new route action: confirm it can run inline, including 'Add as a new place'. Start dates can't be in the future. Open for the planner or user: whether the step preselects Home.
+- 2026-11-25 (plan/onboarding-2): Planned in onboarding-2 (2026-11-25): setup pages, Later, the first-open redirect, and the help, first-entry and invite nudges. The connect-assistant nudge is split out as B-858 (onboarding-3). The setter is the group's earliest member while an owner (care_group.created_by is the system user for /join groups); state is user.preferences.groupSetup.
+- 2026-11-25 (plan/onboarding-2): Update 2026-11-25: the invite nudge moved to onboarding-3 with B-665 (user's answer a245); onboarding-2 builds the pages, redirect, and the help and first-entry nudges.
+
 ### B-671 · change · New groups default to No known allergies
 
 - status: dropped
@@ -10053,6 +10076,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-27 (slice/fixes-perf/7): From fixes-perf slice 7 (B-764): sign-in to the first timeline row requests ~205 JS chunks (~560 KB encoded); dozens are 0.7 to 1.5 KB (lucide icons such as map-pin, clock, pill; small helpers). Over HTTP/2 the cost is modest, over HTTP/1.1 (6 connections) the queue dominated (6.4 s on a 3G profile). Grouping tiny shared chunks (Rolldown advancedChunks / manualChunks for icons) would cut requests; check the budget (scripts/build/budget.json) after.
 - 2026-11-27 (slice/fixes-perf/11): Slice 11: icons + react codeSplitting groups (vite.config.ts), budget rules together/noRoutesIn. First /app load JS files 206 -> 169; shaped HTTP/1.1 first row 11.5 s -> 10.4 s, shaped HTTP/2 8.41 -> 8.25 s. Sign-in and marketing pages now load the whole icons chunk (13 KB gz, ~+10 KB gz). Small helpers filed as a follow-up.
 
+### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
+
+- status: landed
+- prd: shared-displays
+- owner: prd/shared-displays
+- commit: b4b8fb1c3
+
+- 2026-11-27 (Robert Bo Davis): User's word 2026-11-27: one look and one way per thing everywhere (docs/domain/components.md _Rules_, dev 90b1ecdb). Today timeline rows/cards, Planner rows, Todos rows, provider and medication list items and their pages each render their own way. First step: an inventory of the variants per record kind and the shared parts they could take (B-955 does tags; B-942/B-948 quick add todos). Needs a topic: likely its own PRD (touches most list and page screens), after tags-3 and todo-subtasks-3.
+- 2026-11-27 (plan/shared-displays): Planned 2026-11-27 (plan/shared-displays): 7 slices: search split, search tags+members, MedicationCard, ProviderCard, search entries/todos, a todo's links, the Planner look; exceptions in the PRD inventory.
+
 ### B-962 · change · Live note full screen fills the entire screen (no centered column, padding or rounded frame), with a short 'attached to' title in the note's own header bar, left of Exit full screen
 
 - status: landed
@@ -10332,3 +10365,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 4b24c08e0
 
 - 2026-11-27 (Robert Bo Davis): From the user 2026-11-27, triaged to fixes-ui (layout). Standard short weekday names (Intl weekday: "short"), mobile breakpoint only; desktop keeps the full name. The timeline's day label likely comes from dayFormat in apps/web/app/lib/core/format.ts (weekday and month long); check every day header that uses it so they stay one shared display. EasyTimeline.tsx has its own long format too.
+
+### B-1007 · bug · The setup page's providers step never shows a row's tags: Add tag saves, but no tags are passed to ProviderListItem, so QuickTags gets none
+
+- status: landed
+- prd: onboarding-2
+- owner: slice/onboarding-2/3
+- commit: 744b58204
+
+- 2026-11-28 (prd/onboarding-2): Codex on PR #312 (thread PRRT_kwDOVx-WLM69Arx3): routes/app/groups/setup/providers/route.tsx passes no tags; read the providers' live tags as DirectoryResults does (useGroupRecordTags). Fix only in the setup route: ProviderListItem stays untouched for shared-displays.

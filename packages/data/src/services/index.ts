@@ -93,6 +93,7 @@ export { accountAdminService };
 export type { AccountMailer, AccountMailUser } from "./accountAdminService";
 
 import * as groupAdminService from "./groupAdminService";
+export type { StaffGroupChange, StaffGroupMailer, StaffGroupNotice } from "./groupAdminService";
 export { groupAdminService };
 import * as appSettingService from "./appSettingService";
 export { appSettingService };
@@ -107,6 +108,8 @@ export { authKeysService };
 // Not in `services`: no model behind it (shared rate limits, hosting PRD).
 import * as rateLimitService from "./rateLimitService";
 export { rateLimitService };
+export type { RateLimiter, RateLimitStore } from "./rateLimiter";
+export { createRateLimiter, defaultStore, memoryStore, postgresStore } from "./rateLimiter";
 // Not in `services`: no model behind it (suppressed addresses, hosting PRD).
 import * as emailSuppressionService from "./emailSuppressionService";
 export { emailSuppressionService };

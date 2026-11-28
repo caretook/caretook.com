@@ -47,6 +47,16 @@ describe("medicationOriginFromState", () => {
     expect(from(`${HOME}/settings`)).toEqual(LIST);
   });
 
+  test("the setup flow's medications step, named by its heading", () => {
+    expect(from(`${HOME}/setup/medications`)).toEqual({
+      url: `${HOME}/setup/medications`,
+      label: "Medications",
+    });
+    // Its other steps open no medication.
+    expect(from(`${HOME}/setup/providers`)).toEqual(LIST);
+    expect(from(`${HOME}/setup`)).toEqual(LIST);
+  });
+
   test("drops a hash", () => {
     expect(from(`${HOME}/timeline#x`).url).toBe(`${HOME}/timeline`);
   });

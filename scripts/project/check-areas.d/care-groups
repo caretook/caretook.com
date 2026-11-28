@@ -13,6 +13,8 @@ packages/api/src/care-groups/groups.ts               first-sync invites
 packages/api/src/care-groups/invites.ts              invites
 packages/api/src/care-groups/joinRequests.ts         invites
 packages/data/src/services/careGroupInviteService.ts invites
+# A link sign-up's counted use, which its join request then takes.
+packages/data/src/services/linkSignUpUses.ts invites
 packages/data/src/services/accessCodeService.ts invites
 packages/data/src/db/schema/care-groups/accessCode.ts invites
 packages/data/src/db/schema/care-groups/newCareGroup.ts first-sync invites
