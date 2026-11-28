@@ -274,6 +274,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1005 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/todos/linkToBox.browser.test.tsx: the empty Link to box's suggestions (B-947) what's … |
 | B-1006 | bug | triaged | fixes-bug |  | Deleting a medication pass on a device resends every medication's whole schedule from the device's copy (removePass), so an offline delete overwrites another member's schedule edit made meanwhile; the server already rewrites the schedules itself |
 | B-1007 | bug | ready | onboarding-2 | slice/onboarding-2/3 | The setup page's providers step never shows a row's tags: Add tag saves, but no tags are passed to ProviderListItem, so QuickTags gets none |
+| B-1008 | bug | triaged | onboarding-2 |  | A setup nudge toast outlives its group and its eligibility: after switching groups or opening a setup page it stays, and Open goes to the old group's setup or new note |
+| B-1009 | bug | triaged | onboarding-2 |  | A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route |
 
 ## Items
 
@@ -1702,3 +1704,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: 744b58204
 
 - 2026-11-28 (prd/onboarding-2): Codex on PR #312 (thread PRRT_kwDOVx-WLM69Arx3): routes/app/groups/setup/providers/route.tsx passes no tags; read the providers' live tags as DirectoryResults does (useGroupRecordTags). Fix only in the setup route: ProviderListItem stays untouched for shared-displays.
+
+### B-1008 · bug · A setup nudge toast outlives its group and its eligibility: after switching groups or opening a setup page it stays, and Open goes to the old group's setup or new note
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-28 (prd/onboarding-2): Codex P2 on PR #314 (useSetupNudges.ts:114): track the active nudge's toast id and dismiss it when its group unmounts or it's no longer eligible (setup page open).
+
+### B-1009 · bug · A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-28 (prd/onboarding-2): Codex P2 on PR #314 (setup/medications/route.tsx:88): add the setup medications route to lib/medications/medicationOrigin.ts's recognised origins.
