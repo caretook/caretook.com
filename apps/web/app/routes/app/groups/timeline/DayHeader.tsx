@@ -21,6 +21,9 @@ import { periodAt, periodDayOn } from "@caretook/data/domain";
  * 16") on the left; on the right the care period that covers the day
  * (`DayPeriod`), a copy-link button (the day's `?day=` link; not in easy
  * mode) and, last, the writers' + menu (`QuickAddMenu`: adds start on that day). The heading names the section (`day-<key>`); the period isn't part of it.
+ * Below `sm` the heading shows `short` ("Wed, Nov 18", B-999) so it doesn't
+ * wrap into the actions; the full `label` stays its name (sr-only there) and
+ * shows from `sm` up. CSS picks, so SSR and the first paint agree.
  * Under them, `summary` (the day's `DaySummaryLine`), so it stays pinned with
  * its date while the day scrolls by. Easy mode shows the period too, in
  * larger type and without Change.
@@ -28,6 +31,7 @@ import { periodAt, periodDayOn } from "@caretook/data/domain";
 export function DayHeader({
   dayKey,
   label,
+  short = label,
   newestAt,
   groupId,
   periods,
@@ -36,7 +40,10 @@ export function DayHeader({
 }: {
   /** The day's key ("2026-11-17", the viewer's zone). */
   dayKey: string;
+  /** The heading in full ("Wednesday, Nov 18"); the copy-link and + labels use it too. */
   label: string;
+  /** The heading on a phone ("Wed, Nov 18"; `shortDayLabel`); the full label when left out. */
+  short?: string;
   /** The moment of the day's newest row (an entry or a marker), or undefined for an empty day. */
   newestAt: string | undefined;
   groupId: string;
@@ -52,7 +59,18 @@ export function DayHeader({
       <div className="flex flex-wrap items-center justify-between gap-x-3">
         {/* Large enough to balance the + button across from it. */}
         <h3 id={`day-${dayKey}`} className="text-lg font-semibold lg:text-xl">
-          {label}
+          {short === label ? (
+            label
+          ) : (
+            <>
+              <span aria-hidden="true" className="sm:hidden" data-day-short="">
+                {short}
+              </span>
+              <span className="max-sm:sr-only" data-day-full="">
+                {label}
+              </span>
+            </>
+          )}
         </h3>
         {/* One group, so a long period wraps with the + and the + stays at the far right. */}
         <div className="ms-auto flex min-w-0 items-center gap-2" data-day-actions>
