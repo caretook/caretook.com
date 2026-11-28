@@ -44,7 +44,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `code-health` | done | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/src/db/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `packages/*/package.json`, `pnpm-lock.yaml`, `apps/web/app/lib/profiles/`, `apps/web/app/routes/app/groups/settings/calendar/`, `scripts/project/check-areas.d/`, `scripts/build/` (slice 6`, `later: import lines across apps/web/app and packages/api)` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
 | `code-health-2` | — | `code-health`, `simple-mode`, `sync-safety` | `packages/data/src/models/`, `packages/data/src/services/upserted.ts`, `packages/data/src/services/providerService.ts`, `packages/data/src/services/recipientAllergyService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/carePeriodService.ts`, `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/appointmentSeriesService.ts`, `packages/data/src/services/serviceLayout.test.ts` | plans/code-health-2-prd.md (B-362: soft-delete model factory, create-if-absent upsert); B-363 moved to code-health-4, the device half to code-health-3 (B-1055) |
 | `code-health-3` | — | `code-health-2`, `data-rights` | `apps/web/app/lib/`, `apps/web/app/libLayout.test.ts`, `packages/data/src/models/base/`, `packages/api/src/sync` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-364, B-368, B-369), cut from code-health by its planner, 2026-11-21: device row types derived from the device schema and the layout guard refusing SQL outside *.sync.ts (17 files today), the list count only on request and the sync PATCH's round trips (that slice after sync-safety-2), plan-pointing comments (a count that may only fall, then a sweep) |
-| `code-health-4` | — | `simple-mode` | `packages/data/src/constants/roles.ts`, `packages/data/src/domain/todos/todoRules.ts`, `packages/data/src/domain/admin/groupAdminRules.ts`, `packages/data/src/db/schema/care-groups/inviteRules.ts`, `scripts/eslint/`, `eslint.config.js` | to write (B-363), cut from code-health-2 by its planner, 2026-11-28; the planner's findings are in plans/code-health-2-prd.md Notes. The call-site sweep touches data-rights' and account-security-2's hot files: that part waits for both. |
+| `code-health-4` | — | `simple-mode` | `packages/data/src/constants/roles.ts`, `packages/data/src/constants/roleCopies.test.ts`, `packages/data/src/domain/todos/todoRules.ts`, `packages/data/scripts/googleSmoke.ts`, `packages/notifications/src/templates/groupInvite.tsx`, `packages/notifications/src/templates/joinRequests.tsx`, `packages/notifications/src/templates/staffGroupChange.tsx`, `apps/web/app/lib/app-shell/groupSetup.ts`, `apps/web/app/routes/app/groups/layout/setupRedirect.ts`, `apps/web/app/routes/app/groups/settings/assistants/assistants.ts`, `apps/web/app/routes/app/groups/settings/groupSettings.ts`, `apps/web/app/routes/app/groups/settings/members/invites.ts`, `apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx`, `apps/web/app/routes/admin/group/`, `apps/web/app/routes/connectors/connect/ConnectConsent.tsx`, `scripts/eslint/`, `eslint.config.js` | to write (B-363), cut from code-health-2 by its planner, 2026-11-28; the planner's findings are in plans/code-health-2-prd.md Notes. The call-site sweep touches data-rights' and account-security-2's hot files: that part waits for both. |
+| `code-health-5` | — | `code-health-4`, `data-rights`, `account-security-2` | — | The services' and API's role-name sweep (B-1060), cut from code-health-4 |
 | `contract-migrations` | — | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `marketing-2` | done | — | `apps/web/app/routes/marketing/`, `apps/web/public/og-default.png` | Light copy wave before sharing the link (B-417) |
 | `planner-3` | done | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
@@ -284,12 +285,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1051 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
-| B-1054 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
+| B-1054 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
 | B-1056 | bug | triaged | fixes-bug |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
-| B-1057 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
+| B-1057 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
 | B-1058 | bug | triaged | fixes-bug |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
+| B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
 
 ## Items
 
@@ -637,6 +639,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. 'viewer' literals: 38 lines in 27 non-test files; WRITER_ROLES in lib/timeline/timeline.sync.ts:32 duplicates WRITERS in permissions/blocks.ts:75; sync-config.yaml:156 has role != 'viewer'; role checks leaked into packages/api care-groups/invites.ts:69-70 and joinRequests.ts:84-85. Collides with the Easy helper and Easy viewer roles PRD (simple-mode): do it first or inside it.
 - 2026-11-21 (plan/code-health): Moved to code-health-2 by the code-health planner, 2026-11-21: waits on simple-mode (it builds the role sets and canWrite/canLog) and sync-safety (it rewrites every soft-delete upsert). B-363 also removes isUserRoleName and isGroupRoleName, which B-365 names, if still unread.
 - 2026-11-28 (plan/code-health-2): Moved to code-health-4 by the code-health-2 planner, 2026-11-28 (code-health-2 holds six slices for B-362). What's left after simple-mode: plans/code-health-2-prd.md Notes.
+- 2026-11-28 (plan/code-health-4): Planned by plan/code-health-4, 2026-11-28: six slices (the capability table, the copies tied to it, three web-app sweeps, the role-name lint guard). The services'/API's sweep cut to code-health-5 (B-1060).
 
 ### B-364 · change · Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere
 
@@ -1702,7 +1705,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1054 · bug · Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view)
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 78010f59b
@@ -1731,7 +1734,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1057 · bug · CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i…
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: b6745f1b4
@@ -1758,3 +1761,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): [ci-key 926bfebd2c90] Flaked (passed on its rerun); found by prd/quick-entry-3. First failure: Error: STACK_TRACE_ERROR at new m (http://127.0.0.1:39387/@fs/home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/@vitest+browser@5.1.0_vite@8.3.8_@types+node@24.19.2_esbuild@0.28.2_jiti@2.7.0_tsx@4.23.15__vitest@5.1.0/node_modules/@vitest/browser/dist/locators-GsmO59Q9.js?v=beaca9b8:1:1748) at new h (http://127.0.0.1:39387/@fs/home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/@vitest+browser@5.1.0_vite@8.3.8_@types+node@24.19.2_esbuild@0.28.2_jiti@2.7.0_tsx@4.23.1…
+
+### B-1060 · change · The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries
+
+- status: triaged
+- prd: code-health-5
+- owner:
+- commit:
+
+- 2026-11-28 (plan/code-health-4): Cut from code-health-4 (B-363) by its planner, 2026-11-28: the six-slice cap, and careGroupInviteService, careGroupService and the details and profile routes are data-rights' hot files, groupAdminService account-security-2's. Uses code-health-4's isOwnerRole and the guard's exempt list (scripts/eslint/role-guard.mjs). Plan: plans/code-health-4-prd.md Out of scope.
