@@ -4,6 +4,7 @@ import {
   careRecipientService,
   medicationPassService,
   medicationService,
+  PASS_REWRITE_METADATA,
   passMovedId,
   recipientAllergyService,
   timelineEntryService,
@@ -21,7 +22,11 @@ import { clientFor, outcomes, patchOp, putOp, upload } from "./testing";
 const setup = async () => {
   const owner = await createUser("owner");
   const viewer = await createUser("viewer");
-  const { group, recipient } = await createGroup(owner, [{ user: viewer.user, role: "viewer" }]);
+  const caretaker = await createUser("caretaker");
+  const { group, recipient } = await createGroup(owner, [
+    { user: viewer.user, role: "viewer" },
+    { user: caretaker.user, role: "caretaker" },
+  ]);
   const passes = async () => ok(await medicationPassService.list(viewer.ctx, { groupId: group.id })).data;
   const [morning, evening] = await passes();
   if (!morning || !evening) throw new Error("no default passes");
@@ -33,6 +38,7 @@ const setup = async () => {
     evening,
     owner: { ...owner, api: clientFor(owner.ctx.authUser) },
     viewer: { ...viewer, api: clientFor(viewer.ctx.authUser) },
+    caretaker,
   };
 };
 
@@ -177,6 +183,69 @@ describe("sync.upload: medication_pass", () => {
     // Only the medication's "started" entry: the delete wrote none.
     expect(changes).toHaveLength(1);
     expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
+  });
+
+  it("deletes a pass, keeping another member's schedule edit made meanwhile; the device's flagged rewrite drops its schedule (B-1006)", async () => {
+    const { owner, viewer, caretaker, group, morning, evening } = await setup();
+    const medication = ok(
+      await medicationService.create(owner.ctx, {
+        groupId: group.id,
+        name: "Metformin",
+        schedule: {
+          type: "scheduled",
+          slots: [{ passId: morning.id, amount: "1000 mg" }, { passId: evening.id }],
+        },
+      }),
+    );
+    // The owner's device, offline, still holds this schedule when it deletes Morning.
+    const stale = {
+      type: "scheduled",
+      slots: [{ passId: evening.id }, { time: "08:00", amount: "1000 mg" }],
+    };
+    // Meanwhile, online, the caretaker sets the evening amount.
+    ok(
+      await medicationService.update(caretaker.ctx, medication!.id, {
+        schedule: {
+          type: "scheduled",
+          slots: [
+            { passId: morning.id, amount: "1000 mg" },
+            { passId: evening.id, amount: "500 mg" },
+          ],
+        },
+      }),
+    );
+    const remove = {
+      op: "PATCH" as const,
+      table: "medication_pass",
+      id: morning.id,
+      data: { deleted_at: MOVED_AT, updated_at: MOVED_AT },
+    };
+    expect((await upload(owner.api, [remove])).map((r) => r.status)).toEqual(["applied"]);
+    const schedule = async () => ok(await medicationService.getById(viewer.ctx, medication!.id))?.schedule;
+    // The server turned Morning into a time of its own, onto the caretaker's schedule.
+    const kept = {
+      type: "scheduled",
+      slots: [
+        { passId: evening.id, amount: "500 mg" },
+        { time: "08:00", amount: "1000 mg" },
+      ],
+    };
+    expect(await schedule()).toEqual(kept);
+    // The device's own rewrite, flagged, from its stale copy: the schedule is dropped, the edit stays.
+    const rewrite = {
+      op: "PATCH" as const,
+      table: "medication",
+      id: medication!.id,
+      data: { schedule: JSON.stringify(stale), updated_at: MOVED_AT, updated_by: "ignored" },
+      metadata: PASS_REWRITE_METADATA,
+    };
+    expect((await upload(owner.api, [rewrite])).map((r) => r.status)).toEqual(["applied"]);
+    expect(await schedule()).toEqual(kept);
+    // Unflagged, a schedule PATCH is a member's edit and applies as ever.
+    expect((await upload(owner.api, [{ ...rewrite, metadata: undefined }])).map((r) => r.status)).toEqual([
+      "applied",
+    ]);
+    expect(await schedule()).toEqual(stale);
   });
 
   it("refuses a viewer and a moved group", async () => {

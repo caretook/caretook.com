@@ -14,12 +14,13 @@ import {
   passMoved,
   passMovedId,
   passNameTaken,
+  PASS_REWRITE_METADATA,
   scheduleHasPass,
   sortPasses,
   TOO_MANY_PASSES_MESSAGE,
   withoutPass,
 } from "@caretook/data/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { useMemo } from "react";
 import { useLiveQuery } from "../sync/index";
 import { recipientQuery, toMedications } from "./medications.sync";
@@ -40,7 +41,8 @@ import {
 // medicationPassService repeats it idempotently:
 // - a retime writes its `passMoved` timeline entry (same id as the server's);
 // - a delete turns the pass into a time of its own in every schedule naming
-//   it (no change entries).
+//   it (no change entries), each rewrite flagged (`PASS_REWRITE_METADATA`) so
+//   the server keeps its own rewrite over this device's possibly stale copy.
 
 export type PassRow = {
   id: string;
@@ -243,7 +245,9 @@ export const updatePass = async (
 /**
  * Soft delete a pass. Every live medication in it keeps the pass's time as a
  * time of its own (its amount kept), in the same transaction, with no change
- * entries: the pass's deletion is the change.
+ * entries: the pass's deletion is the change. The rewrites keep screens right
+ * until sync; their uploads are flagged, and the server drops their schedule
+ * (its delete rewrites the schedules it holds, B-1006).
  */
 export const removePass = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const existing = await livePass(db, id);
@@ -261,11 +265,12 @@ export const removePass = async (db: SyncDb, id: string): Promise<ActionResult> 
       .update(medicationPasses)
       .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
       .where(eq(medicationPasses.id, id));
+    // `_metadata` is PowerSync's, outside the Drizzle table (as a todo's flags).
     for (const m of rewrites)
-      await tx
-        .update(medications)
-        .set({ schedule: JSON.stringify(m.schedule), updatedAt: now, updatedBy: db.userId })
-        .where(eq(medications.id, m.id));
+      await tx.run(
+        sql`UPDATE ${medications} SET schedule = ${JSON.stringify(m.schedule)}, updated_at = ${now},
+              updated_by = ${db.userId}, _metadata = ${PASS_REWRITE_METADATA} WHERE id = ${m.id}`,
+      );
   });
   return { ok: true };
 };
