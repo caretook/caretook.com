@@ -290,15 +290,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 | B-1054 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
-| B-1056 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
+| B-1056 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
-| B-1058 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
+| B-1058 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 | B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
 | B-1061 | chore | triaged | contract-migrations-2 |  | Drop the simple-mode columns (care_group_member.simple_mode, simple_mode_locked, care_group.simple_tiles) and strip the user.preferences simpleMode key, after contract-migrations takes them out of the Drizzle schema |
 | B-1062 | chore | triaged | contract-migrations-2 |  | Take todo.event_id out of the Drizzle schema, the device schema, todoRules.ts and the test fixtures, after contract-migrations stops every write and sync of it |
 | B-1063 | chore | triaged | contract-migrations-3 |  | Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES |
 | B-1064 | change | triaged | fixes-nit |  | The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module |
+| B-1065 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital… |
 
 ## Items
 
@@ -1750,7 +1751,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1056 · bug · Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 19a8a6163
@@ -1772,7 +1773,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1058 · bug · Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements)
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 19a8a6163
@@ -1834,3 +1835,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/code-health-4): Follow-up from code-health-4 slice 2 (B-363): the templates' role enums now come from the role module, the prose labels don't.
+
+### B-1065 · bug · CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): [ci-key 99624022e8e6] Flaked (passed on its rerun); found by prd/fixes-bug. First failure: Error: Cannot find element with locator: getByRole('heading', { name: 'Probe /app/groups/7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b01/todos?who=everyone' }) ARIA tree: - main: - heading "Timeline" [level=1] - button "Easy mode" - region "Today": - heading "Today" [level=2]: - button "Today" [expanded] - list: - listitem: - text: "Needs attention: Latest vitals: BP 130/85 mmHg" - time: 2d ago - listitem: - text: "Coming up soon:" - link "N…
