@@ -10,17 +10,17 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** wave 1 (slices 1 to 4, opus) is merged (2026-11-28). Codex round 1 on PR #341: thread …Gy4E tracked as B-1053; …Gy4C and …Gy4D fixed by the opus fix agent (f37932c78: a deleted todo keeps `assignee_id`; 9603a16e6 + 1b21ba284: `toPass` keeps a deleted pass, labelled `REMOVED_PASS` "Removed med time"), merged as `e2b40176f`, replied, resolved. Synced with dev again (no migration from dev) and pushed (78432f1). Codex round 2 (`risa review --wait`) and the full gate (`risa ci run full --wait`) run in the background. Next: on clean and green, `risa land data-rights --tier full`, `risa rm data-rights-<1..4>`, `risa backlog done B-84`, docs fold, status-trim, then `risa rotate` (past the soft context limit); slice 5 (claim B-357) in the next session. Follow-ups: B-1049, B-1053.
+**Where it stands:** wave 1 landed in dev 2026-11-28 (PR #341, run 46177793758; to-test `2026-11-28-1355-data-rights.md`). **Wave 2 (2026-11-28):** slice 5 (B-357) built on **opus**, merged `40be45d26`; full-tier gate run 46179659218 braked: 2 integration failures (groups.int access codes, roles.int audit log), both the branch's; tests' old expectations; fix bf3ffd351 merged (`3859f5c03`); rerun 46180632079 green on f8b7daa5. Slice 5 worktree removed. `risa sync --force` (pr refused an unsynced tip) merged dev `72b86bc3a` (no migration clash); components recheck running. Browser `--changed`: invites.spec FAIL (8m54s, on a stale server: serve wasn't restarted), rerun alone after a restart and reset: pass (49s). Components recheck 46182394548 green on 72b86bc3. PR #349 open; Codex review running Slice 5 notes: the inviter's version column is `consent_attested_version` (`consent_version` already exists, the joiner's); a link's consent row is written at `requestWithLink`, not `approve`; a joiner still reads their own consent row after the group goes. Sync before it: no merge needed. Then wave 3 = slice 6 (B-53 group half). Follow-ups for this topic: B-1049 (a deleted pass's name blank in the connector's `listMedications`), B-1053 (a note upload racing a delete keeps content). Lesson for the next plan: slices 1 to 3 ran 14 to 21 files, past the hook's 12.
 
 **Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | merged      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
-| 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
-| 3     | 1    | merged      | `bfcdf7504` (60e80fbe7..f0745418d)           |
-| 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
-| 5     | 2    | not started |                                              |
+| 1     | 1    | landed      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
+| 2     | 1    | landed      | `288ff6273` (2677eadb0, e4cf04280)           |
+| 3     | 1    | landed      | `bfcdf7504` (60e80fbe7..f0745418d)           |
+| 4     | 1    | landed      | `9a7856062` (4b511c986)                      |
+| 5     | 2    | merged      | `40be45d26` (e959f31a6, 9091b891c), mig 0052 |
 | 6     | 3    | not started |                                              |
 
 **Backlog:** claim each slice's item when it starts. Run `pnpm backlog done` for B-84 after slices 1 to 4 and for B-357 after slice 5. B-53 stays open after slice 6 with a note: its account half is `data-rights-2`'s.
