@@ -1,18 +1,17 @@
 import type { SyncDb } from "~/lib/sync";
-import type { DuePass } from "~/lib/medications/duePasses";
 import type { DueDosesRows } from "~/lib/medications/dueDoses.sync";
 import type { PassRow } from "~/lib/medications/medicationPasses.sync";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { useMemo } from "react";
 import { useGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
-import { duePasses } from "~/lib/medications/duePasses";
 import { useLiveQuery } from "~/lib/sync";
 import { passesQuery, passesWithMedications, toPasses } from "~/lib/medications/medicationPasses.sync";
 import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
+import type { DuePass } from "@caretook/data/schema";
+import { scheduleZoneNote, duePasses } from "@caretook/data/schema";
 
 // The Passes screen's data: the group's live passes in the day's order, each
 // with the current medications in it, read locally (so it works offline) and

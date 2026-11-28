@@ -1,6 +1,5 @@
 import type { FormEvent } from "react";
 
-import { dayInZone } from "@caretook/data/schema";
 import { CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -8,6 +7,7 @@ import { Button, CIRCLE, Field, ICON, Popover } from "~/components/ui";
 import { localTimeZone } from "~/lib/core/format";
 import { readDay, setDay } from "~/lib/timeline/timelineFilters";
 import { JUMP_LINK_STATE } from "~/lib/timeline/timelineJump";
+import { dayInZone } from "@caretook/data/domain";
 
 /**
  * The calendar button that jumps the timeline to a day: a small popover with a

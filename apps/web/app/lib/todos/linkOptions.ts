@@ -1,11 +1,11 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 import type { PickableEvent } from "../../routes/app/groups/todos/todoLinks";
 
-import { dayLabel, foldSearchText } from "@caretook/data/schema";
 import { PROVIDER_TYPE_META } from "../providers/providerDirectory";
 import { upcomingTitle } from "../appointments/upcomingLabels";
 import { eventWhen } from "../../routes/app/groups/todos/todoLinks";
 import { linkedEntryName } from "./entryTodoDisplay";
+import { dayLabel, foldSearchText } from "@caretook/data/domain";
 
 // The "Link to…" box's options (todo-links), pure so web:unit tests them
 // (relative imports): what each candidate the link search found says, its

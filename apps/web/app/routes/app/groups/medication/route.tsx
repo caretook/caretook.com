@@ -14,7 +14,6 @@ import { BackLink, Button, Message, Notice, Page, Section } from "~/components/u
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { useRecordView } from "~/lib/core/recentlyViewed";
-import { medicationTitle } from "~/lib/medications/medicationDisplay";
 import { medicationOriginFromState } from "~/lib/medications/medicationOrigin";
 import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
@@ -37,6 +36,7 @@ import { MedicationHeader } from "./MedicationHeader";
 import { MedicationHistory } from "./MedicationHistory";
 import { MedicationProviders } from "./MedicationProviders";
 import { useMedicationNotes } from "./useMedicationNotes";
+import { medicationTitle } from "@caretook/data/schema";
 
 // Shared by web + native. A medication's page: what it is and how it's
 // taken, its prescriber and pharmacy, refills, its shared live notes ("crush

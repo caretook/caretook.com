@@ -1,7 +1,5 @@
-import type { DuePass } from "./duePasses";
-
-import { isPassDueNow } from "./duePasses";
-import { clockTime, passTitle } from "./medicationDisplay";
+import type { DuePass } from "@caretook/data/schema";
+import { isPassDueNow, clockTime, passTitle } from "@caretook/data/schema";
 
 // The timeline's medication strip: one line, always there while the group has
 // scheduled medications. Which pass it shows (`medicationStrip`) and what it

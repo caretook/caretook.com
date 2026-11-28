@@ -1,13 +1,13 @@
 import type { FormEvent, KeyboardEvent } from "react";
 import type { LocalTodo, TodoLink } from "~/lib/todos/todos.sync";
 
-import { canHaveSubtask, isTodoWriter } from "@caretook/data/schema";
 import { ListPlus, Plus } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { Button, Field, IconButton, Message } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { createTodo } from "~/lib/todos/todos.sync";
+import { canHaveSubtask, isTodoWriter } from "@caretook/data/domain";
 
 /** What the quick add needs of the todo it adds under. */
 export type QuickAddParent = Pick<LocalTodo, "id" | "title" | "deletedAt" | "repeatRule">;

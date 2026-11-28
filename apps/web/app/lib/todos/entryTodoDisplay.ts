@@ -1,5 +1,6 @@
-import { canHaveNoteDocument, dayLabel } from "@caretook/data/schema";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { fold, queryTokens } from "../providers/providerDirectory";
+import { dayLabel } from "@caretook/data/domain";
 
 // The words for entry ↔ todo links (planner-3), pure so web:unit tests them
 // (relative imports): the timeline's open-todo mark, a linked entry's name

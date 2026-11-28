@@ -1,6 +1,6 @@
-import { parseSearch } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { matchingTagIds } from "./tagMatch";
+import { parseSearch } from "@caretook/data/domain";
 
 // Which tags a search names (tags-3 slice 3): the parser's folding, every
 // word a prefix of a word in the name, exclusions dropping a tag.

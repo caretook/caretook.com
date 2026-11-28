@@ -1,6 +1,5 @@
-import type { HighlightRange } from "@caretook/data/schema";
-
-import { highlightParts } from "@caretook/data/schema";
+import type { HighlightRange } from "@caretook/data/domain";
+import { highlightParts } from "@caretook/data/domain";
 
 /**
  * The look of a matched word: the theme's warning colour with its own

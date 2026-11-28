@@ -3,7 +3,6 @@ import type { ActionResult, FieldIssue } from "~/lib/core/api";
 import type { SavedDetails } from "~/lib/profiles/recipientDetails";
 
 import { redirect } from "react-router";
-import { canEditRecipient } from "@caretook/data/schema";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup } from "~/lib/app-shell/group";
 import { toRecipientDetails } from "~/lib/profiles/recipientDetails";
@@ -11,6 +10,7 @@ import { rpc } from "~/lib/core/rpc";
 import { sessionContext } from "~/lib/auth/session";
 import { loadRecipientDetailsRows, waitForRecipientDetails } from "~/lib/profiles/recipientDetails.sync";
 import { failedProfileSave } from "./profileSheet";
+import { canEditRecipient } from "@caretook/data/domain";
 
 // The writers' sheets over the profile (`profile/contact`, `profile/insurance`):
 // one guard and one save. A viewer (whose device has no details) lands on

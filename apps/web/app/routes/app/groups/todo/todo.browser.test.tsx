@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { getByCss } from "../../../../../test/locators";
@@ -20,6 +19,7 @@ import {
   TEST_TIME_ZONE,
   TEST_USER,
 } from "../../../../../test/fixtures";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The todo page (todos slice 2): what a writer, an assignee viewer and
 // another viewer see and can press, the complete and reopen paths, the live

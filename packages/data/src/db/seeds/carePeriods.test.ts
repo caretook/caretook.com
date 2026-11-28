@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
-import {
-  carePeriodContentZSchema,
-  carePeriodStartIssue,
-  periodSpans,
-  SERVER_FUTURE_SKEW_MS,
-} from "../schema";
+import { carePeriodContentZSchema, carePeriodStartIssue } from "../schema";
 import { seedRows } from "./carePeriods";
 import { seedRows as providerRows } from "./providers";
+import { periodSpans } from "../../domain/care-periods/carePeriodTrack";
+import { SERVER_FUTURE_SKEW_MS } from "../../domain/core/entryTiming";
 
 // Seeds write straight to the tables, skipping the services' validation, so
 // check them against the same rules the API enforces.

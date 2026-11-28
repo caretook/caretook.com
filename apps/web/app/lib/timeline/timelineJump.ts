@@ -1,4 +1,4 @@
-import { addDays, dayInZone, startOfDay } from "@caretook/data/schema";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 // Jumping to a day on the timeline (`?day=`, read and written by
 // `timelineFilters.ts`): what the day means for the window, and what the list

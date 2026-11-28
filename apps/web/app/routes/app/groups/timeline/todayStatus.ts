@@ -1,10 +1,10 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../../../../lib/appointments/upcoming";
-import type { DoseSlot } from "../../../../lib/medications/dueDoses";
 
-import { localDate, localTime, todoState } from "@caretook/data/schema";
 import { entryTiming } from "../../../../lib/appointments/upcoming";
-import { OVERDUE_AFTER_MINUTES } from "../../../../lib/medications/dueDoses";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import type { DoseSlot } from "@caretook/data/schema";
+import { localDate, localTime, todoState } from "@caretook/data/domain";
+import { OVERDUE_AFTER_MINUTES } from "@caretook/data/schema";
 
 // The Today card's rules (timeline-ux, B-169): how urgent each row is
 // (`todayStatus`), what's overdue and due soon (`attentionCounts`) and the

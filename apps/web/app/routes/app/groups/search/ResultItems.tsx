@@ -1,12 +1,10 @@
-import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { EntryResult, NamedTag, ProviderResult } from "./loadSearch";
-import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
+import type { UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { ReactNode } from "react";
 
-import { highlightRanges, notesSnippet } from "@caretook/data/schema";
 import { CircleCheck, ClipboardPlus, ListTodo, Pill } from "lucide-react";
 import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
@@ -16,13 +14,15 @@ import { Badge, Highlight, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { entryOpen, SHEET_LINK_STATE } from "~/lib/timeline/entryOpen";
-import { dayLabel, formatTime, localTimeZone } from "~/lib/core/format";
-import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { formatTime, localTimeZone } from "~/lib/core/format";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
-import { dueText } from "~/lib/todos/todoDisplay";
 import { CONDITION_STATUS_LABELS, sinceText } from "~/lib/profiles/conditions";
 import { PROFILE_SHEET_STATE } from "../profile/profileSheet";
+import type { SchedulePass } from "@caretook/data/schema";
+import type { ParsedSearch, Snippet } from "@caretook/data/domain";
+import { highlightRanges, notesSnippet, dayLabel, dueText } from "@caretook/data/domain";
+import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "@caretook/data/schema";
 
 /** A link stretched over its row, so a tap anywhere opens the result (the row is `relative isolate`). */
 const STRETCHED =

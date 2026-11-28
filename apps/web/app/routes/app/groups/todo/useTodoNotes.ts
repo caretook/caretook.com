@@ -1,10 +1,10 @@
 import type * as Y from "yjs";
 
-import { noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { shouldMaterialize } from "~/lib/live-notes/liveEntry";
 import { getSync } from "~/lib/sync";
 import { createTodoDocument } from "~/lib/todos/todos.sync";
+import { noteText } from "@caretook/data/domain";
 
 /**
  * The todo's notes document, made on the first real change (text), like a

@@ -1,9 +1,8 @@
 import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
 import type { FilterMenuProps, FilterSection } from "~/components/ui";
 
-import { MEDICATION_STATUSES, MEDICATION_TYPES } from "@caretook/data/schema";
+import { MEDICATION_STATUSES } from "@caretook/data/schema";
 import { SearchFilterBar } from "~/components/ui";
-import { MEDICATION_TYPE_LABELS, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import {
   clearFilters,
   clearStatus,
@@ -14,6 +13,8 @@ import {
   setTag,
   setType,
 } from "~/lib/medications/medicationList";
+import { MEDICATION_TYPES, MEDICATION_TYPE_LABELS } from "@caretook/data/domain";
+import { STATUS_LABELS } from "@caretook/data/schema";
 
 type Tag = { id: string; name: string };
 

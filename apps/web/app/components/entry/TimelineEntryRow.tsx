@@ -1,5 +1,5 @@
 import type { EntryOpen } from "~/lib/timeline/entryOpen";
-import type { ParsedSearch, UnitChoices } from "@caretook/data/schema";
+import type { UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { EntryCancelActions } from "./EntryActions";
 import type { TimelineEntry } from "~/lib/core/rpc";
@@ -22,6 +22,7 @@ import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
 import { ASIDE_CLASS } from "./layout";
 import { entryLinkPath } from "~/lib/timeline/timelineLinks";
+import type { ParsedSearch } from "@caretook/data/domain";
 
 /** What a row or card shows and does: the same for both. */
 export type EntryViewProps = {

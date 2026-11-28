@@ -15,13 +15,7 @@ import {
   timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import {
-  addDays,
-  dayInZone,
-  DETAILS_CONSENT_VERSION,
-  memberCalendarSettingSchema,
-  zonedInstant,
-} from "@caretook/data/schema";
+import { DETAILS_CONSENT_VERSION, memberCalendarSettingSchema } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -29,6 +23,7 @@ import { createGroup, createUser, ok, system } from "../../data/test/fixtures";
 import { deliverDue } from "./outbox";
 import { handleReminderUnsubscribe, sweepReminders } from "./reminders";
 import { createMemorySender } from "./senders";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // The reminder sweep (appointments-2 slice 6) on the test database, with the
 // memory sender: a send goes once however often the cron runs, a moved

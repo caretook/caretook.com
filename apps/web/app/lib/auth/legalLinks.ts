@@ -1,6 +1,5 @@
-import type { LegalDocument } from "@caretook/data/schema";
-
-import { LEGAL_DOCUMENTS } from "@caretook/data/schema";
+import type { LegalDocument } from "@caretook/data/domain";
+import { LEGAL_DOCUMENTS } from "@caretook/data/domain";
 
 // Where the legal pages open: the sign-up checkbox (`legalHref`) and account
 // settings' Legal card (`legalLinks`). The web build serves them itself; the

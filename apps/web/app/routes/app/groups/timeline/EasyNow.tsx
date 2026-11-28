@@ -4,10 +4,9 @@ import { CalendarClock, CheckCheck } from "lucide-react";
 import { useMemo } from "react";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
 import { Button, ICON_LG, Message, Skeleton } from "~/components/ui";
-import { duePasses, isPassDueNow } from "~/lib/medications/duePasses";
-import { givePassText, medicationCountText, passTitle } from "~/lib/medications/medicationDisplay";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 import { EASY_BLOCK, EASY_HEADING, STALE } from "./layout";
+import { duePasses, isPassDueNow, givePassText, medicationCountText, passTitle } from "@caretook/data/schema";
 
 /** Where the Upcoming block's Undo is shown (`PassUndoStatus`'s `place`). */
 export const EASY_NOW_UNDO = "easyNow";

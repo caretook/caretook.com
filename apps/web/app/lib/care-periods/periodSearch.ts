@@ -1,8 +1,8 @@
-import type { PeriodSpan, TrackPeriod } from "@caretook/data/schema";
 import type { PeriodWords } from "./periodDisplay";
 
-import { periodRange } from "@caretook/data/schema";
 import { dateText, periodName, periodTitle } from "./periodDisplay";
+import type { PeriodSpan, TrackPeriod } from "@caretook/data/domain";
+import { periodRange } from "@caretook/data/domain";
 
 // Searching within one care period: the period choices the search page and
 // the timeline's search offer, how a choice reads, and the time range a

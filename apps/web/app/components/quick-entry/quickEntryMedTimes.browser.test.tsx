@@ -1,11 +1,10 @@
-import type { DuePass } from "~/lib/medications/duePasses";
-
 import { describe, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { renderInRouter, renderWithDevice } from "../../../test/device";
 import { fx, medicationPass, TEST_GROUP } from "../../../test/fixtures";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import { QuickEntrySuggestButton } from "./QuickEntrySuggestButton";
+import type { DuePass } from "@caretook/data/schema";
 
 // Quick entry calls a pass a med time, as the Medications screens do
 // (B-695): the Suggestions button's name when one is due, and the refusal

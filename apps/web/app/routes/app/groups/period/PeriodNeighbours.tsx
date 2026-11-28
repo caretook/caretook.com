@@ -1,4 +1,3 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -7,6 +6,7 @@ import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { periodTitle } from "~/lib/care-periods/periodDisplay";
 import { neighbourLabel, spanDatesText } from "./periodPage";
+import type { PeriodSpan } from "@caretook/data/domain";
 
 type Span = PeriodSpan<LocalCarePeriod>;
 

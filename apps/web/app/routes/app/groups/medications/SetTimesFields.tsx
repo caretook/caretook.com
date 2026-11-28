@@ -6,10 +6,9 @@ import type { TimeRow } from "./scheduleSlots";
 import { Plus, X } from "lucide-react";
 import { useId } from "react";
 import { Link } from "react-router";
-import { MEDICATION_LIMITS } from "@caretook/data/schema";
+import { MEDICATION_LIMITS, clockTime } from "@caretook/data/schema";
 import { Button, CheckField, EmptyState, Field, IconButton, LINK, TimeSelect } from "~/components/ui";
 import { currentHourTime } from "~/lib/core/timeOfDay";
-import { clockTime } from "~/lib/medications/medicationDisplay";
 import { FIELD, passAmountField } from "./medicationFormData";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;

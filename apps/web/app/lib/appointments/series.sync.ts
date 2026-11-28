@@ -6,12 +6,8 @@ import type { SyncDb } from "../sync/index";
 import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 
 import {
-  addDays,
   appointmentSeriesCreateZSchema,
-  dayInZone,
   entryProviderId,
-  SERIES_AHEAD_DAYS,
-  seriesVisitId,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { and, eq, isNull } from "drizzle-orm";
@@ -30,6 +26,7 @@ import {
   updateEntry,
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
+import { addDays, dayInZone, SERIES_AHEAD_DAYS, seriesVisitId } from "@caretook/data/domain";
 
 // Repeating appointments on the device (appointments-2).
 // `createSeries` writes a series and its visits in one local transaction;

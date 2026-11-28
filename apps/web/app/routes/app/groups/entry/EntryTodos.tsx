@@ -2,7 +2,6 @@ import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ReactNode } from "react";
 
-import { canCompleteTodo, doneOrder, isTodoWriter, todoOrder, todoState } from "@caretook/data/schema";
 import { Link2, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -23,8 +22,17 @@ import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { todoPickerOptions } from "~/lib/todos/entryTodoPicker";
 import { entryTodosQuery, linkTodo, unlinkTodo } from "~/lib/todos/entryTodos.sync";
-import { assigneeLabel, doneText, dueText } from "~/lib/todos/todoDisplay";
 import { todosQuery, toTodos } from "~/lib/todos/todos.sync";
+import {
+  canCompleteTodo,
+  doneOrder,
+  isTodoWriter,
+  todoOrder,
+  todoState,
+  assigneeLabel,
+  doneText,
+  dueText,
+} from "@caretook/data/domain";
 
 const NO_TODOS: TodoRow[] = [];
 const NO_MEMBERS: MemberRow[] = [];

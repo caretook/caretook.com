@@ -8,11 +8,11 @@ import { getSync, useLiveQuery } from "~/lib/sync";
 import { tagsQuery } from "~/lib/tags/tags.sync";
 import {
   matchingTagIds,
-  parseSearch,
   searchIndexStatus,
   subscribeSearchIndexChanges,
   subscribeSearchIndexStatus,
 } from "~/lib/search/search.sync";
+import { parseSearch } from "@caretook/data/domain";
 import { linkOptions, linkTypeWord } from "~/lib/todos/linkOptions";
 import { searchLinkables, suggestLinkables } from "~/lib/todos/linkSearch.sync";
 

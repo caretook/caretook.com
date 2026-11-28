@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { ProviderResult, SearchPageData } from "./loadSearch";
@@ -7,11 +6,12 @@ import type { EasyOpenedRef } from "./useEasyOpened";
 
 import { ContactDetails } from "~/components/providers";
 import { Button, Sheet } from "~/components/ui";
-import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { CONDITION_STATUS_LABELS, sinceDate } from "~/lib/profiles/conditions";
 import { contactDetails } from "~/lib/providers/contactActions";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { useEasyOpened } from "./useEasyOpened";
+import type { SchedulePass } from "@caretook/data/schema";
+import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "@caretook/data/schema";
 
 /** A provider, medication or condition result an easy role opened. */
 export type EasyOpened =

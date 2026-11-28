@@ -1,6 +1,5 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { encodeNoteDoc, noteDocFromText } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as editSheet from "./edit/route";
@@ -8,6 +7,7 @@ import * as newSheet from "./new/route";
 import * as todosRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, entryTodo, fx, newId, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { encodeNoteDoc, noteDocFromText } from "@caretook/data/domain";
 
 // The todo sheets' links (todo-links slice 2): the shared "Link to" box
 // (what it finds and in what order is linkToBox.browser.test.tsx's) and

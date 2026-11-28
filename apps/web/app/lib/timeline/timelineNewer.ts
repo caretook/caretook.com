@@ -1,5 +1,5 @@
-import { addDays, dayInZone, startOfDay } from "@caretook/data/schema";
 import { PAGE_SIZE } from "../core/paging";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 // Paging newer from a jumped-to day: where the window's upper bound moves
 // next. Pure; web:unit tests it (`timelineNewer.sync.ts` reads the rows).

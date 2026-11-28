@@ -1,9 +1,9 @@
-import type { TodoState } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
 import { ListTodo } from "lucide-react";
 import { Badge, DetailHeader, STATUS_TONE, ViaTag } from "~/components/ui";
 import { todoBadge } from "./todoPage";
+import type { TodoState } from "@caretook/data/domain";
 
 /**
  * The todo's header (`DetailHeader`): its title with a Done or Overdue badge

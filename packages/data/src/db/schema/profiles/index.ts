@@ -1,7 +1,6 @@
 export * from "./careRecipient";
 export * from "./careRecipientDetails";
 export * from "./conditionChange";
-export * from "../../../domain/profiles";
 export * from "./emergencyContacts";
 export * from "./memberContactShare";
 export * from "./recipientAllergy";

@@ -1,10 +1,10 @@
-import type { CalendarItem } from "../db/schema";
 import type { GoogleEvent } from "./client";
 import type { PullLink } from "./pullPlan";
 
 import { describe, expect, it } from "vitest";
 import { UID_PROPERTY } from "./client";
 import { interpretGoogleChange, UNTITLED_APPOINTMENT } from "./pullPlan";
+import type { CalendarItem } from "../domain/calendars/calendarItems";
 
 // interpretGoogleChange (appointments-2, slice 9): one action per change
 // pulled from a member's Google calendar, for each role. The appointments

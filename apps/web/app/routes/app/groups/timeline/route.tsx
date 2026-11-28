@@ -4,7 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { activeTag, dayInZone } from "@caretook/data/schema";
+import { activeTag } from "@caretook/data/schema";
 import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { Page } from "~/components/ui";
@@ -40,6 +40,7 @@ import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useEasyMode } from "~/lib/assistant/useEasyMode";
 import { EasyTimeline } from "./EasyTimeline";
+import { dayInZone } from "@caretook/data/domain";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes

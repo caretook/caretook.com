@@ -1,6 +1,6 @@
-import type { MonthlyBy, MonthWeek, RepeatFreq, RepeatRule, Weekday } from "@caretook/data/schema";
 import type { Schedule } from "./entrySchedule";
 
+import type { MonthlyBy, MonthWeek, RepeatFreq, RepeatRule, Weekday } from "@caretook/data/domain";
 import {
   addDays,
   dayInZone,
@@ -10,7 +10,7 @@ import {
   timeInZone,
   WEEKDAYS,
   weekdayName,
-} from "@caretook/data/schema";
+} from "@caretook/data/domain";
 
 // The repeat field's choices (appointments-2): what the sheet's controls
 // hold, the rule they make, and a draft's timing as a series takes it. Pure;

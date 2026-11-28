@@ -2,8 +2,8 @@ import type { ReminderLead } from "@caretook/data/schema";
 import type { ApiOutputs } from "../core/rpc";
 import type { TimedEntry } from "../appointments/upcoming";
 
-import { REMINDER_LEADS, reminderLeadLabel } from "@caretook/data/schema";
 import { isUpcoming } from "../appointments/upcoming";
+import { REMINDER_LEADS, reminderLeadLabel } from "@caretook/data/domain";
 
 // The "Remind me" sheet's pure parts (appointments-2 slice 8): when an entry
 // offers it, and the line that says what will be sent. The server stays the

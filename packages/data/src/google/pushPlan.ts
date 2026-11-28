@@ -1,9 +1,10 @@
-import type { CalendarItem, ShareLevel } from "../db/schema";
+import type { ShareLevel } from "../db/schema";
 import type { GoogleEventInput } from "./client";
 
 import { createHash } from "node:crypto";
-import { calendarText } from "../db/schema";
 import { STATUS_PROPERTY, UID_PROPERTY } from "./client";
+import type { CalendarItem } from "../domain/calendars/calendarItems";
+import { calendarText } from "../domain/calendars/calendarText";
 
 // What a push to one member's Google calendar does (appointments-2, slice
 // 7), pure: each calendar item as the event it should be, at the member's

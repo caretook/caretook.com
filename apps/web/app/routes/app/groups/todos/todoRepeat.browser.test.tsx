@@ -1,6 +1,5 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { nextOccurrence } from "@caretook/data/series";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -12,6 +11,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { found } from "../../../../../test/found";
 import { todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Repeating todos on the screens (planner-2): the form's Repeat (off without
 // a due day, saved and reopened as chosen, turned off), the row's mark and

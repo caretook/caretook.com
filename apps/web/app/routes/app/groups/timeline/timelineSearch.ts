@@ -1,8 +1,8 @@
 import type { EntryCondition } from "../../../../lib/timeline/timeline.sync";
 import type { SearchIndexStatus, SearchRange } from "../../../../lib/search/search.sync";
 
-import { parseSearch } from "@caretook/data/schema";
 import { entryMatchCondition, entryRangeCondition } from "../../../../lib/search/search.sync";
+import { parseSearch } from "@caretook/data/domain";
 
 // The timeline's search (`?q=`) as its queries take it: a condition on the
 // entry's id for every window (`EntryFilters.match`), and what the screen
