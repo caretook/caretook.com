@@ -16,10 +16,10 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 3** (2026-11-27, reopened run-through by the dispatcher): slice 13 (B-966, public pages without the app icons chunk) then slice 14 (B-965, group the tiny helper chunks); both edit `apps/web/vite.config.ts`, so in turn. Models: both Opus. Slice 13 moved the client chunk groups into `scripts/build/chunks.mjs` (icons split app / public / marketing by which pages import them; budget `keepOut` rule); `/` −9.1 KB gz, `/sign-in` −11.7 KB; no Lighthouse (not installed). Slice 14 builds on `chunks.mjs`.
 
-| Slice | Item  | State                                                            | Merge     |
-| ----- | ----- | ---------------------------------------------------------------- | --------- |
-| 13    | B-966 | merged (Opus)                                                    | 341b757c7 |
-| 14    | B-965 | not started: disk 5 GB free, under the 10 GB stack line (asking) |           |
+| Slice | Item  | State                                                          | Merge     |
+| ----- | ----- | -------------------------------------------------------------- | --------- |
+| 13    | B-966 | merged (Opus)                                                  | 341b757c7 |
+| 14    | B-965 | next wave: disk under the 10 GB stack line (ask a362, decided) |           |
 
 ## Wave 1
 
