@@ -792,9 +792,11 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   });
   return async (tx: Tx) => {
     if (row) {
+      // Made again: `created_at` is now, so `reopenTodo` finds it as the
+      // occurrence made after this tick (`laterInChain`), as the server's restore.
       await tx
         .update(todos)
-        .set({ ...content, updatedAt: now, updatedBy: db.userId })
+        .set({ ...content, createdAt: now, updatedAt: now, updatedBy: db.userId })
         .where(eq(todos.id, id));
     } else {
       await tx.insert(todos).values({
@@ -843,14 +845,21 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   return { ok: true, id };
 };
 
-/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+/**
+ * What ticking `todo` made (its successor): the live row of its chain, other
+ * than it, made at or after its `done_at`, the earliest first (then id),
+ * whatever its due day now (B-383), as todoService's `laterInChain`. The
+ * tick writes both times from this device's clock (`completeTodo`); synced
+ * rows carry the server's, clamped there. `julianday` compares the device's
+ * and PowerSync's timestamp texts alike.
+ */
 const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
-  if (!todo.repeatId || !todo.dueOn) return null;
+  if (!todo.repeatId || !todo.doneAt) return null;
   const [row] = await readRows<TodoRow>(db, {
-    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ? AND due_on > ?
-            AND deleted_at IS NULL
-          ORDER BY due_on, id LIMIT 1`,
-    params: [todo.groupId, todo.repeatId, todo.id, todo.dueOn],
+    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ?
+            AND julianday(created_at) >= julianday(?) AND deleted_at IS NULL
+          ORDER BY julianday(created_at), id LIMIT 1`,
+    params: [todo.groupId, todo.repeatId, todo.id, todo.doneAt],
   });
   return row ? toTodo(row) : null;
 };
