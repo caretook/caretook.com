@@ -97,6 +97,26 @@ describe("scrolling newer from a day", () => {
     for (const hour of [9, 12, 15]) expect(rowWith(`Day ${d} at ${hour}`)).toBeTruthy();
   });
 
+  test("the last page, reaching today, holds the row too, with scroll anchoring back on", async () => {
+    // Under a page above the day: the next load is the ordinary history, which ends the bounded window.
+    await openTimeline({ fixtures: history(40), query: `?day=${key(20)}` });
+    const landed = await found(() => document.getElementById(`day-${key(20)}`));
+    await stopsMoving(() => landed);
+
+    const row = rowWith("Day 20 at 15")!;
+    window.scrollBy(0, 40);
+    await frames();
+    const top = row.getBoundingClientRect().top;
+    window.scrollBy(0, -4);
+    await waitUntil(() => headingIds()[0] === `day-${key(0)}`, "today's heading");
+    await frames();
+    expect(document.querySelector("[data-newer-entries]")).toBeNull();
+    const list = document.querySelector("section[aria-labelledby='timeline-heading']")!;
+    expect(getComputedStyle(list).overflowAnchor).toBe("auto");
+    expect(row.isConnected).toBe(true);
+    expect(Math.abs(row.getBoundingClientRect().top - (top + 4))).toBeLessThanOrEqual(1);
+  });
+
   test("the landing's hold moving the page up as a card above goes loads nothing newer", async () => {
     await openTimeline({ fixtures: history(40), query: `?day=${key(20)}` });
     const landed = await found(() => document.getElementById(`day-${key(20)}`));
@@ -180,7 +200,7 @@ describe("scrolling newer from a day", () => {
     await found(() => document.getElementById(`day-${key(10)}`));
     expect(document.getElementById(`day-${key(0)}`)).toBeNull();
     (await found(newerButton)).click();
-    await waitUntil(() => !!document.getElementById(`day-${key(0)}`), "today's heading");
+    await waitUntil(() => headingIds()[0] === `day-${key(0)}`, "today's heading");
     expect(rowWith("Now")).toBeTruthy();
     expect(document.querySelector("[data-newer-entries]")).toBeNull();
     const list = document.querySelector("section[aria-labelledby='timeline-heading']")!;
