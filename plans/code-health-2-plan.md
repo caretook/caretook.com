@@ -8,14 +8,14 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Where it stands (2026-11-28):** wave 1 running: slices 1 and 4 worktrees made (`.loops/code-health-2-1`, `-4`), opus agents spawned; B-362 claimed. Models: opus for every slice (all refactors with real logic). Anchors: the four missing ones are files the slices create (exit 0); the file-budget warnings on slices 3-6 are the planner's, left.
+**Where it stands (2026-11-28):** wave 1 merged (slices 1, 4); its CI run (`integration`, the tier `risa tier` proposed) requested. Slices 2 and 5 start now on the merged tip; they merge only after wave 1 lands. B-362 claimed (done when 3 and 6 merge).
 
 | Slice | Wave | State   | Merge into `prd/code-health-2` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | running |                                                |
+| 1     | 1    | merged  | 1db82d0fd (14daac802, 1b8bc1242)               |
 | 2     | 2    | planned |                                                |
 | 3     | 3    | planned |                                                |
-| 4     | 1    | handed off (7bdbfcd3a), reviewed; merges after 1 |                                                |
+| 4     | 1    | merged  | 854cbfb0a (7bdbfcd3a)                          |
 | 5     | 2    | planned |                                                |
 | 6     | 3    | planned |                                                |
 
