@@ -15,7 +15,13 @@
   },
   "byPath": [
     { "match": "^apps/", "tier": "components", "why": "app code" },
-    { "match": "^packages/", "tier": "integration", "why": "server code" }
+    { "match": "^packages/", "tier": "integration", "why": "server code" },
+    {
+      "match": "^scripts/build/(service-worker|manifest|chunks|budget|check)\\.(?!test\\.)",
+      "tier": "full",
+      "why": "the web build and its budget"
+    },
+    { "match": "^scripts/build/", "tier": "unit", "why": "a build script (unit-tested)" }
   ],
   "browserHarness": {
     "tier": "integration",
