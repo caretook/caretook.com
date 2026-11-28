@@ -4,7 +4,7 @@
 // "skipped") is a dose of it. Pure and client-safe; the timeline has none.
 
 /** The record whose page the box is on. */
-export type QuickEntryPage = {
+export type QuickEntryPageContext = {
   providerId?: string;
   medicationId?: string;
 };
@@ -12,8 +12,8 @@ export type QuickEntryPage = {
 /** The page context for a route's params (`useParams`): undefined on a page that is neither. */
 export const pageContextFor = (
   params: Readonly<Record<string, string | undefined>>,
-): QuickEntryPage | undefined => {
-  const page: QuickEntryPage = {};
+): QuickEntryPageContext | undefined => {
+  const page: QuickEntryPageContext = {};
   if (params.providerId) page.providerId = params.providerId;
   if (params.medicationId) page.medicationId = params.medicationId;
   return page.providerId || page.medicationId ? page : undefined;
