@@ -150,7 +150,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-196 | feature | triaged | connectors-4 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-294 | bug | ready | sync-safety-3 | prd/sync-safety-3 | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
+| B-294 | bug | landed | sync-safety-3 | prd/sync-safety-3 | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-325 | change | triaged | hosting |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
 | B-327 | bug | landed | account-security | prd/account-security | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | landed | account-security | prd/account-security | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
@@ -414,7 +414,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-294 · bug · Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused
 
-- status: ready
+- status: landed
 - prd: sync-safety-3
 - owner: prd/sync-safety-3
 - commit: 49e1d41ca
@@ -1638,3 +1638,4 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'add tag icon button doesn't align vertically with the tags next to it like it should'. Screen not named; the add-tag control is shared (components/tags/QuickTags.tsx, used on TimelineEntryRow, TodoRow, ProviderCard), so fix it once in the shared control and check every place it appears. fixes-ui: look and layout.
+- 2026-11-28 (Robert Bo Davis): QuickTags appears on: timeline row, entry page header, timeline edit; todo row, todo links, todo page header, todo edit; medication list row, MedicationTags, medication header; provider card, directory row, provider medications, provider header and actions, provider edit; search results. Check alignment on each.
