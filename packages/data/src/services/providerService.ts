@@ -3,7 +3,6 @@ import type { ProviderCreateInput, ProviderUpdateInput, ProviderUpsertInput, Tx 
 import type { IncludeDeleted } from "../models/provider";
 import type { ServiceContext } from "./types";
 
-import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   isPracticeType,
@@ -17,7 +16,7 @@ import {
 import { isError, newError } from "../errors";
 import { careGroupModel, providerModel } from "../models";
 import { rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 
 // A care group's provider directory. Write through here, not the model:
 // this is where content is validated and the practice is checked (a
@@ -195,15 +194,15 @@ export const upsert = (ctx: ServiceContext, input: ProviderUpsertInput) =>
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId } = parsed.data;
 
-    const existing = await providerModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
-    if (isError(existing)) return existing;
-    if (!existing) return asCreated(await create({ ...ctx, tx }, parsed.data));
-
-    const visible = await providerModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-    if (visible.groupId !== groupId) return newError({ code: "providerService:immutable" });
-    return unchanged(visible);
+    return createIfAbsent({
+      ctx,
+      tx,
+      getById: providerModel.getById,
+      id,
+      create: () => create({ ...ctx, tx }, parsed.data),
+      immutable: (visible) =>
+        visible.groupId !== groupId ? newError({ code: "providerService:immutable" }) : undefined,
+    });
   }, ctx);
 
 /**
