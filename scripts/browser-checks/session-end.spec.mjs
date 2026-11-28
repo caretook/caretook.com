@@ -15,6 +15,10 @@
 // A full reload can't load while offline (no service worker yet), so the
 // offline step is an in-app navigation: a kind filter link on the timeline,
 // whose route module is already loaded, runs the /app session check again.
+// It's the first row's kind icon, whatever kind that is (B-1054): every
+// timeline row's icon is a "Show only …" filter link (KindFilterLink; only
+// easy mode and lists away from the timeline make it plain), so the page has
+// one whatever the seed puts on today, where a symptom row needn't be in view.
 //
 // A fresh session (confirmed within 15 minutes, B-136) doesn't hold up
 // navigation: the session ended elsewhere is found by the background
@@ -107,7 +111,7 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await signIn(page, EMAIL);
   await expect(page.locator("ol > li").first()).toBeVisible({ timeout: 30_000 });
   const timeline = new URL(page.url()).pathname;
-  const symptomChip = page.locator('main a[href*="kind=symptom"]').first();
+  const kindFilter = page.locator('main a[href*="kind="]').first();
 
   await test.step("an online check records when it was confirmed", async () => {
     await expect.poll(async () => Date.now() - (await page.evaluate(readConfirmed)) < 60_000).toBe(true);
@@ -117,8 +121,8 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await page.evaluate(setConfirmed, 4 * DAY);
   await assetsSettled(page);
   d.offline(true);
-  await expect(symptomChip).toBeVisible({ timeout: 5000 });
-  await symptomChip.evaluate((a) => a.click());
+  await expect(kindFilter).toBeVisible({ timeout: 5000 });
+  await kindFilter.evaluate((a) => a.click());
   await page.waitForURL((url) => url.pathname === "/sign-in", { timeout: 15_000 });
   await test.step("offline past 3 days: sign-in says why", async () => {
     await expect.poll(() => statusText(page), { timeout: 10_000 }).toContain(OFFLINE_MESSAGE);
@@ -232,11 +236,12 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
     await released;
     await route.continue();
   });
-  await expect(symptomChip).toBeVisible({ timeout: 5000 });
+  await expect(kindFilter).toBeVisible({ timeout: 5000 });
+  const kind = new URL(await kindFilter.getAttribute("href"), BASE).searchParams.get("kind");
   try {
-    await symptomChip.click();
+    await kindFilter.click();
     await test.step("fresh session: the navigation went ahead without waiting for the server", async () => {
-      await page.waitForURL((url) => url.searchParams.get("kind") === "symptom", { timeout: 10_000 });
+      await page.waitForURL((url) => url.searchParams.get("kind") === kind, { timeout: 10_000 });
       await expect(page.locator("main ol > li").first()).toBeVisible({ timeout: 10_000 });
       expect(held, "the recheck asked the server, still unanswered").toBeGreaterThan(0);
     });
@@ -246,7 +251,7 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await page.waitForURL((url) => url.pathname === "/sign-in", { timeout: 20_000 });
   await page.unroute(GET_SESSION);
   await test.step("fresh session ended elsewhere: the background recheck goes to sign-in, back to where it was", () => {
-    expect(new URL(page.url()).searchParams.get("redirectTo")).toContain("kind=symptom");
+    expect(new URL(page.url()).searchParams.get("redirectTo")).toContain(`kind=${kind}`);
   });
   await test.step("ended with a change waiting: the cached user, confirmation, last group, recent searches and lines are gone; the owner stays", async () => {
     await expect
