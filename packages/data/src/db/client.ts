@@ -85,39 +85,51 @@ export const endClient = async () => {
   db = null;
 };
 
-/** Work to start after each open `withTransaction` commits (`afterCommit`). */
+/**
+ * Work to start once the outermost `withTransaction` commits (`afterCommit`),
+ * per open transaction or savepoint. A savepoint's list moves to its parent's
+ * when it releases and is dropped when it rolls back.
+ */
 const commitHooks = new WeakMap<Tx, (() => void)[]>();
 
 /**
- * Run `fn` in a transaction, reusing `opts.tx` when already inside one.
+ * Run `fn` in a transaction. Given `opts.tx`, `fn` runs in a savepoint of that
+ * transaction (drizzle's nested `transaction`), so a failure undoes only its
+ * own writes and the outer transaction stays usable.
  *
  * Because errors are returned rather than thrown, a plain drizzle transaction
- * would COMMIT when `fn` returns an AppError. This rolls back instead and
- * returns that error.
+ * would COMMIT when `fn` returns an AppError. This rolls back instead (to the
+ * savepoint, when nested) and returns that error; a throw is returned as
+ * `db:transaction` (an AppError thrown keeps its own code).
  */
 export const withTransaction = async <T>(
   fn: (tx: Tx) => Promise<T>,
   opts: { tx?: Tx } = {},
 ): Promise<T | AppError> => {
-  if (opts.tx) return fn(opts.tx);
-
+  const outer = opts.tx;
   let failure: AppError | undefined;
   const hooks: (() => void)[] = [];
+  const run = async (tx: Tx) => {
+    commitHooks.set(tx, hooks);
+    const result = await fn(tx);
+    if (isError(result)) {
+      failure = result;
+      tx.rollback();
+    }
+    return result;
+  };
   const res = await dbMayFail(
-    () =>
-      getDb().transaction(async (tx) => {
-        commitHooks.set(tx, hooks);
-        const result = await fn(tx);
-        if (isError(result)) {
-          failure = result;
-          tx.rollback();
-        }
-        return result;
-      }),
+    () => (outer ? outer.transaction(run) : getDb().transaction(run)),
     "db:transaction",
   );
 
   if (failure || isError(res)) return failure ?? res;
+  if (outer) {
+    // Released: the outermost transaction runs these after it commits. An
+    // outer `tx` from outside `withTransaction` has no list: nothing runs.
+    commitHooks.get(outer)?.push(...hooks);
+    return res;
+  }
   for (const hook of hooks) {
     try {
       hook();
@@ -129,10 +141,11 @@ export const withTransaction = async <T>(
 };
 
 /**
- * Run `fn` once the transaction `tx` (from `withTransaction`) commits; never
- * on a rollback. Outside a transaction it runs now. For starting background
- * work that must see the committed rows (appointments-2: a Google push).
- * A `tx` from anywhere else runs nothing: callers have a sweep behind them.
+ * Run `fn` once the transaction `tx` (from `withTransaction`) commits: the
+ * outermost one, when `tx` is a savepoint; never on a rollback of either.
+ * Outside a transaction it runs now. For starting background work that must
+ * see the committed rows (appointments-2: a Google push). A `tx` from
+ * anywhere else runs nothing: callers have a sweep behind them.
  */
 export const afterCommit = (tx: Tx | undefined, fn: () => void) => {
   if (!tx) return fn();
