@@ -18,6 +18,7 @@ const SUPPORT = [
   "waitlist.read",
   "audit.read",
   "settings.read",
+  "users.limits",
 ];
 const ADMIN_ONLY = ["users.disable", "users.setRole", "groups.manage", "settings.write"];
 
