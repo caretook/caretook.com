@@ -21,6 +21,8 @@
 - Slice 4 handed off (quick check green on fe68fed3e), merged 95b947f22. `SYNC_WRITE_LIMIT = 1000` in `@caretook/data/domain`. Audit: every multi-row `*.sync.ts` save already uses one `db.drizzle.transaction`; nothing wrapped. Largest write measured: the series split, 437 ops (pinned). Screens chaining several single-row saves were out of scope. Audit list for the sync doc at landing is in the slice's hand-off (multi-row saves: appointments, series, visitPrep, quickEntry, medicationPasses, passLogs, medications, allergies, liveEntry, providers, tags, carePeriods, todos, conditions, medicationConditions, timeline, symptomTypes).
 - Wave 1 gate: components run 46129518715 on 743f3859c: flake (only `search.sync.browser.test.tsx`'s 2,000-entry timing, on the brake list, outside our files): counts green. `risa sync`: up to date with dev. Slice worktrees 1 and 4 removed. PR #322 opened; Codex review waiting. Browser check (`risa browser --changed --base dev`) running.
 
+- Codex clean on 743f385. Wave 1 docs folded: data-layer's `withTransaction` line (savepoint), sync _Device_ "one save, one transaction" (the full audit list stays here, too long for the 10 KB doc); both trimmed to stay at budget. Next: browser check result, push, re-review, `risa land sync-safety-3 --tier components`, then rotate (wave 2: slice 2, opus).
+
 ## Durable decisions
 
 - **A write is a device transaction:** the op's `write` is PowerSync's transaction id; consecutive ops with the same one are applied together or not at all. An op with no `write` is its own write.

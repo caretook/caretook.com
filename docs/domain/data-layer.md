@@ -15,8 +15,8 @@ The data layer area's rules and decisions (AGENTS.md's core rules still apply).
     - Every query is ANDed with the actor's scope; group rules become subqueries on `care_group_member`.
     - Writes must land inside the scope; update and remove refuse an empty filter.
     - Filters are serializable (`{ field: { type: "eq", value } }`) and checked against the table's columns.
-  - `services/`: `getService(model)` with `ServiceContext = { authUser, tx? }`. Business rules, side effects and transactions go here. Services never read requests; internal work uses `SYSTEM_USER`.
-- **`withTransaction(fn)` rolls back when `fn` returns an AppError.** `afterCommit(tx, fn)` runs work after the outermost commit.
+  - `services/`: `getService(model)` with `ServiceContext = { authUser, tx? }`. Rules, side effects and transactions go here; never requests. Internal work: `SYSTEM_USER`.
+- **`withTransaction(fn, { tx })` rolls back on an AppError** (a throw → `db:transaction`); given a `tx`, a savepoint. `afterCommit(tx, fn)`: after the outermost commit only.
 - **Arg types use `WithoutProtected<T>`** (a generic `Omit<DbInsert<K>, …>` drops optional columns like `id`).
 - **Table conventions:**
   - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id. **`upsert` is create-if-absent** (`Upserted<T>`: `{ created, row }`).
@@ -28,9 +28,9 @@ The data layer area's rules and decisions (AGENTS.md's core rules still apply).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
 - **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`).
-  - **`0034` is a copy, not a rename** (simple becomes easy): `easy_tiles` and `easyMode` are filled from `simple_tiles` and `simpleMode`; the `simple_*` columns and key stay unread until a contract migration ([care-groups](care-groups.md)).
+  - **`0034` is a copy, not a rename** (simple becomes easy): `easy_tiles`/`easyMode` filled from `simple_tiles`/`simpleMode`; the `simple_*` ones stay unread until a contract migration ([care-groups](care-groups.md)).
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
-  - **`0032_todos` is a one-step rename** (tasks to todos), the user's one exception to additive migrations (production isn't live): hand-edited to rename the table, columns, indexes, constraints and stored values. Deploy: [runbook](../../ops/runbook.md#rollback).
+  - **`0032_todos` is a one-step rename** (tasks to todos), the user's one exception to additive migrations (production isn't live): hand-edited to rename the table, columns, indexes, constraints, values. Deploy: [runbook](../../ops/runbook.md#rollback).
 - **DB client:** the pool is created lazily. Only the **pool** survives HMR; the drizzle wrapper is rebuilt, so new tables work without a restart.
 - **Env:** `loadEnv.ts` loads `.env.<NODE_ENV>`, then `.env`, from `packages/data`. Real env vars win. `.env.test` is committed; `.env` isn't (copy `.env.example`).
 - **Local Postgres:** Docker `postgres:18.7-alpine`, `wal_level=logical`, dev :5434, test :5435, data in `.postgres/`.
