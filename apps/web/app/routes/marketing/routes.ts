@@ -12,6 +12,7 @@ export const marketingRoutes: RouteConfigEntry[] = [
     route("privacy", "routes/marketing/privacy/route.tsx"),
     route("terms", "routes/marketing/terms/route.tsx"),
     route("health-data-privacy", "routes/marketing/health-data-privacy/route.tsx"),
+    route("accessibility", "routes/marketing/accessibility/route.tsx"),
   ]),
   route("sitemap.xml", "routes/marketing/sitemap/route.ts"),
   route("robots.txt", "routes/marketing/robots/route.ts"),

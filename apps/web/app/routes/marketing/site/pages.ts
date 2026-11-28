@@ -32,6 +32,7 @@ export const MARKETING_PAGES = [
     label: "Consumer health data notice",
     area: "legal",
   },
+  { id: "accessibility", path: "/accessibility", label: "Accessibility", area: "site" },
 ] as const satisfies readonly MarketingPage[];
 
 export type MarketingPageId = (typeof MARKETING_PAGES)[number]["id"];
