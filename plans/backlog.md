@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/lib/todos/`, `apps/web/app/components/tags/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `marketing-3` | — | — | — | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `free-limits` | — | — | `packages/data/src/services/careGroupService.ts`, `packages/data/src/services/groupLimitService.ts`, `packages/data/src/db/schema/admin/appSettings.ts`, `packages/data/src/db/schema/admin/staffRules.ts`, `packages/data/src/db/schema/admin/adminAudit.ts`, `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/db/migrations/`, `packages/data/src/permissions/auth.ts`, `packages/api/src/admin/usersAdmin.ts`, `apps/web/app/routes/admin/user/` | — |
@@ -209,7 +209,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-752 | bug | triaged | fixes-tooling | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
-| B-772 | chore | triaged | test-time-gates-2 |  | Lighten the components tier: trim the New York zone run and slow component tests |
+| B-772 | chore | in-progress | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
@@ -222,7 +222,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-829 | question | triaged | marketing-3 |  | Research: compare Care Book to Caring Village |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
 | B-836 | feature | triaged | marketing-3 |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
-| B-837 | change | triaged | test-time-gates-2 |  | Time limit gates for component tests, unit tests and the local quick check |
+| B-837 | change | in-progress | test-time-gates-2 | prd/test-time-gates-2 | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
@@ -230,7 +230,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing-3 |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
 | B-858 | feature | triaged | onboarding-3 |  | Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants |
-| B-859 | change | triaged | test-time-gates-2 |  | Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates |
+| B-859 | change | in-progress | test-time-gates-2 | prd/test-time-gates-2 | Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates |
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-887 | change | triaged | marketing-3 |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing-3 |  | Features page should highlight easy mode |
@@ -263,7 +263,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1009 | bug | staging | fixes-bug | prd/fixes-bug | A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route |
 | B-1010 | bug | staging | fixes-bug | prd/fixes-bug | The setup redirect can send a creator back to setup on a new device: settings that arrive during readSetupFacts are known but the decision uses the defaults captured before the await |
 | B-1011 | change | triaged | account-security-2 |  | Rate-limit audit: list every public, signed-in, sync, connector and email-sending call with its… |
-| B-1012 | feature | triaged | free-limits |  | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
+| B-1012 | feature | in-progress | free-limits | prd/free-limits | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
 | B-1013 | feature | triaged | free-limits-2 |  | Free plan: limit account creation per address, so one person can't make many free accounts to get… |
 | B-1014 | feature | triaged | documents |  | Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked… |
 | B-1015 | change | landed | fixes-ui | prd/fixes-ui | Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a… |
@@ -273,8 +273,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1019 | bug | triaged | account-security-2 |  | Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role |
 | B-1020 | bug | triaged | account-security-2 |  | Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one |
 | B-1021 | bug | landed | fixes-ui | prd/fixes-ui | The add-tag icon button doesn't line up vertically with the tag chips beside it |
-| B-1022 | change | in-progress | fixes-ui | prd/fixes-ui | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
-| B-1023 | bug | in-progress | fixes-ui | prd/fixes-ui | When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left |
+| B-1022 | change | landed | fixes-ui | prd/fixes-ui | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
+| B-1023 | bug | landed | fixes-ui | prd/fixes-ui | When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left |
 | B-1024 | feature | triaged | care-booklet |  | Printed todo sheet, hand-fillable (check off, write in new todos), as a care booklet page |
 | B-1025 | feature | triaged | care-booklet |  | Printed schedule sheet (upcoming Events and med times), as a care booklet page |
 | B-1026 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads a photo of a hand-filled printed todo sheet and applies it (ticks done, adds new todos), adding only what isn't already there |
@@ -287,6 +287,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1033 | feature | triaged | care-booklet |  | Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back |
 | B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
+| B-1036 | bug | landed | free-limits | prd/free-limits | Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked |
 
 ## Items
 
@@ -1026,9 +1027,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-772 · chore · Lighten the components tier: trim the New York zone run and slow component tests
 
-- status: triaged
+- status: in-progress
 - prd: test-time-gates-2
-- owner:
+- owner: prd/test-time-gates-2
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): 2026-11-24, follow-up to hotfix/components-shard-3 (third shard). Since test-health-2 (B-372) web:components:ny reruns 53 timeline/medications/planner files in every components run: shards went 471/474s -> 704/877s. Options: narrow NY_INCLUDE to the zone-sensitive files every run and leave the rest to the release tier's zone-components jobs; profile the slowest component files (timeline, planner) for shared world setup or waits. Keep the second zone's daily value for its screens.
@@ -1158,9 +1159,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-837 · change · Time limit gates for component tests, unit tests and the local quick check
 
-- status: triaged
+- status: in-progress
 - prd: test-time-gates-2
-- owner:
+- owner: prd/test-time-gates-2
 - commit:
 
 - 2026-11-25 (prd/orchestration-split): From the inbox: 5 minute goal, 6 minute hard cutoff.
@@ -1170,6 +1171,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (plan/test-time-gates): Planned 2026-11-25 in plans/test-time-gates-prd.md and -plan.md (6 slices). B-781, B-370: slices 2-3. B-837: gates in slices 1, 2, 4, unit armed in 6. B-772: balanced shards in slice 5. B-837 and B-772 stay open for test-time-gates-2 (component fallback, quick check trim, arming components and quick).
 - 2026-11-26 (prd/test-time-gates): test-time-gates landed e9244444 (2026-11-26): unit armed (CI unit-1 138 s, unit-2 123 s); components and quick still unarmed, for test-time-gates-2.
 - 2026-11-26 (plan/test-time-gates-2): Planned 2026-11-26 in plans/test-time-gates-2-prd.md and -plan.md (3 slices): 1 four component shards; 2 the quiet rule judged on start load (user, a255), recover split, quick measured in a quiet window and armed; 3 durations refreshed, components armed. Each armed at <=275 s. Topic held after two skeptic send-backs (s55, s56).
+- 2026-11-28 (prd/test-time-gates-2): slice 2 merged (340667590): quick armed on a judged 142 s quiet run
 
 ### B-839 · bug · Search rebuild timing test flaked on CI (2,000 entries under 2 s)
 
@@ -1237,14 +1239,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-859 · change · Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates
 
-- status: triaged
+- status: in-progress
 - prd: test-time-gates-2
-- owner:
+- owner: prd/test-time-gates-2
 - commit:
 
 - 2026-11-25 (Robert Bo Davis): User 2026-11-25: queue right after test-time-gates, faster tests speed up everything. Scope moved out of test-time-gates (plans/test-time-gates-prd.md, Out of scope): a 4th component shard or trims of the slowest timeline/planner files if balancing leaves one over 5 min; trim the quick check from the step times test-time-gates records (tooling step split, integration beside unit); then arm components and quick. Continues B-837 and B-772.
 - 2026-11-25 (Robert Bo Davis): Filed by the backlog session; queued right after test-time-gates
 - 2026-11-26 (plan/test-time-gates-2): Planned 2026-11-26 in plans/test-time-gates-2-prd.md and -plan.md (3 slices): 1 four component shards; 2 the quiet rule judged on start load (user, a255), recover split, quick measured in a quiet window and armed; 3 durations refreshed, components armed. Each armed at <=275 s. Topic held after two skeptic send-backs (s55, s56).
+- 2026-11-28 (prd/test-time-gates-2): slice 1 merged: four component shards; run 46162250609 shard seconds 323/305/199/208 (components unarmed)
 
 ### B-863 · chore · CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced)
 
@@ -1568,9 +1571,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1012 · feature · Free plan: cap how many care groups one user can create (owner of), with a clear message at the…
 
-- status: triaged
+- status: in-progress
 - prd: free-limits
-- owner:
+- owner: prd/free-limits
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Free plan: cap how many care groups one user can create (owner of), with a clear message at the cap; staff can lift it per user / Part of 'reasonable limits on free'. Count groups the user created or owns, not ones they were invited to. Pick a default (e.g. 3) in the plan.
@@ -1663,20 +1666,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1022 · change · Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: fb20719d5
 
 - 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'The todo items in the planner todos tab should have a hamburger menu to the right of the add subtask icon button that allows direct edit and delete. Edit should move into the hamburger on the todo display page.' Reuse the existing ⋯ menu look (components/ui/Menu, as EntryMenu on timeline rows and TodoActions on the todo page) rather than a new hamburger icon: one menu everywhere. Row Edit opens the same edit sheet; row Delete uses TodoActions's delete (the confirm naming subtasks, skip-or-stop for a repeating todo), with Reopen in the row menu too for a done todo. Writers only. TodoRow is shared, so the menu shows wherever todo rows appear (planner Todos tab, Todos page). Todo page: TodoHeader actions become ⋯ only (Edit, Reopen, Delete).
 - 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'shared components that go back to the right place for all of that if possible'. One shared todo menu (and one edit sheet and delete flow) used by rows and the todo page alike, each returning to where it was opened: Edit from a row closes back to that row's list (planner Todos tab or Todos page, scroll kept), not the todo page; Delete from a row stays on the list (the row leaves); from the todo page, Edit comes back to the page and Delete goes back to the list the page was opened from.
 
 ### B-1023 · bug · When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: fb20719d5
 
 - 2026-11-28 (prd/fixes-ui): Found by slice 113 (B-1021): the button is the tags list's last item with ml-1.5; in narrow columns (medication list row ~238px, provider page header ~246px) two chips plus +N fill the line, so the button wraps and starts 6px in. Fix in components/tags/ (e.g. a gap instead of the margin) or the callers' columns.
 
@@ -1793,3 +1796,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'I want to approve/review the updates during planning for the marketing-4'. The planner shows each proposed page change and its draft copy in an ask that waits for the user, and writes the plan only from what the user approves.
 - 2026-11-28 (Robert Bo Davis): marketing-4 held 2026-11-28 so the dispatcher doesn't plan it unattended; when care-booklet lands, the backlog session offers to plan it inline with the user reviewing each page change and draft copy.
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'take marketing-4 off hold and let dispatch handle it. The planner should ask questions for approval'. Hold lifted; the dispatcher's planner files each proposed page change and its draft copy as an ask for the user's approval and writes the plan only from what is approved.
+
+### B-1036 · bug · Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked
+
+- status: landed
+- prd: free-limits
+- owner: prd/free-limits
+- commit: 07c18d52b
+
+- 2026-11-28 (prd/free-limits): Codex P2 on PR #334 (groupLimitService.ts:32): getSetting() on a cold cache calls appSettingModel.all() outside tx; with a small or busy pool it waits ~10 s and falls back to the defaults (3) instead of the staff value. Fix: read the setting (and later the override's fallback) before withTransaction, or pass the limit into refusal. Fits slice 2, which edits refusal anyway.

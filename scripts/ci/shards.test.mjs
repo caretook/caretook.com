@@ -34,6 +34,16 @@ describe("balanceShards", () => {
     expect(shards.flat().sort()).toEqual(Object.keys(SECONDS).sort());
   });
 
+  it("four shards from a durations table differ by at most the largest file", () => {
+    const shards = balanceShards(ITEMS, 4);
+    expect(shards).toHaveLength(4);
+    const totals = shards.map((keys) => total(keys, SECONDS));
+    expect(Math.max(...totals) - Math.min(...totals)).toBeLessThanOrEqual(
+      Math.max(...Object.values(SECONDS)),
+    );
+    expect(shards.flat().sort()).toEqual(Object.keys(SECONDS).sort());
+  });
+
   it("a file with no duration goes by count", () => {
     const untimed = ["n1", "n2", "n3", "n4"].map((key) => ({ key }));
     // Each new file goes to the shard with the fewest files, the least time breaking a tie.
@@ -58,6 +68,9 @@ describe("balanceShards", () => {
     const once = balanceShards(ITEMS, 3);
     expect(balanceShards([...ITEMS].reverse(), 3)).toEqual(once);
     expect(balanceShards([...ITEMS.slice(7), ...ITEMS.slice(0, 7)], 3)).toEqual(once);
+    const four = balanceShards(ITEMS, 4);
+    expect(balanceShards([...ITEMS].reverse(), 4)).toEqual(four);
+    expect(balanceShards([...ITEMS.slice(7), ...ITEMS.slice(0, 7)], 4)).toEqual(four);
     // Equal seconds still split the same way every time.
     const ties = ["d", "b", "c", "a"].map((key) => ({ key, seconds: 5 }));
     expect(balanceShards(ties, 2)).toEqual([
@@ -97,7 +110,7 @@ describe("shardSpecs (the sequencer's shard step)", () => {
   });
 
   it("every spec runs in exactly one shard", () => {
-    for (const count of [1, 2, 3]) {
+    for (const count of [1, 2, 3, 4]) {
       const all = Array.from({ length: count }, (_, i) =>
         shardSpecs(specs, { index: i + 1, count }, table),
       ).flat();

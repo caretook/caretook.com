@@ -77,16 +77,16 @@ const DUE = () => getByCss("[data-todo-due]");
 const heading = (name: string) => page.getByRole("heading", { name, level: 1 });
 
 describe("the todo page", () => {
-  test("a writer sees the details, Edit and ⋯; marks it done and reopens it from the ⋯", async () => {
+  test("a writer sees the details and ⋯ (no separate Edit); marks it done and reopens it from the ⋯", async () => {
     const device = await open(pageOf(MINE.id));
     await expect.element(heading("Call the pharmacy")).toBeInTheDocument();
     expect(badge()).toBe("Overdue");
     await expect.element(ASSIGNEE()).toHaveTextContent("you");
     await expect.element(DUE()).toMatchTextContent(/Overdue · 2 days/);
-    await expect.element(page.getByRole("link", { name: "Edit" })).toBeInTheDocument();
-    await expect
-      .element(page.getByRole("button", { name: "Actions for Call the pharmacy" }))
-      .toBeInTheDocument();
+    // B-1022: Edit lives in the ⋯; the header's only action is the menu.
+    expect(
+      [...ACTIONS().element().querySelectorAll("a, button")].map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Actions for Call the pharmacy"]);
 
     await userEvent.click(page.getByRole("button", { name: "Mark “Call the pharmacy” done" }));
     await expect.poll(badge).toBe("Done");
@@ -113,7 +113,8 @@ describe("the todo page", () => {
     await expect.element(DUE()).toHaveTextContent("No due date");
     expect(badge()).toBeNull();
 
-    await userEvent.click(page.getByRole("link", { name: "Edit" }));
+    await userEvent.click(page.getByRole("button", { name: "Actions for Drive to physio" }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     await expect.element(page.getByRole("dialog", { name: "Edit todo" })).toBeInTheDocument();
     expect(device.location()).toBe(`${pageOf(MAYS.id)}/edit`);
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
@@ -153,7 +154,7 @@ describe("the todo page", () => {
       .toBeGreaterThan(0);
   });
 
-  test("an assignee viewer can complete it, reads the notes, and has no Edit or ⋯", async () => {
+  test("an assignee viewer can complete it, reads the notes, and has no ⋯", async () => {
     const notes = fx.document({ ownerId: MINE.id, subject: "todo", text: "Ask for the generic" });
     const device = await open(pageOf(MINE.id), "viewer", [...world(), notes]);
     await expect.element(heading("Call the pharmacy")).toBeInTheDocument();
@@ -268,6 +269,7 @@ describe("tags on the todo page and its edit sheet", () => {
     await userEvent.click(page.getByRole("button", { name: "Actions for Fax the form" }));
     await waitUntil(() => document.querySelectorAll("[role=menuitem]").length > 0, "the menu");
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
+      "Edit",
       "Delete",
     ]);
   });
