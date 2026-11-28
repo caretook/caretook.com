@@ -5,8 +5,15 @@ import { appUrls } from "./appUrls";
 const api = vi.hoisted(() => ({ get: vi.fn(), updatePreferences: vi.fn() }));
 vi.mock("../core/rpc", () => ({ rpc: { me: api } }));
 
-const { cachedSettings, forgetSettings, loadSettings, saveSettings, startSettings, subscribeSettings } =
-  await import("./me");
+const {
+  cachedSettings,
+  forgetSettings,
+  loadSettings,
+  saveSettings,
+  settingsKnown,
+  startSettings,
+  subscribeSettings,
+} = await import("./me");
 
 const USER = "u1";
 const request = new Request(`http://localhost${appUrls.timeline("g")}`);
@@ -195,6 +202,81 @@ describe("dismissed setup cards", () => {
     store.set(`caretook:settings:${USER}`, JSON.stringify({ setupDismissed: [A] }));
     store.set(`caretook:settings-pending:${USER}`, JSON.stringify({ setupDismissed: [B] }));
     expect(cachedSettings(USER).setupDismissed).toEqual([A, B]);
+  });
+});
+
+describe("the group setup record", () => {
+  const [A, B] = ["group-a", "group-b"];
+
+  it("adds to each group offline, and sends only what's still pending", async () => {
+    api.updatePreferences.mockRejectedValue(offline());
+    await saveSettings(USER, { groupSetup: { [A]: { opened: true } } });
+    await saveSettings(USER, { groupSetup: { [A]: { retired: ["help"] }, [B]: { retired: ["entry"] } } });
+    expect(pending()).toEqual({
+      groupSetup: { [A]: { opened: true, retired: ["help"] }, [B]: { retired: ["entry"] } },
+    });
+
+    api.updatePreferences.mockResolvedValue({});
+    await saveSettings(USER, { groupSetup: { [A]: { opened: true }, [B]: { retired: ["entry"] } } });
+    expect(pending()).toEqual({ groupSetup: { [A]: { retired: ["help"] } } });
+    expect(cachedSettings(USER).groupSetup).toEqual({
+      [A]: { opened: true, retired: ["help"] },
+      [B]: { retired: ["entry"] },
+    });
+  });
+
+  it("merges a pending change over a refreshed copy without losing either", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify({ groupSetup: { [A]: { opened: true } } }));
+    let answer!: (value: unknown) => void;
+    api.get.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    await loadSettings(request, USER);
+    api.updatePreferences.mockRejectedValue(offline());
+    await saveSettings(USER, { groupSetup: { [A]: { retired: ["help"] } } });
+    answer({ ...serverSettings("rows"), groupSetup: { [A]: { opened: true }, [B]: { opened: true } } });
+    await vi.waitFor(() => expect(cached()).toMatchObject({ groupSetup: { [B]: { opened: true } } }));
+    expect(cachedSettings(USER).groupSetup).toEqual({
+      [A]: { opened: true, retired: ["help"] },
+      [B]: { opened: true },
+    });
+    expect(pending()).toEqual({ groupSetup: { [A]: { retired: ["help"] } } });
+  });
+});
+
+describe("settingsKnown", () => {
+  it("is unknown with no cache until the server answers, then says so", async () => {
+    expect(settingsKnown(USER)).toBe(false);
+    api.get.mockRejectedValue(offline());
+    await loadSettings(request, USER);
+    expect(settingsKnown(USER)).toBe(false);
+
+    api.get.mockResolvedValue(serverSettings("rows"));
+    const heard = vi.fn();
+    const stop = subscribeSettings(heard);
+    await loadSettings(request, USER);
+    expect(settingsKnown(USER)).toBe(true);
+    expect(heard).toHaveBeenCalled();
+    stop();
+  });
+
+  it("isn't known from a change saved offline on a new device", async () => {
+    api.updatePreferences.mockRejectedValue(offline());
+    await saveSettings(USER, { timelineView: "cards" });
+    expect(cached()?.timelineView).toBe("cards");
+    expect(settingsKnown(USER)).toBe(false);
+  });
+
+  it("stays known on a later visit, offline, until sign-out", async () => {
+    api.get.mockResolvedValue(serverSettings("rows"));
+    await loadSettings(request, USER);
+    const kept = new Map(store);
+    forgetSettings();
+    expect(settingsKnown(USER)).toBe(false);
+
+    // A later visit: what the earlier one stored, a fresh page, no connection.
+    for (const [key, value] of kept) store.set(key, value);
+    api.get.mockRejectedValue(offline());
+    await loadSettings(request, USER);
+    expect(settingsKnown(USER)).toBe(true);
   });
 });
 
