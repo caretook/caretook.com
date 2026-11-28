@@ -17,7 +17,7 @@
 | 1     | 1    | merged  | ece376081 (1a8ca0000)                         |
 | 2     | 1    | working |                                              |
 | 3     | 1    | working |                                              |
-| 4     | 1    | working |                                              |
+| 4     | 1    | handed off (b54c99c0e) |                                              |
 | 5     | 2    | planned |                                              |
 | 6     | 2    | planned |                                              |
 | 7     | 1    | handed off (044c01061) |                                              |
