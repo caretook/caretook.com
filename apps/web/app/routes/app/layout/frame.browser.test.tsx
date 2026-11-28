@@ -266,6 +266,8 @@ describe("the group menu and the last group", () => {
     await expect.element(page.getByRole("menuitemradio", { name: /Grandma June/ })).toBeChecked();
     await expect.element(page.getByRole("menuitemradio", { name: /Grandpa Lou/ })).not.toBeChecked();
     await userEvent.click(page.getByRole("menuitemradio", { name: /Grandpa Lou/ }));
+    // Reopened while it still plays its exit, the menu never takes focus: wait until it's gone.
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
     await expect.poll(device.location).toBe(timelineUrl(LOU.id));
     await expect.element(page.getByText("Stiff back")).toBeVisible();
     await expect.element(groupButton()).toHaveTextContent("Grandpa Lou");
@@ -274,7 +276,11 @@ describe("the group menu and the last group", () => {
     await userEvent.click(groupButton());
     await expect.element(page.getByRole("menuitemradio", { name: /Grandpa Lou/ })).toBeChecked();
     await expect.element(page.getByRole("menuitemradio", { name: /Grandma June/ })).not.toBeChecked();
+    // Escape closes the menu only once it has focus; pressed before, it's lost and the menu
+    // stays open, the page behind it inert.
+    await expect.poll(() => !!active()?.closest('[role="menu"]')).toBe(true);
     await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 
     // The Caretook link goes to /app, which opens the last group.
     await userEvent.click(page.getByRole("link", { name: "Caretook" }));
