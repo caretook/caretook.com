@@ -14,7 +14,7 @@
 
 | Slice | Wave | State   | Merge into `prd/marketing-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | working |                                              |
+| 1     | 1    | merged  | ece376081 (1a8ca0000)                         |
 | 2     | 1    | working |                                              |
 | 3     | 1    | working |                                              |
 | 4     | 1    | working |                                              |
