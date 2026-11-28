@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits)   |
-| ----- | ---- | ------------- | ----------------------------------------------- |
-| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                           |
-| 2     | 2    | landed (opus) | ab0722574 (f26ce5101)                           |
-| 3     | 3    | landed (opus) | 52d9b39e1 (51bcd45a6)                           |
-| 4     | 3    | landed (opus) | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef) |
-| 5     | 4    | planned       |                                                 |
-| 6     | 5    | planned       |                                                 |
+| Slice | Wave | State          | Merge into `prd/onboarding-2` (slice commits)    |
+| ----- | ---- | -------------- | ------------------------------------------------ |
+| 1     | 1    | landed (opus)  | e6594062c (7844ff2e0)                            |
+| 2     | 2    | landed (opus)  | ab0722574 (f26ce5101)                            |
+| 3     | 3    | landed (opus)  | 52d9b39e1 (51bcd45a6)                            |
+| 4     | 3    | landed (opus)  | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef)  |
+| 5     | 4    | working (opus) | worktree onboarding-2-5 (slot 3), from 6db83ef23 |
+| 6     | 5    | planned        |                                                  |
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
@@ -19,7 +19,9 @@
 
 **Codex follow-ups filed (prd=onboarding-2, triaged):** B-1008 (a setup nudge toast outlives its group or a setup page opening; Open goes to the old group) and B-1009 (Back from a medication opened on the setup medications step goes to the Medications list: add the setup route to `lib/medications/medicationOrigin.ts`). Either can ride with slice 5 or 6 if small, else a fixes slice.
 
-**Next: wave 4 = slice 5** (stack: yes, opus). Sync dev first. Builds on `readSetupFacts` + `setupRedirectStep` + `settingsKnown` (`lib/app-shell/groupSetup.ts`). The setup pages render inside the group layout. `useSetupNudges` shows nothing on a setup page. Entry nudge's Open goes to `appUrls.newEntry(g, "note")` (the PRD's `timeline/new/note` doesn't exist). Then wave 5 = slice 6 (check `fixes-ui`'s wave isn't on `routes/app/groups/timeline/` first).
+**Wave 4 started (2026-11-28):** dev sync skipped (no shared file); backlog ingest empty, no new items. Slice 5 agent spawned (opus), B-670 claimed; watch running.
+
+**Wave 4 = slice 5** (stack: yes, opus). Builds on `readSetupFacts` + `setupRedirectStep` + `settingsKnown` (`lib/app-shell/groupSetup.ts`). The setup pages render inside the group layout. `useSetupNudges` shows nothing on a setup page. Entry nudge's Open goes to `appUrls.newEntry(g, "note")` (the PRD's `timeline/new/note` doesn't exist). Then wave 5 = slice 6 (check `fixes-ui`'s wave isn't on `routes/app/groups/timeline/` first).
 
 **Overlap with shared-displays:** onboarding-2 edits none of `components/providers/ProviderForm`, `ProviderListItem`, `ProviderRowContact` again (a promise). Planning note: slice 2 touched 24 files and slice 3 55 (it moved the medication, period and profile form pieces into `components/` and `lib/` so no route imports another's folder).
 
