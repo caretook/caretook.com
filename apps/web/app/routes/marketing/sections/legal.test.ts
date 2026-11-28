@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { content as accessibility } from "../accessibility/content";
 import { content as healthData } from "../health-data-privacy/content";
 import { content as privacy } from "../privacy/content";
 import { content as terms } from "../terms/content";
@@ -13,6 +14,7 @@ const PAGES: [string, LegalPageContent][] = [
   ["privacy", privacy],
   ["terms", terms],
   ["health-data-privacy", healthData],
+  ["accessibility", accessibility],
 ];
 const nonEmpty = (s: string) => s.trim().length > 0;
 const internalPaths = new Set<string>(MARKETING_PAGES.map((p) => p.path));
@@ -98,6 +100,27 @@ describe("connecting your own AI assistant", () => {
     expect(text).toMatch(/off for every care group until an owner/);
     expect(text).toMatch(/Settings, Devices/);
     expect(text).toMatch(/do not keep a record of what the assistant/);
+  });
+});
+
+describe("accessibility statement", () => {
+  it("is a site page, not one of the accepted legal documents", () => {
+    expect(MARKETING_PAGES.find((p) => p.id === "accessibility")).toMatchObject({
+      path: "/accessibility",
+      area: "site",
+    });
+  });
+
+  it("has enough sections for a table of contents", () => {
+    expect(accessibility.sections.length).toBeGreaterThanOrEqual(TOC_MIN_SECTIONS);
+  });
+
+  // The claims test's banned words (site/claims.test.ts, not edited here).
+  it("says none of the claims test's banned phrases", () => {
+    const text = JSON.stringify(accessibility);
+    for (const pattern of [/early[\s-]*access/i, /hipaa/i, /free[\s-]*forever/i, /\b(in)?secure(ly|d)?\b/i]) {
+      expect(text).not.toMatch(pattern);
+    }
   });
 });
 
