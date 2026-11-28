@@ -12,7 +12,7 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 3 landed in dev through PR #337. Wave 4 started in a fresh session: prd/free-limits was already up to date with dev; slice 4 (opus) handed off and merged as 65213b017; CI run 46166324466 braked: plan format (fixed here) and users.browser.test.tsx (the openAdmin stub for groupLimit missing in adminWorld): fix sent to slice 4. No new backlog items for free-limits at this boundary. **Next: merge slice 4, CI gate, PR + Codex, land; last wave: then mark B-1012 done and `risa rm free-limits`.**
+**Now (2026-11-28):** wave 3 landed in dev through PR #337. Wave 4 started in a fresh session: prd/free-limits was already up to date with dev; slice 4 (opus) handed off and merged as 65213b017; CI run 46166324466 braked: plan format (fixed here) and users.browser.test.tsx (the openAdmin stub for groupLimit missing in adminWorld): fix 16b0b7fee merged as 76a46e674; CI rerun out. No new backlog items for free-limits at this boundary. **Next: merge slice 4, CI gate, PR + Codex, land; last wave: then mark B-1012 done and `risa rm free-limits`.**
 
 | Slice | Wave | State  | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------ | -------------------------------------------- |
