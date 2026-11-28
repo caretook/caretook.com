@@ -32,7 +32,7 @@ Notes for every wave:
 | 112   | B-1016 Done as todo trees                | merged (opus) | e8c1c0298 |
 | 113   | B-1021 add-tag button alignment          | merged (opus) | 299ddb718 |
 
-Wave 23 merged; CI run requested. Landing doc notes: todos.md (Done is trees, 20 trees a page, reads every done row on the device), components.md shared displays (`look` on `entry/TimelineEntryRow`), layout.md and timeline.md (TimelineEntryCard gone; PassLogItem follows the looks). Follow-up candidate: add-tag wraps 6px in on narrow callers (medication list row, provider header).
+Wave 23 merged; CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shares no file); PR #330, Codex review out; browser `--changed` roundtrip pass (no `--suite`: ask first). Landing doc notes: todos.md (Done is trees, 20 trees a page, reads every done row on the device), components.md shared displays (`look` on `entry/TimelineEntryRow`), layout.md and timeline.md (TimelineEntryCard gone; PassLogItem follows the looks). Follow-up candidate: add-tag wraps 6px in on narrow callers (medication list row, provider header).
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
