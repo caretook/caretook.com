@@ -133,6 +133,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-4` | — | `tags-3` | — | — |
 | `todo-links-2` | done | `todo-links` | `apps/web/app/lib/todos/todoView`, `apps/web/app/lib/todos/todoTreeView`, `apps/web/app/lib/todos/todoSheets`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/` | — |
 | `free-limits-2` | — | `account-security`, `free-limits` | — | — |
+| `quick-entry-3` | — | — | — | — |
 
 ## Summary
 
@@ -234,7 +235,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-887 | change | triaged | marketing-3 |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing-3 |  | Features page should highlight easy mode |
-| B-896 | feature | triaged | hosting |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
+| B-896 | feature | triaged | quick-entry-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
 | B-918 | feature | triaged | care-booklet |  | Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed |
@@ -288,6 +289,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
 | B-1036 | bug | landed | free-limits | prd/free-limits | Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked |
+| B-1037 | change | triaged | fixes-perf |  | Bring the components tier's first shard under 275 s so the components time gate can be armed |
+| B-1038 | feature | triaged | quick-entry-3 |  | Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider) |
+| B-1039 | feature | triaged | quick-entry-3 |  | Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site |
+| B-1040 | change | triaged | quick-entry-3 |  | Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask |
+| B-1041 | feature | triaged | quick-entry-3 |  | Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that' |
+| B-1042 | feature | triaged | quick-entry-3 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
+| B-1043 | feature | triaged | quick-entry-3 |  | Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer |
 
 ## Items
 
@@ -1285,12 +1293,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-896 · feature · Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch
 
 - status: triaged
-- prd: hosting
+- prd: quick-entry-3
 - owner:
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: two pages, an 'ez entry cheatsheet' (examples by kind: vitals, symptoms, doses, notes, events, passes, todos; times, units, several at once) and an 'ez entry vocabulary' (the words and units it knows). Link from quick entry itself and somewhere sensible (help, onboarding). Build from the parser's own tables (schema/quickEntry.ts) or test them against it, so the pages can't drift. Timing: just before launch, once the parser settles. Triage: onboarding-3 (held), with the other learn-the-app nudges.
 - 2026-11-28 (Robert Bo Davis): Moved to hosting, the held pre-launch topic, on the user's word (2026-11-28): the cheat sheet comes just before launch.
+- 2026-11-28 (Robert Bo Davis): 2026-11-28: moved to quick-entry-3 as its 'what can I say' help command plus the cheat sheet (user picked help into the quick entry plan).
 
 ### B-901 · plan · Onboarding plan for invited users, based on their user type (we already have one for care group…
 
@@ -1805,3 +1814,66 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: 07c18d52b
 
 - 2026-11-28 (prd/free-limits): Codex P2 on PR #334 (groupLimitService.ts:32): getSetting() on a cold cache calls appSettingModel.all() outside tx; with a small or busy pool it waits ~10 s and falls back to the defaults (3) instead of the staff value. Fix: read the setting (and later the override's fallback) before withTransaction, or pass the limit into refusal. Fits slice 2, which edits refusal anyway.
+
+### B-1037 · change · Bring the components tier's first shard under 275 s so the components time gate can be armed
+
+- status: triaged
+- prd: fixes-perf
+- owner:
+- commit:
+
+- 2026-11-28 (slice/test-time-gates-2/3): From test-time-gates-2 slice 3. After refreshing component-durations.json from run 46164085462, components run 46165126670 (48ac9bc6, green) took 303 s for shard 1's test step (gate: warn, not armed) against 216, 204 and 199 s for shards 2-4. By the table the four shards are even (432 s of files each), but shard 1's files ran 518 s against 344-374 s for the others: its files ran about 20% over the table while the rest ran 13-20% under, the same lean as run 46164085462 (shard 1 302 s). Slowest files in shard 1 (actual s, table s): ui/inScreens 49.7 (50.5), timeline/timelineHeader 37.0 (24), ui/primitives 24.0 (20.5), planner/plannerEvents 21.9 (15.3), timeline/timelineCarePeriods 21.3 (21.8), timeline/timelineJumpPaging 20.3 (14.3), ui/sheetGuard 18.7 (18), timeline/timelineQuickEntrySuggestions 17.9 (12.1). Find why shard 1 runs slower (which files share it, contention among the heavy timeline files), split or speed its slowest files, then arm components in scripts/ci/tiers.json on a run at most 275 s.
+
+### B-1038 · feature · Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider)
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
+
+### B-1039 · feature · Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
+
+### B-1040 · change · Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'I'd like to eventually move away from "confirmations" and into "default action taken let me know if you want to roll back" so a user can use the site as much as possible hands free.' Chose app-wide.
+
+### B-1041 · feature · Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that'
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
+
+### B-1042 · feature · Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>'
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
+
+### B-1043 · feature · Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
