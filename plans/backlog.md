@@ -27,7 +27,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
 | `todo-subtasks-3` | done | `todo-subtasks-2` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/calendarFeedService.ts`, `packages/data/src/services/calendarSyncService.ts`, `packages/api/src/connectors/tools/upcoming.ts`, `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/planner/` | Subtask rework: nested view on the Todos page and the todo's page, + quick add at any level, due-date rules (B-941, B-942, B-943). Held 2026-11-27: the user approves a summary of its plan before it starts; plan by hand (pnpm prd plan), then release. |
 | `todo-links` | done | `todo-subtasks-3` | `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/entry/EntryTodos.tsx`, `apps/web/app/routes/app/groups/entry/route.tsx`, `apps/web/app/routes/app/groups/provider/route.tsx`, `apps/web/app/routes/app/groups/medication/route.tsx`, `apps/web/app/lib/core/recentlyViewed.ts`, `apps/web/app/lib/auth/forgetUserData.ts`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/lib/search/searchTables.sync.ts`, `packages/data/src/db/schema/search/searchDocument.ts` | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
-| `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `packages/data/src/services/todoService.ts`, `apps/web/app/lib/todos/todos.sync.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/medications/medicationPasses.sync.ts` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | done | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
@@ -251,11 +251,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-998 | bug | triaged | fixes-tooling |  | search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440) |
 | B-1000 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-1001 | chore | triaged | fixes-nit |  | todoPage.ts's header comment names the deleted apps/web/app/lib/todos/todoDisplay.ts (now @caretook/data/domain's domain/todos/todoDisplay.ts) |
-| B-1002 | bug | triaged | fixes-bug |  | Repeating todos ticked before sync-safety-2 (B-383) can have a successor whose created_at is slightly before the predecessor's done_at (old complete took done_at from the app clock after the tx's now()), so the new successor rule misses it and reopen leaves both open and repeating (server laterInChain and device reopenTodo) |
-| B-1003 | bug | triaged | fixes-bug |  | Repeating todos: a stale tick on a device holding the Undo's soft-deleted next writes a PATCH clearing deleted_at, and restoreOccurrence still restores for a writer when the chain has no open row, so a stopped chain can still come back (the B-387 PUT flag doesn't cover the PATCH path) |
+| B-1002 | bug | in-progress | fixes-bug | prd/fixes-bug | Repeating todos ticked before sync-safety-2 (B-383) can have a successor whose created_at is slightly before the predecessor's done_at (old complete took done_at from the app clock after the tx's now()), so the new successor rule misses it and reopen leaves both open and repeating (server laterInChain and device reopenTodo) |
+| B-1003 | bug | in-progress | fixes-bug | prd/fixes-bug | Repeating todos: a stale tick on a device holding the Undo's soft-deleted next writes a PATCH clearing deleted_at, and restoreOccurrence still restores for a writer when the chain has no open row, so a stopped chain can still come back (the B-387 PUT flag doesn't cover the PATCH path) |
 | B-1004 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/todos/linkToBox.browser.test.tsx: the Link to box leaves out what's linked, and a pic… |
 | B-1005 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/todos/linkToBox.browser.test.tsx: the empty Link to box's suggestions (B-947) what's … |
-| B-1006 | bug | triaged | fixes-bug |  | Deleting a medication pass on a device resends every medication's whole schedule from the device's copy (removePass), so an offline delete overwrites another member's schedule edit made meanwhile; the server already rewrites the schedules itself |
+| B-1006 | bug | in-progress | fixes-bug | prd/fixes-bug | Deleting a medication pass on a device resends every medication's whole schedule from the device's copy (removePass), so an offline delete overwrites another member's schedule edit made meanwhile; the server already rewrites the schedules itself |
 | B-1007 | bug | landed | onboarding-2 | slice/onboarding-2/3 | The setup page's providers step never shows a row's tags: Add tag saves, but no tags are passed to ProviderListItem, so QuickTags gets none |
 | B-1008 | bug | triaged | onboarding-2 |  | A setup nudge toast outlives its group and its eligibility: after switching groups or opening a setup page it stays, and Open goes to the old group's setup or new note |
 | B-1009 | bug | triaged | onboarding-2 |  | A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route |
@@ -1462,18 +1462,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1002 · bug · Repeating todos ticked before sync-safety-2 (B-383) can have a successor whose created_at is slightly before the predecessor's done_at (old complete took done_at from the app clock after the tx's now()), so the new successor rule misses it and reopen leaves both open and repeating (server laterInChain and device reopenTodo)
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-27 (prd/sync-safety-2): Codex P2 on PR #308 (https://github.com/caretook/caretook.com/pull/308#discussion_r4725514637). Only rows written before the fix; production not live, staging data only. Options: a tolerance for rows with done_at before the deploy, a one-off backfill (data change: ask), or fall back to the old dueOn rule when no row matches.
 
 ### B-1003 · bug · Repeating todos: a stale tick on a device holding the Undo's soft-deleted next writes a PATCH clearing deleted_at, and restoreOccurrence still restores for a writer when the chain has no open row, so a stopped chain can still come back (the B-387 PUT flag doesn't cover the PATCH path)
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-28 (prd/sync-safety-2): Found by sync-safety-2 slice 3: flag the device's restore update with TICK_NEXT_METADATA and have the PATCH path skip restoreOccurrence when flagged and the chain has no open row.
@@ -1499,9 +1499,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1006 · bug · Deleting a medication pass on a device resends every medication's whole schedule from the device's copy (removePass), so an offline delete overwrites another member's schedule edit made meanwhile; the server already rewrites the schedules itself
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-28 (plan/sync-safety-3): Filed by the sync-safety-3 planner (2026-11-28): B-294's related note, kept out of sync-safety-3 (a stale overwrite, not a half-applied write). Fix idea: the device flags those medication PATCHes and the server ignores them, or the device stops sending them. medicationPasses.sync.ts removePass; syncRegistry.ts medicationPass comment.
