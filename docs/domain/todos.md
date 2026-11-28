@@ -46,7 +46,7 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
 
 - `todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo`, `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. An unflagged done PATCH maps to `complete` or `reopen`.
 - `dueTodosQuery`, `dueTodosThrough`: the Today card; `linkedTodosQuery`, `linkOf`, `TodoLink`: provider and medication links.
-- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; Undo: `todoUndo.ts`, `TodoUndoStatus` (stays mounted).
+- Wording: `todoDisplay.ts` (`@caretook/data/domain`); filter and sections: `todoList.ts`; Undo: `todoUndo.ts`, `TodoUndoStatus` (stays mounted).
 
 ## Screens
 

@@ -35,7 +35,7 @@ Caretook: mobile-first tools for caretakers: a timeline (real-time **and** offli
 ## Architecture
 
 - **Two targets** (`BUILD_TARGET`): **web** (SSR on Vercel) and **native** (a static Capacitor SPA). `/app/*`, `/sign-in`, `/sign-out` are shared; `/`, `/api/auth/*`, `/rpc/*` web only. **Shared routes never export a server `loader` or `action`** (`clientLoader`/`clientAction`, local database, oRPC); `HydrateFallback` only in `root.tsx`.
-- **Data** ([data-layer](docs/domain/data-layer.md)): `@caretook/data` is server only (`/schema`, `/errors`, `/permissions`, `/series` are client-safe). Errors are returned; models enforce RBAC in SQL; **write through the services**; UUID keys, `timestamps`, `audits`.
+- **Data** ([data-layer](docs/domain/data-layer.md)): `@caretook/data` is server only (`/schema`, `/domain`, `/errors`, `/permissions`, `/series` are client-safe; pure logic lives in `/domain`). Errors are returned; models enforce RBAC in SQL; **write through the services**; UUID keys, `timestamps`, `audits`.
 - **Sync** ([sync](docs/domain/sync.md)): Postgres is the truth; devices keep a PowerSync SQLite copy and upload through our API. Last write wins per row; live notes merge through Yjs. Device queries are `lib/<area>/*.sync.ts`. Screens read the local database; server work is oRPC ([api](docs/domain/api.md)).
 - **Hosting** ([ops](ops/runbook.md)): Vercel, Neon, PowerSync Cloud; staging and production, deployed only by `deploy.yml`. Migrations stay additive (expand, then contract later).
 

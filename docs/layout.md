@@ -76,7 +76,9 @@ packages/data/            @caretook/data
   src/permissions/        <area>.ts parts (each satisfies a partial Permissions), blocks.ts; permissions.ts spreads them
   src/db/                 client, types, migrate, clear, migrations/, seeds/
   src/db/schema/<area>/   tables + Zod (client-safe) by area, each folder with an index.ts; core/ holds the shared helpers (columns,
-                          uuidV5, timeZone, contactFields, entryTiming, rateLimit); index.ts lists the folders
+                          timeZone, contactFields, rateLimit); index.ts lists the folders; schemaLayout.test.ts keeps pure logic out
+  src/domain/<area>/      @caretook/data/domain: the pure logic (client-safe), same areas, an index.ts each; core/ has uuidV5,
+                          entryTiming, zonedDay, dayLabel
   src/google/             the Google Calendar client seam (client, real, fake), pushPlan, pullPlan
   src/models/, src/services/
 ```
