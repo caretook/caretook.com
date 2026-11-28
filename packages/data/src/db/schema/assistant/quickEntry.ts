@@ -1844,12 +1844,27 @@ const allDayToday = (s: PartState): ResolvedTime => ({
  * that names one), else the first provider's address. With a contact verb or
  * a note incident it's only an alternative to the note.
  */
+/**
+ * Visit verbs too loose to mean a visit on their own ("had a rough night",
+ * "went for a walk"): they don't make a line on a provider's page its event.
+ */
+const LOOSE_VISIT_VERBS = new Set(["had", "went"]);
+
+/**
+ * Whether a line on a provider's page that names none tells of a visit ("saw
+ * her yesterday"): the page's provider then counts as named, so it's an event
+ * with them. Any other line there ("refill sent") keeps its reading (B-1056).
+ */
+const visitsPageProvider = (s: PartState) =>
+  !!s.pageProvider &&
+  s.vocab.some((m) => m.entry.role === "visitVerb" && !LOOSE_VISIT_VERBS.has(m.entry.phrase));
+
 const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const keywordIdx = roleIdx(s, "appointmentWord");
   const verbIdx = roleIdx(s, "visitVerb", "contactVerb");
   const keyword = keywordIdx.length > 0;
   const visit = hasRole(s, "visitVerb");
-  const naming = s.naming.length > 0;
+  const naming = s.naming.length > 0 || visitsPageProvider(s);
   const ahead = !!s.time.spec && saysFuture(s.time.spec);
   if (!keyword && !ahead && !naming && !forced) return [];
   // On a provider's page an event naming none is with that one, ranked as if named.
@@ -2026,7 +2041,10 @@ const noteReading = (s: PartState, confidence: number, { now = false } = {}): Qu
   );
 };
 
-/** An event from any text ("Save as event instead"): the text is its title, its time read ahead. */
+/**
+ * An event from any text ("Save as event instead"): the text is its title, its
+ * time read ahead, linked to the providers a note of it would link.
+ */
 const eventFromText = (s: PartState, confidence: number): QuickEntryReading => {
   const when = eventTime(s, "future") ?? s.time.past;
   return reading(
@@ -2037,7 +2055,7 @@ const eventFromText = (s: PartState, confidence: number): QuickEntryReading => {
       occurredAt: when.at.toISOString(),
       allDay: when.allDay,
       place: null,
-      providerIds: [],
+      providerIds: [...new Set(linkedProviders(s).map((m) => m.item.id))],
       timeZone: s.context.timeZone,
     },
     confidence,

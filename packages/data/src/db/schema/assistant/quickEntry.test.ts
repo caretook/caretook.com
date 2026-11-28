@@ -1327,6 +1327,54 @@ describe("events", () => {
     expect(warnings(withLee)).toEqual([]);
   });
 
+  // B-1056: on a provider's page a visit verb counts the page's provider as named.
+  describe("a visit on a provider's page", () => {
+    const LEE_PAGE = { page: { providerId: LEE } };
+
+    test("a visit naming no provider is an event with the page's", () => {
+      const r = top("saw her yesterday", LEE_PAGE);
+      expect(r.kind).toBe("event");
+      expect(action(r)).toMatchObject({
+        type: "addEvent",
+        title: "Dr. Sandra Lee", // as "saw Dr. Lee yesterday" titles it
+        occurredAt: at("2026-11-18T08:00:00Z"), // yesterday, all day
+        allDay: true,
+        providerIds: [LEE],
+      });
+    });
+
+    test.each(["visited yesterday", "went to see her this morning"])("%s is an event with it", (line) => {
+      const r = top(line, LEE_PAGE);
+      expect(r.kind).toBe("event");
+      expect(action(r)).toMatchObject({ providerIds: [LEE] });
+    });
+
+    test("a line with no visit stays a note, its event alternative linking the page's provider", () => {
+      const readings = parse("refill sent", LEE_PAGE)[0]!.readings;
+      expect(readings[0]!.kind).toBe("note");
+      expect(action(readings[0]!)).toMatchObject({ providerIds: [LEE] });
+      const event = readings.find((r) => r.kind === "event")!;
+      expect(event.confidence).toBeLessThan(readings[0]!.confidence);
+      expect(action(event)).toMatchObject({ type: "addEvent", providerIds: [LEE] });
+    });
+
+    test.each(["had a rough night", "went for a walk"])("%s, a weak visit verb, stays a note", (line) => {
+      expect(top(line, LEE_PAGE).kind).toBe("note");
+    });
+
+    test("a provider the visit names reads as it does off the page", () => {
+      expect(parse("saw Dr. Lee yesterday", LEE_PAGE)).toEqual(parse("saw Dr. Lee yesterday"));
+      expect(action(top("saw Dr. Lee yesterday"))).toMatchObject({
+        type: "addEvent",
+        title: "Dr. Sandra Lee",
+        occurredAt: at("2026-11-18T08:00:00Z"),
+        allDay: true,
+        providerIds: [LEE],
+      });
+      expect(action(top("saw dr alvarez yesterday", LEE_PAGE))).toMatchObject({ providerIds: [ALV] });
+    });
+  });
+
   test("a fall is a symptom now (it was an event), with a note and an event as alternatives", () => {
     const readings = parse("fell in bathroom last night")[0]!.readings;
     expect(readings.map((r) => r.kind)).toEqual(["symptom", "note", "event"]);
