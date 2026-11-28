@@ -265,6 +265,14 @@ describe("settingsKnown", () => {
     expect(settingsKnown(USER)).toBe(false);
   });
 
+  it("isn't known once the cache is gone, though this page heard the server (storage cleared or refusing writes)", async () => {
+    api.get.mockResolvedValue(serverSettings("rows"));
+    await loadSettings(request, USER);
+    expect(settingsKnown(USER)).toBe(true);
+    store.clear();
+    expect(settingsKnown(USER)).toBe(false);
+  });
+
   it("stays known on a later visit, offline, until sign-out", async () => {
     api.get.mockResolvedValue(serverSettings("rows"));
     await loadSettings(request, USER);

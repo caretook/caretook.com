@@ -186,11 +186,13 @@ const answered = new Set<string>();
 
 /**
  * Whether this device knows the user's settings: the server has answered
- * here, now or on an earlier visit. Until then `cachedSettings` is defaults
- * with this device's pending changes on top.
+ * here, now or on an earlier visit, and its copy is in the cache. Until then
+ * `cachedSettings` is defaults with this device's pending changes on top. An
+ * answer this page heard but couldn't cache (storage refusing writes, or
+ * cleared since) isn't known: what `cachedSettings` gives is still defaults.
  */
 export const settingsKnown = (userId: string): boolean =>
-  answered.has(userId) || readJson<boolean>(knownKey(userId)) === true;
+  (answered.has(userId) || readJson<boolean>(knownKey(userId)) === true) && readCache(userId) !== null;
 
 /** The server answered: remember it, and tell listeners when that's news. */
 const markKnown = (userId: string) => {
