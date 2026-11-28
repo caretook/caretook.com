@@ -14,7 +14,7 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 2 landed 82a12072** (PR #254, 2026-11-27, `--no-review`: Codex out of credits; full CI green, run 46005700354; changed browser checks 10/11, layout-offline predates the wave: B-967). Slices 8-12 (B-956, B-958, B-959, B-960, B-963), all Opus, merged; worktrees removed.
 
-**Wave 3** (2026-11-27, reopened run-through by the dispatcher): slice 13 (B-966, public pages without the app icons chunk) then slice 14 (B-965, group the tiny helper chunks); both edit `apps/web/vite.config.ts`, so in turn. Models: both Opus. Slice 13 moved the client chunk groups into `scripts/build/chunks.mjs` (icons split app / public / marketing by which pages import them; budget `keepOut` rule); `/` −9.1 KB gz, `/sign-in` −11.7 KB; no Lighthouse (not installed). Slice 14 builds on `chunks.mjs`.
+**Wave 3** (2026-11-27, reopened run-through by the dispatcher): slice 13 (B-966, public pages without the app icons chunk) then slice 14 (B-965, group the tiny helper chunks); both edit `apps/web/vite.config.ts`, so in turn. Models: both Opus. Slice 13 moved the client chunk groups into `scripts/build/chunks.mjs` (icons split app / public / marketing by which pages import them; budget `keepOut` rule); `/` −9.1 KB gz, `/sign-in` −11.7 KB; no Lighthouse (not installed). Slice 14 builds on `chunks.mjs`. Full CI on 01186a34 (run 46098993172): `file`, only `project-data.test.mjs` (prompt golden, role docs) from the pre-sync Risa pin; passes on dev and locally after the dev sync; rerun full on the synced tip.
 
 | Slice | Item  | State                                                          | Merge     |
 | ----- | ----- | -------------------------------------------------------------- | --------- |
