@@ -1246,6 +1246,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (Robert Bo Davis): User 2026-11-25: queue right after test-time-gates, faster tests speed up everything. Scope moved out of test-time-gates (plans/test-time-gates-prd.md, Out of scope): a 4th component shard or trims of the slowest timeline/planner files if balancing leaves one over 5 min; trim the quick check from the step times test-time-gates records (tooling step split, integration beside unit); then arm components and quick. Continues B-837 and B-772.
 - 2026-11-25 (Robert Bo Davis): Filed by the backlog session; queued right after test-time-gates
 - 2026-11-26 (plan/test-time-gates-2): Planned 2026-11-26 in plans/test-time-gates-2-prd.md and -plan.md (3 slices): 1 four component shards; 2 the quiet rule judged on start load (user, a255), recover split, quick measured in a quiet window and armed; 3 durations refreshed, components armed. Each armed at <=275 s. Topic held after two skeptic send-backs (s55, s56).
+- 2026-11-28 (prd/test-time-gates-2): slice 1 merged: four component shards; run 46162250609 shard seconds 323/305/199/208 (components unarmed)
 
 ### B-863 · chore · CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced)
 
