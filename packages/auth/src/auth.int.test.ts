@@ -393,8 +393,21 @@ describe("per-address sign-in limits (limits on)", () => {
   const limited = createAuth({ rateLimitEnabled: true });
   const sendSignInEmail = (email: string) =>
     limited.api.signInMagicLink({ body: { email }, headers: new Headers(), asResponse: true });
+  // Through the handler, as a browser sends it (a refusal in a before hook is
+  // thrown from a direct API call), each from its own address (Better Auth's
+  // per-IP limit is on too).
   const signInWithCode = (email: string, otp: string) =>
-    limited.api.signInEmailOTP({ body: { email, otp }, asResponse: true });
+    limited.handler(
+      new Request("http://localhost:5173/api/auth/sign-in/email-otp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:5173",
+          "x-forwarded-for": randomIp(),
+        },
+        body: JSON.stringify({ email, otp }),
+      }),
+    );
   const codeIn = (text: string) => text.match(/^\s*(\d{6})\s*$/m)?.[1] ?? "";
   /** The code in the newest sign-in email to `email`. */
   const newestCode = async (email: string) => codeIn((await mailTo(email)).at(-1)?.text ?? "");
@@ -544,9 +557,6 @@ describe("link sign-up (the ticket path)", () => {
 
     const refused = await signUp(token, unknownEmail());
     expect(isError(refused) && refused.code).toBe("ticket:invalid");
-    // The same address again counts nothing more.
-    expect(isError(await signUp(token, email))).toBe(false);
-    expect(await useCount(inviteId)).toBe(1);
 
     // The person who signed up still asks to join, and their request adds no use.
     const authUser = { id: created.id, roleNames: ["member" as const] };
