@@ -193,8 +193,8 @@ export const unarchive = (ctx: ServiceContext, input: { groupId: string; id: str
 /**
  * Delete symptom `id` into `replacementId` (symptom-catalog-3), as an owner
  * (`OWNER_ROLES`): online only (oRPC), one transaction. Every entry pointing
- * at `id`, soft-deleted ones too, moves to the replacement (its pointer and
- * `details.name`, with `updated_at` now and the actor in `updated_by`);
+ * at `id`, soft-deleted ones too, moves to the replacement (its pointer and,
+ * when live, `details.name`, with `updated_at` now and the actor in `updated_by`);
  * tombstones that pointed at `id` now point at the replacement, so there's
  * never a chain; and `id` becomes a tombstone (`replaced_by_id`, archived
  * when it wasn't), kept so its derived id can't come back as a new row.
@@ -240,14 +240,17 @@ export const replace = (
     if (replacement.replacedById) return newError({ code: "symptomTypeService:replacementMerged" });
 
     const actorId = ctx.authUser.id;
-    // Raw SQL: one statement for every entry, deleted ones too, with
-    // `details.name` set inside the JSON.
+    // Raw SQL: one statement for every entry, deleted ones too, with a live
+    // one's `details.name` set inside the JSON (a deleted one's details were
+    // scrubbed, `SCRUB_SPECS`, and stay so).
     const moved = await dbMayFail(
       () =>
         tx.execute(sql`
           UPDATE timeline_entry SET
             symptom_type_id = ${to}::uuid,
-            details = jsonb_set(COALESCE(details, '{}'::jsonb), '{name}', to_jsonb(${replacement.name}::text)),
+            details = CASE WHEN deleted_at IS NULL
+              THEN jsonb_set(COALESCE(details, '{}'::jsonb), '{name}', to_jsonb(${replacement.name}::text))
+              ELSE details END,
             updated_at = now(),
             updated_by = ${actorId}::uuid
           WHERE group_id = ${groupId}::uuid AND symptom_type_id = ${from}::uuid`),

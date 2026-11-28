@@ -40,8 +40,9 @@ export const SCRUB_SPECS = {
       place: "null",
       cancel_reason: "null",
       details: "details",
-      // Derived from a symptom's name (symptom-catalog).
-      symptom_type_id: "null",
+      // A reference to the group's catalog type, not content: the catalog's
+      // replace repoints deleted entries too (`symptomTypeService.replace`).
+      symptom_type_id: "keep",
       time_zone: "keep",
       occurred_at: "keep",
       ends_at: "keep",
