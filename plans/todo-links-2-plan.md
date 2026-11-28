@@ -6,7 +6,7 @@
 
 **Planned 2026-11-27** by the dispatcher's planner. Two slices, two waves; nothing asked. Skeptic s81's go: slice 2 gained the Planner's `route.tsx` (the loader's view, trees for easy roles), slice 1's `parentOf` reads done rows too, a revalidation note, the counts fixed.
 
-**Landing mode: run everything through** (dispatcher start, 2026-11-27). Orchestrator session 1: anchors fixed (slice 2 wording), B-964 claimed; wave 1 started: slice 1 worktree `.loops/todo-links-2-1`, agent on opus; handed off 33290c34f (quick check passed), merged 7d93c761d; wave 1 CI (components, run 46086880529) file: todos.browser.test.tsx menu sections (slice 1's, fix sent to its agent); resetStaging.int flake. B-964 stays open until slice 2. Fold at landing: docs/domain/todos.md _Lists_ ("Done stays flat" gains the view option). Backlog at the boundary: nothing new for this topic.
+**Landing mode: run everything through** (dispatcher start, 2026-11-27). Orchestrator session 1: anchors fixed (slice 2 wording), B-964 claimed; wave 1 started: slice 1 worktree `.loops/todo-links-2-1`, agent on opus; handed off 33290c34f (quick check passed), merged 7d93c761d; wave 1 CI (components, run 46086880529) file: todos.browser.test.tsx menu sections (slice 1's, fixed e3a89259a, merged 6158c3121; synced, dev unchanged; rerun out); resetStaging.int flake. B-964 stays open until slice 2. Fold at landing: docs/domain/todos.md _Lists_ ("Done stays flat" gains the view option). Backlog at the boundary: nothing new for this topic.
 
 | Slice | Wave | Model | State   | Merge into `prd/todo-links-2` (slice commits) |
 | ----- | ---- | ----- | ------- | --------------------------------------------- |
