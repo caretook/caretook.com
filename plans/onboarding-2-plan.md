@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/onboarding-2` (slice commits)                           |
-| ----- | ---- | -------------- | ----------------------------------------------------------------------- |
-| 1     | 1    | landed (opus)  | e6594062c (7844ff2e0)                                                   |
-| 2     | 2    | landed (opus)  | ab0722574 (f26ce5101)                                                   |
-| 3     | 3    | landed (opus)  | 52d9b39e1 (51bcd45a6)                                                   |
-| 4     | 3    | landed (opus)  | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef)                         |
-| 5     | 4    | landed (opus)  | bd843f2b7, fixes 68eb76e09, a49f8226b (1cac719b7, f7c7c9517, 3a05759d7) |
-| 6     | 5    | started (opus) |                                                                         |
+| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits)                           |
+| ----- | ---- | ------------- | ----------------------------------------------------------------------- |
+| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                                                   |
+| 2     | 2    | landed (opus) | ab0722574 (f26ce5101)                                                   |
+| 3     | 3    | landed (opus) | 52d9b39e1 (51bcd45a6)                                                   |
+| 4     | 3    | landed (opus) | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef)                         |
+| 5     | 4    | landed (opus) | bd843f2b7, fixes 68eb76e09, a49f8226b (1cac719b7, f7c7c9517, 3a05759d7) |
+| 6     | 5    | merged (opus) | d3516f714 (cf8263de4)                                                   |
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
@@ -22,6 +22,8 @@
 **Codex follow-ups (prd=onboarding-2, triaged):** B-1008 (a nudge toast outlives its group or a setup page opening), B-1009 (Back from a medication opened on the setup medications step goes to the Medications list), B-1010 (the redirect decides on defaults captured before `readSetupFacts`' await when settings arrive meanwhile: re-read `cachedSettings` in the known branch). Small; can ride with slice 6 if the planner agrees, else a fixes slice.
 
 **Wave 5 started (2026-11-28):** dev sync skipped (no shared file); fixes-ui idle; worktree onboarding-2-6 made, opus agent spawned. B-1008..1010 stay triaged (decide at landing: ride along or fixes-bug).
+
+**Slice 6 merged** as d3516f714; CI components run requested (tier proposed full only for `component-durations.json` key renames, shard balancing). Docs to fold at landing: app-shell.md's "Setup card" becomes the welcome (`TimelineWelcome.tsx`) for every non-setter plus `InviteSomeoneCard` for a lone manager in the full view; timeline.md's easy-view order says "the welcome".
 
 **Wave 5 = slice 6** (opus). Check `fixes-ui`'s current wave isn't on `routes/app/groups/timeline/` before starting (`pnpm backlog prd list`). The e2e specs `first-sync`/`invites` now click Later on `/setup/providers` and assert only the Timeline; slice 6 may bring back a card assertion after it. `done` B-670 when slice 6 merges.
 
