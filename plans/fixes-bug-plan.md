@@ -16,7 +16,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 94    | B-1009 | merged (opus) | 548aa3f37 |
 | 95    | B-1010 | merged (opus) | 14c5dd7ed |
 
-**Wave 27 running** (2026-11-28): onboarding-2 is done, so its three follow-ups run now; prd/fixes-bug was up to date with dev at the start. Hot files set to the three slices' paths. Landed wave 26: PR #321 (dev 56424f1), report a385. `risa status-trim` still to run after this landing (it crashed last time). Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 27: merged, CI green, paused for a reboot** (2026-11-28). Slices 93-95 merged (all opus); CI components green, run 46129305490, on dda2392 (per the backlog session; my `--wait` output was lost to a full disk, ENOSPC). Not yet synced: a `risa sync` hung (Docker hung machine-wide) and was stopped with the tree clean, no merge started. **Next, after the reboot:** `risa recover`, `risa sync`, the synced tip's CI recheck if sync merged, `risa serve --restart`, browser checks, `risa pr fixes-bug`, `risa review fixes-bug --wait`, then land (run-through). Then `risa rm fixes-bug-93/94/95`. Landed wave 26: PR #321 (dev 56424f1), report a385. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
