@@ -14,15 +14,15 @@
 
 **Now (2026-11-28):** wave 1 merged (B-836 stays open for wave 2); wave 1 CI (run 46190535266) failed only static: Prettier on this plan's table (fixed); every component test passed. Both waves merged; one components run gates both (running).
 
-| Slice | Wave | State   | Merge into `prd/marketing-3` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | merged  | ece376081 (1a8ca0000)                        |
-| 2     | 1    | merged  | 249bfb719 (d54231d81)                        |
-| 3     | 1    | merged  | cb7b17dba (1233d1544)                        |
-| 4     | 1    | merged  | c4ec80abb (b54c99c0e)                        |
-| 5     | 2    | working |                                              |
-| 6     | 2    | merged  | dda8232aa (6e5c74c43; plan file kept ours)   |
-| 7     | 1    | merged  | 651f2b48b (044c01061)                        |
+| Slice | Wave | State  | Merge into `prd/marketing-3` (slice commits) |
+| ----- | ---- | ------ | -------------------------------------------- |
+| 1     | 1    | merged | ece376081 (1a8ca0000)                        |
+| 2     | 1    | merged | 249bfb719 (d54231d81)                        |
+| 3     | 1    | merged | cb7b17dba (1233d1544)                        |
+| 4     | 1    | merged | c4ec80abb (b54c99c0e)                        |
+| 5     | 2    | merged | 0faaa0c5a (5be59d1c2, a9c795be7)             |
+| 6     | 2    | merged | dda8232aa (6e5c74c43; plan file kept ours)   |
+| 7     | 1    | merged | 651f2b48b (044c01061)                        |
 
 ## Architectural decisions
 
