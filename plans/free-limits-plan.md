@@ -12,7 +12,7 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 3: slice 3 handed off (check green) and merged; integration CI run out (`risa ci run integration`). Keep free-limits-3 until green. Waves 1 and 2 landed (wave 2 via PR #335; history in plans/free-limits-history.md). B-1012 is the umbrella item: done only after slice 4.
+**Now (2026-11-28):** wave 3: slice 3 merged; integration green on d617ad3 (run 46164221015); free-limits-3 removed. Synced dev (e42816e16), integration recheck out; datastore reset (the dev DB lacked migration 0050); browser app-shell flaky-pass. Next: PR, Codex, land. Waves 1 and 2 landed (wave 2 via PR #335; history in plans/free-limits-history.md). B-1012 is the umbrella item: done only after slice 4.
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
