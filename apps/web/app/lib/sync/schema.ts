@@ -596,7 +596,10 @@ export const recordTags = sqliteTable(
  * `line_key` what the "Changes not saved" page groups by (a note's document
  * and its updates share one; so do a multi-op write's ops, B-294), and
  * `write_id` the write it was sent in (its local transaction id), null when it
- * went without one. Written by `lib/sync/uploader.ts`.
+ * went without one; `write_seq` its place among the records written with it
+ * (one recording shares one `recorded_at`, so this keeps a write's op order
+ * for the page's first op and Try again, slice 5). Written by
+ * `lib/sync/uploader.ts`.
  */
 export const unsavedChanges = sqliteTable(
   "unsaved_change",
@@ -613,6 +616,7 @@ export const unsavedChanges = sqliteTable(
     label: text("label"),
     lineKey: text("line_key"),
     writeId: integer("write_id"),
+    writeSeq: integer("write_seq"),
   },
   (t) => [index("unsaved_change_line").on(t.lineKey)],
 );

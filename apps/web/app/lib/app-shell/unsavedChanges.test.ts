@@ -95,6 +95,8 @@ const record = (over: Partial<UnsavedRecord>): UnsavedRecord => ({
   outcome: "refused",
   label: null,
   lineKey: "medication:m1",
+  writeId: null,
+  writeSeq: null,
   ...over,
 });
 
@@ -117,6 +119,36 @@ describe("unsavedLines", () => {
       record({ tableName: "note_update", rowId: "u1", op: "PUT", lineKey: "note_document:d1" }),
     ]);
     expect(line).toMatchObject({ table: "note_document", count: 1, op: "PUT" });
+  });
+
+  it("reads a write's records as one line: its first op, and the reason of the op refused (B-294)", () => {
+    const at = "2027-06-09T12:00:00.000Z";
+    const op = (writeSeq: number, over: Partial<UnsavedRecord>) =>
+      record({
+        recordedAt: at,
+        lineKey: "write:7",
+        writeId: 7,
+        writeSeq,
+        code: "sync:writeRefused",
+        ...over,
+      });
+    // Stored out of order, as a query without `write_seq` may return them.
+    const lines = unsavedLines([
+      op(2, { tableName: "record_tag", rowId: "rt1", op: "PUT" }),
+      op(1, { tableName: "tag", rowId: "t1", op: "PUT", label: "Knee", code: "tagService:invalid" }),
+      op(0, { tableName: "timeline_entry", rowId: "e1", op: "PUT", label: "Walk" }),
+      record({ id: "own", recordedAt: at, writeId: 8, writeSeq: 0 }),
+    ]);
+    expect(lines).toHaveLength(2);
+    expect(lines.find((l) => l.key === "write:7")).toMatchObject({
+      count: 3,
+      table: "timeline_entry",
+      op: "PUT",
+      label: "Walk",
+      code: "tagService:invalid",
+    });
+    // A single-op write keeps its row's line.
+    expect(lines.find((l) => l.key === "medication:m1")?.ids).toEqual(["own"]);
   });
 
   it("parses the issues, and ignores ones it can't read", () => {

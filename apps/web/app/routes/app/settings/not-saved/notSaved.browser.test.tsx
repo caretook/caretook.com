@@ -39,6 +39,8 @@ type Record = {
   label?: string | null;
   lineKey?: string;
   outcome?: "refused" | "set_aside";
+  writeId?: number | null;
+  writeSeq?: number | null;
   at: string;
 };
 
@@ -47,8 +49,8 @@ const record = async (db: SyncDb, r: Record) => {
   const table = r.table ?? "medication";
   const rowId = r.rowId ?? "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0a01";
   await db.powersync.execute(
-    `INSERT INTO unsaved_change (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key)
-     VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO unsaved_change (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key, write_id, write_seq)
+     VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       r.at,
       table,
@@ -60,6 +62,8 @@ const record = async (db: SyncDb, r: Record) => {
       r.outcome ?? "refused",
       r.label ?? null,
       r.lineKey ?? `${table}:${rowId}`,
+      r.writeId ?? null,
+      r.writeSeq ?? null,
     ],
   );
 };
@@ -227,6 +231,125 @@ describe("a set-aside change (B-286)", () => {
       ]);
     await expect.element(page.getByRole("button", { name: "Try again" })).toBeEnabled();
     expect(texts()).toContain(SET_ASIDE);
+  });
+});
+
+describe("a write's records (B-294)", () => {
+  const AT = "2027-06-09T09:00:00.000Z";
+  const ENTRY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0f01";
+  const TAG = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0f02";
+  const RECORD_TAG = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0f03";
+  const WRITE = 41;
+
+  /** `sync.upload` applying every op it gets. */
+  const applyAll = (input: unknown) => ({
+    results: (input as { ops: { id: string }[] }).ops.map((op) => ({ id: op.id, status: "applied" })),
+  });
+
+  /** An entry saved with a new tag: three ops, one write, recorded in one go (stored out of order). */
+  const tagged = async (db: SyncDb, over: Partial<Record>) => {
+    const one = { at: AT, lineKey: `write:${WRITE}`, writeId: WRITE, op: "PUT", ...over };
+    await record(db, { ...one, table: "record_tag", rowId: RECORD_TAG, writeSeq: 2, data: { tag_id: TAG } });
+    await record(db, { ...one, table: "timeline_entry", rowId: ENTRY, writeSeq: 0, label: "Walk" });
+    await record(db, {
+      ...one,
+      table: "tag",
+      rowId: TAG,
+      writeSeq: 1,
+      label: "Knee",
+      data: { name: "Knee" },
+    });
+  };
+
+  test("a refused three-op write is one line: its first op, with the refusing op's reason", async () => {
+    const device = await renderWithDevice({ route: ROUTES, url: URL });
+    await tagged(device.db, { code: "sync:writeRefused" });
+    await device.db.powersync.execute(
+      "UPDATE unsaved_change SET code = 'tagService:invalid', issues = ? WHERE row_id = ?",
+      [JSON.stringify([{ path: "name", message: "Name is taken." }]), TAG],
+    );
+    await device.settle();
+    await expect
+      .poll(texts)
+      .toEqual(["Your new entry “Walk” wasn't saved: it wasn't valid (Name is taken) · 3 changes"]);
+    expect(page.getByRole("button", { name: "Try again" }).elements()).toHaveLength(0);
+    await userEvent.click(page.getByRole("button", { name: "Dismiss" }));
+    await expect.element(getByCss("main [data-not-saved-empty]")).toBeVisible();
+    expect(await device.query("SELECT id FROM unsaved_change")).toEqual([]);
+  });
+
+  test("Try again on a set-aside write sends one request with every op and the write id", async () => {
+    const calls = apiCalls();
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: URL,
+      connected: true,
+      api: calls.record({
+        "sync.upload": applyAll,
+      }),
+    });
+    await tagged(device.db, { code: "sync:failed", outcome: "set_aside" });
+    await device.settle();
+    await expect.poll(() => lines().length).toBe(1);
+    await userEvent.click(page.getByRole("button", { name: "Try again" }));
+    await expect.element(getByCss("main [data-not-saved-empty]")).toBeVisible();
+    expect(calls.of("sync.upload")).toEqual([
+      {
+        ops: [
+          { op: "PUT", table: "timeline_entry", id: ENTRY, data: null, write: WRITE },
+          { op: "PUT", table: "tag", id: TAG, data: { name: "Knee" }, write: WRITE },
+          { op: "PUT", table: "record_tag", id: RECORD_TAG, data: { tag_id: TAG }, write: WRITE },
+        ],
+      },
+    ]);
+    expect(await device.query("SELECT id FROM unsaved_change")).toEqual([]);
+  });
+
+  test("Try again sends a write past the batch limit whole, in one request", async () => {
+    const calls = apiCalls();
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: URL,
+      connected: true,
+      api: calls.record({
+        "sync.upload": applyAll,
+      }),
+    });
+    const rows = Array.from(
+      { length: 120 },
+      (_, i) => `0b6f3c1e-5d1a-4c2e-9a77-${String(i).padStart(12, "0")}`,
+    );
+    await device.db.powersync.writeTransaction(async (tx) => {
+      for (const [i, rowId] of rows.entries())
+        await tx.execute(
+          `INSERT INTO unsaved_change (id, recorded_at, table_name, row_id, op, code, outcome, line_key, write_id, write_seq)
+           VALUES (uuid(), ?, 'medication_pass', ?, 'PUT', 'sync:failed', 'set_aside', ?, ?, ?)`,
+          [AT, rowId, `write:${WRITE}`, WRITE, i],
+        );
+    });
+    await device.settle();
+    await expect
+      .poll(texts)
+      .toEqual(["Your new medication time wasn't saved: the server couldn't save this · 120 changes"]);
+    await userEvent.click(page.getByRole("button", { name: "Try again" }));
+    await expect.element(getByCss("main [data-not-saved-empty]")).toBeVisible();
+    const sent = calls.of("sync.upload") as { ops: { id: string; write: number }[] }[];
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.ops.map((op) => op.id)).toEqual(rows);
+    expect(new Set(sent[0]?.ops.map((op) => op.write))).toEqual(new Set([WRITE]));
+  });
+
+  test("records without a write id, and a row's single-op writes, show by row as before", async () => {
+    const device = await renderWithDevice({ route: ROUTES, url: URL });
+    await record(device.db, { at: "2027-06-09T09:00:00.000Z", label: "Lisinopril", writeId: 5, writeSeq: 0 });
+    await record(device.db, { at: "2027-06-09T09:01:00.000Z", writeId: 6, writeSeq: 0 });
+    await record(device.db, { at: "2027-06-09T09:02:00.000Z" });
+    await device.settle();
+    await expect
+      .poll(texts)
+      .toEqual([
+        "Your change to the medication “Lisinopril” wasn't saved: you can't edit in this group any more · 3 changes",
+      ]);
   });
 });
 
