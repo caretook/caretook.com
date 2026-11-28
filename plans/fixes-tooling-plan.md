@@ -4,20 +4,22 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 ## Status
 
-**From the user:** (no directive this run yet)
+**From the user:**
+
+- 2026-11-28 (relayed by the backlog session, when asked to switch sessions to the personal account): "Yes, switch now"
 
 **Landing mode: run everything through** (started run-through by the dispatcher 2026-11-28; land each green wave, clean up, ask only real questions via `risa ask`).
 
 **History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`risa status-trim`).
 
 - **Wave 11 landed** (2026-11-26) as c99c452 (PR #227). Since then the Risa split landed: the loop tooling is Risa's (`risa …` replaces `pnpm prd …`/`pnpm backlog …`); Caretook keeps `scripts/project/` and `scripts/browser-checks/`.
-- **Wave 12 started 2026-11-28** (dev synced: ebf948dc). Slices 94–101 (CI/browser-check flakes and check-area mapping), all opus. All eight merged; the wave's CI run is next. Slice 97 fixed a real bug in NewerEntries.tsx (reaching today from a jump threw the reader ~2000 px on Chrome). Fold at landing: docs/domain/search.md's "Queries take 2–15 ms" (slice 94 now bounds queries at 5× a measured baseline, best of 7). Hot files: free-limits holds the admin services and routes, so B-778/B-782 (admin int-test flakes) wait.
+- **Wave 12 started 2026-11-28** (dev synced: ebf948dc). Slices 94–101 (CI/browser-check flakes and check-area mapping), all opus. All eight merged (tip 8798a4df). **Hand-over (account switch, 2026-11-28):** the wave's `risa ci run full` was requested on 8798a4df (full: slice 97 edited `scripts/ci/quarantine.txt`); the new session re-waits on it (`risa ci run full --wait`, or read its verdict), then on green: `risa rm fixes-tooling-94`..`-101`, `risa sync`, recheck, `risa serve --restart`, browser checks (`risa browser --changed --base dev`; ui and layout-offline changed), `risa pr fixes-tooling`, `risa review fixes-tooling --wait`, land, fold docs, `risa status-trim`. On a failure: `risa ci blame`; the slice agents are gone, so a fresh opus fix agent per failing slice, in its worktree. Slice 97 fixed a real bug in NewerEntries.tsx (reaching today from a jump threw the reader ~2000 px on Chrome). Fold at landing: docs/domain/search.md's "Queries take 2–15 ms" (slice 94 now bounds queries at 5× a measured baseline, best of 7). Hot files: free-limits holds the admin services and routes, so B-778/B-782 (admin int-test flakes) wait.
 - **Waiting triaged items for later waves:** B-375 (less its timelineScroll part, in 97), B-667, B-750 and B-752 (parked, not runnable), B-757, B-778, B-782, B-791, B-802, B-852, B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-| Slice | Item                        | State           | Merge |
-| ----- | --------------------------- | --------------- | ----- |
+| Slice | Item                        | State  | Merge    |
+| ----- | --------------------------- | ------ | -------- |
 | 94    | B-619, B-839, B-998, B-1000 | merged | 4d663e36 |
 | 95    | B-808, B-922, B-983         | merged | 454097ee |
 | 96    | B-1004, B-1005              | merged | 8a9da3db |
