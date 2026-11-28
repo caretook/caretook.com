@@ -109,4 +109,8 @@ export const CARE_GROUPS_ERRORS = {
     message: "That's more uses than invite links may have",
     statusCode: 400,
   },
+  "groupLimitService:atLimit": {
+    message: "You've started as many care groups as the free plan allows. Contact us if you need more.",
+    statusCode: 409,
+  },
 } as const;
