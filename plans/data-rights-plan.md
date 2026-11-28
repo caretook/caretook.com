@@ -21,7 +21,7 @@
 | 3     | 1    | landed      | `bfcdf7504` (60e80fbe7..f0745418d)           |
 | 4     | 1    | landed      | `9a7856062` (4b511c986)                      |
 | 5     | 2    | landed      | `40be45d26` (e959f31a6, 9091b891c), mig 0052 |
-| 6     | 3    | started     | worktree made 2026-11-28, agent on opus      |
+| 6     | 3    | in flight   | worktree data-rights-6, opus agent spawned   |
 
 **Backlog:** claim each slice's item when it starts. Run `pnpm backlog done` for B-84 after slices 1 to 4 and for B-357 after slice 5. B-53 stays open after slice 6 with a note: its account half is `data-rights-2`'s.
 
