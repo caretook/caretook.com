@@ -1,6 +1,8 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type Rolldown } from "vite";
+
+import { clientChunks as lucideChunks } from "../../scripts/build/chunks.mjs";
 
 // Server-side env for dev and builds: apps/web/.env (auth), then
 // packages/data/.env (DATABASE_URL), so there's one copy of each value. Real
@@ -33,19 +35,12 @@ const chunkModules = (): Plugin => ({
   },
 });
 
-// Client chunk groups (B-960): every lucide-react icon goes in one `icons`
-// chunk, so the first /app load fetches one file for its icons, not one per
-// icon. React has its own group, ahead of the icons, or the icons group would
-// take React with it (a group takes its modules' dependencies) and drag every
-// icon into the entry. Route chunks are left to the automatic split, so routes
-// stay lazy; `pnpm build:budget` checks both (budget.json's `together` and
-// `noRoutesIn`).
-const clientChunks = {
-  groups: [
-    { name: "react", test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 1 },
-    { name: "icons", test: /node_modules[\\/]lucide-react[\\/]/ },
-  ],
-};
+// Client chunk groups (B-960, B-966): React, lucide-react's own code, the
+// icons only the app reaches in one `icons` chunk (the public pages never load
+// it), and the public pages' icons by page. The plugin reads which icons each
+// module imports. The rules and why: scripts/build/chunks.mjs; `pnpm build:budget`
+// checks the shape.
+const clientChunks = lucideChunks<Plugin, Rolldown.CodeSplittingOptions>();
 
 export default defineConfig({
   // VITE_* as usual, plus APP_ENV (staging | production): it's public, and
@@ -59,11 +54,13 @@ export default defineConfig({
   // Component tests (Vitest's `web:components` project) load this config for
   // `~/`, Tailwind, daisyUI and the dedupes, but render routes in React
   // Router's test stub: the framework plugin isn't for tests.
-  plugins: [tailwindcss(), !process.env.VITEST && reactRouter(), chunkModules()],
+  plugins: [tailwindcss(), !process.env.VITEST && reactRouter(), chunkModules(), clientChunks.plugin],
   // The bundle budget reads .vite/manifest.json from the web client build.
   build: { manifest: true },
   // Both targets' client builds (the server build keeps its default split).
-  environments: { client: { build: { rolldownOptions: { output: { codeSplitting: clientChunks } } } } },
+  environments: {
+    client: { build: { rolldownOptions: { output: { codeSplitting: clientChunks.codeSplitting } } } },
+  },
   // One copy each of yjs (Yjs breaks with two: its `instanceof` checks fail),
   // React, and ProseMirror's packages.
   resolve: {
