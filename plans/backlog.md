@@ -309,7 +309,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
 | B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
-| B-1051 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
+| B-1051 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 
@@ -2002,10 +2002,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1051 · bug · CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 16598a82d
 
 - 2026-11-28 (prd/fixes-tooling): 2026-11-28 (fixes-tooling slice 102): timed out at 5000 ms once in 10 runs of packages/data integration at machine load 20-27; the earlier fix is archived B-986.
 - 2026-11-28 (slice/fixes-tooling/109): 2026-11-28 (fixes-tooling slice 109): cause shown: givePass made ~1,000 round trips for 101 medications (a lock and a read per slot id, then a create per dose with ~8 queries each). Unloaded 0.9-1.1 s (plan 221 ms, write 893 ms); at load 18-48 the givePass ran 13.7 s (plan 1.4 s, write 12.2 s) and timed out at 5 s every time. Now set-based (lockIds, one read, createMany with one dose-medication read): 90-120 ms unloaded, 89-1186 ms at load 47-127.
