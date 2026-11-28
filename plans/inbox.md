@@ -29,6 +29,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Part of 'reasonable limits on free'. Count groups the user created or owns, not ones they were invited to. Pick a default (e.g. 3) in the plan.
 - Free plan: limit account creation per address, so one person can't make many free accounts to get past the per-user limits (sign-ups per email domain/alias, IP and device per window)
   The user's 'household' limit means accounts per address. Normalize email aliases (plus-addressing, dots for Gmail). Overlaps B-333 (link sign-up unlimited unverified accounts) in account-security.
+- Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked before upload, with usage shown in settings
+  For B-56 (document uploads, not built yet). Also a per-file size cap. Deletions free their bytes.
 
 ## Big plans
 
