@@ -193,7 +193,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-364 | change | triaged | code-health-3 |  | Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere |
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
-| B-375 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
+| B-375 | chore | ready | fixes-tooling | prd/fixes-tooling | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
 | B-377 | feature | in-progress | push-notifications | prd/push-notifications | Push notifications for appointment reminders (B-61 shipped email only) |
 | B-378 | chore | triaged | i18n |  | File the translations PRD's promised follow-ups: Spanish quick entry, language-aware search, a human review of the Spanish; and note 48 hard-coded 'en-US' formatters and English messages in schemas and the errors catalogue |
 | B-455 | chore | triaged | contract-migrations |  | Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them |
@@ -207,21 +207,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-619 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-665 | change | triaged | onboarding-3 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
-| B-667 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
+| B-667 | chore | ready | fixes-tooling | prd/fixes-tooling | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-749 | chore | landed | fixes-tooling | prd/fixes-tooling | check-areas: the *.sync.ts writers roundtrip now calls (todos, allergies, conditions, medicationConditions, notes) don't map to roundtrip |
 | B-750 | bug | triaged | fixes-tooling |  | Second-zone failures past the filing cap: test files that fail in America/New_York beyond the release tier's 10 filings |
 | B-752 | bug | triaged | fixes-tooling | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
-| B-757 | chore | in-progress | fixes-tooling | prd/fixes-tooling | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
+| B-757 | chore | ready | fixes-tooling | prd/fixes-tooling | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
 | B-772 | chore | landed | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
-| B-778 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
+| B-778 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
 | B-782 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-785 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx: scrolling newer from a day Back … |
 | B-790 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx: infinite scroll three pages down, an… |
 | B-791 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx: the owner's sheet builds the list: a membe… |
 | B-795 | chore | triaged |  |  | Clean Caretook's history of the orchestration tooling and its bloat |
-| B-802 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
+| B-802 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun |
 | B-808 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check ui.spec: the add sheet's surface can measure 0 by 0 under load |
 | B-829 | question | triaged | marketing-3 |  | Research: compare Care Book to Caring Village |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
@@ -229,7 +229,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-837 | change | landed | test-time-gates-2 | prd/test-time-gates-2 | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | landed | fixes-tooling | prd/fixes-tooling | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-851 | chore | landed | fixes-tooling | prd/fixes-tooling | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
-| B-852 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
+| B-852 | bug | ready | fixes-tooling | prd/fixes-tooling | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
 | B-853 | chore | triaged | marketing |  | Connect ChatGPT (Developer mode) and Claude to a care group by hand on staging before the marketing link is shared |
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing-3 |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
@@ -305,6 +305,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1047 | feature | triaged | fixes-ui |  | Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close… |
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
+| B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
+| B-1051 | bug | triaged | fixes-tooling |  | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 
 ## Items
 
@@ -818,10 +820,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-375 · chore · Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports)
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3428db815
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. B-278 and B-279 already cover the shared integration database and the frozen lists.
 - 2026-11-21 (prd/test-health): test-health orchestrator (2026-11-22): the timelineScroll retry: 2 part is slice 15's; the rest (calendars.int toBeTruthy, check-areas packages/ mapping, web:unit ~/ alias) fits a later test-health wave or fixes-tooling.
@@ -982,10 +984,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-667 · chore · Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3428db815
 
 - 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23. Today no seeded account sees onboarding: seeds/setupDismissed.ts dismisses setup for every member of seeded groups, and the workaround is /join/CARE-DEMO-0001 with a new fictional address. Wants a fictional @example.com account (dev and staging, never production) that starts in the setup state and can be reset, exempt from the seeded dismissal. Decide at build time how the reset works and whether it covers owner and invited roles.
 - 2026-11-23 (Robert Bo Davis): 2026-11-23: under B-670 only group creators get onboarding, so this test user must be a group creator with nothing set up, resettable to before first login.
@@ -1027,10 +1029,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-757 · chore · Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3428db815
 
 - 2026-11-24 (prd/test-health-2): From test-health-2 slice 6: scripts/loops/check-body.sh passes only --project web:components, so a slice touching timeline/medications/planner tests never sees New York until CI.
 
@@ -1070,12 +1072,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-778 · bug · CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3428db815
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 31dfbabdc436] Flaked (passed on its rerun); found by prd/fixes-ui.
+- 2026-11-28 (slice/fixes-tooling/102): Cause: the test sorted 3 audit entries by created_at (ms precision); back-to-back setRole calls shared a ms and CI run 45463582955 shows entries 2 and 3 swapped. Fixed in slice 102 (d14249d7c): each call's added entry is asserted; out of quarantine.
 
 ### B-782 · bug · CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma…
 
@@ -1131,10 +1134,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-802 · bug · CI flake: invites.spec.mjs '3. reset a password by email › the new password signs in' failed once, passed on rerun
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3428db815
 
 - 2026-11-24 (Robert Bo Davis): Filed 2026-11-24 by the backlog session on the user's word. Candidate rc/20261125-0251 (abb7965d, from dev e7798575), CI run 45535937950 (PR #178): browser verdict flake; invites.spec.mjs:477 expect(...).toBe(...) failed, then passed on the job's one rerun. The candidate was promoted (staging 534f96af). Not reproduced; check whether it's a read-before-render race (fix it, don't rerun).
 
@@ -1217,10 +1220,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-852 · bug · Marketing banned-phrase test misses competitor names and the contact, header and footer strings
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 3428db815
 
 - 2026-11-25 (prd/marketing-2): From the marketing-2 land skeptic (2026-11-25): apps/web/app/routes/marketing/site/claims.test.ts has no competitor-name pattern though the PRD bans them, and contact/content.ts plus the header and footer strings are outside SOURCES (clean today). Also ProseContent.placeholder and the 'To be written' badge are now unused.
 
@@ -1965,3 +1968,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/data-rights): From data-rights wave 1 (slice 1 fix): packages/api/src/connectors/tools/listMedications.ts reads deleted passes so an old schedule keeps its names; the scrub now clears passName. Decide: keep a deleted pass's name while its medication is live (like the dose carve-out), or label it.
+
+### B-1050 · change · Finishing a todo's last subtask silently completes the parent and it vanishes from the list;…
+
+- status: triaged
+- prd: undo-first
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: Finishing a todo's last subtask silently completes the parent and it vanishes from the list; instead the action message asks 'Mark <parent> done too?' with Undo there (alpha tester)
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'that is one of those "too smart" things that isn't intuitive. ... I'll refine it once the flash messenger is in place (the little popup that tells you what happened and what you can do) to say something like "do you want to mark the main task as complete?" and put the undo there too.' Waits for undo-first's action message (B-1040). Today: todoService.rollUp completes the parent as the system (docs/domain/todos.md, Rollup). Open for the planner to ask: the tester also found a parent with open subtasks can't be ticked (TodoTick disables it) and likes adding already-done things to tick off; whether a parent tick should be allowed (completing its subtasks, with Undo) is the user's call.
+
+### B-1051 · bug · CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (prd/fixes-tooling): 2026-11-28 (fixes-tooling slice 102): timed out at 5000 ms once in 10 runs of packages/data integration at machine load 20-27; the earlier fix is archived B-986.
