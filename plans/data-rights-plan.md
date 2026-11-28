@@ -6,11 +6,11 @@
 
 ### From the user
 
-- (none yet; started run-through by the dispatcher, 2026-11-28)
+- 2026-11-28 (relayed by the backlog session), asked to switch sessions to the personal account: "Yes, switch now"
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** hold lifted; wave 1 (slices 1 to 4) working since 2026-11-28 (worktrees `.loops/data-rights-<n>`, agents spawned, watch running). B-84 and B-53 claimed. Hot-file check: `fixes-ui` idle, `tags`/`todo-subtasks` done, so no wave waits. Models: slices 1 to 4 on opus.
+**Where it stands:** wave 1 (slices 1 to 4) was spawned 2026-11-28 on opus, then rotated mid-wave minutes later for the account switch (the user's word above). The worktrees `.loops/data-rights-<n>` and branches `slice/data-rights/<n>` stay as they are (never reset): **respawn each slice with `risa prompt slice data-rights <n> --continue`** in its worktree, on opus, then restart `risa watch data-rights --wait`. B-84 and B-53 claimed; B-357 is claimed when slice 5 starts. Hot-file check at start: `fixes-ui` idle, `tags`/`todo-subtasks` done, so no wave waits. Backlog ingest: nothing new.
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
