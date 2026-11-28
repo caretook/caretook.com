@@ -6,7 +6,7 @@ import { EmptyState, List, TITLE_SUB } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
-import { ProviderListItem } from "./ProviderListItem";
+import { ProviderListItem } from "~/components/providers";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "provider" : "providers"}`;
 
