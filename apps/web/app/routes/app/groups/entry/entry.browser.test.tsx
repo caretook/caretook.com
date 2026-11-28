@@ -201,7 +201,10 @@ describe("a note from a past day's +", () => {
     const key = new Date(Date.now() - 48 * 3_600_000).toLocaleDateString("en-CA");
     const header = document.getElementById(`day-${key}`)!.closest("[data-day-header]")!;
     const plus = header.querySelector<HTMLElement>('button[aria-label^="Add to "]')!;
-    expect(plus.getAttribute("aria-label")).toBe(`Add to ${header.querySelector("h3")!.textContent}`);
+    // The heading's full label (its h3 also holds the phone form, B-999).
+    expect(plus.getAttribute("aria-label")).toBe(
+      `Add to ${header.querySelector("h3 [data-day-full]")!.textContent}`,
+    );
     await userEvent.click(plus);
     await waitUntil(() => !!menuItem("Note"), "Note in the day's + menu");
     await userEvent.click(await found(() => menuItem("Note")));
