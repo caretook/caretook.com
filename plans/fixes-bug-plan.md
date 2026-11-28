@@ -16,7 +16,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 91    | B-1003 | started (opus) | —     |
 | 92    | B-1006 | started (opus) | —     |
 
-**Wave 26 in flight** (2026-11-28): three sync-safety follow-ups, all parallel, all opus. Hot files set on the fixes-bug row. Wave 25 landed through PR #295 (ef9445cb8); its notes are in the history file after the next status-trim. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 26 in flight** (2026-11-28): three sync-safety follow-ups, all parallel, all opus. First start was on a stale base (prd/fixes-bug lacked sync-safety-2); the agents stopped with nothing built, worktrees removed, `risa sync` brought dev in (0abec694c, timeline.md conflict resolved keeping the lock note), slices restarted. Hot files set on the fixes-bug row. Wave 25 landed through PR #295 (ef9445cb8); its notes are in the history file after the next status-trim. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -971,7 +971,7 @@ Repeating todos ticked before sync-safety-2 (B-383) took `done_at` from the app 
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: integration, component
 
-A device holding the Undo's soft-deleted next occurrence that ticks a stale copy writes a PATCH clearing `deleted_at`; the PATCH path in `packages/api/src/syncRegistry.ts` (about line 430) calls `todoService.restoreOccurrence` (`todoService.ts`, about line 811), which still restores for a writer when the chain has no open row, so a stopped chain comes back. B-387's flag covers only the PUT path.
+A device holding the Undo's soft-deleted next occurrence that ticks a stale copy writes a PATCH clearing `deleted_at`; the PATCH path in `packages/api/src/syncRegistry.ts` (about line 432) calls `todoService.restoreOccurrence` (`todoService.ts`, about line 849), which still restores for a writer when the chain has no open row, so a stopped chain comes back. B-387's flag covers only the PUT path.
 
 - The device flags that restore update with `TICK_NEXT_METADATA` (as B-387's PUT does); the PATCH path skips `restoreOccurrence` when the op is flagged and the chain has no open row, and the op is accepted with no change (not refused, so the queue drains). An unflagged restore (a member's own Undo) behaves as today. Keep the server change to the todo case of the upload switch and the service.
 - Integration test: a fictional stopped chain (no open row, next soft-deleted); a flagged PATCH clearing `deleted_at` leaves it deleted; an unflagged one from a writer still restores. Component test: the device's stale tick writes the flag.
