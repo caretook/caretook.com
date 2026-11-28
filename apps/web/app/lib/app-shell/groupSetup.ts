@@ -1,5 +1,7 @@
 import type { GroupSetup } from "@caretook/data/schema";
 
+import { isOwnerRole } from "@caretook/data/permissions";
+
 // The setup rules for a care group (onboarding-2): who sets it up, which of
 // the setup pages' steps are done, whether the flow is finished, and whether
 // opening the group should go to its setup pages. Pure: every step's state
@@ -51,7 +53,7 @@ export const setsUpGroup = ({
   userId: string;
   role: string | null | undefined;
   facts: Pick<GroupSetupFacts, "earliestMemberId">;
-}) => role === "owner" && facts.earliestMemberId === userId;
+}) => isOwnerRole(role) && facts.earliestMemberId === userId;
 
 /** Each step with whether it's done, in flow order. */
 export const groupSetupSteps = (facts: GroupSetupFacts) =>

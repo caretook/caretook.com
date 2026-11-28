@@ -1,5 +1,6 @@
 import type { ConnectorScope } from "@caretook/data/schema";
 
+import { isManagerRole, isOwnerRole } from "@caretook/data/permissions";
 import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL, CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
 
 // Group settings → Assistants' pure parts (connectors PRD): who sees what,
@@ -7,8 +8,8 @@ import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL, CONNECTOR_SCOPE_LABELS } from "@car
 
 /** What a member with `role` gets on the page: the switch (owners) and the group's connections (owners and admins). */
 export const assistantsAccess = (role: string | null) => ({
-  toggle: role === "owner",
-  manage: role === "owner" || role === "admin",
+  toggle: isOwnerRole(role),
+  manage: isManagerRole(role),
 });
 
 export const OFFLINE_ASSISTANTS = "Needs a connection to change Assistants or see who's connected.";
