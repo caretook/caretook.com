@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { createGroup, createUser, ok, system } from "../../test/fixtures";
 import { getDb, withTransaction } from "../db";
-import { appSettingSchema, careGroupSchema } from "../db/schema";
+import { appSettingSchema, careGroupSchema, userSchema } from "../db/schema";
 import { isError } from "../errors";
 import { appSettingModel } from "../models";
 import {
@@ -14,6 +14,7 @@ import {
   careGroupMemberService,
   careGroupService,
   staffGroupService,
+  userService,
 } from ".";
 
 // The free plan's cap on starting care groups (free-limits slice 1): only
@@ -215,5 +216,74 @@ describe("starting care groups on the free plan", () => {
     const results = await Promise.all([start(member, "Race A"), start(member, "Race B")]);
     expect(results.map(codeOf).sort()).toEqual(["groupLimitService:atLimit", "ok"]);
     expect(await startedBy(member)).toBe(2);
+  });
+});
+
+// One account's own limit (free-limits slice 2): `user.group_limit`, set only
+// as the system, wins over the setting; null follows it.
+describe("one account's own limit", () => {
+  const ownLimit = async (who: WorldUser) =>
+    (
+      await getDb()
+        .select({ n: userSchema.groupLimit })
+        .from(userSchema)
+        .where(eq(userSchema.id, who.user.id))
+    )[0]?.n;
+
+  /** Set `who`'s own limit as the system, the way staff's change writes it. */
+  const setOwnLimit = async (who: WorldUser, groupLimit: number | null) =>
+    ok(
+      await userService.update(system, {
+        filter: { id: { type: "eq", value: who.user.id } },
+        data: { groupLimit },
+      }),
+    );
+
+  it("lets a member with their own limit of 5 start a 4th and 5th group, and refuses the 6th", async () => {
+    appSettingService.clearSettingsCache();
+    const member = await createUser("own-limit-five");
+    await setOwnLimit(member, 5);
+    for (let i = 0; i < 3; i++) ok(await start(member));
+
+    expect(codeOf(await start(member, "Fourth"))).toBe("ok");
+    expect(codeOf(await start(member, "Fifth"))).toBe("ok");
+    expect(codeOf(await start(member, "Sixth"))).toBe("groupLimitService:atLimit");
+    expect(await startedBy(member)).toBe(5);
+  });
+
+  it("holds an own limit of 1 under a setting of 3, and falls back to the setting when cleared", async () => {
+    await setLimit(3);
+    const member = await createUser("own-limit-one");
+    await setOwnLimit(member, 1);
+    ok(await start(member));
+    expect(codeOf(await start(member))).toBe("groupLimitService:atLimit");
+
+    await setOwnLimit(member, null);
+    expect(codeOf(await start(member))).toBe("ok");
+    expect(codeOf(await start(member))).toBe("ok");
+    expect(codeOf(await start(member))).toBe("groupLimitService:atLimit");
+    expect(await startedBy(member)).toBe(3);
+  });
+
+  it("refuses a member setting their own limit, and leaves it unchanged", async () => {
+    const member = await createUser("own-limit-self");
+    await setOwnLimit(member, 2);
+
+    const res = await userService.update(member.ctx, {
+      filter: { id: { type: "eq", value: member.user.id } },
+      data: { groupLimit: 1000 },
+    });
+    expect(codeOf(res)).toBe("permissions:fieldUnauthorized");
+    expect(await ownLimit(member)).toBe(2);
+  });
+
+  it("is refused by the database outside 1 to 1000", async () => {
+    const member = await createUser("own-limit-range");
+    for (const groupLimit of [0, 1001]) {
+      await expect(
+        getDb().update(userSchema).set({ groupLimit }).where(eq(userSchema.id, member.user.id)),
+      ).rejects.toThrow();
+    }
+    expect(await ownLimit(member)).toBeNull();
   });
 });
