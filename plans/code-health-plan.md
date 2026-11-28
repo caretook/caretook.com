@@ -12,14 +12,14 @@
 
 **Other PRDs:** hot files narrowed to wave 1's real paths (2026-11-27) so fixes-nit's B-950 (moves `TimelineEntryRow.tsx` and `useOpenTodoCounts` into `components/entry/`) runs alongside; slice 6 rewrites import lines on whatever `dev` holds when it starts.
 
-| Slice | Wave | State                                                           | Merge into `prd/code-health` (slice commits) |
-| ----- | ---- | --------------------------------------------------------------- | -------------------------------------------- |
-| 1     | 1    | running (worktree code-health-1, opus agent spawned 2026-11-27) |                                              |
-| 2     | 1    | running (worktree code-health-2, opus agent spawned 2026-11-27) |                                              |
-| 3     | —    | dropped (B-367 moved to Risa)                                   |                                              |
-| 4     | —    | dropped (B-367 moved to Risa)                                   |                                              |
-| 5     | 1    | running (worktree code-health-5, opus agent spawned 2026-11-27) |                                              |
-| 6     | 2    | not started                                                     |                                              |
+| Slice | Wave | State                                                                  | Merge into `prd/code-health` (slice commits) |
+| ----- | ---- | ---------------------------------------------------------------------- | -------------------------------------------- |
+| 1     | 1    | running (worktree code-health-1, opus agent spawned 2026-11-27)        |                                              |
+| 2     | 1    | handed off (af4b147b0, check passed; merges after slice 1, plan order) |                                              |
+| 3     | —    | dropped (B-367 moved to Risa)                                          |                                              |
+| 4     | —    | dropped (B-367 moved to Risa)                                          |                                              |
+| 5     | 1    | running (worktree code-health-5, opus agent spawned 2026-11-27)        |                                              |
+| 6     | 2    | not started                                                            |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `risa backlog done` on an item when its last slice merges.
 
