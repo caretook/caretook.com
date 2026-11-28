@@ -4,9 +4,19 @@
 
 ## Status
 
+### From the user
+
+- (none yet)
+
+**Landing mode: run everything through** (started run-through, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+**Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
+
+**Now (2026-11-28):** slice 1 handed off (check green on f04414fb5) and merged (e66e2fecf); wave 1's CI run next. B-1012 is the umbrella item: done only after slice 4. Slice 1 also touched `settingForms.ts` (typed per key) and `appointmentSeries.int.test.ts` (its world owner would pass 3 groups). Backlog: only B-1012 for this topic.
+
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | planned | —                                            |
+| 1     | 1    | merged  | e66e2fecf (f04414fb5)                        |
 | 2     | 2    | planned | —                                            |
 | 3     | 3    | planned | —                                            |
 | 4     | 4    | planned | —                                            |
