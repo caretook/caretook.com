@@ -12,14 +12,14 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 3 landed in dev through PR #337. Wave 4 started in a fresh session: prd/free-limits was already up to date with dev; slice 4 (opus) handed off and merged as 65213b017; CI gate (components) out. No new backlog items for free-limits at this boundary. **Next: merge slice 4, CI gate, PR + Codex, land; last wave: then mark B-1012 done and `risa rm free-limits`.**
+**Now (2026-11-28):** wave 3 landed in dev through PR #337. Wave 4 started in a fresh session: prd/free-limits was already up to date with dev; slice 4 (opus) handed off and merged as 65213b017; CI run 46166324466 braked: plan format (fixed here) and users.browser.test.tsx (the openAdmin stub for groupLimit missing in adminWorld): fix sent to slice 4. No new backlog items for free-limits at this boundary. **Next: merge slice 4, CI gate, PR + Codex, land; last wave: then mark B-1012 done and `risa rm free-limits`.**
 
-| Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | landed  | e66e2fecf (f04414fb5)                        |
-| 2     | 2    | landed  | 5e65f672a (68577a4fd)                        |
-| 3     | 3    | landed  | 194d554f9 (db891e817, 6c6f7341f)             |
-| 4     | 4    | merged  | 65213b017 (0751afb6c)                        |
+| Slice | Wave | State  | Merge into `prd/free-limits` (slice commits) |
+| ----- | ---- | ------ | -------------------------------------------- |
+| 1     | 1    | landed | e66e2fecf (f04414fb5)                        |
+| 2     | 2    | landed | 5e65f672a (68577a4fd)                        |
+| 3     | 3    | landed | 194d554f9 (db891e817, 6c6f7341f)             |
+| 4     | 4    | merged | 65213b017 (0751afb6c)                        |
 
 ## Architectural decisions
 
